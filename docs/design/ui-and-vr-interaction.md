@@ -11,7 +11,17 @@ Mods Config VR should feel like a large projected Pip-Boy interface rather than 
 - Clear depth and hover response without excessive animation
 - Stable placement while the player is interacting
 
-Dear ImGui, rendered through F4VR-CommonFramework's panel support, is the intended implementation stack.
+Most of the UI is one Dear ImGui panel placed in a CommonFramework vrui layout (`imgui::UIImGuiPanel`). A few controls that sit on the hand are vrui buttons. The framework's ImGui panels cannot be pointed at or clicked yet; [CommonFramework work required](framework-requirements.md) lists what has to be built first.
+
+## Opening the menu
+
+The menu opens by pressing in both thumbsticks and holding them, the gesture FRIK uses today for its own configuration (`primary longpress thumbstick 1.5 +offhand:thumbstick`). It is an ordinary CommonFramework input binding in `ModsConfigVR.ini`, so the player can change it.
+
+When FRIK is installed, Mods Config VR takes the gesture over. It turns off FRIK's `sOpenConfigButton` binding for the session through FRIK's config override API, and FRIK's configuration is then opened from FRIK's entry in Mods Config VR. FRIK can integrate more closely later.
+
+The game is not paused while the menu is open, so the effect of a change is seen as it is made.
+
+FRIK is not required. With FRIK, the hand-anchored vrui buttons are pressed with the index fingertip and the hand takes a pointing pose. How those buttons are pressed without FRIK is an open question.
 
 ## Three UI states
 
@@ -82,7 +92,8 @@ inner offhand forearm / behind thumb
 └──────────┴─────────┘
 ```
 
-- Only a small offhand control remains.
+- Only a small offhand control remains. Its two buttons are vrui buttons, pressed by touch.
+- With FRIK, the control follows the forearm, so the arm never covers it. Without FRIK, it sits beside the offhand controller.
 - `Resume` restores the previous Full or Focused context.
 - `Close` enters the normal unsaved-changes flow when needed.
 - Pending values and active previews remain alive while minimized.
@@ -90,32 +101,45 @@ inner offhand forearm / behind thumb
 
 ## Full-panel placement
 
-When opened, the Full panel is spawned relative to the HMD at a comfortable distance and height, oriented primarily from horizontal head direction. It then becomes world-locked for the duration of use.
+The Full panel appears in front of the player at a comfortable distance and height. The reference for how it should feel is Fallout 4 VR's projected Pip-Boy.
 
-The panel does not continuously follow the HMD or either controller. This avoids movement while aiming and reduces discomfort.
+The panel is attached to the HMD: it follows where the player faces and stays level.
 
-For the initial design:
+The alternative is a world-locked panel, which is spawned in front of the player and then stays where it is, without following the HMD or either controller. A panel that moves with the head also moves under the ray, so the choice is made by testing in the headset. If the panel is world-locked:
 
-- There is no grab-to-move or free repositioning.
 - Closing and reopening creates a fresh placement from the player's current position.
-- Resuming Full mode from Minimized also creates a fresh comfortable placement.
-- A simple `Recenter` recovery action may respawn the panel if its placement becomes unusable; this is not a general repositioning system.
+- Resuming Full mode from Minimized also creates a fresh placement.
+- A simple `Recenter` action respawns the panel if its placement becomes unusable; this is not a general repositioning system.
 
-This behavior should be tested against the projected Pip-Boy experience in Fallout 4 VR rather than accepted solely on paper.
+In either case there is no grab-to-move or free repositioning.
+
+Whether world geometry hides the panel, and where the panel goes when a wall is closer than its distance, are open questions.
 
 ## Pointing and activation
 
+- The ImGui panel is operated with a controller ray, which ends in a mark where it meets the panel.
 - Either controller can point at the interface.
 - Only one controller owns focus/active interaction at a time.
 - A preferred interaction hand may be configurable, but the other controller should still be usable where practical.
-- A controller ray is the initial pointing mechanism.
 - Trigger activates controls and performs drags.
-- Thumbstick scrolls lists or adjusts the currently focused control where defined.
-- Back follows the navigation hierarchy.
-- Direct-touch interaction can be explored later.
+- Thumbstick scrolls the list under the pointer, or adjusts the currently focused control where defined.
+- A dropdown, popup, or confirmation opens inside the panel and stays within its edges, so the panel is the only surface the ray has to reach. A list too long for the panel scrolls inside its popup.
+- Back follows the navigation hierarchy; see [Back behavior](#back-behavior). Which controller button it uses is not decided.
+- Direct touch on the ImGui panel can be explored later.
 - There is no fake desktop mouse cursor or operating-system mouse emulation.
 
 Targets must be sized for natural controller jitter. Hover, focused, active, disabled, changed, and invalid states must be visually distinct.
+
+## Input while the menu is open
+
+The game keeps running, so input is taken from it only while the player is operating the panel:
+
+- While a ray points at the panel, that hand's trigger and thumbstick drive the UI and are hidden from the game. The trigger does not fire a weapon, and the thumbstick does not move or turn the player.
+- A press that starts on the panel stays with the UI until it is released, even if the ray drifts off the panel.
+- A trigger that is already held when the ray reaches the panel is ignored until it is released.
+- When no ray points at the panel, the controls belong to the game.
+
+Nothing more is withheld while the menu is open. The player can point away from the panel to move, turn, or use a weapon and try a change, then point back and keep editing. The cost is that a trigger pull that just misses the panel reaches the game.
 
 ## Back behavior
 
@@ -123,9 +147,10 @@ Back resolves the most local temporary interaction first:
 
 1. Cancel an active drag or text edit.
 2. Close a popup, dropdown, keyboard, or confirmation.
-3. Leave a nested page or Advanced section context.
-4. Clear the selected mod in Full mode.
-5. Request closing the interface.
+3. Clear the selected mod and return to the full-width mod list.
+4. Request closing the interface.
+
+Pages are a flat list inside a mod, so there is no page level to back out of.
 
 If closing would abandon pending changes, the player receives Save, Discard, and Cancel choices.
 
@@ -152,8 +177,8 @@ Keeping the area fixed avoids layout movement and makes help discoverable withou
 
 ## Navigation behavior
 
-- Mod order follows the resolved package order; page and setting order follow their JSON arrays.
-- The navigation area can collapse in width after selecting a mod, but remains usable.
+- Mods are listed alphabetically by display name; page and setting order follow their JSON arrays.
+- With no mod selected, the mod list uses the full width. Selecting a mod narrows the list to give the mod's settings more room, and the list remains usable. Back returns to the full-width list.
 - Category/group labels and badges must not consume so much width that names become unreadable.
 - Long lists need smooth thumbstick scrolling and a clear position indicator.
 - Search/filter is desirable, but its exact place in an initial release is not decided.
@@ -163,6 +188,7 @@ Keeping the area fixed avoids layout movement and makes help discoverable withou
 
 MCM-backed entries should feel integrated without concealing their different lifecycle:
 
+- MCM-backed entries appear only when MCM is installed.
 - Show a small `MCM` or equivalent compatibility badge if it remains legible.
 - State that changes apply immediately when that is the original MCM behavior.
 - Do not offer a misleading Save contract for changes the original MCM has already applied.
@@ -182,3 +208,5 @@ Expected experience:
 4. Mods Config VR restores the prior Full or Focused context and refreshes affected values.
 
 The external UI is not embedded inside the Mods Config VR panel. Failure recovery and timeout behavior remain open design work.
+
+FRIK's own configuration is the first case: once Mods Config VR takes over the gesture that opened it, FRIK's menu is reached this way.

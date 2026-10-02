@@ -23,6 +23,8 @@ The declarative model should support these scalar types:
 - `string`
 - `color`
 
+`int` is a signed 32-bit integer and `float` is a 32-bit float.
+
 A choice does not need a separate storage type. Its options may store typed boolean, integer, floating-point, or string values.
 
 `vec2` and `vec3` are intentionally excluded for now. Complex CommonFramework values are represented by dedicated controls rather than generic vectors.
@@ -92,15 +94,14 @@ Choice behavior:
 
 Primary use: short strings.
 
-Dear ImGui supplies text-editing widgets and accepts character/key events, but it does not supply a VR on-screen keyboard. Mods Config VR therefore owns the edit buffer and keyboard interaction.
+Dear ImGui supplies text-editing widgets and accepts character/key events, but it does not supply a VR on-screen keyboard. How that keyboard works is not designed yet; see [Open questions](open-questions.md#text-input). What is settled:
 
-- The ImGui text field and on-screen keyboard edit the same host-owned buffer.
-- Keyboard buttons modify that buffer directly rather than impersonating a mouse or operating-system keyboard.
-- Physical keyboard input, when available, feeds the same buffer.
 - `Done` validates and commits the edit to the pending setting value.
 - `Cancel` restores the value from before text editing began.
 - Invalid temporary text is not sent as a preview; the last valid preview remains active.
-- Focus is explicitly retained or restored when on-screen buttons are pressed, because ordinary ImGui buttons may take focus from `InputText`.
+- Physical keyboard input, when available, takes the same path as the on-screen keyboard.
+
+One constraint is known. A focused ImGui `InputText` keeps its own copy of the text and ignores outside changes to its buffer, so key presses from an on-screen keyboard have to reach it as ImGui character and key events.
 
 Multiline text, password fields, text selection tools, and speech input are not part of the initial design.
 
@@ -145,7 +146,7 @@ The following exact CommonFramework concepts are reserved as first-class control
 - `Haptic`
 - `Transform`
 
-Their schemas, storage mappings, live-preview semantics, and VR manipulation experiences will be designed separately. `Transform` is the intended abstraction; there is no generic `Offset` control.
+Their schemas, storage mappings, live-preview semantics, and VR manipulation experiences will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what the framework already defines for each.
 
 These should not be flattened into `vec2` or `vec3`, because their meaning, validation, and editing affordances are richer than a tuple of numbers.
 
@@ -156,8 +157,9 @@ The full and focused layouts reserve a stable description area for the item curr
 Additional feedback:
 
 - Invalid rows receive a clear marker and concise inline message.
-- Save is blocked while invalid pending values exist.
-- Attempting Save shows a summary and moves focus to the first invalid setting.
+- Save is blocked while a dirty setting is invalid. An invalid value that was already in the file does not block it.
+- Attempting Save shows a summary and moves focus to the first invalid setting that is visible.
+- The summary names every invalid setting, including one that a condition currently hides or disables. Such a setting can be reset from the summary.
 - Validation must not rely on color alone.
 
 ## Defaults and reset

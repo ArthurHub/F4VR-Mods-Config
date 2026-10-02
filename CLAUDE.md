@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mods Config VR (`ModsConfigVR`) is a **C++23 DLL plugin** for F4SE (Fallout 4 Script Extender) for Fallout 4 VR, built on the [F4VR Common Framework](external/F4VR-CommonFramework/README.md).
 
-TODO: one paragraph on what the mod does.
+It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a declarative JSON package, registers through a native API, or already has an MCM menu, and the player edits the mod's real settings files in VR, with live preview and an explicit Save. The design is in [docs/design/](docs/design/README.md). Only the template scaffold is implemented so far, and the framework work the mod needs first is listed in [docs/design/framework-requirements.md](docs/design/framework-requirements.md).
 
 ## Build System
 
@@ -75,7 +75,7 @@ TODO: add a row for each component as the mod grows.
 
 ### Config
 
-[data/config/ModsConfigVR.ini](data/config/ModsConfigVR.ini) is the shipped default config. It is embedded in the DLL (resource `IDR_CONFIG_INI`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.ini`; `ModsConfigVR_Custom.ini` beside it is merged on top.
+[data/config/ModsConfigVR.ini](data/config/ModsConfigVR.ini) is the shipped default config. It is embedded in the DLL (resource `IDR_CONFIG_INI`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.ini`.
 
 - The main section is `[ModsConfigVR]`; it must match `NAME` in `CMakeLists.txt`, which the config reads back as both the INI file name and the default section.
 - `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw).
@@ -85,7 +85,7 @@ TODO: add a row for each component as the mod grows.
 
 ### Mod Data
 
-The mod's VR UI is built from the framework's primitive-drawn `vrui` panels (text and loose textures composed at runtime), not from NIF button atlases: the template's `ui-common` / `ui-example` atlases and their source PNGs were removed on purpose.
+The mod's VR UI is mostly one Dear ImGui panel in a `vrui` layout (`imgui::UIImGuiPanel`), with the framework's primitive-drawn `vrui` panel buttons where a control sits on the hand; see [docs/design/ui-and-vr-interaction.md](docs/design/ui-and-vr-interaction.md). It does not use NIF button atlases: the template's `ui-common` / `ui-example` atlases and their source PNGs were removed on purpose.
 
 `data/mod/` is the mod's game `Data` tree, packaged beside the DLL. `Meshes\ModsConfigVR\f4cf\` and `Textures\ModsConfigVR\f4cf\` hold the framework's own assets (activation sphere, binding icons, shared VR UI icons): ship them as they came and refresh them from `external/F4VR-CommonFramework/mod-template/` when updating the framework. The mod's own assets go beside them.
 
