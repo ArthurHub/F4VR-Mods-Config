@@ -11,6 +11,7 @@ These documents capture the current product and architecture decisions. They int
 - [Controls](controls.md) — core controls, their value semantics, and specialized CommonFramework controls reserved for later design.
 - [UI and VR interaction](ui-and-vr-interaction.md) — opening the menu; full, focused, and minimized modes; world placement; pointing; editing; and low-fidelity wireframes.
 - [CommonFramework work required](framework-requirements.md) — what F4VR-CommonFramework has to gain before this mod can be built on it. This work comes first.
+- [Framework work plan](framework-plan.md) — the commits that deliver that work, and their status.
 - [Open questions](open-questions.md) — deliberately deferred design topics without assigning them to a release.
 
 ## Names
