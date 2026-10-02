@@ -42,7 +42,8 @@ F0 opens the `0.5.0` section of the changelog.
 | --- | --------- | --------------------------------------------------------------------------- | --------- |
 | F1  | framework | vrui: an element takes a rotation, and its whole tree turns with it         | done      |
 | M2  | mod       | The panel tilted back, a wrist button for FRIK's config, the dev layout     | done      |
-| F2  | framework | vrui: offhand controller preset, mirrored in left-handed mode               | todo      |
+| F2  | framework | vrui: offhand controller presets, top and right, as on the primary wand     | done      |
+| M3  | mod       | The wrist buttons on the offhand top preset                                 | done      |
 | F3  | framework | vrui: wrist preset that follows the forearm bone, with controller fallback  | todo      |
 
 F1 adds the rotation to the dev layout as `Rot`, so it is tuned live in `[VRUI_DevLayout]`.
@@ -53,7 +54,7 @@ M2 moves the submodule to F1 and uses it:
 - With FRIK installed, a third wrist button minimizes the menu and opens FRIK's own config, which lost its gesture to this menu.
 - A devbench action, `devlayout`, turns the dev layout on for the open menu.
 
-F2 needs one reading in the game first: which way the offhand's nodes face.
+F2 attaches to `secondaryUIOffsetNode`. It has the same local transform as `primaryUIAttachNode`, no offset and the same tilt, so the offhand presets need no rotation. In left-handed mode the row sits a little to the left of the hand: the hand's placement on the controller is not mirrored there, which is left for FRIK to fix.
 
 ### Interactive ImGui panel (items 2 to 5)
 

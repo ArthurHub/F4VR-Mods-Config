@@ -8,7 +8,6 @@
 #include "api/FRIKApi.h"
 #include "common/MatrixUtils.h"
 #include "f4sevr/PapyrusUtils.h"
-#include "f4vr/PlayerNodes.h"
 #include "vrui/UIManager.h"
 #include "vrui/UIPanelStyle.h"
 
@@ -152,8 +151,7 @@ namespace mods_config
             _wristButtons->addElement(frikButton);
         }
 
-        // the offhand controller's node as it is: the framework has no offhand preset yet
-        g_uiManager->attachElement(_wristButtons, f4vr::getOffhandWandNode());
+        g_uiManager->attachPresetToOffhandWandTop(_wristButtons, { 0, 0, 0 });
     }
 
     /**
