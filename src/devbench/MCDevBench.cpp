@@ -6,6 +6,7 @@
 
 #include "ModsConfigVR.h"
 #include "devbench/DevBench.h"
+#include "vrui/UIManager.h"
 
 namespace mods_config::devbench
 {
@@ -60,6 +61,15 @@ namespace mods_config::devbench
             menu.close();
             return { { "open", menu.isOpen() } };
         }
+
+        json runDevLayout(const json&)
+        {
+            if (!g_modsConfig.menu().isOpen()) {
+                throw std::runtime_error("the menu is not open");
+            }
+            vrui::g_uiManager->enableDevLayoutViaConfig();
+            return { { "section", "VRUI_DevLayout" } };
+        }
     }
 
     void setupDevBenchTool()
@@ -77,6 +87,11 @@ namespace mods_config::devbench
             .name = "close",
             .description = "close the config menu",
             .handler = &runClose,
+        });
+        f4cf::devbench::addAction({
+            .name = "devlayout",
+            .description = "write the open menu's vrui layout to [VRUI_DevLayout] in the INI: edits to that section apply live, until the menu is closed",
+            .handler = &runDevLayout,
         });
     }
 }

@@ -28,15 +28,32 @@ M1 is the first real change in the mod:
 - Two vrui buttons are attached to the offhand controller as the framework places them today, and are shown with the panel. They are the test case for item 1. Close closes the menu. The other one hides and shows the panel (Minimize and Resume), because nothing on the panel can be pressed yet.
 - Devbench actions open and close the menu, and its state says whether the menu is open or minimized.
 
-### Hand-anchored UI (item 1)
+### Version 0.5.0
 
 | #   | Repo      | Commit                                                                      | Status |
 | --- | --------- | --------------------------------------------------------------------------- | ------ |
-| F1  | framework | vrui: a root element takes a rotation, and its whole tree turns with it     | todo   |
-| F2  | framework | vrui: offhand controller preset, mirrored in left-handed mode               | todo   |
-| F3  | framework | vrui: wrist preset that follows the forearm bone, with controller fallback  | todo   |
+| F0  | framework | Version 0.5.0, the deprecated `PlayerNodes` and `getPlayerNodes()` removed  | done   |
 
-F1 also holds the version bump to 0.5.0 and the new changelog section. F2 needs one reading in the game first: which way the offhand's nodes face.
+F0 opens the `0.5.0` section of the changelog.
+
+### Hand-anchored UI (item 1)
+
+| #   | Repo      | Commit                                                                      | Status    |
+| --- | --------- | --------------------------------------------------------------------------- | --------- |
+| F1  | framework | vrui: an element takes a rotation, and its whole tree turns with it         | done      |
+| M2  | mod       | The panel tilted back, a wrist button for FRIK's config, the dev layout     | done      |
+| F2  | framework | vrui: offhand controller preset, mirrored in left-handed mode               | todo      |
+| F3  | framework | vrui: wrist preset that follows the forearm bone, with controller fallback  | todo      |
+
+F1 adds the rotation to the dev layout as `Rot`, so it is tuned live in `[VRUI_DevLayout]`.
+
+M2 moves the submodule to F1 and uses it:
+
+- The panel is larger, stands further away and lower, and is tilted back by 10 degrees.
+- With FRIK installed, a third wrist button minimizes the menu and opens FRIK's own config, which lost its gesture to this menu.
+- A devbench action, `devlayout`, turns the dev layout on for the open menu.
+
+F2 needs one reading in the game first: which way the offhand's nodes face.
 
 ### Interactive ImGui panel (items 2 to 5)
 

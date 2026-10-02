@@ -9,8 +9,8 @@
 namespace mods_config
 {
     /**
-     * The config menu: one ImGui panel in front of the player, and two buttons on the offhand that stay
-     * while the panel is minimized.
+     * The config menu: one ImGui panel in front of the player, and a row of buttons on the offhand that
+     * stays while the panel is minimized.
      */
     class ConfigMenu
     {
@@ -27,8 +27,8 @@ namespace mods_config
         void setMinimized(bool minimized);
 
         /**
-         * Call after the UI manager's frame update: a close asked for by a button press is applied here,
-         * once the manager is done iterating its elements.
+         * Call after the UI manager's frame update: what a button press asked for, closing the menu or
+         * minimizing it and opening FRIK's config, is applied here, once the manager is done iterating its elements.
          */
         void onFrameUpdate();
 
@@ -41,6 +41,7 @@ namespace mods_config
         std::shared_ptr<vrui::UIContainer> _wristButtons;
         std::shared_ptr<vrui::UIButtonPanel> _minimizeButton;
         bool _closeRequested = false;
+        bool _openFrikRequested = false;
 
         // values of the placeholder controls
         int _buttonPresses = 0;

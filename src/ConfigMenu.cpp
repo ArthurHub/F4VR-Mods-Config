@@ -5,6 +5,9 @@
 
 #include <imgui.h>
 
+#include "api/FRIKApi.h"
+#include "common/MatrixUtils.h"
+#include "f4sevr/PapyrusUtils.h"
 #include "f4vr/PlayerNodes.h"
 #include "vrui/UIManager.h"
 #include "vrui/UIPanelStyle.h"
@@ -13,12 +16,13 @@ using namespace vrui;
 
 namespace
 {
-    // the panel in vrui units, and where it stands relative to the HMD: forward and up
-    constexpr float PANEL_WIDTH = 20.0f;
-    constexpr float PANEL_HEIGHT = 14.0f;
+    // the panel in vrui units, and where it stands relative to the HMD: forward, up, and tilted back
+    constexpr float PANEL_WIDTH = 25.0f;
+    constexpr float PANEL_HEIGHT = 22.0f;
     constexpr float PANEL_SCALE = 3.0f;
-    constexpr float PANEL_FORWARD = 70.0f;
-    constexpr float PANEL_UP = 0.0f;
+    constexpr float PANEL_FORWARD = 90.0f;
+    constexpr float PANEL_UP = -20.0f;
+    constexpr float PANEL_TILT_DEGREES = 10.0f;
 
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
     constexpr float WRIST_BUTTON_HEIGHT = 1.2f;
@@ -28,6 +32,23 @@ namespace
     constexpr int LIST_ROWS = 40;
     constexpr float LIST_HEIGHT_PIXELS = 220.0f;
     constexpr auto DISCARD_POPUP = "Discard changes?";
+
+    /**
+     * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
+     * for it. The function takes no arguments, which is an empty array.
+     */
+    void openFrikConfig()
+    {
+        logger::info("Open FRIK main config");
+        const auto vm = F4SEVR::getGameVM()->m_virtualMachine;
+        F4SEVR::VMArray<F4SEVR::VMVariable> arguments;
+        F4SEVR::VMValue packedArguments;
+        F4SEVR::PackValue(&packedArguments, &arguments, vm);
+
+        const F4SEVR::BSFixedString script("FRIK:FRIK");
+        const F4SEVR::BSFixedString function("OpenMainConfigurationMode");
+        F4SEVR::CallGlobalFunctionNoWait_Internal(vm, 0, 0, &script, &function, &packedArguments);
+    }
 }
 
 namespace mods_config
@@ -55,6 +76,7 @@ namespace mods_config
     void ConfigMenu::close()
     {
         _closeRequested = false;
+        _openFrikRequested = false;
         if (!isOpen()) {
             return;
         }
@@ -77,7 +99,14 @@ namespace mods_config
 
     void ConfigMenu::onFrameUpdate()
     {
-        if (_closeRequested) {
+        if (_openFrikRequested) {
+            _openFrikRequested = false;
+            setMinimized(true);
+            // FRIK builds another config UI on every call, also when one is already open
+            if (!frik::api::FRIKApi::inst->isConfigOpen()) {
+                openFrikConfig();
+            }
+        } else if (_closeRequested) {
             close();
         }
     }
@@ -88,6 +117,7 @@ namespace mods_config
         _panel->setStyle(F4VR_PANEL_STYLE);
         _panel->setScale(PANEL_SCALE);
         _panel->setPosition(0, PANEL_FORWARD, PANEL_UP);
+        _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(PANEL_TILT_DEGREES, 0, 0));
         _panel->setContent([this] {
             drawContent();
         });
@@ -111,6 +141,16 @@ namespace mods_config
         _wristButtons = std::make_shared<UIContainer>("ModsConfigVR_WristButtons", UIContainerLayout::HorizontalCenter, WRIST_BUTTON_GAP);
         _wristButtons->addElement(_minimizeButton);
         _wristButtons->addElement(closeButton);
+
+        // this menu opens with the gesture taken from FRIK, so FRIK's own config is opened from here
+        if (frik::api::FRIKApi::inst) {
+            const auto frikButton = std::make_shared<UIButtonPanel>("ModsConfigVR_FrikButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+            frikButton->setMiddleText("FRIK");
+            frikButton->setOnPressHandler([this](UIButtonPanel*) {
+                _openFrikRequested = true;
+            });
+            _wristButtons->addElement(frikButton);
+        }
 
         // the offhand controller's node as it is: the framework has no offhand preset yet
         g_uiManager->attachElement(_wristButtons, f4vr::getOffhandWandNode());
