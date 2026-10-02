@@ -3,6 +3,7 @@
 #include "ConfigBase.h"
 #include "Resources.h"
 #include "common/CommonUtils.h"
+#include "vrcf/VRControllersManager.h"
 
 namespace mods_config
 {
@@ -16,8 +17,8 @@ namespace mods_config
             : ConfigBase(Version::PROJECT, INI_PATH, IDR_CONFIG_INI)
         {}
 
-        // Mod configs
-        float myConfigValue = 0.0f;
+        // Opens and closes the config menu
+        vrcf::InputBinding openMenuBinding;
 
     protected:
         virtual void loadIniConfigInternal(const CSimpleIniA& ini) override;

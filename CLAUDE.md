@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mods Config VR (`ModsConfigVR`) is a **C++23 DLL plugin** for F4SE (Fallout 4 Script Extender) for Fallout 4 VR, built on the [F4VR Common Framework](external/F4VR-CommonFramework/README.md).
 
-It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a declarative JSON package, registers through a native API, or already has an MCM menu, and the player edits the mod's real settings files in VR, with live preview and an explicit Save. The design is in [docs/design/](docs/design/README.md). Only the template scaffold is implemented so far, and the framework work the mod needs first is listed in [docs/design/framework-requirements.md](docs/design/framework-requirements.md).
+It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a declarative JSON package, registers through a native API, or already has an MCM menu, and the player edits the mod's real settings files in VR, with live preview and an explicit Save. The design is in [docs/design/](docs/design/README.md). So far the menu opens one ImGui panel with placeholder controls, the test bed for the framework work the mod needs first. That work is listed in [docs/design/framework-requirements.md](docs/design/framework-requirements.md), and its commits are tracked in [docs/design/framework-plan.md](docs/design/framework-plan.md).
 
 ## Build System
 
@@ -68,8 +68,11 @@ The entry point is [src/ModsConfigVR.h](src/ModsConfigVR.h) / [src/ModsConfigVR.
 
 | Component  | Files                                                 | Responsibility                                                                    |
 | ---------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **ModsConfigVR**  | [src/ModsConfigVR.h](src/ModsConfigVR.h) / [.cpp](src/ModsConfigVR.cpp)    | The mod class and the F4SE entry points                                           |
+| **ModsConfigVR**  | [src/ModsConfigVR.h](src/ModsConfigVR.h) / [.cpp](src/ModsConfigVR.cpp)    | The mod class and the F4SE entry points: the opening gesture, taking it from FRIK, the vrui adapter |
 | **Config** | [src/Config.h](src/Config.h) / [.cpp](src/Config.cpp) | INI load via `ConfigBase` (global `g_config`), live hot-reload via a file watcher |
+| **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel on the HMD and the vrui buttons on the offhand |
+| **DevBench** | [src/devbench/MCDevBench.h](src/devbench/MCDevBench.h) / [.cpp](src/devbench/MCDevBench.cpp) | The mod's devbench tool: its state and its actions (open, close) |
+| **FRIK API** | [src/api/FRIKApi.h](src/api/FRIKApi.h) | FRIK's client header, copied as is from FRIK (`src/api/FRIKApi.h`, API v4): never edit it |
 
 TODO: add a row for each component as the mod grows.
 

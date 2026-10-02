@@ -19,7 +19,7 @@ Status is one of `todo`, `in review`, or `done`.
 
 | #   | Repo | Commit                                                                                   | Status |
 | --- | ---- | ---------------------------------------------------------------------------------------- | ------ |
-| M1  | mod  | Open the menu with the gesture taken from FRIK: one ImGui panel and the wrist buttons    | in review |
+| M1  | mod  | Open the menu with the gesture taken from FRIK: one ImGui panel and the wrist buttons    | done   |
 
 M1 is the first real change in the mod:
 

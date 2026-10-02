@@ -11,7 +11,16 @@ namespace mods_config
 {
     void Config::loadIniConfigInternal(const CSimpleIniA& ini)
     {
-        // TODO: load config from ini
-        myConfigValue = static_cast<float>(ini.GetDoubleValue(DEFAULT_SECTION, "fMyConfigValue", 3.0));
+        // both thumbsticks pressed in and held, the gesture FRIK uses for its own config
+        openMenuBinding = getInputBindingValue(ini,
+            DEFAULT_SECTION,
+            "sOpenMenuBinding",
+            vrcf::InputBinding{
+                .hand = vrcf::Hand::Primary,
+                .type = vrcf::ActivationType::LongPress,
+                .button = vr::k_EButton_SteamVR_Touchpad,
+                .modifier = vrcf::InputModifier{ vr::k_EButton_SteamVR_Touchpad, vrcf::Hand::Offhand },
+                .duration = 1.5f,
+            });
     }
 }
