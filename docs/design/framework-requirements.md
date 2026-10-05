@@ -223,7 +223,7 @@ None of this is needed for the first usable version. Each item waits on a design
 - **Text entry.** Characters and keys reach ImGui through `io.AddInputCharacter` and `io.AddKeyEvent`, exposed by the canvas input API. A focused ImGui `InputText` keeps its own copy of the text and ignores outside changes to its buffer, so an on-screen keyboard has to go through these events. Waits on the VR keyboard design.
 - **Images in canvases.** `ImGui::Image` needs a texture that is valid on the render thread and stays alive until the cloned frame has been drawn. `render::Texture` gives that guarantee to `PrimitiveDraw` frames, and the ImGui path has no equivalent. Needed for image elements and controller-binding icons.
 - **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads one font at one size with ImGui's default glyph ranges, and the embedded font is Roboto. Text outside Latin-1 does not render, and a heading can only be a scaled copy of the body size. Localization needs wider glyph coverage and fallback fonts, and the visual design may want more than one size. ImGui is at 1.90.2, fixed by the pinned vcpkg baseline.
-- **Touch as a second pointer source.** A fingertip crossing the canvas plane, taken from the same `UIModAdapter` position that vrui buttons use. For the hand-anchored Focused view.
+- **Touch as a second pointer source.** A fingertip crossing the canvas plane, taken from the same fingertip that vrui buttons use. For the hand-anchored Focused view.
 - **Ray press for vrui buttons.** Needed only if vrui buttons end up in the Full panel's layout, out of reach of a finger.
 
 ## Not framework work
@@ -231,7 +231,7 @@ None of this is needed for the first usable version. Each item waits on a design
 These are handled in Mods Config VR or exist already:
 
 - **The opening gesture.** Holding both thumbsticks is expressible as an input binding today: `primary longpress thumbstick 1.5 +offhand:thumbstick`, the binding FRIK uses for its own configuration. Taking the gesture over from FRIK goes through FRIK's API (`setConfigValueOverride`).
-- **FRIK integration.** The fingertip position and the pointing hand pose reach vrui through the mod's `UIModAdapter`, as in other mods.
+- **FRIK integration.** vrui finds the fingertip and points the hand through FRIK's API by itself.
 - **Hand-anchored vrui buttons**, such as Minimized's Resume and Close. Only their placement on the offhand is framework work (item 1).
 - **Haptics.** `VRHaptics` and its named patterns.
 - **Files, packages, and MCM.** Reading and writing other mods' files, the package schema, and the MCM bridge live in the mod.

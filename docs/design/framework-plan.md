@@ -44,17 +44,34 @@ F0 opens the `0.5.0` section of the changelog.
 | M2  | mod       | The panel tilted back, a wrist button for FRIK's config, the dev layout     | done      |
 | F2  | framework | vrui: offhand controller presets, top and right, as on the primary wand     | done      |
 | M3  | mod       | The wrist buttons on the offhand top preset                                 | done      |
-| F3  | framework | vrui: wrist preset that follows the forearm bone, with controller fallback  | todo      |
+| F3  | framework | vrui: wrist preset that follows the forearm bone, with controller fallback  | done      |
 
-F1 adds the rotation to the dev layout as `Rot`, so it is tuned live in `[VRUI_DevLayout]`.
+F1 adds the rotation to the dev layout as `Rot`, so it is tuned live in the dev layout's file.
 
 M2 moves the submodule to F1 and uses it:
 
 - The panel is larger, stands further away and lower, and is tilted back by 10 degrees.
 - With FRIK installed, a third wrist button minimizes the menu and opens FRIK's own config, which lost its gesture to this menu.
-- A devbench action, `devlayout`, turns the dev layout on for the open menu.
 
 F2 attaches to `secondaryUIOffsetNode`. It has the same local transform as `primaryUIAttachNode`, no offset and the same tilt, so the offhand presets need no rotation. In left-handed mode the row sits a little to the left of the hand: the hand's placement on the controller is not mirrored there, which is left for FRIK to fix.
+
+### Dev layout
+
+Not an item of the requirements: the tool the placements above are tuned with.
+
+| #   | Repo      | Commit                                                                      | Status    |
+| --- | --------- | --------------------------------------------------------------------------- | --------- |
+| F15 | framework | vrui: the dev layout is turned on by a debug flag and keeps its own file    | done      |
+| M4  | mod       | The wrist buttons on the wrist preset, the dev layout by the framework flag | done      |
+
+F15 turns the dev layout on with `bVRUIDevLayout` in `[Debug]`, which is not in the shipped INI, and devbench's `set` turns it on for a session. Its lines are in `ModsConfigVR_DevLayout.ini` beside the INI, a section for each attached root, and no longer in the mod's INI or in `ConfigBase`.
+
+M4 moves the submodule to F15 and uses what the framework brings since M3:
+
+- The wrist buttons lie on the wrist preset of F3, are taller, and say CLICK above their name.
+- The mod's vrui adapter is removed: the framework finds the fingertip and points the hand by itself.
+- The `devlayout` devbench action is removed: the dev layout is turned on by its flag.
+- The panel is wider and taller, and tilted back by 5 degrees.
 
 ### Interactive ImGui panel (items 2 to 5)
 

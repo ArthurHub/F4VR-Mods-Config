@@ -27,8 +27,9 @@ namespace mods_config
         void setMinimized(bool minimized);
 
         /**
-         * Call after the UI manager's frame update: what a button press asked for, closing the menu or
-         * minimizing it and opening FRIK's config, is applied here, once the manager is done iterating its elements.
+         * Applies what a button press asked for: closing the menu, or minimizing it and opening FRIK's config.
+         * It is done here, in the mod's frame update, and not in the press handler, which runs while the
+         * UI manager iterates its elements.
          */
         void onFrameUpdate();
 

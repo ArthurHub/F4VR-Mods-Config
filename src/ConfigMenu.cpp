@@ -16,16 +16,19 @@ using namespace vrui;
 namespace
 {
     // the panel in vrui units, and where it stands relative to the HMD: forward, up, and tilted back
-    constexpr float PANEL_WIDTH = 25.0f;
-    constexpr float PANEL_HEIGHT = 22.0f;
+    constexpr float PANEL_WIDTH = 30.0f;
+    constexpr float PANEL_HEIGHT = 24.0f;
     constexpr float PANEL_SCALE = 3.0f;
     constexpr float PANEL_FORWARD = 90.0f;
     constexpr float PANEL_UP = -20.0f;
-    constexpr float PANEL_TILT_DEGREES = 10.0f;
+    constexpr float PANEL_TILT_DEGREES = 5.0f;
 
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
-    constexpr float WRIST_BUTTON_HEIGHT = 1.2f;
+    constexpr float WRIST_BUTTON_HEIGHT = 2.2f;
     constexpr float WRIST_BUTTON_GAP = 0.2f;
+
+    // where the wrist buttons lie, from the framework's place on the wrist: position, then degrees around x, y and z
+    const RE::NiTransform WRIST_BUTTONS_OFFSET = common::MatrixUtils::getTransform(0, 0, 0, 0, 0, 0);
 
     constexpr std::array COMBO_OPTIONS{ "Low", "Medium", "High", "Ultra" };
     constexpr int LIST_ROWS = 40;
@@ -126,12 +129,14 @@ namespace mods_config
     void ConfigMenu::createWristButtons()
     {
         _minimizeButton = std::make_shared<UIButtonPanel>("ModsConfigVR_MinimizeButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+        _minimizeButton->setTopText("CLICK");
         _minimizeButton->setMiddleText("MINIMIZE");
         _minimizeButton->setOnPressHandler([this](UIButtonPanel*) {
             setMinimized(!isMinimized());
         });
 
         const auto closeButton = std::make_shared<UIButtonPanel>("ModsConfigVR_CloseButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+        closeButton->setTopText("CLICK");
         closeButton->setMiddleText("CLOSE");
         closeButton->setOnPressHandler([this](UIButtonPanel*) {
             _closeRequested = true;
@@ -144,6 +149,7 @@ namespace mods_config
         // this menu opens with the gesture taken from FRIK, so FRIK's own config is opened from here
         if (frik::api::FRIKApi::inst) {
             const auto frikButton = std::make_shared<UIButtonPanel>("ModsConfigVR_FrikButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+            frikButton->setTopText("CLICK");
             frikButton->setMiddleText("FRIK");
             frikButton->setOnPressHandler([this](UIButtonPanel*) {
                 _openFrikRequested = true;
@@ -151,7 +157,7 @@ namespace mods_config
             _wristButtons->addElement(frikButton);
         }
 
-        g_uiManager->attachPresetToOffhandWandTop(_wristButtons, { 0, 0, 0 });
+        g_uiManager->attachPresetToOffhandWrist(_wristButtons, WRIST_BUTTONS_OFFSET);
     }
 
     /**
