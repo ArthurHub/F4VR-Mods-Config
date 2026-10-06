@@ -105,6 +105,8 @@ The Full panel appears in front of the player at a comfortable distance and heig
 
 The panel is world-locked: it is spawned in front of the player, level, and then stays where it is, without following the HMD or either controller. A panel that moves with the head also moves under the ray.
 
+The panel is curved toward the player, so its sides are about as far away as its middle and nearly face the player.
+
 - Closing and reopening creates a fresh placement from the player's current position.
 - Resuming Full mode from Minimized also creates a fresh placement.
 - A simple `Recenter` action respawns the panel if its placement becomes unusable; this is not a general repositioning system. It is a long press of the offhand thumbstick, and can be rebound.

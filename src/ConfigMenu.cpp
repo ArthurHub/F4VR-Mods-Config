@@ -18,12 +18,17 @@ using namespace vrui;
 namespace
 {
     // the panel in vrui units, and where it is put from the HMD: forward, up, and tilted back
-    constexpr float PANEL_WIDTH = 20.0f;
+    constexpr float PANEL_WIDTH = 24.0f;
     constexpr float PANEL_HEIGHT = 15.0f;
     constexpr float PANEL_SCALE = 6.0f;
     constexpr float PANEL_FORWARD = 120.0f;
     constexpr float PANEL_UP = -20.0f;
     constexpr float PANEL_TILT_DEGREES = 5.0f;
+
+    // The radius the panel is curved at toward the player, in the panel's own units: a higher radius is a
+    // flatter panel. At PANEL_FORWARD / PANEL_SCALE, which is 20, the sides are as far from the player as
+    // the middle. It is a little flatter than that, as tuned in the headset.
+    constexpr float PANEL_CURVE_RADIUS = 25.0f;
 
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
     constexpr float WRIST_BUTTON_HEIGHT = 2.2f;
@@ -160,6 +165,7 @@ namespace mods_config
         _panel->setScale(PANEL_SCALE);
         _panel->setPosition(0, PANEL_FORWARD, PANEL_UP);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(PANEL_TILT_DEGREES, 0, 0));
+        _panel->setCurveRadius(PANEL_CURVE_RADIUS);
         // the menu's one ImGui panel: at this size it needs a texture of its own, and its combo and dialog open inside it
         _panel->setDedicated(true);
         _panel->setInteractive(true);

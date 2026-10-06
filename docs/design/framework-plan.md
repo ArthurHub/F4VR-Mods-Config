@@ -160,6 +160,23 @@ M8 moves the submodule to F18 and uses both:
 - The preset is given `fRecenterDistance`, 350 units by default, so the framework puts the panel in front of the player when they walk away from it, and not while the menu is minimized. The menu is not closed, as it can hold changes that are not saved.
 - `fMarkSize` and `fMarkBorderWidth` are 0.45 and 0.08 by default.
 
+### Curved panel
+
+Not an item of the requirements. The flat panel is as wide as its distance from the player, so its sides are further away than its middle and turned away from the player, and the text there reads smaller.
+
+| #   | Repo      | Commit                                                              | Status    |
+| --- | --------- | ------------------------------------------------------------------- | --------- |
+| F19 | framework | imgui: a panel is curved toward the player, around a cylinder       | done      |
+| M9  | mod       | The panel is curved around the player                               | done      |
+
+F19 adds `setCurveRadius` to `UIImGuiPanel`, and `curveRadius` to the placement of a `Canvas`:
+
+- The panel is bent around a cylinder of that radius, whose axis runs along the panel's height in front of its middle. Its middle stays where it is, and its width is kept along the curve.
+- It is drawn as flat pieces side by side, and the pointer meets it on the cylinder. Both take the curve from the same code, which is unit tested.
+- The dev layout has the radius as `Curve`.
+
+M9 moves the submodule to F19 and uses it: the panel is 24 units wide and curved toward the player at a radius of 25 units, as tuned in the headset. That is a little flatter than a radius of 20, the distance the panel is put at, where every part of it is at that distance from the player.
+
 ### Config (items 8 to 10)
 
 These do not need the panel, so they can be moved earlier.
