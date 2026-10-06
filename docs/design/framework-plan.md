@@ -114,8 +114,23 @@ M6 moves the submodule to F7 and uses what the framework brings since M5:
 
 | #   | Repo      | Commit                                                                          | Status |
 | --- | --------- | ------------------------------------------------------------------------------- | ------ |
-| F8  | framework | imgui: the canvas window's zero padding and border are popped before content    | todo   |
-| F9  | framework | imgui: dedicated panel with a texture of its own, as ImGui's display            | todo   |
+| F8  | framework | imgui: the canvas window's zero padding and border are popped before content    | done      |
+| F9  | framework | imgui: dedicated panel with a texture of its own, as ImGui's display            | done      |
+| M7  | mod       | The panel is dedicated, with its combo at the bottom edge                       | done      |
+
+F8 pops the canvas window's zero padding and border right after the window begins. What the content opens then has ImGui's own: a combo's list, a popup, a dialog, and a bordered child window, whose content moves in by that padding.
+
+F9 adds `setDedicated` to `UIImGuiPanel` and to `Canvas`:
+
+- A dedicated panel has a texture of its own size in place of a part of the atlas, up to 4096 layout pixels a side, which is about 85 vrui units.
+- While it is shown, the ImGui frame holds that panel alone and ImGui's display is the panel.
+- The atlas texture is created when a canvas is first drawn into it, so a mod with only a dedicated panel does not have it.
+
+M7 moves the submodule to F9 and uses it:
+
+- The panel is dedicated, so its combo's list and its dialog open inside it.
+- The panel is 20 by 15 units at a scale of 6, where it was 38 by 30 at a scale of 3: about the same size in the world, with everything on it twice as large.
+- The combo of the placeholder controls is at the panel's bottom edge, where its list has to open upward.
 
 ### Config (items 8 to 10)
 
@@ -138,6 +153,7 @@ F14 reaches FRIK's API only when FRIK is built against a framework that has it.
 - **Suppression is of the whole wand.** While a wand operates a panel, all of its buttons and axes are hidden from the game, instead of the trigger and the scrolling thumbstick only. F7 then only feeds the thumbstick to ImGui as the wheel.
 - **Each hand is suppressed by its own ray**, not the pointer's hand only. A press of the other hand on a canvas takes the pointer over, so its wand has to be hidden before the press.
 - **A press outlives its canvas.** When a canvas is hidden or destroyed in the middle of a press, the wand stays hidden from the game until the trigger is released, instead of being given back at once. The game would otherwise get a trigger that is already down.
+- **A dedicated panel has a largest size**, 4096 layout pixels a side, instead of keeping its pixels at any size. At the largest supersample factor that is the largest texture D3D11 can have.
 
 ## Not in this plan
 

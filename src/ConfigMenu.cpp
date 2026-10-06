@@ -18,9 +18,9 @@ using namespace vrui;
 namespace
 {
     // the panel in vrui units, and where it stands relative to the HMD: forward, up, and tilted back
-    constexpr float PANEL_WIDTH = 38.0f;
-    constexpr float PANEL_HEIGHT = 30.0f;
-    constexpr float PANEL_SCALE = 3.0f;
+    constexpr float PANEL_WIDTH = 20.0f;
+    constexpr float PANEL_HEIGHT = 15.0f;
+    constexpr float PANEL_SCALE = 6.0f;
     constexpr float PANEL_FORWARD = 120.0f;
     constexpr float PANEL_UP = -20.0f;
     constexpr float PANEL_TILT_DEGREES = 5.0f;
@@ -121,10 +121,22 @@ namespace mods_config
     void ConfigMenu::createPanel()
     {
         _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigVR_Panel", PANEL_WIDTH, PANEL_HEIGHT);
-        _panel->setStyle(F4VR_PANEL_STYLE);
+        _panel->setStyle({
+            // Opaque, both of them: these are picked to match the widgets beside the panel, and an alpha
+            // below 255 blends a colour toward whatever is behind it, which reads as the wrong colour
+            // rather than as a see-through one. The background is the only part that wants an alpha.
+            .color = render::Color::rgba(10, 250, 120),
+            .background = render::Color::rgba(15, 15, 15, 166),
+            .borderColor = render::Color::rgba(10, 250, 120),
+            .borderThicknessUnits = 0.08f,
+            .cornerRadiusUnits = 0.5f,
+            .padding = UIPadding::all(0.3f),
+        });
         _panel->setScale(PANEL_SCALE);
         _panel->setPosition(0, PANEL_FORWARD, PANEL_UP);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(PANEL_TILT_DEGREES, 0, 0));
+        // the menu's one ImGui panel: at this size it needs a texture of its own, and its combo and dialog open inside it
+        _panel->setDedicated(true);
         _panel->setInteractive(true);
         _panel->setContent([this] {
             drawContent();
@@ -184,15 +196,6 @@ namespace mods_config
         ImGui::Checkbox("Checkbox", &_controls.checkbox);
         ImGui::SliderFloat("Slider", &_controls.slider, 0.0f, 2.0f);
 
-        if (ImGui::BeginCombo("Combo", COMBO_OPTIONS[_controls.comboOption])) {
-            for (int i = 0; i < static_cast<int>(COMBO_OPTIONS.size()); ++i) {
-                if (ImGui::Selectable(COMBO_OPTIONS[i], i == _controls.comboOption)) {
-                    _controls.comboOption = i;
-                }
-            }
-            ImGui::EndCombo();
-        }
-
         if (ImGui::BeginChild("List", ImVec2(0.0f, LIST_HEIGHT_PIXELS), ImGuiChildFlags_Border)) {
             for (int i = 0; i < LIST_ROWS; ++i) {
                 if (ImGui::Selectable(std::format("Row {}", i + 1).c_str(), i == _controls.listRow)) {
@@ -216,6 +219,17 @@ namespace mods_config
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
+        }
+
+        // at the panel's bottom edge, where its list has no room below it and opens upward
+        ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeight());
+        if (ImGui::BeginCombo("Combo", COMBO_OPTIONS[_controls.comboOption])) {
+            for (int i = 0; i < static_cast<int>(COMBO_OPTIONS.size()); ++i) {
+                if (ImGui::Selectable(COMBO_OPTIONS[i], i == _controls.comboOption)) {
+                    _controls.comboOption = i;
+                }
+            }
+            ImGui::EndCombo();
         }
     }
 }
