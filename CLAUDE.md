@@ -70,7 +70,7 @@ The entry point is [src/ModsConfigVR.h](src/ModsConfigVR.h) / [src/ModsConfigVR.
 | ---------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
 | **ModsConfigVR**  | [src/ModsConfigVR.h](src/ModsConfigVR.h) / [.cpp](src/ModsConfigVR.cpp)    | The mod class and the F4SE entry points: the opening gesture, taking it from FRIK |
 | **Config** | [src/Config.h](src/Config.h) / [.cpp](src/Config.cpp) | INI load via `ConfigBase` (global `g_config`), live hot-reload via a file watcher |
-| **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel fixed in the world and the vrui buttons on the offhand |
+| **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel in the world, which the player can move, and the vrui buttons on the offhand |
 | **DevBench** | [src/devbench/MCDevBench.h](src/devbench/MCDevBench.h) / [.cpp](src/devbench/MCDevBench.cpp) | The mod's devbench tool: its state and its actions (open, close) |
 | **FRIK API** | [src/api/FRIKApi.h](src/api/FRIKApi.h) | FRIK's client header, copied as is from FRIK (`src/api/FRIKApi.h`, API v4): never edit it |
 
@@ -81,6 +81,7 @@ TODO: add a row for each component as the mod grows.
 [data/config/ModsConfigVR.ini](data/config/ModsConfigVR.ini) is the shipped default config. It is embedded in the DLL (resource `IDR_CONFIG_INI`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.ini`.
 
 - The main section is `[ModsConfigVR]`; it must match `NAME` in `CMakeLists.txt`, which the config reads back as both the INI file name and the default section.
+- `[Panel]` holds the menu's panel in the world: the button that moves it and how smoothly it follows the hand, the gesture that puts it in front of the player again, and the distance at which that happens by itself.
 - `[Pointer]` holds the menu's pointer: where the ray is on the hand, how the ray and the mark on the panel look, and how fast the thumbstick scrolls. It is read into an `imgui::PointerStyle` and given to the framework's pointer every frame.
 - `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw).
 - To add a value: a member in `Config.h`, a read in `Config::loadIniConfigInternal()`, and the key in the shipped INI.

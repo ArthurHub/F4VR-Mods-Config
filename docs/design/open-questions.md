@@ -134,8 +134,6 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - Progress, cancellation, and error handling for long-running actions
 - Accessibility options beyond the three main UI sizes
 
-Free panel repositioning is not currently planned. A simple recovery/recenter operation is distinct from a repositioning system.
-
 ## Profiles, backups, and portability
 
 - Back up and restore all mod configurations

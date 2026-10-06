@@ -177,6 +177,32 @@ F19 adds `setCurveRadius` to `UIImGuiPanel`, and `curveRadius` to the placement 
 
 M9 moves the submodule to F19 and uses it: the panel is 24 units wide and curved toward the player at a radius of 25 units, as tuned in the headset. That is a little flatter than a radius of 20, the distance the panel is put at, where every part of it is at that distance from the player.
 
+### Moving the panel
+
+Not an item of the requirements. The panel is spawned at one place in front of the player, and the player moves it to where it suits them.
+
+| #   | Repo      | Commit                                                              | Status    |
+| --- | --------- | ------------------------------------------------------------------- | --------- |
+| F20 | framework | vrui: a root in the world is moved by the hand that points at it    | done      |
+| M10 | mod       | The panel is moved with the grip, the button in the INI             | done      |
+
+F20 adds `setWorldMoveButton` and `setWorldMoveSmoothing` to `UIManager`, for every root that stays in the world:
+
+- A press of the button while a hand's ray is on the root takes hold of the root for that hand, until the button is released. A button that is already down when the ray comes to the root moves nothing.
+- vrui has no ray of its own. An element says that a ray is on it, and an interactive `UIImGuiPanel` does by itself, for the hand that owns its pointer.
+- The root moves and turns with the hand's wand, around the point the ray meets it, and stays level: it does not roll with the hand.
+- It follows the hand smoothly. The panel is held from a distance, where the shake of the hand is many times larger. `setWorldMoveSmoothing` is the time it takes to come about two thirds of the way to where the hand has it, 0.05 seconds by default, as tuned in the headset.
+- The wand of the hand that moves it is hidden from the game from the press to the release, also while the ray is beside the root, which trails it.
+- It stays where it is when the button is released. `recenterWorldElement` and the recenter distance put it where the HMD is again.
+- It is one button for every root, and a button and not a binding. A binding names a hand, and this is the button of the hand that points.
+
+M10 moves the submodule to F20 and uses it, with both values given to the UI manager when the menu opens:
+
+- `sMoveButton` in the INI is the button, the grip by default, and `none` turns moving off.
+- `fMoveSmoothing` is how smoothly the panel follows the hand, 0.05 seconds by default.
+- The INI has a `[Panel]` section for the panel's keys: these two, `sRecenterBinding` and `fRecenterDistance`.
+- The recenter gesture, Resume and walking away put the panel in front of the player as before.
+
 ### Config (items 8 to 10)
 
 These do not need the panel, so they can be moved earlier.

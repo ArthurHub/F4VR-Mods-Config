@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "ConfigBase.h"
 #include "Resources.h"
 #include "common/CommonUtils.h"
@@ -20,6 +22,14 @@ namespace mods_config
 
         // Opens and closes the config menu
         vrcf::InputBinding openMenuBinding;
+
+        // Moves the menu's panel while it is held with the pointer on the panel: a button of the hand that
+        // points. Nothing for a panel that is not moved.
+        std::optional<vr::EVRButtonId> moveButton;
+
+        // How smoothly the panel follows the hand that moves it: the time it takes to catch up, in seconds,
+        // which steadies the hand's shake. 0 for no smoothing. It is read when the menu opens.
+        float moveSmoothing = 0.0f;
 
         // Puts the menu's panel in front of the player again
         vrcf::InputBinding recenterBinding;

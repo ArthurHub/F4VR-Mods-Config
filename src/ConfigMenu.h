@@ -9,8 +9,8 @@
 namespace mods_config
 {
     /**
-     * The config menu: one ImGui panel that is put in front of the player and stays there in the world, and
-     * a row of buttons on the offhand that stays while the panel is minimized.
+     * The config menu: one ImGui panel that is put in front of the player and stays in the world, where the
+     * player can move it, and a row of buttons on the offhand that stays while the panel is minimized.
      */
     class ConfigMenu
     {

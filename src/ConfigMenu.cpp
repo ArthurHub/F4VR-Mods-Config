@@ -173,8 +173,11 @@ namespace mods_config
             drawContent();
         });
         // In front of the player, and left there: a panel that follows the head moves under the ray.
-        // When the player walks away from it, it is put in front of them again. The menu is not closed
-        // for that, as it can hold changes that are not saved yet.
+        // The player moves it by holding it with the config's move button. When they walk away from it,
+        // it is put in front of them again. The menu is not closed for that, as it can hold changes that
+        // are not saved yet.
+        g_uiManager->setWorldMoveButton(g_config.moveButton);
+        g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
         g_uiManager->attachPresetToWorldAtHMD(_panel, g_config.recenterDistance);
     }
 

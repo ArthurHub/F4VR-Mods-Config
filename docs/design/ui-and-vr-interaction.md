@@ -103,16 +103,16 @@ inner offhand forearm / behind thumb
 
 The Full panel appears in front of the player at a comfortable distance and height. The reference for how it should feel is Fallout 4 VR's projected Pip-Boy.
 
-The panel is world-locked: it is spawned in front of the player, level, and then stays where it is, without following the HMD or either controller. A panel that moves with the head also moves under the ray.
+The panel is world-locked: it is spawned in front of the player, level, and then stays where it is, without following the HMD. A panel that moves with the head also moves under the ray.
 
 The panel is curved toward the player, so its sides are about as far away as its middle and nearly face the player.
 
+The player can move the panel. They point at it and hold the grip of the hand that points, and the panel follows that hand, smoothly and kept level, until the grip is released. It then stays where it was left. The button can be changed, and moving can be turned off.
+
 - Closing and reopening creates a fresh placement from the player's current position.
 - Resuming Full mode from Minimized also creates a fresh placement.
-- A simple `Recenter` action respawns the panel if its placement becomes unusable; this is not a general repositioning system. It is a long press of the offhand thumbstick, and can be rebound.
+- A simple `Recenter` action respawns the panel in front of the player, also after it was moved. It is a long press of the offhand thumbstick, and can be rebound.
 - The panel is also respawned when the player walks away from it. The menu is not closed, as it can hold changes that are not saved.
-
-There is no grab-to-move or free repositioning.
 
 Whether world geometry hides the panel, and where the panel goes when a wall is closer than its distance, are open questions.
 
