@@ -81,8 +81,9 @@ M4 moves the submodule to F15 and uses what the framework brings since M3:
 | F16 | framework | config: a color read from the INI                                                             | done      |
 | F5  | framework | imgui: default pointer ray and hit mark                                                       | done      |
 | M5  | mod       | The panel takes the pointer, with its look in the INI                                         | done      |
-| F6  | framework | imgui: the wand that operates a panel is fully suppressed, with the press latch               | todo      |
-| F7  | framework | imgui: thumbstick scrolling                                                                   | todo      |
+| F6  | framework | imgui: the wand that operates a panel is fully suppressed, with the press latch               | done      |
+| F7  | framework | imgui: thumbstick scrolling                                                                   | done      |
+| M6  | mod       | The menu's wand hidden from the game, the scroll speed in the INI                             | done      |
 
 F4 places the ray from the wand's UI node (`primaryUIAttachNode`, `secondaryUIOffsetNode`). Its +Y is the way the hand aims a weapon: the node a weapon hangs on and the game's `SecondaryAimNode` are turned the same. The ray points 18 degrees above that and 5 degrees inward, tuned in the game, and is mirrored for the left hand.
 
@@ -95,6 +96,19 @@ M5 moves the submodule to F5 and uses what the framework brings since M4:
 - The panel is interactive.
 - The pointer is set in the `[Pointer]` section of the mod's INI: where the ray is on the hand, the color, width, longest length and fade of the ray, and the color, size and border of the mark.
 - The pointer and the values of the placeholder controls are in the devbench state.
+
+F6 hides the whole wand of a hand from the game and from other mods while its ray is on an interactive canvas, for each hand by its own ray. The mod has nothing to call.
+
+- A press that began on a canvas stays on that canvas until the trigger is released. The pointer follows the ray on the canvas's plane, up to a canvas's size past its edges.
+- The wand of a press stays hidden until the release, also after its canvas is hidden. The press ends with the trigger near its rest: the game also takes a pull from how far the trigger is pulled.
+- A hand whose trigger is already down when its ray comes to a canvas has no pointer, and its wand is not hidden, until the trigger is released.
+
+F7 makes the thumbstick of the hand that owns the pointer ImGui's mouse wheel, so it scrolls what the pointer is on. The speed follows how far the thumbstick is pushed, up to `PointerStyle::scrollSpeed` at a full push, in lines of text a second. ImGui's input trickling is turned off: with it, a wheel given in the same frame as a moved pointer waits a frame, and the two pile up.
+
+M6 moves the submodule to F7 and uses what the framework brings since M5:
+
+- The wand that points at the panel is hidden from the game, with nothing for the mod to do.
+- The list of the placeholder controls scrolls with the thumbstick, and `fScrollSpeed` in `[Pointer]` sets how fast.
 
 ### Dedicated panel (item 6)
 
@@ -122,6 +136,8 @@ F14 reaches FRIK's API only when FRIK is built against a framework that has it.
 - **The ray comes from the wand's UI node**, not from `primaryWandNode` or `secondaryWandNode`. The wand's own node points 59 degrees above where the hand aims.
 - **Pointer visuals come before suppression** (F5 before F6). Pointing cannot be judged in the headset without a visible ray.
 - **Suppression is of the whole wand.** While a wand operates a panel, all of its buttons and axes are hidden from the game, instead of the trigger and the scrolling thumbstick only. F7 then only feeds the thumbstick to ImGui as the wheel.
+- **Each hand is suppressed by its own ray**, not the pointer's hand only. A press of the other hand on a canvas takes the pointer over, so its wand has to be hidden before the press.
+- **A press outlives its canvas.** When a canvas is hidden or destroyed in the middle of a press, the wand stays hidden from the game until the trigger is released, instead of being given back at once. The game would otherwise get a trigger that is already down.
 
 ## Not in this plan
 

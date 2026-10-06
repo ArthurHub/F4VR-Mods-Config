@@ -35,5 +35,6 @@ namespace mods_config
         pointerStyle.markSize = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fMarkSize", defaults.markSize));
         pointerStyle.markBorderColor = getColorValue(ini, POINTER_SECTION, "sMarkBorderColor", defaults.markBorderColor);
         pointerStyle.markBorderWidth = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fMarkBorderWidth", defaults.markBorderWidth));
+        pointerStyle.scrollSpeed = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fScrollSpeed", defaults.scrollSpeed));
     }
 }

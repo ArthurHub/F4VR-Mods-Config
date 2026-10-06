@@ -38,7 +38,7 @@ namespace mods_config::devbench
         {
             return "menu: open, minimized (the panel is hidden and only the offhand buttons show); "
                    "pointer: onPanel (a wand's ray is on the panel), hand (primary or offhand), "
-                   "x and y (where, in the panel's pixels from its top left), down (its trigger), wanted (ImGui uses the pointer); "
+                   "x and y (where, in the panel's pixels from its top left), down (it presses the panel), wanted (ImGui uses the pointer); "
                    "controls: the values of the panel's placeholder controls (buttonPresses, checkbox, slider, comboOption, listRow); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
         }

@@ -21,7 +21,8 @@ namespace mods_config
         // Opens and closes the config menu
         vrcf::InputBinding openMenuBinding;
 
-        // The pointer of the menu: where the ray is on the hand, and how the ray and the mark on the menu look
+        // The pointer of the menu: where the ray is on the hand, how the ray and the mark on the menu look,
+        // and how fast the thumbstick scrolls
         imgui::PointerStyle pointerStyle;
 
     protected:
