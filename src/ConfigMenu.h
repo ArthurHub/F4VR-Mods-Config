@@ -15,6 +15,18 @@ namespace mods_config
     class ConfigMenu
     {
     public:
+        /**
+         * The values of the placeholder controls.
+         */
+        struct ControlValues
+        {
+            int buttonPresses = 0;
+            bool checkbox = true;
+            float slider = 1.25f;
+            int comboOption = 0;
+            int listRow = 0;
+        };
+
         bool isOpen() const;
         bool isMinimized() const;
 
@@ -33,6 +45,11 @@ namespace mods_config
          */
         void onFrameUpdate();
 
+        const ControlValues& controls() const
+        {
+            return _controls;
+        }
+
     private:
         void createPanel();
         void createWristButtons();
@@ -44,11 +61,6 @@ namespace mods_config
         bool _closeRequested = false;
         bool _openFrikRequested = false;
 
-        // values of the placeholder controls
-        int _buttonPresses = 0;
-        bool _checkbox = true;
-        float _slider = 1.25f;
-        int _comboOption = 0;
-        int _listRow = 0;
+        ControlValues _controls;
     };
 }

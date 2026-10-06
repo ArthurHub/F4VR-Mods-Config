@@ -5,9 +5,11 @@
 
 #include <imgui.h>
 
+#include "Config.h"
 #include "api/FRIKApi.h"
 #include "common/MatrixUtils.h"
 #include "f4sevr/PapyrusUtils.h"
+#include "imgui/ImGuiPointer.h"
 #include "vrui/UIManager.h"
 #include "vrui/UIPanelStyle.h"
 
@@ -16,10 +18,10 @@ using namespace vrui;
 namespace
 {
     // the panel in vrui units, and where it stands relative to the HMD: forward, up, and tilted back
-    constexpr float PANEL_WIDTH = 30.0f;
-    constexpr float PANEL_HEIGHT = 24.0f;
+    constexpr float PANEL_WIDTH = 38.0f;
+    constexpr float PANEL_HEIGHT = 30.0f;
     constexpr float PANEL_SCALE = 3.0f;
-    constexpr float PANEL_FORWARD = 90.0f;
+    constexpr float PANEL_FORWARD = 120.0f;
     constexpr float PANEL_UP = -20.0f;
     constexpr float PANEL_TILT_DEGREES = 5.0f;
 
@@ -101,6 +103,9 @@ namespace mods_config
 
     void ConfigMenu::onFrameUpdate()
     {
+        // every frame, so a change of the config shows while the menu is open
+        imgui::pointer().setStyle(g_config.pointerStyle);
+
         if (_openFrikRequested) {
             _openFrikRequested = false;
             setMinimized(true);
@@ -120,6 +125,7 @@ namespace mods_config
         _panel->setScale(PANEL_SCALE);
         _panel->setPosition(0, PANEL_FORWARD, PANEL_UP);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(PANEL_TILT_DEGREES, 0, 0));
+        _panel->setInteractive(true);
         _panel->setContent([this] {
             drawContent();
         });
@@ -170,18 +176,18 @@ namespace mods_config
         ImGui::Separator();
 
         if (ImGui::Button("Button")) {
-            ++_buttonPresses;
+            ++_controls.buttonPresses;
         }
         ImGui::SameLine();
-        ImGui::Text("pressed %d times", _buttonPresses);
+        ImGui::Text("pressed %d times", _controls.buttonPresses);
 
-        ImGui::Checkbox("Checkbox", &_checkbox);
-        ImGui::SliderFloat("Slider", &_slider, 0.0f, 2.0f);
+        ImGui::Checkbox("Checkbox", &_controls.checkbox);
+        ImGui::SliderFloat("Slider", &_controls.slider, 0.0f, 2.0f);
 
-        if (ImGui::BeginCombo("Combo", COMBO_OPTIONS[_comboOption])) {
+        if (ImGui::BeginCombo("Combo", COMBO_OPTIONS[_controls.comboOption])) {
             for (int i = 0; i < static_cast<int>(COMBO_OPTIONS.size()); ++i) {
-                if (ImGui::Selectable(COMBO_OPTIONS[i], i == _comboOption)) {
-                    _comboOption = i;
+                if (ImGui::Selectable(COMBO_OPTIONS[i], i == _controls.comboOption)) {
+                    _controls.comboOption = i;
                 }
             }
             ImGui::EndCombo();
@@ -189,8 +195,8 @@ namespace mods_config
 
         if (ImGui::BeginChild("List", ImVec2(0.0f, LIST_HEIGHT_PIXELS), ImGuiChildFlags_Border)) {
             for (int i = 0; i < LIST_ROWS; ++i) {
-                if (ImGui::Selectable(std::format("Row {}", i + 1).c_str(), i == _listRow)) {
-                    _listRow = i;
+                if (ImGui::Selectable(std::format("Row {}", i + 1).c_str(), i == _controls.listRow)) {
+                    _controls.listRow = i;
                 }
             }
         }
@@ -202,7 +208,7 @@ namespace mods_config
         if (ImGui::BeginPopupModal(DISCARD_POPUP, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted("All pending changes will be lost.");
             if (ImGui::Button("Discard")) {
-                _buttonPresses = 0;
+                _controls.buttonPresses = 0;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();

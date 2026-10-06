@@ -81,6 +81,7 @@ TODO: add a row for each component as the mod grows.
 [data/config/ModsConfigVR.ini](data/config/ModsConfigVR.ini) is the shipped default config. It is embedded in the DLL (resource `IDR_CONFIG_INI`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.ini`.
 
 - The main section is `[ModsConfigVR]`; it must match `NAME` in `CMakeLists.txt`, which the config reads back as both the INI file name and the default section.
+- `[Pointer]` holds the menu's pointer: where the ray is on the hand, and how the ray and the mark on the panel look. It is read into an `imgui::PointerStyle` and given to the framework's pointer every frame.
 - `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw).
 - To add a value: a member in `Config.h`, a read in `Config::loadIniConfigInternal()`, and the key in the shipped INI.
 - `ConfigBase` watches the file and reloads it on change, so edits apply while the game runs. The reload runs on the watcher's thread: apply anything that calls into the engine from `onFrameUpdate()`.

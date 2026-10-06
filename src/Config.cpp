@@ -5,6 +5,7 @@ using namespace common;
 namespace
 {
     const char* DEFAULT_SECTION = Version::PROJECT.data();
+    const char* POINTER_SECTION = "Pointer";
 }
 
 namespace mods_config
@@ -22,5 +23,17 @@ namespace mods_config
                 .modifier = vrcf::InputModifier{ vr::k_EButton_SteamVR_Touchpad, vrcf::Hand::Offhand },
                 .duration = 1.5f,
             });
+
+        // a key that is missing keeps the framework's default look
+        const imgui::PointerStyle defaults;
+        pointerStyle.rayOffset = getTransformValue(ini, POINTER_SECTION, "tRayOffset", defaults.rayOffset);
+        pointerStyle.rayColor = getColorValue(ini, POINTER_SECTION, "sRayColor", defaults.rayColor);
+        pointerStyle.rayWidth = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fRayWidth", defaults.rayWidth));
+        pointerStyle.rayMaxLength = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fRayMaxLength", defaults.rayMaxLength));
+        pointerStyle.rayFade = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fRayFade", defaults.rayFade));
+        pointerStyle.markColor = getColorValue(ini, POINTER_SECTION, "sMarkColor", defaults.markColor);
+        pointerStyle.markSize = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fMarkSize", defaults.markSize));
+        pointerStyle.markBorderColor = getColorValue(ini, POINTER_SECTION, "sMarkBorderColor", defaults.markBorderColor);
+        pointerStyle.markBorderWidth = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fMarkBorderWidth", defaults.markBorderWidth));
     }
 }

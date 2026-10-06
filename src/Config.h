@@ -3,6 +3,7 @@
 #include "ConfigBase.h"
 #include "Resources.h"
 #include "common/CommonUtils.h"
+#include "imgui/ImGuiPointer.h"
 #include "vrcf/VRControllersManager.h"
 
 namespace mods_config
@@ -19,6 +20,9 @@ namespace mods_config
 
         // Opens and closes the config menu
         vrcf::InputBinding openMenuBinding;
+
+        // The pointer of the menu: where the ray is on the hand, and how the ray and the mark on the menu look
+        imgui::PointerStyle pointerStyle;
 
     protected:
         virtual void loadIniConfigInternal(const CSimpleIniA& ini) override;

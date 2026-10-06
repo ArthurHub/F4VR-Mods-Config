@@ -77,10 +77,24 @@ M4 moves the submodule to F15 and uses what the framework brings since M3:
 
 | #   | Repo      | Commit                                                                                        | Status |
 | --- | --------- | --------------------------------------------------------------------------------------------- | ------ |
-| F4  | framework | imgui: opt-in pointer input from a wand ray and its trigger, one hand owning the pointer      | todo   |
-| F5  | framework | imgui: default pointer ray and hit mark                                                       | todo   |
-| F6  | framework | imgui: the wand that operates a panel is fully suppressed, with the press latch               | todo   |
-| F7  | framework | imgui: thumbstick scrolling                                                                   | todo   |
+| F4  | framework | imgui: opt-in pointer input from a wand ray and its trigger, one hand owning the pointer      | done      |
+| F16 | framework | config: a color read from the INI                                                             | done      |
+| F5  | framework | imgui: default pointer ray and hit mark                                                       | done      |
+| M5  | mod       | The panel takes the pointer, with its look in the INI                                         | done      |
+| F6  | framework | imgui: the wand that operates a panel is fully suppressed, with the press latch               | todo      |
+| F7  | framework | imgui: thumbstick scrolling                                                                   | todo      |
+
+F4 places the ray from the wand's UI node (`primaryUIAttachNode`, `secondaryUIOffsetNode`). Its +Y is the way the hand aims a weapon: the node a weapon hangs on and the game's `SecondaryAimNode` are turned the same. The ray points 18 degrees above that and 5 degrees inward, tuned in the game, and is mirrored for the left hand.
+
+F16 is not an item of the requirements: `ConfigBase::getColorValue`, which M5 reads the pointer's colors with.
+
+F5 draws the pointer while it is on a canvas: the owner's ray, up to a set length and fading at both ends, and a mark with a border on the canvas. Where the ray is on the hand and the whole look are one `PointerStyle`, whose defaults are the default pointer. The framework has no INI keys for it.
+
+M5 moves the submodule to F5 and uses what the framework brings since M4:
+
+- The panel is interactive.
+- The pointer is set in the `[Pointer]` section of the mod's INI: where the ray is on the hand, the color, width, longest length and fade of the ray, and the color, size and border of the mark.
+- The pointer and the values of the placeholder controls are in the devbench state.
 
 ### Dedicated panel (item 6)
 
@@ -105,6 +119,7 @@ F14 reaches FRIK's API only when FRIK is built against a framework that has it.
 
 ## Where the plan differs from the requirements
 
+- **The ray comes from the wand's UI node**, not from `primaryWandNode` or `secondaryWandNode`. The wand's own node points 59 degrees above where the hand aims.
 - **Pointer visuals come before suppression** (F5 before F6). Pointing cannot be judged in the headset without a visible ray.
 - **Suppression is of the whole wand.** While a wand operates a panel, all of its buttons and axes are hidden from the game, instead of the trigger and the scrolling thumbstick only. F7 then only feeds the thumbstick to ImGui as the wheel.
 
