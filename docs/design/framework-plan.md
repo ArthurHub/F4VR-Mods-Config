@@ -132,6 +132,34 @@ M7 moves the submodule to F9 and uses it:
 - The panel is 20 by 15 units at a scale of 6, where it was 38 by 30 at a scale of 3: about the same size in the world, with everything on it twice as large.
 - The combo of the placeholder controls is at the panel's bottom edge, where its list has to open upward.
 
+### World-locked placement (item 7)
+
+| #   | Repo      | Commit                                                                           | Status |
+| --- | --------- | -------------------------------------------------------------------------------- | ------ |
+| F17 | framework | vrui: a preset puts a root where the HMD is and leaves it in the world           | done   |
+| F18 | framework | imgui: the mark keeps its size on the canvas, and the other hand's ray is drawn  | done   |
+| M8  | mod       | The panel stays in the world, recentered by a gesture and when the player leaves | done   |
+
+F17 adds `attachPresetToWorldAtHMD` and `recenterWorldElement` to `UIManager`:
+
+- The root is put where the HMD is and stays there while the player walks and turns. Its own position and rotation apply from that place as they do on the HMD's node.
+- `recenterWorldElement` puts the root where the HMD is now.
+- The root stays attached to the HMD's node. Every frame the manager gives it a base transform that moves it back to where the node was, the way the wrist preset moves a root onto the forearm.
+- Given a distance, the preset recenters the root by itself when the player walks further than that from it. A hidden root is left where it is.
+
+F18 is not an item of the requirements. It changes how the pointer is drawn, which showed once the player could walk away from the panel:
+
+- The mark's size is set in the world and is the same at any distance, so the mark keeps its size on the canvas. Scaled to look the same size in the view, it grew on the panel as the player stepped back.
+- While both rays are on a canvas, the ray of the hand that does not own the pointer is drawn at 0.3 of the opacity and with no mark. With nothing drawn for it, that hand looked broken.
+
+M8 moves the submodule to F18 and uses both:
+
+- The panel is attached with the world preset, with the position and tilt it had on the HMD.
+- Resume puts the panel in front of the player again. So does closing and opening the menu, which creates the panel again.
+- `sRecenterBinding` does it while the panel is shown: a long press of the offhand thumbstick by default. It does not fire while the button of the open gesture is held too, so closing the menu with both thumbsticks does not move the panel first.
+- The preset is given `fRecenterDistance`, 350 units by default, so the framework puts the panel in front of the player when they walk away from it, and not while the menu is minimized. The menu is not closed, as it can hold changes that are not saved.
+- `fMarkSize` and `fMarkBorderWidth` are 0.45 and 0.08 by default.
+
 ### Config (items 8 to 10)
 
 These do not need the panel, so they can be moved earlier.
@@ -154,8 +182,8 @@ F14 reaches FRIK's API only when FRIK is built against a framework that has it.
 - **Each hand is suppressed by its own ray**, not the pointer's hand only. A press of the other hand on a canvas takes the pointer over, so its wand has to be hidden before the press.
 - **A press outlives its canvas.** When a canvas is hidden or destroyed in the middle of a press, the wand stays hidden from the game until the trigger is released, instead of being given back at once. The game would otherwise get a trigger that is already down.
 - **A dedicated panel has a largest size**, 4096 layout pixels a side, instead of keeping its pixels at any size. At the largest supersample factor that is the largest texture D3D11 can have.
+- **A world-locked root is given no transform.** A preset puts it where the HMD is, and the root's own position and rotation place it from there, instead of a helper that computes a world transform for the mod to pass. The HMD's node is that place already: at the head, level, and facing the way the head faces.
 
 ## Not in this plan
 
-- **Item 7, world-locked placement.** Decided after the Full panel has been tried on the HMD with F9.
 - **Item 11, the Mods Config VR client in `ModBase`.** It needs the host's native API, which does not exist yet.

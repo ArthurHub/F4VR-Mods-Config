@@ -9,8 +9,8 @@
 namespace mods_config
 {
     /**
-     * The config menu: one ImGui panel in front of the player, and a row of buttons on the offhand that
-     * stays while the panel is minimized.
+     * The config menu: one ImGui panel that is put in front of the player and stays there in the world, and
+     * a row of buttons on the offhand that stays while the panel is minimized.
      */
     class ConfigMenu
     {
@@ -32,17 +32,8 @@ namespace mods_config
 
         void open();
         void close();
-
-        /**
-         * Hide or show the panel. The offhand buttons stay either way.
-         */
         void setMinimized(bool minimized);
-
-        /**
-         * Applies what a button press asked for: closing the menu, or minimizing it and opening FRIK's config.
-         * It is done here, in the mod's frame update, and not in the press handler, which runs while the
-         * UI manager iterates its elements.
-         */
+        void recenter();
         void onFrameUpdate();
 
         const ControlValues& controls() const

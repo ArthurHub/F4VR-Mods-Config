@@ -24,6 +24,18 @@ namespace mods_config
                 .duration = 1.5f,
             });
 
+        // the offhand thumbstick pressed in and held
+        recenterBinding = getInputBindingValue(ini,
+            DEFAULT_SECTION,
+            "sRecenterBinding",
+            vrcf::InputBinding{
+                .hand = vrcf::Hand::Offhand,
+                .type = vrcf::ActivationType::LongPress,
+                .button = vr::k_EButton_SteamVR_Touchpad,
+            });
+
+        recenterDistance = static_cast<float>(ini.GetDoubleValue(DEFAULT_SECTION, "fRecenterDistance", 350.0));
+
         // a key that is missing keeps the framework's default look
         const imgui::PointerStyle defaults;
         pointerStyle.rayOffset = getTransformValue(ini, POINTER_SECTION, "tRayOffset", defaults.rayOffset);

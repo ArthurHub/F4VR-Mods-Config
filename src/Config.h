@@ -21,6 +21,13 @@ namespace mods_config
         // Opens and closes the config menu
         vrcf::InputBinding openMenuBinding;
 
+        // Puts the menu's panel in front of the player again
+        vrcf::InputBinding recenterBinding;
+
+        // The panel is also put in front of the player again when they are further than this from it, in game
+        // units. 0 for never. It is read when the menu opens.
+        float recenterDistance = 0.0f;
+
         // The pointer of the menu: where the ray is on the hand, how the ray and the mark on the menu look,
         // and how fast the thumbstick scrolls
         imgui::PointerStyle pointerStyle;

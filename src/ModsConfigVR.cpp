@@ -76,6 +76,13 @@ namespace mods_config
             }
         }
 
+        // Not while the button of the open gesture is held as well. With the defaults that is both thumbsticks,
+        // the gesture that closes the menu: without this the panel jumps before it closes.
+        const auto& openBinding = g_config.openMenuBinding;
+        if (!vrcf::VRControllers.isPressHeldDown(openBinding.hand, openBinding.button) && vrcf::VRControllers.check(g_config.recenterBinding)) {
+            _menu.recenter();
+        }
+
         _menu.onFrameUpdate();
     }
 

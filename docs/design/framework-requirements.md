@@ -12,7 +12,7 @@ That makes four demands on the framework:
 
 - A panel or a row of buttons has to sit on the offhand and face the player.
 - An ImGui panel has to be interactive. Today it is display-only.
-- One panel has to be large and sharp enough for the whole UI. Whether it also has to stay fixed in the world depends on testing.
+- One panel has to be large and sharp enough for the whole UI, and stay fixed in the world.
 - A CommonFramework mod should get live preview of its settings without writing code for it.
 
 ## Order of work
@@ -25,13 +25,13 @@ That makes four demands on the framework:
 | 4   | Pointer visuals                    | Any interaction                     |
 | 5   | Scrolling                          | Lists longer than the panel         |
 | 6   | Dedicated panel                    | Panel size, dropdowns, and dialogs  |
-| 7   | World-locked placement (optional)  | The Full panel, pending testing     |
+| 7   | World-locked placement             | The Full panel                      |
 | 8   | Config reload safety               | Reliable apply on Save              |
 | 9   | Overrides at preview rates         | Live preview                        |
 | 10  | Override ownership                 | Previews beside other overrides     |
 | 11  | Mods Config VR client in `ModBase` | Live preview without mod code       |
 
-Item 1 puts a panel on the offhand. Items 2 to 5 make a panel interactive, so it can be tested in the headset. Item 6 completes what the Full panel needs. Item 7 is optional and is decided by testing. Items 8 to 10 do not depend on the UI and can be done at any time. Item 11 needs the Mods Config VR native API to exist first. [Later work](#later-work) lists what can wait.
+Item 1 puts a panel on the offhand. Items 2 to 5 make a panel interactive, so it can be tested in the headset. Items 6 and 7 complete what the Full panel needs. Items 8 to 10 do not depend on the UI and can be done at any time. Item 11 needs the Mods Config VR native API to exist first. [Later work](#later-work) lists what can wait.
 
 ## Hand-anchored UI
 
@@ -133,11 +133,9 @@ The GPU time of a texture of the panel's size is checked with the existing perf 
 
 **Done when.** A dedicated panel larger than 1024 pixels renders at full resolution, and its GPU time is known. A combo box near its bottom edge opens fully inside the panel, and a row is picked with the ray. A confirmation dialog opens centered on the panel.
 
-### 7. World-locked placement (optional)
+### 7. World-locked placement
 
-Optional. The Full panel is first attached to the HMD, which needs no framework work. This item is done only if testing in the headset shows that a panel that moves with the head is hard to operate with a ray.
-
-**Need.** The Full panel is spawned in front of the player and then stays fixed in the world. It can be respawned to recenter it.
+**Need.** The Full panel is spawned in front of the player and then stays fixed in the world. A panel attached to the HMD moves with the head, so it also moves under the ray. It can be respawned to recenter it.
 
 **Today.** A vrui root is attached to a game node: `UIManager::attachElement(element, attachNode)`, with presets for the primary wand and the HMD (`src/vrui/UIManager.h`). `UIImGuiPanel` resolves its placement from that node and does not draw without one. A bare `imgui::Canvas` accepts any transform from its placement callback, but it is then outside vrui layout.
 

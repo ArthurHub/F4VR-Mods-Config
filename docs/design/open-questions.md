@@ -120,7 +120,6 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 ## UI work
 
 - Headset-scale mockups and legibility testing
-- Whether the Full panel stays attached to the HMD or is world-locked once it opens, decided by testing ray pointing in the headset
 - Comfortable initial distance, height, curvature, transparency, and border weight
 - Whether world geometry hides the Full panel or it always draws on top, and where the panel goes when a wall is closer than its distance
 - Exact contracted-navigation width and no-selection layout

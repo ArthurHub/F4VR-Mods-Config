@@ -103,15 +103,14 @@ inner offhand forearm / behind thumb
 
 The Full panel appears in front of the player at a comfortable distance and height. The reference for how it should feel is Fallout 4 VR's projected Pip-Boy.
 
-The panel is attached to the HMD: it follows where the player faces and stays level.
-
-The alternative is a world-locked panel, which is spawned in front of the player and then stays where it is, without following the HMD or either controller. A panel that moves with the head also moves under the ray, so the choice is made by testing in the headset. If the panel is world-locked:
+The panel is world-locked: it is spawned in front of the player, level, and then stays where it is, without following the HMD or either controller. A panel that moves with the head also moves under the ray.
 
 - Closing and reopening creates a fresh placement from the player's current position.
 - Resuming Full mode from Minimized also creates a fresh placement.
-- A simple `Recenter` action respawns the panel if its placement becomes unusable; this is not a general repositioning system.
+- A simple `Recenter` action respawns the panel if its placement becomes unusable; this is not a general repositioning system. It is a long press of the offhand thumbstick, and can be rebound.
+- The panel is also respawned when the player walks away from it. The menu is not closed, as it can hold changes that are not saved.
 
-In either case there is no grab-to-move or free repositioning.
+There is no grab-to-move or free repositioning.
 
 Whether world geometry hides the panel, and where the panel goes when a wall is closer than its distance, are open questions.
 
@@ -119,7 +118,7 @@ Whether world geometry hides the panel, and where the panel goes when a wall is 
 
 - The ImGui panel is operated with a controller ray, which ends in a mark where it meets the panel.
 - Either controller can point at the interface.
-- Only one controller owns focus/active interaction at a time.
+- Only one controller owns focus/active interaction at a time. The ray of the other one is drawn fainter and without a mark.
 - A preferred interaction hand may be configurable, but the other controller should still be usable where practical.
 - Trigger activates controls and performs drags.
 - Thumbstick scrolls the list under the pointer, or adjusts the currently focused control where defined.

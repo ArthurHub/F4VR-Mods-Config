@@ -17,7 +17,7 @@ using namespace vrui;
 
 namespace
 {
-    // the panel in vrui units, and where it stands relative to the HMD: forward, up, and tilted back
+    // the panel in vrui units, and where it is put from the HMD: forward, up, and tilted back
     constexpr float PANEL_WIDTH = 20.0f;
     constexpr float PANEL_HEIGHT = 15.0f;
     constexpr float PANEL_SCALE = 6.0f;
@@ -92,15 +92,40 @@ namespace mods_config
         _minimizeButton.reset();
     }
 
+    /**
+     * Hide or show the panel. The offhand buttons stay either way.
+     * A panel that is shown again is put in front of the player, wherever it was left.
+     */
     void ConfigMenu::setMinimized(const bool minimized)
     {
         if (!isOpen()) {
             return;
         }
+        if (!minimized) {
+            g_uiManager->recenterWorldElement(_panel);
+        }
         _panel->setVisibility(!minimized);
         _minimizeButton->setMiddleText(minimized ? "RESUME" : "MINIMIZE");
     }
 
+    /**
+     * Put the panel in front of the player again, where they look now.
+     * Nothing while the menu is minimized: Resume does it then.
+     */
+    void ConfigMenu::recenter()
+    {
+        if (!isOpen() || isMinimized()) {
+            return;
+        }
+        logger::info("Recenter config menu");
+        g_uiManager->recenterWorldElement(_panel);
+    }
+
+    /**
+     * Applies what a button press asked for: closing the menu, or minimizing it and opening FRIK's config.
+     * It is done here, in the mod's frame update, and not in the press handler, which runs while the
+     * UI manager iterates its elements.
+     */
     void ConfigMenu::onFrameUpdate()
     {
         // every frame, so a change of the config shows while the menu is open
@@ -141,7 +166,10 @@ namespace mods_config
         _panel->setContent([this] {
             drawContent();
         });
-        g_uiManager->attachElement(_panel, UIUtils::getHMDAttachNode());
+        // In front of the player, and left there: a panel that follows the head moves under the ray.
+        // When the player walks away from it, it is put in front of them again. The menu is not closed
+        // for that, as it can hold changes that are not saved yet.
+        g_uiManager->attachPresetToWorldAtHMD(_panel, g_config.recenterDistance);
     }
 
     void ConfigMenu::createWristButtons()
