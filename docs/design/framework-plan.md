@@ -207,15 +207,56 @@ M10 moves the submodule to F20 and uses it, with both values given to the UI man
 
 These do not need the panel, so they can be moved earlier.
 
-| #   | Repo      | Commit                                                                      | Status |
-| --- | --------- | --------------------------------------------------------------------------- | ------ |
-| F10 | framework | config: loads are serialized                                                | todo   |
-| F11 | framework | config: the mod's own writes are recognized without the ignore flag         | todo   |
-| F12 | framework | config: several overrides in one reload, cached parsed INI, debug-level log | todo   |
-| F13 | framework | config: subscribers are notified after an override reload                   | todo   |
-| F14 | framework | config: each override has an owner                                          | todo   |
+| #   | Repo      | Commit                                                                      | Status    |
+| --- | --------- | --------------------------------------------------------------------------- | --------- |
+| F10 | framework | config: loads are serialized                                                | done      |
+| F11 | framework | config: the mod's own writes are recognized without the ignore flag         | done      |
+| F12 | framework | config: several overrides in one reload, cached parsed INI, debug-level log | done      |
+| F13 | framework | config: subscribers are notified after an override reload                   | done      |
+| F14 | framework | config: each override has an owner                                          | done      |
+| F21 | framework | config: the INI value and the set of several overrides are unit tested      | done      |
 
-F14 reaches FRIK's API only when FRIK is built against a framework that has it.
+F10 puts every load under one lock in `ConfigBase`:
+
+- A change on disk is loaded on the file watcher's thread, and an override on the thread of whoever sets it. The lock keeps the two from running the mod's `loadIniConfigInternal` at the same time.
+- The lock is held from the read of the file to the last value set, so the load that read the file last is the one applied last.
+- It has no unit test: `ConfigBase` does not build without the game's libraries.
+
+F11 has the file watcher load the file only when it holds something else than the mod last loaded or saved:
+
+- `config::IniFile` reads and writes the mod's INI and keeps the content of the last load or save. It is plain std and SimpleIni, and unit tested.
+- The ignore flag and the duplicate filter by write time are removed. Every event of the file reads it, 200 ms after its last write. A file that holds the kept content is not loaded: the event is of the mod's own save, or one more event of a write that is already loaded.
+- A save becomes the kept content only when the file still held that content before it. A file that someone else changed since the mod loaded it has values the mod does not have, also after the mod's save. The kept content is then forgotten, and the next event loads the file whatever it holds.
+- A second write within 200 ms of another is loaded, where the duplicate filter dropped it.
+- A write that leaves the file as it was loads nothing.
+
+F12 makes a set override cheap enough to follow a slider:
+
+- `setConfigOverrides` and `clearConfigOverrides` take several overrides and reload once. The calls for one override go through them.
+- The reload of a set parses the file as `config::IniFile` keeps it, and reads no disk. For FRIK's INI that parse takes about 20 microseconds.
+- The reload of a clear reads the file. After a Save the client clears its overrides right away, and the saved values then apply at once, before the file watcher has loaded the file.
+- Only a key that becomes overridden is logged at the info level and is a `config.override` devbench event. A new value for a key that is already overridden is logged at the debug level, with no event: devbench keeps 256 events for all the mods.
+
+F13 has the config's subscribers called on the game thread, for every load of the values:
+
+- Every load marks that it ran: a change on disk, an override set or cleared, `reload()`, and the framework's load when a game session starts.
+- `ModBase` calls the subscribers at the start of the next frame, on the game thread and before the mod's `onFrameUpdate()`, once for all the loads since the frame before. So a subscriber can call into the engine, and a dragged slider is one call a frame.
+- The file watcher no longer calls them.
+- It has no unit test: it is in `ConfigBase` and `ModBase`.
+
+F14 gives every override an owner:
+
+- Set, clear and clear-all take the owner's name as their first argument, and an owner sets and clears only its own overrides.
+- When two owners override the same key, the one that was set last applies, and when that one is cleared the other applies again. `config::Overrides` holds them under its own lock and puts the ones that apply into a loaded INI. It is plain std and SimpleIni, and unit tested.
+- The devbench tool's owner is `devbench`. Its `clear` drops only what its `set` made, and `overrides` says who set each.
+- The log line and the `config.override` event of an override have its owner.
+
+F14 reaches FRIK's API only when FRIK is built against a framework that has it. FRIK then passes its caller's name as the owner.
+
+F21 is not an item of the requirements. It takes code out of `ConfigBase`, which does not build without the game's libraries, so that it is unit tested:
+
+- `config::IniValue` is in a plain file of its own. `ConfigBase` writes the log line of a saved value, which the value wrote itself.
+- `config::Overrides` sets several overrides in one call, and returns the ones that are new for their owner.
 
 ## Where the plan differs from the requirements
 
@@ -226,6 +267,9 @@ F14 reaches FRIK's API only when FRIK is built against a framework that has it.
 - **A press outlives its canvas.** When a canvas is hidden or destroyed in the middle of a press, the wand stays hidden from the game until the trigger is released, instead of being given back at once. The game would otherwise get a trigger that is already down.
 - **A dedicated panel has a largest size**, 4096 layout pixels a side, instead of keeping its pixels at any size. At the largest supersample factor that is the largest texture D3D11 can have.
 - **A world-locked root is given no transform.** A preset puts it where the HMD is, and the root's own position and rotation place it from there, instead of a helper that computes a world transform for the mod to pass. The HMD's node is that place already: at the head, level, and facing the way the head faces.
+
+- **A set override parses the file's kept text again**, instead of reusing a parsed file. SimpleIni's parsed file cannot be copied, and the overrides are set in it. No disk is read, which is what the item is for.
+- **The config's subscribers are called on the game thread**, at the start of the next frame and for every load of the values, instead of right after an override's reload on the thread of whoever set it. A subscriber then reacts once a frame, not to each new value, and it can call into the engine.
 
 ## Not in this plan
 
