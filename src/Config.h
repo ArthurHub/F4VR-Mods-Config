@@ -2,9 +2,9 @@
 
 #include <optional>
 
-#include "ConfigBase.h"
 #include "Resources.h"
 #include "common/CommonUtils.h"
+#include "config/ConfigBase.h"
 #include "imgui/ImGuiPointer.h"
 #include "vrcf/VRControllersManager.h"
 
