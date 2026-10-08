@@ -65,6 +65,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | 11  | JSON and TOML files      | A setting in a JSON file and one in a TOML file are edited and saved                                          | todo   |
 | 12  | Localization and search  | A mod with no game plugin is shown in another language, and a setting is found by typing its name             | todo   |
 | 13  | Papyrus API              | A script-only mod reads its saved settings and is told of a Save                                              | todo   |
+| 14  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |
 
 ## Commits
 
@@ -108,7 +109,7 @@ M14 removes the placeholder controls of the test bed. MCM mods are listed only w
 
 M15 puts FRIK in the quick launch section, when FRIK is installed. Its config is opened the way the FRIK wrist button opens it today. Other mods come to the section in milestone 6, and FRIK's entry is then there when FRIK registers for it.
 
-M16 expands the selected mod in the tree and shows its front page. The breadcrumbs in the title bar name the mod and the page. Every row is its text and what it is. A button, a text input and a hotkey stay such rows until the commits that make them work.
+M16 expands the selected mod in the tree and shows its front page. The breadcrumbs in the title bar name the mod and the page. The tree keeps room for its scroll bar, and a row selected from a breadcrumb is scrolled into view. Every row is its text and what it is. A button, a text input and a hotkey stay such rows until the commits that make them work.
 
 M17 looks a text that starts with `$` up in the game's translation table. F4SE fills it with the translation file of every enabled game plugin, for the language the game is set to.
 
@@ -353,3 +354,27 @@ M90 reads `Interface\Translations\<modName>_<language>.txt` itself. F4SE loads a
 | M92 | mod  | The Papyrus getters, with packages loaded when the game's data is ready | todo   |
 | M93 | mod  | The Papyrus event after a Save                                          | todo   |
 | M94 | mod  | docs: the script author's guide                                         | todo   |
+
+### 14. Mod categories
+
+| #   | Repo | Commit                                                                                          | Status |
+| --- | ---- | ----------------------------------------------------------------------------------------------- | ------ |
+| M95 | mod  | The `category` of a package and of an MCM config, and the shipped names and table of known mods | todo   |
+| M96 | mod  | The tree is grouped by category from a number of mods, which is in the INI                      | todo   |
+| M97 | mod  | The Categories page: the player's choice for each mod, kept in `Categories.ini`                 | todo   |
+| M98 | mod  | A new category name is typed                                                                    | todo   |
+| M99 | mod  | The Categories page imports the categories of MCM Categorizer                                   | todo   |
+
+The design is in [Mod categories](ui-and-vr-interaction.md#mod-categories) and [Category](schema.md#category). It comes after the first release: the list has to be long for it to matter, and the player's choice needs a package's Save and the keyboard.
+
+A package can name its `category` from the first release. The field is in the schema, and the menu does not use it before this milestone.
+
+M95 ships `Categories.json`. Its table starts with the MCM mods of the test set, and it is checked in the game that MCM's own menu still shows a config that has a `category`.
+
+M96 adds `iCategoriesMinMods` to the INI, 30 as shipped, and a row for it in the mod's own package. The test set has 9 mods, so it is tried with a lower number.
+
+M97 adds the page to the mod's own package of M47. The menu fills it with a row for every mod, and each row is a setting of that package, so Save, Discard and Reset are the ones of milestone 5. One thing is new to them: a choice that is the same as the category the mod has without it is not written, and Save removes its key.
+
+M98 adds the entry that types a new name to the dropdown, with the keyboard of milestone 4.
+
+M99 adds the import button, which is shown when MCM Categorizer's settings file is found. The file keeps its categories in one value, in an encoding of its own. F4SEMenuFramework reads the same value, and is the reference for it. Before the commit it is checked that MCM Categorizer runs with MCM in VR: if it does not, no player has the file and the commit is dropped.

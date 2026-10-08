@@ -55,7 +55,7 @@ The primary browsing and editing state.
 - The mod's front page has no row of its own in the tree: the mod's row is its row.
 - The tree keeps its place and its width, with or without a selected mod.
 - The player can select another mod at any time, without going to the front page first.
-- The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package.
+- The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package. A long list is grouped by category; see [Mod categories](#mod-categories).
 - The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page. When the crumbs do not fit, the mod's name is shortened with an ellipsis.
 - The content pane has no heading of its own, so its height goes to settings.
 - The footer has Save and Discard on the right and the help line on the left; see [Help line](#help-line).
@@ -194,11 +194,52 @@ Keeping the help in one place avoids layout movement and makes it discoverable w
 ## Navigation behavior
 
 - Mods are listed alphabetically by display name; page and setting order follow their JSON arrays.
-- The mods are the top level of a tree, and only the selected mod is expanded. Its pages are the rows under it, without the front page.
+- The mods are the top level of a tree, unless the list is grouped by category, and only the selected mod is expanded. Its pages are the rows under it, without the front page.
 - A mod's front page is its root `content`, in an MCM config and in a package alike, and its `pages` are the rows under it. A mod with no pages has no rows under it.
-- Long lists need smooth thumbstick scrolling and a clear position indicator.
+- A list longer than its area scrolls with the thumbstick while the ray is on it, and shows a scroll bar: the tree, a page's rows, and the list of a dropdown. About nine rows fit in the Full panel's tree, so most lists of mods scroll.
+- The tree always keeps room for its scroll bar, so its rows do not narrow when the bar appears, as when a category or a mod is opened near the bottom.
+- A row that is selected from outside the tree, from a breadcrumb, with Back, or when the panel is shown again, is scrolled into view. A category that is opened near the bottom scrolls to show its first mods.
 - Search comes after the first release; see the [Mod work plan](mod-plan.md).
 - The selected mod and current page survive switches among Full, Focused, and Minimized states.
+
+## Mod categories
+
+A mod is hard to find in a list of many mods, so a long list is grouped by category.
+
+```text
+│ Mods                 │
+│                      │
+│ ▸ Combat ───────── 6 │
+│ ▾ Interface ────── 2 │
+│   ▾ FallUI           │
+│       Inventory      │
+│       HUD            │
+│   ▸ Mods Config VR   │
+│ ▸ Settlements ──── 4 │
+│ ▸ No category ──── 2 │
+```
+
+- With fewer than 30 mods the list is flat: the mods are the top level of the tree. With 30 or more, the categories are the top level and each mod is under its category. The number is a setting of Mods Config VR, and 0 groups a list of any length.
+- A mod has one category or none, and categories do not nest.
+- A mod's category is the first of these that it has: the player's choice, the mod's own `category`, and the one in the table of known mods that Mods Config VR ships. See [Category](schema.md#category).
+- A mod with none of them is under `No category`, which is the last row.
+- Categories are listed alphabetically, and so are the mods of each. A category with no mod is not shown.
+- Pressing a category opens or closes it, and does not select it. More than one can be open, and the category of the selected mod is open.
+- A category's row is set apart from a mod's: its name is in a muted color, followed by a line and the number of its mods.
+- The category is not in the breadcrumbs, and Back does not stop at it.
+
+### Changing a mod's category
+
+The player can give a mod another category, to arrange the list as they like. Mods Config VR's own entry has a `Categories` page that the menu fills: a row for every mod, with a dropdown of category names.
+
+- The dropdown has the names Mods Config VR ships and the names that are in use. `No category` is one of them, and takes a mod out of the category its author gave it. The last entry, `Type a new name`, opens the keyboard to type a name that is not in the list.
+- A row is an ordinary setting of Mods Config VR's own package. It is saved with Save, Discard takes it back, and Reset gives the mod the category it has without the player's choice.
+- The tree is grouped again after Save.
+- The choices are kept in `Categories.ini` beside `ModsConfigVR.ini`, one key for each mod, named by its `modName`. A key with no value is `No category`. `ModsConfigVR.ini` holds only the keys the mod ships.
+- Only a choice that differs from the category the mod has without it is kept, and Save removes the key of any other. So a mod that the player did not move, or that was reset, follows its own category and the table when they change.
+- The page is there while the list is flat too, so a list can be arranged before it is grouped.
+
+A player who used [MCM Categorizer](https://www.nexusmods.com/fallout4/mods/66311) has arranged their MCM mods already. When its file `Data/MCM/Settings/MCMCategorizer.ini` is there, the page has an `Import from MCM Categorizer` button at its top, above the rows of the mods. It gives every mod that is in one of that mod's categories the category's name, as a pending choice: Save keeps them and Discard takes them back. The file is only read.
 
 ## MCM presentation
 

@@ -21,6 +21,7 @@ One `config.json` is supported per package for now. Includes and fragments are d
   "schemaVersion": 1,
   "modName": "mymod",
   "displayName": "My Mod",
+  "category": "Gameplay",
   "packageVersion": 1,
 
   "pluginRequirements": ["MyMod.esp"],
@@ -54,6 +55,34 @@ Two packages with the same `modName` are both disabled, with a diagnostic. The h
 IDs are compared without regard to case, both a package's `modName` and the ids inside a package: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
 
 A native client is matched to its package by the package's `modName`. A CommonFramework mod's client registers under the mod's own name, so its package uses that name as its `modName`. The F4SE plugin name, when it differs, goes only in `f4sePluginRequirements`.
+
+### Category
+
+`category` is optional: the name of the group the mod is listed under when the mod list is long. See [Mod categories](ui-and-vr-interaction.md#mod-categories).
+
+- It is a plain name in English, never a `$` token. Mods are grouped by the name itself, compared without regard to case, and two mods that use different tokens would be in two groups.
+- Mods Config VR ships a list of names, and an author uses one of them where it fits: `Gameplay`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `VR`, `Utilities`. The menu shows these in the game's language where it has the translation.
+- Any other name is accepted.
+- One category can be spelled in several ways, as case is not compared. A shipped name is shown as the list spells it. Any other name is shown as the player typed it, or else as the first mod in the list writes it.
+- An MCM config can have the same field, at its root.
+
+An MCM mod that is already published names no category. Mods Config VR ships a table that gives one to the mods it knows, in the file that also has the list of names:
+
+```text
+Data/ModsConfigVR/Categories.json
+```
+
+```json
+{
+  "categories": ["Gameplay", "Combat", "Interface", "Settlements"],
+  "mods": {
+    "SS2": "Settlements",
+    "FallUI": "Interface"
+  }
+}
+```
+
+`mods` names a mod by its `modName`. The mod's own `category` comes before the table's, and the player's choice before both.
 
 ### Requirements
 

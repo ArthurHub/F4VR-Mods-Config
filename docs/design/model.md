@@ -12,7 +12,7 @@ The UI reads the definition to know what to draw, and asks the store for every v
 ## The definition
 
 ```text
-Mod      a name, its front page, and its pages
+Mod      a name, its front page, its pages, and a category if it has one
 Page     a name and its items. The front page is the mod's own, and has no name
 Item     one of:
            Setting
