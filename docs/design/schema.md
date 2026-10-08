@@ -218,7 +218,7 @@ Value type, UI control, storage, and application behavior remain separate concep
 }
 ```
 
-`text` is what the row says, and `help` is its help text, shown in the description area while the row is pointed at. Both are the names MCM uses, and every item that is a row has them: a setting, a section, a button, and an option of a choice.
+`text` is what the row says, and `help` is its help text, shown in the help line while the row is pointed at. Both are the names MCM uses, and every item that is a row has them: a setting, a section, a button, and an option of a choice.
 
 Every writable setting has an inline required `default`. Defaults use the same type and constraint validation as player values. The default is the value Reset applies, so it has to match the default the mod itself uses.
 

@@ -31,32 +31,34 @@ The primary browsing and editing state.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ MODS CONFIG VR                                      [?] [Minimize] [X] │
+│ MODS CONFIG VR » Immersive Flashlight VR             [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
-│ Mods              │ Immersive Flashlight VR                            │
-│                   │ Point at a setting to see its description here.    │
-│ ▾ Flashlight      ├─────────────────────────────────────────────────────┤
-│     Beam          │ General                                             │
-│     Hand mount    │ Enabled                    [ On ]                    │
-│ ▸ FRIK            │ Brightness       [-] [====o----] [1.25] [Reset]    │
+│ Mods              │ General                                             │
+│                   │ Enabled                    [ On ]                   │
+│ ▾ Flashlight      │ Brightness       [-] [====o----] [1.25] [Reset]     │
+│     Beam          │                                                     │
+│     Hand mount    │ ▸ Advanced                                          │
+│ ▸ FRIK            │                                                     │
 │ ▸ Holsters        │                                                     │
-│ ▸ Sim Settlements │ ▸ Advanced                                          │
+│ ▸ Sim Settlements │                                                     │
 │                   │                                                     │
 │ Search / Filter   │                                                     │
 ├───────────────────┴─────────────────────────────────────────────────────┤
-│                                      [Discard]              [Save]      │
+│ Brightness: How bright the beam is. Default 1.00.  [Discard]   [Save]   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 - Navigation is on the left and selected mod content is on the right.
-- The navigation is a tree. Its top row goes to the menu's front page, which is what the menu opens on: no mod is selected, and it has the quick launch links.
+- The navigation is a tree of the mods. The menu's front page, which is what the menu opens on, has no row in it: no mod is selected, and the page has the quick launch links. The first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
 - A quick launch link opens a mod's own config UI. The mod registers for it through the native API, and needs no package for it.
 - Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page.
 - The mod's front page has no row of its own in the tree: the mod's row is its row.
 - The tree keeps its place and its width, with or without a selected mod.
 - The player can select another mod at any time, without going to the front page first.
 - The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package.
-- A fixed top content area shows the description or error for the pointed/focused setting.
+- The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page. When the crumbs do not fit, the mod's name is shortened with an ellipsis.
+- The content pane has no heading of its own, so its height goes to settings.
+- The footer has Save and Discard on the right and the help line on the left; see [Help line](#help-line).
 - Save and Discard remain in stable locations.
 
 ### Focused
@@ -65,13 +67,14 @@ A smaller offhand-anchored view of only the selected mod or page.
 
 ```text
 ┌──────────────────────────────────────────┐
-│ Immersive Flashlight VR       [Full] [—]│
+│ Immersive Flashlight VR       [Full] [—] │
 ├──────────────────────────────────────────┤
-│ Brightness                              │
-│ Controls the flashlight beam intensity. │
-│                                         │
-│ [-] [==========o------] [1.25] [Reset] │
-│                                         │
+│ Brightness: Controls the flashlight beam │
+│ intensity.                               │
+├──────────────────────────────────────────┤
+│ Brightness                               │
+│ [-] [==========o------] [1.25] [Reset]   │
+│                                          │
 │                         [Discard] [Save] │
 └──────────────────────────────────────────┘
 ```
@@ -79,7 +82,8 @@ A smaller offhand-anchored view of only the selected mod or page.
 - Anchored to the offhand in a readable orientation.
 - Omits the global mod navigator.
 - May use more compact presentations of the same controls.
-- Retains descriptions, validation, Save, Discard, Minimize, and return-to-Full controls.
+- Retains help, validation, Save, Discard, Minimize, and return-to-Full controls.
+- Its footer has no room for the help line, so the help is a two-line area at the top, in the same `Name: help` form.
 - Pending changes are the same editing session as Full mode.
 
 ### Minimized
@@ -167,17 +171,25 @@ Haptic feedback should be restrained and meaningful:
 
 Exact haptic profiles can use the future CommonFramework `Haptic` control/configuration design.
 
-## Description and help area
+## Help line
 
-The current direction is a fixed description area near the top of the content pane. It should show, in priority order:
+The help of what the ray is on is shown on the left of the footer, in the help line. Save and Discard stay to the right of it: they do not move or hide, and only the text of the help line changes.
+
+The help line shows, in priority order:
 
 1. Active validation error
-2. Description for the currently pointed/focused control or option
-3. Page or mod-level help when no setting is focused
+2. The help of the row, option or control the ray is on, as `Name: help`: the row's text, a colon, and its help. The name is not repeated on a line of its own.
+3. The status of the editing session when the ray is not on a row: the unsaved changes, or that changes are saved as they are made.
 
-The description of a package's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
+The help is kept while the ray moves from row to row, through the gaps between them, and the status comes back when the ray leaves the rows or the open popup. Without that, the line would flicker as the ray sweeps the list.
 
-Keeping the area fixed avoids layout movement and makes help discoverable without pop-up tooltips floating at uncomfortable depths.
+The help line has room for two lines. Help that needs a third is drawn in a smaller size, and longer help ends in an ellipsis.
+
+The help of a package's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
+
+A page or a mod has no help of its own in the help line. A page that explains itself does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
+
+Keeping the help in one place avoids layout movement and makes it discoverable without pop-up tooltips floating at uncomfortable depths. The Focused panel's footer is too narrow for it, so there the help is a two-line area at the top.
 
 ## Navigation behavior
 

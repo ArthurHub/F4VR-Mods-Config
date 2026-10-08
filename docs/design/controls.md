@@ -79,7 +79,7 @@ Choice behavior:
 - The current option has a strong visual marker.
 - Popup rows use large VR targets.
 - Trigger selects; thumbstick scrolls; Back closes without changing the selection.
-- The description area may show the pointed option's help before it is selected.
+- The help line may show the pointed option's help before it is selected.
 
 ### Text input
 
@@ -138,9 +138,9 @@ Their schemas, storage mappings, live-preview semantics, and VR manipulation exp
 
 These should not be flattened into `vec2` or `vec3`, because their meaning, validation, and editing affordances are richer than a tuple of numbers.
 
-## Descriptions and validation feedback
+## Help and validation feedback
 
-The full and focused layouts reserve a stable description area for the item currently pointed at or focused. The same area presents validation errors so content does not jump around.
+The full and focused layouts reserve a stable place for the help of the item the ray is on: the help line on the left of the Full panel's footer, and a two-line area at the top of the Focused panel. See [Help line](ui-and-vr-interaction.md#help-line). The same place presents validation errors so content does not jump around.
 
 Additional feedback:
 

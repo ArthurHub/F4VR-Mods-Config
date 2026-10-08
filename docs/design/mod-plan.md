@@ -82,7 +82,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | todo   |
 | M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | todo   |
 | M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo   |
-| M21 | mod       | The description area                                                                                  | todo   |
+| M21 | mod       | The help line                                                                                         | todo   |
 | F22 | framework | render: a texture from pixels in memory                                                               | todo   |
 | F23 | framework | imgui: an image in a canvas                                                                           | todo   |
 | M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | todo   |
@@ -91,7 +91,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 
 M11 designs the menu's front page, which is what it shows with no mod selected:
 
-- It is what the menu opens on, and the top row of the tree goes to it.
+- It is what the menu opens on. It has no row in the tree: the first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
 - It is like MCM's, with differences that are settled in this commit.
 - The mods are a tree, as in [UI and VR interaction](ui-and-vr-interaction.md#navigation-behavior): a selected mod is expanded to show its pages, and its front page has no row.
 - It has a quick launch section, which opens a mod's own config UI.
@@ -108,7 +108,7 @@ M14 removes the placeholder controls of the test bed. MCM mods are listed only w
 
 M15 puts FRIK in the quick launch section, when FRIK is installed. Its config is opened the way the FRIK wrist button opens it today. Other mods come to the section in milestone 6, and FRIK's entry is then there when FRIK registers for it.
 
-M16 expands the selected mod in the tree and shows its front page. Every row is its text and what it is. A button, a text input and a hotkey stay such rows until the commits that make them work.
+M16 expands the selected mod in the tree and shows its front page. The breadcrumbs in the title bar name the mod and the page. Every row is its text and what it is. A button, a text input and a hotkey stay such rows until the commits that make them work.
 
 M17 looks a text that starts with `$` up in the game's translation table. F4SE fills it with the translation file of every enabled game plugin, for the language the game is set to.
 
@@ -119,7 +119,7 @@ M18 does what FallUI's own code does in MCM's menu, for FallUI and FallUI Workbe
 
 M20 draws the four controls with their default values, and disabled. A choice's index becomes typed options.
 
-M21 shows the `help` text of the row the ray is on.
+M21 shows the `help` text of the row the ray is on in the help line, on the left of the footer, as in [UI and VR interaction](ui-and-vr-interaction.md#help-line).
 
 F22 and F23 are item 11 of the requirements.
 
@@ -235,7 +235,7 @@ The milestone is INI only. A CommonFramework mod reloads its INI by itself, so i
 
 M52 to M54 follow the Save steps of [Architecture and lifecycle](architecture.md#save-lifecycle). M52 is the Save that goes well. M53 is the checks before the write, and the rollback of a write that fails.
 
-M58 shows a package's `applies`. The description area says when the change of the pointed row takes effect, a row that needs a restart is marked, and a Save that wrote one says that the game has to be restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 7 there is no client, so a `live` setting is handled as `save`.
+M58 shows a package's `applies`. The help line says when the change of the pointed row takes effect, a row that needs a restart is marked, and a Save that wrote one says that the game has to be restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 7 there is no client, so a `live` setting is handled as `save`.
 
 ### 6. Actions and handoff
 

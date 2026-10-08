@@ -22,7 +22,7 @@ Item     one of:
            Placeholder   a control the menu does not support, with the reason
 ```
 
-A setting, a button, and any other item that is a row has a `text` and can have a `help`. The text is what the row says. The help of the row the ray is on is shown in the description area. Both names are MCM's, and a package uses them too. In the test set 376 rows have a help: most switchers, sliders, steppers and buttons, and every hotkey.
+A setting, a button, and any other item that is a row has a `text` and can have a `help`. The text is what the row says. The help of the row the ray is on is shown in the help line, on the left of the footer. Both names are MCM's, and a package uses them too. In the test set 376 rows have a help: most switchers, sliders, steppers and buttons, and every hotkey.
 
 A setting has:
 
@@ -32,7 +32,7 @@ A setting has:
 | type         | How it is edited, by MCM's names: switcher, slider, stepper, dropdown, textinput                      |
 | valueType    | What the value is: bool, int, float or string. Color comes with its control                           |
 | text         | What the row says                                                                                     |
-| help         | Its help text, shown in the description area while the ray is on the row                              |
+| help         | Its help text, shown in the help line while the ray is on the row                                     |
 | valueOptions | The least, the most and the step of a number, the length limits of a text, or the options of a choice |
 | default      | The value Reset gives. A package's setting always has one, an MCM row may not                         |
 | visibleWhen  | A condition on the values of other settings. The row is shown while it holds                          |
@@ -182,18 +182,18 @@ advanced/1       off     ready           held by the store, off when the mod is 
 iMode:Main               not available   the ModSetting is in neither of MCM's files
 ```
 
-The front page, drawn from the two, with the ray on "Enable the feature". Its help is in the description area, above the rows:
+The front page, drawn from the two, with the ray on "Enable the feature". Its help is in the help line, at the bottom:
 
 ```text
-┌───────────────────┬───────────────────────────────────────────────┐
-│ ▾ My Mod          │ My Mod                                        │
-│     Advanced      │ Turns the feature on.                         │
-│ ▸ Another Mod     ├───────────────────────────────────────────────┤
-│                   │ General                                       │
-│                   │ Enable the feature                   [ On ]   │
-│                   │ Strength          [-] [=====o----] [1.3]      │
+┌───────────────────────────────────────────────────────────────────┐
+│ MODS CONFIG VR » My Mod                                           │
+├───────────────────┬───────────────────────────────────────────────┤
+│ ▾ My Mod          │ General                                       │
+│     Advanced      │ Enable the feature                   [ On ]   │
+│ ▸ Another Mod     │ Strength          [-] [=====o----] [1.3]      │
+│                   │                                               │
 ├───────────────────┴───────────────────────────────────────────────┤
-│ Changes are saved as they are made                                │
+│ Enable the feature: Turns the feature on.                         │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -203,7 +203,7 @@ A press on "Enable the feature":
 2. The MCM store writes 0 to the global, runs `OnToggle` with the value, and sends MCM's event.
 3. The UI asks for the values again. `main/2` is off, so the Strength row is not visible.
 
-Nothing is dirty, and the status line says that changes are saved as they are made.
+Nothing is dirty. When the ray leaves the rows, the help line goes back to the status, which says that changes are saved as they are made.
 
 ### A package
 

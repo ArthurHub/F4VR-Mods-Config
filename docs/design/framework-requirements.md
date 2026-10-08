@@ -6,7 +6,7 @@ It describes the framework at version 0.4.1 (unreleased), commit `4dd511a`. File
 
 ## What the mod needs from the framework
 
-Most of the configuration UI is a single Dear ImGui panel: an `imgui::UIImGuiPanel` in a vrui layout that holds the mod list, the selected mod's settings, the description area, and the Save bar. The player operates it with a controller ray. A few controls that sit on the hand, such as the Minimized Resume and Close buttons, are ordinary vrui buttons pressed by touch.
+Most of the configuration UI is a single Dear ImGui panel: an `imgui::UIImGuiPanel` in a vrui layout that holds the mod list, the selected mod's settings, and the footer with the help line and the Save bar. The player operates it with a controller ray. A few controls that sit on the hand, such as the Minimized Resume and Close buttons, are ordinary vrui buttons pressed by touch.
 
 That makes four demands on the framework:
 
