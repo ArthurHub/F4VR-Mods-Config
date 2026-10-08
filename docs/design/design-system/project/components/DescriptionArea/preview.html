@@ -1,0 +1,17 @@
+<!-- @dsCard group="Settings" height=520 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Help line — preview</title></head>
+<body>
+<div class="mc-world"><div class="mc-sheet mc-stack" style="width:1120px">
+<span class="t-detail mc-muted">The ray is on a setting: its help, "Name: help", two lines at t-body</span>
+<div class="mc-footer"><div class="help t-body"><span class="name">Brightness:</span> How bright the beam is. 1.00 is the game's own flashlight; above 1.25 the beam starts to wash out close surfaces. Default 1.00.</div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
+<span class="t-detail mc-muted">Help that needs a third line drops to t-detail; past three lines it ends in an ellipsis</span>
+<div class="mc-footer"><div class="help t-detail is-long"><span class="name">Hide HUD in Pip-Boy:</span> Hides the compass, health, action points and the ammo counter while the Pip-Boy is raised, and brings them back when it is lowered. Widgets that FallUI HUD does not own, such as quest markers from other mods, keep their own setting. Default off.</div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
+<span class="t-detail mc-muted">A validation error comes first</span>
+<div class="mc-footer"><div class="help t-body is-error"><svg class="mc-warn" viewBox="0 0 20 18"><path class="tri" d="M10 1 L19 17 H1 Z"/><rect class="bang" x="9" y="6" width="2" height="6"/><rect class="bang" x="9" y="13.4" width="2" height="2"/></svg><span class="name">Brightness:</span> 2.00 is out of range. Enter a value from 0.50 to 1.50, or Reset it to 1.00.</div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
+<span class="t-detail mc-muted">The ray is off the settings: the session status</span>
+<div class="mc-footer"><div class="status t-body"><span class="mc-dot"></span><span class="mc-amber">1 unsaved change</span></div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
+</div></div>
+</body>
+</html>

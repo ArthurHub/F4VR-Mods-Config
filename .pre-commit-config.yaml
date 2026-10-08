@@ -17,3 +17,19 @@ repos:
       - id: check-json
       - id: check-added-large-files
         args: [--maxkb=2048]
+
+  # The design system's generated files: a commit that leaves one out of date fails, with the file rewritten.
+  - repo: local
+    hooks:
+      - id: design-system-previews
+        name: design system previews
+        entry: python docs/design/design-system/tools/gen_previews.py
+        language: python
+        pass_filenames: false
+        files: ^docs/design/design-system/
+      - id: design-system-theme
+        name: design system theme (src/Theme.h)
+        entry: python docs/design/design-system/tools/gen_theme.py
+        language: python
+        pass_filenames: false
+        files: ^(docs/design/design-system/|src/Theme\.h$)

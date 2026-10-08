@@ -11,6 +11,7 @@ These documents capture the current product and architecture decisions. The orde
 - [Declarative schema](schema.md) — package discovery, files, pages, settings, storage, conditions, buttons, localization, and validation.
 - [Controls](controls.md) — core controls, their value semantics, and specialized CommonFramework controls reserved for later design.
 - [UI and VR interaction](ui-and-vr-interaction.md) — opening the menu; full, focused, and minimized modes; world placement; pointing; editing; and low-fidelity wireframes.
+- [Design system](design-system/README.md) — the look: colors, type, sizes, the Dear ImGui style, and mocks of every component and panel. It is the source of the Design System artifact.
 - [CommonFramework work required](framework-requirements.md) — what F4VR-CommonFramework has to gain before this mod can be built on it. This work comes first.
 - [Framework work plan](framework-plan.md) — the commits that deliver that work, and their status.
 - [Mod work plan](mod-plan.md) — the milestones that build the mod, from MCM support to the first release and after, with the commits of each.

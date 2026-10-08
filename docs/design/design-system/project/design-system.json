@@ -1,0 +1,25 @@
+{
+  "v": 3,
+  "assetGroups": {},
+  "blobs": {},
+  "createdOnFiles": {
+    "at": "2026-10-07T23:57:34Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "groups": [],
+  "lastChange": {
+    "by": "Arthur",
+    "at": "2026-10-08T17:45:00Z",
+    "via": "Claude (Cowork)",
+    "note": "The ImGui style section now generates src/Theme.h in the mod's repo."
+  },
+  "layout": "files",
+  "libraries": [],
+  "namespace": "ModsConfigVR",
+  "sections": {},
+  "title": "Mods Config VR"
+}

@@ -1,0 +1,187 @@
+/* Mods Config VR — preview stylesheet.
+   Recreates the ImGui panel in CSS at 1 layout pixel = 1 CSS pixel. Values come from tokens.css;
+   the few literals here are geometry that ImGui computes (triangle tips, the mark) or the stand-in world. */
+
+body { margin: 0; font-family: var(--font-sans); font-weight: 500; color: var(--green); background: #3d4140; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+svg.mc-ico { display: block; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+svg.mc-ico .fill { fill: currentColor; stroke: none; }
+
+/* the game world behind the glass: a bright overcast sky over ground, the hard case for legibility */
+.mc-world { background: linear-gradient(#bcc6cc 0 58%, #4b4739 58% 100%); padding: 24px; min-height: 100vh; }
+.mc-sheet { background: var(--glass); border-radius: var(--radius-popup); padding: var(--space-4); }
+.mc-stack { display: flex; flex-direction: column; gap: var(--space-2); }
+.mc-line { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.mc-label { color: var(--green-muted); }
+.mc-muted { color: var(--green-muted); }
+.mc-amber { color: var(--amber); }
+.mc-red { color: var(--red); }
+.mc-num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Full panel ---------- */
+.mc-panel { width: var(--panel-width); height: var(--panel-height); background: var(--glass); border: var(--border-panel) solid var(--green); border-radius: var(--radius-panel); padding: var(--panel-padding); display: flex; flex-direction: column; overflow: hidden; }
+.mc-titlebar { height: var(--titlebar-height); flex: none; display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); border-bottom: var(--border-frame) solid var(--rule); }
+.mc-titlebar .grow { flex: 1; }
+/* the breadcrumbs: where the player is, in the title bar; each crumb but the last is pressable */
+.mc-crumbs { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-1); }
+.mc-crumb { height: var(--control-height); display: flex; align-items: center; padding: 0 var(--space-2); border-radius: var(--radius-frame); white-space: nowrap; color: var(--green-muted); }
+.mc-crumb.is-mod { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; line-height: var(--control-height); }
+.mc-crumb.is-current { color: var(--green); }
+/* the first crumb is the menu's front page: selected while that page is open, as a tree row is */
+.mc-crumb.is-selected { background: var(--green); color: var(--on-green); }
+.mc-crumb.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
+.mc-crumb-sep { flex: none; color: var(--green-muted); }
+.mc-body { flex: 1; min-height: 0; display: flex; gap: var(--space-4); padding: var(--space-3) 0; }
+.mc-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.mc-scroll { flex: 1; min-height: 0; display: flex; gap: var(--space-2); overflow: hidden; }
+.mc-scroll .rows { flex: 1; min-width: 0; }
+.mc-scrollbar { width: var(--scrollbar-size); flex: none; background: var(--track); border-radius: var(--radius-frame); position: relative; }
+.mc-scrollbar i { position: absolute; left: 3px; right: 3px; border-radius: var(--radius-frame); background: var(--frame-border); }
+
+/* ---------- navigation tree ---------- */
+/* right padding: the selected row's 20 px tip, space-1, the scroll bar's room (always kept), space-1 */
+.mc-nav { position: relative; width: var(--nav-width); flex: none; background: var(--plate); border-radius: var(--radius-popup); padding: var(--space-2) calc(20px + var(--space-1) + var(--scrollbar-size) + var(--space-1)) var(--space-2) var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); overflow: hidden; }
+/* the rows scroll under the fixed Mods header; the box reaches over the tip so the tip is not clipped */
+.mc-nav-rows { flex: 1; min-height: 0; overflow: hidden; margin-right: -20px; padding-right: 20px; }
+.mc-nav-rows > .list { display: flex; flex-direction: column; gap: var(--space-1); }
+.mc-nav > .mc-scrollbar { position: absolute; right: var(--space-1); top: calc(var(--space-2) + 40px + var(--space-1)); bottom: var(--space-2); }
+.mc-nav-head { height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-2); color: var(--green-muted); }
+.mc-tree-row { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) 0 var(--space-2); border-radius: var(--radius-frame); white-space: nowrap; }
+.mc-tree-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.mc-tree-row .arrow { width: 16px; flex: none; display: grid; place-items: center; }
+.mc-tree-row .arrow svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+.mc-tree-row.is-page { padding-left: calc(var(--space-2) + var(--space-8)); }
+.mc-tree-row.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-tree-row.is-selected { background: var(--green); color: var(--on-green); border-radius: var(--radius-frame) 0 0 var(--radius-frame); }
+/* the Pip-Boy tip: the selected bar points at the content it opened */
+.mc-tree-row.is-selected::after { content: ""; position: absolute; top: 0; right: -20px; border-left: 20px solid var(--green); border-top: 24px solid transparent; border-bottom: 24px solid transparent; }
+.mc-tree-row.is-disabled { opacity: var(--opacity-disabled); }
+/* a category groups mods when the list is long: pressed to open or close, never selected */
+.mc-cat { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) 0 var(--space-2); border-radius: var(--radius-frame); color: var(--green-muted); white-space: nowrap; }
+.mc-cat .arrow { width: 16px; flex: none; display: grid; place-items: center; }
+.mc-cat .arrow svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+.mc-cat .line { flex: 1; min-width: var(--space-4); height: var(--border-frame); background: var(--rule); }
+.mc-cat.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
+.mc-tree-row.in-cat { padding-left: calc(var(--space-2) + var(--space-8)); }
+.mc-tree-row.is-page.in-cat { padding-left: calc(var(--space-2) + var(--space-8) + var(--space-8)); }
+
+/* ---------- help: "Name: help", in the footer of the Full panel and atop the Focused panel ---------- */
+.mc-desc { height: var(--description-height); flex: none; background: var(--plate); border-radius: var(--radius-popup); padding: var(--space-2) var(--space-3); color: var(--green-muted); overflow: hidden; }
+.mc-desc .name, .help .name { color: var(--green); }
+.help { flex: 1; min-width: 0; color: var(--green-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.help.is-long { -webkit-line-clamp: 3; }
+.help.is-error, .help.is-error .name { color: var(--red); }
+.help .mc-warn { display: inline-block; vertical-align: -2px; margin-right: var(--space-2); }
+.mc-pagehelp { color: var(--green-muted); padding: var(--space-1) var(--space-2) var(--space-2); }
+
+/* ---------- section heading (ImGui::SeparatorText) ---------- */
+.mc-section { height: var(--control-height); display: flex; align-items: center; gap: var(--space-3); padding-left: var(--space-2); margin-top: var(--space-2); }
+.mc-section::after { content: ""; flex: 1; height: var(--border-frame); background: var(--rule); }
+.mc-collapse { height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding-left: var(--space-2); color: var(--green-muted); border-radius: var(--radius-frame); }
+.mc-collapse svg { width: 14px; height: 14px; fill: currentColor; }
+.mc-collapse.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
+
+/* ---------- setting row ---------- */
+.mc-row { position: relative; height: var(--control-height); display: grid; grid-template-columns: var(--space-6) minmax(0, 1fr) var(--control-width); align-items: center; column-gap: var(--space-3); border-radius: var(--radius-frame); margin-bottom: var(--space-2); }
+.mc-row .gutter { display: grid; place-items: center; height: 100%; }
+.mc-row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-row .name small { display: block; }
+.mc-row .ctl { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.mc-row .ctl .main { width: calc(var(--control-width) - var(--control-height) - var(--space-2)); display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); }
+.mc-row.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-row.is-focus { box-shadow: inset 0 0 0 var(--border-frame) var(--green); }
+.mc-row.is-active { background: var(--pressed); box-shadow: inset 0 0 0 var(--border-frame) var(--glow); }
+.mc-row.is-disabled { opacity: var(--opacity-disabled); }
+.mc-row.is-invalid .name { line-height: 22px; }
+/* the mark of a setting that takes effect after the game is restarted */
+.mc-tag { display: inline-block; margin-left: var(--space-2); padding: 0 var(--space-2); line-height: 22px; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); color: var(--green-muted); vertical-align: 2px; }
+.mc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--amber); }
+.mc-warn { width: 20px; height: 18px; }
+.mc-warn .tri { fill: var(--red); }
+.mc-warn .bang { fill: var(--on-red); }
+/* the pointer's mark: fMarkSize 0.45 game units at 8 layout px a game unit */
+.mc-mark { position: absolute; width: 7.2px; height: 7.2px; border-radius: 50%; background: var(--mark); box-shadow: 0 0 0 0.64px var(--mark-border); pointer-events: none; }
+
+/* ---------- buttons ---------- */
+.mc-btn { height: var(--control-height); min-width: 112px; padding: 0 var(--space-4); display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); background: transparent; color: var(--green); white-space: nowrap; }
+.mc-btn.is-primary { background: var(--green); border-color: var(--green); color: var(--on-green); }
+.mc-btn.is-quiet { border-color: transparent; }
+.mc-btn.is-hover { background: var(--hover); }
+.mc-btn.is-quiet.is-hover { border-color: var(--frame-border); }
+.mc-btn.is-primary.is-hover { background: var(--glow); border-color: var(--glow); }
+.mc-btn.is-active { background: var(--pressed); border-color: var(--glow); }
+.mc-btn.is-primary.is-active { background: var(--green); box-shadow: 0 0 0 var(--border-frame) var(--glow); }
+.mc-btn.is-focus { box-shadow: 0 0 0 var(--border-frame) var(--green); }
+.mc-btn.is-disabled { opacity: var(--opacity-disabled); }
+.mc-btn.is-icon { width: var(--control-height); min-width: 0; padding: 0; }
+.mc-btn.is-slot { visibility: hidden; }
+
+/* ---------- toggle ---------- */
+.mc-toggle { display: inline-flex; height: var(--control-height); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); overflow: hidden; background: var(--track); }
+.mc-toggle span { width: 88px; display: grid; place-items: center; color: var(--green-muted); }
+.mc-toggle span.is-on { background: var(--green); color: var(--on-green); }
+/* Off is selected with a ring, not a fill: a solid green fill always means on, selected or primary */
+.mc-toggle span.is-off { background: var(--pressed); color: var(--green); box-shadow: inset 0 0 0 var(--border-frame) var(--green); }
+.mc-toggle.is-pending span.is-off { color: var(--amber); box-shadow: inset 0 0 0 var(--border-frame) var(--amber); }
+.mc-toggle.is-pending span.is-on { background: var(--amber); color: var(--on-amber); }
+
+/* ---------- slider ---------- */
+.mc-track { position: relative; width: 280px; height: var(--control-height); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); }
+.mc-track .fill { position: absolute; left: 10px; top: 50%; height: 8px; margin-top: -4px; background: var(--green); border-radius: var(--radius-grab); }
+.mc-track .grab { position: absolute; top: 2px; width: var(--grab-width); height: 40px; margin-left: -10px; background: var(--green); border-radius: var(--radius-grab); }
+.mc-track.is-active .grab { background: var(--glow); }
+.mc-track.is-active { border-color: var(--glow); }
+.mc-track.is-pending .fill, .mc-track.is-pending .grab { background: var(--amber); }
+.mc-track.is-invalid .fill, .mc-track.is-invalid .grab { background: var(--red); }
+.mc-value { width: var(--value-width); height: var(--control-height); display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-3); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); font-variant-numeric: tabular-nums; }
+.mc-value.is-pending { color: var(--amber); }
+.mc-value.is-invalid { color: var(--red); border-color: var(--red); }
+
+/* ---------- stepper ---------- */
+.mc-stepper { display: inline-flex; align-items: center; gap: var(--space-2); }
+.mc-stepper .label { width: 280px; height: var(--control-height); display: grid; place-items: center; background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); }
+.mc-stepper .label.is-pending { color: var(--amber); }
+.mc-stepper svg.tri { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+
+/* ---------- dropdown ---------- */
+.mc-combo { width: calc(var(--control-width) - var(--control-height) - var(--space-2)); height: var(--control-height); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-4); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); }
+.mc-combo svg { width: 14px; height: 14px; fill: currentColor; }
+.mc-combo.is-open { border-color: var(--green); }
+.mc-combo.is-pending > span:first-child { color: var(--amber); }
+.mc-popup { background: var(--popup); border: var(--border-frame) solid var(--green); border-radius: var(--radius-popup); padding: var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); }
+.mc-option { height: var(--control-height); display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-4) 0 var(--space-3); border-radius: var(--radius-frame); }
+.mc-option .check { width: 20px; flex: none; }
+.mc-option.is-current { background: var(--green); color: var(--on-green); }
+.mc-option.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
+/* the last entry of a list that types a new value: set apart by a rule, in muted text */
+.mc-option.is-new { color: var(--green-muted); margin-top: var(--space-1); position: relative; }
+.mc-option.is-new::before { content: ""; position: absolute; left: 0; right: 0; top: calc(-1 * var(--space-1) - 1px); height: var(--border-frame); background: var(--rule); }
+.mc-option.is-new.is-hover { color: var(--green); }
+.mc-popup.has-scroll { position: relative; padding-right: calc(var(--space-2) + var(--scrollbar-size) + var(--space-2)); }
+.mc-popup.has-scroll .mc-scrollbar { position: absolute; top: var(--space-2); bottom: var(--space-2); right: var(--space-2); }
+
+/* ---------- footer: Save bar / immediate-apply bar ---------- */
+.mc-footer { height: var(--footer-height); flex: none; display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-2) 0 var(--space-4); border-top: var(--border-frame) solid var(--rule); }
+.mc-footer .status { flex: 1; display: flex; align-items: center; gap: var(--space-2); }
+.mc-footer .mc-btn { min-width: 160px; }
+
+/* ---------- confirmation dialog ---------- */
+.mc-scrim { background: var(--scrim); display: grid; place-items: center; }
+.mc-dialog { width: 576px; background: var(--popup); border: var(--border-frame) solid var(--green); border-radius: var(--radius-popup); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.mc-dialog .actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* ---------- Focused panel ---------- */
+.mc-focused { width: var(--focused-width); height: var(--focused-height); background: var(--glass); border: var(--border-panel) solid var(--green); border-radius: var(--radius-panel); padding: var(--panel-padding); display: flex; flex-direction: column; gap: var(--space-2); overflow: hidden; }
+.mc-focused .fhead { height: var(--control-height); flex: none; display: flex; align-items: center; gap: var(--space-2); padding-left: var(--space-2); }
+.mc-focused .fhead .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-focused .item { padding: 0 var(--space-2); }
+.mc-focused .item .ctl { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-1); }
+.mc-focused .mc-track { flex: 1; width: auto; }
+.mc-focused .mc-footer { height: 64px; margin-top: auto; padding-left: var(--space-2); }
+.mc-focused .mc-footer .mc-btn { min-width: 128px; }
+
+/* ---------- wrist buttons (vrui UIButtonPanel, F4VR_BUTTON_STYLE) ---------- */
+.mc-wrist { display: inline-flex; gap: 9.6px; }
+.mc-wristbtn { width: 144px; height: 105.6px; background: var(--glass-widget); border: var(--border-widget) solid var(--green); border-radius: var(--radius-widget); padding: 7.2px 9.6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; }
+.mc-wristbtn .top { color: var(--green); }
+.mc-caption { align-self: flex-start; background: var(--glass); color: var(--green-muted); padding: 2px var(--space-2); border-radius: var(--radius-frame); }

@@ -1,0 +1,51 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mods Config VR</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--on-green); color:var(--green); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .sel { fill:var(--green); }
+  .slab { fill:var(--green); }
+  .glow { fill:var(--glow); }
+  .tint { fill:var(--pressed); }
+  .tint2 { fill:var(--hover); }
+  .amber { fill:var(--amber); }
+  .bar { rx:var(--radius-frame); }
+  .words { position:absolute; left:var(--space-8); bottom:var(--space-8); max-width:440px; }
+  .name { margin:0; font-size:72px; line-height:.92; font-weight:500; color:var(--green); }
+  .tag { margin:var(--space-3) 0 0 2px; font-size:14px; line-height:20px; color:var(--green-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      green: the selected row 320x48 with its 24px Pip-Boy tip, and a 48-wide slab bled 8px off the right edge like the panel border · glow 264x48 (a row being pressed) · amber, one 10px pending dot, small because it only means a state · about 30% of 960x288
+  arrangement a tree list: rows on a row-pitch (56) rhythm from y=8, page rows indented space-8, the slab standing beside them
+  pattern     the row bars themselves, in pressed and hover tints, from "the panel is rows the ray points at": control-height bars at row-pitch, the last one bleeding off the bottom
+  scales      bar height control-height 48, pitch row-pitch 56, indent space-8, gap space-4, corners radius-frame, tip 24 = half a bar
+-->
+<rect class="tint bar" x="16" y="8" width="360" height="48"/>
+<rect class="sel bar" x="16" y="64" width="320" height="48"/>
+<polygon class="sel" points="336,64 360,88 336,112"/>
+<rect class="tint2 bar" x="48" y="120" width="328" height="48"/>
+<circle class="amber" cx="32" cy="144" r="5"/>
+<rect class="glow bar" x="48" y="176" width="264" height="48"/>
+<rect class="tint bar" x="16" y="232" width="360" height="48"/>
+<rect class="slab" x="440" y="-8" width="48" height="304" rx="4"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Mods Config<br>VR</h1>
+<p class="tag">One settings panel for Fallout 4 VR mods, projected like the Pip-Boy.</p>
+</div>
+</div>
+</body>
+</html>
