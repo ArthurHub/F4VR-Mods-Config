@@ -18,7 +18,7 @@ One `config.json` is supported per package for now. Includes and fragments are d
 
 ```json
 {
-  "schemaVersion": 1,
+  "minSchemaVersion": 1,
   "modName": "mymod",
   "displayName": "My Mod",
   "category": "Gameplay",
@@ -37,7 +37,7 @@ One `config.json` is supported per package for now. Includes and fragments are d
 
 ### Required metadata
 
-- `schemaVersion`: version of the Mods Config VR package schema.
+- `minSchemaVersion`: the lowest version of the Mods Config VR package schema that can read the package, as `minMcmVersion` is in an MCM config. See [Schema version](#schema-version).
 - `modName`: the stable, unique identity of the package, named as in an MCM config.
 - `displayName`: the mod's name as the player sees it, a localized text.
 - `files`: named settings-file declarations when the package has file-backed settings.
@@ -55,6 +55,15 @@ Two packages with the same `modName` are both disabled, with a diagnostic. The h
 IDs are compared without regard to case, both a package's `modName` and the ids inside a package: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
 
 A native client is matched to its package by the package's `modName`. A CommonFramework mod's client registers under the mod's own name, so its package uses that name as its `modName`. The F4SE plugin name, when it differs, goes only in `f4sePluginRequirements`.
+
+### Schema version
+
+The schema has one version number, and it only grows. A package ships with its mod and is not updated when Mods Config VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every package written for an older version.
+
+- `minSchemaVersion` is the lowest version that has everything the package uses.
+- A host below that version hides the package from normal navigation and reports the version it needs in diagnostics, as for a missing requirement.
+- A field or a control type added after version 1 is documented with the version that added it.
+- A field the host does not know is reported in diagnostics, and the rest of the package is read. A typo is noticed, and a package that uses a newer field than its `minSchemaVersion` says still works on an older host, without that field.
 
 ### Category
 

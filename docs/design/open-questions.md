@@ -27,8 +27,6 @@ A setting is stored in one key. An activation sphere spans a section, so it is a
 
 ## Schema evolution
 
-- Exact schema versioning and migration rules
-- Compatibility promises for unknown fields and newer minor versions
 - Package dependency and optional-capability syntax
 - Reusable fragments without making package resolution difficult to understand
 - Dynamic pages, options, visibility, and values supplied by native code

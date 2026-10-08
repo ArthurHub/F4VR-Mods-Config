@@ -211,7 +211,7 @@ The mod's package. It has the same shape: `content` is the front page, and `page
 
 ```json
 {
-  "schemaVersion": 1,
+  "minSchemaVersion": 1,
   "modName": "mymod",
   "displayName": "My Mod",
   "files": {
