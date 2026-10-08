@@ -10,7 +10,7 @@ The examples use a made-up mod, My Mod, that keeps its settings where a CommonFr
 Data/ModsConfigVR/Config/<PackageFolder>/config.json
 ```
 
-The folder name is organizational. The package's explicit `id` is its machine identity.
+The folder name is organizational. The package's `modName` is its machine identity.
 
 One `config.json` is supported per package for now. Includes and fragments are deliberately deferred.
 
@@ -19,17 +19,17 @@ One `config.json` is supported per package for now. Includes and fragments are d
 ```json
 {
   "schemaVersion": 1,
-  "id": "mymod",
-  "name": "My Mod",
+  "modName": "mymod",
+  "displayName": "My Mod",
   "packageVersion": 1,
 
-  "requirements": {
-    "plugins": ["MyMod.esp"],
-    "f4sePlugins": ["MyMod"]
-  },
+  "pluginRequirements": ["MyMod.esp"],
+  "f4sePluginRequirements": ["MyMod"],
 
   "files": {},
   "defaultFile": "main",
+  "applies": "live",
+  "content": [],
   "pages": []
 }
 ```
@@ -37,27 +37,30 @@ One `config.json` is supported per package for now. Includes and fragments are d
 ### Required metadata
 
 - `schemaVersion`: version of the Mods Config VR package schema.
-- `id`: stable, unique package identity.
-- `name`: player-facing localized text.
+- `modName`: the stable, unique identity of the package, named as in an MCM config.
+- `displayName`: the mod's name as the player sees it, a localized text.
 - `files`: named settings-file declarations when the package has file-backed settings.
-- `pages`: ordered page definitions.
+- `applies`: when a change to a setting takes effect in the running mod: `live`, `save` or `restart`. See [When a change takes effect](#when-a-change-takes-effect).
+- `content`: the items of the mod's front page, which is shown when the mod is selected. It has no row of its own in the navigation tree: the mod's row is its row.
+
+`pages` is optional: the mod's other pages, in order. Each has a `pageDisplayName` and its own `content`, and is a row under the mod in the tree. This is the shape of an MCM config, whose root `content` is the mod's front page too.
 
 `packageVersion` is useful for diagnostics and package evolution but does not represent the installed mod's marketing version.
 
 Author, website, Nexus ID, and mod version may be optional metadata later.
 
-Duplicate package IDs disable the conflicting definitions and create diagnostics. The host does not select one unpredictably.
+Two packages with the same `modName` are both disabled, with a diagnostic. The host does not pick one of them.
 
-IDs are compared without regard to case, both package IDs and the IDs inside a package: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
+IDs are compared without regard to case, both a package's `modName` and the ids inside a package: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
 
-A native client is matched to its package by the package `id`. A CommonFramework mod's client registers under the mod's own name, so its package uses that name as its `id`. The F4SE plugin name, when it differs, goes only in `requirements.f4sePlugins`.
+A native client is matched to its package by the package's `modName`. A CommonFramework mod's client registers under the mod's own name, so its package uses that name as its `modName`. The F4SE plugin name, when it differs, goes only in `f4sePluginRequirements`.
 
 ### Requirements
 
 Requirements prevent orphaned menus from appearing when the owning mod is absent. A missing requirement hides the package from normal navigation and reports it in diagnostics.
 
-- `plugins` lists game plugin files (`.esp`, `.esm`, `.esl`) by file name.
-- `f4sePlugins` lists F4SE plugins by the name each registers with F4SE, not by DLL file name. The two can differ: FRIK's DLL is `FRIK.dll` and its F4SE plugin name is `F4VRBody`. The host sends the native save notification to these names.
+- `pluginRequirements` lists game plugin files (`.esp`, `.esm`, `.esl`) by file name, as in an MCM config.
+- `f4sePluginRequirements` lists F4SE plugins by the name each registers with F4SE, not by DLL file name. The two can differ: FRIK's DLL is `FRIK.dll` and its F4SE plugin name is `F4VRBody`. The host sends the native save notification to these names.
 
 A script-only mod lists its game plugin and names no F4SE plugin.
 
@@ -94,7 +97,7 @@ Rules:
 - `root` initially supports `data`, the game's `Data` directory, and `myGames`, which is `Documents/My Games/Fallout4VR`. The Documents folder is located through Windows, as CommonFramework does, so a redirected Documents folder is followed.
 - A path is checked as written: absolute paths and `..` segments are rejected. Links are not resolved.
 - The file does not have to exist. The host creates it on the first Save that changes one of its settings.
-- A package may contain only informational content and actions and therefore need no file declaration.
+- A package may contain only informational content and buttons and therefore need no file declaration.
 
 ## Layout and file defaults
 
@@ -102,8 +105,8 @@ Pages do not belong to files. A page may edit multiple files, and one file may p
 
 Repetitive file references are avoided through inherited `defaultFile` values:
 
-1. Explicit `binding.file`
-2. Nearest enclosing section's `defaultFile`
+1. Explicit `storage.file`
+2. The `defaultFile` of the section the row is under
 3. Page's `defaultFile`
 4. Package-level `defaultFile`
 
@@ -112,21 +115,57 @@ Repetitive file references are avoided through inherited `defaultFile` values:
   "defaultFile": "main",
   "pages": [
     {
-      "id": "body",
-      "name": "Body",
+      "pageDisplayName": "Body",
       "content": [
-        {
-          "kind": "section",
-          "id": "calibration",
-          "name": "Calibration",
-          "defaultFile": "calibration",
-          "content": []
-        }
+        { "type": "section", "text": "Calibration", "defaultFile": "calibration" }
       ]
     }
   ]
 }
 ```
+
+## When a change takes effect
+
+A mod does not show every change as it is made. Some mods read their file again after a Save, and some values are read once, when the game starts. Only the mod's author knows which, so the package says it, with `applies`:
+
+| Value     | The change takes effect     | What the host does                                                                    |
+| --------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| `live`    | As it is made               | Sends the pending value to the mod's native client, as a preview                      |
+| `save`    | After Save                  | No preview                                                                            |
+| `restart` | After the game is restarted | No preview. The row is marked, and a Save that wrote it says that a restart is needed |
+
+`applies` is required at the package's root: a package without it is not loaded, and the error is reported. Below the root it is optional, and a setting takes the nearest one:
+
+1. The setting's own `applies`
+2. The `applies` of the section the row is under
+3. Page's `applies`
+4. Package-level `applies`
+
+```json
+{
+  "applies": "live",
+  "pages": [
+    {
+      "pageDisplayName": "Advanced",
+      "content": [
+        { "type": "section", "text": "Game hooks", "applies": "restart" }
+      ]
+    }
+  ]
+}
+```
+
+A row of the mod's front page has no page above it, so it goes from its section to the package.
+
+Which value a mod uses:
+
+- A CommonFramework mod is `live`. The framework's client previews a key by reloading the mod's config values, so a setting that the mod reads only once is marked `restart`.
+- A mod that reads its file again after a Save is `save`. It does so through a file watcher, the save notification, or a script's save event.
+- A mod that reads its file only when the game starts is `restart`.
+
+A `live` setting of a mod with no native client is handled as `save`, as a preview has nowhere to go.
+
+The host does not check what a package says. A setting that is `live` in a mod that ignores the change looks broken to the player.
 
 ## Ordering
 
@@ -142,29 +181,28 @@ An explicit numeric `order` is not used for ordinary declarative content. Placem
 
 ## Content items
 
-Every entry in a `content` array has a `kind`:
+Every entry in a `content` array has a `type`, which says what the row is. The names are MCM's wherever MCM has the same row:
 
-- `setting`: an editable value bound to a file.
-- `section`: a container for other items.
-- `action`: a named operation.
-- `text`, `notice`, `separator`, `spacer`, `image`: informational and layout elements. Their fields are not designed yet.
+- `switcher`, `slider`, `stepper`, `dropdown`, `textinput`: a setting, which is an editable value bound to a file. The type is its control.
+- `section`: a header row. The rows after it belong to it, up to the next section.
+- `button`: runs an action.
+- `text`, `spacer`, `image`: rows that hold no value; see [Text, spacers and images](#text-spacers-and-images).
 
-Pages are a flat list. Only sections nest.
+Pages are a flat list, and so is the `content` of a page: nothing nests.
 
 ## Settings
 
-Value type, UI control, storage binding, and application behavior remain separate concepts.
+Value type, UI control, storage, and application behavior remain separate concepts. `type` is the control, as in an MCM config, and `valueType` is the type of the stored value. When a change takes effect is the setting's `applies`, its own or the nearest one above it; see [When a change takes effect](#when-a-change-takes-effect).
 
 ```json
 {
-  "kind": "setting",
   "id": "playerHeight",
-  "type": "float",
-  "control": "slider",
-  "name": "Player Height",
-  "description": "Adjusts the estimated player height.",
+  "type": "slider",
+  "valueType": "float",
+  "text": "Player Height",
+  "help": "Adjusts the estimated player height.",
   "default": 1.0,
-  "constraints": {
+  "valueOptions": {
     "min": 0.5,
     "max": 1.5,
     "step": 0.01
@@ -173,26 +211,32 @@ Value type, UI control, storage binding, and application behavior remain separat
     "decimals": 2,
     "unit": "m"
   },
-  "binding": {
+  "storage": {
     "section": "MyMod",
     "key": "fPlayerHeight"
   }
 }
 ```
 
+`text` is what the row says, and `help` is its help text, shown in the description area while the row is pointed at. Both are the names MCM uses, and every item that is a row has them: a setting, a section, a button, and an option of a choice.
+
 Every writable setting has an inline required `default`. Defaults use the same type and constraint validation as player values. The default is the value Reset applies, so it has to match the default the mod itself uses.
 
-Setting IDs are unique across the package. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Pages, sections, and actions share the same namespace, so no two items in a package have the same `id`.
+A setting's `id` is optional. A setting without one gets its id from its storage: the key and the section of an INI, as `fPlayerHeight:MyMod`, which is how MCM names a ModSetting, or the path of a JSON or TOML value, joined with dots. An author gives an id to a setting that something names, a condition or a script, when the name should stay the same after its key is renamed or moved.
 
-Scripts read a setting by the package `id` and the setting `id`, so renaming either breaks the scripts that use it; see [Papyrus API](architecture.md#papyrus-api).
+Setting IDs are unique across the package, given or made. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Two settings whose ids come out the same are an error of the package, and giving one of them an id resolves it. Only a setting has an id: nothing names a page, a section or a button.
 
-## Bindings
+Scripts read a setting by the package's `modName` and the setting's `id`, so renaming either breaks the scripts that use it; see [Papyrus API](architecture.md#papyrus-api). For a setting with no `id` of its own, that is renaming its section or its key.
+
+## Storage
+
+A setting's `storage` says where its value is kept. It is apart from the setting's `id`.
 
 ### INI
 
 ```json
 {
-  "binding": {
+  "storage": {
     "file": "main",
     "section": "MyMod",
     "key": "fPlayerHeight"
@@ -208,35 +252,35 @@ An array represents an unambiguous path without dotted-key escaping rules:
 
 ```json
 {
-  "binding": {
+  "storage": {
     "file": "calibration",
     "path": ["body", "playerHeight"]
   }
 }
 ```
 
-The resolved binding is included in native `SettingView` data so generic adapters do not parse this package themselves.
+The resolved storage is included in native `SettingView` data so generic adapters do not parse this package themselves.
 
 ## Sections
 
-Sections are structural containers:
+A section is a header row, as in an MCM config. The rows after it belong to it, up to the next section:
 
 ```json
 {
-  "kind": "section",
-  "id": "advanced",
-  "name": "Advanced",
+  "type": "section",
+  "text": "Advanced",
   "advanced": true,
-  "collapsed": true,
-  "content": []
+  "collapsed": true
 }
 ```
+
+`collapsed` and `advanced` apply to the rows of the section. So do a section's `defaultFile` and `applies`, for the rows that have none of their own. A section's conditions cover its rows too; see [Conditions](#conditions).
 
 `advanced: true` gives the host semantic information for consistent styling, collapsing, searching, and future global preferences. It is not inferred from the English label.
 
 ## Conditions
 
-Settings and sections may be enabled or visible based on other pending values.
+A row can be shown or enabled by the pending values of settings. A section's condition covers its rows, so a row does not repeat it, and a row with a condition of its own needs both to hold. A page can have a `visibleWhen`, which hides its row in the tree.
 
 ```json
 {
@@ -281,61 +325,77 @@ Dynamic runtime/game-state conditions are deferred to the native API design.
 
 ## Choices
 
-Choices use typed stored values rather than localized display labels:
+A choice stores a value, never the text the player sees. Its options are in `valueOptions`, as in an MCM config.
+
+A list of texts is the short form, also MCM's. The stored value is the index of the chosen text:
 
 ```json
 {
-  "kind": "setting",
-  "id": "interactionMode",
-  "type": "string",
-  "control": "choice",
-  "default": "physical",
-  "presentation": "dropdown",
-  "options": [
-    {
-      "value": "physical",
-      "name": "Physical",
-      "description": "Use direct VR interaction."
-    },
-    {
-      "value": "hybrid",
-      "name": "Hybrid",
-      "description": "Combine physical interaction with button input."
-    }
-  ]
+  "type": "dropdown",
+  "valueType": "int",
+  "text": "Flashlight location",
+  "default": 1,
+  "valueOptions": { "options": ["Head", "Offhand", "Primary hand"] },
+  "storage": { "section": "MyMod", "key": "iFlashlightLocation" }
 }
 ```
 
-All option values in one choice share the setting's declared scalar type. Conditions compare stored values, not translated labels.
-
-Supported presentation hints are `auto`, `dropdown`, `stepper`, and `radio`. The host may select a more compact presentation in focused mode.
-
-Dynamic option lists are deferred to the native API.
-
-## Actions
-
-Actions have no binding, default, dirty state, or persisted value.
+When the stored value is not the index, each option gives its own:
 
 ```json
 {
-  "kind": "action",
-  "id": "calibrateHeight",
-  "name": "Calibrate Height",
-  "description": "Measures the current player height and updates calibration.",
-  "action": "calibrate",
-  "parameters": {
-    "mode": "height",
-    "includeScale": true,
-    "sampleCount": 30
+  "id": "interactionMode",
+  "type": "dropdown",
+  "valueType": "string",
+  "default": "physical",
+  "valueOptions": {
+    "options": [
+      { "value": "physical", "text": "Physical", "help": "Use direct VR interaction." },
+      { "value": "hybrid", "text": "Hybrid", "help": "Combine physical interaction with button input." }
+    ]
   }
 }
 ```
 
-Parameters are typed JSON values. The registered handler can also read the current pending settings snapshot. There is no expression or string-substitution language initially.
+All option values in one choice share the setting's `valueType`. Conditions compare stored values, not translated labels.
 
-An action runs a name that the package's native client registered. In a package without a native client, the action is shown disabled.
+A choice is a `dropdown` or a `stepper`, as in MCM. The host may select a more compact presentation in focused mode.
 
-Actions can use ordinary visibility and enablement conditions.
+Dynamic option lists are deferred to the native API.
+
+## Buttons
+
+A button has no storage, default, dirty state, or persisted value.
+
+Its `action` is an object with a `type`, as in an MCM config, and a package can use every action the menu supports for MCM. So a script-only mod has buttons too:
+
+```json
+{
+  "type": "button",
+  "text": "Reset everything",
+  "help": "Puts every value of the mod back.",
+  "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "ResetAll" }
+}
+```
+
+One action is the package's own. `CallNativeFunction` runs a function that the mod's native client registered, by its name:
+
+```json
+{
+  "type": "button",
+  "text": "Calibrate Height",
+  "help": "Measures the current player height and updates calibration.",
+  "action": {
+    "type": "CallNativeFunction",
+    "function": "calibrate",
+    "params": { "mode": "height", "includeScale": true, "sampleCount": 30 }
+  }
+}
+```
+
+Its `params` are named, typed JSON values, where the `params` of MCM's actions are a list. The function can also read the current pending settings snapshot. In a package without a native client, such a button is shown disabled.
+
+A button can use ordinary visibility and enablement conditions.
 
 Optional confirmation is declarative:
 
@@ -350,13 +410,37 @@ Optional confirmation is declarative:
 }
 ```
 
+## Text, spacers and images
+
+These rows hold no value. `text` and `spacer` are as in an MCM config.
+
+A `text` is a paragraph. With `html`, its text takes the tags that MCM's text rows take:
+
+```json
+{ "type": "text", "text": "Stand straight and look ahead. <b>Do not move</b> until it is done.", "html": true }
+```
+
+A `spacer` is empty space, one line high or `numLines`:
+
+```json
+{ "type": "spacer", "numLines": 2 }
+```
+
+An MCM `image` names a picture inside the mod's SWF, which a package does not have. A package's `image` names a texture file by its path under `Data/Textures`, and can give the size it is drawn at:
+
+```json
+{ "type": "image", "texture": "MyMod/config/logo.dds", "width": 512, "height": 128 }
+```
+
+A warning is a `text` row, as in MCM. The one warning the host draws itself is the mark of a setting that needs a restart; see [When a change takes effect](#when-a-change-takes-effect).
+
 ## Validation
 
-Built-in constraints cover ordinary scalar validation:
+The limits in `valueOptions` cover ordinary scalar validation:
 
 ```json
 {
-  "constraints": {
+  "valueOptions": {
     "min": 0.5,
     "max": 1.5,
     "step": 0.01
@@ -366,7 +450,7 @@ Built-in constraints cover ordinary scalar validation:
 
 ```json
 {
-  "constraints": {
+  "valueOptions": {
     "allowEmpty": false,
     "minLength": 1,
     "maxLength": 64
@@ -376,62 +460,58 @@ Built-in constraints cover ordinary scalar validation:
 
 Choice values must be members of their declared options.
 
-Optional native validators receive both the proposed setting and a read-only pending snapshot. An optional batch validator runs before Save for cross-setting invariants. Complex declarative validation expressions are not currently planned.
+These limits are the whole validation. The mod's code is not asked, and expressions across settings are not planned.
 
 Package/schema errors disable only the affected content where safe and appear in diagnostics. Player input errors disable Save until corrected.
 
 ## Localization
 
-Inline text is always valid:
+A text the player sees has one of three forms. Plain text is always valid:
 
 ```json
 {
-  "name": "Player Height",
-  "description": "Adjusts the estimated player height."
+  "text": "Player Height",
+  "help": "Adjusts the estimated player height."
 }
 ```
 
-Any player-facing field may instead use a localized-text object:
+A text that starts with `$` is a token, as in an MCM config:
 
 ```json
 {
-  "name": {
-    "key": "settings.playerHeight.name",
+  "text": "$MyMod_PlayerHeight"
+}
+```
+
+A token with a fallback keeps the English text in the package:
+
+```json
+{
+  "text": {
+    "token": "$MyMod_PlayerHeight",
     "fallback": "Player Height"
-  },
-  "description": {
-    "key": "settings.playerHeight.description",
-    "fallback": "Adjusts the estimated player height."
   }
 }
 ```
 
-Translation files sit beside `config.json` and are named `config.<language>.json`:
+The translations are the game's translation files, the ones a mod with an MCM menu already has:
 
 ```text
-Data/ModsConfigVR/Config/MyMod/
-├── config.json
-├── config.fr.json
-└── config.de.json
+Data/Interface/Translations/
+├── MyMod_en.txt
+└── MyMod_fr.txt
 ```
 
-```json
-{
-  "settings.playerHeight.name": "Taille du joueur",
-  "settings.playerHeight.description": "Ajuste la taille estimée du joueur."
-}
-```
+Each line of a file is a token, a tab, and its text. A file is UTF-16 LE with a byte order mark, which is the only form F4SE reads.
 
 Rules:
 
-- Translation keys are package-scoped.
-- Files are UTF-8 JSON.
-- `fallback` prevents raw tokens from appearing to players.
-- English translation files are optional when fallbacks are English.
-- Missing keys fall back and create developer diagnostics.
-- Regional lookup may fall back from `pt-BR` to `pt` and then to the inline fallback.
-- Pages, sections, settings, descriptions, options, actions, confirmations, units, and validation messages use the same localized-text representation.
+- F4SE loads one file for every enabled game plugin, named `<plugin>_<language>.txt`, for the language the game is set to. It does not fall back to English. The host looks a token up among them, as it does for an MCM config.
+- A mod with no game plugin has no file loaded by F4SE. The host reads `<modName>_<language>.txt` for its package itself.
+- The fallback is shown when no file has the token: the game is set to a language the mod has no file for, or the file misses the token. So a package whose fallbacks are English needs no English file.
+- A token with no fallback is shown as it is written when no file has it, as in MCM, with a diagnostic.
+- Every text the player sees takes these forms: the name of a mod and of a page, a section, a setting, a help, an option, a confirmation, and a unit.
 
 A language can be shown only if the UI font has its characters. The font covers Western European languages today; wider coverage is an open question.
 
-MCM packages retain their existing `$Token` and MCM translation-file conventions through the MCM bridge.
+This is what an MCM config does, with the fallback added. The texts of an MCM config therefore carry over to a package as they are.

@@ -2,43 +2,46 @@
 
 ## Purpose
 
-Mods Config VR is a shared, VR-first configuration menu for Fallout 4 VR mods. It improves the current MCM experience while preserving compatibility with existing MCM packages.
+Mods Config VR is a shared, VR-first configuration menu for Fallout 4 VR mods. It improves the current MCM experience while preserving compatibility with existing MCM menus.
 
-The host is an F4SE plugin built on F4VR-CommonFramework. Most of its UI is one Dear ImGui panel, placed in the framework's vrui layout and operated with a controller ray. The framework's ImGui panels are display-only today, so that work comes first; see [CommonFramework work required](framework-requirements.md).
+The host is an F4SE plugin built on F4VR-CommonFramework. Most of its UI is one Dear ImGui panel, placed in the framework's vrui layout and operated with a controller ray. What the panel needed from the framework is done; see the [Framework work plan](framework-plan.md). The framework work that is left is made with the mod's milestones.
 
-The host owns navigation, interaction, persistence coordination, diagnostics, and the shared visual language. Each mod continues to own the meaning and runtime application of its settings.
+The host owns navigation, interaction, persistence coordination, diagnostics, and the shared visual language. Each mod continues to own the meaning and runtime application of its settings. A diagnostic, in these documents, is a line in the mod's log: the menu has no page for them.
 
 ## Integration sources
 
-Three sources feed one internal model:
+Two sources fill one internal model:
 
 1. Mods Config VR declarative JSON packages.
-2. A restricted native C++ API for dynamic behavior.
-3. A bridge to MCM for existing Fallout 4 MCM packages.
+2. A bridge to MCM for existing Fallout 4 MCM menus.
 
-The source is retained as metadata so the UI and lifecycle can preserve important differences, particularly MCM's immediate-change behavior.
+A mod's DLL can also register as a native client, through a restricted C++ API. A client is not a third source. It adds to its mod's package: live preview, functions that buttons run, and the mod's own config UI.
+
+The UI does not show which source a mod's menu comes from. What differs is in the mod's store: an MCM change is saved as it is made, and a package's on Save. See [The settings model](model.md).
 
 ```text
-Declarative JSON ─────┐
-Restricted C++ API ───┼──> Unified settings model ──> VR UI
-MCM compatibility ────┘
+Declarative package ──┐
+                      ├──> Unified settings model ──> VR UI
+MCM config ───────────┘
 ```
 
 ## Ownership
 
-- Mods Config VR owns menu discovery, rendering, input, validation orchestration, and safe persistence.
+- Mods Config VR owns menu discovery, rendering, input, validation, and safe persistence.
 - A package definition describes the UI and binds controls to the mod's real settings files.
 - A mod owns runtime interpretation and side effects.
 - F4VR-CommonFramework is linked statically into each client mod, so every mod has its own copy. Its config base keeps session overrides: values applied over the INI in memory and never written to disk. A generic adapter in the framework drives them for live preview; see [CommonFramework adapter](#commonframework-adapter).
-- Per-setting callbacks are already scoped to a registered package/client and therefore do not carry a `modId`.
+- Per-setting callbacks are already scoped to a registered package/client and therefore do not carry the `modName`.
 
 ## Package and runtime identity
 
-Every declarative package has a stable package `id`. The host uses it for discovery, diagnostics, and matching an optional native client registration. The package ID is not repeated in every scoped setting event.
+Every declarative package has a stable identity, its `modName`. The host uses it for discovery, diagnostics, and matching an optional native client registration. The `modName` is not repeated in every scoped setting event.
 
-A native client registers under a name, and the host matches it to the package whose `id` is that name. A client that matches no package is never called.
+A native client registers under a name, and the host matches it to the package whose `modName` is that name. A client that matches no package gets no setting events. If the mod registered a config UI of its own, it still has its entry in the quick launch section.
 
 A package remains usable without a native client. In that case it can read, validate, and save supported file-backed settings, but it gets no live preview. Saved values reach the running mod only if the mod reads them again. CommonFramework mods do: the framework watches the INI and reloads it when it changes. A script mod reads them through the [Papyrus API](#papyrus-api).
+
+The host cannot tell when a change takes effect in the running mod: a mod with a client can still read one of its values only when the game starts. So the package says it, with `applies`: `live`, `save` or `restart`. It is set for the mod, and a page, a section or a setting can have its own; see [When a change takes effect](schema.md#when-a-change-takes-effect).
 
 ## Persistence model
 
@@ -76,7 +79,7 @@ Only one mod has an active editing session.
 
 1. Selecting a mod reads its files and captures the values as the session baseline.
 2. Player edits update a pending model.
-3. Valid edits may be sent to an optional native preview adapter.
+3. A valid edit of a `live` setting is sent to the mod's native client as a preview, when the mod has one.
 4. Focused and minimized modes retain the same session.
 5. Save establishes a new baseline.
 6. Discard restores the baseline and rolls back live previews.
@@ -95,7 +98,7 @@ The file is the source of the baseline, whatever state it is in:
 
 - **Key present and valid.** The value is the baseline.
 - **Key missing.** The setting shows its declared default and is clean. Save does not add the key unless the player changes the setting.
-- **Value present but invalid** (wrong type, outside its constraints, or not one of the choice options). The row shows the stored text with an invalid marker and is clean. Editing or resetting the setting replaces it.
+- **Value present but invalid** (wrong type, outside its limits, or not one of the choice options). The row shows the stored text with an invalid marker and is clean. Editing or resetting the setting replaces it.
 - **File missing.** Every setting bound to the file shows its declared default and is clean. The first Save that changes one of them creates the file.
 
 Only dirty settings can block Save. An invalid value that was already in the file does not, because the player did not enter it.
@@ -107,20 +110,20 @@ The player-facing operation is named **Save**, not Apply. A value may already be
 Save proceeds as follows:
 
 1. Validate the dirty settings.
-2. Run optional native setting and batch validation.
-3. Read the latest content of every affected file into memory. A file that does not exist counts as empty.
-4. Parse each file. A file that cannot be read or parsed fails the Save.
-5. Apply the dirty settings.
-6. Serialize each file to a memory buffer.
-7. Parse each buffer and check that every dirty setting reads back with its intended value.
-8. Write each buffer over its file, creating a file that does not exist.
-9. If a write fails, write the content read in step 3 back to the files already written, delete the files this Save created, and report the failure.
-10. Call the scoped native `OnSettingsSaved` callback with one batch.
-11. Send one final native notification and one equivalent Papyrus notification.
+2. Read the latest content of every affected file into memory. A file that does not exist counts as empty.
+3. Parse each file. A file that cannot be read or parsed fails the Save.
+4. Apply the dirty settings.
+5. Serialize each file to a memory buffer.
+6. Parse each buffer and check that every dirty setting reads back with its intended value.
+7. Write each buffer over its file, creating a file that does not exist.
+8. If a write fails, write the content read in step 2 back to the files already written, delete the files this Save created, and report the failure.
+9. Call the scoped native `OnSettingsSaved` callback with one batch.
+10. Send one final native notification and one equivalent Papyrus notification.
+11. Tell the player that the game has to be restarted, when a `restart` setting was written.
 
-Nothing is written before step 8, so a validation, parsing, or serialization problem leaves every file untouched.
+Nothing is written before step 7, so a validation, parsing, or serialization problem leaves every file untouched.
 
-A crash during step 8 can leave the file being written incomplete. Each file is a few kilobytes written in one call, so the window is small and is accepted. Whether to keep a last-good copy is an open question.
+A crash during step 7 can leave the file being written incomplete. Each file is a few kilobytes written in one call, so the window is small and is accepted. Whether to keep a last-good copy is an open question.
 
 The final notification means:
 
@@ -137,7 +140,7 @@ Conceptual types, as the client header presents them. The wire ABI underneath is
 A setting and its value:
 
 ```cpp
-enum class SettingType
+enum class ValueType
 {
     Bool,
     Int,   // signed 32-bit
@@ -148,7 +151,7 @@ enum class SettingType
 
 struct SettingValue
 {
-    SettingType type;
+    ValueType valueType;
     std::string_view text; // the value as text, for a client that only forwards it
 
     // typed access; each is valid only for its own type
@@ -172,7 +175,7 @@ struct FileView
     std::string_view path; // absolute, with the root resolved
 };
 
-struct BindingView
+struct StorageView
 {
     const FileView& file;
     std::string_view section;               // INI
@@ -180,7 +183,7 @@ struct BindingView
     std::span<const std::string_view> path; // JSON and TOML
 };
 
-struct ConstraintsView
+struct ValueOptionsView
 {
     // each is empty when the package does not declare it
     std::optional<double> min; // numeric types
@@ -195,10 +198,10 @@ struct ConstraintsView
 struct SettingView
 {
     std::string_view id; // unique in the package
-    SettingType type;
+    ValueType valueType;
     SettingValue defaultValue;
-    ConstraintsView constraints;
-    BindingView binding; // the resolved storage target
+    ValueOptionsView valueOptions;
+    StorageView storage; // where the value is kept, resolved
 };
 ```
 
@@ -234,11 +237,11 @@ struct SaveBatch
 };
 ```
 
-`SettingView` exposes the stable setting ID, value type, default, constraints, and resolved storage target. It does not require the client to parse the declarative package.
+`SettingView` exposes the stable setting ID, value type, default, value options, and resolved storage. It does not require the client to parse the declarative package.
 
 The host owns the views and the text in them. They are valid during the callback, and a client copies what it keeps.
 
-Preview events occur only when a valid value changes. Slider previews are coalesced to at most the useful render/update rate; they are not generated merely because a control is focused.
+Preview events occur only when a valid value of a `live` setting changes. Slider previews are coalesced to at most the useful render/update rate; they are not generated merely because a control is focused.
 
 Special gameplay side effects can use an optional binding API later.
 
@@ -250,9 +253,11 @@ A CommonFramework mod does not need client code of its own. The framework regist
 2. A discard clears it.
 3. After a Save, the adapter clears the overrides it set. The file holds the values by then, so the mod reloads them from disk.
 
-The adapter needs only the resolved binding and the value as text. The mod's own loading code parses and type-checks it and applies it as it applies any reload.
+The adapter needs only the resolved storage and the value as text. The mod's own loading code parses and type-checks it and applies it as it applies any reload.
 
-The framework registers the adapter for every mod, under the mod's own name, whether or not the mod ships a package. The mod's package uses that name as its `id`. This is the name the framework uses for the mod's log and config, which is not always its F4SE plugin name: FRIK's package `id` is `frik`, and its F4SE plugin name, `F4VRBody`, goes in `requirements.f4sePlugins`.
+A preview therefore does what a reload of the INI does, and no more. A value that the mod reads only once, when the game starts, is changed by neither, so the mod's package marks that setting `restart`.
+
+The framework registers the adapter for every mod, under the mod's own name, whether or not the mod ships a package. The mod's package uses that name as its `modName`. This is the name the framework uses for the mod's log and config, which is not always its F4SE plugin name: FRIK's `modName` is `frik`, and its F4SE plugin name, `F4VRBody`, goes in `f4sePluginRequirements`.
 
 The framework side of this is listed in [CommonFramework work required](framework-requirements.md).
 
@@ -260,8 +265,8 @@ The framework side of this is listed in [CommonFramework work required](framewor
 
 Successful Save emits one notification through each supported ecosystem:
 
-- An F4SE plugin message for native listeners. The host, F4SE plugin `ModsConfigVR`, sends it to each F4SE plugin the package names in `requirements.f4sePlugins`. The payload carries the package `id`.
-- An F4SE external Papyrus event for script mods, named `OnModsConfigVRSaved|<package id>`. A script registers for it with F4SE's `RegisterForExternalEvent`, and its callback receives the package `id`.
+- An F4SE plugin message for native listeners. The host, F4SE plugin `ModsConfigVR`, sends it to each F4SE plugin the package names in `f4sePluginRequirements`. The payload carries the package's `modName`.
+- An F4SE external Papyrus event for script mods, named `OnModsConfigVRSaved|<modName>`. A script registers for it with F4SE's `RegisterForExternalEvent`, and its callback receives the `modName`.
 
 Raw F4SE plugin messaging does not reach Papyrus by itself, so these are separate transports carrying the same semantic event.
 
@@ -278,13 +283,13 @@ A script-only mod, a game plugin and scripts with no DLL, ships a package like a
 ```papyrus
 Scriptname ModsConfigVR Native Hidden
 
-bool Function GetSettingBool(string asPackage, string asSetting) native global
-int Function GetSettingInt(string asPackage, string asSetting) native global
-float Function GetSettingFloat(string asPackage, string asSetting) native global
-string Function GetSettingString(string asPackage, string asSetting) native global
+bool Function GetModSettingBool(string asModName, string asSetting) native global
+int Function GetModSettingInt(string asModName, string asSetting) native global
+float Function GetModSettingFloat(string asModName, string asSetting) native global
+string Function GetModSettingString(string asModName, string asSetting) native global
 ```
 
-`asPackage` is the package `id` and `asSetting` is the setting `id`, so a script does not depend on the file or key that holds the value. Both are matched without regard to case, because Papyrus does not preserve the case of a string.
+`asModName` is the package's `modName` and `asSetting` is the setting's `id`. The functions are named as MCM's `MCM.GetModSetting*` are, and a setting with no `id` of its own is named as MCM names a ModSetting, as `fPlayerHeight:MyMod`. So a script that moves from MCM to a package, and keeps its mod name, sections and keys, changes `MCM.` to `ModsConfigVR.` in its getter calls and nothing else in them. Both are matched without regard to case, because Papyrus does not preserve the case of a string.
 
 The functions are global, so they need a compiled script and no game plugin. Mods Config VR ships `Data/Scripts/ModsConfigVR.pex`, with its source in `Data/Scripts/Source/User/` for authors to compile against, and the DLL registers the functions when it loads. MCM provides its `MCM.GetModSetting*` functions the same way.
 
@@ -299,9 +304,9 @@ A getter answers from the mod's file. The cases are the ones the menu handles at
 - **Key present and valid.** The value in the file.
 - **Key or file missing.** The declared default.
 - **Value invalid.** The declared default, with a diagnostic.
-- **Unknown package or setting, or the wrong getter for the setting's type.** `false`, `0`, `0.0`, or an empty string, with a diagnostic. Types are not converted.
+- **Unknown package or setting, or the wrong getter for the setting's `valueType`.** `false`, `0`, `0.0`, or an empty string, with a diagnostic. Types are not converted.
 
-A choice is read with the getter for its declared type. Papyrus `int` and `float` are the same 32-bit types the schema uses. How a color is returned is an open question.
+A choice is read with the getter for its `valueType`. Papyrus `int` and `float` are the same 32-bit types the schema uses. How a color is returned is an open question.
 
 A getter never returns a pending value. A script mod therefore has no live preview: it sees a change after Save.
 
@@ -319,12 +324,12 @@ Event OnQuestInit()
     LoadConfig()
 EndEvent
 
-Function OnConfigSaved(string asPackage)
+Function OnConfigSaved(string asModName)
     LoadConfig()
 EndFunction
 
 Function LoadConfig()
-    fPlayerHeight = ModsConfigVR.GetSettingFloat("mymod", "playerHeight")
+    fPlayerHeight = ModsConfigVR.GetModSettingFloat("mymod", "playerHeight")
 EndFunction
 ```
 
@@ -334,13 +339,15 @@ Settings live in files and are the same for every save game, while a script's va
 
 A script-only mod has no code that creates its settings file. The host creates it on the first Save that changes one of its settings, and the file holds only the settings the player has changed. For every other setting a getter returns the declared default, so the package is where a script-only mod's defaults live.
 
-## Named actions
+## Buttons and actions
 
-An action is not a setting. It has no storage binding, default, dirty state, or persisted value.
+A button is not a setting. It has no storage, default, dirty state, or persisted value.
 
-A declarative action invokes only a name registered by the same scoped native client. New-schema JSON cannot invoke arbitrary C++ functions, Papyrus functions, or console commands. In a package with no registered native client, an action is shown disabled with an explanation.
+A button's action is written as in an MCM config, and a package can use every action the menu supports for MCM, such as calling a function of a script. A script-only mod therefore has buttons in its package, as it has in MCM.
 
-Action invocations receive typed JSON parameters and read-only access to current pending settings. Basic results are success or failure plus an optional localized message. Confirmation metadata is declarative so actions share one consistent VR dialog.
+A package has one action of its own, which runs a function that the package's native client registered, by its name. The function receives typed JSON parameters and read-only access to current pending settings. In a package with no registered native client, such a button is shown disabled with an explanation.
+
+Basic results are success or failure plus an optional localized message. Confirmation metadata is declarative so buttons share one consistent VR dialog.
 
 Long-running progress, cancellation, and external UI ownership are deferred.
 
@@ -361,11 +368,11 @@ Timeout/recovery behavior and protection against competing UI owners require a l
 
 ## MCM compatibility
 
-Mods Config VR does not replace MCM. It bridges to it: MCM stays installed and keeps ownership of its settings, its Papyrus functions, and its hotkeys, and Mods Config VR shows the same packages in VR.
+Mods Config VR does not replace MCM. It bridges to it: MCM stays installed and keeps ownership of its settings, its Papyrus functions, and its hotkeys, and Mods Config VR shows the same menus in VR.
 
 - Mods Config VR and the packages written for it do not require MCM.
 - MCM-backed mods appear only when MCM is installed. A mod with an MCM menu already requires MCM, because its scripts call MCM's Papyrus functions.
-- Without MCM, MCM packages are not shown, and a diagnostic says why.
+- Without MCM, MCM menus are not shown, and a diagnostic says why.
 
 Replacing MCM would mean reimplementing its Papyrus functions, its setting store, and its hotkey dispatch, and asking players to uninstall it. Bridging is less work and cannot change how existing mods behave.
 
@@ -380,7 +387,9 @@ MCM pages remain a compatibility source rather than being rewritten into the new
 
 `MCM.RefreshMenu()` stays MCM's own function and refreshes MCM's own menu. The bridge cannot observe the call, so an MCM page re-reads its values while it is visible.
 
-MCM settings change immediately as existing mods expect. They do not acquire staged Save/Discard behavior. The UI shows a subtle **MCM** badge and a “Changes apply immediately” status instead of the normal Save bar.
+MCM settings are saved as they are changed, as existing mods expect. They do not acquire staged Save/Discard behavior. MCM mods are not marked or grouped apart in the UI. It shows a “Changes are saved as they are made” status instead of the normal Save bar.
+
+Saved is all the status says. When the mod acts on a change is the mod's, and an MCM config has no field for it: a script reads a global when it needs it, and a DLL can read MCM's settings file only when the game starts. A mod that needs a restart says so in its own text, which the menu shows.
 
 ## Raw custom UI
 

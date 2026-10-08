@@ -29,9 +29,13 @@ That makes four demands on the framework:
 | 8   | Config reload safety               | Reliable apply on Save              |
 | 9   | Overrides at preview rates         | Live preview                        |
 | 10  | Override ownership                 | Previews beside other overrides     |
-| 11  | Mods Config VR client in `ModBase` | Live preview without mod code       |
+| 11  | Images in canvases                 | MCM images and a package's images   |
+| 12  | Text entry and on-screen keyboard  | Typing a text, a value, or a search |
+| 13  | Mods Config VR client in `ModBase` | Handoff and live preview without mod code |
 
-Item 1 puts a panel on the offhand. Items 2 to 5 make a panel interactive, so it can be tested in the headset. Items 6 and 7 complete what the Full panel needs. Items 8 to 10 do not depend on the UI and can be done at any time. Item 11 needs the Mods Config VR native API to exist first. [Later work](#later-work) lists what can wait.
+Item 1 puts a panel on the offhand. Items 2 to 5 make a panel interactive, so it can be tested in the headset. Items 6 and 7 complete what the Full panel needs. Items 8 to 10 do not depend on the UI and can be done at any time. Items 11 and 12 are needed by what the menu shows, not by the panel itself. Item 11 depends on nothing else, so it can be done at any time. Item 13 needs the Mods Config VR native API to exist first. [Later work](#later-work) lists what can wait.
+
+The commits of items 1 to 10 are in the [Framework work plan](framework-plan.md), and those of items 11 to 13 in the [Mod work plan](mod-plan.md), with the mod's milestones that need them.
 
 ## Hand-anchored UI
 
@@ -194,35 +198,71 @@ Mods Config VR has a case of its own. It takes the opening gesture from FRIK by 
 
 **Done when.** With two owners overriding one key, clearing either leaves the other's value applied. One owner's clear-all leaves the other owner's overrides in place.
 
-### 11. Mods Config VR client in `ModBase`
+## Images and text
 
-**Need.** A CommonFramework mod gets live preview by shipping a package. It writes no client code.
+### 11. Images in canvases
+
+**Need.** A canvas shows pictures: MCM's images, which the menu reads out of a mod's `lib.swf` as pixels, the images of a package, and later the controller icons of a binding.
+
+**Today.** `render::Texture::load` loads a texture file through the engine by its path (`src/render/Texture.h`). There is no texture from pixels. `ImGui::Image` needs a texture that is valid on the render thread and stays alive until the cloned frame has been drawn. `render::Texture` gives that guarantee to `PrimitiveDraw` frames, and the ImGui path has no equivalent.
+
+**Work.**
+
+- A `render::Texture` is created from pixels in memory.
+- The content of a canvas draws a `render::Texture` as an ImGui image, and the texture stays alive until the frame that uses it has been drawn.
+
+**Done when.** A picture made from pixels in memory and one loaded from a file are both shown in a dedicated panel, and a texture can be dropped while its panel is shown.
+
+### 12. Text entry and an on-screen keyboard
+
+**Need.** A text field in a canvas is typed into: an MCM text row, the exact value of a slider, a search. VR has no keyboard, so one is shown.
+
+**Today.** No characters or keys are fed to ImGui (`src/imgui/ImGuiLayer.cpp`), so an `ImGui::InputText` shows its text and cannot be edited. A focused `InputText` keeps its own copy of the text and ignores outside changes to its buffer, so typing has to reach it as ImGui's character and key events.
+
+**Work.**
+
+- Characters and keys reach ImGui through `io.AddInputCharacter` and `io.AddKeyEvent`.
+- An on-screen keyboard is shown while ImGui edits a text field, and is operated with the pointer. The content calls `ImGui::InputText` as on a screen, and the mod has nothing to call.
+
+The keyboard's design is open: its layout, a pad for numbers, and where it is drawn. A dedicated panel is ImGui's only display, so the keyboard is either drawn inside that panel by ImGui, or beside it from vrui buttons, which then need the ray press of [Later work](#later-work).
+
+**Done when.** A text field in a dedicated panel is typed into with the ray and accepted, and a field that is cancelled keeps the text it had.
+
+## The client of Mods Config VR
+
+### 13. Mods Config VR client in `ModBase`
+
+**Need.** A CommonFramework mod gets live preview by shipping a package. It writes no client code. A mod that has a config UI of its own offers it to the menu, and a mod can add functions that the buttons of its package run.
 
 **Today.** `ModBase` registers a devbench tool for every mod after `onGameLoaded` (`src/ModBase.cpp`), using the vendored devbench client (`src/devbench/DevBenchAPI.h`). Nothing knows about Mods Config VR.
 
-**Work.** When Mods Config VR is installed, `ModBase` registers the mod as a native client through a vendored client header, the way it registers the devbench tool. It registers every mod, under `Settings.name`, and does not look for a package. The host matches the client to the package whose `id` is that name, and a client with no package is never called.
+**Work.** In two parts. The menu needs the first for the handoff, and the second for live preview.
 
-The client maps the host's calls onto the overrides, under an owner name of its own that no API caller uses (item 10):
+The client and its functions:
+
+- When Mods Config VR is installed, `ModBase` registers the mod as a native client through a vendored client header, the way it registers the devbench tool. It registers every mod, under `Settings.name`, and does not look for a package. The host matches the client to the package whose `modName` is that name. A `Settings` flag opts a mod out, like `devbenchTool`.
+- A mod adds functions to its client, each under a name, which the buttons of its package run.
+- A mod that has a config UI of its own gives the client how to open it, and tells the client when it has closed. The host opens it through the handoff.
+
+The preview. The client maps the host's calls onto the overrides, under an owner name of its own that no API caller uses (item 10):
 
 - A preview sets the override for the setting's INI section and key.
 - A discard clears it.
 - After a Save, it clears the overrides it set. The file holds the values by then, so the reload that follows reads them from disk.
 
-It acts only on settings bound to the mod's own INI. A `Settings` flag opts a mod out, like `devbenchTool`.
+It acts only on settings bound to the mod's own INI.
 
-This item depends on the native API of Mods Config VR, described in [Architecture and lifecycle](architecture.md#live-preview-api), so it comes after the host exists.
+This item depends on the native API of Mods Config VR, described in [Architecture and lifecycle](architecture.md#live-preview-api), so each part comes after the host has its side of it.
 
-**Done when.** A framework mod with a package and no client code previews a slider live, rolls back on Discard, and keeps the value after Save.
+**Done when.** A framework mod's own config UI is opened from the menu, and the menu comes back when it closes. A framework mod with a package and no client code previews a slider live, rolls back on Discard, and keeps the value after Save.
 
 ## Later work
 
-None of this is needed for the first usable version. Each item waits on a design decision that is still open in this repository.
+Each of these is made only if a milestone of the [Mod work plan](mod-plan.md) finds that it needs it.
 
-- **Text entry.** Characters and keys reach ImGui through `io.AddInputCharacter` and `io.AddKeyEvent`, exposed by the canvas input API. A focused ImGui `InputText` keeps its own copy of the text and ignores outside changes to its buffer, so an on-screen keyboard has to go through these events. Waits on the VR keyboard design.
-- **Images in canvases.** `ImGui::Image` needs a texture that is valid on the render thread and stays alive until the cloned frame has been drawn. `render::Texture` gives that guarantee to `PrimitiveDraw` frames, and the ImGui path has no equivalent. Needed for image elements and controller-binding icons.
-- **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads one font at one size with ImGui's default glyph ranges, and the embedded font is Roboto. Text outside Latin-1 does not render, and a heading can only be a scaled copy of the body size. Localization needs wider glyph coverage and fallback fonts, and the visual design may want more than one size. ImGui is at 1.90.2, fixed by the pinned vcpkg baseline.
-- **Touch as a second pointer source.** A fingertip crossing the canvas plane, taken from the same fingertip that vrui buttons use. For the hand-anchored Focused view.
-- **Ray press for vrui buttons.** Needed only if vrui buttons end up in the Full panel's layout, out of reach of a finger.
+- **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads one font at one size with ImGui's default glyph ranges, and the embedded font is Roboto. Text outside Latin-1 does not render, so a package translated into such a language needs wider glyph coverage and fallback fonts. One size is enough for the menu: a heading is a scaled copy of the body size and reads well. ImGui is at 1.90.2, fixed by the pinned vcpkg baseline.
+- **Touch as a second pointer source.** A fingertip crossing the canvas plane, taken from the same fingertip that vrui buttons use. For the hand-anchored Focused view, if a ray does not suit a panel on the own hand.
+- **Ray press for vrui buttons.** Needed if the on-screen keyboard of item 12 is made of vrui buttons beside the panel, or if vrui buttons end up in the Full panel's layout, out of reach of a finger.
 
 ## Not framework work
 
@@ -234,4 +274,4 @@ These are handled in Mods Config VR or exist already:
 - **Haptics.** `VRHaptics` and its named patterns.
 - **Files, packages, and MCM.** Reading and writing other mods' files, the package schema, and the MCM bridge live in the mod.
 - **The Papyrus API.** The framework's F4SE VR port (`src/f4sevr/`) already registers native functions that take and return strings, and calls a function on a script. F4SEVR lists the scripts registered for an external event.
-- **The host side of the native API.** The framework only carries the client (item 11).
+- **The host side of the native API.** The framework only carries the client (item 13).

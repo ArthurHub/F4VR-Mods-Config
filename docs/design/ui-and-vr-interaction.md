@@ -11,17 +11,17 @@ Mods Config VR should feel like a large projected Pip-Boy interface rather than 
 - Clear depth and hover response without excessive animation
 - Stable placement while the player is interacting
 
-Most of the UI is one Dear ImGui panel placed in a CommonFramework vrui layout (`imgui::UIImGuiPanel`). A few controls that sit on the hand are vrui buttons. The framework's ImGui panels cannot be pointed at or clicked yet; [CommonFramework work required](framework-requirements.md) lists what has to be built first.
+Most of the UI is one Dear ImGui panel placed in a CommonFramework vrui layout (`imgui::UIImGuiPanel`). A few controls that sit on the hand are vrui buttons. The framework work this needed is done; see the [Framework work plan](framework-plan.md).
 
 ## Opening the menu
 
 The menu opens by pressing in both thumbsticks and holding them, the gesture FRIK uses today for its own configuration (`primary longpress thumbstick 1.5 +offhand:thumbstick`). It is an ordinary CommonFramework input binding in `ModsConfigVR.ini`, so the player can change it.
 
-When FRIK is installed, Mods Config VR takes the gesture over. It turns off FRIK's `sOpenConfigButton` binding for the session through FRIK's config override API, and FRIK's configuration is then opened from FRIK's entry in Mods Config VR. FRIK can integrate more closely later.
+When FRIK is installed, Mods Config VR takes the gesture over. It turns off FRIK's `sOpenConfigButton` binding for the session through FRIK's config override API, and FRIK's configuration is then opened from the quick launch section of the menu's front page. FRIK can integrate more closely later.
 
-The game is not paused while the menu is open, so the effect of a change is seen as it is made.
+The game is not paused while the menu is open, so a change that the mod acts on at once is seen as it is made.
 
-FRIK is not required. With FRIK, the hand-anchored vrui buttons are pressed with the index fingertip and the hand takes a pointing pose. How those buttons are pressed without FRIK is an open question.
+FRIK is not required. With FRIK, the hand-anchored vrui buttons are pressed with the index fingertip and the hand takes a pointing pose. Without FRIK the controller itself presses them, and a small sphere marks the point.
 
 ## Three UI states
 
@@ -35,25 +35,27 @@ The primary browsing and editing state.
 ├───────────────────┬─────────────────────────────────────────────────────┤
 │ Mods              │ Immersive Flashlight VR                            │
 │                   │ Point at a setting to see its description here.    │
-│ ● Flashlight      ├─────────────────────────────────────────────────────┤
-│   FRIK            │ General                                             │
-│   Holsters        │ Enabled                    [ On ]                    │
-│   MCM Mods        │ Brightness       [-] [====o----] [1.25] [Reset]    │
+│ ▾ Flashlight      ├─────────────────────────────────────────────────────┤
+│     Beam          │ General                                             │
+│     Hand mount    │ Enabled                    [ On ]                    │
+│ ▸ FRIK            │ Brightness       [-] [====o----] [1.25] [Reset]    │
+│ ▸ Holsters        │                                                     │
+│ ▸ Sim Settlements │ ▸ Advanced                                          │
 │                   │                                                     │
-│ Search / Filter   │ ▸ Advanced                                          │
-│                   │                                                     │
-│                   │                                                     │
+│ Search / Filter   │                                                     │
 ├───────────────────┴─────────────────────────────────────────────────────┤
 │                                      [Discard]              [Save]      │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 - Navigation is on the left and selected mod content is on the right.
-- With no selected mod, navigation expands and can show richer summaries.
-- Selecting a mod contracts navigation but does not hide it.
-- The player can clear the selection to restore full-width navigation.
-- The player can navigate to another mod without first clearing the current selection.
-- MCM-backed mods may appear in a distinct group or carry a badge, whichever proves visually cleaner.
+- The navigation is a tree. Its top row goes to the menu's front page, which is what the menu opens on: no mod is selected, and it has the quick launch links.
+- A quick launch link opens a mod's own config UI. The mod registers for it through the native API, and needs no package for it.
+- Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page.
+- The mod's front page has no row of its own in the tree: the mod's row is its row.
+- The tree keeps its place and its width, with or without a selected mod.
+- The player can select another mod at any time, without going to the front page first.
+- The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package.
 - A fixed top content area shows the description or error for the pointed/focused setting.
 - Save and Discard remain in stable locations.
 
@@ -148,10 +150,9 @@ Back resolves the most local temporary interaction first:
 
 1. Cancel an active drag or text edit.
 2. Close a popup, dropdown, keyboard, or confirmation.
-3. Clear the selected mod and return to the full-width mod list.
-4. Request closing the interface.
-
-Pages are a flat list inside a mod, so there is no page level to back out of.
+3. From a page of a mod, go to the mod's front page.
+4. From a mod's front page, go to the menu's front page.
+5. From the menu's front page, request closing the interface. Whether Back does this last step is not decided.
 
 If closing would abandon pending changes, the player receives Save, Discard, and Cancel choices.
 
@@ -174,15 +175,17 @@ The current direction is a fixed description area near the top of the content pa
 2. Description for the currently pointed/focused control or option
 3. Page or mod-level help when no setting is focused
 
+The description of a package's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
+
 Keeping the area fixed avoids layout movement and makes help discoverable without pop-up tooltips floating at uncomfortable depths.
 
 ## Navigation behavior
 
 - Mods are listed alphabetically by display name; page and setting order follow their JSON arrays.
-- With no mod selected, the mod list uses the full width. Selecting a mod narrows the list to give the mod's settings more room, and the list remains usable. Back returns to the full-width list.
-- Category/group labels and badges must not consume so much width that names become unreadable.
+- The mods are the top level of a tree, and only the selected mod is expanded. Its pages are the rows under it, without the front page.
+- A mod's front page is its root `content`, in an MCM config and in a package alike, and its `pages` are the rows under it. A mod with no pages has no rows under it.
 - Long lists need smooth thumbstick scrolling and a clear position indicator.
-- Search/filter is desirable, but its exact place in an initial release is not decided.
+- Search comes after the first release; see the [Mod work plan](mod-plan.md).
 - The selected mod and current page survive switches among Full, Focused, and Minimized states.
 
 ## MCM presentation
@@ -190,12 +193,12 @@ Keeping the area fixed avoids layout movement and makes help discoverable withou
 MCM-backed entries should feel integrated without concealing their different lifecycle:
 
 - MCM-backed entries appear only when MCM is installed.
-- Show a small `MCM` or equivalent compatibility badge if it remains legible.
-- State that changes apply immediately when that is the original MCM behavior.
-- Do not offer a misleading Save contract for changes the original MCM has already applied.
+- They are in the same list as every other mod, with no group or badge of their own.
+- State that changes are saved as they are made, which is what MCM does. It does not say that the mod acts on them at once: the menu does not know that.
+- Do not offer a misleading Save contract for changes the original MCM has already saved.
 - Preserve MCM-specific help, option state, and event behavior where possible.
 
-The exact grouping and visual treatment should be settled through headset mockups.
+What the menu shows for a mod follows what the mod supports, not where its menu comes from: changes that are saved as they are made, or a Save bar, with live preview where the mod has it. A package says when a change takes effect, for the mod and for any page, section or setting that differs.
 
 ## Bespoke UI handoff
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mods Config VR (`ModsConfigVR`) is a **C++23 DLL plugin** for F4SE (Fallout 4 Script Extender) for Fallout 4 VR, built on the [F4VR Common Framework](external/F4VR-CommonFramework/README.md).
 
-It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a declarative JSON package, registers through a native API, or already has an MCM menu, and the player edits the mod's real settings files in VR, with live preview and an explicit Save. The design is in [docs/design/](docs/design/README.md). So far the menu opens one ImGui panel with placeholder controls, the test bed for the framework work the mod needs first. That work is listed in [docs/design/framework-requirements.md](docs/design/framework-requirements.md), and its commits are tracked in [docs/design/framework-plan.md](docs/design/framework-plan.md).
+It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a declarative JSON package or already has an MCM menu, and the player edits the mod's real settings in VR. A package is saved with an explicit Save, and a mod that registers through the native API gets live preview. The design is in [docs/design/](docs/design/README.md). So far the menu opens one ImGui panel with placeholder controls, the test bed for the framework work the mod needs first. That work is listed in [docs/design/framework-requirements.md](docs/design/framework-requirements.md), and its commits are tracked in [docs/design/framework-plan.md](docs/design/framework-plan.md). The mod's own milestones and commits are in [docs/design/mod-plan.md](docs/design/mod-plan.md).
 
 ## Build System
 

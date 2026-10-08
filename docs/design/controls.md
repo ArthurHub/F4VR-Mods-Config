@@ -1,15 +1,15 @@
 # Controls and Setting Types
 
-This document defines the initial control vocabulary and interaction rules. It does not decide which controls must ship in v1.
+This document defines the initial control vocabulary and interaction rules. The order the controls are built in is in the [Mod work plan](mod-plan.md).
 
 ## Separation of concerns
 
 Every setting has four distinct concepts:
 
-- **Type**: the value stored by the target mod.
-- **Control**: how Mods Config VR presents and edits that value.
-- **Binding**: where the value is read from and written to.
-- **Application policy**: whether the value supports preview, requires Save, or requires a reload/restart.
+- **Type**: the value stored by the target mod. A package's `valueType`.
+- **Control**: how Mods Config VR presents and edits that value. A package's `type`, as in an MCM config.
+- **Storage**: where the value is read from and written to. A package's `storage`.
+- **Application policy**: when a change takes effect in the running mod: as it is made, after Save, or after a restart. A package's `applies`.
 
 Keeping these separate prevents the file format, widget, and runtime behavior from becoming unnecessarily coupled.
 
@@ -31,7 +31,7 @@ A choice does not need a separate storage type. Its options may store typed bool
 
 ## Core interactive controls
 
-### Toggle
+### Switcher
 
 Primary use: boolean settings.
 
@@ -40,7 +40,7 @@ Primary use: boolean settings.
 - Trigger toggles the value.
 - Reset restores the declared default.
 
-### Numeric slider
+### Slider
 
 Primary use: bounded integer and floating-point settings.
 
@@ -62,37 +62,28 @@ Suggested row:
 
 Out-of-range typed input is a validation error. It should not be silently clamped because silent correction hides configuration mistakes.
 
-### Numeric input or stepper
-
-Primary use: numeric values where precision matters more than scanning a range.
-
-- Shows decrement, formatted value, and increment targets.
-- May share the same minimum, maximum, step, units, and validation model as a slider.
-- The value target opens the numeric keyboard.
-
-### Choice
+### Dropdown and stepper
 
 Primary use: one value selected from a finite set.
 
-Possible presentations:
+They are two types, as in MCM:
 
-- Dropdown or popup list
-- Previous/next stepper
-- Radio-style list for a small number of choices
+- `dropdown`: a popup list
+- `stepper`: previous and next
 
-The schema may request a presentation, but the host can choose a more suitable compact presentation in Focused mode.
+A radio-style list for a small number of choices can be a third type later. The host can choose a more compact presentation in Focused mode.
 
 Choice behavior:
 
-- Each option has a typed stored value, label, and optional description.
+- Each option has a typed stored value, a text, and an optional help.
 - The current option has a strong visual marker.
 - Popup rows use large VR targets.
 - Trigger selects; thumbstick scrolls; Back closes without changing the selection.
-- The description area may show the pointed option's description before it is selected.
+- The description area may show the pointed option's help before it is selected.
 
 ### Text input
 
-Primary use: short strings.
+Primary use: short strings, and numbers that are typed. A `textinput` whose `valueType` is int or float takes a number and opens the number pad, as MCM's `textinputInt` and `textinputFloat` do. Its limits are the `min` and `max` of its `valueOptions`.
 
 Dear ImGui supplies text-editing widgets and accepts character/key events, but it does not supply a VR on-screen keyboard. How that keyboard works is not designed yet; see [Open questions](open-questions.md#text-input). What is settled:
 
@@ -113,13 +104,12 @@ Primary use: RGB or RGBA colors.
 - Support precise numeric entry as well as an appropriate VR-friendly picker.
 - Exact picker geometry and storage encodings remain to be designed.
 
-### Action
+### Button
 
-Primary use: a named operation that does not directly edit a stored value.
+Primary use: an operation that does not directly edit a stored value.
 
-- Actions are declared by name, with typed parameters if needed.
+- A button runs what an MCM button runs, such as a function of a script, or a function that the mod's native client registered, by its name and with typed parameters if needed.
 - Potentially destructive actions require explicit confirmation.
-- Arbitrary function pointers, console commands, and script strings are not accepted from declarative packages.
 - Long-running progress and cancellation behavior remain open design work.
 
 ## Layout and informational elements
@@ -130,8 +120,6 @@ These elements do not directly store values:
 - Collapsible section
 - Advanced section
 - Explanatory text
-- Notice, warning, or error
-- Separator
 - Spacer
 - Image or preview asset
 
@@ -174,4 +162,4 @@ Every editable declarative setting must declare its default beside the setting d
 
 ## MCM controls
 
-The MCM bridge should preserve the existing MCM control vocabulary and behavior as faithfully as practical instead of translating every control into a more powerful native concept. MCM-originated controls are visually identified, especially where their changes apply immediately.
+The MCM bridge should preserve the existing MCM control vocabulary and behavior as faithfully as practical instead of translating every control into a more powerful native concept. MCM's controls are not marked as MCM's. A page whose changes are saved as they are made says so.
