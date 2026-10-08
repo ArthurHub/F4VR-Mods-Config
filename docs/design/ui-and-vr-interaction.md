@@ -185,6 +185,8 @@ The help is kept while the ray moves from row to row, through the gaps between t
 
 The help line has room for two lines. Help that needs a third is drawn in a smaller size, and longer help ends in an ellipsis.
 
+Help is one size and one color. An MCM config can have the tags of a [text row](schema.md#text-spacers-and-images) in a help, with or without `html`. They are removed, and a line break becomes a space, so the help keeps to its lines.
+
 The help of a package's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
 
 A page or a mod has no help of its own in the help line. A page that explains itself does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.

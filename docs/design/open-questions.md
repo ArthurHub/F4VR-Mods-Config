@@ -123,6 +123,7 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - Search and filtering
 - Direct-touch interaction
 - Color picker design
+- Bold, italic and underline in a text row: `<b>`, `<i>` and `<u>` are dropped. The panel has one font face, so bold and italic each need another, and an underline is a drawn line
 - Image/preview assets
 - Progress, cancellation, and error handling for long-running actions
 - Accessibility options beyond the three main UI sizes

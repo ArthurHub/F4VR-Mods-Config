@@ -118,6 +118,8 @@ M18 does what FallUI's own code does in MCM's menu, for FallUI and FallUI Workbe
 - Their config names a translation file of their own. A text that starts with `$` is looked up in it, and so is a `${Key}` inside a text.
 - A row's help is looked up the same way. FallUI also names the help's entry in a key of its own, `$help`, beside the English text.
 
+M19 draws the tags of a text row and removes those of a help, with one parser, as in [Text, spacers and images](schema.md#text-spacers-and-images). It runs after the translation of M17 and M18, because FallUI's `${Key}` tokens are inside the tags.
+
 M20 draws the four controls with their default values, and disabled. A choice's index becomes typed options.
 
 M21 shows the `help` text of the row the ray is on in the help line, on the left of the footer, as in [UI and VR interaction](ui-and-vr-interaction.md#help-line).

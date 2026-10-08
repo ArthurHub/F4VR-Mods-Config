@@ -443,11 +443,22 @@ Optional confirmation is declarative:
 
 These rows hold no value. `text` and `spacer` are as in an MCM config.
 
-A `text` is a paragraph. With `html`, its text takes the tags that MCM's text rows take:
+A `text` is a paragraph in the panel's muted color, wrapped to the width of the rows. With `html`, its text takes the three tags that MCM configs use:
 
 ```json
-{ "type": "text", "text": "Stand straight and look ahead. <b>Do not move</b> until it is done.", "html": true }
+{ "type": "text", "text": "<p align='center'><font size='24'>Calibration</font></p>Stand straight and look ahead.<br><font color='#FFFFFF'>Do not move</font> until it is done.", "html": true }
 ```
+
+| Tag            | What it does                                                                                          |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| `<br>`         | Starts a new line                                                                                     |
+| `<p>`          | A paragraph on lines of its own. Its `align` is `left`, `center` or `right`                           |
+| `<font size>`  | One of the panel's three text sizes: the title size from 24, the detail size up to 16, else the body  |
+| `<font color>` | The color of its text, as `#RRGGBB`                                                                   |
+
+Any other tag is dropped and its text is kept. That includes `<b>`, `<i>` and `<u>`; see [Open questions](open-questions.md#ui-work). Entities, as `&amp;`, are decoded.
+
+A `help` is plain text. The tags that an MCM config has in a help are removed; see [Help line](ui-and-vr-interaction.md#help-line).
 
 A `spacer` is empty space, one line high or `numLines`:
 
