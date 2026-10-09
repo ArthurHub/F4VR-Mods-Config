@@ -10,7 +10,7 @@ The main browsing and editing view: title bar, mod tree, content pane and footer
 - Body: `ModTree` at `nav-width`, its rows scrolling under its header, a `space-4` gap, then the content pane: the rows in a child window that scrolls with the thumbstick, the page's own help as their first item in `green-muted`.
 - Footer: Discard and Save on the right (`SaveBar`; for an MCM mod, the line "Changes are saved as they are made" instead), and on the left the help line (`DescriptionArea`): help for what the ray is on, else the status.
 - The tree keeps its place and width. Selecting a mod opens the mod's front page, its root `content`, shown here; a page opens from a row under the mod (`FullPanelPage`). The menu's front page (`FullPanelHome`), which the menu opens on, is reached from the first breadcrumb.
-- Back goes from a page to its mod's front page, and from a mod's front page to the menu's front page. Whether Back on the menu's front page closes the menu is not decided.
+- Back goes from a page to its mod's front page, and from a mod's front page to the menu's front page. On the menu's front page it closes the menu.
 - Keep the panel world-locked and level. Do not follow the head.
 
 Don't add a heading or a row of tabs above the content: the breadcrumbs and the tree already show where the player is, and the height belongs to settings.

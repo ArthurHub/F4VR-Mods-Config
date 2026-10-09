@@ -379,12 +379,12 @@ def launch_row(name, state='', mark=None):
     return row(name, '<div class="main"><span class="mc-btn t-body" style="min-width:160px">Open</span></div>' + reset_btn(False), state, mark=mark)
 home_nav = flat_mods()
 home_rows = ''.join([
-    pagehelp('Settings for the mods you have installed. Pick a mod on the left to see its settings.'),
+    pagehelp('Settings for the mods you have installed. Pick a mod on the left to see its settings.<br>Version 1.0.0'),
     section('Quick launch'),
     launch_row('FRIK', 'is-hover', mark=(520, 20)),
     launch_row('Virtual Holsters'),
     section('Notices'),
-    pagehelp('Sim Settlements 2 is not available: its plugin is not loaded.'),
+    pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.'),
 ])
 fph_body = f'''<div class="mc-world">
 <div class="mc-panel">

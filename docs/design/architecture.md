@@ -6,7 +6,7 @@ Mods Config VR is a shared, VR-first configuration menu for Fallout 4 VR mods. I
 
 The host is an F4SE plugin built on F4VR-CommonFramework. Most of its UI is one Dear ImGui panel, placed in the framework's vrui layout and operated with a controller ray. What the panel needed from the framework is done; see the [Framework work plan](framework-plan.md). The framework work that is left is made with the mod's milestones.
 
-The host owns navigation, interaction, persistence coordination, diagnostics, and the shared visual language. Each mod continues to own the meaning and runtime application of its settings. A diagnostic, in these documents, is a line in the mod's log: the menu has no page for them.
+The host owns navigation, interaction, persistence coordination, diagnostics, and the shared visual language. Each mod continues to own the meaning and runtime application of its settings. A diagnostic, in these documents, is a line in the mod's log. The menu itself shows only that a mod is not available, and why; see [Notices](ui-and-vr-interaction.md#notices).
 
 ## Integration sources
 
@@ -86,7 +86,7 @@ Only one mod has an active editing session.
 
 A setting is dirty when its pending value differs from its baseline value. Changing a value and then changing it back leaves it clean, so Save does not write it.
 
-Opening a different mod while the current mod is dirty prompts **Save / Discard / Cancel**. Closing the menu follows the same rule.
+Opening a different mod, or going to the menu's front page, while the current mod is dirty prompts **Save / Discard / Cancel**. Closing the menu follows the same rule.
 
 A pending value that returns to its baseline is sent to the preview adapter as `Discard`, whether the player discarded it or changed it back. A client therefore holds a preview only for a dirty setting. A session with a dirty setting ends through Save or Discard, so no preview outlives its session.
 

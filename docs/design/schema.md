@@ -50,7 +50,7 @@ One `config.json` is supported per package for now. Includes and fragments are d
 
 Author, website, Nexus ID, and mod version may be optional metadata later.
 
-Two packages with the same `modName` are both disabled, with a diagnostic. The host does not pick one of them.
+Two packages with the same `modName` are both [not available](ui-and-vr-interaction.md#notices). The host does not pick one of them.
 
 IDs are compared without regard to case, both a package's `modName` and the ids inside a package: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
 
@@ -61,7 +61,7 @@ A native client is matched to its package by the package's `modName`. A CommonFr
 The schema has one version number, and it only grows. A package ships with its mod and is not updated when Mods Config VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every package written for an older version.
 
 - `minSchemaVersion` is the lowest version that has everything the package uses.
-- A host below that version hides the package from normal navigation and reports the version it needs in diagnostics, as for a missing requirement.
+- On a host below that version the package's mod is [not available](ui-and-vr-interaction.md#notices), and the reason names the version it needs.
 - A field or a control type added after version 1 is documented with the version that added it.
 - A field the host does not know is reported in diagnostics, and the rest of the package is read. A typo is noticed, and a package that uses a newer field than its `minSchemaVersion` says still works on an older host, without that field.
 
@@ -95,7 +95,7 @@ Data/ModsConfigVR/Categories.json
 
 ### Requirements
 
-Requirements prevent orphaned menus from appearing when the owning mod is absent. A missing requirement hides the package from normal navigation and reports it in diagnostics.
+Requirements keep a menu from being opened while the mod that owns it is not loaded. With a missing requirement the package's mod is [not available](ui-and-vr-interaction.md#notices): its row in the tree is disabled, and the reason names what is missing.
 
 - `pluginRequirements` lists game plugin files (`.esp`, `.esm`, `.esl`) by file name, as in an MCM config.
 - `f4sePluginRequirements` lists F4SE plugins by the name each registers with F4SE, not by DLL file name. The two can differ: FRIK's DLL is `FRIK.dll` and its F4SE plugin name is `F4VRBody`. The host sends the native save notification to these names.
@@ -511,7 +511,7 @@ Choice values must be members of their declared options.
 
 These limits are the whole validation. The mod's code is not asked, and expressions across settings are not planned.
 
-Package/schema errors disable only the affected content where safe and appear in diagnostics. Player input errors disable Save until corrected.
+Package/schema errors disable only the affected content where safe and appear in diagnostics. A package that cannot be read at all is [not available](ui-and-vr-interaction.md#notices). Player input errors disable Save until corrected.
 
 ## Localization
 

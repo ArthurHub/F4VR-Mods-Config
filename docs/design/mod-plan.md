@@ -71,32 +71,34 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 
 ### 1. Browse MCM mods
 
-| #   | Repo      | Commit                                                                                                | Status |
-| --- | --------- | ----------------------------------------------------------------------------------------------------- | ------ |
-| M11 | mod       | docs: the menu's front page, with the mod tree and a quick launch section                             | todo   |
-| M12 | mod       | docs: the settings model, checked against three kinds of setting                                      | todo   |
-| M13 | mod       | The mod's unit tests, the settings model, and the MCM loader for a mod, its pages and its rows' texts | todo   |
-| M14 | mod       | The front page lists the MCM mods that are found                                                      | todo   |
-| M15 | mod       | FRIK in the quick launch section                                                                      | todo   |
-| M16 | mod       | A mod's pages in the tree, with every row as its text and type                                        | todo   |
-| M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | todo   |
-| M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | todo   |
-| M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | todo   |
-| M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo   |
-| M21 | mod       | The help line                                                                                         | todo   |
-| F22 | framework | render: a texture from pixels in memory                                                               | todo   |
-| F23 | framework | imgui: an image in a canvas                                                                           | todo   |
-| M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | todo   |
-| M23 | mod       | The panel's look: sizes for the ray, and the states of a row                                          | todo   |
-| M24 | mod       | The Back button, and the menu's haptics                                                               | todo   |
+| #   | Repo      | Commit                                                                                                | Status    |
+| --- | --------- | ----------------------------------------------------------------------------------------------------- | --------- |
+| M11 | mod       | docs: the menu's front page, with the mod tree and a quick launch section                             | done      |
+| M12 | mod       | docs: the settings model, checked against three kinds of setting                                      | done      |
+| M13 | mod       | The mod's unit tests, the settings model, and the MCM loader for a mod, its pages and its rows' texts | todo      |
+| M14 | mod       | The front page lists the MCM mods that are found                                                      | todo      |
+| M15 | mod       | FRIK in the quick launch section                                                                      | todo      |
+| M16 | mod       | A mod's pages in the tree, with every row as its text and type                                        | todo      |
+| M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | todo      |
+| M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | todo      |
+| M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | todo      |
+| M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo      |
+| M21 | mod       | The help line                                                                                         | todo      |
+| F22 | framework | render: a texture from pixels in memory                                                               | todo      |
+| F23 | framework | imgui: an image in a canvas                                                                           | todo      |
+| M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | todo      |
+| M23 | mod       | The panel's look: sizes for the ray, and the states of a row                                          | todo      |
+| M24 | mod       | The Back button, and the menu's haptics                                                               | todo      |
 
-M11 designs the menu's front page, which is what it shows with no mod selected:
+M11 is [The menu's front page](ui-and-vr-interaction.md#the-menus-front-page), which is what the menu shows with no mod selected:
 
 - It is what the menu opens on. It has no row in the tree: the first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
-- It is like MCM's, with differences that are settled in this commit.
+- It is like MCM's, and the section lists what differs.
 - The mods are a tree, as in [UI and VR interaction](ui-and-vr-interaction.md#navigation-behavior): a selected mod is expanded to show its pages, and its front page has no row.
 - It has a quick launch section, which opens a mod's own config UI.
 - FRIK is its first entry. The menu took the opening gesture from FRIK, so FRIK's config is opened from here.
+- It has the notices. A mod that the menu found and cannot show is in the tree as a disabled row, and the page says why.
+- Back on it closes the menu.
 
 M12 is [The settings model](model.md): what the UI draws, and the store it asks for every value. It is checked there against an MCM global, a value of a package, and an activation sphere, so the model of the first code commit also fits the milestones after MCM.
 
@@ -134,7 +136,7 @@ M22 reads an image out of the mod's `lib.swf`:
 
 M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.md):
 
-- Back is a binding in the INI, which settles the button it is on. In this milestone it goes from a page of a mod to the mod's front page, and from there to the menu's front page. Whether it then closes the menu is settled in M11. A later commit adds its own step to it: a dropdown is closed, and a drag or a text edit is cancelled.
+- Back is a binding in the INI, which settles the button it is on. In this milestone it goes from a page of a mod to the mod's front page, from there to the menu's front page, and from there it closes the menu. A later commit adds its own step to it: a dropdown is closed, and a drag or a text edit is cancelled.
 - The hand that points gets a light pulse when it presses a row or a mod. The pulses of a Save and of a value that is rejected come with those commits.
 
 ### 2. Edit MCM values
@@ -177,7 +179,7 @@ F24 is made only if CommonLibF4VR's own calls for both do not work in VR, which 
 | M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo   |
 | M39 | mod  | `dropdownFiles`                                                      | todo   |
 | M40 | mod  | The actions beside `CallFunction`                                    | todo   |
-| M41 | mod  | A mod whose required plugins are missing is not listed               | todo   |
+| M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo   |
 | M42 | mod  | A page that is shown reads its values again                          | todo   |
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo   |
 
@@ -190,6 +192,8 @@ M37 adds a test mod: a game plugin with a quest, its script and globals, as Dear
 M38 shows `color` as a placeholder until the Color control of milestone 9.
 
 M40 supports each action, or marks it unsupported with the reason.
+
+M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices): one whose required plugins are missing, and one whose config does not parse, which until then is in the log alone. It adds the notices to the menu's front page.
 
 M43 answers the MCM items of [Open questions](open-questions.md).
 
@@ -227,7 +231,7 @@ The largest milestone. A package's features match MCM's, but its lifecycle is ne
 | M57 | mod  | The unsaved-changes prompt                                                                | todo   |
 | M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | todo   |
 | M59 | mod  | Text, spacers and images in a package                                                     | todo   |
-| M60 | mod  | Requirements hide a package                                                               | todo   |
+| M60 | mod  | A package whose requirements are missing is not available                                 | todo   |
 | M61 | mod  | A package's errors are reported                                                           | todo   |
 
 M47 ships the first package, which is this mod's own, for `ModsConfigVR.ini`. The mod reloads its INI when it changes, so a Save shows at once with no other mod involved. A package's text takes the three forms of [Localization](schema.md#localization): plain, a `$` token, and a token with a fallback. The lookup of a token is M17's.

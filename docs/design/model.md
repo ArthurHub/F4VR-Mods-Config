@@ -22,6 +22,8 @@ Item     one of:
            Placeholder   a control the menu does not support, with the reason
 ```
 
+A mod that is [not available](ui-and-vr-interaction.md#notices) has its name and the reason, and nothing else.
+
 A setting, a button, and any other item that is a row has a `text` and can have a `help`. The text is what the row says. The help of the row the ray is on is shown in the help line, on the left of the footer. Both names are MCM's, and a package uses them too. In the test set 376 rows have a help: most switchers, sliders, steppers and buttons, and every hotkey.
 
 A setting has:

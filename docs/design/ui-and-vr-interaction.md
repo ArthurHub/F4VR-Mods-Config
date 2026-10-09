@@ -49,8 +49,7 @@ The primary browsing and editing state.
 ```
 
 - Navigation is on the left and selected mod content is on the right.
-- The navigation is a tree of the mods. The menu's front page, which is what the menu opens on, has no row in it: no mod is selected, and the page has the quick launch links. The first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
-- A quick launch link opens a mod's own config UI. The mod registers for it through the native API, and needs no package for it.
+- The navigation is a tree of the mods. [The menu's front page](#the-menus-front-page), which is what the menu opens on, has no row in it: no mod is selected. The first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
 - Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page.
 - The mod's front page has no row of its own in the tree: the mod's row is its row.
 - The tree keeps its place and its width, with or without a selected mod.
@@ -105,6 +104,73 @@ inner offhand forearm / behind thumb
 - Pending values and active previews remain alive while minimized.
 - Minimized is not equivalent to Save or Close.
 
+## The menu's front page
+
+What the Full panel shows while no mod is selected. It is what the menu opens on: a menu that was closed does not keep its place, and one that was minimized does.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│ MODS CONFIG VR                                       [?] [Minimize] [X] │
+├───────────────────┬─────────────────────────────────────────────────────┤
+│ Mods              │ Settings for the mods you have installed. Pick a    │
+│                   │ mod on the left to see its settings.                │
+│ ▸ Flashlight      │ Version 1.0.0                                       │
+│ ▸ FRIK            │                                                     │
+│ ▸ Holsters        │ Quick launch                                        │
+│ ▸ Sim Settlements │ FRIK                                     [ Open ]   │
+│                   │ Virtual Holsters                         [ Open ]   │
+│                   │                                                     │
+│                   │ Notices                                             │
+│                   │ Sim Settlements is not available: its plugin        │
+│                   │ SS2.esm is not loaded.                              │
+├───────────────────┴─────────────────────────────────────────────────────┤
+│ FRIK: Opens FRIK's own configuration in the world.                      │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+- The page has no row in the tree. The first breadcrumb, `MODS CONFIG VR`, is its entry, and is shown selected while the page is open. No mod is selected or expanded.
+- The player comes back to it with that breadcrumb, and with Back from a mod's front page.
+- It starts with a text: what the menu is, how to start, and the version of Mods Config VR.
+- The [quick launch](#quick-launch) section and the [notices](#notices) follow. A section with nothing in it is left out.
+- Nothing is edited here, so the page has no editing session. The help line shows the help of the quick launch entry the ray is on.
+- Back closes the menu; see [Back behavior](#back-behavior).
+
+### Quick launch
+
+An entry of the section opens a mod's own config UI, such as FRIK's.
+
+- A row has the mod's name and an `Open` button, and the whole row is pressed.
+- A mod registers its entry through the native API, with a help text that says what its UI is for. It needs no package for it, and a mod that has a package is in the tree as well.
+- Until the native API is made, the menu adds one entry itself: FRIK, when FRIK is installed. The menu took the opening gesture from FRIK, so FRIK's config is opened from here.
+- The entries are listed alphabetically, as the mods are.
+- Pressing an entry minimizes the menu and opens the mod's UI; see [Bespoke UI handoff](#bespoke-ui-handoff). Until the handoff is made the menu does not come back by itself, and `Resume` on the wrist shows it again.
+
+### Notices
+
+A mod that the menu found and cannot show is not available:
+
+- A plugin it requires is not loaded: a game plugin of an MCM config or of a package, or an F4SE plugin of a package.
+- Its config or its package cannot be read. It is then named by its folder, as in MCM.
+- Its package needs a newer Mods Config VR, or has the `modName` of another package.
+
+The player is told in two places:
+
+- The mod's row is in the tree, in its place by name, and is disabled: it is not selected, and has no pages. While the ray is on it, the help line says why, as `Sim Settlements: Not available: its plugin SS2.esm is not loaded.`
+- The front page has a line for each such mod under `Notices`, with the same reason, so they are read in one place.
+
+The reason is in the log too.
+
+### What differs from MCM's
+
+MCM's menu also opens on a page with no mod selected, and its mods are on the left. What differs:
+
+- MCM's page has MCM's logo and version, and is gone once a mod is selected. Here the player comes back to the page, for the quick launch and the notices.
+- MCM lists the mods in the order of its `sOrder` setting, and then by their folders. Here they are alphabetical by display name.
+- MCM's list ends with two entries of its own, `MCM Settings` and `Hotkey manager`. Neither is listed here. The first holds where MCM is in the pause menu and the order of its list, and a mod's hotkeys are shown on the mod's own pages.
+- MCM lists a mod that it cannot show as any other, with a page that says why. Here its row is disabled, and the reason is in the help line and in the notices.
+
+MCM's Cancel closes its menu from the list of mods, as Back does here from the front page.
+
 ## Full-panel placement
 
 The Full panel appears in front of the player at a comfortable distance and height. The reference for how it should feel is Fallout 4 VR's projected Pip-Boy.
@@ -156,9 +222,9 @@ Back resolves the most local temporary interaction first:
 2. Close a popup, dropdown, keyboard, or confirmation.
 3. From a page of a mod, go to the mod's front page.
 4. From a mod's front page, go to the menu's front page.
-5. From the menu's front page, request closing the interface. Whether Back does this last step is not decided.
+5. From the menu's front page, close the menu.
 
-If closing would abandon pending changes, the player receives Save, Discard, and Cancel choices.
+Step 4 leaves the mod. When the mod has unsaved changes, the player gets the Save, Discard, and Cancel choices first, as when another mod is selected. So the menu's front page has nothing pending, and step 5 closes the menu without asking.
 
 ## Haptics
 
@@ -189,13 +255,14 @@ Help is one size and one color. An MCM config can have the tags of a [text row](
 
 The help of a package's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
 
-A page or a mod has no help of its own in the help line. A page that explains itself does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
+A page or a mod has no help of its own in the help line. The one exception is a mod that is [not available](#notices): the help line says why while the ray is on its row. A page that explains itself does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
 
 Keeping the help in one place avoids layout movement and makes it discoverable without pop-up tooltips floating at uncomfortable depths. The Focused panel's footer is too narrow for it, so there the help is a two-line area at the top.
 
 ## Navigation behavior
 
 - Mods are listed alphabetically by display name; page and setting order follow their JSON arrays.
+- A mod that is not available is in the list too, as a disabled row; see [Notices](#notices).
 - The mods are the top level of a tree, unless the list is grouped by category, and only the selected mod is expanded. Its pages are the rows under it, without the front page.
 - A mod's front page is its root `content`, in an MCM config and in a package alike, and its `pages` are the rows under it. A mod with no pages has no rows under it.
 - A list longer than its area scrolls with the thumbstick while the ray is on it, and shows a scroll bar: the tree, a page's rows, and the list of a dropdown. About nine rows fit in the Full panel's tree, so most lists of mods scroll.

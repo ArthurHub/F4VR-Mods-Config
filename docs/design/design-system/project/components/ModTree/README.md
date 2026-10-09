@@ -10,7 +10,7 @@ The navigation: every mod in one alphabetical list, with the selected mod expand
 - A mod's own row is its front page: it has no separate page row. Only the selected mod is expanded.
 - Selected: solid `green`, `on-green` text, square right end with a 20 px tip pointing at the content. Draw the tip with `AddTriangleFilled` in the room between the row and the scroll bar (see Scrolling).
 - Hover: `hover` with a `frame-border` outline.
-- Not available (plugin not loaded): disabled at `opacity-disabled`. The reason is in the help line while the ray is on the row ("Sim Settlements 2: Not available: its plugin is not loaded.") and in the menu front page's notices.
+- Not available (a required plugin is not loaded, or the config cannot be read): disabled at `opacity-disabled`, in its place by name. It is not selected and has no pages. The reason is in the help line while the ray is on the row ("Sim Settlements 2: Not available: its plugin SS2.esm is not loaded.") and in the menu front page's notices.
 
 ## Categories
 
