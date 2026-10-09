@@ -3,14 +3,22 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <fstream>
+#include <sstream>
 
 #include <nlohmann/json.hpp>
+
+#include "common/CommonUtils.h"
 
 using namespace mods_config;
 
 namespace
 {
     using Json = nlohmann::json;
+
+    // MCM's plugin in Fallout 4 VR, and where its mods have their configs, from the game's folder
+    constexpr auto MCM_DLL = "mcm_vr.dll";
+    constexpr auto MCM_CONFIG_FOLDER = R"(Data\MCM\Config)";
 
     /**
      * The text of a key. It is empty when the value has no such key, or the key holds something else than a text.
@@ -85,6 +93,15 @@ namespace
         }
         return items;
     }
+
+    /**
+     * A path as UTF-8 text for the log. A path's own string() throws on a name the system's code page lacks.
+     */
+    std::string toLogText(const std::filesystem::path& path)
+    {
+        const auto text = path.u8string();
+        return { text.begin(), text.end() };
+    }
 }
 
 namespace mods_config::mcm
@@ -123,5 +140,46 @@ namespace mods_config::mcm
             }
         }
         return mod;
+    }
+
+    /**
+     * Loads the `config.json` of every folder in MCM's config folder, which is `Data\MCM\Config` in the game.
+     * A config that cannot be read is left out, with the reason in the log. No such folder is no mods.
+     */
+    std::vector<model::Mod> loadConfigs(const std::filesystem::path& configFolder)
+    {
+        std::vector<model::Mod> mods;
+        std::error_code error;
+        for (std::filesystem::directory_iterator folder(configFolder, error), end; !error && folder != end; folder.increment(error)) {
+            const auto file = folder->path() / "config.json";
+            std::error_code noFile;
+            if (!std::filesystem::is_regular_file(file, noFile)) {
+                continue;
+            }
+            std::ostringstream text;
+            text << std::ifstream(file, std::ios::binary).rdbuf();
+
+            if (auto mod = loadConfig(text.str())) {
+                mods.push_back(std::move(*mod));
+            } else {
+                logger::warn("MCM config '{}' is not loaded: {}", toLogText(file), mod.error());
+            }
+        }
+        return mods;
+    }
+
+    /**
+     * The MCM mods of the running game. There are none while MCM itself is not loaded: a mod with an MCM menu
+     * needs MCM for its settings, so its menu would change nothing.
+     */
+    std::vector<model::Mod> loadInstalledMods()
+    {
+        if (!common::isDLLModLoaded(MCM_DLL)) {
+            logger::info("MCM is not loaded ({}): no MCM mods are listed", MCM_DLL);
+            return {};
+        }
+        auto mods = loadConfigs(MCM_CONFIG_FOLDER);
+        logger::info("Loaded {} MCM mods from '{}'", mods.size(), MCM_CONFIG_FOLDER);
+        return mods;
     }
 }

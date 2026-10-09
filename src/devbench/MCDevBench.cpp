@@ -31,7 +31,8 @@ namespace mods_config::devbench
             bool pointerDown = false;
             bool pointerWanted = false;
 
-            ConfigMenu::ControlValues controls;
+            // the mods the menu lists
+            std::size_t modCount = 0;
         };
 
         const char* stateDescription()
@@ -39,7 +40,7 @@ namespace mods_config::devbench
             return "menu: open, minimized (the panel is hidden and only the offhand buttons show); "
                    "pointer: onPanel (a wand's ray is on the panel), hand (primary or offhand), "
                    "x and y (where, in the panel's pixels from its top left), down (it presses the panel), wanted (ImGui uses the pointer); "
-                   "controls: the values of the panel's placeholder controls (buttonPresses, checkbox, slider, comboOption, listRow); "
+                   "mods: count (the mods the menu lists; the mods action has each of them); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
         }
 
@@ -58,7 +59,7 @@ namespace mods_config::devbench
             state.pointerDown = pointer.down;
             state.pointerWanted = pointer.wantsPointer;
 
-            state.controls = menu.controls();
+            state.modCount = menu.mods().size();
         }
 
         json stateToJson(const MCDevState& state)
@@ -72,12 +73,7 @@ namespace mods_config::devbench
                         { "y", state.pointerY },
                         { "down", state.pointerDown },
                         { "wanted", state.pointerWanted } } },
-                { "controls",
-                    { { "buttonPresses", state.controls.buttonPresses },
-                        { "checkbox", state.controls.checkbox },
-                        { "slider", state.controls.slider },
-                        { "comboOption", state.controls.comboOption },
-                        { "listRow", state.controls.listRow } } },
+                { "mods", { { "count", state.modCount } } },
                 { "frik", { { "gestureTaken", state.frikGestureTaken } } },
             };
         }
@@ -98,11 +94,27 @@ namespace mods_config::devbench
             menu.close();
             return { { "open", menu.isOpen() } };
         }
+
+        /**
+         * The mods the menu lists, in its order: each with its names and the names of its pages.
+         */
+        json runMods(const json&)
+        {
+            auto mods = json::array();
+            for (const auto& mod : g_modsConfig.menu().mods()) {
+                auto pages = json::array();
+                for (const auto& page : mod.pages) {
+                    pages.push_back(page.name);
+                }
+                mods.push_back({ { "name", mod.name }, { "displayName", mod.displayName }, { "pages", std::move(pages) } });
+            }
+            return { { "mods", std::move(mods) } };
+        }
     }
 
     void setupDevBenchTool()
     {
-        f4cf::devbench::setToolDescription("Mods Config VR: the in-game configuration menu for mods - open and close the menu, read its state");
+        f4cf::devbench::setToolDescription("Mods Config VR: the in-game configuration menu for mods - open and close the menu, read its state and the mods it lists");
 
         f4cf::devbench::setStateProvider<MCDevState>(stateDescription(), &captureState, &stateToJson);
 
@@ -115,6 +127,11 @@ namespace mods_config::devbench
             .name = "close",
             .description = "close the config menu",
             .handler = &runClose,
+        });
+        f4cf::devbench::addAction({
+            .name = "mods",
+            .description = "the mods the menu lists, in its order: each with its name, its display name and its pages",
+            .handler = &runMods,
         });
     }
 }

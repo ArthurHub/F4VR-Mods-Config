@@ -1,12 +1,13 @@
 #include "ConfigMenu.h"
 
-#include <array>
-#include <format>
+#include <algorithm>
 
 #include <imgui.h>
 
 #include "Config.h"
+#include "Theme.h"
 #include "api/FRIKApi.h"
+#include "common/CommonUtils.h"
 #include "common/MatrixUtils.h"
 #include "f4sevr/PapyrusUtils.h"
 #include "imgui/ImGuiPointer.h"
@@ -36,11 +37,6 @@ namespace
 
     // where the wrist buttons lie, from the framework's place on the wrist: position, then degrees around x, y and z
     const RE::NiTransform WRIST_BUTTONS_OFFSET = common::MatrixUtils::getTransform(0, 0, 0, 0, 0, 0);
-
-    constexpr std::array COMBO_OPTIONS{ "Low", "Medium", "High", "Ultra" };
-    constexpr int LIST_ROWS = 40;
-    constexpr float LIST_HEIGHT_PIXELS = 220.0f;
-    constexpr auto DISCARD_POPUP = "Discard changes?";
 
     /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
@@ -114,6 +110,15 @@ namespace mods_config
     }
 
     /**
+     * The mods the menu lists, from every source they come from. They are kept in order of their display names.
+     */
+    void ConfigMenu::setMods(std::vector<model::Mod> mods)
+    {
+        std::ranges::sort(mods, common::CaseInsensitiveComparator(), &model::Mod::displayName);
+        _mods = std::move(mods);
+    }
+
+    /**
      * Put the panel in front of the player again, where they look now.
      * Nothing while the menu is minimized: Resume does it then.
      */
@@ -166,7 +171,7 @@ namespace mods_config
         _panel->setPosition(0, PANEL_FORWARD, PANEL_UP);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(PANEL_TILT_DEGREES, 0, 0));
         _panel->setCurveRadius(PANEL_CURVE_RADIUS);
-        // the menu's one ImGui panel: at this size it needs a texture of its own, and its combo and dialog open inside it
+        // the menu's one ImGui panel: at this size it needs a texture of its own, and a dropdown's list or a dialog opens inside it
         _panel->setDedicated(true);
         _panel->setInteractive(true);
         _panel->setContent([this] {
@@ -216,57 +221,50 @@ namespace mods_config
     }
 
     /**
-     * Placeholder content until the mod list and the settings pages exist: one of each kind of control
-     * the menu uses.
+     * The Full panel: the title, the list of the mods on the left, and beside it the menu's front page.
      */
-    void ConfigMenu::drawContent()
+    void ConfigMenu::drawContent() const
     {
         ImGui::TextUnformatted("MODS CONFIG VR");
         ImGui::Separator();
 
-        if (ImGui::Button("Button")) {
-            ++_controls.buttonPresses;
-        }
-        ImGui::SameLine();
-        ImGui::Text("pressed %d times", _controls.buttonPresses);
-
-        ImGui::Checkbox("Checkbox", &_controls.checkbox);
-        ImGui::SliderFloat("Slider", &_controls.slider, 0.0f, 2.0f);
-
-        if (ImGui::BeginChild("List", ImVec2(0.0f, LIST_HEIGHT_PIXELS), ImGuiChildFlags_Border)) {
-            for (int i = 0; i < LIST_ROWS; ++i) {
-                if (ImGui::Selectable(std::format("Row {}", i + 1).c_str(), i == _controls.listRow)) {
-                    _controls.listRow = i;
-                }
-            }
+        // the list keeps its place and its width, whatever is shown beside it
+        if (ImGui::BeginChild("Mods", ImVec2(theme::NAV_WIDTH, 0.0f))) {
+            drawModList();
         }
         ImGui::EndChild();
 
-        if (ImGui::Button("Discard")) {
-            ImGui::OpenPopup(DISCARD_POPUP);
+        ImGui::SameLine(0.0f, theme::SPACE_4);
+        if (ImGui::BeginChild("Content")) {
+            drawFrontPage();
         }
-        if (ImGui::BeginPopupModal(DISCARD_POPUP, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::TextUnformatted("All pending changes will be lost.");
-            if (ImGui::Button("Discard")) {
-                _controls.buttonPresses = 0;
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Cancel")) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
+        ImGui::EndChild();
+    }
 
-        // at the panel's bottom edge, where its list has no room below it and opens upward
-        ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeight());
-        if (ImGui::BeginCombo("Combo", COMBO_OPTIONS[_controls.comboOption])) {
-            for (int i = 0; i < static_cast<int>(COMBO_OPTIONS.size()); ++i) {
-                if (ImGui::Selectable(COMBO_OPTIONS[i], i == _controls.comboOption)) {
-                    _controls.comboOption = i;
-                }
+    /**
+     * The mods, under a header with their number. The header stays, and the rows scroll under it.
+     */
+    void ConfigMenu::drawModList() const
+    {
+        const auto count = std::to_string(_mods.size());
+        ImGui::TextDisabled("Mods");
+        ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(count.c_str()).x);
+        ImGui::TextDisabled("%s", count.c_str());
+
+        if (ImGui::BeginChild("ModRows")) {
+            for (const auto& mod : _mods) {
+                ImGui::TextUnformatted(mod.displayName.c_str());
             }
-            ImGui::EndCombo();
         }
+        ImGui::EndChild();
+    }
+
+    /**
+     * The menu's front page, which is what the menu shows while no mod is selected.
+     */
+    void ConfigMenu::drawFrontPage() const
+    {
+        ImGui::TextWrapped("Settings for the mods you have installed. Pick a mod on the left to see its settings.");
+        ImGui::TextDisabled("Version %s", Version::NAME.data());
     }
 }

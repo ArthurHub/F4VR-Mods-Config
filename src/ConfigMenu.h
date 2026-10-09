@@ -1,8 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "imgui/UIImGuiPanel.h"
+#include "model/Definition.h"
 #include "vrui/UIButtonPanel.h"
 #include "vrui/UIContainer.h"
 
@@ -15,18 +17,6 @@ namespace mods_config
     class ConfigMenu
     {
     public:
-        /**
-         * The values of the placeholder controls.
-         */
-        struct ControlValues
-        {
-            int buttonPresses = 0;
-            bool checkbox = true;
-            float slider = 1.25f;
-            int comboOption = 0;
-            int listRow = 0;
-        };
-
         bool isOpen() const;
         bool isMinimized() const;
 
@@ -36,15 +26,19 @@ namespace mods_config
         void recenter();
         void onFrameUpdate();
 
-        const ControlValues& controls() const
+        void setMods(std::vector<model::Mod> mods);
+
+        const std::vector<model::Mod>& mods() const
         {
-            return _controls;
+            return _mods;
         }
 
     private:
         void createPanel();
         void createWristButtons();
-        void drawContent();
+        void drawContent() const;
+        void drawModList() const;
+        void drawFrontPage() const;
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
@@ -52,6 +46,7 @@ namespace mods_config
         bool _closeRequested = false;
         bool _openFrikRequested = false;
 
-        ControlValues _controls;
+        // the mods the menu lists, in order of their display names
+        std::vector<model::Mod> _mods;
     };
 }

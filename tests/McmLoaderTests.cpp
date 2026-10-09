@@ -1,5 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+
+#include "TestFiles.h"
 #include "mcm/McmLoader.h"
 
 using namespace mods_config;
@@ -95,6 +98,19 @@ namespace
         Lines lines;
         describe(page.items, "", lines);
         return lines;
+    }
+
+    /**
+     * The names of the mods, in order of name: a folder gives its files in no set order.
+     */
+    Lines namesOf(const std::vector<model::Mod>& mods)
+    {
+        Lines names;
+        for (const auto& mod : mods) {
+            names.push_back(mod.name);
+        }
+        std::ranges::sort(names);
+        return names;
     }
 
     /**
@@ -313,4 +329,58 @@ TEST_CASE("McmLoader: a config that cannot be read says why")
     const auto noName = mcm::loadConfig(R"({ "displayName": "My Mod", "content": [] })");
     REQUIRE_FALSE(noName);
     CHECK(noName.error() == "No modName");
+}
+
+TEST_CASE("McmLoader: the config of every folder in MCM's config folder is loaded")
+{
+    const test_files::TempFolder folder;
+    folder.write("AutoEat/config.json", R"({ "modName": "AutoEat", "content": [{ "type": "switcher", "text": "Enabled" }] })");
+    folder.write("SS2/config.json", R"({ "modName": "SS2", "displayName": "Sim Settlements 2" })");
+    // MCM keeps a mod's other files beside its config
+    folder.write("SS2/settings.ini", "[Main] bEnabled=1");
+    folder.write("SS2/keybinds.json", R"({ "modName": "SS2", "keybinds": [] })");
+
+    const auto mods = mcm::loadConfigs(folder.path);
+
+    CHECK(namesOf(mods) == Lines{ "AutoEat", "SS2" });
+    const auto autoEat = std::ranges::find(mods, "AutoEat", &model::Mod::name);
+    REQUIRE(autoEat != mods.end());
+    CHECK(describe(autoEat->frontPage) == Lines{ "switcher: Enabled" });
+}
+
+TEST_CASE("McmLoader: a config that cannot be read is left out, and the others are loaded")
+{
+    const test_files::TempFolder folder;
+    folder.write("Broken/config.json", R"({ "modName": "Broken", )");
+    folder.write("NoName/config.json", R"({ "displayName": "No name" })");
+    folder.write("Good/config.json", R"({ "modName": "Good" })");
+
+    CHECK(namesOf(mcm::loadConfigs(folder.path)) == Lines{ "Good" });
+}
+
+TEST_CASE("McmLoader: what is in the config folder and is not a mod's config is passed over")
+{
+    const test_files::TempFolder folder;
+    folder.write("Good/config.json", R"({ "modName": "Good" })");
+    // a folder with no config, a file beside the folders, and a config one folder too deep
+    folder.write("NoConfig/settings.ini", "[Main]");
+    folder.write("config.json", R"({ "modName": "Beside" })");
+    folder.write("Outer/Inner/config.json", R"({ "modName": "TooDeep" })");
+
+    CHECK(namesOf(mcm::loadConfigs(folder.path)) == Lines{ "Good" });
+}
+
+TEST_CASE("McmLoader: no MCM mod is listed while MCM itself is not loaded")
+{
+    // the tests have no MCM in their process
+    CHECK(mcm::loadInstalledMods().empty());
+}
+
+TEST_CASE("McmLoader: with no config folder there are no mods")
+{
+    const test_files::TempFolder folder;
+
+    CHECK(mcm::loadConfigs(folder.path / "MCM" / "Config").empty());
+    // an empty one
+    CHECK(mcm::loadConfigs(folder.path).empty());
 }

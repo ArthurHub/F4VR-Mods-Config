@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mods Config VR (`ModsConfigVR`) is a **C++23 DLL plugin** for F4SE (Fallout 4 Script Extender) for Fallout 4 VR, built on the [F4VR Common Framework](external/F4VR-CommonFramework/README.md).
 
-It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a declarative JSON package or already has an MCM menu, and the player edits the mod's real settings in VR. A package is saved with an explicit Save, and a mod that registers through the native API gets live preview. The design is in [docs/design/](docs/design/README.md). So far the menu opens one ImGui panel with placeholder controls, the test bed for the framework work the mod needs first. That work is listed in [docs/design/framework-requirements.md](docs/design/framework-requirements.md), and its commits are tracked in [docs/design/framework-plan.md](docs/design/framework-plan.md). The mod's own milestones and commits are in [docs/design/mod-plan.md](docs/design/mod-plan.md).
+It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a declarative JSON package or already has an MCM menu, and the player edits the mod's real settings in VR. A package is saved with an explicit Save, and a mod that registers through the native API gets live preview. The design is in [docs/design/](docs/design/README.md). So far the menu opens on its front page and lists the MCM mods that are installed. The framework work the mod needed first is listed in [docs/design/framework-requirements.md](docs/design/framework-requirements.md), and its commits are tracked in [docs/design/framework-plan.md](docs/design/framework-plan.md). The mod's own milestones and commits are in [docs/design/mod-plan.md](docs/design/mod-plan.md).
 
 ## Build System
 
@@ -76,10 +76,10 @@ The entry point is [src/ModsConfigVR.h](src/ModsConfigVR.h) / [src/ModsConfigVR.
 | ---------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
 | **ModsConfigVR**  | [src/ModsConfigVR.h](src/ModsConfigVR.h) / [.cpp](src/ModsConfigVR.cpp)    | The mod class and the F4SE entry points: the opening gesture, taking it from FRIK |
 | **Config** | [src/Config.h](src/Config.h) / [.cpp](src/Config.cpp) | INI load via `ConfigBase` (global `g_config`), live hot-reload via a file watcher |
-| **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel in the world, which the player can move, and the vrui buttons on the offhand |
+| **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel in the world, which the player can move, and the vrui buttons on the offhand. The panel shows the list of the mods and the menu's front page |
 | **Model** | [src/model/Definition.h](src/model/Definition.h) | The definition of the settings model, which the UI draws: a mod, its pages and their items. See [docs/design/model.md](docs/design/model.md) |
-| **MCM loader** | [src/mcm/McmLoader.h](src/mcm/McmLoader.h) / [.cpp](src/mcm/McmLoader.cpp) | Reads the text of an MCM `config.json` into the model. It grows with the rows: the commit that draws a control adds the parsing of that control and its tests |
-| **DevBench** | [src/devbench/MCDevBench.h](src/devbench/MCDevBench.h) / [.cpp](src/devbench/MCDevBench.cpp) | The mod's devbench tool: its state and its actions (open, close) |
+| **MCM loader** | [src/mcm/McmLoader.h](src/mcm/McmLoader.h) / [.cpp](src/mcm/McmLoader.cpp) | Reads an MCM `config.json` into the model, and finds the MCM mods of the game: every config under `Data\MCM\Config`, while `mcm_vr.dll` is loaded. It grows with the rows: the commit that draws a control adds the parsing of that control and its tests |
+| **DevBench** | [src/devbench/MCDevBench.h](src/devbench/MCDevBench.h) / [.cpp](src/devbench/MCDevBench.cpp) | The mod's devbench tool: its state and its actions (open, close, mods) |
 | **FRIK API** | [src/api/FRIKApi.h](src/api/FRIKApi.h) | FRIK's client header, copied as is from FRIK (`src/api/FRIKApi.h`, API v4): never edit it |
 
 TODO: add a row for each component as the mod grows.

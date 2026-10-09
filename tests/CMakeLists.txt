@@ -9,6 +9,7 @@ find_package(Catch2 3 CONFIG REQUIRED)
 add_executable(${PROJECT_NAME}_tests
   McmLoaderTests.cpp
   Setup.cpp
+  TestFiles.h
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/McmLoader.cpp
 )

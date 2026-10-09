@@ -2,6 +2,7 @@
 
 #include "api/FRIKApi.h"
 #include "devbench/MCDevBench.h"
+#include "mcm/McmLoader.h"
 #include "vrcf/VRControllersManager.h"
 
 // This is the entry point to the mod.
@@ -48,6 +49,9 @@ namespace mods_config
     void ModsConfigVR::onGameLoaded()
     {
         takeOpenGestureFromFRIK();
+
+        // once: what a mod's menu holds does not change while the game runs
+        _menu.setMods(mcm::loadInstalledMods());
     }
 
     /**
