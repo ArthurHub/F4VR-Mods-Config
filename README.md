@@ -57,8 +57,11 @@ Open the solution and build. To package, build the `package_mod` target in Relea
 To profile with [Tracy](https://github.com/wolfpld/tracy), build the `Tracy` configuration (`cmake --build --preset tracy`): a Release build
 whose perf sites are also Tracy zones.
 
+The build also makes `ModsConfigVR_tests`, the unit tests of the code that does not need the game. Run them with
+`ctest --test-dir build -C Release --output-on-failure`.
+
 Code style is enforced by clang-format through [pre-commit](https://pre-commit.com/): run `pre-commit install` once after cloning so
-the checks run on every commit. The same checks, and a Release build, run on GitHub for every push and pull request to `main`.
+the checks run on every commit. The same checks, a Release build and the unit tests run on GitHub for every push and pull request to `main`.
 
 ## Support
 

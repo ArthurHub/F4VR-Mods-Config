@@ -75,7 +75,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | --- | --------- | ----------------------------------------------------------------------------------------------------- | --------- |
 | M11 | mod       | docs: the menu's front page, with the mod tree and a quick launch section                             | done      |
 | M12 | mod       | docs: the settings model, checked against three kinds of setting                                      | done      |
-| M13 | mod       | The mod's unit tests, the settings model, and the MCM loader for a mod, its pages and its rows' texts | todo      |
+| M13 | mod       | The mod's unit tests, the settings model, and the MCM loader for a mod, its pages and its rows' texts | done      |
 | M14 | mod       | The front page lists the MCM mods that are found                                                      | todo      |
 | M15 | mod       | FRIK in the quick launch section                                                                      | todo      |
 | M16 | mod       | A mod's pages in the tree, with every row as its text and type                                        | todo      |

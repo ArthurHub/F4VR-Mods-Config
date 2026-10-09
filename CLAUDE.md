@@ -32,15 +32,21 @@ The default preset inherits `cmake-dev + vcpkg + windows + vs2026`. The `release
 
 **Packaging:** an explicit step, not part of a normal build — build the `package_mod` target (`cmake --build --preset package`, or `cmake --build build --config Release --target package_mod`), which builds the plugin if needed and runs `cmake/package.cmake` to produce a versioned `.7z` with the DLL and the `data/mod/` files in `build/package/`. A non-Release archive has the configuration in its file name.
 
-**No automated test suite** — testing is manual, in the game.
+**Unit tests:** code that does not need the running game (the settings model, the loaders) is unit tested with Catch2, in [tests/](tests/CMakeLists.txt). A normal build also builds `ModsConfigVR_tests`; run them with `ctest --test-dir build -C Release --output-on-failure`, or one with `build/tests/Release/ModsConfigVR_tests "<test name>"`.
 
-**CI:** `.github/workflows/build.yml` configures and builds Release on every push and pull request to `main`. `.github/workflows/maintenance.yml` runs pre-commit there and commits any fixes back to the branch (pull requests from forks are only checked).
+- The executable compiles the sources it covers, listed in `tests/CMakeLists.txt`, and links the framework and CommonLibF4 as the mod does. `tests/Setup.cpp` sets CommonLibF4's `REL::NO_GAME`, so there is no game in the process: a test that calls the game fails with an access violation.
+- A new source under test is added to that list, with its `<Name>Tests.cpp`.
+- `-DMODS_CONFIG_BUILD_TESTS=OFF` leaves them out.
+
+Everything else is tested by hand, in the game.
+
+**CI:** `.github/workflows/build.yml` configures and builds Release on every push and pull request to `main`, and runs the unit tests. `.github/workflows/maintenance.yml` runs pre-commit there and commits any fixes back to the branch (pull requests from forks are only checked).
 
 ## Code Style
 
 clang-format enforces style (`.clang-format`): LLVM-based, 180-column limit, 4-space indent, CRLF line endings, pointer-left (`T* p`), namespace indentation enabled, braces on new lines for classes/functions/namespaces.
 
-After editing code run `pre-commit run --files <changed files>`: it formats `src/` with clang-format and runs the repo's other checks (`.pre-commit-config.yaml`). `data/` and `external/` are excluded.
+After editing code run `pre-commit run --files <changed files>`: it formats `src/` and `tests/` with clang-format and runs the repo's other checks (`.pre-commit-config.yaml`). `data/` and `external/` are excluded.
 
 After cloning, run `pre-commit install` once to run those checks on every commit; the hook lives in `.git/hooks/` and is not version-controlled.
 
@@ -71,6 +77,8 @@ The entry point is [src/ModsConfigVR.h](src/ModsConfigVR.h) / [src/ModsConfigVR.
 | **ModsConfigVR**  | [src/ModsConfigVR.h](src/ModsConfigVR.h) / [.cpp](src/ModsConfigVR.cpp)    | The mod class and the F4SE entry points: the opening gesture, taking it from FRIK |
 | **Config** | [src/Config.h](src/Config.h) / [.cpp](src/Config.cpp) | INI load via `ConfigBase` (global `g_config`), live hot-reload via a file watcher |
 | **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel in the world, which the player can move, and the vrui buttons on the offhand |
+| **Model** | [src/model/Definition.h](src/model/Definition.h) | The definition of the settings model, which the UI draws: a mod, its pages and their items. See [docs/design/model.md](docs/design/model.md) |
+| **MCM loader** | [src/mcm/McmLoader.h](src/mcm/McmLoader.h) / [.cpp](src/mcm/McmLoader.cpp) | Reads the text of an MCM `config.json` into the model. It grows with the rows: the commit that draws a control adds the parsing of that control and its tests |
 | **DevBench** | [src/devbench/MCDevBench.h](src/devbench/MCDevBench.h) / [.cpp](src/devbench/MCDevBench.cpp) | The mod's devbench tool: its state and its actions (open, close) |
 | **FRIK API** | [src/api/FRIKApi.h](src/api/FRIKApi.h) | FRIK's client header, copied as is from FRIK (`src/api/FRIKApi.h`, API v4): never edit it |
 
@@ -116,6 +124,6 @@ The framework's own [CLAUDE.md](external/F4VR-CommonFramework/CLAUDE.md) maps it
 Pulled via vcpkg (`vcpkg.json`) with a **pinned baseline** required for CommonLibF4 compatibility:
 
 - `F4VR-CommonFramework` (git submodule at `external/`) — re-exports CommonLibF4 and the framework base classes
-- `spdlog`, `nlohmann-json`, `simpleini`, `thomasmonkman-filewatch`, `args`, `rapidcsv`, `rsm-mmio`, `xbyak`, `cpptrace`, `imgui` (with `dx11-binding`, for the framework's Dear ImGui UI layer)
+- `spdlog`, `nlohmann-json`, `simpleini`, `thomasmonkman-filewatch`, `args`, `rapidcsv`, `rsm-mmio`, `xbyak`, `cpptrace`, `imgui` (with `dx11-binding`, for the framework's Dear ImGui UI layer), `catch2` (for the unit tests)
 
 The vcpkg baseline **must not be changed** without verifying CommonLibF4 still builds; it was specifically pinned to `b4a3d89125e45bc8f80fb94bef9761d4f4e14fb9`.

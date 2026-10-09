@@ -241,3 +241,11 @@ add_custom_target(package_mod
   VERBATIM
 )
 add_dependencies(package_mod ${PROJECT_NAME})
+
+
+# >>> Unit tests for the code that does not need the running game (tests/), run with ctest
+option(MODS_CONFIG_BUILD_TESTS "Build the mod's unit tests" ON)
+if(MODS_CONFIG_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
