@@ -6,6 +6,7 @@
 #include <imgui.h>
 
 #include "HelpLine.h"
+#include "Sliders.h"
 #include "model/Definition.h"
 #include "model/Store.h"
 
@@ -25,8 +26,9 @@ namespace mods_config::ui
         // the row the ray is on, for the help line: none in the gap between two rows, and on a row with no text
         std::optional<PointedRow> pointed;
 
-        // a press changed a value in this frame
-        bool changed = false;
+        // a press did something in this frame: it changed a value, or took hold of a slider. Or the
+        // thumbstick stepped a slider
+        bool pressActed = false;
     };
 
     /**
@@ -39,10 +41,15 @@ namespace mods_config::ui
     {
     public:
         void setImageDrawer(ImageDrawer drawer);
-        PageDrawn draw(const model::Page& page, model::Store* store) const;
+        PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue);
+        bool cancelDrag(model::Store* store);
+        void reset();
 
     private:
         // none draws no image, and an image keeps its room
         ImageDrawer _imageDrawer;
+
+        // the sliders of the page that is shown, and how the player edits one
+        Sliders _sliders;
     };
 }

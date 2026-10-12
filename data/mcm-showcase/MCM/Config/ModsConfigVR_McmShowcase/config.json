@@ -186,7 +186,10 @@
         { "type": "slider", "text": "Two steps only", "help": "0 or 1.", "id": "fTwo:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 1, "step": 1 } },
         { "type": "slider", "text": "A value outside its range", "help": "The file has 500, and the most is 100.", "id": "fOutside:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
         { "type": "slider", "text": "A slider with a name that is much too long for the room a row has before its control", "id": "fLongName:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "slider", "text": "With no range", "help": "A slider with no min, max and step.", "id": "fNoRange:Sliders", "valueOptions": { "sourceType": "ModSettingFloat" } }
+        { "type": "slider", "text": "With no range", "help": "A slider with no min, max and step.", "id": "fNoRange:Sliders", "valueOptions": { "sourceType": "ModSettingFloat" } },
+        { "type": "section", "text": "With no storage" },
+        { "type": "slider", "text": "0 to 100 by 5", "help": "A slider with no sourceType. It is kept nowhere, and is at its least again when the mod is selected again.", "valueOptions": { "min": 0, "max": 100, "step": 5 } },
+        { "type": "slider", "text": "0.5 to 1.5 by 0.01", "help": "A hundred steps, for the thumbstick. It is kept nowhere.", "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 } }
       ]
     },
     {

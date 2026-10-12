@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include "model/Definition.h"
 
@@ -20,6 +21,10 @@ namespace mods_config::ui
         ImU32 color = 0;
     };
 
+    // the track of a slider, and the box of a stepper's option, in the panel's pixels: not a token of the
+    // design system
+    constexpr float TRACK_WIDTH = 280.0f;
+
     float mcmScale();
     float textWidth(std::string_view text);
     void drawText(float left, float right, float top, float height, ImU32 color, std::string_view text);
@@ -29,4 +34,7 @@ namespace mods_config::ui
     void sectionHeading(std::string_view text);
     void drawOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawRowState();
+    ImRect controlBox(float left, float top, float width);
+    void drawFrame(const ImRect& box);
+    void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
 }

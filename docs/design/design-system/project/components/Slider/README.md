@@ -8,6 +8,6 @@ A bounded int or float: a track to drag, a value box, and Reset.
 - Value box `value-width` x 48, right-aligned tabular digits with units (`40°`). Pressing it opens the numeric keypad once that exists.
 - Dragging: grab and track outline in `glow`. Back during a drag restores the value from its start.
 - Pending: fill, grab and value in `amber`. Invalid: in `red`, with a `red` value outline.
-- The thumbstick steps by the declared step while the slider is focused, and repeats faster when held.
+- The thumbstick steps by the declared step while the ray is on the row, after a short time there, and repeats faster when held. A slider has no focused state.
 
 The design's suggested row starts with a minus button. It is left out here to give the track 280 px; the thumbstick and the value box cover precise entry. Add minus and plus at the ends if the headset shows they are missed.

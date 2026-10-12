@@ -32,6 +32,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/FullPanel.cpp
   ${SOURCE_DIR}/ui/HelpLine.cpp
   ${SOURCE_DIR}/ui/ModPage.cpp
+  ${SOURCE_DIR}/ui/Sliders.cpp
   ${SOURCE_DIR}/ui/ModTree.cpp
 )
 

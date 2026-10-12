@@ -41,6 +41,7 @@ namespace mods_config::ui
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
         void setImageDrawer(ImageDrawer drawer);
         void setStore(model::Store* store);
+        void setThumbstickSideValue(float value);
         bool select(const Selection& selection);
         bool back();
         void reset();
@@ -63,8 +64,9 @@ namespace mods_config::ui
 
         /**
          * Whether a press did something in the frame that was drawn last: it showed another page, opened a
-         * quick launch entry, or changed a value. It is the frame the hand that points gets its pulse in. A press that changes
-         * nothing, as one on the row that is selected, is not told.
+         * quick launch entry, changed a value, or took hold of a slider. It is the frame the hand that points
+         * gets its pulse in. So is a step of a slider by the thumbstick. A press that changes nothing, as one
+         * on the row that is selected, is not told, and neither are the steps of a slider that is dragged.
          */
         bool pressActed() const
         {
@@ -98,5 +100,8 @@ namespace mods_config::ui
 
         // a press did something in the last draw
         bool _pressActed = false;
+
+        // how far the thumbstick of the hand that points is pushed to a side, as the menu tells it
+        float _thumbstickSideValue = 0.0f;
     };
 }

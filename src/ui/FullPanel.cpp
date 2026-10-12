@@ -131,6 +131,16 @@ namespace mods_config::ui
     }
 
     /**
+     * How far the thumbstick of the hand that points is pushed to a side, from -1 at the left to 1 at the
+     * right, for the frames that are drawn next: it steps the slider the ray is on. The panel does not know
+     * the game, so the menu tells it.
+     */
+    void FullPanel::setThumbstickSideValue(const float value)
+    {
+        _thumbstickSideValue = value;
+    }
+
+    /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
      * Another mod than before starts its editing session in the store.
@@ -153,6 +163,7 @@ namespace mods_config::ui
         }
         _selection = shown;
         _pageChanged = true;
+        _modPage.reset();
         _helpLine.clear();
         _helpLine.setStatus(_store && shown.mod ? SAVED_AS_MADE : "");
         _modTree.showSelection();
@@ -160,11 +171,15 @@ namespace mods_config::ui
     }
 
     /**
-     * Goes one step back: from a page of a mod to the mod's front page, and from there to the menu's front page.
+     * Goes one step back: a slider that is dragged has the value it had before the drag. With none, from a
+     * page of a mod to the mod's front page, and from there to the menu's front page.
      * Returns false on the menu's front page, which has nothing before it: Back closes the menu there.
      */
     bool FullPanel::back()
     {
+        if (_modPage.cancelDrag(_store)) {
+            return true;
+        }
         if (!_selection.mod) {
             return false;
         }
@@ -181,6 +196,8 @@ namespace mods_config::ui
         _selection = {};
         _pageChanged = true;
         _pressActed = false;
+        _thumbstickSideValue = 0.0f;
+        _modPage.reset();
         _helpLine.clear();
         _helpLine.setStatus({});
         _modTree.showTop();
@@ -227,9 +244,9 @@ namespace mods_config::ui
             onPage = ImGui::IsWindowHovered();
             if (_selection.mod) {
                 const auto& mod = _mods[*_selection.mod];
-                auto drawn = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage, _store);
+                auto drawn = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage, _store, _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);
-                _pressActed = drawn.changed;
+                _pressActed = drawn.pressActed;
             } else {
                 pointed = drawFrontPage();
             }

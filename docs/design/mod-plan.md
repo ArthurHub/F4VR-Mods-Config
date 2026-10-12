@@ -182,7 +182,7 @@ M23 is the look of M100 as it was tried in the headset:
 
 - The sizes of the design system stay as they are. The player sets the panel's size and place in `[Panel]` of the INI: `fScale`, `fDistance`, `fHeight` and `fTilt`, and how much its background hides the world in `iBackgroundOpacity`, which ships at the design system's `glass`. A change shows at once while the menu is open. The scale makes the text and the rows larger together, so the layout is the same at any size, and the panel's curve follows its distance.
 - A row of a page has the look of a row under the ray, and the stronger one while the trigger is held on it, as a row of the tree has. A row with no text of its own has neither: a section, a text row, an image and a spacer.
-- A setting's control is still drawn disabled until M25. The other states come with the commits that give them a meaning: focused with the slider (M26), disabled with conditions (M28) and a mod that is not available (M41), and pending and invalid with packages (milestone 5).
+- A setting's control is still drawn disabled until M25. The other states come with the commits that give them a meaning: disabled with conditions (M28) and a mod that is not available (M41), and pending and invalid with packages (milestone 5).
 
 M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.md):
 
@@ -197,7 +197,7 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 | #   | Repo      | Commit                                                                              | Status |
 | --- | --------- | ----------------------------------------------------------------------------------- | ------ |
 | M25 | mod       | Globals are read and written: the switcher works                                    | done   |
-| M26 | mod       | The slider                                                                          | todo   |
+| M26 | mod       | The slider                                                                          | done   |
 | M27 | mod       | The stepper and the dropdown                                                        | todo   |
 | M28 | mod       | Conditions show and hide rows                                                       | todo   |
 | M29 | mod       | ModSettings are read from MCM's files                                               | todo   |
@@ -217,6 +217,17 @@ M25 adds the store of [The settings model](model.md#the-store), and the MCM stor
 - A global that is not in the game is not available: its plugin is not loaded, or has no global of that id. Its row is disabled, and the help line says why while the ray is on it.
 - The help line says "Changes are saved as they are made" while a mod is shown and the ray is on no row. There is no Save bar.
 - The store does not know the game: it reads and writes a global through an interface, which a test gives it without the game.
+
+M26 makes the slider work, as in [Controls](controls.md#slider):
+
+- The trigger drags it. A pull on the track puts the grab under the ray, and the grab follows the ray until the trigger is let go, also beside the track. A pull on the grab itself does not move it. The value is on a step of the slider, counted from its least, and is written as it changes.
+- While it is dragged, the grab and the outline of the track are in `glow`.
+- Back during a drag gives the slider the value it had before the drag, and the rest of that press changes nothing. It is Back's first step, before the pages.
+- The thumbstick steps the slider whose row the ray is on, once the ray is there for 0.3 seconds, so a ray that crosses a row steps nothing. A push to a side is one step. A push that is held steps again after 0.4 seconds, and faster after 1.5. A push that began off that row steps nothing until the thumbstick is let go. A push that is more up or down scrolls the page, and steps nothing. A slider is not selected, and has no focused state.
+- The hand gets its pulse as it takes hold of a slider, and none for the steps of the drag. It gets one for each step of the thumbstick that changes the value.
+- A slider whose `max` is not over its `min` is disabled.
+- The box of the value is not pressed until M46.
+- The MCM showcase has two sliders with no `sourceType`, which work now. Its others are ModSettings, which M29 reads.
 
 M28 translates `groupControl` and `groupCondition` to the model's conditions: a number, `AND`, `OR`, and one inside another. Until this commit every row is shown.
 

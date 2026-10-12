@@ -1,3 +1,4 @@
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -165,6 +166,66 @@ namespace
         panel.setMods({ std::move(mod), modOf("Beta") });
         panel.select(selectionOf(0));
         return panel;
+    }
+
+    /**
+     * Globals for the mod with sliders: 0x810 is 20, 0x811 is 1 and 0x812 is 0.
+     */
+    test_globals::TestGlobals sliderGlobals()
+    {
+        test_globals::TestGlobals globals;
+        globals.values = { { { PLUGIN, 0x810 }, 20.0f }, { { PLUGIN, 0x811 }, 1.0f }, { { PLUGIN, 0x812 }, 0.0f } };
+        return globals;
+    }
+
+    /**
+     * A panel with one mod, shown on its front page, with its values in a store: a slider from 0 to 100 by
+     * 5, one from 0 to 2 by 0.1, and a switcher. The mod has a page with nothing.
+     */
+    FullPanel modWithSliders(model::Store& store)
+    {
+        const auto slider = [](std::string text, const std::uint32_t formId, const float max, const float step) {
+            auto item = globalSetting(model::SettingType::Slider, std::move(text), formId);
+            std::get<model::Setting>(item).valueOptions = { .min = 0.0f, .max = max, .step = step, .options = {} };
+            return item;
+        };
+        auto mod = modOf("Alpha", { "Other" });
+        mod.frontPage.items.push_back(slider("Percent", 0x810, 100.0f, 5.0f));
+        mod.frontPage.items.push_back(slider("Tenths", 0x811, 2.0f, 0.1f));
+        mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Switch", 0x812));
+
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ std::move(mod) });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    /**
+     * A place on the track of the slider of a row of a page, by the row's place among the rows: where the
+     * middle of the grab is at a part of the slider's range, from 0 at its least to 1 at its most.
+     * The track is as ModPage.cpp has it.
+     */
+    ImVec2 sliderTrack(const int place, const float part)
+    {
+        constexpr float TRACK_WIDTH = 280.0f;
+        const float rowsLeft = CONTENT_START + theme::NAV_WIDTH + theme::SPACE_4;
+        const float rowsRight = test_panel::PANEL_WIDTH - CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2;
+        const float trackRight = rowsRight - theme::CONTROL_HEIGHT - theme::SPACE_2 - theme::VALUE_WIDTH - theme::SPACE_2;
+        const float inset = theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
+        REQUIRE(trackRight - TRACK_WIDTH > rowsLeft);
+        return { std::lerp(trackRight - TRACK_WIDTH + inset, trackRight - inset, part), pageRow(place).y };
+    }
+
+    /**
+     * Frames with the thumbstick of the hand that points pushed to a side, and the ray at a place.
+     */
+    void pushFrames(FullPanel& panel, const ImVec2 at, const float push, const int count)
+    {
+        panel.setThumbstickSideValue(push);
+        for (int i = 0; i < count; ++i) {
+            test_panel::drawFrame(panel, at);
+        }
     }
 
     /**
@@ -594,7 +655,7 @@ TEST_CASE("FullPanel: a press on a row that is not edited changes nothing")
     drawFrames(panel, 2);
     const auto before = globals.values;
 
-    // a slider, until the commit that makes it work, and a switcher whose global is not in the game
+    // a slider with no range, and a switcher whose global is not in the game
     CHECK_FALSE(pressActs(panel, pageRow(2)));
     CHECK_FALSE(pressActs(panel, pageRow(3)));
     CHECK(globals.values == before);
@@ -651,4 +712,210 @@ TEST_CASE("FullPanel: the help line says why the value of the row the ray is on 
 
     point(panel, pageRow(3));
     CHECK(panel.helpLine().text() == "Missing: Not available: the global 1234 of MyMod.esp is not in the game.");
+}
+
+TEST_CASE("FullPanel: a press on the track of a slider puts its grab there, on a step, and acts")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, sliderTrack(0, 0.5f)));
+    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 50.0f);
+
+    // 83 of 100 is nearest to the step at 85
+    CHECK(pressActs(panel, sliderTrack(0, 0.83f)));
+    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 85.0f);
+
+    CHECK(pressActs(panel, sliderTrack(1, 0.26f)));
+    CHECK(globals.values.at({ PLUGIN, 0x811 }) == Catch::Approx(0.5f));
+    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 85.0f);
+}
+
+TEST_CASE("FullPanel: a slider follows the ray while the trigger is held, also beside its track")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+
+    int acted = 0;
+    const auto frame = [&panel, &acted](const ImVec2 at, const bool held) {
+        test_panel::drawFrame(panel, at, held);
+        acted += panel.pressActed() ? 1 : 0;
+    };
+    frame(sliderTrack(0, 0.6f), false);
+    frame(sliderTrack(0, 0.6f), false);
+    frame(sliderTrack(0, 0.6f), true);
+    CHECK(percent == 60.0f);
+    frame(sliderTrack(0, 0.8f), true);
+    CHECK(percent == 80.0f);
+
+    // past the end of the track, and on the row under it
+    frame(ImVec2(sliderTrack(0, 1.0f).x + 200.0f, pageRow(1).y), true);
+    CHECK(percent == 100.0f);
+    frame(ImVec2(sliderTrack(0, 0.0f).x - 200.0f, pageRow(1).y), true);
+    CHECK(percent == 0.0f);
+    frame(sliderTrack(0, 0.3f), true);
+    CHECK(percent == 30.0f);
+
+    // let go: the ray moves nothing, and the slider of the row it was on is not changed
+    frame(sliderTrack(0, 0.3f), false);
+    frame(sliderTrack(0, 0.9f), false);
+    frame(sliderTrack(1, 0.9f), false);
+    CHECK(percent == 30.0f);
+    CHECK(globals.values.at({ PLUGIN, 0x811 }) == 1.0f);
+
+    // the hand gets one pulse, as it takes hold
+    CHECK(acted == 1);
+}
+
+TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+
+    // the grab is at 20 of 100, and the ray on its right part: 8 pixels are 3 of 100, nearest to the step at 25
+    const auto onGrab = ImVec2(sliderTrack(0, 0.2f).x + 8.0f, pageRow(0).y);
+    for (const bool held : { false, false, true, true }) {
+        test_panel::drawFrame(panel, onGrab, held);
+    }
+    CHECK(percent == 20.0f);
+
+    // the grab then moves as far as the ray does
+    test_panel::drawFrame(panel, ImVec2(sliderTrack(0, 0.5f).x + 8.0f, pageRow(0).y), true);
+    CHECK(percent == 50.0f);
+}
+
+TEST_CASE("FullPanel: Back gives a slider that is dragged the value it had, and the rest of the press changes nothing")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+
+    for (const bool held : { false, false, true }) {
+        test_panel::drawFrame(panel, sliderTrack(0, 0.6f), held);
+    }
+    test_panel::drawFrame(panel, sliderTrack(0, 0.8f), true);
+    REQUIRE(percent == 80.0f);
+
+    CHECK(panel.back());
+    CHECK(percent == 20.0f);
+    CHECK(panel.selection() == selectionOf(0));
+    test_panel::drawFrame(panel, sliderTrack(0, 0.9f), true);
+    CHECK(percent == 20.0f);
+
+    // Back again, with the trigger still held, is a step back in the panel
+    CHECK(panel.back());
+    CHECK(panel.selection() == Selection{});
+    panel.select(selectionOf(0));
+    test_panel::drawFrame(panel, sliderTrack(0, 0.9f), false);
+
+    // and the slider is dragged again
+    CHECK(pressActs(panel, sliderTrack(0, 0.4f)));
+    CHECK(percent == 40.0f);
+}
+
+TEST_CASE("FullPanel: the thumbstick steps the slider the ray is on, and again while it is held")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+    const auto& tenths = globals.values.at({ PLUGIN, 0x811 });
+
+    // the ray is on no slider
+    pushFrames(panel, test_panel::POINTER_AWAY, 1.0f, 2);
+    pushFrames(panel, pageRow(2), 1.0f, 60);
+    pushFrames(panel, pageRow(2), 0.0f, 1);
+    CHECK(percent == 20.0f);
+    CHECK(tenths == 1.0f);
+
+    // on the name of a slider, for longer than the 0.3 seconds it waits, at 90 frames a second: one step
+    // as the push begins, and none for a push that is not far
+    pushFrames(panel, pageRow(1), 0.0f, 40);
+    pushFrames(panel, pageRow(1), 1.0f, 1);
+    CHECK(tenths == Catch::Approx(1.1f));
+    // the hand gets a pulse for a step
+    CHECK(panel.pressActed());
+    pushFrames(panel, pageRow(1), 0.0f, 1);
+    CHECK_FALSE(panel.pressActed());
+    pushFrames(panel, pageRow(1), 0.4f, 60);
+    pushFrames(panel, pageRow(1), 0.0f, 1);
+    pushFrames(panel, pageRow(1), -1.0f, 1);
+    CHECK(tenths == Catch::Approx(1.0f));
+    CHECK(percent == 20.0f);
+
+    // a push that is held steps again after 0.4 seconds
+    pushFrames(panel, pageRow(1), 0.0f, 1);
+    pushFrames(panel, pageRow(1), 1.0f, 30);
+    CHECK(tenths == Catch::Approx(1.1f));
+    pushFrames(panel, pageRow(1), 1.0f, 10);
+    CHECK(tenths == Catch::Approx(1.2f));
+
+    // and stops at the end of the range
+    pushFrames(panel, pageRow(1), 1.0f, 450);
+    CHECK(tenths == Catch::Approx(2.0f));
+
+    // where the push changes nothing, and the hand gets no pulse
+    CHECK_FALSE(panel.pressActed());
+}
+
+TEST_CASE("FullPanel: the thumbstick steps a slider only once the ray is on its row for a short time")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+    const auto& tenths = globals.values.at({ PLUGIN, 0x811 });
+
+    // a push as the ray comes to the row steps nothing at first, and one step once the 0.3 seconds are over
+    pushFrames(panel, pageRow(1), 0.0f, 3);
+    pushFrames(panel, pageRow(1), 1.0f, 10);
+    CHECK(tenths == 1.0f);
+    pushFrames(panel, pageRow(1), 1.0f, 30);
+    CHECK(tenths == Catch::Approx(1.1f));
+    pushFrames(panel, pageRow(1), 0.0f, 1);
+
+    // a push that began off the sliders steps nothing on one, however long it is held
+    pushFrames(panel, test_panel::POINTER_AWAY, 1.0f, 3);
+    pushFrames(panel, pageRow(0), 1.0f, 180);
+    CHECK(percent == 20.0f);
+
+    // until the thumbstick is let go and pushed again
+    pushFrames(panel, pageRow(0), 0.0f, 1);
+    pushFrames(panel, pageRow(0), 1.0f, 1);
+    CHECK(percent == 25.0f);
+
+    // and neither does a push that is held as the ray goes from one slider to another
+    pushFrames(panel, pageRow(1), 1.0f, 180);
+    CHECK(percent == 25.0f);
+    CHECK(tenths == Catch::Approx(1.1f));
+}
+
+TEST_CASE("FullPanel: a press on the name of a slider changes nothing")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 20.0f);
 }

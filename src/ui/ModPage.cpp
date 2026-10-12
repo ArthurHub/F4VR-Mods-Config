@@ -4,7 +4,6 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -15,6 +14,7 @@
 #include <imgui_internal.h>
 
 #include "Drawing.h"
+#include "Sliders.h"
 #include "Theme.h"
 
 namespace
@@ -59,30 +59,45 @@ namespace
     }
 
     /**
+     * What a row that was added tells.
+     */
+    struct Row
+    {
+        // false for a row that is scrolled out of the page: nothing of it is drawn
+        bool shown = false;
+
+        // the ray is on it
+        bool pointed = false;
+
+        // the trigger was pulled on it in this frame, is held since a pull on it, and was let go on it
+        bool started = false;
+        bool held = false;
+        bool pressed = false;
+    };
+
+    /**
      * Adds a row at the cursor, as wide as the rows and as high as a control. A row that is pressed has the
      * look of a row under the ray, and a stronger one while the trigger is held. Any other is only its room.
-     * Returns whether the row is shown, and tells whether the ray is on it, and whether it was pressed.
      */
-    bool addRow(const bool pressable, bool& pointed, bool* pressed = nullptr)
+    Row addRow(const bool pressable)
     {
         const ImVec2 size(rowWidth(), theme::CONTROL_HEIGHT);
+        Row row;
         if (pressable) {
-            const bool wasPressed = ImGui::InvisibleButton("row", size);
-            if (pressed) {
-                *pressed = wasPressed;
-            }
+            row.pressed = ImGui::InvisibleButton("row", size);
+            row.started = ImGui::IsItemActivated();
+            row.held = ImGui::IsItemActive();
         } else {
             ImGui::Dummy(size);
         }
-        pointed = false;
-        if (!ImGui::IsItemVisible()) {
-            return false;
+        row.shown = ImGui::IsItemVisible();
+        if (row.shown) {
+            row.pointed = ImGui::IsItemHovered();
+            if (pressable) {
+                ui::drawRowState();
+            }
         }
-        pointed = ImGui::IsItemHovered();
-        if (pressable) {
-            ui::drawRowState();
-        }
-        return true;
+        return row;
     }
 
     /**
@@ -94,24 +109,20 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        bool pointed = false;
-        if (!addRow(pressable, pointed)) {
+        const auto row = addRow(pressable);
+        if (!row.shown) {
             return false;
         }
 
         const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
         ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, typeLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
-        return pointed;
+        return row.pointed;
     }
 
     // The sizes of the controls that are not tokens of the design system, in the panel's pixels.
     // A cell of a switcher, which has two:
     constexpr float TOGGLE_CELL_WIDTH = 88.0f;
-    // the track of a slider, and the box of a stepper's option:
-    constexpr float TRACK_WIDTH = 280.0f;
-    constexpr float SLIDER_FILL_HEIGHT = 8.0f;
-    constexpr float GRAB_HEIGHT = 40.0f;
     // the box an arrow is drawn in:
     constexpr float ARROW_SIZE = 14.0f;
     // and the room of a control in its row, which the widest fill: the control column without the room of Reset
@@ -123,23 +134,6 @@ namespace
         Right,
         Down,
     };
-
-    /**
-     * The box of a control that is as high as a row, from its left edge.
-     */
-    ImRect controlBox(const float left, const float top, const float width)
-    {
-        return { left, top, left + width, top + theme::CONTROL_HEIGHT };
-    }
-
-    /**
-     * The frame of a control: the fill of a track, with an outline.
-     */
-    void drawFrame(const ImRect& box)
-    {
-        ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(theme::color::TRACK), theme::RADIUS_FRAME);
-        ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
-    }
 
     /**
      * A filled arrow around a point, as the buttons of a stepper and a dropdown have.
@@ -161,77 +155,24 @@ namespace
     }
 
     /**
-     * One line of text in a box, in from its sides by a padding. The align sets it in that room: 0 at the
-     * left, 0.5 in the middle and 1 at the right. A text that is wider than the room ends in an ellipsis.
-     */
-    void drawTextIn(const ImRect& box, const std::string_view text, const ImU32 color, const float align, const float padding = 0.0f)
-    {
-        const float room = box.GetWidth() - padding * 2.0f;
-        // on a whole pixel to the left, so a text that just fits its room gets no ellipsis
-        const float left = std::floor(box.Min.x + padding + (std::max)(room - ui::textWidth(text), 0.0f) * align);
-        ui::drawText(left, box.Max.x - padding, box.Min.y, box.GetHeight(), color, text);
-    }
-
-    /**
      * A switcher that ends at the right: an Off and an On cell, with the one of its value marked. On is a
      * solid fill, and Off a ring, so a solid fill always says on. Returns its left edge.
      */
     float drawSwitcher(const float right, const float top, const bool on)
     {
-        const auto box = controlBox(right - TOGGLE_CELL_WIDTH * 2.0f, top, TOGGLE_CELL_WIDTH * 2.0f);
-        const auto offCell = controlBox(box.Min.x, top, TOGGLE_CELL_WIDTH);
-        const auto onCell = controlBox(offCell.Max.x, top, TOGGLE_CELL_WIDTH);
-        drawFrame(box);
+        const auto box = ui::controlBox(right - TOGGLE_CELL_WIDTH * 2.0f, top, TOGGLE_CELL_WIDTH * 2.0f);
+        const auto offCell = ui::controlBox(box.Min.x, top, TOGGLE_CELL_WIDTH);
+        const auto onCell = ui::controlBox(offCell.Max.x, top, TOGGLE_CELL_WIDTH);
+        ui::drawFrame(box);
         if (on) {
             ImGui::GetWindowDrawList()->AddRectFilled(onCell.Min, onCell.Max, ImGui::GetColorU32(theme::color::GREEN), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersRight);
         } else {
             ImGui::GetWindowDrawList()->AddRectFilled(offCell.Min, offCell.Max, ImGui::GetColorU32(theme::color::PRESSED), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersLeft);
             ui::drawOutline(offCell.Min, offCell.Max, theme::color::GREEN);
         }
-        drawTextIn(offCell, "Off", on ? theme::color::GREEN_MUTED : theme::color::GREEN, 0.5f);
-        drawTextIn(onCell, "On", on ? theme::color::ON_GREEN : theme::color::GREEN_MUTED, 0.5f);
+        ui::drawTextIn(offCell, "Off", on ? theme::color::GREEN_MUTED : theme::color::GREEN, 0.5f);
+        ui::drawTextIn(onCell, "On", on ? theme::color::ON_GREEN : theme::color::GREEN_MUTED, 0.5f);
         return box.Min.x;
-    }
-
-    /**
-     * A value of a slider as its text, with as many decimals as the slider's step has, and three at most.
-     */
-    std::string sliderText(const float value, const float step)
-    {
-        int decimals = 0;
-        for (float scaled = std::abs(step); decimals < 3 && std::abs(scaled - std::round(scaled)) > 0.001f; scaled *= 10.0f) {
-            ++decimals;
-        }
-        return std::format("{:.{}f}", value, decimals);
-    }
-
-    /**
-     * A slider that ends at the right: its track, with a fill from the least to the grab, and the box of its
-     * value. The grab is whole inside the track at both ends. Returns its left edge.
-     */
-    float drawSlider(const float right, const float top, const model::ValueOptions& options, const float value)
-    {
-        const auto valueBox = controlBox(right - theme::VALUE_WIDTH, top, theme::VALUE_WIDTH);
-        const auto track = controlBox(valueBox.Min.x - theme::SPACE_2 - TRACK_WIDTH, top, TRACK_WIDTH);
-        drawFrame(track);
-
-        const float inset = theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
-        const float fraction = options.max > options.min ? std::clamp((value - options.min) / (options.max - options.min), 0.0f, 1.0f) : 0.0f;
-        const float grab = std::lerp(track.Min.x + inset, track.Max.x - inset, fraction);
-        const float middle = track.GetCenter().y;
-        const auto green = ImGui::GetColorU32(theme::color::GREEN);
-        auto* drawList = ImGui::GetWindowDrawList();
-        if (fraction > 0.0f) {
-            drawList->AddRectFilled(ImVec2(track.Min.x + inset, middle - SLIDER_FILL_HEIGHT * 0.5f), ImVec2(grab, middle + SLIDER_FILL_HEIGHT * 0.5f), green, theme::RADIUS_GRAB);
-        }
-        drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
-            ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
-            green,
-            theme::RADIUS_GRAB);
-
-        drawFrame(valueBox);
-        drawTextIn(valueBox, sliderText(value, options.step), theme::color::GREEN, 1.0f, theme::SPACE_3);
-        return track.Min.x;
     }
 
     /**
@@ -240,14 +181,14 @@ namespace
      */
     float drawStepper(const float right, const float top, const std::string_view option)
     {
-        const auto next = controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT);
-        const auto box = controlBox(next.Min.x - theme::SPACE_2 - TRACK_WIDTH, top, TRACK_WIDTH);
-        const auto previous = controlBox(box.Min.x - theme::SPACE_2 - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT);
+        const auto next = ui::controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT);
+        const auto box = ui::controlBox(next.Min.x - theme::SPACE_2 - ui::TRACK_WIDTH, top, ui::TRACK_WIDTH);
+        const auto previous = ui::controlBox(box.Min.x - theme::SPACE_2 - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT);
 
         ui::drawOutline(previous.Min, previous.Max, theme::color::FRAME_BORDER);
         drawArrow(previous.GetCenter(), Arrow::Left);
-        drawFrame(box);
-        drawTextIn(box, option, theme::color::GREEN, 0.5f, theme::SPACE_3);
+        ui::drawFrame(box);
+        ui::drawTextIn(box, option, theme::color::GREEN, 0.5f, theme::SPACE_3);
         ui::drawOutline(next.Min, next.Max, theme::color::FRAME_BORDER);
         drawArrow(next.GetCenter(), Arrow::Right);
         return previous.Min.x;
@@ -259,9 +200,9 @@ namespace
      */
     float drawDropdown(const float right, const float top, const std::string_view option)
     {
-        const auto box = controlBox(right - CONTROL_ROOM, top, CONTROL_ROOM);
+        const auto box = ui::controlBox(right - CONTROL_ROOM, top, CONTROL_ROOM);
         const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
-        drawFrame(box);
+        ui::drawFrame(box);
         ui::drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, theme::color::GREEN, option);
         drawArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), Arrow::Down);
         return box.Min.x;
@@ -281,43 +222,71 @@ namespace
     }
 
     /**
+     * What the rows of a page are drawn with, and what their drawing tells.
+     */
+    struct PageDrawing
+    {
+        const ui::ImageDrawer& imageDrawer;
+        model::Store* store;
+        ui::Sliders& sliders;
+        ui::PageDrawn& drawn;
+    };
+
+    /**
      * The row of a setting at the cursor: its text after the gutter, and its control where the control column
      * ends, before the room of its Reset. The text has the room up to its own control.
      * The control shows the value the store has for the setting. A press anywhere on the row of a switcher
-     * turns it on or off. Any other control is disabled until the commit that makes it work, and so is one
-     * whose value is not available, which shows what a setting is with no value: the row itself has the
-     * look of a row under the ray, as it has a help.
+     * turns it on or off, and a slider is dragged by its track and stepped by the thumbstick. A stepper and
+     * a dropdown are disabled until the commit that makes them work, and so is a control whose value is
+     * not available and a slider with no range. The row itself has the look of a row under the ray, as it
+     * has a help.
      * A text input is its text and its type until the commit that draws it.
-     * Returns whether the ray is on the row. Tells a change of the value, and why a value is not available.
+     * Returns whether the ray is on the row, and tells why a value is not available.
      */
-    bool drawSetting(const model::Setting& setting, model::Store* store, bool& changed, std::string& reason)
+    bool drawSetting(const model::Setting& setting, const PageDrawing& page, std::string& reason)
     {
         if (setting.type == model::SettingType::TextInput) {
             return drawRow(setting.text, "textinput");
         }
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        bool pointed = false;
-        bool pressed = false;
-        if (!addRow(true, pointed, &pressed)) {
-            return false;
-        }
+        const auto row = addRow(true);
 
-        auto stored = store ? store->value(setting) : model::StoredValue{};
+        auto stored = page.store ? page.store->value(setting) : model::StoredValue{};
         const auto& options = setting.valueOptions;
         const auto* on = std::get_if<bool>(&stored.value);
         const auto* number = std::get_if<float>(&stored.value);
-        const bool edited = stored.available && setting.type == model::SettingType::Switcher && on;
+        const bool isSwitcher = stored.available && setting.type == model::SettingType::Switcher && on;
+        const bool isSlider = stored.available && setting.type == model::SettingType::Slider && number && options.max > options.min;
         const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
-        float left = right;
 
-        ImGui::BeginDisabled(!edited);
+        // before the row is known to be shown: a slider that is dragged out of the page is still held
+        float value = number ? *number : options.min;
+        if (isSlider) {
+            bool pulse = false;
+            const ui::SliderRow sliderRow{ .pointed = row.pointed, .started = row.started, .held = row.held };
+            const float edited = page.sliders.edit(setting, right, pos.y, sliderRow, value, pulse);
+            if (edited != value && page.store->set(setting, edited)) {
+                value = edited;
+            }
+            page.drawn.pressActed = page.drawn.pressActed || pulse;
+        }
+        if (isSwitcher && row.pressed && page.store->set(setting, !*on)) {
+            page.drawn.pressActed = true;
+        }
+        reason = std::move(stored.reason);
+        if (!row.shown) {
+            return false;
+        }
+
+        float left = right;
+        ImGui::BeginDisabled(!isSwitcher && !isSlider);
         switch (setting.type) {
         case model::SettingType::Switcher:
             left = drawSwitcher(right, pos.y, on && *on);
             break;
         case model::SettingType::Slider:
-            left = drawSlider(right, pos.y, options, number ? *number : options.min);
+            left = page.sliders.draw(setting, right, pos.y, value);
             break;
         case model::SettingType::Stepper:
             left = drawStepper(right, pos.y, optionText(options.options, stored));
@@ -330,15 +299,10 @@ namespace
         }
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
         ImGui::EndDisabled();
-
-        if (pressed && edited && store->set(setting, !*on)) {
-            changed = true;
-        }
-        reason = std::move(stored.reason);
-        return pointed;
+        return row.pointed;
     }
 
-    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, model::Store* store, ui::PageDrawn& drawn);
+    void drawItems(const std::vector<model::Item>& items, const PageDrawing& page);
 
     /**
      * Draws an item as its row. A section is its heading, with the rows of its items under it, and a spacer
@@ -349,28 +313,26 @@ namespace
      */
     struct ItemDrawer
     {
-        const ui::ImageDrawer& imageDrawer;
-        model::Store* store;
-        ui::PageDrawn& drawn;
+        const PageDrawing& page;
 
         void operator()(const model::Setting& setting) const
         {
             std::string reason;
-            if (drawSetting(setting, store, drawn.changed, reason)) {
-                drawn.pointed = ui::PointedRow{ .text = setting.text, .help = reason.empty() ? setting.help : std::move(reason) };
+            if (drawSetting(setting, page, reason)) {
+                page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = reason.empty() ? setting.help : std::move(reason) };
             }
         }
 
         void operator()(const model::Group& group) const
         {
             ui::sectionHeading(group.text);
-            drawItems(group.items, imageDrawer, store, drawn);
+            drawItems(group.items, page);
         }
 
         void operator()(const model::Button& button) const
         {
             if (drawRow(button.text, "button")) {
-                drawn.pointed = ui::PointedRow{ .text = button.text, .help = button.help };
+                page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = button.help };
             }
         }
 
@@ -382,7 +344,7 @@ namespace
         void operator()(const model::Image& image) const
         {
             if (image.pixels) {
-                drawImage(image, imageDrawer);
+                drawImage(image, page.imageDrawer);
             } else {
                 drawRow({}, "image", false);
             }
@@ -396,17 +358,17 @@ namespace
         void operator()(const model::Placeholder& placeholder) const
         {
             if (drawRow(placeholder.text, placeholder.type.empty() ? "unknown" : std::string_view(placeholder.type))) {
-                drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = placeholder.help };
+                page.drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = placeholder.help };
             }
         }
     };
 
-    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, model::Store* store, ui::PageDrawn& drawn)
+    void drawItems(const std::vector<model::Item>& items, const PageDrawing& page)
     {
         for (const auto& item : items) {
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
-            std::visit(ItemDrawer{ imageDrawer, store, drawn }, item);
+            std::visit(ItemDrawer{ page }, item);
             ImGui::PopID();
         }
     }
@@ -421,15 +383,36 @@ namespace mods_config::ui
 
     /**
      * Draws the rows of a page into the current ImGui window, which scrolls them, with the values the store
-     * has for its settings. With no store no value is available.
+     * has for its settings. With no store no value is available. The thumbstick's value is how far the one
+     * of the hand that points is pushed to a side, from -1 at the left to 1 at the right: it steps the
+     * slider whose row the ray is on.
      * Returns the row the ray is on, for the help line: none in the gap between two rows, and none on a row
      * that has no text of its own, as a section, a text row, an image and a spacer. And whether a press
-     * changed a value.
+     * did something, or the thumbstick stepped a slider.
      */
-    PageDrawn ModPage::draw(const model::Page& page, model::Store* store) const
+    PageDrawn ModPage::draw(const model::Page& page, model::Store* store, const float thumbstickSideValue)
     {
         PageDrawn drawn;
-        drawItems(page.items, _imageDrawer, store, drawn);
+        _sliders.startFrame(thumbstickSideValue);
+        drawItems(page.items, PageDrawing{ .imageDrawer = _imageDrawer, .store = store, .sliders = _sliders, .drawn = drawn });
+        _sliders.endFrame();
         return drawn;
+    }
+
+    /**
+     * Ends the drag of a slider, which has the value it had before the drag again, for Back.
+     * Returns false while no slider is dragged.
+     */
+    bool ModPage::cancelDrag(model::Store* store)
+    {
+        return _sliders.cancelDrag(store);
+    }
+
+    /**
+     * Forgets what is edited in the page, as another page is shown.
+     */
+    void ModPage::reset()
+    {
+        _sliders.reset();
     }
 }

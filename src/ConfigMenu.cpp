@@ -148,7 +148,8 @@ namespace mods_config
     }
 
     /**
-     * Goes one step back in the panel, and closes the menu from its front page.
+     * Goes one step back in the panel, which first ends the drag of a slider, and closes the menu from the
+     * panel's front page.
      * Nothing while the menu is minimized: its panel is not shown then.
      */
     void ConfigMenu::back()
@@ -205,6 +206,7 @@ namespace mods_config
         _panel->setDedicated(true);
         _panel->setInteractive(true);
         _panel->setContent([this] {
+            _fullPanel.setThumbstickSideValue(getThumbstickSideValue());
             _fullPanel.draw();
             if (_fullPanel.pressActed()) {
                 pulse();
@@ -261,6 +263,22 @@ namespace mods_config
             return;
         }
         vrcf::VRHaptics.trigger(imgui::pointer().state().primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand, *g_config.pressHaptic);
+    }
+
+    /**
+     * How far the thumbstick of the hand that points at the panel is pushed to a side, which steps a slider
+     * of the panel: from -1 at the left to 1 at the right. None while no hand points, as the thumbstick is
+     * the game's then, and none for a push that is more up or down, which scrolls.
+     * Called while the panel's content is drawn, when the pointer's state is this frame's.
+     */
+    float ConfigMenu::getThumbstickSideValue()
+    {
+        const auto& pointer = imgui::pointer().state();
+        if (!pointer.canvas) {
+            return 0.0f;
+        }
+        const auto push = vrcf::VRControllers.getThumbstickValue(pointer.primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand);
+        return std::abs(push.x) > std::abs(push.y) ? push.x : 0.0f;
     }
 
     /**

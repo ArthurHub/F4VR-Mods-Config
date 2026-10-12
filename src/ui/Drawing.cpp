@@ -272,4 +272,33 @@ namespace mods_config::ui
         ImGui::GetWindowDrawList()->AddRectFilled(min, max, ImGui::GetColorU32(pressed ? theme::color::PRESSED : theme::color::HOVER), theme::RADIUS_FRAME);
         drawOutline(min, max, pressed ? theme::color::GLOW : theme::color::FRAME_BORDER);
     }
+
+    /**
+     * The box of a control that is as high as a row, from its left edge.
+     */
+    ImRect controlBox(const float left, const float top, const float width)
+    {
+        return { left, top, left + width, top + theme::CONTROL_HEIGHT };
+    }
+
+    /**
+     * The frame of a control: the fill of a track, with an outline.
+     */
+    void drawFrame(const ImRect& box)
+    {
+        ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(theme::color::TRACK), theme::RADIUS_FRAME);
+        drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
+    }
+
+    /**
+     * One line of text in a box, in from its sides by a padding. The align sets it in that room: 0 at the
+     * left, 0.5 in the middle and 1 at the right. A text that is wider than the room ends in an ellipsis.
+     */
+    void drawTextIn(const ImRect& box, const std::string_view text, const ImU32 color, const float align, const float padding)
+    {
+        const float room = box.GetWidth() - padding * 2.0f;
+        // on a whole pixel to the left, so a text that just fits its room gets no ellipsis
+        const float left = std::floor(box.Min.x + padding + (std::max)(room - textWidth(text), 0.0f) * align);
+        drawText(left, box.Max.x - padding, box.Min.y, box.GetHeight(), color, text);
+    }
 }

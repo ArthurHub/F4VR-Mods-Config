@@ -43,6 +43,7 @@ namespace mods_config
         void applyPanelConfig() const;
         void createWristButtons();
         static void pulse();
+        static float getThumbstickSideValue();
         void drawImage(const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max);
         std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();
 

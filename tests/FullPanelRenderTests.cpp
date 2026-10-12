@@ -532,6 +532,33 @@ TEST_CASE("FullPanel render: the values of a page's settings, and the status of 
     }
 }
 
+TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")
+{
+    using model::SettingType;
+    const auto slider = [](std::string text, const std::uint32_t formId, const float max, const float step) {
+        return model::Setting{ .type = SettingType::Slider,
+            .text = std::move(text),
+            .help = "How strong the feature is.",
+            .valueOptions = { .min = 0.0f, .max = max, .step = step, .options = {} },
+            .storage = model::GlobalStorage{ .plugin = "MyMod.esp", .formId = formId } };
+    };
+    test_globals::TestGlobals globals;
+    globals.values = { { { "MyMod.esp", 0x800 }, 0.5f }, { { "MyMod.esp", 0x801 }, 40.0f } };
+    mcm::McmStore store(globals);
+
+    model::Mod mod{ .name = "Sliders", .displayName = "Sliders", .frontPage = {}, .pages = {} };
+    mod.frontPage.items.push_back(slider("Strength", 0x800, 2.0f, 0.1f));
+    mod.frontPage.items.push_back(slider("Brightness", 0x801, 100.0f, 5.0f));
+    mod.frontPage.items.push_back(slider("With no range", 0x801, 0.0f, 1.0f));
+
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods({ std::move(mod) });
+    panel.select({ .mod = 0, .page = std::nullopt });
+    // on the track of the first slider, with the trigger held
+    WARN("Saved " << renderToFile(panel, "slider-dragged", ImVec2(820.0f, pageRow(0).y), true));
+}
+
 TEST_CASE("FullPanel render: the help line, with a help of each length", "[.render]")
 {
     const std::array names{ "help-one-line", "help-two-lines", "help-three-lines", "help-cut", "help-name-alone" };

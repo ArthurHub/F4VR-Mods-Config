@@ -53,7 +53,7 @@ Suggested row:
 - Trigger-drag gives continuous preview when the setting supports it.
 - Releasing the trigger ends the control interaction; it does not Save the page.
 - Back during a drag restores the value from the beginning of that drag.
-- Thumbstick left/right changes by the declared step.
+- Thumbstick left/right changes the slider the ray is on by the declared step, once the ray is on its row for a short time. A slider is not selected first.
 - Holding the thumbstick may accelerate after an initial repeat delay.
 - The value field opens the numeric keyboard for precise entry.
 - Units and an appropriate number of decimal places remain visible.
