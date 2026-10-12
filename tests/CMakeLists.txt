@@ -10,11 +10,13 @@ add_executable(${PROJECT_NAME}_tests
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   McmLoaderTests.cpp
+  TranslationsTests.cpp
   Setup.cpp
   TestFiles.h
   TestPanel.h
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/McmLoader.cpp
+  ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp
   ${SOURCE_DIR}/ui/FullPanel.cpp
   ${SOURCE_DIR}/ui/ModPage.cpp

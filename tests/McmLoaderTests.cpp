@@ -348,6 +348,54 @@ TEST_CASE("McmLoader: the config of every folder in MCM's config folder is loade
     CHECK(describe(autoEat->frontPage) == Lines{ "switcher: Enabled" });
 }
 
+TEST_CASE("McmLoader: a text that is a token is shown in the game's language")
+{
+    model::Translations translations;
+    translations.add("$MyMod_Name", "Mon Mod");
+    translations.add("$MyMod_Page", "Combat");
+    translations.add("$MyMod_Section", "Notifications");
+    translations.add("$MyMod_Enabled", "Actif");
+
+    const auto config = R"({
+        "modName": "$MyMod_Name",
+        "displayName": "$MyMod_Name",
+        "content": [
+            { "type": "section", "text": "$MyMod_Section" },
+            { "type": "switcher", "text": "$MyMod_Enabled" },
+            { "type": "button", "text": "$MyMod_Missing" },
+            { "type": "text", "text": "Costs $5" }
+        ],
+        "pages": [{ "pageDisplayName": "$MyMod_Page", "content": [{ "type": "hotkey", "text": "$MyMod_Enabled" }] }]
+    })";
+    const auto mod = mcm::loadConfig(config, translations);
+    REQUIRE(mod);
+
+    // the mod's name is what the mod is known by, and is not a text to show
+    CHECK(mod->name == "$MyMod_Name");
+    CHECK(mod->displayName == "Mon Mod");
+    // a token that no file has stays as it is written, as in MCM
+    CHECK(describe(mod->frontPage) == Lines{ "group: Notifications", "  switcher: Actif", "  button: $MyMod_Missing", "  text: Costs $5" });
+    REQUIRE(mod->pages.size() == 1);
+    CHECK(mod->pages[0].name == "Combat");
+    CHECK(describe(mod->pages[0]) == Lines{ "placeholder hotkey: Actif" });
+
+    // with no translations every text is as it is written
+    CHECK(loaded(config).displayName == "$MyMod_Name");
+}
+
+TEST_CASE("McmLoader: the configs of a folder are translated")
+{
+    const test_files::TempFolder folder;
+    folder.write("AutoEat/config.json", R"({ "modName": "AutoEat", "displayName": "$AutoEat" })");
+    model::Translations translations;
+    translations.add("$AutoEat", "Auto Eat");
+
+    const auto mods = mcm::loadConfigs(folder.path, translations);
+
+    REQUIRE(mods.size() == 1);
+    CHECK(mods[0].displayName == "Auto Eat");
+}
+
 TEST_CASE("McmLoader: a config that cannot be read is left out, and the others are loaded")
 {
     const test_files::TempFolder folder;

@@ -29,6 +29,14 @@ namespace
         return found != value.end() && found->is_string() ? found->get<std::string>() : std::string();
     }
 
+    /**
+     * The text of a key that the player sees, in the game's language when it is a token.
+     */
+    std::string getShownText(const Json& value, const char* key, const model::Translations& translations)
+    {
+        return translations.translate(getText(value, key));
+    }
+
     using SettingTypeName = std::pair<std::string_view, model::SettingType>;
 
     // the rows that edit a value, by the type MCM's own menu knows each by
@@ -46,9 +54,9 @@ namespace
      * A row of a config, by its type. A type the menu does not support is a placeholder, and so is a row
      * with no type.
      */
-    model::Item loadRow(const std::string& type, const Json& row)
+    model::Item loadRow(const std::string& type, const Json& row, const model::Translations& translations)
     {
-        auto text = getText(row, "text");
+        auto text = getShownText(row, "text", translations);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
             return model::Setting{ .type = setting->second, .text = std::move(text) };
@@ -72,7 +80,7 @@ namespace
      * The items of a `content` array. A section becomes a group, with the rows that follow it up to the next
      * section. The rows before the first section are items of the page itself.
      */
-    std::vector<model::Item> loadItems(const Json& config, const char* key)
+    std::vector<model::Item> loadItems(const Json& config, const char* key, const model::Translations& translations)
     {
         std::vector<model::Item> items;
         const auto content = config.find(key);
@@ -84,12 +92,12 @@ namespace
         for (const auto& row : *content) {
             const auto type = getText(row, "type");
             if (type == "section") {
-                items.emplace_back(model::Group{ .text = getText(row, "text"), .items = {} });
+                items.emplace_back(model::Group{ .text = getShownText(row, "text", translations), .items = {} });
                 inGroup = true;
                 continue;
             }
             auto& target = inGroup ? std::get<model::Group>(items.back()).items : items;
-            target.push_back(loadRow(type, row));
+            target.push_back(loadRow(type, row, translations));
         }
         return items;
     }
@@ -108,10 +116,10 @@ namespace mods_config::mcm
 {
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
-     * text and the type of every row. The error says why a config cannot be read.
-     * Comments are skipped, as MCM's own reader skips them.
+     * text and the type of every row. A text that is a `$` token is looked up in the translations.
+     * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
      */
-    std::expected<model::Mod, std::string> loadConfig(const std::string_view text)
+    std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations)
     {
         Json config;
         try {
@@ -128,15 +136,15 @@ namespace mods_config::mcm
         if (mod.name.empty()) {
             return std::unexpected("No modName"s);
         }
-        mod.displayName = getText(config, "displayName");
+        mod.displayName = getShownText(config, "displayName", translations);
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
         }
-        mod.frontPage.items = loadItems(config, "content");
+        mod.frontPage.items = loadItems(config, "content", translations);
 
         if (const auto pages = config.find("pages"); pages != config.end() && pages->is_array()) {
             for (const auto& page : *pages) {
-                mod.pages.push_back({ .name = getText(page, "pageDisplayName"), .items = loadItems(page, "content") });
+                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", translations), .items = loadItems(page, "content", translations) });
             }
         }
         return mod;
@@ -146,7 +154,7 @@ namespace mods_config::mcm
      * Loads the `config.json` of every folder in MCM's config folder, which is `Data\MCM\Config` in the game.
      * A config that cannot be read is left out, with the reason in the log. No such folder is no mods.
      */
-    std::vector<model::Mod> loadConfigs(const std::filesystem::path& configFolder)
+    std::vector<model::Mod> loadConfigs(const std::filesystem::path& configFolder, const model::Translations& translations)
     {
         std::vector<model::Mod> mods;
         std::error_code error;
@@ -159,7 +167,7 @@ namespace mods_config::mcm
             std::ostringstream text;
             text << std::ifstream(file, std::ios::binary).rdbuf();
 
-            if (auto mod = loadConfig(text.str())) {
+            if (auto mod = loadConfig(text.str(), translations)) {
                 mods.push_back(std::move(*mod));
             } else {
                 logger::warn("MCM config '{}' is not loaded: {}", toLogText(file), mod.error());
@@ -172,13 +180,13 @@ namespace mods_config::mcm
      * The MCM mods of the running game. There are none while MCM itself is not loaded: a mod with an MCM menu
      * needs MCM for its settings, so its menu would change nothing.
      */
-    std::vector<model::Mod> loadInstalledMods()
+    std::vector<model::Mod> loadInstalledMods(const model::Translations& translations)
     {
         if (!common::isDLLModLoaded(MCM_DLL)) {
             logger::info("MCM is not loaded ({}): no MCM mods are listed", MCM_DLL);
             return {};
         }
-        auto mods = loadConfigs(MCM_CONFIG_FOLDER);
+        auto mods = loadConfigs(MCM_CONFIG_FOLDER, translations);
         logger::info("Loaded {} MCM mods from '{}'", mods.size(), MCM_CONFIG_FOLDER);
         return mods;
     }

@@ -80,7 +80,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M15 | mod       | FRIK in the quick launch section                                                                      | done      |
 | M100 | mod      | The panel's look from the design system, and the panel drawn into an image by a test                  | done      |
 | M16 | mod       | A mod's pages in the tree, with every row as its text and type                                        | done      |
-| M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | todo      |
+| M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | done      |
 | M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | todo      |
 | M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | todo      |
 | M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo      |

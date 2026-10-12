@@ -1,5 +1,6 @@
 #include "ModsConfigVR.h"
 
+#include "GameTranslations.h"
 #include "api/FRIKApi.h"
 #include "devbench/MCDevBench.h"
 #include "mcm/McmLoader.h"
@@ -51,7 +52,7 @@ namespace mods_config
         takeOpenGestureFromFRIK();
 
         // once: what a mod's menu holds does not change while the game runs
-        _menu.setMods(mcm::loadInstalledMods());
+        _menu.setMods(mcm::loadInstalledMods(loadGameTranslations()));
     }
 
     /**
