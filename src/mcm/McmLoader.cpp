@@ -11,6 +11,7 @@
 
 #include "FallUITranslations.h"
 #include "common/CommonUtils.h"
+#include "model/TextMarkup.h"
 
 using namespace mods_config;
 
@@ -25,6 +26,9 @@ namespace
     // the game's folder of its menus, which a FallUI mod names its language files from
     constexpr auto INTERFACE_FOLDER = R"(Data\Interface)";
 
+    // the most lines a spacer is high, whatever its config says
+    constexpr auto MAX_SPACER_LINES = 20.0;
+
     // the key of a row by which a FallUI mod names its language files
     constexpr auto FALLUI_LANGUAGE_FILE = "$fallUILanguageFile";
 
@@ -35,6 +39,24 @@ namespace
     {
         const auto found = value.find(key);
         return found != value.end() && found->is_string() ? found->get<std::string>() : std::string();
+    }
+
+    /**
+     * Whether a key is set to true.
+     */
+    bool getFlag(const Json& value, const char* key)
+    {
+        const auto found = value.find(key);
+        return found != value.end() && found->is_boolean() && found->get<bool>();
+    }
+
+    /**
+     * The number of lines a spacer is high: its `numLines`, and one line without it.
+     */
+    int getSpacerLines(const Json& row)
+    {
+        const auto found = row.find("numLines");
+        return found != row.end() && found->is_number() ? static_cast<int>(std::clamp(found->get<double>(), 1.0, MAX_SPACER_LINES)) : 1;
     }
 
     /**
@@ -115,13 +137,14 @@ namespace
             return model::Button{ .text = std::move(text) };
         }
         if (type == "text") {
-            return model::Text{ .text = std::move(text) };
+            // the tags are read after the translation: a FallUI mod has its tokens inside them
+            return model::Text{ .lines = getFlag(row, "html") ? model::parseMarkup(text) : model::plainLines(text) };
         }
         if (type == "image") {
             return model::Image{};
         }
         if (type == "spacer") {
-            return model::Spacer{};
+            return model::Spacer{ .lines = getSpacerLines(row) };
         }
         return model::Placeholder{ .text = std::move(text), .type = type };
     }
@@ -166,7 +189,8 @@ namespace mods_config::mcm
 {
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
-     * text and the type of every row. A text that is a `$` token is looked up in the translations.
+     * text and the type of every row, the lines of a text row and the height of a spacer.
+     * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
      */

@@ -462,8 +462,10 @@ A `text` is a paragraph in the panel's muted color, wrapped to the width of the 
 | -------------- | ----------------------------------------------------------------------------------------------------- |
 | `<br>`         | Starts a new line                                                                                     |
 | `<p>`          | A paragraph on lines of its own. Its `align` is `left`, `center` or `right`                           |
-| `<font size>`  | One of the panel's three text sizes: the title size from 24, the detail size up to 16, else the body  |
+| `<font size>`  | The size of its text, on the scale of MCM's menu: 20 is the size of the rows' text                    |
 | `<font color>` | The color of its text, as `#RRGGBB`                                                                   |
+
+A size is a size of MCM's menu, where the ordinary text is about 20, so a text copied from an MCM config looks here as it does there: a 40 is twice the rows' text and a 10 is half of it. The panel's own text is larger than MCM's, and draws a size at 1.2 times its number. A size is not limited: a small one is hard to read in the headset, and it is the author's to choose.
 
 Any other tag is dropped and its text is kept. That includes `<b>`, `<i>` and `<u>`; see [Open questions](open-questions.md#ui-work). Entities, as `&amp;`, are decoded.
 

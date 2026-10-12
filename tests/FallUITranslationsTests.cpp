@@ -214,7 +214,12 @@ TEST_CASE("McmLoader: a FallUI mod is translated from the language files its con
 
     CHECK(fallUI.displayName == "FallUI - Inventar");
     REQUIRE(fallUI.frontPage.items.size() == 2);
-    CHECK(std::get<model::Text>(fallUI.frontPage.items[0]).text == "<p align='center'>FallUI - Inventar</p>");
+    // the text between the tags is translated, and the tags are then read
+    const auto& title = std::get<model::Text>(fallUI.frontPage.items[0]).lines;
+    REQUIRE(title.size() == 1);
+    CHECK(title[0].align == model::TextAlign::Center);
+    REQUIRE(title[0].runs.size() == 1);
+    CHECK(title[0].runs[0].text == "FallUI - Inventar");
     REQUIRE(fallUI.pages.size() == 2);
     CHECK(fallUI.pages[0].name == "Allgemeine Einstellungen");
     CHECK(fallUI.pages[1].name == "    Behälter/Handel/Begleiter");

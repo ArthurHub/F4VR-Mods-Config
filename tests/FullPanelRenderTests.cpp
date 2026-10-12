@@ -16,6 +16,7 @@
 
 #include "TestPanel.h"
 #include "Theme.h"
+#include "model/TextMarkup.h"
 #include "ui/FullPanel.h"
 
 // The Full panel drawn without the game and saved as an image, to look at a change of the UI before it is tried
@@ -262,7 +263,7 @@ namespace
         general.items.push_back(setting(SettingType::Slider, "Strength"));
         general.items.push_back(setting(SettingType::Stepper, "Hours per battery"));
         general.items.push_back(setting(SettingType::Dropdown, "Mode"));
-        general.items.push_back(model::Spacer{});
+        general.items.push_back(model::Spacer{ .lines = 2 });
         general.items.push_back(setting(SettingType::Switcher, "A name that is too long for the room a row has before what the row is"));
 
         model::Group tools{ .text = "Tools", .items = {} };
@@ -272,8 +273,15 @@ namespace
         tools.items.push_back(model::Placeholder{ .text = "A row with no type", .type = "" });
 
         model::Page page{ .name = std::move(name), .items = {} };
-        page.items.push_back(model::Text{ .text = "What the mod is, in a text row at the top of its page." });
+        page.items.push_back(model::Text{ .lines = model::parseMarkup("<p align='center'><font size='24'>The mod's title</font></p>"
+                                                                      "<p>What the mod is, in a text row at the top of its page. It is long enough to be wrapped to the "
+                                                                      "width of the rows, <font color='#FFFFFF'>with some words in a color of their own</font>.</p><br>"
+                                                                      "<p align='right'><font size='16'>A note in the detail size, at the right</font></p>") });
         page.items.push_back(model::Image{});
+        // the sizes the mods of the test set have
+        page.items.push_back(model::Text{ .lines = model::parseMarkup("<font size='40'>Size 40</font> <font size='30'>Size 30</font> <font size='24'>Size 24</font> "
+                                                                      "<font size='16'>Size 16</font> <font size='15'>Size 15</font> <font size='10'>Size 10</font>") });
+        page.items.push_back(model::Text{ .lines = model::plainLines("A text row with no tags.\nIts second line.") });
         page.items.push_back(std::move(general));
         page.items.push_back(std::move(tools));
         return page;

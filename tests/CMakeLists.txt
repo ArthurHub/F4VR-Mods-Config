@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME}_tests
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   McmLoaderTests.cpp
+  TextMarkupTests.cpp
   TranslationsTests.cpp
   Setup.cpp
   TestFiles.h
@@ -18,6 +19,7 @@ add_executable(${PROJECT_NAME}_tests
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
+  ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp
   ${SOURCE_DIR}/ui/FullPanel.cpp

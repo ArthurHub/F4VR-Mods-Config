@@ -63,7 +63,14 @@ namespace
 
             void operator()(const model::Text& text) const
             {
-                lines.push_back(indent + "text: " + text.text);
+                std::string words;
+                for (const auto& line : text.lines) {
+                    words += &line == &text.lines.front() ? "" : " / ";
+                    for (const auto& run : line.runs) {
+                        words += run.text;
+                    }
+                }
+                lines.push_back(indent + "text: " + words);
             }
 
             void operator()(const model::Image&) const
@@ -71,9 +78,9 @@ namespace
                 lines.push_back(indent + "image");
             }
 
-            void operator()(const model::Spacer&) const
+            void operator()(const model::Spacer& spacer) const
             {
-                lines.push_back(indent + "spacer");
+                lines.push_back(indent + (spacer.lines == 1 ? "spacer" : std::format("spacer of {} lines", spacer.lines)));
             }
 
             void operator()(const model::Placeholder& placeholder) const
@@ -219,8 +226,43 @@ TEST_CASE("McmLoader: every control the menu knows becomes its item")
                                 "button: A button",
                                 "text: Some words",
                                 "image",
-                                "spacer",
+                                "spacer of 2 lines",
                             });
+}
+
+TEST_CASE("McmLoader: a spacer is as high as its numLines, and one line without it")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "spacer" },
+        { "type": "spacer", "numLines": 1 },
+        { "type": "spacer", "numLines": 3 },
+        { "type": "spacer", "numLines": 2.6 },
+        { "type": "spacer", "numLines": 0 },
+        { "type": "spacer", "numLines": -4 },
+        { "type": "spacer", "numLines": "3" },
+        { "type": "spacer", "numLines": 100000 }
+    )");
+
+    CHECK(describe(page) == Lines{ "spacer", "spacer", "spacer of 3 lines", "spacer of 2 lines", "spacer", "spacer", "spacer", "spacer of 20 lines" });
+}
+
+TEST_CASE("McmLoader: a text row with html has its tags read, and one without shows them")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "text", "text": "<p align='center'><font size='24'>My Mod</font></p>What it does.<br>And how.", "html": true },
+        { "type": "text", "text": "One line\nand the next" },
+        { "type": "text", "text": "A <b>plain</b> text", "html": false },
+        { "type": "text", "text": "A <b>plain</b> text", "html": "true" },
+        { "type": "text", "html": true }
+    )");
+
+    CHECK(
+        describe(page) == Lines{ "text: My Mod / What it does. / And how.", "text: One line / and the next", "text: A <b>plain</b> text", "text: A <b>plain</b> text", "text: " });
+
+    const auto& title = std::get<model::Text>(page.items[0]).lines[0];
+    CHECK(title.align == model::TextAlign::Center);
+    REQUIRE(title.runs.size() == 1);
+    CHECK(title.runs[0].size == 24);
 }
 
 TEST_CASE("McmLoader: a control the menu does not support is a placeholder with its type")

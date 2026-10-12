@@ -82,7 +82,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M16 | mod       | A mod's pages in the tree, with every row as its text and type                                        | done      |
 | M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | done      |
 | M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | done      |
-| M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | todo      |
+| M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | done      |
 | M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo      |
 | M21 | mod       | The help line                                                                                         | todo      |
 | F22 | framework | render: a texture from pixels in memory                                                               | todo      |
@@ -133,7 +133,7 @@ M18 does what FallUI's own code does in MCM's menu, for FallUI and FallUI Workbe
 - A token that FallUI's files do not have is looked up in the game's translations, as in M17.
 - A row's help is looked up the same way. FallUI also names the help's entry in a key of its own, `$help`, beside the English text. The loader reads a help in M21, and translates it then.
 
-M19 draws the tags of a text row and removes those of a help, with one parser, as in [Text, spacers and images](schema.md#text-spacers-and-images). It runs after the translation of M17 and M18, because FallUI's `${Key}` tokens are inside the tags.
+M19 draws the tags of a text row and removes those of a help, with one parser, as in [Text, spacers and images](schema.md#text-spacers-and-images). It runs after the translation of M17 and M18, because FallUI's `${Key}` tokens are inside the tags. The loader reads a help in M21, which then removes its tags.
 
 M20 draws the four controls with their default values, and disabled. A choice's index becomes typed options.
 
