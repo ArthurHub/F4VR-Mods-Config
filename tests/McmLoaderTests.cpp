@@ -534,3 +534,30 @@ TEST_CASE("McmLoader: with no config folder there are no mods")
     // an empty one
     CHECK(mcm::loadConfigs(folder.path).empty());
 }
+
+TEST_CASE("McmLoader: a row has its help, in the game's language and without its tags")
+{
+    model::Translations translations;
+    translations.add("$MyMod_StrengthHelp", "La force de la fonction.");
+
+    const auto mod = mcm::loadConfig(R"({ "modName": "MyMod", "content": [
+        { "type": "switcher", "text": "Enabled", "help": "Turns the feature on." },
+        { "type": "slider", "text": "Strength", "help": "$MyMod_StrengthHelp" },
+        { "type": "button", "text": "Reset", "help": "<p>Puts every value back. </p><p>It asks first. <font color='#aaaaaa'>(Default: ON)</font></p>" },
+        { "type": "hotkey", "text": "Open the menu", "help": "One line<br>and the next" },
+        { "type": "stepper", "text": "No help" },
+        { "type": "dropdown", "text": "A help that is no text", "help": 7 }
+    ] })",
+        translations);
+    REQUIRE(mod);
+    const auto& rows = mod->frontPage.items;
+
+    CHECK(std::get<model::Setting>(rows[0]).help == "Turns the feature on.");
+    CHECK(std::get<model::Setting>(rows[1]).help == "La force de la fonction.");
+    // a help is one line of plain text, with or without html on its row
+    CHECK(std::get<model::Button>(rows[2]).help == "Puts every value back. It asks first. (Default: ON)");
+    // a control the menu does not support has its help too
+    CHECK(std::get<model::Placeholder>(rows[3]).help == "One line and the next");
+    CHECK(std::get<model::Setting>(rows[4]).help.empty());
+    CHECK(std::get<model::Setting>(rows[5]).help.empty());
+}

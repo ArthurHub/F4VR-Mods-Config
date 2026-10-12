@@ -340,9 +340,41 @@ namespace
 
         FullPanel panel;
         panel.setMods(std::move(mods));
-        panel.setQuickLaunch({ { .name = "FRIK", .open = [] {
+        panel.setQuickLaunch({ { .name = "FRIK", .help = "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.", .open = [] {
                                 } } });
         return panel;
+    }
+
+    /**
+     * A panel on a page whose rows have a help of each length: one line, two lines, three lines in the smaller
+     * size, more than the footer has room for, and none under a name that is too long for its row.
+     */
+    FullPanel helpPanel()
+    {
+        const std::string sentence = "Hides the compass, health, action points and the ammo counter while the Pip-Boy is raised, and brings them back when it is lowered. ";
+        const auto row = [](std::string text, std::string help) {
+            return model::Setting{ .type = model::SettingType::Switcher, .text = std::move(text), .help = std::move(help), .valueOptions = {} };
+        };
+        model::Mod mod{ .name = "Help", .displayName = "The help line", .frontPage = {}, .pages = {} };
+        mod.frontPage.items.push_back(row("Brightness", "How bright the beam is. Default 1.00."));
+        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + "Default off."));
+        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + sentence + "Default off."));
+        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + sentence + sentence + sentence + "Default off."));
+        mod.frontPage.items.push_back(row("A switcher with a name that is much too long for the room a row has before its control and ends in an ellipsis", {}));
+
+        FullPanel panel;
+        panel.setMods({ std::move(mod) });
+        panel.select({ .mod = 0, .page = std::nullopt });
+        return panel;
+    }
+
+    /**
+     * The middle of a row of a page that has rows of controls alone, by its place among them.
+     */
+    ImVec2 pageRow(const int place)
+    {
+        const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3;
+        return { 700.0f, rowsTop + static_cast<float>(place) * theme::ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f };
     }
 
     /**
@@ -431,6 +463,15 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     render(std::nullopt, "mcm-showcase-front-page");
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
         render(page, std::format("mcm-showcase-page-{}", page + 1));
+    }
+}
+
+TEST_CASE("FullPanel render: the help line, with a help of each length", "[.render]")
+{
+    const std::array names{ "help-one-line", "help-two-lines", "help-three-lines", "help-cut", "help-name-alone" };
+    for (int row = 0; row < static_cast<int>(names.size()); ++row) {
+        auto panel = helpPanel();
+        WARN("Saved " << renderToFile(panel, names[row], pageRow(row)));
     }
 }
 

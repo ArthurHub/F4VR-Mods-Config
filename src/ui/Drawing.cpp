@@ -37,12 +37,10 @@ namespace
     }
 
     /**
-     * Adds the words of a run to those of its line.
+     * Adds the words of a text in one size and one color to those of its line.
      */
-    void addWords(const model::TextRun& run, const ImU32 color, std::vector<Word>& words)
+    void addWords(const std::string_view text, const float fontSize, const ImU32 color, std::vector<Word>& words)
     {
-        const float fontSize = ImGui::GetFontSize() * (run.size ? static_cast<float>(*run.size) / MARKUP_BODY_SIZE : 1.0f);
-        const std::string_view text = run.text;
         for (std::size_t start = 0; start < text.size();) {
             const auto inkEnd = (std::min)(text.find(' ', start), text.size());
             const auto end = (std::min)(text.find_first_not_of(' ', inkEnd), text.size());
@@ -53,6 +51,36 @@ namespace
                 .color = color });
             start = end;
         }
+    }
+
+    /**
+     * Where the lines of words start when they are wrapped in a width: the place of the first word of each.
+     * A word that is wider than the width is a line by itself.
+     */
+    std::vector<std::size_t> wrapWords(const std::span<const Word> words, const float width)
+    {
+        std::vector<std::size_t> starts;
+        float lineWidth = 0.0f;
+        for (std::size_t i = 0; i < words.size(); ++i) {
+            if (i == 0 || lineWidth + words[i].inkWidth > width) {
+                starts.push_back(i);
+                lineWidth = 0.0f;
+            }
+            lineWidth += words[i].width;
+        }
+        return starts;
+    }
+
+    /**
+     * The words of pieces of text that are one text, in the current font size.
+     */
+    std::vector<Word> wordsOf(const std::span<const ui::TextPiece> pieces)
+    {
+        std::vector<Word> words;
+        for (const auto& piece : pieces) {
+            addWords(piece.text, ImGui::GetFontSize(), piece.color, words);
+        }
+        return words;
     }
 
     /**
@@ -133,26 +161,68 @@ namespace mods_config::ui
         for (const auto& line : lines) {
             words.clear();
             for (const auto& run : line.runs) {
-                addWords(run, run.color ? IM_COL32(*run.color >> 16, (*run.color >> 8) & 0xFF, *run.color & 0xFF, 255) : color, words);
+                const float fontSize = ImGui::GetFontSize() * (run.size ? static_cast<float>(*run.size) / MARKUP_BODY_SIZE : 1.0f);
+                addWords(run.text, fontSize, run.color ? IM_COL32(*run.color >> 16, (*run.color >> 8) & 0xFF, *run.color & 0xFF, 255) : color, words);
             }
             if (words.empty()) {
                 y += ImGui::GetFontSize();
                 continue;
             }
 
-            std::size_t first = 0;
-            float lineWidth = 0.0f;
-            for (std::size_t i = 0; i < words.size(); ++i) {
-                if (i > first && lineWidth + words[i].inkWidth > width) {
-                    y += drawWords(std::span<const Word>(words).subspan(first, i - first), line.align, ImVec2(pos.x, y), width);
-                    first = i;
-                    lineWidth = 0.0f;
-                }
-                lineWidth += words[i].width;
+            const auto starts = wrapWords(words, width);
+            for (std::size_t i = 0; i < starts.size(); ++i) {
+                const auto end = i + 1 < starts.size() ? starts[i + 1] : words.size();
+                y += drawWords(std::span<const Word>(words).subspan(starts[i], end - starts[i]), line.align, ImVec2(pos.x, y), width);
             }
-            y += drawWords(std::span<const Word>(words).subspan(first), line.align, ImVec2(pos.x, y), width);
         }
         return y - pos.y;
+    }
+
+    /**
+     * The number of lines that pieces of text take as one text, wrapped in a width in the current font size.
+     */
+    int countTextLines(const std::span<const TextPiece> pieces, const float width)
+    {
+        return static_cast<int>(wrapWords(wordsOf(pieces), width).size());
+    }
+
+    /**
+     * Pieces of text as one text in the current font size, each in its color, wrapped in a width between
+     * the words. A text that needs more lines than it is given ends its last line in an ellipsis.
+     */
+    void drawTextPieces(const std::span<const TextPiece> pieces, const ImVec2& pos, const float width, const int maxLines)
+    {
+        const auto words = wordsOf(pieces);
+        const auto starts = wrapWords(words, width);
+        const auto lineCount = (std::min)(starts.size(), static_cast<std::size_t>((std::max)(maxLines, 0)));
+        const auto* font = ImGui::GetFont();
+        const float fontSize = ImGui::GetFontSize();
+        const float fontScale = fontSize / font->FontSize;
+
+        for (std::size_t line = 0; line < lineCount; ++line) {
+            const float y = pos.y + static_cast<float>(line) * fontSize;
+            const auto first = starts[line];
+            if (line + 1 < lineCount || lineCount == starts.size()) {
+                const auto end = line + 1 < starts.size() ? starts[line + 1] : words.size();
+                drawWords(std::span<const Word>(words).subspan(first, end - first), model::TextAlign::Left, ImVec2(pos.x, y), width);
+                continue;
+            }
+
+            // the last line of a text that is cut: the words that leave room for the ellipsis, and the first in any case
+            const float room = width - font->EllipsisWidth * fontScale;
+            auto last = first;
+            float lineWidth = words[first].width;
+            while (last + 1 < words.size() && lineWidth + words[last + 1].inkWidth <= room) {
+                lineWidth += words[++last].width;
+            }
+            drawWords(std::span<const Word>(words).subspan(first, last + 1 - first), model::TextAlign::Left, ImVec2(pos.x, y), width);
+
+            ImVec2 at(std::floor(pos.x + lineWidth - words[last].width + words[last].inkWidth), std::floor(y));
+            for (int i = 0; i < font->EllipsisCharCount; ++i) {
+                font->RenderChar(ImGui::GetWindowDrawList(), fontSize, at, words[last].color, font->EllipsisChar);
+                at.x += font->EllipsisCharStep * fontScale;
+            }
+        }
     }
 
     /**

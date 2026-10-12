@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+#include <imgui.h>
+
+#include "HelpLine.h"
 #include "ModPage.h"
 #include "ModTree.h"
 #include "Selection.h"
@@ -14,7 +17,8 @@ namespace mods_config::ui
 {
     /**
      * The content of the Full panel, drawn with ImGui as the design system has it: the title bar with its
-     * breadcrumbs, the tree of the mods, and beside it the menu's front page or a page of the selected mod.
+     * breadcrumbs, the tree of the mods, beside it the menu's front page or a page of the selected mod, and
+     * the footer with the help line.
      * It knows nothing of the game, so a test draws it too.
      */
     class FullPanel
@@ -26,6 +30,9 @@ namespace mods_config::ui
         struct QuickLaunchEntry
         {
             std::string name;
+
+            // what the help line says of the entry: what the mod's own UI is for
+            std::string help;
             std::function<void()> open;
         };
 
@@ -45,9 +52,15 @@ namespace mods_config::ui
             return _selection;
         }
 
+        const HelpLine& helpLine() const
+        {
+            return _helpLine;
+        }
+
     private:
         std::optional<Selection> drawTitleBar() const;
-        void drawFrontPage() const;
+        std::optional<PointedRow> drawFrontPage() const;
+        void drawFooter(const ImVec2& pos) const;
 
         // the mods the menu lists, in order of their display names
         std::vector<model::Mod> _mods;
@@ -58,6 +71,7 @@ namespace mods_config::ui
 
         ModTree _modTree;
         ModPage _modPage;
+        HelpLine _helpLine;
 
         // the design system's sizes and colors are set on ImGui's style once
         bool _styleApplied = false;

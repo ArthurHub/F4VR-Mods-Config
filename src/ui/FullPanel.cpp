@@ -69,12 +69,14 @@ namespace
     /**
      * A row of the quick launch section, laid out as a setting's row: the mod's name after the gutter, and an
      * Open button in the control column. The whole row is pressed, so the button is only drawn.
+     * Tells whether the ray is on the row.
      */
-    bool quickLaunchRow(const char* name)
+    bool quickLaunchRow(const char* name, bool& pointed)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ImGui::GetContentRegionAvail().x;
         const bool pressed = ImGui::InvisibleButton(name, ImVec2(width, theme::CONTROL_HEIGHT));
+        pointed = ImGui::IsItemHovered();
         ui::drawRowState();
 
         // the button ends where a setting's control does, before the room of its Reset
@@ -125,6 +127,7 @@ namespace mods_config::ui
         }
         _selection = shown;
         _pageChanged = true;
+        _helpLine.clear();
         _modTree.showSelection();
     }
 
@@ -136,12 +139,15 @@ namespace mods_config::ui
     {
         _selection = {};
         _pageChanged = true;
+        _helpLine.clear();
         _modTree.showTop();
     }
 
     /**
-     * Draws the panel into the current ImGui window: the title bar, and under it the tree of the mods with
-     * the menu's front page or the selected mod's page beside it.
+     * Draws the panel into the current ImGui window: the title bar, under it the tree of the mods with the
+     * menu's front page or the selected mod's page beside it, and the footer at the bottom.
+     * The help line has the row of the page the ray is on, until the ray is on another or leaves the page:
+     * in the gap between two rows it keeps the row it has, so it does not flicker as the ray sweeps the rows.
      * A press selects once all of the panel is drawn, so a frame is drawn with one selection.
      */
     void FullPanel::draw()
@@ -155,7 +161,11 @@ namespace mods_config::ui
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
 
-        if (const auto row = _modTree.draw(_mods, _selection)) {
+        // the body ends as far above the footer as it starts under the title bar
+        const auto bodyPos = ImGui::GetCursorScreenPos();
+        const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
+
+        if (const auto row = _modTree.draw(_mods, _selection, bodyHeight)) {
             pressed = row;
         }
 
@@ -165,15 +175,25 @@ namespace mods_config::ui
             ImGui::SetNextWindowScroll(ImVec2(0.0f, 0.0f));
             _pageChanged = false;
         }
-        if (ImGui::BeginChild("Content")) {
+        std::optional<PointedRow> pointed;
+        bool onPage = false;
+        if (ImGui::BeginChild("Content", ImVec2(0.0f, bodyHeight))) {
+            onPage = ImGui::IsWindowHovered();
             if (_selection.mod) {
                 const auto& mod = _mods[*_selection.mod];
-                _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage);
+                pointed = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage);
             } else {
-                drawFrontPage();
+                pointed = drawFrontPage();
             }
         }
         ImGui::EndChild();
+
+        if (pointed) {
+            _helpLine.show(*pointed);
+        } else if (!onPage) {
+            _helpLine.clear();
+        }
+        drawFooter(ImVec2(bodyPos.x, bodyPos.y + bodyHeight + theme::SPACE_3));
 
         if (pressed) {
             select(*pressed);
@@ -244,8 +264,9 @@ namespace mods_config::ui
     /**
      * The menu's front page, which is what the menu shows while no mod is selected: what the menu is, with its
      * version, and the quick launch section. The section is left out while it has no entry.
+     * Returns the quick launch entry the ray is on, for the help line.
      */
-    void FullPanel::drawFrontPage() const
+    std::optional<PointedRow> FullPanel::drawFrontPage() const
     {
         // a page's own text is in from the edges of the page, as its rows' texts are
         ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + theme::SPACE_2, ImGui::GetCursorPosY() + theme::SPACE_1));
@@ -255,14 +276,33 @@ namespace mods_config::ui
         ImGui::PopTextWrapPos();
         ImGui::PopStyleColor();
 
+        std::optional<PointedRow> pointed;
         if (_quickLaunch.empty()) {
-            return;
+            return pointed;
         }
         ImGui::SeparatorText("Quick launch");
         for (const auto& entry : _quickLaunch) {
-            if (quickLaunchRow(entry.name.c_str())) {
+            bool onRow = false;
+            if (quickLaunchRow(entry.name.c_str(), onRow)) {
                 entry.open();
             }
+            if (onRow) {
+                pointed = PointedRow{ .text = entry.name, .help = entry.help };
+            }
         }
+        return pointed;
+    }
+
+    /**
+     * The footer, from its top left: a line over it, and the help line. The help line has all of its width,
+     * in from its edges as the mock has it: an MCM mod has no Discard and Save beside it.
+     */
+    void FullPanel::drawFooter(const ImVec2& pos) const
+    {
+        const float width = ImGui::GetContentRegionAvail().x;
+        ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        _helpLine.draw(ImVec2(pos.x + theme::SPACE_4, pos.y), width - theme::SPACE_4 - theme::SPACE_2);
+        ImGui::SetCursorScreenPos(pos);
+        ImGui::Dummy(ImVec2(width, theme::FOOTER_HEIGHT));
     }
 }

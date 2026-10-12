@@ -1,5 +1,8 @@
 #pragma once
 
+#include <optional>
+
+#include "HelpLine.h"
 #include "model/Definition.h"
 
 namespace mods_config::ui
@@ -12,6 +15,6 @@ namespace mods_config::ui
     class ModPage
     {
     public:
-        void draw(const model::Page& page) const;
+        std::optional<PointedRow> draw(const model::Page& page) const;
     };
 }

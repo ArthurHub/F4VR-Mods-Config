@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -43,19 +44,22 @@ namespace
     /**
      * A row at the cursor, as its text and what it is. It is laid out as a setting's row: the text after the
      * gutter, and the type where the control ends, before the room of its Reset.
+     * Returns whether the ray is on the row.
      */
-    void drawRow(const std::string_view text, const std::string_view type)
+    bool drawRow(const std::string_view text, const std::string_view type)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
         ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
         if (!ImGui::IsItemVisible()) {
-            return;
+            return false;
         }
+        const bool pointed = ImGui::IsItemHovered();
 
         const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
         ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, typeLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+        return pointed;
     }
 
     // The sizes of the controls that are not tokens of the design system, in the panel's pixels.
@@ -226,19 +230,20 @@ namespace
      * The menu has no values yet, so the control shows what a setting is with none: a switcher is off, a
      * slider is at its least, and a choice is its first option. And the row is disabled, as it changes nothing.
      * A text input is its text and its type until the commit that draws it.
+     * Returns whether the ray is on the row.
      */
-    void drawSetting(const model::Setting& setting)
+    bool drawSetting(const model::Setting& setting)
     {
         if (setting.type == model::SettingType::TextInput) {
-            drawRow(setting.text, "textinput");
-            return;
+            return drawRow(setting.text, "textinput");
         }
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
         ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
         if (!ImGui::IsItemVisible()) {
-            return;
+            return false;
         }
+        const bool pointed = ImGui::IsItemHovered();
 
         const auto& options = setting.valueOptions;
         const std::string_view firstOption = options.options.empty() ? std::string_view() : std::string_view(options.options.front().text);
@@ -264,30 +269,38 @@ namespace
         }
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
         ImGui::EndDisabled();
+        return pointed;
     }
 
-    void drawItems(const std::vector<model::Item>& items);
+    void drawItems(const std::vector<model::Item>& items, std::optional<ui::PointedRow>& pointed);
 
     /**
      * Draws an item as its row. A section is its heading, with the rows of its items under it, and a spacer
      * is empty space as high as its lines of text.
+     * A row with a text that the ray is on is told as the pointed one.
      */
     struct ItemDrawer
     {
+        std::optional<ui::PointedRow>& pointed;
+
         void operator()(const model::Setting& setting) const
         {
-            drawSetting(setting);
+            if (drawSetting(setting)) {
+                pointed = ui::PointedRow{ .text = setting.text, .help = setting.help };
+            }
         }
 
         void operator()(const model::Group& group) const
         {
             ui::sectionHeading(group.text);
-            drawItems(group.items);
+            drawItems(group.items, pointed);
         }
 
         void operator()(const model::Button& button) const
         {
-            drawRow(button.text, "button");
+            if (drawRow(button.text, "button")) {
+                pointed = ui::PointedRow{ .text = button.text, .help = button.help };
+            }
         }
 
         void operator()(const model::Text& text) const
@@ -307,14 +320,16 @@ namespace
 
         void operator()(const model::Placeholder& placeholder) const
         {
-            drawRow(placeholder.text, placeholder.type.empty() ? "unknown" : std::string_view(placeholder.type));
+            if (drawRow(placeholder.text, placeholder.type.empty() ? "unknown" : std::string_view(placeholder.type))) {
+                pointed = ui::PointedRow{ .text = placeholder.text, .help = placeholder.help };
+            }
         }
     };
 
-    void drawItems(const std::vector<model::Item>& items)
+    void drawItems(const std::vector<model::Item>& items, std::optional<ui::PointedRow>& pointed)
     {
         for (const auto& item : items) {
-            std::visit(ItemDrawer{}, item);
+            std::visit(ItemDrawer{ pointed }, item);
         }
     }
 }
@@ -323,9 +338,13 @@ namespace mods_config::ui
 {
     /**
      * Draws the rows of a page into the current ImGui window, which scrolls them.
+     * Returns the row the ray is on, for the help line: none in the gap between two rows, and none on a row
+     * that has no text of its own, as a section, a text row and a spacer.
      */
-    void ModPage::draw(const model::Page& page) const
+    std::optional<PointedRow> ModPage::draw(const model::Page& page) const
     {
-        drawItems(page.items);
+        std::optional<PointedRow> pointed;
+        drawItems(page.items, pointed);
+        return pointed;
     }
 }

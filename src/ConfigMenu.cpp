@@ -228,9 +228,11 @@ namespace mods_config
     {
         std::vector<ui::FullPanel::QuickLaunchEntry> entries;
         if (frik::api::FRIKApi::inst) {
-            entries.push_back({ .name = "FRIK", .open = [this] {
-                                   _openFrikRequested = true;
-                               } });
+            entries.push_back({ .name = "FRIK Configuration",
+                .help = "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.",
+                .open = [this] {
+                    _openFrikRequested = true;
+                } });
         }
         return entries;
     }

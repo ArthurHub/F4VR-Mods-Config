@@ -196,7 +196,7 @@ TEST_CASE("McmLoader: a FallUI mod is translated from the language files its con
                 "content": [
                     { "type": "section", "text": "Show button hint bar" },
                     { "type": "textinput", "text": "    - ${Key}" },
-                    { "type": "switcher", "text": "$Attach" }
+                    { "type": "switcher", "text": "$Attach", "help": "Will display the bottom bar with available actions and keys.", "$help": "$helpShowButtonBar" }
                 ]
             },
             { "pageDisplayName": "    Container/Barter/Companion", "content": [] }
@@ -230,6 +230,8 @@ TEST_CASE("McmLoader: a FallUI mod is translated from the language files its con
     CHECK(std::get<model::Setting>(group.items[0]).text == "    - Taste");
     // a token that FallUI's files lack is the game's
     CHECK(std::get<model::Setting>(group.items[1]).text == "ANBRINGEN");
+    // a help is looked up by the token that FallUI names beside it
+    CHECK(std::get<model::Setting>(group.items[1]).help == "Zeigt die untere Leiste.");
 
     // a mod that names no language file is not translated from FallUI's
     CHECK(other.displayName == "General settings");

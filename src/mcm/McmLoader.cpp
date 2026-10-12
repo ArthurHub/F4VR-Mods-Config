@@ -90,6 +90,15 @@ namespace
     }
 
     /**
+     * The help of a row, as the help line shows it: in the game's language, and then without its tags, on one
+     * line. A FallUI mod has its tokens inside the tags, so they are removed after the translation.
+     */
+    std::string getHelp(const Json& row, const ConfigTexts& texts)
+    {
+        return model::removeMarkup(getShownText(row, "help", texts));
+    }
+
+    /**
      * A number of a key, or else the given one.
      */
     float getNumber(const Json& value, const char* key, const float otherwise)
@@ -172,10 +181,10 @@ namespace
         auto text = getShownText(row, "text", texts);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
-            return model::Setting{ .type = setting->second, .text = std::move(text), .valueOptions = loadValueOptions(row, texts) };
+            return model::Setting{ .type = setting->second, .text = std::move(text), .help = getHelp(row, texts), .valueOptions = loadValueOptions(row, texts) };
         }
         if (type == "button") {
-            return model::Button{ .text = std::move(text) };
+            return model::Button{ .text = std::move(text), .help = getHelp(row, texts) };
         }
         if (type == "text") {
             // the tags are read after the translation: a FallUI mod has its tokens inside them
@@ -187,7 +196,7 @@ namespace
         if (type == "spacer") {
             return model::Spacer{ .lines = getSpacerLines(row) };
         }
-        return model::Placeholder{ .text = std::move(text), .type = type };
+        return model::Placeholder{ .text = std::move(text), .help = getHelp(row, texts), .type = type };
     }
 
     /**
@@ -230,8 +239,8 @@ namespace mods_config::mcm
 {
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
-     * text and the type of every row, the lines of a text row, the height of a spacer, the range of a slider
-     * and the options of a stepper and a dropdown.
+     * text, the help and the type of every row, the lines of a text row, the height of a spacer, the range of a
+     * slider and the options of a stepper and a dropdown.
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.

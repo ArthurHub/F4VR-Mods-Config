@@ -105,17 +105,18 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Draws the tree at the cursor of the current ImGui window. The header stays, and the rows scroll under it.
+     * Draws the tree at the cursor of the current ImGui window, in the height it is given. The header stays,
+     * and the rows scroll under it.
      * The selected mod's own row is its front page, and it is open when it has pages: they are the rows under it.
      * Returns what a pressed row selects.
      */
-    std::optional<Selection> ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection)
+    std::optional<Selection> ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height)
     {
         std::optional<Selection> pressed;
 
         ImGui::PushStyleColor(ImGuiCol_ChildBg, theme::color::PLATE);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_2, theme::SPACE_2));
-        const bool shown = ImGui::BeginChild("Mods", ImVec2(theme::NAV_WIDTH, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding);
+        const bool shown = ImGui::BeginChild("Mods", ImVec2(theme::NAV_WIDTH, height), ImGuiChildFlags_AlwaysUseWindowPadding);
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
 

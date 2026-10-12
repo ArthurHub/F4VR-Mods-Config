@@ -60,6 +60,9 @@ namespace mods_config::model
     {
         SettingType type = SettingType::Switcher;
         std::string text;
+
+        // what the help line says of the row while the ray is on it: plain text on one line, and empty for none
+        std::string help;
         ValueOptions valueOptions;
     };
 
@@ -69,6 +72,7 @@ namespace mods_config::model
     struct Button
     {
         std::string text;
+        std::string help;
     };
 
     enum class TextAlign : std::uint8_t
@@ -131,6 +135,7 @@ namespace mods_config::model
     struct Placeholder
     {
         std::string text;
+        std::string help;
 
         // the control's type, as its config names it
         std::string type;

@@ -85,7 +85,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | done      |
 | M101 | mod      | The MCM showcase, an optional file for developers                                                     | done      |
 | M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | done      |
-| M21 | mod       | The help line                                                                                         | todo      |
+| M21 | mod       | The help line                                                                                         | done      |
 | F22 | framework | render: a texture from pixels in memory                                                               | todo      |
 | F23 | framework | imgui: an image in a canvas                                                                           | todo      |
 | M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | todo      |
@@ -144,7 +144,12 @@ M20 draws the four controls, and disabled, as they change nothing yet:
 - The loader reads a slider's `min`, `max` and `step`, and the options of a choice. An MCM option is a text whose value is its place in the list: in the model it is an option with that number as its typed value, as a package's option has its own.
 - A row's text has the room up to its own control, so a switcher's name is longer than a slider's before it ends in an ellipsis.
 
-M21 shows the `help` text of the row the ray is on in the help line, on the left of the footer, as in [UI and VR interaction](ui-and-vr-interaction.md#help-line).
+M21 shows the `help` text of the row the ray is on in the help line, on the left of the footer, as in [UI and VR interaction](ui-and-vr-interaction.md#help-line):
+
+- The loader reads the help of a setting, of a button, and of a control the menu does not support yet. It is translated as the row's text is, and its tags are then removed.
+- A row with no help shows its text alone, so a text that ends in an ellipsis in its row is read in full.
+- The footer has the help line alone, at the footer's whole width. An MCM mod has no Save and Discard, and its status line comes with M25.
+- FRIK's entry of the quick launch section has a help too.
 
 F22 and F23 are item 11 of the requirements.
 

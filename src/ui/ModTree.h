@@ -16,7 +16,7 @@ namespace mods_config::ui
     class ModTree
     {
     public:
-        std::optional<Selection> draw(const std::vector<model::Mod>& mods, const Selection& selection);
+        std::optional<Selection> draw(const std::vector<model::Mod>& mods, const Selection& selection, float height);
         void showSelection();
         void showTop();
 

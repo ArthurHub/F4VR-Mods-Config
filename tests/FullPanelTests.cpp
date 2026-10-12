@@ -93,6 +93,48 @@ namespace
     }
 
     /**
+     * The middle of a row of a page, by its place among the rows, while the page is at its top and has rows of
+     * controls alone.
+     */
+    ImVec2 pageRow(const int place)
+    {
+        const float rowsTop = CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3;
+        return { CONTENT_START + theme::NAV_WIDTH + theme::SPACE_4 + 200.0f, rowsTop + static_cast<float>(place) * theme::ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f };
+    }
+
+    // a place of the page under the rows of the mod with a help, where the page is empty
+    constexpr int NO_PAGE_ROW = 6;
+
+    /**
+     * A panel with one mod, shown on its front page: a switcher and a slider with a help, and between them a
+     * button with none, which is set in by spaces. The mod has a page with one switcher.
+     */
+    FullPanel modWithHelp()
+    {
+        auto mod = modOf("Alpha");
+        mod.frontPage.items.push_back(model::Setting{ .type = model::SettingType::Switcher, .text = "Enable the feature", .help = "Turns the feature on.", .valueOptions = {} });
+        mod.frontPage.items.push_back(model::Button{ .text = "    Reset everything", .help = {} });
+        mod.frontPage.items.push_back(model::Setting{ .type = model::SettingType::Slider, .text = "Strength", .help = "How strong the feature is.", .valueOptions = {} });
+        mod.pages.push_back(
+            { .name = "Advanced", .items = { model::Setting{ .type = model::SettingType::Switcher, .text = "Mode", .help = "Low or high.", .valueOptions = {} } } });
+
+        FullPanel panel;
+        panel.setMods({ std::move(mod) });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    /**
+     * The ray at a place on the panel, for the frames ImGui needs to find what it is on.
+     */
+    void point(FullPanel& panel, const ImVec2 at)
+    {
+        for (int i = 0; i < 3; ++i) {
+            test_panel::drawFrame(panel, at);
+        }
+    }
+
+    /**
      * The width of a breadcrumb, which is its text in the title's size with its padding.
      */
     float crumbWidth(const char* text)
@@ -325,4 +367,75 @@ TEST_CASE("FullPanel: a menu that opens again has the tree at its top")
     panel.reset();
     drawFrames(panel, 3);
     CHECK(treeRowsWindow().Scroll.y == 0.0f);
+}
+
+TEST_CASE("FullPanel: the help line has the text and the help of the row the ray is on")
+{
+    const test_panel::PanelContext context;
+    auto panel = modWithHelp();
+    drawFrames(panel, 2);
+    CHECK(panel.helpLine().text().empty());
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Enable the feature: Turns the feature on.");
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Strength: How strong the feature is.");
+
+    // a row with no help is its text alone, without the spaces that set it in
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Reset everything");
+}
+
+TEST_CASE("FullPanel: the help line keeps its row where the page has none, until the ray leaves the page")
+{
+    const test_panel::PanelContext context;
+    auto panel = modWithHelp();
+    point(panel, pageRow(0));
+
+    point(panel, pageRow(NO_PAGE_ROW));
+    CHECK(panel.helpLine().text() == "Enable the feature: Turns the feature on.");
+
+    // on the tree
+    point(panel, treeRow(0));
+    CHECK(panel.helpLine().text().empty());
+
+    // and off the panel
+    point(panel, pageRow(2));
+    REQUIRE_FALSE(panel.helpLine().text().empty());
+    point(panel, test_panel::POINTER_AWAY);
+    CHECK(panel.helpLine().text().empty());
+}
+
+TEST_CASE("FullPanel: the help line does not keep a row of the page that was shown before")
+{
+    const test_panel::PanelContext context;
+    auto panel = modWithHelp();
+    point(panel, pageRow(2));
+    point(panel, pageRow(NO_PAGE_ROW));
+    REQUIRE(panel.helpLine().text() == "Strength: How strong the feature is.");
+
+    // another page is shown with the ray where it was, as from the devbench tool
+    panel.select(selectionOf(0, 0));
+    point(panel, pageRow(NO_PAGE_ROW));
+    CHECK(panel.helpLine().text().empty());
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Mode: Low or high.");
+    panel.reset();
+    CHECK(panel.helpLine().text().empty());
+}
+
+TEST_CASE("FullPanel: the help line has the help of the quick launch entry the ray is on")
+{
+    const test_panel::PanelContext context;
+    FullPanel panel;
+    panel.setQuickLaunch({ { .name = "FRIK", .help = "Opens FRIK's own configuration.", .open = [] {
+                            } } });
+    drawFrames(panel, 2);
+
+    // the entry's row is under the page's three lines of text and the heading of its section
+    point(panel, ImVec2(640.0f, 250.0f));
+    CHECK(panel.helpLine().text() == "FRIK: Opens FRIK's own configuration.");
+    point(panel, treeRow(0));
+    CHECK(panel.helpLine().text().empty());
 }
