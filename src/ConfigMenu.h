@@ -5,6 +5,7 @@
 
 #include "imgui/UIImGuiPanel.h"
 #include "model/Definition.h"
+#include "ui/FullPanel.h"
 #include "vrui/UIButtonPanel.h"
 #include "vrui/UIContainer.h"
 
@@ -27,19 +28,12 @@ namespace mods_config
         void onFrameUpdate();
 
         void setMods(std::vector<model::Mod> mods);
-
-        const std::vector<model::Mod>& mods() const
-        {
-            return _mods;
-        }
+        const std::vector<model::Mod>& mods() const;
 
     private:
         void createPanel();
         void createWristButtons();
-        void drawContent();
-        void drawModList() const;
-        void drawFrontPage();
-        void drawQuickLaunch();
+        std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
@@ -47,7 +41,7 @@ namespace mods_config
         bool _closeRequested = false;
         bool _openFrikRequested = false;
 
-        // the mods the menu lists, in order of their display names
-        std::vector<model::Mod> _mods;
+        // what the panel shows
+        ui::FullPanel _fullPanel;
     };
 }

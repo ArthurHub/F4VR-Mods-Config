@@ -7,18 +7,25 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}_tests
+  FullPanelRenderTests.cpp
   McmLoaderTests.cpp
   Setup.cpp
   TestFiles.h
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/McmLoader.cpp
+  ${SOURCE_DIR}/ui/Drawing.cpp
+  ${SOURCE_DIR}/ui/FullPanel.cpp
+  ${SOURCE_DIR}/ui/ModTree.cpp
 )
 
 # No link-time optimization: the tests don't need it, and it makes their link slow
 set_target_properties(${PROJECT_NAME}_tests PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
 
 target_compile_features(${PROJECT_NAME}_tests PRIVATE cxx_std_23)
-target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE)
+target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE
+  # where FullPanelRenderTests.cpp saves its images
+  MODS_CONFIG_TEST_OUTPUT_DIR="${CMAKE_CURRENT_BINARY_DIR}/render"
+)
 target_include_directories(${PROJECT_NAME}_tests PRIVATE ${BUILD_DIR}/include ${SOURCE_DIR})
 target_precompile_headers(${PROJECT_NAME}_tests PRIVATE ${SOURCE_DIR}/PCH.h)
 target_compile_options(${PROJECT_NAME}_tests PRIVATE /utf-8 /permissive- /W4 /external:anglebrackets /external:W0)

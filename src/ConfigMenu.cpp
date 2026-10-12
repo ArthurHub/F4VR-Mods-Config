@@ -1,13 +1,7 @@
 #include "ConfigMenu.h"
 
-#include <algorithm>
-
-#include <imgui.h>
-
 #include "Config.h"
-#include "Theme.h"
 #include "api/FRIKApi.h"
-#include "common/CommonUtils.h"
 #include "common/MatrixUtils.h"
 #include "f4sevr/PapyrusUtils.h"
 #include "imgui/ImGuiPointer.h"
@@ -38,9 +32,6 @@ namespace
     // where the wrist buttons lie, from the framework's place on the wrist: position, then degrees around x, y and z
     const RE::NiTransform WRIST_BUTTONS_OFFSET = common::MatrixUtils::getTransform(0, 0, 0, 0, 0, 0);
 
-    // the Open button of a quick launch row, in the panel's pixels: as wide as the design system's buttons
-    constexpr float QUICK_LAUNCH_BUTTON_WIDTH = 160.0f;
-
     /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
      * for it. The function takes no arguments, which is an empty array.
@@ -56,24 +47,6 @@ namespace
         const F4SEVR::BSFixedString script("FRIK:FRIK");
         const F4SEVR::BSFixedString function("OpenMainConfigurationMode");
         F4SEVR::CallGlobalFunctionNoWait_Internal(vm, 0, 0, &script, &function, &packedArguments);
-    }
-
-    /**
-     * A row of the quick launch section: the mod's name, and an Open button at its right end. The whole row
-     * is pressed, the button included. It says whether it was.
-     */
-    bool quickLaunchRow(const char* name)
-    {
-        ImGui::PushID(name);
-        // the name is level with the button's text
-        ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.0f, 0.5f));
-        const bool rowPressed = ImGui::Selectable(name, false, ImGuiSelectableFlags_AllowOverlap, ImVec2(0.0f, ImGui::GetFrameHeight()));
-        ImGui::PopStyleVar();
-
-        ImGui::SameLine(ImGui::GetContentRegionMax().x - QUICK_LAUNCH_BUTTON_WIDTH);
-        const bool buttonPressed = ImGui::Button("Open", ImVec2(QUICK_LAUNCH_BUTTON_WIDTH, 0.0f));
-        ImGui::PopID();
-        return rowPressed || buttonPressed;
     }
 }
 
@@ -130,13 +103,14 @@ namespace mods_config
         _minimizeButton->setMiddleText(minimized ? "RESUME" : "MINIMIZE");
     }
 
-    /**
-     * The mods the menu lists, from every source they come from. They are kept in order of their display names.
-     */
     void ConfigMenu::setMods(std::vector<model::Mod> mods)
     {
-        std::ranges::sort(mods, common::CaseInsensitiveComparator(), &model::Mod::displayName);
-        _mods = std::move(mods);
+        _fullPanel.setMods(std::move(mods));
+    }
+
+    const std::vector<model::Mod>& ConfigMenu::mods() const
+    {
+        return _fullPanel.mods();
     }
 
     /**
@@ -196,8 +170,9 @@ namespace mods_config
         _panel->setDedicated(true);
         _panel->setInteractive(true);
         _panel->setContent([this] {
-            drawContent();
+            _fullPanel.draw();
         });
+        _fullPanel.setQuickLaunch(quickLaunchEntries());
         // In front of the player, and left there: a panel that follows the head moves under the ray.
         // The player moves it by holding it with the config's move button. When they walk away from it,
         // it is put in front of them again. The menu is not closed for that, as it can hold changes that
@@ -231,67 +206,17 @@ namespace mods_config
     }
 
     /**
-     * The Full panel: the title, the list of the mods on the left, and beside it the menu's front page.
+     * The mods whose own config UI is opened from the menu's front page. FRIK's is the one there is, with
+     * FRIK installed: this menu took its opening gesture.
      */
-    void ConfigMenu::drawContent()
+    std::vector<ui::FullPanel::QuickLaunchEntry> ConfigMenu::quickLaunchEntries()
     {
-        ImGui::TextUnformatted("MODS CONFIG VR");
-        ImGui::Separator();
-
-        // the list keeps its place and its width, whatever is shown beside it
-        if (ImGui::BeginChild("Mods", ImVec2(theme::NAV_WIDTH, 0.0f))) {
-            drawModList();
+        std::vector<ui::FullPanel::QuickLaunchEntry> entries;
+        if (frik::api::FRIKApi::inst) {
+            entries.push_back({ .name = "FRIK", .open = [this] {
+                                   _openFrikRequested = true;
+                               } });
         }
-        ImGui::EndChild();
-
-        ImGui::SameLine(0.0f, theme::SPACE_4);
-        if (ImGui::BeginChild("Content")) {
-            drawFrontPage();
-        }
-        ImGui::EndChild();
-    }
-
-    /**
-     * The mods, under a header with their number. The header stays, and the rows scroll under it.
-     */
-    void ConfigMenu::drawModList() const
-    {
-        const auto count = std::to_string(_mods.size());
-        ImGui::TextDisabled("Mods");
-        ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(count.c_str()).x);
-        ImGui::TextDisabled("%s", count.c_str());
-
-        if (ImGui::BeginChild("ModRows")) {
-            for (const auto& mod : _mods) {
-                ImGui::TextUnformatted(mod.displayName.c_str());
-            }
-        }
-        ImGui::EndChild();
-    }
-
-    /**
-     * The menu's front page, which is what the menu shows while no mod is selected.
-     */
-    void ConfigMenu::drawFrontPage()
-    {
-        ImGui::TextWrapped("Settings for the mods you have installed. Pick a mod on the left to see its settings.");
-        ImGui::TextDisabled("Version %s", Version::NAME.data());
-
-        drawQuickLaunch();
-    }
-
-    /**
-     * The quick launch section: an entry opens a mod's own config UI. FRIK's is the one entry, with FRIK
-     * installed: this menu took its opening gesture. With no entry the section is left out.
-     */
-    void ConfigMenu::drawQuickLaunch()
-    {
-        if (!frik::api::FRIKApi::inst) {
-            return;
-        }
-        ImGui::SeparatorText("Quick launch");
-        if (quickLaunchRow("FRIK")) {
-            _openFrikRequested = true;
-        }
+        return entries;
     }
 }

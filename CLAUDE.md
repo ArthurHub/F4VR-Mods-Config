@@ -36,6 +36,7 @@ The default preset inherits `cmake-dev + vcpkg + windows + vs2026`. The `release
 
 - The executable compiles the sources it covers, listed in `tests/CMakeLists.txt`, and links the framework and CommonLibF4 as the mod does. `tests/Setup.cpp` sets CommonLibF4's `REL::NO_GAME`, so there is no game in the process: a test that calls the game fails with an access violation.
 - A new source under test is added to that list, with its `<Name>Tests.cpp`.
+- `tests/FullPanelRenderTests.cpp` draws the panel without the game and saves it as images, to look at a change of the UI before it is tried in the headset. They check nothing and are not run by `ctest`: run `build/tests/Release/ModsConfigVR_tests "[render]"`, and open the `.bmp` files in `build/tests/render/`. Add a case there for a new view or state of the panel.
 - `-DMODS_CONFIG_BUILD_TESTS=OFF` leaves them out.
 
 Everything else is tested by hand, in the game.
@@ -76,7 +77,10 @@ The entry point is [src/ModsConfigVR.h](src/ModsConfigVR.h) / [src/ModsConfigVR.
 | ---------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
 | **ModsConfigVR**  | [src/ModsConfigVR.h](src/ModsConfigVR.h) / [.cpp](src/ModsConfigVR.cpp)    | The mod class and the F4SE entry points: the opening gesture, taking it from FRIK |
 | **Config** | [src/Config.h](src/Config.h) / [.cpp](src/Config.cpp) | INI load via `ConfigBase` (global `g_config`), live hot-reload via a file watcher |
-| **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel in the world, which the player can move, and the vrui buttons on the offhand. The panel shows the list of the mods and the menu's front page |
+| **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel in the world, which the player can move, and the vrui buttons on the offhand. What the panel shows is the Full panel's |
+| **FullPanel** | [src/ui/FullPanel.h](src/ui/FullPanel.h) / [.cpp](src/ui/FullPanel.cpp) | What the panel shows, drawn with ImGui as the design system has it: the title bar, the tree of the mods, and the menu's front page. It sets the design system's style on ImGui's (`theme::applyStyle`). Nothing in `src/ui/` knows of the game, so a test draws it |
+| **ModTree** | [src/ui/ModTree.h](src/ui/ModTree.h) / [.cpp](src/ui/ModTree.cpp) | The tree of the mods on the left of the Full panel: its plate, its header with the number of the mods, and their rows |
+| **Drawing** | [src/ui/Drawing.h](src/ui/Drawing.h) / [.cpp](src/ui/Drawing.cpp) | What the parts of the panel draw with: a line of text that ends in an ellipsis, an outline, and the look of a row under the ray |
 | **Model** | [src/model/Definition.h](src/model/Definition.h) | The definition of the settings model, which the UI draws: a mod, its pages and their items. See [docs/design/model.md](docs/design/model.md) |
 | **MCM loader** | [src/mcm/McmLoader.h](src/mcm/McmLoader.h) / [.cpp](src/mcm/McmLoader.cpp) | Reads an MCM `config.json` into the model, and finds the MCM mods of the game: every config under `Data\MCM\Config`, while `mcm_vr.dll` is loaded. It grows with the rows: the commit that draws a control adds the parsing of that control and its tests |
 | **DevBench** | [src/devbench/MCDevBench.h](src/devbench/MCDevBench.h) / [.cpp](src/devbench/MCDevBench.cpp) | The mod's devbench tool: its state and its actions (open, close, mods) |
