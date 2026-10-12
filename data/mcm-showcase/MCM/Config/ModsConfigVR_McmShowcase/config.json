@@ -223,13 +223,26 @@
         { "type": "section", "text": "Hotkeys" },
         { "type": "hotkey", "text": "A hotkey", "help": "A key that is bound.", "id": "TestHotkeyA" },
         { "type": "hotkey", "text": "A hotkey with modifiers", "help": "With allowModifierKeys.", "id": "TestHotkeyB", "valueOptions": { "allowModifierKeys": true } },
-        { "type": "section", "text": "Images" },
-        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "NoSuchImage", "width": 256, "height": 64 },
         { "type": "section", "text": "Other controls" },
         { "type": "dropdownFiles", "text": "dropdownFiles", "id": "sFile:Inputs", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config", "extensions": ["json"] } },
         { "type": "color", "text": "color", "id": "iColor:Inputs", "valueOptions": { "sourceType": "ModSettingInt" } },
         { "type": "noSuchControl", "text": "A type that no menu knows" },
         { "text": "A row with no type" }
+      ]
+    },
+    {
+      "pageDisplayName": "Images",
+      "content": [
+        { "type": "text", "text": "An image is a class of the mod's lib.swf. This one is 256 by 64: a yellow corner at its top left, red, green, blue and white, black to white, and white from clear to solid." },
+        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Swatches" },
+        { "type": "text", "text": "An image of 1024 by 64, which is wider than MCM's menu: it is shown smaller. It has a mark every 64 pixels and a longer one every 256." },
+        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Ruler" },
+        { "type": "text", "text": "A bitmap of 128 by 128 that its movie clip shows at 64 by 64: squares of white and of a half clear green." },
+        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Checker" },
+        { "type": "text", "text": "An image with a width and a height in its row." },
+        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Swatches", "width": 256, "height": 64 },
+        { "type": "text", "text": "A class that the file does not have." },
+        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "NoSuchImage", "width": 256, "height": 64 }
       ]
     },
     {

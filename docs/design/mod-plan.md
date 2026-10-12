@@ -86,9 +86,9 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M101 | mod      | The MCM showcase, an optional file for developers                                                     | done      |
 | M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | done      |
 | M21 | mod       | The help line                                                                                         | done      |
-| F22 | framework | render: a texture from pixels in memory                                                               | todo      |
-| F23 | framework | imgui: an image in a canvas                                                                           | todo      |
-| M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | todo      |
+| F22 | framework | render: a texture from pixels in memory                                                               | done      |
+| F23 | framework | imgui: an image in a canvas                                                                           | done      |
+| M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | done      |
 | M23 | mod       | The panel's look: sizes for the ray, and the states of a row                                          | todo      |
 | M24 | mod       | The Back button, and the menu's haptics                                                               | todo      |
 
@@ -153,11 +153,29 @@ M21 shows the `help` text of the row the ray is on in the help line, on the left
 
 F22 and F23 are item 11 of the requirements.
 
+F22 adds `render::Texture::fromPixels`:
+
+- The pixels are RGBA, four bytes each in rows from the top, and are drawn as given.
+- The texture is created on the GPU when it is first drawn, so it is made on any thread, and its size is known from the start.
+- It is shared with no one, and is drawn as a loaded texture is. It lives as long as its holders, and the frames that draw it.
+- The creation of the GPU texture is unit tested, on a software device.
+
+F23 adds `imgui::image` and `imgui::addImage`, which the content of a canvas calls in place of ImGui's own:
+
+- `image` is an item at the cursor, and `addImage` a rectangle of a draw list. Both take a `render::Texture`, loaded from a file or made from pixels, and a tint.
+- The published frame holds the views of its images, so a texture is dropped at any time, also while its panel is shown.
+- A texture that is not ready, or whose file is missing, draws nothing and keeps its room.
+- A texture whose view decodes sRGB is drawn with a shader that encodes it back, so it has the colors of its file.
+- They call the game's renderer, so the mod's panel tests do not draw an image with them.
+
 M22 reads an image out of the mod's `lib.swf`:
 
-- An MCM image is a class of that file. In the test set every one is a bitmap stored in it, six by themselves and one inside a sprite.
-- The menu reads the bitmap and does not run Flash. An image that is drawn as vectors or animated is shown as a placeholder.
+- An MCM image is a class of that file, the one in the config folder of the mod its row names. In the test set every one is a bitmap stored in it without loss. Six are in a class of their own beside a class of code, named `<class>_bitmap`, and one fills a shape that a sprite places.
+- The menu reads the bitmap and does not run Flash. An image that is a JPEG, that is drawn as vectors or that is animated is a row that says an image is there, with the reason in the log.
+- An image is as large beside the rows' text as in MCM's menu, and smaller where MCM shows it smaller or the rows are not as wide. It is in the middle of the rows, and its row is as high as it is. The `width` and `height` of its row are not used: in MCM they do not size the image.
+- The pixels are read when the configs are loaded. Their textures are made when they are first drawn, and are dropped when the menu closes.
 - Reading it needs zlib, from vcpkg at the pinned baseline.
+- The MCM showcase has a `lib.swf` of its own, which `tools/gen_mcm_showcase_lib.py` writes.
 
 M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.md):
 

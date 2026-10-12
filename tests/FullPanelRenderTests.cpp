@@ -126,9 +126,21 @@ namespace
     }
 
     /**
-     * Fills one triangle of ImGui's, with the colors of its corners and the opacity of the font texture.
+     * A pixel of an image of a mod's page, read at the nearest one: its color, and its opacity.
      */
-    void fillTriangle(Image& image, const FontTexture& font, Corner a, Corner b, Corner c, const ImVec4& clip)
+    std::array<float, 4> sample(const model::ImagePixels& pixels, const float u, const float v)
+    {
+        const auto x = static_cast<std::size_t>(std::clamp(static_cast<int>(u * pixels.width), 0, static_cast<int>(pixels.width) - 1));
+        const auto y = static_cast<std::size_t>(std::clamp(static_cast<int>(v * pixels.height), 0, static_cast<int>(pixels.height) - 1));
+        const auto* pixel = &pixels.rgba[(y * pixels.width + x) * 4];
+        return { static_cast<float>(pixel[0]), static_cast<float>(pixel[1]), static_cast<float>(pixel[2]), pixel[3] / 255.0f };
+    }
+
+    /**
+     * Fills one triangle of ImGui's, with the colors of its corners and the opacity of the font texture.
+     * A triangle of an image of a mod's page has the image's colors and opacity in place of them.
+     */
+    void fillTriangle(Image& image, const FontTexture& font, const model::ImagePixels* pixels, Corner a, Corner b, Corner c, const ImVec4& clip)
     {
         const std::int64_t area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
         if (area == 0) {
@@ -162,7 +174,14 @@ namespace
                 const auto mix = [&](const float ofA, const float ofB, const float ofC) {
                     return ofA * weightA + ofB * weightB + ofC * weightC;
                 };
-                const float opacity = mix(a.color[3], b.color[3], c.color[3]) / 255.0f * font.sample(mix(a.uv.x, b.uv.x, c.uv.x), mix(a.uv.y, b.uv.y, c.uv.y));
+                const float u = mix(a.uv.x, b.uv.x, c.uv.x);
+                const float v = mix(a.uv.y, b.uv.y, c.uv.y);
+                if (pixels) {
+                    const auto color = sample(*pixels, u, v);
+                    image.blend(x, y, { color[0], color[1], color[2] }, color[3]);
+                    continue;
+                }
+                const float opacity = mix(a.color[3], b.color[3], c.color[3]) / 255.0f * font.sample(u, v);
                 image.blend(x, y, { mix(a.color[0], b.color[0], c.color[0]), mix(a.color[1], b.color[1], c.color[1]), mix(a.color[2], b.color[2], c.color[2]) }, opacity);
             }
         }
@@ -170,7 +189,8 @@ namespace
 
     /**
      * Draws a frame of ImGui's into an image, as a renderer does: every triangle of every draw command,
-     * inside the command's clip rectangle.
+     * inside the command's clip rectangle. A command with a texture that is not the font's is an image of a
+     * mod's page, whose texture is its pixels.
      */
     Image rasterize(const ImDrawData& drawData, const FontTexture& font, const float scale)
     {
@@ -183,8 +203,9 @@ namespace
                 const ImVec4 clip(command.ClipRect.x * scale, command.ClipRect.y * scale, command.ClipRect.z * scale, command.ClipRect.w * scale);
                 const auto* indexes = commandList->IdxBuffer.Data + command.IdxOffset;
                 const auto* vertexes = commandList->VtxBuffer.Data + command.VtxOffset;
+                const auto* pixels = command.TextureId == ImGui::GetIO().Fonts->TexID ? nullptr : static_cast<const model::ImagePixels*>(command.TextureId);
                 for (unsigned int i = 0; i + 2 < command.ElemCount; i += 3) {
-                    fillTriangle(image, font, Corner(vertexes[indexes[i]], scale), Corner(vertexes[indexes[i + 1]], scale), Corner(vertexes[indexes[i + 2]], scale), clip);
+                    fillTriangle(image, font, pixels, Corner(vertexes[indexes[i]], scale), Corner(vertexes[indexes[i + 1]], scale), Corner(vertexes[indexes[i + 2]], scale), clip);
                 }
             }
         }
@@ -237,6 +258,10 @@ namespace
     std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer)
     {
         const test_panel::PanelContext context;
+        // an image is drawn with its pixels as its texture, which the rasterizer reads
+        panel.setImageDrawer([](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
+            ImGui::GetWindowDrawList()->AddImage(const_cast<model::ImagePixels*>(&pixels), min, max);
+        });
         for (int i = 0; i < 5; ++i) {
             test_panel::drawFrame(panel, pointer);
         }

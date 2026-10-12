@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <variant>
@@ -118,8 +119,31 @@ namespace mods_config::model
         std::vector<TextLine> lines;
     };
 
+    /**
+     * The pixels of an image: four bytes each, as red, green, blue and alpha, in rows from the top one.
+     */
+    struct ImagePixels
+    {
+        // what the image is, for the log
+        std::string name;
+        std::uint32_t width = 0;
+        std::uint32_t height = 0;
+        std::vector<std::uint8_t> rgba;
+    };
+
+    /**
+     * A row that shows a picture, in the middle of the rows' width.
+     */
     struct Image
-    {};
+    {
+        // none for an image that could not be read: the row then says that an image is there
+        std::shared_ptr<const ImagePixels> pixels;
+
+        // the size it is shown at, in the pixels of MCM's menu, which the drawing scales to the panel's as it
+        // does the size of a text
+        float width = 0.0f;
+        float height = 0.0f;
+    };
 
     /**
      * Empty space, as high as a number of lines of text.

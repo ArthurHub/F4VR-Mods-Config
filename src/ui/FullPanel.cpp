@@ -110,6 +110,15 @@ namespace mods_config::ui
     }
 
     /**
+     * What draws the images of a mod's page: the menu's, with the game's renderer. With none, as in a test,
+     * an image keeps its room and is not drawn.
+     */
+    void FullPanel::setImageDrawer(ImageDrawer drawer)
+    {
+        _modPage.setImageDrawer(std::move(drawer));
+    }
+
+    /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
      */

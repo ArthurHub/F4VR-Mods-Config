@@ -38,6 +38,7 @@ namespace mods_config::ui
 
         void setMods(std::vector<model::Mod> mods);
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
+        void setImageDrawer(ImageDrawer drawer);
         void select(const Selection& selection);
         void reset();
         void draw();

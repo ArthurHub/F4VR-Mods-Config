@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "TestFiles.h"
+#include "TestSwf.h"
 #include "mcm/McmLoader.h"
 
 using namespace mods_config;
@@ -73,9 +74,9 @@ namespace
                 lines.push_back(indent + "text: " + words);
             }
 
-            void operator()(const model::Image&) const
+            void operator()(const model::Image& image) const
             {
-                lines.push_back(indent + "image");
+                lines.push_back(indent + (image.pixels ? std::format("image of {} by {}", image.width, image.height) : "image"));
             }
 
             void operator()(const model::Spacer& spacer) const
@@ -482,7 +483,55 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
     CHECK(mods[0].name == "ModsConfigVR_McmShowcase");
     CHECK(mods[0].displayName == "Mods Config VR - MCM Showcase");
     CHECK_FALSE(mods[0].frontPage.items.empty());
-    CHECK(mods[0].pages.size() == 12);
+    CHECK(mods[0].pages.size() == 13);
+
+    // its images are read from its lib.swf, but for the one of a class the file does not have
+    Lines images;
+    for (const auto& page : mods[0].pages) {
+        for (const auto& line : describe(page)) {
+            // a row of a section is set in under it
+            if (const auto row = line.substr(line.find_first_not_of(' ')); row.starts_with("image")) {
+                images.push_back(row);
+            }
+        }
+    }
+    CHECK(images == Lines{ "image of 256 by 64", "image of 690 by 43.125", "image of 64 by 64", "image of 256 by 64", "image" });
+}
+
+TEST_CASE("McmLoader: an image is read from the lib.swf of the mod its row names")
+{
+    constexpr test_swf::Pixel RED{ 255, 0, 0, 255 };
+    test_swf::SwfBuilder swf;
+    swf.bitmap(1, 2, 1, { RED, RED });
+    swf.bitmap(2, 1, 1, { RED });
+    swf.bitmapShape(3, 2, 1380, 200);
+    swf.sprite(4, { 3 });
+    swf.bitmapShape(5, 2, 100, 800);
+    swf.sprite(6, { 5 });
+    swf.symbol(1, "Logo");
+    swf.symbol(4, "Wide");
+    swf.symbol(6, "High");
+    const auto bytes = swf.build();
+
+    const test_files::TempFolder folder;
+    folder.write("Images/lib.swf", std::string(bytes.begin(), bytes.end()));
+    folder.write("MyMod/config.json", R"({ "modName": "MyMod", "content": [
+        { "type": "image", "libName": "Images", "className": "Logo" },
+        { "type": "image", "libName": "Images", "className": "Wide" },
+        { "type": "image", "libName": "Images", "className": "High" },
+        { "type": "image", "libName": "Images", "className": "NoSuchClass" },
+        { "type": "image", "libName": "NoSuchMod", "className": "Logo" },
+        { "type": "image" }
+    ] })");
+
+    const auto mods = mcm::loadConfigs(folder.path);
+
+    REQUIRE(mods.size() == 1);
+    // an image that is wider or higher than MCM's menu has room for is shown smaller, as it is there
+    CHECK(describe(mods[0].frontPage) == Lines{ "image of 2 by 1", "image of 690 by 100", "image of 50 by 400", "image", "image", "image" });
+    const auto& logo = std::get<model::Image>(mods[0].frontPage.items[0]);
+    CHECK(logo.pixels->name == "Logo");
+    CHECK(logo.pixels->rgba == std::vector<std::uint8_t>{ 255, 0, 0, 255, 255, 0, 0, 255 });
 }
 
 TEST_CASE("McmLoader: the configs of a folder are translated")

@@ -123,6 +123,10 @@ target_link_libraries(${PROJECT_NAME}
 find_package(cpptrace CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE cpptrace::cpptrace)
 
+# zlib via vcpkg: a mod's lib.swf, which holds the images of its MCM menu, is compressed with it
+find_package(ZLIB REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
+
 # >>> PCH
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
 

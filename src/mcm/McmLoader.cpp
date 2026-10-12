@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include "FallUITranslations.h"
+#include "McmConfigImages.h"
 #include "common/CommonUtils.h"
 #include "model/TextMarkup.h"
 
@@ -176,7 +177,7 @@ namespace
      * A row of a config, by its type. A type the menu does not support is a placeholder, and so is a row
      * with no type.
      */
-    model::Item loadRow(const std::string& type, const Json& row, const ConfigTexts& texts)
+    model::Item loadRow(const std::string& type, const Json& row, const ConfigTexts& texts, mcm::McmConfigImages& images)
     {
         auto text = getShownText(row, "text", texts);
 
@@ -191,7 +192,7 @@ namespace
             return model::Text{ .lines = getFlag(row, "html") ? model::parseMarkup(text) : model::plainLines(text) };
         }
         if (type == "image") {
-            return model::Image{};
+            return images.load(getText(row, "libName"), getText(row, "className"));
         }
         if (type == "spacer") {
             return model::Spacer{ .lines = getSpacerLines(row) };
@@ -203,7 +204,7 @@ namespace
      * The items of a `content` array. A section becomes a group, with the rows that follow it up to the next
      * section. The rows before the first section are items of the page itself.
      */
-    std::vector<model::Item> loadItems(const Json& config, const char* key, const ConfigTexts& texts)
+    std::vector<model::Item> loadItems(const Json& config, const char* key, const ConfigTexts& texts, mcm::McmConfigImages& images)
     {
         std::vector<model::Item> items;
         const auto content = config.find(key);
@@ -220,7 +221,7 @@ namespace
                 continue;
             }
             auto& target = inGroup ? std::get<model::Group>(items.back()).items : items;
-            target.push_back(loadRow(type, row, texts));
+            target.push_back(loadRow(type, row, texts, images));
         }
         return items;
     }
@@ -240,12 +241,14 @@ namespace mods_config::mcm
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
      * text, the help and the type of every row, the lines of a text row, the height of a spacer, the range of a
-     * slider and the options of a stepper and a dropdown.
+     * slider, the options of a stepper and a dropdown, and the pixels of an image.
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.
+     * An image is read from the `lib.swf` of the mod its row names, in that mod's folder of the config folder.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
      */
-    std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations, const std::filesystem::path& interfaceFolder)
+    std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations, const std::filesystem::path& interfaceFolder,
+        const std::filesystem::path& configFolder)
     {
         Json config;
         try {
@@ -272,11 +275,12 @@ namespace mods_config::mcm
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
         }
-        mod.frontPage.items = loadItems(config, "content", texts);
+        McmConfigImages images(configFolder);
+        mod.frontPage.items = loadItems(config, "content", texts, images);
 
         if (const auto pages = config.find("pages"); pages != config.end() && pages->is_array()) {
             for (const auto& page : *pages) {
-                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, "content", texts) });
+                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, "content", texts, images) });
             }
         }
         return mod;
@@ -299,7 +303,7 @@ namespace mods_config::mcm
             std::ostringstream text;
             text << std::ifstream(file, std::ios::binary).rdbuf();
 
-            if (auto mod = loadConfig(text.str(), translations, interfaceFolder)) {
+            if (auto mod = loadConfig(text.str(), translations, interfaceFolder, configFolder)) {
                 mods.push_back(std::move(*mod));
             } else {
                 logger::warn("MCM config '{}' is not loaded: {}", toLogText(file), mod.error());

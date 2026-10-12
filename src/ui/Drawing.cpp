@@ -150,6 +150,15 @@ namespace mods_config::ui
     }
 
     /**
+     * How much larger the panel draws a size of MCM's menu, so that it is as large beside the rows' text as
+     * it is there.
+     */
+    float mcmScale()
+    {
+        return ImGui::GetFontSize() / MARKUP_BODY_SIZE;
+    }
+
+    /**
      * Lines of text in a width, each wrapped between its words where it is wider. A run is in its own size and
      * color, or else in the given color, and an empty line is as high as a line of body text.
      * Returns the height of them all.
@@ -161,7 +170,7 @@ namespace mods_config::ui
         for (const auto& line : lines) {
             words.clear();
             for (const auto& run : line.runs) {
-                const float fontSize = ImGui::GetFontSize() * (run.size ? static_cast<float>(*run.size) / MARKUP_BODY_SIZE : 1.0f);
+                const float fontSize = run.size ? static_cast<float>(*run.size) * mcmScale() : ImGui::GetFontSize();
                 addWords(run.text, fontSize, run.color ? IM_COL32(*run.color >> 16, (*run.color >> 8) & 0xFF, *run.color & 0xFF, 255) : color, words);
             }
             if (words.empty()) {

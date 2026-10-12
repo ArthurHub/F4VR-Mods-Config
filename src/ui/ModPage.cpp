@@ -42,6 +42,23 @@ namespace
     }
 
     /**
+     * An image at the cursor, in the middle of the rows' width. It is as large as in MCM's menu beside the
+     * rows' text, and smaller where the rows are not as wide. The row is as high as the image.
+     */
+    void drawImage(const model::Image& image, const ui::ImageDrawer& drawer)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float width = rowWidth();
+        const float scale = (std::min)(ui::mcmScale(), (width - theme::SPACE_2 * 2.0f) / image.width);
+        const ImVec2 size(std::round(image.width * scale), std::round(image.height * scale));
+        ImGui::Dummy(ImVec2(width, size.y));
+        if (drawer && ImGui::IsItemVisible()) {
+            const ImVec2 min(pos.x + std::floor((width - size.x) * 0.5f), pos.y);
+            drawer(*image.pixels, min, ImVec2(min.x + size.x, min.y + size.y));
+        }
+    }
+
+    /**
      * A row at the cursor, as its text and what it is. It is laid out as a setting's row: the text after the
      * gutter, and the type where the control ends, before the room of its Reset.
      * Returns whether the ray is on the row.
@@ -272,15 +289,17 @@ namespace
         return pointed;
     }
 
-    void drawItems(const std::vector<model::Item>& items, std::optional<ui::PointedRow>& pointed);
+    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, std::optional<ui::PointedRow>& pointed);
 
     /**
      * Draws an item as its row. A section is its heading, with the rows of its items under it, and a spacer
-     * is empty space as high as its lines of text.
+     * is empty space as high as its lines of text. An image that could not be read is a row that says an
+     * image is there.
      * A row with a text that the ray is on is told as the pointed one.
      */
     struct ItemDrawer
     {
+        const ui::ImageDrawer& imageDrawer;
         std::optional<ui::PointedRow>& pointed;
 
         void operator()(const model::Setting& setting) const
@@ -293,7 +312,7 @@ namespace
         void operator()(const model::Group& group) const
         {
             ui::sectionHeading(group.text);
-            drawItems(group.items, pointed);
+            drawItems(group.items, imageDrawer, pointed);
         }
 
         void operator()(const model::Button& button) const
@@ -308,9 +327,13 @@ namespace
             drawTextRow(text);
         }
 
-        void operator()(const model::Image&) const
+        void operator()(const model::Image& image) const
         {
-            drawRow({}, "image");
+            if (image.pixels) {
+                drawImage(image, imageDrawer);
+            } else {
+                drawRow({}, "image");
+            }
         }
 
         void operator()(const model::Spacer& spacer) const
@@ -326,25 +349,30 @@ namespace
         }
     };
 
-    void drawItems(const std::vector<model::Item>& items, std::optional<ui::PointedRow>& pointed)
+    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, std::optional<ui::PointedRow>& pointed)
     {
         for (const auto& item : items) {
-            std::visit(ItemDrawer{ pointed }, item);
+            std::visit(ItemDrawer{ imageDrawer, pointed }, item);
         }
     }
 }
 
 namespace mods_config::ui
 {
+    void ModPage::setImageDrawer(ImageDrawer drawer)
+    {
+        _imageDrawer = std::move(drawer);
+    }
+
     /**
      * Draws the rows of a page into the current ImGui window, which scrolls them.
      * Returns the row the ray is on, for the help line: none in the gap between two rows, and none on a row
-     * that has no text of its own, as a section, a text row and a spacer.
+     * that has no text of its own, as a section, a text row, an image and a spacer.
      */
     std::optional<PointedRow> ModPage::draw(const model::Page& page) const
     {
         std::optional<PointedRow> pointed;
-        drawItems(page.items, pointed);
+        drawItems(page.items, _imageDrawer, pointed);
         return pointed;
     }
 }

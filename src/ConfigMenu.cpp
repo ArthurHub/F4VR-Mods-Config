@@ -4,6 +4,7 @@
 #include "api/FRIKApi.h"
 #include "common/MatrixUtils.h"
 #include "f4sevr/PapyrusUtils.h"
+#include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
 #include "vrui/UIManager.h"
 #include "vrui/UIPanelStyle.h"
@@ -87,6 +88,7 @@ namespace mods_config
         _panel.reset();
         _wristButtons.reset();
         _minimizeButton.reset();
+        _imageTextures.clear();
     }
 
     /**
@@ -107,6 +109,8 @@ namespace mods_config
 
     void ConfigMenu::setMods(std::vector<model::Mod> mods)
     {
+        // the textures are kept by the pixels of the mods that are replaced
+        _imageTextures.clear();
         _fullPanel.setMods(std::move(mods));
     }
 
@@ -188,6 +192,9 @@ namespace mods_config
             _fullPanel.draw();
         });
         _fullPanel.setQuickLaunch(quickLaunchEntries());
+        _fullPanel.setImageDrawer([this](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
+            drawImage(pixels, min, max);
+        });
         // In front of the player, and left there: a panel that follows the head moves under the ray.
         // The player moves it by holding it with the config's move button. When they walk away from it,
         // it is put in front of them again. The menu is not closed for that, as it can hold changes that
@@ -195,6 +202,19 @@ namespace mods_config
         g_uiManager->setWorldMoveButton(g_config.moveButton);
         g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
         g_uiManager->attachPresetToWorldAtHMD(_panel, g_config.recenterDistance);
+    }
+
+    /**
+     * Draws an image of a mod's page in the panel, with a texture that is made from its pixels when it is
+     * first drawn. Called while the panel's content is drawn.
+     */
+    void ConfigMenu::drawImage(const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max)
+    {
+        auto& texture = _imageTextures[&pixels];
+        if (!texture) {
+            texture = render::Texture::fromPixels(pixels.name, pixels.width, pixels.height, pixels.rgba);
+        }
+        imgui::addImage(ImGui::GetWindowDrawList(), *texture, min, max);
     }
 
     void ConfigMenu::createWristButtons()

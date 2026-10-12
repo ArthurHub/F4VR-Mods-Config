@@ -12,6 +12,7 @@
     "thomasmonkman-filewatch",
     "cpptrace",
     "catch2",
+    "zlib",
     {
       "name": "imgui",
       "features": [

@@ -11,14 +11,18 @@ add_executable(${PROJECT_NAME}_tests
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   McmLoaderTests.cpp
+  SwfImagesTests.cpp
   TextMarkupTests.cpp
   TranslationsTests.cpp
   Setup.cpp
   TestFiles.h
+  TestSwf.h
   TestPanel.h
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
+  ${SOURCE_DIR}/mcm/McmConfigImages.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
+  ${SOURCE_DIR}/mcm/SwfImages.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp
@@ -41,7 +45,7 @@ target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE
 target_include_directories(${PROJECT_NAME}_tests PRIVATE ${BUILD_DIR}/include ${SOURCE_DIR})
 target_precompile_headers(${PROJECT_NAME}_tests PRIVATE ${SOURCE_DIR}/PCH.h)
 target_compile_options(${PROJECT_NAME}_tests PRIVATE /utf-8 /permissive- /W4 /external:anglebrackets /external:W0)
-target_link_libraries(${PROJECT_NAME}_tests PRIVATE F4VRCommon::framework Catch2::Catch2WithMain delayimp)
+target_link_libraries(${PROJECT_NAME}_tests PRIVATE F4VRCommon::framework Catch2::Catch2WithMain ZLIB::ZLIB delayimp)
 
 # openvr_api.dll is in the game's folder and not here, and the executable would not start without it. So it is
 # loaded on its first call, which no test makes. Release drops the unused import whole, hence the ignored warning.
