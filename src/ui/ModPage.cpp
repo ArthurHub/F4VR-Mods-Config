@@ -59,19 +59,42 @@ namespace
     }
 
     /**
+     * Adds a row at the cursor, as wide as the rows and as high as a control. A row that is pressed has the
+     * look of a row under the ray, and a stronger one while the trigger is held. Any other is only its room.
+     * Returns whether the row is shown, and tells whether the ray is on it.
+     */
+    bool addRow(const bool pressable, bool& pointed)
+    {
+        const ImVec2 size(rowWidth(), theme::CONTROL_HEIGHT);
+        if (pressable) {
+            ImGui::InvisibleButton("row", size);
+        } else {
+            ImGui::Dummy(size);
+        }
+        pointed = false;
+        if (!ImGui::IsItemVisible()) {
+            return false;
+        }
+        pointed = ImGui::IsItemHovered();
+        if (pressable) {
+            ui::drawRowState();
+        }
+        return true;
+    }
+
+    /**
      * A row at the cursor, as its text and what it is. It is laid out as a setting's row: the text after the
      * gutter, and the type where the control ends, before the room of its Reset.
      * Returns whether the ray is on the row.
      */
-    bool drawRow(const std::string_view text, const std::string_view type)
+    bool drawRow(const std::string_view text, const std::string_view type, const bool pressable = true)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
-        if (!ImGui::IsItemVisible()) {
+        bool pointed = false;
+        if (!addRow(pressable, pointed)) {
             return false;
         }
-        const bool pointed = ImGui::IsItemHovered();
 
         const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
         ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
@@ -245,7 +268,8 @@ namespace
      * The row of a setting at the cursor: its text after the gutter, and its control where the control column
      * ends, before the room of its Reset. The text has the room up to its own control.
      * The menu has no values yet, so the control shows what a setting is with none: a switcher is off, a
-     * slider is at its least, and a choice is its first option. And the row is disabled, as it changes nothing.
+     * slider is at its least, and a choice is its first option. And its control is disabled, as it changes
+     * nothing: the row itself has the look of a row under the ray, as it has a help.
      * A text input is its text and its type until the commit that draws it.
      * Returns whether the ray is on the row.
      */
@@ -256,11 +280,10 @@ namespace
         }
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
-        if (!ImGui::IsItemVisible()) {
+        bool pointed = false;
+        if (!addRow(true, pointed)) {
             return false;
         }
-        const bool pointed = ImGui::IsItemHovered();
 
         const auto& options = setting.valueOptions;
         const std::string_view firstOption = options.options.empty() ? std::string_view() : std::string_view(options.options.front().text);
@@ -332,7 +355,7 @@ namespace
             if (image.pixels) {
                 drawImage(image, imageDrawer);
             } else {
-                drawRow({}, "image");
+                drawRow({}, "image", false);
             }
         }
 
@@ -352,7 +375,10 @@ namespace
     void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, std::optional<ui::PointedRow>& pointed)
     {
         for (const auto& item : items) {
+            // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
+            ImGui::PushID(&item);
             std::visit(ItemDrawer{ imageDrawer, pointed }, item);
+            ImGui::PopID();
         }
     }
 }

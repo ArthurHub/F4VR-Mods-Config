@@ -13,18 +13,14 @@ using namespace vrui;
 
 namespace
 {
-    // the panel in vrui units, and where it is put from the HMD: forward, up, and tilted back
+    // The panel in vrui units. Its scale, and where it is put from the HMD, are the config's.
     constexpr float PANEL_WIDTH = 24.0f;
     constexpr float PANEL_HEIGHT = 15.0f;
-    constexpr float PANEL_SCALE = 6.0f;
-    constexpr float PANEL_FORWARD = 120.0f;
-    constexpr float PANEL_UP = -20.0f;
-    constexpr float PANEL_TILT_DEGREES = 5.0f;
 
-    // The radius the panel is curved at toward the player, in the panel's own units: a higher radius is a
-    // flatter panel. At PANEL_FORWARD / PANEL_SCALE, which is 20, the sides are as far from the player as
-    // the middle. It is a little flatter than that, as tuned in the headset.
-    constexpr float PANEL_CURVE_RADIUS = 25.0f;
+    // The radius the panel is curved at toward the player, for its distance: a higher radius is a flatter
+    // panel. At 1 the sides are as far from the player as the middle. It is a little flatter than that, as
+    // tuned in the headset: 25 of the panel's own units at the shipped distance and scale, which are 20.
+    constexpr float PANEL_CURVE_BY_DISTANCE = 1.25f;
 
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
     constexpr float WRIST_BUTTON_HEIGHT = 2.2f;
@@ -154,6 +150,9 @@ namespace mods_config
     {
         // every frame, so a change of the config shows while the menu is open
         imgui::pointer().setStyle(g_config.pointerStyle);
+        if (isOpen() && g_config.panelChanged.exchange(false)) {
+            applyPanelConfig();
+        }
 
         if (_openFrikRequested) {
             _openFrikRequested = false;
@@ -170,21 +169,7 @@ namespace mods_config
     void ConfigMenu::createPanel()
     {
         _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigVR_Panel", PANEL_WIDTH, PANEL_HEIGHT);
-        _panel->setStyle({
-            // Opaque, both of them: these are picked to match the widgets beside the panel, and an alpha
-            // below 255 blends a colour toward whatever is behind it, which reads as the wrong colour
-            // rather than as a see-through one. The background is the only part that wants an alpha.
-            .color = render::Color::rgba(10, 250, 120),
-            .background = render::Color::rgba(15, 15, 15, 166),
-            .borderColor = render::Color::rgba(10, 250, 120),
-            .borderThicknessUnits = 0.08f,
-            .cornerRadiusUnits = 0.5f,
-            .padding = UIPadding::all(0.3f),
-        });
-        _panel->setScale(PANEL_SCALE);
-        _panel->setPosition(0, PANEL_FORWARD, PANEL_UP);
-        _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(PANEL_TILT_DEGREES, 0, 0));
-        _panel->setCurveRadius(PANEL_CURVE_RADIUS);
+        applyPanelConfig();
         // the menu's one ImGui panel: at this size it needs a texture of its own, and a dropdown's list or a dialog opens inside it
         _panel->setDedicated(true);
         _panel->setInteractive(true);
@@ -199,9 +184,34 @@ namespace mods_config
         // The player moves it by holding it with the config's move button. When they walk away from it,
         // it is put in front of them again. The menu is not closed for that, as it can hold changes that
         // are not saved yet.
+        g_uiManager->attachPresetToWorldAtHMD(_panel, g_config.recenterDistance);
+    }
+
+    /**
+     * Gives the panel what the config has for it: its look, its size, its place from where it was put in
+     * front of the player, and how it is moved. It is called when the menu opens, and when the config is loaded
+     * again while the menu is open, so a change of the file shows at once. The place is from where the panel is now, also after a hand moved it.
+     */
+    void ConfigMenu::applyPanelConfig() const
+    {
+        _panel->setStyle({
+            // Opaque, both of them: these are picked to match the widgets beside the panel, and an alpha
+            // below 255 blends a colour toward whatever is behind it, which reads as the wrong colour
+            // rather than as a see-through one. The background is the only part that wants an alpha.
+            .color = render::Color::rgba(10, 250, 120),
+            .background = render::Color::rgba(15, 15, 15, g_config.panelBackgroundOpacity),
+            .borderColor = render::Color::rgba(10, 250, 120),
+            .borderThicknessUnits = 0.08f,
+            .cornerRadiusUnits = 0.5f,
+            .padding = UIPadding::all(0.3f),
+        });
+        _panel->setScale(g_config.panelScale);
+        _panel->setPosition(0, g_config.panelDistance, g_config.panelHeight);
+        _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(g_config.panelTilt, 0, 0));
+        // the radius is in the panel's own units, so the curve is the same at any scale and distance
+        _panel->setCurveRadius(PANEL_CURVE_BY_DISTANCE * g_config.panelDistance / g_config.panelScale);
         g_uiManager->setWorldMoveButton(g_config.moveButton);
         g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
-        g_uiManager->attachPresetToWorldAtHMD(_panel, g_config.recenterDistance);
     }
 
     /**

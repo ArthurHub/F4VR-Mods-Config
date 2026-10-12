@@ -28,6 +28,13 @@ namespace mods_config
                 .duration = 1.5f,
             });
 
+        // a panel has a size and stands in front of the player, whatever the file says
+        panelScale = (std::max)(static_cast<float>(ini.GetDoubleValue(PANEL_SECTION, "fScale", 6.0)), 1.0f);
+        panelDistance = (std::max)(static_cast<float>(ini.GetDoubleValue(PANEL_SECTION, "fDistance", 120.0)), 20.0f);
+        panelHeight = static_cast<float>(ini.GetDoubleValue(PANEL_SECTION, "fHeight", -20.0));
+        panelTilt = static_cast<float>(ini.GetDoubleValue(PANEL_SECTION, "fTilt", 5.0));
+        panelBackgroundOpacity = static_cast<std::uint8_t>(std::clamp(ini.GetLongValue(PANEL_SECTION, "iBackgroundOpacity", 217), 0L, 255L));
+
         // a word that is not a button, as "none" is, leaves the panel not moved
         moveButton = vrcf::parseButton(ini.GetValue(PANEL_SECTION, "sMoveButton", "grip"));
         moveSmoothing = static_cast<float>(ini.GetDoubleValue(PANEL_SECTION, "fMoveSmoothing", vrui::WORLD_MOVE_SMOOTH_SECONDS));
@@ -56,5 +63,8 @@ namespace mods_config
         pointerStyle.markBorderColor = getColorValue(ini, POINTER_SECTION, "sMarkBorderColor", defaults.markBorderColor);
         pointerStyle.markBorderWidth = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fMarkBorderWidth", defaults.markBorderWidth));
         pointerStyle.scrollSpeed = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fScrollSpeed", defaults.scrollSpeed));
+
+        // last, so the menu gives its panel the values when all of them are read
+        panelChanged = true;
     }
 }

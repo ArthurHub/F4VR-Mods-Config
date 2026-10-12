@@ -37,6 +37,7 @@ namespace mods_config
 
     private:
         void createPanel();
+        void applyPanelConfig() const;
         void createWristButtons();
         void drawImage(const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max);
         std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();

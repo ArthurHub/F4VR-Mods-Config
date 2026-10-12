@@ -89,7 +89,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | F22 | framework | render: a texture from pixels in memory                                                               | done      |
 | F23 | framework | imgui: an image in a canvas                                                                           | done      |
 | M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | done      |
-| M23 | mod       | The panel's look: sizes for the ray, and the states of a row                                          | todo      |
+| M23 | mod       | The panel's look: sizes for the ray, and the states of a row                                          | done      |
 | M24 | mod       | The Back button, and the menu's haptics                                                               | todo      |
 
 M11 is [The menu's front page](ui-and-vr-interaction.md#the-menus-front-page), which is what the menu shows with no mod selected:
@@ -176,6 +176,12 @@ M22 reads an image out of the mod's `lib.swf`:
 - The pixels are read when the configs are loaded. Their textures are made when they are first drawn, and are dropped when the menu closes.
 - Reading it needs zlib, from vcpkg at the pinned baseline.
 - The MCM showcase has a `lib.swf` of its own, which `tools/gen_mcm_showcase_lib.py` writes.
+
+M23 is the look of M100 as it was tried in the headset:
+
+- The sizes of the design system stay as they are. The player sets the panel's size and place in `[Panel]` of the INI: `fScale`, `fDistance`, `fHeight` and `fTilt`, and how much its background hides the world in `iBackgroundOpacity`, which ships at the design system's `glass`. A change shows at once while the menu is open. The scale makes the text and the rows larger together, so the layout is the same at any size, and the panel's curve follows its distance.
+- A row of a page has the look of a row under the ray, and the stronger one while the trigger is held on it, as a row of the tree has. A row with no text of its own has neither: a section, a text row, an image and a spacer.
+- A setting's control is still drawn disabled until M25. The other states come with the commits that give them a meaning: focused with the slider (M26), disabled with conditions (M28) and a mod that is not available (M41), and pending and invalid with packages (milestone 5).
 
 M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.md):
 

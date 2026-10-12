@@ -255,15 +255,16 @@ namespace
      * rasterizes the panel. A few frames are drawn first: ImGui needs them to find what the pointer is on, and
      * to scroll to a row.
      */
-    std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer)
+    std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer, const bool pressed = false)
     {
         const test_panel::PanelContext context;
         // an image is drawn with its pixels as its texture, which the rasterizer reads
         panel.setImageDrawer([](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
             ImGui::GetWindowDrawList()->AddImage(const_cast<model::ImagePixels*>(&pixels), min, max);
         });
+        // the ray comes there, and then the trigger is pulled and held
         for (int i = 0; i < 5; ++i) {
-            test_panel::drawFrame(panel, pointer);
+            test_panel::drawFrame(panel, pointer, pressed && i >= 3);
         }
         const std::filesystem::path folder = MODS_CONFIG_TEST_OUTPUT_DIR;
         std::filesystem::create_directories(folder);
@@ -497,6 +498,15 @@ TEST_CASE("FullPanel render: the help line, with a help of each length", "[.rend
     for (int row = 0; row < static_cast<int>(names.size()); ++row) {
         auto panel = helpPanel();
         WARN("Saved " << renderToFile(panel, names[row], pageRow(row)));
+    }
+}
+
+TEST_CASE("FullPanel render: a row of a page under the ray, and while the trigger is held on it", "[.render]")
+{
+    for (const bool pressed : { false, true }) {
+        auto panel = testSetPanel();
+        select(panel, "Sim Settlements 2", "Gameplay");
+        WARN("Saved " << renderToFile(panel, pressed ? "page-row-pressed" : "page-row-hover", pageRow(2), pressed));
     }
 }
 
