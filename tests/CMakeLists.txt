@@ -7,6 +7,7 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}_tests
+  FallUITranslationsTests.cpp
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   McmLoaderTests.cpp
@@ -15,6 +16,7 @@ add_executable(${PROJECT_NAME}_tests
   TestFiles.h
   TestPanel.h
   # the mod's sources under test
+  ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp

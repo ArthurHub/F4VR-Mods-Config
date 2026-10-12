@@ -81,7 +81,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M100 | mod      | The panel's look from the design system, and the panel drawn into an image by a test                  | done      |
 | M16 | mod       | A mod's pages in the tree, with every row as its text and type                                        | done      |
 | M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | done      |
-| M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | todo      |
+| M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | done      |
 | M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | todo      |
 | M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo      |
 | M21 | mod       | The help line                                                                                         | todo      |
@@ -127,8 +127,11 @@ M17 looks a text that starts with `$` up in the game's translation table. F4SE f
 
 M18 does what FallUI's own code does in MCM's menu, for FallUI and FallUI Workbench:
 
-- Their config names a translation file of their own. A text that starts with `$` is looked up in it, and so is a `${Key}` inside a text.
-- A row's help is looked up the same way. FallUI also names the help's entry in a key of its own, `$help`, beside the English text.
+- Their config names a translation file of their own, in the key `$fallUILanguageFile` of a row. The English file is read, and over it the file of the game's language. FallUI tells the language by the game's text of `$Attach`.
+- A text that starts with `$` is looked up in it, and so is a `${Key}` inside a text.
+- A plain text is looked up by a token made of its words: "Max. item name length" is `$Max_item_name_length`. FallUI's config is written in English this way. A text with tags is looked up piece by piece, between the tags.
+- A token that FallUI's files do not have is looked up in the game's translations, as in M17.
+- A row's help is looked up the same way. FallUI also names the help's entry in a key of its own, `$help`, beside the English text. The loader reads a help in M21, and translates it then.
 
 M19 draws the tags of a text row and removes those of a help, with one parser, as in [Text, spacers and images](schema.md#text-spacers-and-images). It runs after the translation of M17 and M18, because FallUI's `${Key}` tokens are inside the tags.
 

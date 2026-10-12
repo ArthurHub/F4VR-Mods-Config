@@ -4,10 +4,12 @@
 #include <array>
 #include <format>
 #include <fstream>
+#include <optional>
 #include <sstream>
 
 #include <nlohmann/json.hpp>
 
+#include "FallUITranslations.h"
 #include "common/CommonUtils.h"
 
 using namespace mods_config;
@@ -20,6 +22,12 @@ namespace
     constexpr auto MCM_DLL = "mcm_vr.dll";
     constexpr auto MCM_CONFIG_FOLDER = R"(Data\MCM\Config)";
 
+    // the game's folder of its menus, which a FallUI mod names its language files from
+    constexpr auto INTERFACE_FOLDER = R"(Data\Interface)";
+
+    // the key of a row by which a FallUI mod names its language files
+    constexpr auto FALLUI_LANGUAGE_FILE = "$fallUILanguageFile";
+
     /**
      * The text of a key. It is empty when the value has no such key, or the key holds something else than a text.
      */
@@ -30,11 +38,53 @@ namespace
     }
 
     /**
-     * The text of a key that the player sees, in the game's language when it is a token.
+     * What translates the texts of a config: the game's translations, and before them FallUI's own for a
+     * FallUI mod.
      */
-    std::string getShownText(const Json& value, const char* key, const model::Translations& translations)
+    struct ConfigTexts
     {
-        return translations.translate(getText(value, key));
+        const model::Translations& game;
+        std::optional<mcm::FallUITranslations> fallUI;
+    };
+
+    /**
+     * The text of a key that the player sees, in the game's language. A FallUI mod can name the text's token
+     * in a key of its own beside it: the key's name after a `$`.
+     */
+    std::string getShownText(const Json& value, const char* key, const ConfigTexts& texts)
+    {
+        auto text = getText(value, key);
+        if (texts.fallUI) {
+            text = texts.fallUI->translate(text, getText(value, ("$"s + key).c_str()));
+        }
+        return texts.game.translate(std::move(text));
+    }
+
+    /**
+     * The language file a FallUI mod names in a row of its front page or of a page. Empty for any other mod.
+     */
+    std::string findFallUILanguageFile(const Json& config)
+    {
+        const auto inRows = [](const Json& page) {
+            if (const auto content = page.find("content"); content != page.end() && content->is_array()) {
+                for (const auto& row : *content) {
+                    if (auto file = getText(row, FALLUI_LANGUAGE_FILE); !file.empty()) {
+                        return file;
+                    }
+                }
+            }
+            return std::string();
+        };
+
+        auto file = inRows(config);
+        if (const auto pages = config.find("pages"); file.empty() && pages != config.end() && pages->is_array()) {
+            for (const auto& page : *pages) {
+                if (file = inRows(page); !file.empty()) {
+                    break;
+                }
+            }
+        }
+        return file;
     }
 
     using SettingTypeName = std::pair<std::string_view, model::SettingType>;
@@ -54,9 +104,9 @@ namespace
      * A row of a config, by its type. A type the menu does not support is a placeholder, and so is a row
      * with no type.
      */
-    model::Item loadRow(const std::string& type, const Json& row, const model::Translations& translations)
+    model::Item loadRow(const std::string& type, const Json& row, const ConfigTexts& texts)
     {
-        auto text = getShownText(row, "text", translations);
+        auto text = getShownText(row, "text", texts);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
             return model::Setting{ .type = setting->second, .text = std::move(text) };
@@ -80,7 +130,7 @@ namespace
      * The items of a `content` array. A section becomes a group, with the rows that follow it up to the next
      * section. The rows before the first section are items of the page itself.
      */
-    std::vector<model::Item> loadItems(const Json& config, const char* key, const model::Translations& translations)
+    std::vector<model::Item> loadItems(const Json& config, const char* key, const ConfigTexts& texts)
     {
         std::vector<model::Item> items;
         const auto content = config.find(key);
@@ -92,12 +142,12 @@ namespace
         for (const auto& row : *content) {
             const auto type = getText(row, "type");
             if (type == "section") {
-                items.emplace_back(model::Group{ .text = getShownText(row, "text", translations), .items = {} });
+                items.emplace_back(model::Group{ .text = getShownText(row, "text", texts), .items = {} });
                 inGroup = true;
                 continue;
             }
             auto& target = inGroup ? std::get<model::Group>(items.back()).items : items;
-            target.push_back(loadRow(type, row, translations));
+            target.push_back(loadRow(type, row, texts));
         }
         return items;
     }
@@ -117,9 +167,10 @@ namespace mods_config::mcm
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
      * text and the type of every row. A text that is a `$` token is looked up in the translations.
+     * A FallUI mod is translated from its own language files, which it names from the interface folder.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
      */
-    std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations)
+    std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations, const std::filesystem::path& interfaceFolder)
     {
         Json config;
         try {
@@ -136,15 +187,21 @@ namespace mods_config::mcm
         if (mod.name.empty()) {
             return std::unexpected("No modName"s);
         }
-        mod.displayName = getShownText(config, "displayName", translations);
+
+        ConfigTexts texts{ .game = translations, .fallUI = std::nullopt };
+        if (const auto languageFile = findFallUILanguageFile(config); !languageFile.empty()) {
+            texts.fallUI.emplace(translations).loadFiles(languageFile, interfaceFolder);
+        }
+
+        mod.displayName = getShownText(config, "displayName", texts);
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
         }
-        mod.frontPage.items = loadItems(config, "content", translations);
+        mod.frontPage.items = loadItems(config, "content", texts);
 
         if (const auto pages = config.find("pages"); pages != config.end() && pages->is_array()) {
             for (const auto& page : *pages) {
-                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", translations), .items = loadItems(page, "content", translations) });
+                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, "content", texts) });
             }
         }
         return mod;
@@ -154,7 +211,7 @@ namespace mods_config::mcm
      * Loads the `config.json` of every folder in MCM's config folder, which is `Data\MCM\Config` in the game.
      * A config that cannot be read is left out, with the reason in the log. No such folder is no mods.
      */
-    std::vector<model::Mod> loadConfigs(const std::filesystem::path& configFolder, const model::Translations& translations)
+    std::vector<model::Mod> loadConfigs(const std::filesystem::path& configFolder, const model::Translations& translations, const std::filesystem::path& interfaceFolder)
     {
         std::vector<model::Mod> mods;
         std::error_code error;
@@ -167,7 +224,7 @@ namespace mods_config::mcm
             std::ostringstream text;
             text << std::ifstream(file, std::ios::binary).rdbuf();
 
-            if (auto mod = loadConfig(text.str(), translations)) {
+            if (auto mod = loadConfig(text.str(), translations, interfaceFolder)) {
                 mods.push_back(std::move(*mod));
             } else {
                 logger::warn("MCM config '{}' is not loaded: {}", toLogText(file), mod.error());
@@ -186,7 +243,7 @@ namespace mods_config::mcm
             logger::info("MCM is not loaded ({}): no MCM mods are listed", MCM_DLL);
             return {};
         }
-        auto mods = loadConfigs(MCM_CONFIG_FOLDER, translations);
+        auto mods = loadConfigs(MCM_CONFIG_FOLDER, translations, INTERFACE_FOLDER);
         logger::info("Loaded {} MCM mods from '{}'", mods.size(), MCM_CONFIG_FOLDER);
         return mods;
     }
