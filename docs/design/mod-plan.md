@@ -83,6 +83,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | done      |
 | M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | done      |
 | M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | done      |
+| M101 | mod      | The MCM showcase, an optional file for developers                                                     | done      |
 | M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo      |
 | M21 | mod       | The help line                                                                                         | todo      |
 | F22 | framework | render: a texture from pixels in memory                                                               | todo      |
@@ -134,6 +135,8 @@ M18 does what FallUI's own code does in MCM's menu, for FallUI and FallUI Workbe
 - A row's help is looked up the same way. FallUI also names the help's entry in a key of its own, `$help`, beside the English text. The loader reads a help in M21, and translates it then.
 
 M19 draws the tags of a text row and removes those of a help, with one parser, as in [Text, spacers and images](schema.md#text-spacers-and-images). It runs after the translation of M17 and M18, because FallUI's `${Key}` tokens are inside the tags. The loader reads a help in M21, which then removes its tags.
+
+M101 adds an MCM config of our own, `data/mcm-showcase/`, with every kind of row an MCM config has, in every look: the sizes, colors and aligns of a text, the options of each control, and what a config can get wrong. It has only what works in MCM too, so the two menus are compared on it: what the package schema adds to MCM would be a showcase of its own. It is tried in the headset as each commit draws a row, and grows with them. It is packaged by itself and published as an optional file, to show a mod's author how an MCM menu looks in the mod. It has no game plugin, so what needs one stays with the test mod of M37.
 
 M20 draws the four controls with their default values, and disabled. A choice's index becomes typed options.
 

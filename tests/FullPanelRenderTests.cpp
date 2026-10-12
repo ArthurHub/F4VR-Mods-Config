@@ -16,6 +16,7 @@
 
 #include "TestPanel.h"
 #include "Theme.h"
+#include "mcm/McmLoader.h"
 #include "model/TextMarkup.h"
 #include "ui/FullPanel.h"
 
@@ -278,9 +279,6 @@ namespace
                                                                       "width of the rows, <font color='#FFFFFF'>with some words in a color of their own</font>.</p><br>"
                                                                       "<p align='right'><font size='16'>A note in the detail size, at the right</font></p>") });
         page.items.push_back(model::Image{});
-        // the sizes the mods of the test set have
-        page.items.push_back(model::Text{ .lines = model::parseMarkup("<font size='40'>Size 40</font> <font size='30'>Size 30</font> <font size='24'>Size 24</font> "
-                                                                      "<font size='16'>Size 16</font> <font size='15'>Size 15</font> <font size='10'>Size 10</font>") });
         page.items.push_back(model::Text{ .lines = model::plainLines("A text row with no tags.\nIts second line.") });
         page.items.push_back(std::move(general));
         page.items.push_back(std::move(tools));
@@ -404,6 +402,24 @@ TEST_CASE("FullPanel render: pages that are set in under another by spaces", "[.
     auto panel = testSetPanel();
     select(panel, "FallUI - Inventory", "    Container/Barter/Companion");
     WARN("Saved " << renderToFile(panel, "mod-page-set-in", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
+{
+    const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+
+    // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
+    const auto render = [&mods](const std::optional<std::size_t> page, const std::string& name) {
+        FullPanel panel;
+        panel.setMods(mods);
+        panel.select({ .mod = 0, .page = page });
+        WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
+    };
+    render(std::nullopt, "mcm-showcase-front-page");
+    for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
+        render(page, std::format("mcm-showcase-page-{}", page + 1));
+    }
 }
 
 TEST_CASE("FullPanel render: names too long for the title bar and for the tree", "[.render]")

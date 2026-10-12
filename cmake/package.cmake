@@ -34,3 +34,17 @@ execute_process(
 if(NOT PACKAGE_RESULT EQUAL 0)
   message(FATAL_ERROR "Failed to package build into '${TARGET_ZIP}' (exit code: ${PACKAGE_RESULT})")
 endif()
+
+# The MCM showcase is an optional file of its own, for developers: an MCM config with every kind of row,
+# which shows how an MCM menu looks in the mod. It is the same for every configuration.
+set(MCM_SHOWCASE_ZIP "${PACKAGE_DIR}/${PROJECT_FRIENDLY_NAME} - MCM Showcase - v${PROJECT_VERSION} - ${PACKAGE_DATE}.7z")
+message("Packaging the MCM showcase into '${MCM_SHOWCASE_ZIP}'")
+file(REMOVE "${MCM_SHOWCASE_ZIP}")
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar cf "${MCM_SHOWCASE_ZIP}" --format=7zip -- .
+  WORKING_DIRECTORY "${ROOT_DIR}/data/mcm-showcase"
+  RESULT_VARIABLE MCM_SHOWCASE_RESULT
+)
+if(NOT MCM_SHOWCASE_RESULT EQUAL 0)
+  message(FATAL_ERROR "Failed to package the MCM showcase into '${MCM_SHOWCASE_ZIP}' (exit code: ${MCM_SHOWCASE_RESULT})")
+endif()
