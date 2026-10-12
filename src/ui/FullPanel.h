@@ -39,7 +39,8 @@ namespace mods_config::ui
         void setMods(std::vector<model::Mod> mods);
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
         void setImageDrawer(ImageDrawer drawer);
-        void select(const Selection& selection);
+        bool select(const Selection& selection);
+        bool back();
         void reset();
         void draw();
 
@@ -58,9 +59,19 @@ namespace mods_config::ui
             return _helpLine;
         }
 
+        /**
+         * Whether a press did something in the frame that was drawn last: it showed another page, or opened
+         * a quick launch entry. It is the frame the hand that points gets its pulse in. A press that changes
+         * nothing, as one on the row that is selected, is not told.
+         */
+        bool pressActed() const
+        {
+            return _pressActed;
+        }
+
     private:
         std::optional<Selection> drawTitleBar() const;
-        std::optional<PointedRow> drawFrontPage() const;
+        std::optional<PointedRow> drawFrontPage();
         void drawFooter(const ImVec2& pos) const;
 
         // the mods the menu lists, in order of their display names
@@ -79,5 +90,8 @@ namespace mods_config::ui
 
         // another page is shown since the last draw, which starts at its top
         bool _pageChanged = false;
+
+        // a press did something in the last draw
+        bool _pressActed = false;
     };
 }

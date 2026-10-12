@@ -90,7 +90,8 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | F23 | framework | imgui: an image in a canvas                                                                           | done      |
 | M22 | mod       | MCM images are shown, read from the mod's `lib.swf`                                                   | done      |
 | M23 | mod       | The panel's look: sizes for the ray, and the states of a row                                          | done      |
-| M24 | mod       | The Back button, and the menu's haptics                                                               | todo      |
+| F33 | framework | vrui: the move button takes hold after a hold delay                                                   | done      |
+| M24 | mod       | The Back button, and the menu's haptics                                                               | done      |
 
 M11 is [The menu's front page](ui-and-vr-interaction.md#the-menus-front-page), which is what the menu shows with no mod selected:
 
@@ -185,8 +186,11 @@ M23 is the look of M100 as it was tried in the headset:
 
 M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.md):
 
-- Back is a binding in the INI, which settles the button it is on. In this milestone it goes from a page of a mod to the mod's front page, from there to the menu's front page, and from there it closes the menu. A later commit adds its own step to it: a dropdown is closed, and a drag or a text edit is cancelled.
-- The hand that points gets a light pulse when it presses a row or a mod. The pulses of a Save and of a value that is rejected come with those commits.
+- Back is a short press of a button of the hand that points at the panel, either hand: the grip as shipped, and `sBackButton` in the INI. It is not a binding with a hand of its own, as the panel's move button is not: the wand that points is hidden from the game, so the game does not get the press, and a press while the player looks away from the panel stays the game's and does not close the menu.
+- The grip also moves the panel. While Back and the move are on one button, the panel is taken hold of only when the button is held for longer than a short press, 0.3 seconds. That is the framework's `UIManager::setWorldMoveHoldDelay`, which F33 adds: 0 by default, so the move button of another mod takes hold at once as before.
+- In this milestone it goes from a page of a mod to the mod's front page, from there to the menu's front page, and from there it closes the menu. A later commit adds its own step to it: a dropdown is closed, and a drag or a text edit is cancelled.
+- The hand that points gets a light pulse when its press does something: another page is shown, or a quick launch entry is opened. Back gives it too, as it always goes a step back or closes the menu. A press that changes nothing gives none: one on the row or the breadcrumb of what is shown already, on a scroll bar, or on a row of a page until its control works. The commit that makes a control work gives its change the pulse. The pattern is `sPressHaptic` in the INI, `Tick` as shipped, and `none` turns it off. The pulses of a Save and of a value that is rejected come with those commits.
+- The devbench tool has a `back` action.
 
 ### 2. Edit MCM values
 

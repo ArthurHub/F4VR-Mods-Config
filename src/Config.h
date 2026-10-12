@@ -7,6 +7,7 @@
 #include "common/CommonUtils.h"
 #include "config/ConfigBase.h"
 #include "imgui/ImGuiPointer.h"
+#include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
 
 namespace mods_config
@@ -23,6 +24,9 @@ namespace mods_config
 
         // Opens and closes the config menu
         vrcf::InputBinding openMenuBinding;
+
+        // Back: a short press of this button on the hand that points at the menu's panel. Nothing for no Back.
+        std::optional<vr::EVRButtonId> backButton;
 
         // The size of the menu's panel, with its text and its rows, and where it is put in front of the player:
         // how far, how much above the eyes, and tilted back by how many degrees. The distance and the height
@@ -57,6 +61,9 @@ namespace mods_config
         // The pointer of the menu: where the ray is on the hand, how the ray and the mark on the menu look,
         // and how fast the thumbstick scrolls
         imgui::PointerStyle pointerStyle;
+
+        // The pulse the hand that points gets as its press does something in the menu. Nothing for no pulse.
+        std::optional<vrcf::HapticPattern> pressHaptic;
 
     protected:
         virtual void loadIniConfigInternal(const CSimpleIniA& ini) override;

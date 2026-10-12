@@ -116,7 +116,6 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - Whether world geometry hides the Full panel or it always draws on top, and where the panel goes when a wall is closer than its distance
 - The width of the navigation tree
 - Whether the help line, at the bottom edge of the Full panel, is comfortable to read in the headset
-- Which controller button is Back
 - What happens to an open editing session on a save load, a loading screen, or the player's death
 - Search and filtering
 - Direct-touch interaction

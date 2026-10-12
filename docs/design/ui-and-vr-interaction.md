@@ -179,7 +179,7 @@ The panel is world-locked: it is spawned in front of the player, level, and then
 
 The panel is curved toward the player, so its sides are about as far away as its middle and nearly face the player.
 
-The player can move the panel. They point at it and hold the grip of the hand that points, and the panel follows that hand, smoothly and kept level, until the grip is released. It then stays where it was left. The button can be changed, and moving can be turned off.
+The player can move the panel. They point at it and hold the grip of the hand that points, for longer than the short press that is Back, and the panel follows that hand, smoothly and kept level, until the grip is released. It then stays where it was left. The button can be changed, and moving can be turned off.
 
 - Closing and reopening creates a fresh placement from the player's current position.
 - Resuming Full mode from Minimized also creates a fresh placement.
@@ -197,7 +197,7 @@ Whether world geometry hides the panel, and where the panel goes when a wall is 
 - Trigger activates controls and performs drags.
 - Thumbstick scrolls the list under the pointer, or adjusts the currently focused control where defined.
 - A dropdown, popup, or confirmation opens inside the panel and stays within its edges, so the panel is the only surface the ray has to reach. A list too long for the panel scrolls inside its popup.
-- Back follows the navigation hierarchy; see [Back behavior](#back-behavior). Which controller button it uses is not decided.
+- Back follows the navigation hierarchy; see [Back behavior](#back-behavior). It is a short press of the grip of the hand that points at the panel, and the button can be changed.
 - Direct touch on the ImGui panel can be explored later.
 - There is no fake desktop mouse cursor or operating-system mouse emulation.
 
@@ -216,6 +216,8 @@ Nothing more is withheld while the menu is open. The player can point away from 
 
 ## Back behavior
 
+Back is a short press of the grip on the hand that points at the panel, either hand. Holding the grip longer moves the panel, and is not Back. That wand is hidden from the game, so the game does not get the press. A press while no ray is on the panel is the game's: the player who looks away to try a change does not step back or close the menu with it.
+
 Back resolves the most local temporary interaction first:
 
 1. Cancel an active drag or text edit.
@@ -230,10 +232,12 @@ Step 4 leaves the mod. When the mod has unsaved changes, the player gets the Sav
 
 Haptic feedback should be restrained and meaningful:
 
-- Light pulse when a target becomes actively engaged
+- Light pulse when a press does something
 - Distinct confirmation for Save or successful action
 - Distinct error pulse for rejected input
 - No pulse for every rendered frame or every tiny slider increment
+
+The light pulse is given to the hand that points, in the frame its press does something: another page is shown, a quick launch entry is opened, a value is changed, Back goes a step back or closes the menu. A press that changes nothing gives none, as one on the row that is selected already. It is a pattern of the framework by its name, `Tick`, which can be changed and turned off.
 
 Exact haptic profiles can use the future CommonFramework `Haptic` control/configuration design.
 

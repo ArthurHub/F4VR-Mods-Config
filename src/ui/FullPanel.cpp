@@ -121,8 +121,9 @@ namespace mods_config::ui
     /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
+     * Returns whether it shows another page than before.
      */
-    void FullPanel::select(const Selection& selection)
+    bool FullPanel::select(const Selection& selection)
     {
         Selection shown;
         if (selection.mod && *selection.mod < _mods.size()) {
@@ -132,12 +133,26 @@ namespace mods_config::ui
             }
         }
         if (shown == _selection) {
-            return;
+            return false;
         }
         _selection = shown;
         _pageChanged = true;
         _helpLine.clear();
         _modTree.showSelection();
+        return true;
+    }
+
+    /**
+     * Goes one step back: from a page of a mod to the mod's front page, and from there to the menu's front page.
+     * Returns false on the menu's front page, which has nothing before it: Back closes the menu there.
+     */
+    bool FullPanel::back()
+    {
+        if (!_selection.mod) {
+            return false;
+        }
+        select(_selection.page ? Selection{ .mod = _selection.mod, .page = std::nullopt } : Selection{});
+        return true;
     }
 
     /**
@@ -148,6 +163,7 @@ namespace mods_config::ui
     {
         _selection = {};
         _pageChanged = true;
+        _pressActed = false;
         _helpLine.clear();
         _modTree.showTop();
     }
@@ -158,6 +174,7 @@ namespace mods_config::ui
      * The help line has the row of the page the ray is on, until the ray is on another or leaves the page:
      * in the gap between two rows it keeps the row it has, so it does not flicker as the ray sweeps the rows.
      * A press selects once all of the panel is drawn, so a frame is drawn with one selection.
+     * It also tells whether a press did something in this frame, for the pulse of the hand that points.
      */
     void FullPanel::draw()
     {
@@ -166,6 +183,7 @@ namespace mods_config::ui
             _styleApplied = true;
         }
 
+        _pressActed = false;
         auto pressed = drawTitleBar();
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
@@ -204,8 +222,9 @@ namespace mods_config::ui
         }
         drawFooter(ImVec2(bodyPos.x, bodyPos.y + bodyHeight + theme::SPACE_3));
 
-        if (pressed) {
-            select(*pressed);
+        // a press on the row or the breadcrumb of what is shown already changes nothing
+        if (pressed && select(*pressed)) {
+            _pressActed = true;
         }
     }
 
@@ -275,7 +294,7 @@ namespace mods_config::ui
      * version, and the quick launch section. The section is left out while it has no entry.
      * Returns the quick launch entry the ray is on, for the help line.
      */
-    std::optional<PointedRow> FullPanel::drawFrontPage() const
+    std::optional<PointedRow> FullPanel::drawFrontPage()
     {
         // a page's own text is in from the edges of the page, as its rows' texts are
         ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + theme::SPACE_2, ImGui::GetCursorPosY() + theme::SPACE_1));
@@ -294,6 +313,7 @@ namespace mods_config::ui
             bool onRow = false;
             if (quickLaunchRow(entry.name.c_str(), onRow)) {
                 entry.open();
+                _pressActed = true;
             }
             if (onRow) {
                 pointed = PointedRow{ .text = entry.name, .help = entry.help };

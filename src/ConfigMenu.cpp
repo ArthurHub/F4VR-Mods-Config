@@ -6,6 +6,8 @@
 #include "f4sevr/PapyrusUtils.h"
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
+#include "vrcf/VRControllersHaptic.h"
+#include "vrcf/VRControllersManager.h"
 #include "vrui/UIManager.h"
 #include "vrui/UIPanelStyle.h"
 
@@ -21,6 +23,10 @@ namespace
     // panel. At 1 the sides are as far from the player as the middle. It is a little flatter than that, as
     // tuned in the headset: 25 of the panel's own units at the shipped distance and scale, which are 20.
     constexpr float PANEL_CURVE_BY_DISTANCE = 1.25f;
+
+    // The longest a press of the Back button is held to be Back, in seconds. On the button that moves the panel,
+    // a press that is held longer moves it.
+    constexpr float SHORT_PRESS_SECONDS = 0.3f;
 
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
     constexpr float WRIST_BUTTON_HEIGHT = 2.2f;
@@ -142,9 +148,26 @@ namespace mods_config
     }
 
     /**
+     * Goes one step back in the panel, and closes the menu from its front page.
+     * Nothing while the menu is minimized: its panel is not shown then.
+     */
+    void ConfigMenu::back()
+    {
+        if (!isOpen() || isMinimized()) {
+            return;
+        }
+        if (!_fullPanel.back()) {
+            close();
+        }
+    }
+
+    /**
      * Applies what a press asked for: closing the menu, or minimizing it and opening FRIK's config.
      * It is done here, in the mod's frame update, and not where the press is seen: a wrist button's handler
      * runs while the UI manager iterates its elements, and the panel's content while its frame is built.
+     * Back is seen here too. It is a short press of a button of the hand that points at the panel, either hand,
+     * whose wand is hidden from the game then: the game does not get the press, and a press while the player
+     * looks away is the game's.
      */
     void ConfigMenu::onFrameUpdate()
     {
@@ -152,6 +175,14 @@ namespace mods_config
         imgui::pointer().setStyle(g_config.pointerStyle);
         if (isOpen() && g_config.panelChanged.exchange(false)) {
             applyPanelConfig();
+        }
+
+        const auto& pointer = imgui::pointer().state();
+        if (isOpen() && pointer.canvas && g_config.backButton &&
+            vrcf::VRControllers.isReleased(pointer.primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand, *g_config.backButton, SHORT_PRESS_SECONDS)) {
+            // before the step: the menu's front page closes the menu, and the pointer is gone with it
+            pulse();
+            back();
         }
 
         if (_openFrikRequested) {
@@ -175,6 +206,9 @@ namespace mods_config
         _panel->setInteractive(true);
         _panel->setContent([this] {
             _fullPanel.draw();
+            if (_fullPanel.pressActed()) {
+                pulse();
+            }
         });
         _fullPanel.setQuickLaunch(quickLaunchEntries());
         _fullPanel.setImageDrawer([this](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
@@ -189,7 +223,7 @@ namespace mods_config
 
     /**
      * Gives the panel what the config has for it: its look, its size, its place from where it was put in
-     * front of the player, and how it is moved. It is called when the menu opens, and when the config is loaded
+     * front of the player, and how it is moved: after a short press, where that is Back. It is called when the menu opens, and when the config is loaded
      * again while the menu is open, so a change of the file shows at once. The place is from where the panel is now, also after a hand moved it.
      */
     void ConfigMenu::applyPanelConfig() const
@@ -212,6 +246,20 @@ namespace mods_config
         _panel->setCurveRadius(PANEL_CURVE_BY_DISTANCE * g_config.panelDistance / g_config.panelScale);
         g_uiManager->setWorldMoveButton(g_config.moveButton);
         g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
+        // Back and the move are on one button as shipped: a short press of it is Back, and a longer one moves
+        g_uiManager->setWorldMoveHoldDelay(g_config.backButton == g_config.moveButton ? SHORT_PRESS_SECONDS : 0.0f);
+    }
+
+    /**
+     * Gives the hand that points the config's pulse: in the frame its press does something in the panel, and
+     * when its Back goes a step back or closes the menu.
+     */
+    void ConfigMenu::pulse()
+    {
+        if (!g_config.pressHaptic) {
+            return;
+        }
+        vrcf::VRHaptics.trigger(imgui::pointer().state().primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand, *g_config.pressHaptic);
     }
 
     /**

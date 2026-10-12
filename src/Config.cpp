@@ -28,6 +28,9 @@ namespace mods_config
                 .duration = 1.5f,
             });
 
+        // a word that is not a button, as "none" is, leaves the menu with no Back
+        backButton = vrcf::parseButton(ini.GetValue(DEFAULT_SECTION, "sBackButton", "grip"));
+
         // a panel has a size and stands in front of the player, whatever the file says
         panelScale = (std::max)(static_cast<float>(ini.GetDoubleValue(PANEL_SECTION, "fScale", 6.0)), 1.0f);
         panelDistance = (std::max)(static_cast<float>(ini.GetDoubleValue(PANEL_SECTION, "fDistance", 120.0)), 20.0f);
@@ -63,6 +66,9 @@ namespace mods_config
         pointerStyle.markBorderColor = getColorValue(ini, POINTER_SECTION, "sMarkBorderColor", defaults.markBorderColor);
         pointerStyle.markBorderWidth = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fMarkBorderWidth", defaults.markBorderWidth));
         pointerStyle.scrollSpeed = static_cast<float>(ini.GetDoubleValue(POINTER_SECTION, "fScrollSpeed", defaults.scrollSpeed));
+
+        // "none" is no pulse, and so is a word that is not a pattern
+        pressHaptic = vrcf::parseHapticPattern(ini.GetValue(POINTER_SECTION, "sPressHaptic", "Tick"));
 
         // last, so the menu gives its panel the values when all of them are read
         panelChanged = true;

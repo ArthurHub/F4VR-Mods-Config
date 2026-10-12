@@ -115,6 +115,23 @@ namespace mods_config::devbench
         }
 
         /**
+         * One step back in the open menu, as the Back button does: the answer has what the panel shows then,
+         * and whether the menu is still open.
+         */
+        json runBack(const json&)
+        {
+            auto& menu = g_modsConfig.menu();
+            if (!menu.isOpen()) {
+                throw std::runtime_error("the menu is not open");
+            }
+            menu.back();
+            const auto& selection = menu.selection();
+            return { { "open", menu.isOpen() },
+                { "mod", selection.mod ? json(*selection.mod) : json(nullptr) },
+                { "page", selection.page ? json(*selection.page) : json(nullptr) } };
+        }
+
+        /**
          * The mods the menu lists, in its order: each with its names and the names of its pages.
          */
         json runMods(const json&)
@@ -166,7 +183,7 @@ namespace mods_config::devbench
     void setupDevBenchTool()
     {
         f4cf::devbench::setToolDescription(
-            "Mods Config VR: the in-game configuration menu for mods - open and close the menu, read its state and the mods it lists, show a mod or one of its pages");
+            "Mods Config VR: the in-game configuration menu for mods - open and close the menu, read its state and the mods it lists, show a mod or one of its pages, go back");
 
         f4cf::devbench::setStateProvider<MCDevState>(stateDescription(), &captureState, &stateToJson);
 
@@ -179,6 +196,11 @@ namespace mods_config::devbench
             .name = "close",
             .description = "close the config menu",
             .handler = &runClose,
+        });
+        f4cf::devbench::addAction({
+            .name = "back",
+            .description = "one step back in the open menu, as the Back button: a page to its mod's front page, that to the menu's front page, and from there the menu closes",
+            .handler = &runBack,
         });
         f4cf::devbench::addAction({
             .name = "mods",

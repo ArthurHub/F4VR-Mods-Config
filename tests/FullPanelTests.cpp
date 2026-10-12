@@ -311,6 +311,75 @@ TEST_CASE("FullPanel: a breadcrumb before the last is pressed to go there")
     CHECK(panel.selection() == Selection{});
 }
 
+TEST_CASE("FullPanel: Back goes from a page to its mod's front page, and from there to the menu's front page")
+{
+    auto panel = threeMods();
+    panel.select(selectionOf(0, 1));
+
+    CHECK(panel.back());
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(panel.back());
+    CHECK(panel.selection() == Selection{});
+
+    // the menu's front page has nothing before it: the menu is closed there
+    CHECK_FALSE(panel.back());
+    CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: a press that shows another page acts, and one that changes nothing does not")
+{
+    const test_panel::PanelContext context;
+    auto panel = modWithHelp();
+    drawFrames(panel, 2);
+
+    // whether a press at a place acted in one of its frames
+    const auto acts = [&panel](const ImVec2 at) {
+        bool acted = false;
+        for (const bool pressed : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, at, pressed);
+            acted = acted || panel.pressActed();
+        }
+        return acted;
+    };
+
+    // the mod's page, which is the row under the mod's own
+    CHECK(acts(treeRow(1)));
+    CHECK(panel.selection() == selectionOf(0, 0));
+    // it is shown already
+    CHECK_FALSE(acts(treeRow(1)));
+
+    // a row of the page changes nothing yet, and neither does a press where the page has no row
+    CHECK_FALSE(acts(pageRow(0)));
+    CHECK_FALSE(acts(pageRow(NO_PAGE_ROW)));
+
+    // a breadcrumb that goes somewhere
+    CHECK(acts(modCrumb()));
+    CHECK(panel.selection() == selectionOf(0));
+
+    // it acts in the frame of the press alone
+    drawFrames(panel, 2);
+    CHECK_FALSE(panel.pressActed());
+}
+
+TEST_CASE("FullPanel: a press that opens a quick launch entry acts")
+{
+    const test_panel::PanelContext context;
+    FullPanel panel;
+    int opened = 0;
+    panel.setQuickLaunch({ { .name = "FRIK", .help = {}, .open = [&opened] {
+                                ++opened;
+                            } } });
+    drawFrames(panel, 2);
+
+    bool acted = false;
+    for (const bool pressed : { false, false, true, false, false }) {
+        test_panel::drawFrame(panel, ImVec2(640.0f, 250.0f), pressed);
+        acted = acted || panel.pressActed();
+    }
+    CHECK(opened == 1);
+    CHECK(acted);
+}
+
 TEST_CASE("FullPanel: a row that is selected outside the shown rows of the tree is scrolled to")
 {
     const test_panel::PanelContext context;

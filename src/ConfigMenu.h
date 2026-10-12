@@ -27,6 +27,7 @@ namespace mods_config
         void close();
         void setMinimized(bool minimized);
         void recenter();
+        void back();
         void onFrameUpdate();
 
         void setMods(std::vector<model::Mod> mods);
@@ -39,6 +40,7 @@ namespace mods_config
         void createPanel();
         void applyPanelConfig() const;
         void createWristButtons();
+        static void pulse();
         void drawImage(const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max);
         std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();
 
