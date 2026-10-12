@@ -338,9 +338,9 @@ def wb(label):
     return f'<div class="mc-wristbtn"><span class="top t-detail">CLICK</span><span class="t-body">{label}</span></div>'
 wr_body = f'''<div class="mc-world mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">Menu open</span>
-<div class="mc-wrist">{wb('MINIMIZE')}{wb('CLOSE')}{wb('FRIK')}</div>
+<div class="mc-wrist">{wb('MINIMIZE')}{wb('CLOSE')}</div>
 <span class="t-detail mc-caption">Minimized</span>
-<div class="mc-wrist">{wb('RESUME')}{wb('CLOSE')}{wb('FRIK')}</div>
+<div class="mc-wrist">{wb('RESUME')}{wb('CLOSE')}</div>
 </div>'''
 write('WristButtons', page('<!-- @dsCard group="Panels" height=360 width=520 subtitle="vrui UIButtonPanel, 3 x 2.2 units, F4VR_BUTTON_STYLE" -->', 'Wrist buttons', wr_body))
 print('ok')

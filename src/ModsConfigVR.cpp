@@ -96,7 +96,7 @@ namespace mods_config
      */
     void ModsConfigVR::takeOpenGestureFromFRIK()
     {
-        // the oldest API with isConfigOpen, which the menu's FRIK button asks
+        // the oldest API with isConfigOpen, which the menu's quick launch entry for FRIK asks
         const int err = FRIKApi::initialize(2);
         if (err != 0) {
             logger::info("FRIK API is not available (error {}), the menu works without it", err);

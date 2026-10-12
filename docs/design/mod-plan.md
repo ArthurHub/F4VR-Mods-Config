@@ -77,7 +77,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M12 | mod       | docs: the settings model, checked against three kinds of setting                                      | done      |
 | M13 | mod       | The mod's unit tests, the settings model, and the MCM loader for a mod, its pages and its rows' texts | done      |
 | M14 | mod       | The front page lists the MCM mods that are found                                                      | done      |
-| M15 | mod       | FRIK in the quick launch section                                                                      | todo      |
+| M15 | mod       | FRIK in the quick launch section                                                                      | done      |
 | M16 | mod       | A mod's pages in the tree, with every row as its text and type                                        | todo      |
 | M17 | mod       | MCM's `$` text tokens are shown as the game's translated text                                         | todo      |
 | M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | todo      |
@@ -109,7 +109,7 @@ M13 adds that model, with the MCM store still empty:
 
 M14 removes the placeholder controls of the test bed. MCM mods are listed only when `mcm_vr.dll` is loaded, and a config that does not parse is reported in the log.
 
-M15 puts FRIK in the quick launch section, when FRIK is installed. Its config is opened the way the FRIK wrist button opens it today. Other mods come to the section in milestone 6, and FRIK's entry is then there when FRIK registers for it.
+M15 puts FRIK in the quick launch section, when FRIK is installed. The entry opens FRIK's config, and the FRIK wrist button that opened it is removed. Other mods come to the section in milestone 6, and FRIK's entry is then there when FRIK registers for it.
 
 M16 expands the selected mod in the tree and shows its front page. The breadcrumbs in the title bar name the mod and the page. The tree keeps room for its scroll bar, and a row selected from a breadcrumb is scrolled into view. Every row is its text and what it is. A button, a text input and a hotkey stay such rows until the commits that make them work.
 
@@ -255,7 +255,7 @@ M58 shows a package's `applies`. The help line says when the change of the point
 | M64 | mod       | A package's button runs its client's function, with the confirmation dialog       | todo   |
 | M65 | mod       | Handoff: an action opens the mod's own UI, and the menu comes back when it closes | todo   |
 | M66 | mod       | The quick launch section takes the mods that registered for it                    | todo   |
-| M67 | mod       | FRIK's config is opened through the handoff, and its wrist button is removed      | todo   |
+| M67 | mod       | FRIK's config is opened through the handoff                                       | todo   |
 
 M62 settles what the API passes between DLLs, how its text is encoded, and how its versions are told apart. It also settles what a package writes for a button that opens the mod's own UI.
 

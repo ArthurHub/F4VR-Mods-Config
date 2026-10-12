@@ -38,6 +38,9 @@ namespace
     // where the wrist buttons lie, from the framework's place on the wrist: position, then degrees around x, y and z
     const RE::NiTransform WRIST_BUTTONS_OFFSET = common::MatrixUtils::getTransform(0, 0, 0, 0, 0, 0);
 
+    // the Open button of a quick launch row, in the panel's pixels: as wide as the design system's buttons
+    constexpr float QUICK_LAUNCH_BUTTON_WIDTH = 160.0f;
+
     /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
      * for it. The function takes no arguments, which is an empty array.
@@ -53,6 +56,24 @@ namespace
         const F4SEVR::BSFixedString script("FRIK:FRIK");
         const F4SEVR::BSFixedString function("OpenMainConfigurationMode");
         F4SEVR::CallGlobalFunctionNoWait_Internal(vm, 0, 0, &script, &function, &packedArguments);
+    }
+
+    /**
+     * A row of the quick launch section: the mod's name, and an Open button at its right end. The whole row
+     * is pressed, the button included. It says whether it was.
+     */
+    bool quickLaunchRow(const char* name)
+    {
+        ImGui::PushID(name);
+        // the name is level with the button's text
+        ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.0f, 0.5f));
+        const bool rowPressed = ImGui::Selectable(name, false, ImGuiSelectableFlags_AllowOverlap, ImVec2(0.0f, ImGui::GetFrameHeight()));
+        ImGui::PopStyleVar();
+
+        ImGui::SameLine(ImGui::GetContentRegionMax().x - QUICK_LAUNCH_BUTTON_WIDTH);
+        const bool buttonPressed = ImGui::Button("Open", ImVec2(QUICK_LAUNCH_BUTTON_WIDTH, 0.0f));
+        ImGui::PopID();
+        return rowPressed || buttonPressed;
     }
 }
 
@@ -132,9 +153,9 @@ namespace mods_config
     }
 
     /**
-     * Applies what a button press asked for: closing the menu, or minimizing it and opening FRIK's config.
-     * It is done here, in the mod's frame update, and not in the press handler, which runs while the
-     * UI manager iterates its elements.
+     * Applies what a press asked for: closing the menu, or minimizing it and opening FRIK's config.
+     * It is done here, in the mod's frame update, and not where the press is seen: a wrist button's handler
+     * runs while the UI manager iterates its elements, and the panel's content while its frame is built.
      */
     void ConfigMenu::onFrameUpdate()
     {
@@ -206,24 +227,13 @@ namespace mods_config
         _wristButtons->addElement(_minimizeButton);
         _wristButtons->addElement(closeButton);
 
-        // this menu opens with the gesture taken from FRIK, so FRIK's own config is opened from here
-        if (frik::api::FRIKApi::inst) {
-            const auto frikButton = std::make_shared<UIButtonPanel>("ModsConfigVR_FrikButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
-            frikButton->setTopText("CLICK");
-            frikButton->setMiddleText("FRIK");
-            frikButton->setOnPressHandler([this](UIButtonPanel*) {
-                _openFrikRequested = true;
-            });
-            _wristButtons->addElement(frikButton);
-        }
-
         g_uiManager->attachPresetToOffhandWrist(_wristButtons, WRIST_BUTTONS_OFFSET);
     }
 
     /**
      * The Full panel: the title, the list of the mods on the left, and beside it the menu's front page.
      */
-    void ConfigMenu::drawContent() const
+    void ConfigMenu::drawContent()
     {
         ImGui::TextUnformatted("MODS CONFIG VR");
         ImGui::Separator();
@@ -262,9 +272,26 @@ namespace mods_config
     /**
      * The menu's front page, which is what the menu shows while no mod is selected.
      */
-    void ConfigMenu::drawFrontPage() const
+    void ConfigMenu::drawFrontPage()
     {
         ImGui::TextWrapped("Settings for the mods you have installed. Pick a mod on the left to see its settings.");
         ImGui::TextDisabled("Version %s", Version::NAME.data());
+
+        drawQuickLaunch();
+    }
+
+    /**
+     * The quick launch section: an entry opens a mod's own config UI. FRIK's is the one entry, with FRIK
+     * installed: this menu took its opening gesture. With no entry the section is left out.
+     */
+    void ConfigMenu::drawQuickLaunch()
+    {
+        if (!frik::api::FRIKApi::inst) {
+            return;
+        }
+        ImGui::SeparatorText("Quick launch");
+        if (quickLaunchRow("FRIK")) {
+            _openFrikRequested = true;
+        }
     }
 }

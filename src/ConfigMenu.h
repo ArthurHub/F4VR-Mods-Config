@@ -36,9 +36,10 @@ namespace mods_config
     private:
         void createPanel();
         void createWristButtons();
-        void drawContent() const;
+        void drawContent();
         void drawModList() const;
-        void drawFrontPage() const;
+        void drawFrontPage();
+        void drawQuickLaunch();
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
