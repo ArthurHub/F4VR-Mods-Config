@@ -1,6 +1,9 @@
 #include "FullPanel.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <string_view>
 
 #include <imgui.h>
 
@@ -15,8 +18,53 @@ namespace
     // the menu's name: the first breadcrumb of the title bar, which stands for the menu's front page
     constexpr auto TITLE = "MODS CONFIG VR";
 
-    // a button with a word on it, in the panel's pixels: a size of the design system that is not a token of it
+    // what stands between two breadcrumbs: U+00BB, as its bytes in UTF-8
+    constexpr auto CRUMB_SEPARATOR = "\xC2\xBB";
+
+    // The panel's sizes that are not tokens of the design system, in the panel's pixels.
+    // A button with a word on it:
     constexpr float BUTTON_WIDTH = 160.0f;
+    // and the least the mod's breadcrumb is shortened to, beside the long name of a page:
+    constexpr float MOD_CRUMB_MIN_WIDTH = theme::CONTROL_HEIGHT * 2.0f;
+
+    enum class CrumbLook : std::uint8_t
+    {
+        // a crumb before the last, which is pressed to go there
+        Link,
+        // the last crumb: where the player is
+        Current,
+        // the menu's crumb while the menu's front page is open: a solid fill, as a selected row has
+        Selected,
+    };
+
+    float crumbWidth(const std::string_view text)
+    {
+        return ui::textWidth(text) + theme::SPACE_2 * 2.0f;
+    }
+
+    /**
+     * A breadcrumb of the title bar, in the width it is given: a text that does not fit ends in an ellipsis.
+     * Returns whether it was pressed, which only a link is.
+     */
+    bool crumb(const char* id, const std::string_view text, const ImVec2& min, const float width, const CrumbLook look)
+    {
+        const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
+        bool pressed = false;
+        auto color = theme::color::GREEN;
+        if (look == CrumbLook::Selected) {
+            ImGui::GetWindowDrawList()->AddRectFilled(min, max, theme::color::GREEN, theme::RADIUS_FRAME);
+            color = theme::color::ON_GREEN;
+        } else if (look == CrumbLook::Link) {
+            ImGui::SetCursorScreenPos(min);
+            pressed = ImGui::InvisibleButton(id, ImVec2(width, theme::CONTROL_HEIGHT));
+            ui::drawRowState();
+            if (!ImGui::IsItemHovered() && !ImGui::IsItemActive()) {
+                color = theme::color::GREEN_MUTED;
+            }
+        }
+        ui::drawText(min.x + theme::SPACE_2, max.x - theme::SPACE_1, min.y, theme::CONTROL_HEIGHT, color, text);
+        return pressed;
+    }
 
     /**
      * A row of the quick launch section, laid out as a setting's row: the mod's name after the gutter, and an
@@ -33,7 +81,7 @@ namespace
         const float buttonRight = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
         const float buttonLeft = buttonRight - BUTTON_WIDTH;
         ui::drawOutline(ImVec2(buttonLeft, pos.y), ImVec2(buttonRight, pos.y + theme::CONTROL_HEIGHT), theme::color::FRAME_BORDER);
-        const float labelLeft = buttonLeft + (BUTTON_WIDTH - ImGui::CalcTextSize("Open").x) * 0.5f;
+        const float labelLeft = buttonLeft + (BUTTON_WIDTH - ui::textWidth("Open")) * 0.5f;
         ui::drawText(labelLeft, buttonRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, "Open");
 
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
@@ -44,12 +92,14 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * The mods the menu lists, from every source they come from. They are kept in order of their display names.
+     * The mods the menu lists, from every source they come from. They are kept in order of their display names,
+     * and none of them is selected.
      */
     void FullPanel::setMods(std::vector<model::Mod> mods)
     {
         std::ranges::sort(mods, common::CaseInsensitiveComparator(), &model::Mod::displayName);
         _mods = std::move(mods);
+        reset();
     }
 
     void FullPanel::setQuickLaunch(std::vector<QuickLaunchEntry> entries)
@@ -58,8 +108,41 @@ namespace mods_config::ui
     }
 
     /**
+     * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
+     * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
+     */
+    void FullPanel::select(const Selection& selection)
+    {
+        Selection shown;
+        if (selection.mod && *selection.mod < _mods.size()) {
+            shown.mod = selection.mod;
+            if (selection.page && *selection.page < _mods[*selection.mod].pages.size()) {
+                shown.page = selection.page;
+            }
+        }
+        if (shown == _selection) {
+            return;
+        }
+        _selection = shown;
+        _pageChanged = true;
+        _modTree.showSelection();
+    }
+
+    /**
+     * The panel as the menu opens: on the menu's front page, with the tree at its top. A menu that was closed
+     * does not keep its place.
+     */
+    void FullPanel::reset()
+    {
+        _selection = {};
+        _pageChanged = true;
+        _modTree.showTop();
+    }
+
+    /**
      * Draws the panel into the current ImGui window: the title bar, and under it the tree of the mods with
-     * the menu's front page beside it.
+     * the menu's front page or the selected mod's page beside it.
+     * A press selects once all of the panel is drawn, so a frame is drawn with one selection.
      */
     void FullPanel::draw()
     {
@@ -68,40 +151,94 @@ namespace mods_config::ui
             _styleApplied = true;
         }
 
-        drawTitleBar();
+        auto pressed = drawTitleBar();
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
 
-        _modTree.draw(_mods);
+        if (const auto row = _modTree.draw(_mods, _selection)) {
+            pressed = row;
+        }
 
         ImGui::SameLine(0.0f, theme::SPACE_4);
+        if (_pageChanged) {
+            // the pages share the pane, which would keep the place the page before was scrolled to
+            ImGui::SetNextWindowScroll(ImVec2(0.0f, 0.0f));
+            _pageChanged = false;
+        }
         if (ImGui::BeginChild("Content")) {
-            drawFrontPage();
+            if (_selection.mod) {
+                const auto& mod = _mods[*_selection.mod];
+                _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage);
+            } else {
+                drawFrontPage();
+            }
         }
         ImGui::EndChild();
+
+        if (pressed) {
+            select(*pressed);
+        }
     }
 
     /**
-     * The title bar, with a line under it. The menu's name is its first breadcrumb and stands for the menu's
-     * front page, so it is drawn selected while that page is open: a solid fill, as a selected row has.
+     * The title bar, with a line under it. Its breadcrumbs say where the player is: the menu, the selected
+     * mod, and the page. The last is where the player is, and each one before it is pressed to go there.
+     * The menu's crumb stands for the menu's front page, and is drawn selected while that page is open.
+     * Returns what a pressed crumb selects.
      */
-    void FullPanel::drawTitleBar() const
+    std::optional<Selection> FullPanel::drawTitleBar() const
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ImGui::GetContentRegionAvail().x;
-        auto* drawList = ImGui::GetWindowDrawList();
+        std::optional<Selection> pressed;
 
         ImGui::SetWindowFontScale(theme::FONT_SCALE_TITLE);
-        const float crumbTop = pos.y + (theme::TITLEBAR_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
-        const float crumbLeft = pos.x + theme::SPACE_2;
-        const float crumbRight = crumbLeft + ImGui::CalcTextSize(TITLE).x + theme::SPACE_2 * 2.0f;
-        drawList->AddRectFilled(ImVec2(crumbLeft, crumbTop), ImVec2(crumbRight, crumbTop + theme::CONTROL_HEIGHT), ImGui::GetColorU32(theme::color::GREEN), theme::RADIUS_FRAME);
-        drawText(crumbLeft + theme::SPACE_2, crumbRight, crumbTop, theme::CONTROL_HEIGHT, theme::color::ON_GREEN, TITLE);
+        // on whole pixels, so a crumb is exactly as wide as the text it was measured for
+        ImVec2 at(std::floor(pos.x + theme::SPACE_2), std::floor(pos.y + (theme::TITLEBAR_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f));
+        const float right = pos.x + width - theme::SPACE_2;
+        const float gap = theme::SPACE_1;
+        const auto* mod = _selection.mod ? &_mods[*_selection.mod] : nullptr;
+
+        if (crumb("menu", TITLE, at, crumbWidth(TITLE), mod ? CrumbLook::Link : CrumbLook::Selected)) {
+            pressed = Selection{};
+        }
+        at.x += crumbWidth(TITLE) + gap;
+
+        if (mod) {
+            const float separatorWidth = textWidth(CRUMB_SEPARATOR);
+            const auto drawSeparator = [&at, right, separatorWidth, gap] {
+                drawText(at.x, right, at.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, CRUMB_SEPARATOR);
+                at.x += separatorWidth + gap;
+            };
+            // MCM's own list sets a page in under another by spaces before its name: they are the tree's
+            const auto pageName = _selection.page ? common::trim(mod->pages[*_selection.page].name) : std::string();
+
+            // when the crumbs do not fit the bar, the mod's name is the one that is shortened
+            float modRoom = right - at.x - separatorWidth - gap;
+            if (_selection.page) {
+                modRoom -= gap + separatorWidth + gap + crumbWidth(pageName);
+            }
+            const float modWidth = (std::min)(crumbWidth(mod->displayName), (std::max)(modRoom, MOD_CRUMB_MIN_WIDTH));
+
+            drawSeparator();
+            if (crumb("mod", mod->displayName, at, modWidth, _selection.page ? CrumbLook::Link : CrumbLook::Current)) {
+                pressed = Selection{ .mod = _selection.mod, .page = std::nullopt };
+            }
+            at.x += modWidth + gap;
+
+            if (_selection.page) {
+                drawSeparator();
+                crumb("page", pageName, at, (std::min)(crumbWidth(pageName), right - at.x), CrumbLook::Current);
+            }
+        }
         ImGui::SetWindowFontScale(theme::FONT_SCALE_BODY);
 
         const float lineTop = pos.y + theme::TITLEBAR_HEIGHT - theme::BORDER_FRAME;
-        drawList->AddRectFilled(ImVec2(pos.x, lineTop), ImVec2(pos.x + width, lineTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(pos.x, lineTop), ImVec2(pos.x + width, lineTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        // the crumbs moved the cursor: the bar takes its room from where it began
+        ImGui::SetCursorScreenPos(pos);
         ImGui::Dummy(ImVec2(width, theme::TITLEBAR_HEIGHT));
+        return pressed;
     }
 
     /**

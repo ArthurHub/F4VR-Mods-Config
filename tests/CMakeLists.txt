@@ -8,13 +8,16 @@ find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}_tests
   FullPanelRenderTests.cpp
+  FullPanelTests.cpp
   McmLoaderTests.cpp
   Setup.cpp
   TestFiles.h
+  TestPanel.h
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/McmLoader.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp
   ${SOURCE_DIR}/ui/FullPanel.cpp
+  ${SOURCE_DIR}/ui/ModPage.cpp
   ${SOURCE_DIR}/ui/ModTree.cpp
 )
 

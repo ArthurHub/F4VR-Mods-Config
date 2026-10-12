@@ -30,6 +30,9 @@ namespace mods_config
         void setMods(std::vector<model::Mod> mods);
         const std::vector<model::Mod>& mods() const;
 
+        void select(const ui::Selection& selection);
+        const ui::Selection& selection() const;
+
     private:
         void createPanel();
         void createWristButtons();

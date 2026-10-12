@@ -7,14 +7,32 @@
 namespace mods_config::ui
 {
     /**
+     * The width of a line of text in the current font size.
+     */
+    float textWidth(const std::string_view text)
+    {
+        return ImGui::CalcTextSize(text.data(), text.data() + text.size()).x;
+    }
+
+    /**
      * One line of text in the current font size, centered in a height. It ends in an ellipsis where it does
      * not fit before the right edge.
      */
-    void drawText(const float left, const float right, const float top, const float height, const ImU32 color, const char* text)
+    void drawText(const float left, const float right, const float top, const float height, const ImU32 color, const std::string_view text)
     {
+        if (text.empty()) {
+            return;
+        }
         const float y = top + (height - ImGui::GetFontSize()) * 0.5f;
         ImGui::PushStyleColor(ImGuiCol_Text, color);
-        ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), ImVec2(left, y), ImVec2(right, y + ImGui::GetFontSize()), right, right, text, nullptr, nullptr);
+        ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(),
+            ImVec2(left, y),
+            ImVec2(right, y + ImGui::GetFontSize()),
+            right,
+            right,
+            text.data(),
+            text.data() + text.size(),
+            nullptr);
         ImGui::PopStyleColor();
     }
 

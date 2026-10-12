@@ -68,6 +68,8 @@ namespace mods_config
             return;
         }
         logger::info("Open config menu");
+        // a menu that was closed does not keep its place
+        _fullPanel.reset();
         createPanel();
         createWristButtons();
     }
@@ -111,6 +113,19 @@ namespace mods_config
     const std::vector<model::Mod>& ConfigMenu::mods() const
     {
         return _fullPanel.mods();
+    }
+
+    /**
+     * Shows a mod's front page or one of its pages, as a press on its row in the tree does.
+     */
+    void ConfigMenu::select(const ui::Selection& selection)
+    {
+        _fullPanel.select(selection);
+    }
+
+    const ui::Selection& ConfigMenu::selection() const
+    {
+        return _fullPanel.selection();
     }
 
     /**

@@ -1,5 +1,6 @@
 #include "devbench/MCDevBench.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
@@ -33,6 +34,10 @@ namespace mods_config::devbench
 
             // the mods the menu lists
             std::size_t modCount = 0;
+
+            // what the panel shows, each as its place in the mods and in the mod's pages: -1 for none
+            int selectedMod = -1;
+            int selectedPage = -1;
         };
 
         const char* stateDescription()
@@ -41,6 +46,8 @@ namespace mods_config::devbench
                    "pointer: onPanel (a wand's ray is on the panel), hand (primary or offhand), "
                    "x and y (where, in the panel's pixels from its top left), down (it presses the panel), wanted (ImGui uses the pointer); "
                    "mods: count (the mods the menu lists; the mods action has each of them); "
+                   "selection: mod and page (what the panel shows, each as its place from 0 in the mods action's answer; "
+                   "a null mod is the menu's front page, and a null page the mod's front page); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
         }
 
@@ -60,6 +67,17 @@ namespace mods_config::devbench
             state.pointerWanted = pointer.wantsPointer;
 
             state.modCount = menu.mods().size();
+            const auto& selection = menu.selection();
+            state.selectedMod = selection.mod ? static_cast<int>(*selection.mod) : -1;
+            state.selectedPage = selection.page ? static_cast<int>(*selection.page) : -1;
+        }
+
+        /**
+         * A place in a list, which is null for none.
+         */
+        json placeToJson(const int place)
+        {
+            return place < 0 ? json(nullptr) : json(place);
         }
 
         json stateToJson(const MCDevState& state)
@@ -74,6 +92,7 @@ namespace mods_config::devbench
                         { "down", state.pointerDown },
                         { "wanted", state.pointerWanted } } },
                 { "mods", { { "count", state.modCount } } },
+                { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", placeToJson(state.selectedPage) } } },
                 { "frik", { { "gestureTaken", state.frikGestureTaken } } },
             };
         }
@@ -110,11 +129,44 @@ namespace mods_config::devbench
             }
             return { { "mods", std::move(mods) } };
         }
+
+        /**
+         * Shows a mod's front page or one of its pages, as a press on its row does: the mod by its name, and
+         * the page by its name. With no mod it is the menu's front page.
+         */
+        json runSelect(const json& args)
+        {
+            auto& menu = g_modsConfig.menu();
+            if (!menu.isOpen()) {
+                throw std::runtime_error("the menu is not open");
+            }
+
+            ui::Selection selection;
+            if (const auto modName = args.value("mod", std::string()); !modName.empty()) {
+                const auto& mods = menu.mods();
+                const auto mod = std::ranges::find(mods, modName, &model::Mod::name);
+                if (mod == mods.end()) {
+                    throw std::runtime_error("no mod is named '" + modName + "'");
+                }
+                selection.mod = static_cast<std::size_t>(mod - mods.begin());
+
+                if (const auto pageName = args.value("page", std::string()); !pageName.empty()) {
+                    const auto page = std::ranges::find(mod->pages, pageName, &model::Page::name);
+                    if (page == mod->pages.end()) {
+                        throw std::runtime_error("the mod has no page named '" + pageName + "'");
+                    }
+                    selection.page = static_cast<std::size_t>(page - mod->pages.begin());
+                }
+            }
+            menu.select(selection);
+            return { { "mod", selection.mod ? json(*selection.mod) : json(nullptr) }, { "page", selection.page ? json(*selection.page) : json(nullptr) } };
+        }
     }
 
     void setupDevBenchTool()
     {
-        f4cf::devbench::setToolDescription("Mods Config VR: the in-game configuration menu for mods - open and close the menu, read its state and the mods it lists");
+        f4cf::devbench::setToolDescription(
+            "Mods Config VR: the in-game configuration menu for mods - open and close the menu, read its state and the mods it lists, show a mod or one of its pages");
 
         f4cf::devbench::setStateProvider<MCDevState>(stateDescription(), &captureState, &stateToJson);
 
@@ -132,6 +184,13 @@ namespace mods_config::devbench
             .name = "mods",
             .description = "the mods the menu lists, in its order: each with its name, its display name and its pages",
             .handler = &runMods,
+        });
+        f4cf::devbench::addAction({
+            .name = "select",
+            .description = "show a mod's front page or one of its pages in the open menu, or the menu's front page with no mod",
+            .arguments = { { "mod", { { "type", "string" }, { "description", "select: the mod's name, as the mods action has it; none for the menu's front page" } } },
+                { "page", { { "type", "string" }, { "description", "select: the name of a page of the mod, as the mods action has it; none for the mod's front page" } } } },
+            .handler = &runSelect,
         });
     }
 }

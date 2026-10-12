@@ -5,12 +5,17 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <format>
 #include <fstream>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include <imgui.h>
 
+#include "TestPanel.h"
 #include "Theme.h"
-#include "imgui/ImGuiFonts.h"
 #include "ui/FullPanel.h"
 
 // The Full panel drawn without the game and saved as an image, to look at a change of the UI before it is tried
@@ -19,25 +24,14 @@
 // Each says where its image is, a .bmp file in the build folder.
 
 using namespace mods_config;
+using test_panel::POINTER_AWAY;
 using ui::FullPanel;
+using ui::Selection;
 
 namespace
 {
-    // the panel as ConfigMenu.cpp makes it, in the panel's pixels, and what the framework draws it with
-    constexpr float PANEL_WIDTH = theme::PANEL_WIDTH;
-    constexpr float PANEL_HEIGHT = theme::PANEL_HEIGHT;
-    constexpr float PANEL_BORDER = theme::BORDER_PANEL;
-    constexpr float PANEL_RADIUS = theme::RADIUS_PANEL;
-    constexpr float PANEL_PADDING = theme::PANEL_PADDING;
-    constexpr ImU32 PANEL_BACKGROUND = IM_COL32(15, 15, 15, 166);
-    constexpr float FONT_SIZE = 24.0f;
-    constexpr float SUPERSAMPLE = 1.5f;
-
     // the world behind the panel's glass
     constexpr std::array<std::uint8_t, 3> WORLD{ 58, 60, 58 };
-
-    // a pointer that is on nothing
-    constexpr ImVec2 POINTER_AWAY(-1000.0f, -1000.0f);
 
     struct Image
     {
@@ -72,6 +66,11 @@ namespace
         unsigned char* alpha = nullptr;
         int width = 0;
         int height = 0;
+
+        FontTexture()
+        {
+            ImGui::GetIO().Fonts->GetTexDataAsAlpha8(&alpha, &width, &height);
+        }
 
         float at(const int x, const int y) const
         {
@@ -229,120 +228,120 @@ namespace
     }
 
     /**
-     * An ImGui context set up as the framework sets its own up for the menu's panel, with no renderer.
-     */
-    struct PanelContext
-    {
-        FontTexture font;
-
-        PanelContext()
-        {
-            ImGui::CreateContext();
-            auto& io = ImGui::GetIO();
-            io.IniFilename = nullptr;
-            io.LogFilename = nullptr;
-            io.ConfigInputTrickleEventQueue = false;
-            io.DisplaySize = ImVec2(PANEL_WIDTH, PANEL_HEIGHT);
-            io.FontGlobalScale = 1.0f / SUPERSAMPLE;
-            ImGui::StyleColorsDark();
-            f4cf::imgui::internal::loadCanvasFont(FONT_SIZE, SUPERSAMPLE);
-            io.Fonts->GetTexDataAsAlpha8(&font.alpha, &font.width, &font.height);
-        }
-
-        PanelContext(const PanelContext&) = delete;
-        PanelContext& operator=(const PanelContext&) = delete;
-
-        ~PanelContext()
-        {
-            ImGui::DestroyContext();
-        }
-    };
-
-    /**
-     * One frame of the panel, in a window as the framework's canvas makes it: the panel's background and its
-     * border, and the content inside its padding. The pointer is where the ray is on the panel.
-     */
-    void drawFrame(FullPanel& panel, const ImVec2 pointer)
-    {
-        constexpr auto WINDOW_FLAGS = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-                                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground |
-                                      ImGuiWindowFlags_NoScrollbar;
-        constexpr float HALF_BORDER = PANEL_BORDER * 0.5f;
-        constexpr float FRINGE_SCALE = 1.0f / SUPERSAMPLE;
-
-        auto& io = ImGui::GetIO();
-        io.DeltaTime = 1.0f / 90.0f;
-        io.AddMousePosEvent(pointer.x, pointer.y);
-        ImGui::NewFrame();
-
-        const ImVec2 windowMin(HALF_BORDER, HALF_BORDER);
-        const ImVec2 windowMax(PANEL_WIDTH - HALF_BORDER, PANEL_HEIGHT - HALF_BORDER);
-        ImGui::SetNextWindowPos(windowMin);
-        ImGui::SetNextWindowSize(ImVec2(PANEL_WIDTH - PANEL_BORDER, PANEL_HEIGHT - PANEL_BORDER));
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("Panel", nullptr, WINDOW_FLAGS);
-        ImGui::PopStyleVar(2);
-
-        auto* drawList = ImGui::GetWindowDrawList();
-        drawList->_FringeScale = FRINGE_SCALE;
-        drawList->AddRectFilled(windowMin, windowMax, PANEL_BACKGROUND, PANEL_RADIUS - HALF_BORDER);
-        drawList->AddRect(windowMin, windowMax, theme::color::GREEN, PANEL_RADIUS - HALF_BORDER, ImDrawFlags_None, PANEL_BORDER);
-
-        ImGui::SetCursorPos(ImVec2(PANEL_PADDING + HALF_BORDER, PANEL_PADDING + HALF_BORDER));
-        const ImVec2 contentSize(PANEL_WIDTH - (PANEL_PADDING + PANEL_BORDER) * 2.0f, PANEL_HEIGHT - (PANEL_PADDING + PANEL_BORDER) * 2.0f);
-        if (ImGui::BeginChild("content", contentSize, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground)) {
-            ImGui::GetWindowDrawList()->_FringeScale = FRINGE_SCALE;
-            ImGui::BeginGroup();
-            panel.draw();
-            ImGui::EndGroup();
-        }
-        ImGui::EndChild();
-        ImGui::End();
-        ImGui::PopStyleColor();
-        ImGui::Render();
-    }
-
-    /**
      * Draws the panel with the pointer at a place and saves it as an image, at the size the framework
-     * rasterizes the panel. A few frames are drawn first: ImGui needs them to find what the pointer is on.
+     * rasterizes the panel. A few frames are drawn first: ImGui needs them to find what the pointer is on, and
+     * to scroll to a row.
      */
     std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer)
     {
-        const PanelContext context;
-        for (int i = 0; i < 3; ++i) {
-            drawFrame(panel, pointer);
+        const test_panel::PanelContext context;
+        for (int i = 0; i < 5; ++i) {
+            test_panel::drawFrame(panel, pointer);
         }
         const std::filesystem::path folder = MODS_CONFIG_TEST_OUTPUT_DIR;
         std::filesystem::create_directories(folder);
         const auto file = folder / (name + ".bmp");
-        saveBmp(file, rasterize(*ImGui::GetDrawData(), context.font, SUPERSAMPLE));
+        saveBmp(file, rasterize(*ImGui::GetDrawData(), FontTexture(), test_panel::SUPERSAMPLE));
         return file.string();
     }
 
+    model::Item setting(const model::SettingType type, std::string text)
+    {
+        return model::Setting{ .type = type, .text = std::move(text) };
+    }
+
     /**
-     * The panel with the mods of the test set, and FRIK in its quick launch section.
+     * A page with a row of every kind a mod's menu has, some of them in sections.
+     */
+    model::Page pageOfEveryRow(std::string name)
+    {
+        using model::SettingType;
+
+        model::Group general{ .text = "General", .items = {} };
+        general.items.push_back(setting(SettingType::Switcher, "Enable the feature"));
+        general.items.push_back(setting(SettingType::Slider, "Strength"));
+        general.items.push_back(setting(SettingType::Stepper, "Hours per battery"));
+        general.items.push_back(setting(SettingType::Dropdown, "Mode"));
+        general.items.push_back(model::Spacer{});
+        general.items.push_back(setting(SettingType::Switcher, "A name that is too long for the room a row has before what the row is"));
+
+        model::Group tools{ .text = "Tools", .items = {} };
+        tools.items.push_back(setting(SettingType::TextInput, "Name of the settlement"));
+        tools.items.push_back(model::Placeholder{ .text = "Open the menu", .type = "hotkey" });
+        tools.items.push_back(model::Button{ .text = "Reset everything" });
+        tools.items.push_back(model::Placeholder{ .text = "A row with no type", .type = "" });
+
+        model::Page page{ .name = std::move(name), .items = {} };
+        page.items.push_back(model::Text{ .text = "What the mod is, in a text row at the top of its page." });
+        page.items.push_back(model::Image{});
+        page.items.push_back(std::move(general));
+        page.items.push_back(std::move(tools));
+        return page;
+    }
+
+    /**
+     * A page with more rows than the pane has room for.
+     */
+    model::Page longPage(std::string name)
+    {
+        model::Page page{ .name = std::move(name), .items = {} };
+        for (int i = 1; i <= 24; ++i) {
+            page.items.push_back(setting(model::SettingType::Switcher, std::format("Option {}", i)));
+        }
+        return page;
+    }
+
+    model::Mod modOf(const std::string& name, const std::vector<std::string>& pages = {})
+    {
+        model::Mod mod{ .name = name, .displayName = name, .frontPage = pageOfEveryRow({}), .pages = {} };
+        for (const auto& page : pages) {
+            mod.pages.push_back(longPage(page));
+        }
+        return mod;
+    }
+
+    /**
+     * The panel with the mods of the test set, each with the pages its config has, and FRIK in its quick
+     * launch section.
      */
     FullPanel testSetPanel()
     {
         std::vector<model::Mod> mods;
-        for (const auto* name : { "XDI",
-                 "Sim Settlements 2",
-                 "Auto Eat and Drink in Survival",
-                 "FallUI - Workbench",
-                 "Chemfluence",
-                 "NPCs Use Items",
-                 "Workshop Framework",
-                 "FallUI - Inventory",
-                 "Unlimited Survival Mode" }) {
-            mods.push_back({ .name = name, .displayName = name, .frontPage = {}, .pages = {} });
-        }
+        mods.push_back(modOf("XDI"));
+        mods.push_back(modOf("Sim Settlements 2", { "Hotkeys", "Gameplay", "HUD", "Notifications", "Performance", "Tools" }));
+        mods.push_back(modOf("Auto Eat and Drink in Survival"));
+        mods.push_back(modOf("FallUI - Workbench", { "$General_settings", "$Interface_coloring", "$Workbench_list" }));
+        mods.push_back(modOf("Chemfluence"));
+        mods.push_back(modOf("NPCs Use Items", { "Factions" }));
+        mods.push_back(
+            modOf("Workshop Framework", { "Hotkeys", "Settlement Gameplay", "Door Management Options", "Framework Controls", "Message Options", "Tools", "Advanced Controls" }));
+        // FallUI sets a page in under another by spaces before its name
+        mods.push_back(modOf("FallUI - Inventory",
+            { "Interface", "    Coloring", "    Text style", "Lists", "    Pipboy", "    Container/Barter/Companion", "    Columns", "Item cards", "Expert options" }));
+        mods.push_back(modOf("Unlimited Survival Mode"));
+
         FullPanel panel;
         panel.setMods(std::move(mods));
         panel.setQuickLaunch({ { .name = "FRIK", .open = [] {
                                 } } });
         return panel;
+    }
+
+    /**
+     * Shows a mod of the panel by its name, and one of its pages by the page's.
+     */
+    void select(FullPanel& panel, const std::string_view mod, const std::string_view page = {})
+    {
+        const auto& mods = panel.mods();
+        const auto found = std::ranges::find(mods, mod, &model::Mod::displayName);
+        REQUIRE(found != mods.end());
+        Selection selection{ .mod = static_cast<std::size_t>(found - mods.begin()), .page = std::nullopt };
+        if (!page.empty()) {
+            const auto foundPage = std::ranges::find(found->pages, page, &model::Page::name);
+            REQUIRE(foundPage != found->pages.end());
+            selection.page = static_cast<std::size_t>(foundPage - found->pages.begin());
+        }
+        panel.select(selection);
     }
 }
 
@@ -362,4 +361,47 @@ TEST_CASE("FullPanel render: no mods and no quick launch", "[.render]")
 {
     FullPanel panel;
     WARN("Saved " << renderToFile(panel, "front-page-empty", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: a mod's front page, with the ray on the row of another mod", "[.render]")
+{
+    auto panel = testSetPanel();
+    select(panel, "Sim Settlements 2");
+    WARN("Saved " << renderToFile(panel, "mod-front-page", ImVec2(150.0f, 275.0f)));
+}
+
+TEST_CASE("FullPanel render: a mod with no pages keeps its arrow when it is selected", "[.render]")
+{
+    auto panel = testSetPanel();
+    select(panel, "Chemfluence");
+    WARN("Saved " << renderToFile(panel, "mod-no-pages", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: a page of a mod, with the ray on the mod's breadcrumb", "[.render]")
+{
+    auto panel = testSetPanel();
+    select(panel, "Sim Settlements 2", "Gameplay");
+    WARN("Saved " << renderToFile(panel, "mod-page", ImVec2(360.0f, 50.0f)));
+}
+
+TEST_CASE("FullPanel render: a page under the tree's last rows is scrolled to", "[.render]")
+{
+    auto panel = testSetPanel();
+    select(panel, "Workshop Framework", "Advanced Controls");
+    WARN("Saved " << renderToFile(panel, "mod-page-scrolled-to", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: pages that are set in under another by spaces", "[.render]")
+{
+    auto panel = testSetPanel();
+    select(panel, "FallUI - Inventory", "    Container/Barter/Companion");
+    WARN("Saved " << renderToFile(panel, "mod-page-set-in", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: names too long for the title bar and for the tree", "[.render]")
+{
+    FullPanel panel;
+    panel.setMods({ modOf("Sim Settlements 2 - All Chapters with the City Plan Contest Packs", { "Settlement Gameplay and City Plan Options of Chapter 2" }) });
+    select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", "Settlement Gameplay and City Plan Options of Chapter 2");
+    WARN("Saved " << renderToFile(panel, "long-names", POINTER_AWAY));
 }
