@@ -265,6 +265,55 @@ TEST_CASE("McmLoader: a text row with html has its tags read, and one without sh
     CHECK(title.runs[0].size == 24);
 }
 
+TEST_CASE("McmLoader: a slider has its least, its most and its step")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "slider", "text": "Strength", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0.5, "max": 2, "step": 0.1 } },
+        { "type": "slider", "text": "No range", "valueOptions": { "sourceType": "ModSettingFloat" } },
+        { "type": "slider", "text": "No valueOptions" },
+        { "type": "slider", "text": "Not numbers", "valueOptions": { "min": "1", "max": null, "step": [5] } }
+    )");
+
+    const auto& strength = std::get<model::Setting>(page.items[0]).valueOptions;
+    CHECK(strength.min == 0.5f);
+    CHECK(strength.max == 2.0f);
+    CHECK(strength.step == 0.1f);
+    CHECK(strength.options.empty());
+
+    // what a slider has without them
+    for (std::size_t i = 1; i < page.items.size(); ++i) {
+        const auto& valueOptions = std::get<model::Setting>(page.items[i]).valueOptions;
+        CHECK(valueOptions.min == 0.0f);
+        CHECK(valueOptions.max == 0.0f);
+        CHECK(valueOptions.step == 1.0f);
+    }
+}
+
+TEST_CASE("McmLoader: the options of a choice have their place in the list as their value")
+{
+    model::Translations translations;
+    translations.add("$MyMod_High", "Haut");
+
+    const auto mod = mcm::loadConfig(R"({ "modName": "MyMod", "content": [
+        { "type": "dropdown", "text": "Mode", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Low", "$MyMod_High", 7, "Last"] } },
+        { "type": "stepper", "text": "Quality", "valueOptions": { "options": ["Off", "On"] } },
+        { "type": "dropdown", "text": "No options", "valueOptions": { "sourceType": "ModSettingInt" } },
+        { "type": "stepper", "text": "Options that are no list", "valueOptions": { "options": "Low" } }
+    ] })",
+        translations);
+    REQUIRE(mod);
+    const auto optionsOf = [&mod](const std::size_t row) {
+        return std::get<model::Setting>(mod->frontPage.items[row]).valueOptions.options;
+    };
+    using Options = std::vector<model::Option>;
+
+    // an option's text is translated, and one that is no text keeps its place
+    CHECK(optionsOf(0) == Options{ { 0, "Low" }, { 1, "Haut" }, { 2, "" }, { 3, "Last" } });
+    CHECK(optionsOf(1) == Options{ { 0, "Off" }, { 1, "On" } });
+    CHECK(optionsOf(2).empty());
+    CHECK(optionsOf(3).empty());
+}
+
 TEST_CASE("McmLoader: a control the menu does not support is a placeholder with its type")
 {
     const auto page = frontPageOf(R"(

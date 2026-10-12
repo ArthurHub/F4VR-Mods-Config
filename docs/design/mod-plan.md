@@ -84,7 +84,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 | M18 | mod       | FallUI's pages are translated from FallUI's own files                                                 | done      |
 | M19 | mod       | Sections, spacers and text rows, with their HTML                                                      | done      |
 | M101 | mod      | The MCM showcase, an optional file for developers                                                     | done      |
-| M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | todo      |
+| M20 | mod       | The switcher, slider, stepper and dropdown are drawn with their default values                        | done      |
 | M21 | mod       | The help line                                                                                         | todo      |
 | F22 | framework | render: a texture from pixels in memory                                                               | todo      |
 | F23 | framework | imgui: an image in a canvas                                                                           | todo      |
@@ -138,7 +138,11 @@ M19 draws the tags of a text row and removes those of a help, with one parser, a
 
 M101 adds an MCM config of our own, `data/mcm-showcase/`, with every kind of row an MCM config has, in every look: the sizes, colors and aligns of a text, the options of each control, and what a config can get wrong. It has only what works in MCM too, so the two menus are compared on it: what the package schema adds to MCM would be a showcase of its own. It is tried in the headset as each commit draws a row, and grows with them. It is packaged by itself and published as an optional file, to show a mod's author how an MCM menu looks in the mod. It has no game plugin, so what needs one stays with the test mod of M37.
 
-M20 draws the four controls with their default values, and disabled. A choice's index becomes typed options.
+M20 draws the four controls, and disabled, as they change nothing yet:
+
+- The menu has no values before M25, so a control shows what it is with none: a switcher is off, a slider is at its least, and a stepper and a dropdown show their first option.
+- The loader reads a slider's `min`, `max` and `step`, and the options of a choice. An MCM option is a text whose value is its place in the list: in the model it is an option with that number as its typed value, as a package's option has its own.
+- A row's text has the room up to its own control, so a switcher's name is longer than a slider's before it ends in an ellipsis.
 
 M21 shows the `help` text of the row the ray is on in the help line, on the left of the footer, as in [UI and VR interaction](ui-and-vr-interaction.md#help-line).
 

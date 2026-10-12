@@ -24,12 +24,43 @@ namespace mods_config::model
     };
 
     /**
+     * A value of a setting, in one of the types a setting's value has.
+     */
+    using Value = std::variant<bool, int, float, std::string>;
+
+    /**
+     * An option of a choice: the value that is stored while it is chosen, and what the player sees.
+     */
+    struct Option
+    {
+        Value value;
+        std::string text;
+
+        bool operator==(const Option&) const = default;
+    };
+
+    /**
+     * What the value of a setting can be: the range of a slider, or the options of a stepper and a dropdown.
+     */
+    struct ValueOptions
+    {
+        // the least and the most of a slider, and what it moves by
+        float min = 0.0f;
+        float max = 0.0f;
+        float step = 1.0f;
+
+        // in the order they are shown
+        std::vector<Option> options;
+    };
+
+    /**
      * A row that edits one value.
      */
     struct Setting
     {
         SettingType type = SettingType::Switcher;
         std::string text;
+        ValueOptions valueOptions;
     };
 
     /**

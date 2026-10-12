@@ -247,9 +247,21 @@ namespace
         return file.string();
     }
 
-    model::Item setting(const model::SettingType type, std::string text)
+    model::Item setting(const model::SettingType type, std::string text, model::ValueOptions valueOptions = {})
     {
-        return model::Setting{ .type = type, .text = std::move(text) };
+        return model::Setting{ .type = type, .text = std::move(text), .valueOptions = std::move(valueOptions) };
+    }
+
+    /**
+     * The options of a choice, each with its place in the list as its value.
+     */
+    model::ValueOptions optionsOf(const std::vector<std::string>& texts)
+    {
+        model::ValueOptions valueOptions;
+        for (const auto& text : texts) {
+            valueOptions.options.push_back({ .value = static_cast<int>(valueOptions.options.size()), .text = text });
+        }
+        return valueOptions;
     }
 
     /**
@@ -261,9 +273,9 @@ namespace
 
         model::Group general{ .text = "General", .items = {} };
         general.items.push_back(setting(SettingType::Switcher, "Enable the feature"));
-        general.items.push_back(setting(SettingType::Slider, "Strength"));
-        general.items.push_back(setting(SettingType::Stepper, "Hours per battery"));
-        general.items.push_back(setting(SettingType::Dropdown, "Mode"));
+        general.items.push_back(setting(SettingType::Slider, "Strength", { .min = 0.0f, .max = 2.0f, .step = 0.1f, .options = {} }));
+        general.items.push_back(setting(SettingType::Stepper, "Hours per battery", optionsOf({ "2", "4", "8" })));
+        general.items.push_back(setting(SettingType::Dropdown, "Mode", optionsOf({ "Spot", "Flood", "Lantern" })));
         general.items.push_back(model::Spacer{ .lines = 2 });
         general.items.push_back(setting(SettingType::Switcher, "A name that is too long for the room a row has before what the row is"));
 

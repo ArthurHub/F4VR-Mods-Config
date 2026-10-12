@@ -70,16 +70,57 @@ namespace
     };
 
     /**
+     * A text that the player sees, in the game's language. A FallUI mod can name the text's token beside it.
+     */
+    std::string toShownText(std::string text, const std::string& fallUIToken, const ConfigTexts& texts)
+    {
+        if (texts.fallUI) {
+            text = texts.fallUI->translate(text, fallUIToken);
+        }
+        return texts.game.translate(std::move(text));
+    }
+
+    /**
      * The text of a key that the player sees, in the game's language. A FallUI mod can name the text's token
      * in a key of its own beside it: the key's name after a `$`.
      */
     std::string getShownText(const Json& value, const char* key, const ConfigTexts& texts)
     {
-        auto text = getText(value, key);
-        if (texts.fallUI) {
-            text = texts.fallUI->translate(text, getText(value, ("$"s + key).c_str()));
+        return toShownText(getText(value, key), getText(value, ("$"s + key).c_str()), texts);
+    }
+
+    /**
+     * A number of a key, or else the given one.
+     */
+    float getNumber(const Json& value, const char* key, const float otherwise)
+    {
+        const auto found = value.find(key);
+        return found != value.end() && found->is_number() ? found->get<float>() : otherwise;
+    }
+
+    /**
+     * The `valueOptions` of a row: the range of a slider, and the options of a stepper and a dropdown.
+     * An MCM option is a text, and the value that is stored for it is its place in the list. So an entry that
+     * is no text stays in the list, with no text, and the options after it keep their values.
+     */
+    model::ValueOptions loadValueOptions(const Json& row, const ConfigTexts& texts)
+    {
+        model::ValueOptions valueOptions;
+        const auto found = row.find("valueOptions");
+        if (found == row.end() || !found->is_object()) {
+            return valueOptions;
         }
-        return texts.game.translate(std::move(text));
+        valueOptions.min = getNumber(*found, "min", valueOptions.min);
+        valueOptions.max = getNumber(*found, "max", valueOptions.max);
+        valueOptions.step = getNumber(*found, "step", valueOptions.step);
+
+        if (const auto options = found->find("options"); options != found->end() && options->is_array()) {
+            for (const auto& option : *options) {
+                const auto index = static_cast<int>(valueOptions.options.size());
+                valueOptions.options.push_back({ .value = index, .text = toShownText(option.is_string() ? option.get<std::string>() : std::string(), {}, texts) });
+            }
+        }
+        return valueOptions;
     }
 
     /**
@@ -131,7 +172,7 @@ namespace
         auto text = getShownText(row, "text", texts);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
-            return model::Setting{ .type = setting->second, .text = std::move(text) };
+            return model::Setting{ .type = setting->second, .text = std::move(text), .valueOptions = loadValueOptions(row, texts) };
         }
         if (type == "button") {
             return model::Button{ .text = std::move(text) };
@@ -189,7 +230,8 @@ namespace mods_config::mcm
 {
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
-     * text and the type of every row, the lines of a text row and the height of a spacer.
+     * text and the type of every row, the lines of a text row, the height of a spacer, the range of a slider
+     * and the options of a stepper and a dropdown.
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
