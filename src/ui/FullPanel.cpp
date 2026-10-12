@@ -21,6 +21,9 @@ namespace
     // what stands between two breadcrumbs: U+00BB, as its bytes in UTF-8
     constexpr auto CRUMB_SEPARATOR = "\xC2\xBB";
 
+    // what the help line says of a mod whose changes are not kept for a Save, while the ray is on no row
+    constexpr auto SAVED_AS_MADE = "Changes are saved as they are made";
+
     // The panel's sizes that are not tokens of the design system, in the panel's pixels.
     // A button with a word on it:
     constexpr float BUTTON_WIDTH = 160.0f;
@@ -119,8 +122,18 @@ namespace mods_config::ui
     }
 
     /**
+     * The store the panel asks for the values of the selected mod, and sets them in. It is not the panel's
+     * own, and has to outlive it. With none, as in a test of the tree, no value is available.
+     */
+    void FullPanel::setStore(model::Store* store)
+    {
+        _store = store;
+    }
+
+    /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
+     * Another mod than before starts its editing session in the store.
      * Returns whether it shows another page than before.
      */
     bool FullPanel::select(const Selection& selection)
@@ -135,9 +148,13 @@ namespace mods_config::ui
         if (shown == _selection) {
             return false;
         }
+        if (_store && shown.mod && shown.mod != _selection.mod) {
+            _store->open(_mods[*shown.mod]);
+        }
         _selection = shown;
         _pageChanged = true;
         _helpLine.clear();
+        _helpLine.setStatus(_store && shown.mod ? SAVED_AS_MADE : "");
         _modTree.showSelection();
         return true;
     }
@@ -165,6 +182,7 @@ namespace mods_config::ui
         _pageChanged = true;
         _pressActed = false;
         _helpLine.clear();
+        _helpLine.setStatus({});
         _modTree.showTop();
     }
 
@@ -173,6 +191,7 @@ namespace mods_config::ui
      * menu's front page or the selected mod's page beside it, and the footer at the bottom.
      * The help line has the row of the page the ray is on, until the ray is on another or leaves the page:
      * in the gap between two rows it keeps the row it has, so it does not flicker as the ray sweeps the rows.
+     * With no row it says that the changes of the selected mod are saved as they are made.
      * A press selects once all of the panel is drawn, so a frame is drawn with one selection.
      * It also tells whether a press did something in this frame, for the pulse of the hand that points.
      */
@@ -208,7 +227,9 @@ namespace mods_config::ui
             onPage = ImGui::IsWindowHovered();
             if (_selection.mod) {
                 const auto& mod = _mods[*_selection.mod];
-                pointed = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage);
+                auto drawn = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage, _store);
+                pointed = std::move(drawn.pointed);
+                _pressActed = drawn.changed;
             } else {
                 pointed = drawFrontPage();
             }
@@ -324,7 +345,8 @@ namespace mods_config::ui
 
     /**
      * The footer, from its top left: a line over it, and the help line. The help line has all of its width,
-     * in from its edges as the mock has it: an MCM mod has no Discard and Save beside it.
+     * in from its edges as the mock has it: an MCM mod has no Discard and Save beside it, and its status is
+     * the help line's.
      */
     void FullPanel::drawFooter(const ImVec2& pos) const
     {

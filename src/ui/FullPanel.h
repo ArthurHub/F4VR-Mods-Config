@@ -12,6 +12,7 @@
 #include "ModTree.h"
 #include "Selection.h"
 #include "model/Definition.h"
+#include "model/Store.h"
 
 namespace mods_config::ui
 {
@@ -39,6 +40,7 @@ namespace mods_config::ui
         void setMods(std::vector<model::Mod> mods);
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
         void setImageDrawer(ImageDrawer drawer);
+        void setStore(model::Store* store);
         bool select(const Selection& selection);
         bool back();
         void reset();
@@ -60,8 +62,8 @@ namespace mods_config::ui
         }
 
         /**
-         * Whether a press did something in the frame that was drawn last: it showed another page, or opened
-         * a quick launch entry. It is the frame the hand that points gets its pulse in. A press that changes
+         * Whether a press did something in the frame that was drawn last: it showed another page, opened a
+         * quick launch entry, or changed a value. It is the frame the hand that points gets its pulse in. A press that changes
          * nothing, as one on the row that is selected, is not told.
          */
         bool pressActed() const
@@ -80,6 +82,9 @@ namespace mods_config::ui
 
         // the mod and the page that are shown: none is the menu's front page
         Selection _selection;
+
+        // the values of the selected mod: not the panel's own, and none in a test that has no values
+        model::Store* _store = nullptr;
 
         ModTree _modTree;
         ModPage _modPage;

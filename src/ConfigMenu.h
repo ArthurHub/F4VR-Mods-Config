@@ -4,7 +4,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "GameGlobals.h"
 #include "imgui/UIImGuiPanel.h"
+#include "mcm/McmStore.h"
 #include "model/Definition.h"
 #include "render/Texture.h"
 #include "ui/FullPanel.h"
@@ -49,6 +51,10 @@ namespace mods_config
         std::shared_ptr<vrui::UIButtonPanel> _minimizeButton;
         bool _closeRequested = false;
         bool _openFrikRequested = false;
+
+        // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
+        GameGlobals _globals;
+        mcm::McmStore _store{ _globals };
 
         // what the panel shows
         ui::FullPanel _fullPanel;

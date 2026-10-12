@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <format>
 #include <fstream>
 #include <optional>
@@ -137,6 +138,40 @@ namespace
     }
 
     /**
+     * Where a row keeps its value, by the `sourceType` of its `valueOptions`. A row with none is kept
+     * nowhere. A `GlobalValue` names its global in `sourceForm`, as the plugin's file and the form's id in
+     * hex, with or without `0x`: `MyMod.esp|1234`. Any other source, and a global that is not written so,
+     * is one the menu does not read.
+     */
+    model::Storage loadStorage(const Json& row)
+    {
+        const auto valueOptions = row.find("valueOptions");
+        if (valueOptions == row.end() || !valueOptions->is_object()) {
+            return model::NoStorage{};
+        }
+        auto sourceType = getText(*valueOptions, "sourceType");
+        if (sourceType.empty()) {
+            return model::NoStorage{};
+        }
+        if (sourceType == "GlobalValue") {
+            const auto sourceForm = getText(*valueOptions, "sourceForm");
+            const auto separator = sourceForm.find('|');
+            const auto plugin = common::trim(sourceForm.substr(0, separator));
+            auto id = separator == std::string::npos ? std::string() : common::trim(sourceForm.substr(separator + 1));
+            if (id.starts_with("0x") || id.starts_with("0X")) {
+                id.erase(0, 2);
+            }
+            std::uint32_t formId = 0;
+            const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), formId, 16);
+            if (!plugin.empty() && !id.empty() && error == std::errc() && end == id.data() + id.size()) {
+                return model::GlobalStorage{ .plugin = plugin, .formId = formId };
+            }
+            logger::warn("The global '{}' of the row '{}' is not a plugin and an id in hex", sourceForm, getText(row, "text"));
+        }
+        return model::UnknownStorage{ .type = std::move(sourceType) };
+    }
+
+    /**
      * The language file a FallUI mod names in a row of its front page or of a page. Empty for any other mod.
      */
     std::string findFallUILanguageFile(const Json& config)
@@ -185,7 +220,11 @@ namespace
         auto text = getShownText(row, "text", texts);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
-            return model::Setting{ .type = setting->second, .text = std::move(text), .help = getHelp(row, texts), .valueOptions = loadValueOptions(row, texts) };
+            return model::Setting{ .type = setting->second,
+                .text = std::move(text),
+                .help = getHelp(row, texts),
+                .valueOptions = loadValueOptions(row, texts),
+                .storage = loadStorage(row) };
         }
         if (type == "button") {
             return model::Button{ .text = std::move(text), .help = getHelp(row, texts) };
@@ -244,7 +283,7 @@ namespace mods_config::mcm
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
      * text, the help and the type of every row, the lines of a text row, the height of a spacer, the range of a
-     * slider, the options of a stepper and a dropdown, and the pixels of an image.
+     * slider, the options of a stepper and a dropdown, the global a setting is kept in, and the pixels of an image.
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.
      * An image is read from the `lib.swf` of the mod its row names, in that mod's folder of the config folder.

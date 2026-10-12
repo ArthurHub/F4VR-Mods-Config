@@ -196,7 +196,7 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 
 | #   | Repo      | Commit                                                                              | Status |
 | --- | --------- | ----------------------------------------------------------------------------------- | ------ |
-| M25 | mod       | Globals are read and written: the switcher works                                    | todo   |
+| M25 | mod       | Globals are read and written: the switcher works                                    | done   |
 | M26 | mod       | The slider                                                                          | todo   |
 | M27 | mod       | The stepper and the dropdown                                                        | todo   |
 | M28 | mod       | Conditions show and hide rows                                                       | todo   |
@@ -208,7 +208,15 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 
 Globals come first: they are most of the test set, and need neither MCM nor Papyrus.
 
-M25 saves a change as it is made. A status line says so, and there is no Save bar.
+M25 adds the store of [The settings model](model.md#the-store), and the MCM store, which saves a change as it is made:
+
+- The loader reads where a row keeps its value. A `GlobalValue` names its global in `sourceForm`, as `MyMod.esp|1234`. A row with no `sourceType` is kept nowhere, and the store holds its value while the mod is selected. Any other source is not read until its commit, and its row stays disabled.
+- A page asks the store for its values in every frame, so a global that a script or the console changes shows at once.
+- A switcher is on when its global is 1 and off at any other number, and is written as 1 and 0, as in MCM's menu. A press anywhere on its row turns it, and gives the hand its pulse.
+- A slider, a stepper and a dropdown show the value of their global, and stay disabled until M26 and M27.
+- A global that is not in the game is not available: its plugin is not loaded, or has no global of that id. Its row is disabled, and the help line says why while the ray is on it.
+- The help line says "Changes are saved as they are made" while a mod is shown and the ray is on no row. There is no Save bar.
+- The store does not know the game: it reads and writes a global through an interface, which a test gives it without the game.
 
 M28 translates `groupControl` and `groupCondition` to the model's conditions: a number, `AND`, `OR`, and one inside another. Until this commit every row is shown.
 

@@ -11,17 +11,20 @@ add_executable(${PROJECT_NAME}_tests
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   McmLoaderTests.cpp
+  McmStoreTests.cpp
   SwfImagesTests.cpp
   TextMarkupTests.cpp
   TranslationsTests.cpp
   Setup.cpp
   TestFiles.h
+  TestGlobals.h
   TestSwf.h
   TestPanel.h
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
+  ${SOURCE_DIR}/mcm/McmStore.cpp
   ${SOURCE_DIR}/mcm/SwfImages.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/Translations.cpp

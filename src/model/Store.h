@@ -1,0 +1,49 @@
+#pragma once
+
+#include <string>
+
+#include "Definition.h"
+
+// The store of the settings model: the values of the mod that is selected, which the UI asks for and sets.
+// See docs/design/model.md.
+
+namespace mods_config::model
+{
+    /**
+     * The value of a setting as its store has it now.
+     */
+    struct StoredValue
+    {
+        // in the type of its setting: a bool for a switcher, a float for a slider, and the value of the
+        // chosen option for a stepper and a dropdown
+        Value value;
+
+        // false for a value that cannot be read or written: its row is disabled
+        bool available = false;
+
+        // why it is not available, for the player. Empty for a storage the menu does not read yet
+        std::string reason;
+    };
+
+    /**
+     * The values of the mod that is selected. The UI reads the definition to know what to draw, and asks the
+     * store for every value: it never reads or writes a global, a file or a script property itself.
+     */
+    class Store
+    {
+    public:
+        virtual ~Store() = default;
+
+        /**
+         * Starts the editing session of a mod, as the mod is selected.
+         */
+        virtual void open(const Mod& mod) = 0;
+
+        virtual StoredValue value(const Setting& setting) = 0;
+
+        /**
+         * Sets the value of a setting. Returns whether it is set.
+         */
+        virtual bool set(const Setting& setting, const Value& value) = 0;
+    };
+}

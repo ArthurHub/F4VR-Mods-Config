@@ -55,6 +55,44 @@ namespace mods_config::model
     };
 
     /**
+     * A setting that is kept nowhere: the store holds its value by itself, while the mod is selected.
+     */
+    struct NoStorage
+    {
+        bool operator==(const NoStorage&) const = default;
+    };
+
+    /**
+     * A global of the game: a form of a game plugin, by the id it has in that plugin.
+     */
+    struct GlobalStorage
+    {
+        // the file name of the plugin, as `MyMod.esp`
+        std::string plugin;
+
+        // the form's id without the plugin's place in the load order
+        std::uint32_t formId = 0;
+
+        bool operator==(const GlobalStorage&) const = default;
+    };
+
+    /**
+     * A storage the menu does not read: the value of its setting is not available.
+     */
+    struct UnknownStorage
+    {
+        // what it is, as its config names it
+        std::string type;
+
+        bool operator==(const UnknownStorage&) const = default;
+    };
+
+    /**
+     * Where the value of a setting is kept. Only the store reads it.
+     */
+    using Storage = std::variant<NoStorage, GlobalStorage, UnknownStorage>;
+
+    /**
      * A row that edits one value.
      */
     struct Setting
@@ -65,6 +103,7 @@ namespace mods_config::model
         // what the help line says of the row while the ray is on it: plain text on one line, and empty for none
         std::string help;
         ValueOptions valueOptions;
+        Storage storage;
     };
 
     /**

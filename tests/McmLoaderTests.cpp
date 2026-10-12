@@ -322,6 +322,37 @@ TEST_CASE("McmLoader: the options of a choice have their place in the list as th
     CHECK(optionsOf(3).empty());
 }
 
+TEST_CASE("McmLoader: a setting is kept in the global its row names, or nowhere")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "switcher", "text": "A global", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp|1234" } },
+        { "type": "slider", "text": "Its id in any case, with 0x", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "My Mod.esl | 0x00aBc ", "min": 1, "max": 10 } },
+        { "type": "switcher", "text": "No valueOptions" },
+        { "type": "stepper", "text": "No sourceType", "valueOptions": { "options": ["Off", "On"] } },
+        { "type": "switcher", "text": "A ModSetting", "id": "bOn:Main", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "switcher", "text": "No sourceForm", "valueOptions": { "sourceType": "GlobalValue" } },
+        { "type": "switcher", "text": "No id", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp" } },
+        { "type": "switcher", "text": "No plugin", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "|1234" } },
+        { "type": "switcher", "text": "An id that is not hex", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp|12G4" } }
+    )");
+    const auto storageOf = [&page](const std::size_t row) {
+        return std::get<model::Setting>(page.items[row]).storage;
+    };
+
+    CHECK(storageOf(0) == model::Storage(model::GlobalStorage{ .plugin = "MyMod.esp", .formId = 0x1234 }));
+    CHECK(storageOf(1) == model::Storage(model::GlobalStorage{ .plugin = "My Mod.esl", .formId = 0xABC }));
+
+    // the store holds the value of a row that names no source
+    CHECK(storageOf(2) == model::Storage(model::NoStorage{}));
+    CHECK(storageOf(3) == model::Storage(model::NoStorage{}));
+
+    // a source the menu does not read yet, and a global that is not written as one
+    CHECK(storageOf(4) == model::Storage(model::UnknownStorage{ .type = "ModSettingBool" }));
+    for (std::size_t row = 5; row < page.items.size(); ++row) {
+        CHECK(storageOf(row) == model::Storage(model::UnknownStorage{ .type = "GlobalValue" }));
+    }
+}
+
 TEST_CASE("McmLoader: a control the menu does not support is a placeholder with its type")
 {
     const auto page = frontPageOf(R"(

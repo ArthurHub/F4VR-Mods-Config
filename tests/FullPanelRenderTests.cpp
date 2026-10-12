@@ -14,9 +14,11 @@
 
 #include <imgui.h>
 
+#include "TestGlobals.h"
 #include "TestPanel.h"
 #include "Theme.h"
 #include "mcm/McmLoader.h"
+#include "mcm/McmStore.h"
 #include "model/TextMarkup.h"
 #include "ui/FullPanel.h"
 
@@ -479,9 +481,14 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
 
+    // the showcase has no game plugin, so none of its globals is in the game
+    test_globals::TestGlobals globals;
+    mcm::McmStore store(globals);
+
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
-    const auto render = [&mods](const std::optional<std::size_t> page, const std::string& name) {
+    const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
         FullPanel panel;
+        panel.setStore(&store);
         panel.setMods(mods);
         panel.select({ .mod = 0, .page = page });
         WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
@@ -489,6 +496,39 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     render(std::nullopt, "mcm-showcase-front-page");
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
         render(page, std::format("mcm-showcase-page-{}", page + 1));
+    }
+}
+
+TEST_CASE("FullPanel render: the values of a page's settings, and the status of the mod", "[.render]")
+{
+    using model::SettingType;
+    const auto global = [](const SettingType type, std::string text, const std::uint32_t formId, model::ValueOptions valueOptions = {}) {
+        return model::Setting{ .type = type,
+            .text = std::move(text),
+            .help = "What the setting does.",
+            .valueOptions = std::move(valueOptions),
+            .storage = model::GlobalStorage{ .plugin = "MyMod.esp", .formId = formId } };
+    };
+    test_globals::TestGlobals globals;
+    globals.values = { { { "MyMod.esp", 0x800 }, 1.0f }, { { "MyMod.esp", 0x801 }, 0.0f }, { { "MyMod.esp", 0x802 }, 1.3f }, { { "MyMod.esp", 0x803 }, 2.0f } };
+    mcm::McmStore store(globals);
+
+    model::Mod mod{ .name = "Values", .displayName = "Values", .frontPage = {}, .pages = {} };
+    mod.frontPage.items.push_back(global(SettingType::Switcher, "A switcher that is on", 0x800));
+    mod.frontPage.items.push_back(global(SettingType::Switcher, "A switcher that is off", 0x801));
+    mod.frontPage.items.push_back(global(SettingType::Slider, "A slider at 1.3", 0x802, { .min = 0.0f, .max = 2.0f, .step = 0.1f, .options = {} }));
+    mod.frontPage.items.push_back(global(SettingType::Stepper, "A stepper at its third option", 0x803, optionsOf({ "2", "4", "8" })));
+    mod.frontPage.items.push_back(global(SettingType::Dropdown, "A dropdown at its third option", 0x803, optionsOf({ "Spot", "Flood", "Lantern" })));
+    mod.frontPage.items.push_back(global(SettingType::Switcher, "A global that is not in the game", 0x1234));
+    mod.frontPage.items.push_back(setting(SettingType::Switcher, "A switcher that is kept nowhere"));
+
+    // with the ray off the rows, where the status is, and on the row whose value is not available
+    for (const bool onRow : { false, true }) {
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ mod });
+        panel.select({ .mod = 0, .page = std::nullopt });
+        WARN("Saved " << renderToFile(panel, onRow ? "values-not-available" : "values", onRow ? pageRow(5) : POINTER_AWAY));
     }
 }
 

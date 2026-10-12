@@ -211,6 +211,7 @@ namespace mods_config
             }
         });
         _fullPanel.setQuickLaunch(quickLaunchEntries());
+        _fullPanel.setStore(&_store);
         _fullPanel.setImageDrawer([this](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
             drawImage(pixels, min, max);
         });

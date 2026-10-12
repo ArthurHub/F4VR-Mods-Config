@@ -61,13 +61,16 @@ namespace
     /**
      * Adds a row at the cursor, as wide as the rows and as high as a control. A row that is pressed has the
      * look of a row under the ray, and a stronger one while the trigger is held. Any other is only its room.
-     * Returns whether the row is shown, and tells whether the ray is on it.
+     * Returns whether the row is shown, and tells whether the ray is on it, and whether it was pressed.
      */
-    bool addRow(const bool pressable, bool& pointed)
+    bool addRow(const bool pressable, bool& pointed, bool* pressed = nullptr)
     {
         const ImVec2 size(rowWidth(), theme::CONTROL_HEIGHT);
         if (pressable) {
-            ImGui::InvisibleButton("row", size);
+            const bool wasPressed = ImGui::InvisibleButton("row", size);
+            if (pressed) {
+                *pressed = wasPressed;
+            }
         } else {
             ImGui::Dummy(size);
         }
@@ -265,15 +268,29 @@ namespace
     }
 
     /**
+     * The text of the option a choice is at: the one whose value is the stored one, and none where no option
+     * has it. A choice whose value is not available shows its first option.
+     */
+    std::string_view optionText(const std::vector<model::Option>& options, const model::StoredValue& stored)
+    {
+        if (!stored.available) {
+            return options.empty() ? std::string_view() : std::string_view(options.front().text);
+        }
+        const auto option = std::ranges::find(options, stored.value, &model::Option::value);
+        return option != options.end() ? std::string_view(option->text) : std::string_view();
+    }
+
+    /**
      * The row of a setting at the cursor: its text after the gutter, and its control where the control column
      * ends, before the room of its Reset. The text has the room up to its own control.
-     * The menu has no values yet, so the control shows what a setting is with none: a switcher is off, a
-     * slider is at its least, and a choice is its first option. And its control is disabled, as it changes
-     * nothing: the row itself has the look of a row under the ray, as it has a help.
+     * The control shows the value the store has for the setting. A press anywhere on the row of a switcher
+     * turns it on or off. Any other control is disabled until the commit that makes it work, and so is one
+     * whose value is not available, which shows what a setting is with no value: the row itself has the
+     * look of a row under the ray, as it has a help.
      * A text input is its text and its type until the commit that draws it.
-     * Returns whether the ray is on the row.
+     * Returns whether the ray is on the row. Tells a change of the value, and why a value is not available.
      */
-    bool drawSetting(const model::Setting& setting)
+    bool drawSetting(const model::Setting& setting, model::Store* store, bool& changed, std::string& reason)
     {
         if (setting.type == model::SettingType::TextInput) {
             return drawRow(setting.text, "textinput");
@@ -281,67 +298,79 @@ namespace
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
         bool pointed = false;
-        if (!addRow(true, pointed)) {
+        bool pressed = false;
+        if (!addRow(true, pointed, &pressed)) {
             return false;
         }
 
+        auto stored = store ? store->value(setting) : model::StoredValue{};
         const auto& options = setting.valueOptions;
-        const std::string_view firstOption = options.options.empty() ? std::string_view() : std::string_view(options.options.front().text);
+        const auto* on = std::get_if<bool>(&stored.value);
+        const auto* number = std::get_if<float>(&stored.value);
+        const bool edited = stored.available && setting.type == model::SettingType::Switcher && on;
         const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
         float left = right;
 
-        ImGui::BeginDisabled();
+        ImGui::BeginDisabled(!edited);
         switch (setting.type) {
         case model::SettingType::Switcher:
-            left = drawSwitcher(right, pos.y, false);
+            left = drawSwitcher(right, pos.y, on && *on);
             break;
         case model::SettingType::Slider:
-            left = drawSlider(right, pos.y, options, options.min);
+            left = drawSlider(right, pos.y, options, number ? *number : options.min);
             break;
         case model::SettingType::Stepper:
-            left = drawStepper(right, pos.y, firstOption);
+            left = drawStepper(right, pos.y, optionText(options.options, stored));
             break;
         case model::SettingType::Dropdown:
-            left = drawDropdown(right, pos.y, firstOption);
+            left = drawDropdown(right, pos.y, optionText(options.options, stored));
             break;
         case model::SettingType::TextInput:
             break;
         }
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
         ImGui::EndDisabled();
+
+        if (pressed && edited && store->set(setting, !*on)) {
+            changed = true;
+        }
+        reason = std::move(stored.reason);
         return pointed;
     }
 
-    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, std::optional<ui::PointedRow>& pointed);
+    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, model::Store* store, ui::PageDrawn& drawn);
 
     /**
      * Draws an item as its row. A section is its heading, with the rows of its items under it, and a spacer
      * is empty space as high as its lines of text. An image that could not be read is a row that says an
      * image is there.
-     * A row with a text that the ray is on is told as the pointed one.
+     * A row with a text that the ray is on is told as the pointed one. A setting whose value is not
+     * available has the reason as its help, where the store gives one.
      */
     struct ItemDrawer
     {
         const ui::ImageDrawer& imageDrawer;
-        std::optional<ui::PointedRow>& pointed;
+        model::Store* store;
+        ui::PageDrawn& drawn;
 
         void operator()(const model::Setting& setting) const
         {
-            if (drawSetting(setting)) {
-                pointed = ui::PointedRow{ .text = setting.text, .help = setting.help };
+            std::string reason;
+            if (drawSetting(setting, store, drawn.changed, reason)) {
+                drawn.pointed = ui::PointedRow{ .text = setting.text, .help = reason.empty() ? setting.help : std::move(reason) };
             }
         }
 
         void operator()(const model::Group& group) const
         {
             ui::sectionHeading(group.text);
-            drawItems(group.items, imageDrawer, pointed);
+            drawItems(group.items, imageDrawer, store, drawn);
         }
 
         void operator()(const model::Button& button) const
         {
             if (drawRow(button.text, "button")) {
-                pointed = ui::PointedRow{ .text = button.text, .help = button.help };
+                drawn.pointed = ui::PointedRow{ .text = button.text, .help = button.help };
             }
         }
 
@@ -367,17 +396,17 @@ namespace
         void operator()(const model::Placeholder& placeholder) const
         {
             if (drawRow(placeholder.text, placeholder.type.empty() ? "unknown" : std::string_view(placeholder.type))) {
-                pointed = ui::PointedRow{ .text = placeholder.text, .help = placeholder.help };
+                drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = placeholder.help };
             }
         }
     };
 
-    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, std::optional<ui::PointedRow>& pointed)
+    void drawItems(const std::vector<model::Item>& items, const ui::ImageDrawer& imageDrawer, model::Store* store, ui::PageDrawn& drawn)
     {
         for (const auto& item : items) {
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
-            std::visit(ItemDrawer{ imageDrawer, pointed }, item);
+            std::visit(ItemDrawer{ imageDrawer, store, drawn }, item);
             ImGui::PopID();
         }
     }
@@ -391,14 +420,16 @@ namespace mods_config::ui
     }
 
     /**
-     * Draws the rows of a page into the current ImGui window, which scrolls them.
+     * Draws the rows of a page into the current ImGui window, which scrolls them, with the values the store
+     * has for its settings. With no store no value is available.
      * Returns the row the ray is on, for the help line: none in the gap between two rows, and none on a row
-     * that has no text of its own, as a section, a text row, an image and a spacer.
+     * that has no text of its own, as a section, a text row, an image and a spacer. And whether a press
+     * changed a value.
      */
-    std::optional<PointedRow> ModPage::draw(const model::Page& page) const
+    PageDrawn ModPage::draw(const model::Page& page, model::Store* store) const
     {
-        std::optional<PointedRow> pointed;
-        drawItems(page.items, _imageDrawer, pointed);
-        return pointed;
+        PageDrawn drawn;
+        drawItems(page.items, _imageDrawer, store, drawn);
+        return drawn;
     }
 }

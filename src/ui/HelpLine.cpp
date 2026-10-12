@@ -37,13 +37,23 @@ namespace mods_config::ui
     }
 
     /**
+     * What the line says while the ray is on no row: the status of the mod's editing session, and nothing
+     * where there is none, as on the menu's front page.
+     */
+    void HelpLine::setStatus(const std::string_view status)
+    {
+        _status = status;
+    }
+
+    /**
      * Draws the line from a place at the top of the footer, in the middle of the footer's height.
      * It is two lines of body text at most. A help that needs a third is drawn in the detail size, where
-     * three lines fit, and a longer one ends in an ellipsis.
+     * three lines fit, and a longer one ends in an ellipsis. With no row it is the status, in the muted color.
      */
     void HelpLine::draw(const ImVec2& pos, const float width) const
     {
-        const std::array pieces{ TextPiece{ .text = _name, .color = theme::color::GREEN }, TextPiece{ .text = _help, .color = theme::color::GREEN_MUTED } };
+        const bool hasRow = !_name.empty() || !_help.empty();
+        const std::array pieces{ TextPiece{ .text = _name, .color = theme::color::GREEN }, TextPiece{ .text = hasRow ? _help : _status, .color = theme::color::GREEN_MUTED } };
         int lines = countTextLines(pieces, width);
         if (lines == 0) {
             return;
@@ -58,7 +68,7 @@ namespace mods_config::ui
     }
 
     /**
-     * The line's text, as it is shown before it is wrapped and cut.
+     * The text of the line's row, as it is shown before it is wrapped and cut. Empty with no row.
      */
     std::string HelpLine::text() const
     {

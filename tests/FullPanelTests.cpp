@@ -11,8 +11,10 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "TestGlobals.h"
 #include "TestPanel.h"
 #include "Theme.h"
+#include "mcm/McmStore.h"
 #include "ui/FullPanel.h"
 
 using namespace mods_config;
@@ -122,6 +124,60 @@ namespace
         panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
+    }
+
+    constexpr auto PLUGIN = "MyMod.esp";
+
+    model::Item globalSetting(const model::SettingType type, std::string text, const std::uint32_t formId)
+    {
+        return model::Setting{ .type = type,
+            .text = std::move(text),
+            .help = "What it does.",
+            .valueOptions = {},
+            .storage = model::GlobalStorage{ .plugin = PLUGIN, .formId = formId } };
+    }
+
+    /**
+     * Globals for the mod with values: 0x800 is 0 and 0x801 is 1.
+     */
+    test_globals::TestGlobals someGlobals()
+    {
+        test_globals::TestGlobals globals;
+        globals.values = { { { PLUGIN, 0x800 }, 0.0f }, { { PLUGIN, 0x801 }, 1.0f } };
+        return globals;
+    }
+
+    /**
+     * A panel with one mod, shown on its front page, with its values in a store: two switchers of a global,
+     * a slider of one, a switcher of a global that is not in the game, and a switcher that is kept nowhere.
+     */
+    FullPanel modWithValues(model::Store& store)
+    {
+        auto mod = modOf("Alpha");
+        mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Off", 0x800));
+        mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "On", 0x801));
+        mod.frontPage.items.push_back(globalSetting(model::SettingType::Slider, "Strength", 0x801));
+        mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Missing", 0x1234));
+        mod.frontPage.items.push_back(model::Setting{ .type = model::SettingType::Switcher, .text = "Unfold", .help = {}, .valueOptions = {}, .storage = {} });
+
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ std::move(mod), modOf("Beta") });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    /**
+     * A press at a place on the panel. Returns whether it acted in one of its frames.
+     */
+    bool pressActs(FullPanel& panel, const ImVec2 at)
+    {
+        bool acted = false;
+        for (const bool pressed : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, at, pressed);
+            acted = acted || panel.pressActed();
+        }
+        return acted;
     }
 
     /**
@@ -348,7 +404,7 @@ TEST_CASE("FullPanel: a press that shows another page acts, and one that changes
     // it is shown already
     CHECK_FALSE(acts(treeRow(1)));
 
-    // a row of the page changes nothing yet, and neither does a press where the page has no row
+    // with no store a row of the page changes nothing, and neither does a press where the page has no row
     CHECK_FALSE(acts(pageRow(0)));
     CHECK_FALSE(acts(pageRow(NO_PAGE_ROW)));
 
@@ -507,4 +563,92 @@ TEST_CASE("FullPanel: the help line has the help of the quick launch entry the r
     CHECK(panel.helpLine().text() == "FRIK: Opens FRIK's own configuration.");
     point(panel, treeRow(0));
     CHECK(panel.helpLine().text().empty());
+}
+
+TEST_CASE("FullPanel: a press on the row of a switcher turns it on or off in its store, and acts")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithValues(store);
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
+
+    // the page is the same one
+    CHECK(panel.selection() == selectionOf(0));
+}
+
+TEST_CASE("FullPanel: a press on a row that is not edited changes nothing")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithValues(store);
+    drawFrames(panel, 2);
+    const auto before = globals.values;
+
+    // a slider, until the commit that makes it work, and a switcher whose global is not in the game
+    CHECK_FALSE(pressActs(panel, pageRow(2)));
+    CHECK_FALSE(pressActs(panel, pageRow(3)));
+    CHECK(globals.values == before);
+}
+
+TEST_CASE("FullPanel: a switcher that is kept nowhere is held until another mod is selected")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithValues(store);
+    drawFrames(panel, 2);
+    const auto& unfold = std::get<model::Setting>(panel.mods()[0].frontPage.items[4]);
+
+    CHECK(pressActs(panel, pageRow(4)));
+    CHECK(store.value(unfold).value == model::Value(true));
+
+    // the menu's front page and back is the mod's session again, and so is another mod
+    panel.select({});
+    panel.select(selectionOf(0));
+    CHECK(store.value(unfold).value == model::Value(false));
+}
+
+TEST_CASE("FullPanel: the help line says that changes are saved as they are made, while a mod is shown")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithValues(store);
+    drawFrames(panel, 2);
+    CHECK(panel.helpLine().status() == "Changes are saved as they are made");
+
+    // it stays the status under the help of a row, for when the ray leaves the rows
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Off: What it does.");
+    CHECK(panel.helpLine().status() == "Changes are saved as they are made");
+
+    // the menu's front page has no session
+    panel.select({});
+    CHECK(panel.helpLine().status().empty());
+    panel.select(selectionOf(1));
+    CHECK_FALSE(panel.helpLine().status().empty());
+    panel.reset();
+    CHECK(panel.helpLine().status().empty());
+}
+
+TEST_CASE("FullPanel: the help line says why the value of the row the ray is on is not available")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithValues(store);
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(3));
+    CHECK(panel.helpLine().text() == "Missing: Not available: the global 1234 of MyMod.esp is not in the game.");
 }
