@@ -43,12 +43,15 @@ namespace
     }
 
     /**
-     * Whether a key is set to true.
+     * Whether a key is set to true, or to a number that is not zero: FallUI writes a flag as `1`.
      */
     bool getFlag(const Json& value, const char* key)
     {
         const auto found = value.find(key);
-        return found != value.end() && found->is_boolean() && found->get<bool>();
+        if (found == value.end()) {
+            return false;
+        }
+        return found->is_boolean() ? found->get<bool>() : found->is_number() && found->get<double>() != 0;
     }
 
     /**

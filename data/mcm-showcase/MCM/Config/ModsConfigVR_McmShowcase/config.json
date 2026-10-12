@@ -119,7 +119,7 @@
         { "type": "text", "text": "The chance decides, if a human NPC can use items. If you set the chance to 100%, all human NPCs will use items. If you set it to 50%, every second NPC can use items." },
         { "type": "section", "text": "Titles and notes as mods write them" },
         { "type": "text", "text": "<font size='30'><p align='center'>FallUI - Inventory</p></font>", "html": true },
-        { "type": "text", "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>", "html": true },
+        { "type": "text", "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>", "html": 1 },
         { "type": "text", "text": "<p align='center'><font size='24'>Sim Settlements 2</font></p>", "html": true },
         { "type": "text", "text": "<font size=\"40\"><p align = \"center\">Unlimited Survival Mode</p></font>", "html": true },
         { "type": "text", "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>", "html": true }

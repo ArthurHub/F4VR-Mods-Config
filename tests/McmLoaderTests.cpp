@@ -254,11 +254,18 @@ TEST_CASE("McmLoader: a text row with html has its tags read, and one without sh
         { "type": "text", "text": "One line\nand the next" },
         { "type": "text", "text": "A <b>plain</b> text", "html": false },
         { "type": "text", "text": "A <b>plain</b> text", "html": "true" },
-        { "type": "text", "html": true }
+        { "type": "text", "html": true },
+        { "type": "text", "text": "<font color='#AAAAAA' size='16'>A note</font>", "html": 1 },
+        { "type": "text", "text": "A <b>plain</b> text", "html": 0 }
     )");
 
-    CHECK(
-        describe(page) == Lines{ "text: My Mod / What it does. / And how.", "text: One line / and the next", "text: A <b>plain</b> text", "text: A <b>plain</b> text", "text: " });
+    CHECK(describe(page) == Lines{ "text: My Mod / What it does. / And how.",
+                                "text: One line / and the next",
+                                "text: A <b>plain</b> text",
+                                "text: A <b>plain</b> text",
+                                "text: ",
+                                "text: A note",
+                                "text: A <b>plain</b> text" });
 
     const auto& title = std::get<model::Text>(page.items[0]).lines[0];
     CHECK(title.align == model::TextAlign::Center);
