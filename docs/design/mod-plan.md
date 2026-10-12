@@ -52,7 +52,7 @@ A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's a
 
 | #   | Milestone                | Done when                                                                                                     | Status |
 | --- | ------------------------ | ------------------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Browse MCM mods          | Every MCM mod of the test set is browsed in the Full panel: its pages, rows and images, with translated names | todo   |
+| 1   | Browse MCM mods          | Every MCM mod of the test set is browsed in the Full panel: its pages, rows and images, with translated names | done   |
 | 2   | Edit MCM values          | A global, a ModSetting and a script property are changed from the panel, and the mod reacts as it does to MCM | todo   |
 | 3   | MCM complete             | Every MCM feature is supported, shown read-only, or shown as unsupported with the reason                      | todo   |
 | 4   | VR keyboard              | An MCM text row and a slider's value are typed in the headset                                                 | todo   |
