@@ -38,7 +38,7 @@ namespace mods_config::mcm
      * The store of an MCM mod: a value is read from where its storage says, and a change is written there at
      * once, as MCM's own menu does. It has no Save.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected.
-     * A ModSetting is read from MCM's files as its mod is selected, and is not written.
+     * A ModSetting is read from MCM's files as its mod is selected, and is written through MCM.
      */
     class McmStore : public model::Store
     {
@@ -56,7 +56,8 @@ namespace mods_config::mcm
         // MCM's folder, which is `Data\MCM` in the game. With none no ModSetting is available
         std::filesystem::path _mcmFolder;
 
-        // the ModSettings of the mod that is selected, as MCM's files had them when it was
+        // the ModSettings of the mod that is selected, as MCM's files had them when it was, with those that
+        // were set since
         McmModSettings _modSettings;
 
         // the settings of the mod that is selected, by their ids

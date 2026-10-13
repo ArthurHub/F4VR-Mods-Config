@@ -119,6 +119,30 @@ namespace
     }
 
     /**
+     * A value as the type MCM keeps a ModSetting in, which its function takes: a bool is on at any number
+     * but 0, and a whole number is the nearest one. None for a number as a text, and a text as a number.
+     */
+    std::optional<model::Value> modSettingTyped(const model::ModSettingStorage::Type type, const model::Value& value)
+    {
+        using Type = model::ModSettingStorage::Type;
+        if (type == Type::String) {
+            return std::holds_alternative<std::string>(value) ? std::optional(value) : std::nullopt;
+        }
+        const auto number = toNumber(value);
+        if (!number) {
+            return std::nullopt;
+        }
+        switch (type) {
+        case Type::Bool:
+            return *number != 0.0f;
+        case Type::Int:
+            return static_cast<int>(std::lround(*number));
+        default:
+            return *number;
+        }
+    }
+
+    /**
      * Adds the settings of the items to the map, each by its id, with those of the groups among them.
      */
     void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings)
@@ -159,7 +183,8 @@ namespace mods_config::mcm
 
     /**
      * The value of a setting, read from its storage now: another mod or the console can change a global at
-     * any time. A ModSetting is the one of the mod that is selected, as its files had it then.
+     * any time. A ModSetting is the one of the mod that is selected, as its files had it then or as it was
+     * set since.
      * A global that is not in the game is not available, with the reason, and neither is a ModSetting that
      * is in no file, and a value of a storage the store does not read.
      */
@@ -197,8 +222,8 @@ namespace mods_config::mcm
 
     /**
      * Writes a value where the setting's storage says, at once. Returns false for a value that is not
-     * written: one of a storage the store does not write, as a ModSetting, or of a global that is not in
-     * the game.
+     * written: one of a storage the store does not write, of a global that is not in the game, or of a
+     * ModSetting that is in neither of MCM's files, which MCM does not have.
      */
     bool McmStore::set(const model::Setting& setting, const model::Value& value)
     {
@@ -212,6 +237,10 @@ namespace mods_config::mcm
                 logger::debug("Set the global {:X} of {} to {} ('{}')", global->formId, global->plugin, *number, setting.text);
                 return true;
             }
+        }
+        if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
+            const auto typed = modSettingTyped(modSetting->type, value);
+            return typed && _modSettings.set(modSetting->name, *typed);
         }
         return false;
     }

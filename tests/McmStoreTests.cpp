@@ -233,7 +233,7 @@ TEST_CASE("McmStore: a ModSetting that is in neither file is not available, and 
     CHECK_FALSE(noFolder.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).available);
 }
 
-TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and is not written")
+TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and not again until it is selected again")
 {
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\n");
@@ -244,14 +244,86 @@ TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and is not wri
     store.open(mod);
     REQUIRE(store.value(setting).value == model::Value(false));
 
-    CHECK_FALSE(store.set(setting, true));
-    CHECK(store.value(setting).value == model::Value(false));
-
     // MCM writes the player's file as a script sets the value
     mcm.write("Settings/MyMod.ini", "[Main]\nbOn=1\n");
     CHECK(store.value(setting).value == model::Value(false));
     store.open(mod);
     CHECK(store.value(setting).value == model::Value(true));
+
+    // one that was set here is read again too: a test has no MCM that writes the file
+    CHECK(store.set(setting, false));
+    CHECK(store.value(setting).value == model::Value(false));
+    store.open(mod);
+    CHECK(store.value(setting).value == model::Value(true));
+}
+
+TEST_CASE("McmStore: a ModSetting that is set has the value at once, as the type MCM keeps it in")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\nfStrength=1.0\niMode=0\niCount=1\nbChoice=0\nsName=Sanctuary Hills\n");
+    auto globals = someGlobals();
+    McmStore store(globals, mcm.path);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+
+    const auto on = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
+    const auto strength = modSetting(SettingType::Slider, "fStrength:Main", Type::Float);
+    const auto mode = modSetting(SettingType::Dropdown, "iMode:Main", Type::Int);
+    CHECK(store.set(on, true));
+    CHECK(store.set(strength, 1.3f));
+    CHECK(store.set(mode, 2));
+    CHECK(store.value(on).value == model::Value(true));
+    CHECK(store.value(strength).value == model::Value(1.3f));
+    CHECK(store.value(mode).value == model::Value(2));
+
+    // a slider of a whole number has the nearest one, and a choice of a bool is on at any option but the first
+    const auto count = modSetting(SettingType::Slider, "iCount:Main", Type::Int);
+    const auto choice = modSetting(SettingType::Stepper, "bChoice:Main", Type::Bool);
+    const auto name = modSetting(SettingType::TextInput, "sName:Main", Type::String);
+    CHECK(store.set(count, 6.6f));
+    CHECK(store.set(choice, 2));
+    CHECK(store.set(name, "Diamond City"s));
+    CHECK(store.value(count).value == model::Value(7.0f));
+    CHECK(store.value(choice).value == model::Value(1));
+    CHECK(store.value(name).value == model::Value("Diamond City"s));
+}
+
+TEST_CASE("McmStore: a ModSetting MCM does not have is not set, and neither is a value of another kind")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nfStrength=1.0\nsName=Sanctuary Hills\n");
+    auto globals = someGlobals();
+    McmStore store(globals, mcm.path);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+
+    // MCM has the ModSettings of its files alone
+    const auto missing = modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool);
+    CHECK_FALSE(store.set(missing, true));
+    CHECK_FALSE(store.value(missing).available);
+
+    // a text for a number, and a number for a text
+    CHECK_FALSE(store.set(modSetting(SettingType::TextInput, "fStrength:Main", Type::Float), "strong"s));
+    CHECK_FALSE(store.set(modSetting(SettingType::Slider, "sName:Main", Type::String), 2.0f));
+    CHECK(store.value(modSetting(SettingType::Slider, "fStrength:Main", Type::Float)).value == model::Value(1.0f));
+}
+
+TEST_CASE("McmModSettings: a ModSetting that is set has the text MCM writes to its file")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\nfStrength=1.0\niMode=0\nsName=Sanctuary Hills\n");
+    mcm::McmModSettings settings;
+    settings.load(mcm.path, "MyMod");
+
+    CHECK(settings.set("bOn:Main", true));
+    CHECK(settings.set("fStrength:Main", 1.3f));
+    CHECK(settings.set("iMode:Main", 2));
+    CHECK(settings.set("sName:Main", "Diamond City"s));
+    CHECK(*settings.find("bOn:Main") == "1");
+    CHECK(*settings.find("fStrength:Main") == "1.300000");
+    CHECK(*settings.find("iMode:Main") == "2");
+    CHECK(*settings.find("sName:Main") == "Diamond City");
+
+    CHECK_FALSE(settings.set("bMissing:Main", true));
+    CHECK_FALSE(settings.find("bMissing:Main"));
 }
 
 TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its settings file")

@@ -201,7 +201,7 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 | M27 | mod       | The stepper and the dropdown                                                        | done   |
 | M28 | mod       | Conditions show and hide rows                                                       | done   |
 | M29 | mod       | ModSettings are read from MCM's files                                               | done   |
-| M30 | mod       | ModSettings are written through MCM                                                 | todo   |
+| M30 | mod       | ModSettings are written through MCM                                                 | done   |
 | M31 | mod       | MCM's events are sent: a setting changed, the menu opened and closed                | todo   |
 | M32 | mod       | Script properties are read and written                                              | todo   |
 | F24 | framework | f4sevr: script properties and external events, if CommonLibF4VR's do not work in VR | todo   |
@@ -261,6 +261,12 @@ M29 reads a ModSetting from MCM's two files, the mod's defaults and the player's
 - A group that a ModSetting controls is now shown while that ModSetting is on.
 
 M30 writes a ModSetting through `MCM.SetModSetting*`, so MCM's memory and its file agree. It is the menu's first call into Papyrus.
+
+- The function is the one of the row's `sourceType`, as in MCM's menu: `SetModSettingBool`, `Int`, `Float` or `String`. A slider of a whole number is written as the nearest one, and a choice as the place of its option.
+- The call is queued to Papyrus and gives no result, so the store keeps the text MCM writes to its file for the value. The row shows the change at once, and the files are read again as the mod is selected again.
+- A ModSetting that is in neither file is not written: MCM has only those of its files, and its row is disabled.
+- A unit test has no game, so MCM is not called there (`REL::NO_GAME`): it checks the value and the text the store keeps.
+- The switchers, sliders, steppers and dropdowns of the MCM showcase that are ModSettings work now.
 
 M32 reads and writes all four property types.
 
