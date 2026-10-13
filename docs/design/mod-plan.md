@@ -297,7 +297,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | --- | ---- | -------------------------------------------------------------------- | --------- |
 | M33 | mod  | Buttons run `CallFunction`, with typed parameters                    | done      |
 | M34 | mod  | A value row runs its action after the write, with `{value}`          | done      |
-| M35 | mod  | Hotkeys are shown read-only                                          | todo      |
+| M35 | mod  | Hotkeys are shown read-only                                          | done      |
 | M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | todo      |
 | M37 | mod  | A test MCM mod for what the test set does not have                   | todo      |
 | M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo      |
@@ -333,7 +333,19 @@ M34 makes a value row run its `CallFunction` as its value is set, as MCM's menu 
 - The model has it as the action of the setting. The store fills the parameters and calls `mcm::callFunction`, which M33 made.
 - The test set has 33 value rows with a `CallFunction`, in Sim Settlements 2 and Workshop Framework: switchers, dropdowns, a stepper and sliders, all of a global or a property. 22 have `{value}`. The MCM showcase has one, of a form that is not in the game.
 
-M35 reads MCM's two keybind files, the mod's and the player's, and names each key.
+M35 shows the key of a hotkey, read from MCM's two keybind files. It is only shown: MCM binds a key in its own menu, and runs the hotkey as its key is pressed.
+
+- A hotkey is its text and its key in a box, in the control column. Its whole row is always disabled, as the key is not changed here. A press on its row does nothing, and the row has no look of one.
+- The help line says that it is read-only, before the help of the row: `(Read-only)`.
+- The mod's file, `Data\MCM\Config\<mod>\keybinds.json`, has the hotkeys the mod has, each with its `id` and the action MCM runs for it. The player's file, `Data\MCM\Settings\Keybinds.json`, has the keys of every mod: a `keycode` and its `modifiers`, for a `modName` and an `id`.
+- A row is its hotkey by the `id` of the row and the `modName` of its config, in any letter case, as in MCM.
+- A key is named as MCM's menu names it: the name of the key, after the keys that are held with it, as `Ctrl-Alt-Shift-F5`. A key of the keyboard is its virtual-key code of Windows, and a button of the mouse is from 256. A code MCM's menu has no name for is its number, as `Key 270`.
+- A hotkey with no key says `None`, as in MCM's menu.
+- A hotkey is not available while the mod's file does not have it: MCM binds no key to it, and drops the key the player's file has for it. So is one of a mod with no such file, or with a file that names another mod. Its row looks as any hotkey's, and the help line says that it is not in the mod's `keybinds.json`.
+- MCM also drops a hotkey whose action is of a form that is not in the game. That is not looked up, so such a hotkey shows the key of the player's file.
+- The files are read as the mod is selected, as its ModSettings are. MCM writes the player's file as its own menu closes, so a key that is bound there shows the next time the mod is selected.
+- The model has it as an item of its own, a hotkey with its id. The store answers its key, as it answers the value of a setting, with `McmKeybinds`.
+- The test set has 23 hotkeys, 22 in Sim Settlements 2 and one in Workshop Framework, and each is in the `keybinds.json` of its mod. It has no player's file: no key is bound. The MCM showcase has a `keybinds.json` with three hotkeys, which show a notification, and a row of one that is not in it.
 
 M36 shows a text row read-only until milestone 4.
 

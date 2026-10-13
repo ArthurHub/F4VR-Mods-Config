@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "McmKeybinds.h"
 #include "McmModSettings.h"
 #include "model/Definition.h"
 #include "model/Store.h"
@@ -45,6 +46,7 @@ namespace mods_config::mcm
      * once, as MCM's own menu does. It has no Save.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected.
      * A ModSetting is read from MCM's files as its mod is selected, and is written through MCM.
+     * The key of a hotkey is read from MCM's files then too, and is only shown.
      * A global is read and written with `getGlobal` and `setGlobal`, and a property of a script with
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
@@ -65,6 +67,7 @@ namespace mods_config::mcm
         model::StoredValue value(const model::Setting& setting) override;
         model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;
+        model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         bool run(const model::Action& action) override;
 
     private:
@@ -79,6 +82,9 @@ namespace mods_config::mcm
         // the ModSettings of the mod that is selected, as MCM's files had them when it was, with those that
         // were set since
         McmModSettings _modSettings;
+
+        // the hotkeys of the mod that is selected, with the key of each as MCM's files had it when it was
+        McmKeybinds _keybinds;
 
         // the settings of the mod that is selected, by their ids
         std::map<std::string, const model::Setting*, std::less<>> _settings;

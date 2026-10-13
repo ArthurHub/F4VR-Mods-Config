@@ -276,7 +276,8 @@ namespace mods_config::mcm
         close();
         _modName = mod.name;
         _modSettings.load(_mcmFolder, mod.name);
-        logger::debug("Read {} ModSettings of '{}' from MCM's files", _modSettings.size(), mod.name);
+        _keybinds.load(_mcmFolder, mod.name);
+        logger::debug("Read {} ModSettings and {} hotkeys of '{}' from MCM's files", _modSettings.size(), _keybinds.size(), mod.name);
         addSettings(mod.frontPage.items, _settings);
         for (const auto& page : mod.pages) {
             addSettings(page.items, _settings);
@@ -297,6 +298,7 @@ namespace mods_config::mcm
         }
         _modName.clear();
         _modSettings.load({}, {});
+        _keybinds.load({}, {});
         _held.clear();
         _settings.clear();
     }
@@ -368,6 +370,22 @@ namespace mods_config::mcm
             sendEvent("OnMCMSettingChange|" + _modName, { _modName, setting.sourceId });
         }
         return true;
+    }
+
+    /**
+     * The key a hotkey of the mod that is selected is bound to, as MCM's files had it when the mod was
+     * selected: MCM writes the player's file as its own menu closes, where a key is bound.
+     * A hotkey the mod's `keybinds.json` does not have is not available, with the reason: MCM binds no key to it.
+     */
+    model::StoredValue McmStore::hotkey(const model::Hotkey& hotkey)
+    {
+        if (const auto* key = _keybinds.find(hotkey.id)) {
+            return { .value = *key, .available = true, .reason = {} };
+        }
+        return { .value = keyName(0, 0),
+            .available = false,
+            .reason =
+                hotkey.id.empty() ? "Not available: the hotkey has no id."s : std::format("Not available: the hotkey {} is not in the keybinds.json of the mod.", hotkey.id) };
     }
 
     /**

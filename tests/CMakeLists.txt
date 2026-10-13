@@ -33,6 +33,7 @@ add_executable(${PROJECT_NAME}_tests
   # TestProperties.cpp have the tests' own functions in their place
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp
+  ${SOURCE_DIR}/mcm/McmKeybinds.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
   ${SOURCE_DIR}/mcm/McmModSettings.cpp
   ${SOURCE_DIR}/mcm/McmStore.cpp

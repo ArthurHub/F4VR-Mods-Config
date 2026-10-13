@@ -37,7 +37,7 @@ namespace mods_config::ui
      * A page of a mod, in the content pane of the Full panel: its rows, in the order the mod gives them.
      * A section, a spacer, a text row and an image are drawn as they are. A setting is drawn as its control,
      * with the value its store has for it, and a button as its text and a Run button, which runs its action in
-     * the store. Any other row is its text and what it is, until the commit that draws its control.
+     * the store. A hotkey is its text and the key the store has for it, which is only shown. Any other row is its text and what it is, until the commit that draws its control.
      */
     class ModPage
     {

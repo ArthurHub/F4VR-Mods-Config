@@ -1,0 +1,20 @@
+{
+  "modName": "ModsConfigVR_McmShowcase",
+  "keybinds": [
+    {
+      "id": "TestHotkey",
+      "desc": "MCM Showcase: the hotkey of the front page",
+      "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["MCM Showcase: the hotkey of the front page ran"] }
+    },
+    {
+      "id": "TestHotkeyA",
+      "desc": "MCM Showcase: a hotkey",
+      "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["MCM Showcase: the hotkey ran"] }
+    },
+    {
+      "id": "TestHotkeyB",
+      "desc": "MCM Showcase: a hotkey with modifiers",
+      "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["MCM Showcase: the hotkey with modifiers ran"] }
+    }
+  ]
+}

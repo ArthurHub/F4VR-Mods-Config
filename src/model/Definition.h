@@ -275,6 +275,19 @@ namespace mods_config::model
         std::optional<Condition> visibleWhen;
     };
 
+    /**
+     * A row that shows the key a hotkey of the mod is bound to. The menu does not bind it and does not run
+     * it: its source does, as MCM does for an MCM mod.
+     */
+    struct Hotkey
+    {
+        // what its source knows the hotkey by. Empty for a row with none, which has no key
+        std::string id;
+        std::string text;
+        std::string help;
+        std::optional<Condition> visibleWhen;
+    };
+
     enum class TextAlign : std::uint8_t
     {
         Left,
@@ -370,7 +383,7 @@ namespace mods_config::model
 
     struct Group;
 
-    using Item = std::variant<Setting, Group, Button, Text, Image, Spacer, Placeholder>;
+    using Item = std::variant<Setting, Group, Button, Hotkey, Text, Image, Spacer, Placeholder>;
 
     /**
      * A section: its heading and the items under it.

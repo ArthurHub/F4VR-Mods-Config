@@ -558,6 +558,9 @@ namespace
         if (type == "button") {
             return model::Button{ .text = std::move(text), .help = getHelp(row, texts), .action = loadAction(row), .visibleWhen = {} };
         }
+        if (type == "hotkey") {
+            return model::Hotkey{ .id = getText(row, "id"), .text = std::move(text), .help = getHelp(row, texts), .visibleWhen = {} };
+        }
         if (type == "text") {
             // the tags are read after the translation: a FallUI mod has its tokens inside them
             return model::Text{ .lines = getFlag(row, "html") ? model::parseMarkup(text) : model::plainLines(text), .visibleWhen = {} };
@@ -625,7 +628,7 @@ namespace mods_config::mcm
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
      * text, the help and the type of every row, the lines of a text row, the height of a spacer, the range of a
      * slider, the options of a stepper and a dropdown, the global a setting is kept in, the function a button
-     * calls, and the pixels of an image.
+     * calls, the id of a hotkey, and the pixels of an image.
      * A setting has an id, and a row is shown by the groups its `groupCondition` names.
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.

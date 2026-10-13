@@ -15,6 +15,7 @@
 
 #include <imgui.h>
 
+#include "TestFiles.h"
 #include "TestGlobals.h"
 #include "TestPanel.h"
 #include "Theme.h"
@@ -314,7 +315,7 @@ namespace
 
         model::Group tools{ .text = "Tools", .items = {} };
         tools.items.push_back(setting(SettingType::TextInput, "Name of the settlement"));
-        tools.items.push_back(model::Placeholder{ .text = "Open the menu", .type = "hotkey" });
+        tools.items.push_back(model::Hotkey{ .id = "openMenu", .text = "Open the menu" });
         tools.items.push_back(model::Button{ .text = "Reset everything" });
         tools.items.push_back(model::Placeholder{ .text = "A row with no type", .type = "" });
 
@@ -570,6 +571,39 @@ TEST_CASE("FullPanel render: the values of a page's settings, and the status of 
         panel.setMods({ mod });
         panel.select({ .mod = 0, .page = std::nullopt });
         WARN("Saved " << renderToFile(panel, onRow ? "values-not-available" : "values", onRow ? pageRow(5) : POINTER_AWAY));
+    }
+}
+
+TEST_CASE("FullPanel render: the keys of a mod's hotkeys", "[.render]")
+{
+    const test_files::TempFolder files;
+    files.write("Config/Hotkeys/keybinds.json", R"({ "modName": "Hotkeys", "keybinds": [
+        { "id": "one", "desc": "One", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
+        { "id": "two", "desc": "Two", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
+        { "id": "three", "desc": "Three", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
+        { "id": "four", "desc": "Four", "action": { "type": "RunConsoleCommand", "command": "tgm" } }
+    ] })");
+    files.write("Settings/Keybinds.json", R"({ "version": 1, "keybinds": [
+        { "keycode": 116, "modifiers": 0, "modName": "Hotkeys", "id": "one" },
+        { "keycode": 96, "modifiers": 7, "modName": "Hotkeys", "id": "two" },
+        { "keycode": 260, "modifiers": 2, "modName": "Hotkeys", "id": "three" }
+    ] })");
+    mcm::McmStore store(files.path);
+
+    model::Mod mod{ .name = "Hotkeys", .displayName = "Hotkeys", .frontPage = {}, .pages = {} };
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "one", .text = "A hotkey with a key", .help = "What the hotkey does." });
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "two", .text = "A hotkey with a key and every key that is held with it", .help = "What the hotkey does." });
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "three", .text = "A hotkey with a button of the mouse", .help = "What the hotkey does." });
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "four", .text = "A hotkey with no key", .help = "What the hotkey does." });
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "five", .text = "A hotkey the mod's keybinds.json does not have", .help = "What the hotkey does." });
+
+    // with the ray on a hotkey with a key, and on the one that is not available
+    for (const bool available : { true, false }) {
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ mod });
+        panel.select({ .mod = 0, .page = std::nullopt });
+        WARN("Saved " << renderToFile(panel, available ? "hotkeys" : "hotkeys-not-available", pageRow(available ? 0 : 4)));
     }
 }
 

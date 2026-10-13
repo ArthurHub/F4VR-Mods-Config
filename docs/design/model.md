@@ -18,6 +18,7 @@ Item     one of:
            Setting
            Group         a section: its text, its items, and sometimes a role
            Button        a row that runs an action
+           Hotkey        a row that shows the key a hotkey of the mod is bound to
            Text, Image, Spacer
            Placeholder   a control the menu does not support, with the reason
 ```
@@ -57,6 +58,7 @@ Three of these are as they are because of MCM:
 What the UI asks of the store:
 
 - The value of a setting, with its state.
+- The key of a hotkey, which is only shown.
 - To set a value.
 - Whether a change is saved at once or waits for Save.
 - With Save: whether a setting is dirty, and to Save, Discard, and Reset a setting.

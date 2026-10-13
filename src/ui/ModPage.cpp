@@ -279,6 +279,45 @@ namespace
         return row.pointed;
     }
 
+    // the least width of the box of a hotkey's key, in the panel's pixels: not a token of the design system
+    constexpr float KEY_MIN_WIDTH = 96.0f;
+
+    /**
+     * The row of a hotkey at the cursor: its text after the gutter, and the key it is bound to in a box as
+     * wide as its name, where a control ends, before the room of a Reset. A hotkey with no key says `None`.
+     * The key is only shown, so the whole row is always disabled, as a row that cannot be edited is. It has
+     * the look of a row under the ray, for its help, but none of a press, which does nothing.
+     * A hotkey that is not available looks the same, and the reason tells it from the others.
+     * Returns whether the ray is on the row.
+     */
+    bool drawHotkey(const model::Hotkey& hotkey, const PageDrawing& page, std::string& reason)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float width = rowWidth();
+        const auto row = addRow(false);
+
+        auto stored = page.store ? page.store->hotkey(hotkey) : model::StoredValue{};
+        reason = std::move(stored.reason);
+        if (!row.shown) {
+            return false;
+        }
+        ui::drawRowState();
+        const auto* key = std::get_if<std::string>(&stored.value);
+        const std::string_view name = key ? std::string_view(*key) : "None";
+        const float boxWidth = (std::max)(KEY_MIN_WIDTH, std::ceil(ui::textWidth(name)) + theme::SPACE_3 * 2.0f);
+        const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - boxWidth, pos.y, boxWidth);
+
+        ImGui::BeginDisabled();
+        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, box.Min.x - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, hotkey.text);
+        ui::drawFrame(box);
+        ui::drawTextIn(box, name, theme::color::GREEN, 0.5f);
+        ImGui::EndDisabled();
+        return row.pointed;
+    }
+
+    // what the help line says of every hotkey, before its own help: the key cannot be changed in the menu
+    constexpr std::string_view HOTKEY_READ_ONLY = "(Read-only)";
+
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page);
 
     /**
@@ -287,7 +326,8 @@ namespace
      * image is there.
      * A row with a text that the ray is on is told as the pointed one. A setting whose value is not
      * available has the reason as its help, where the store gives one, and so has a button whose action the
-     * menu does not run.
+     * menu does not run, and a hotkey that is not available. Any other hotkey has that it is read-only
+     * before its help.
      */
     struct ItemDrawer
     {
@@ -312,6 +352,15 @@ namespace
             std::string reason;
             if (drawButton(button, page, reason)) {
                 page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason) };
+            }
+        }
+
+        void operator()(const model::Hotkey& hotkey) const
+        {
+            std::string reason;
+            if (drawHotkey(hotkey, page, reason)) {
+                auto help = !reason.empty() ? std::move(reason) : hotkey.help.empty() ? std::string(HOTKEY_READ_ONLY) : std::format("{} {}", HOTKEY_READ_ONLY, hotkey.help);
+                page.drawn.pointed = ui::PointedRow{ .text = hotkey.text, .help = std::move(help) };
             }
         }
 

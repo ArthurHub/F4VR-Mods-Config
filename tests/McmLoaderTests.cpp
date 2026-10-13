@@ -62,6 +62,11 @@ namespace
                 lines.push_back(indent + "button: " + button.text);
             }
 
+            void operator()(const model::Hotkey& hotkey) const
+            {
+                lines.push_back(indent + "hotkey: " + hotkey.text);
+            }
+
             void operator()(const model::Text& text) const
             {
                 std::string words;
@@ -604,7 +609,7 @@ TEST_CASE("McmLoader: the groups of a page are its own, and a section's conditio
 TEST_CASE("McmLoader: a control the menu does not support is a placeholder with its type")
 {
     const auto page = frontPageOf(R"(
-        { "type": "hotkey", "text": "Open the menu", "id": "openMenu" },
+        { "type": "color", "text": "Tint", "id": "iTint:Main" },
         { "type": "dropdownFiles", "text": "Preset" },
         { "type": "Switcher", "text": "A type in another letter case" },
         { "text": "A row with no type" },
@@ -613,13 +618,25 @@ TEST_CASE("McmLoader: a control the menu does not support is a placeholder with 
     )");
 
     CHECK(describe(page) == Lines{
-                                "placeholder hotkey: Open the menu",
+                                "placeholder color: Tint",
                                 "placeholder dropdownFiles: Preset",
                                 "placeholder Switcher: A type in another letter case",
                                 "placeholder : A row with no type",
                                 "placeholder : A type that is not a text",
                                 "placeholder : ",
                             });
+}
+
+TEST_CASE("McmLoader: a hotkey has the id of its row, which MCM knows it by")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "hotkey", "text": "Open the menu", "id": "openMenu", "valueOptions": { "allowModifierKeys": true } },
+        { "type": "hotkey", "text": "With no id" }
+    )");
+
+    CHECK(describe(page) == Lines{ "hotkey: Open the menu", "hotkey: With no id" });
+    CHECK(std::get<model::Hotkey>(page.items[0]).id == "openMenu");
+    CHECK(std::get<model::Hotkey>(page.items[1]).id.empty());
 }
 
 TEST_CASE("McmLoader: a text that is missing or is not a text is empty")
@@ -755,7 +772,7 @@ TEST_CASE("McmLoader: a text that is a token is shown in the game's language")
     CHECK(describe(mod->frontPage) == Lines{ "group: Notifications", "  switcher: Actif", "  button: $MyMod_Missing", "  text: Costs $5" });
     REQUIRE(mod->pages.size() == 1);
     CHECK(mod->pages[0].name == "Combat");
-    CHECK(describe(mod->pages[0]) == Lines{ "placeholder hotkey: Actif" });
+    CHECK(describe(mod->pages[0]) == Lines{ "hotkey: Actif" });
 
     // with no translations every text is as it is written
     CHECK(loaded(config).displayName == "$MyMod_Name");
@@ -880,6 +897,7 @@ TEST_CASE("McmLoader: a row has its help, in the game's language and without its
         { "type": "slider", "text": "Strength", "help": "$MyMod_StrengthHelp" },
         { "type": "button", "text": "Reset", "help": "<p>Puts every value back. </p><p>It asks first. <font color='#aaaaaa'>(Default: ON)</font></p>" },
         { "type": "hotkey", "text": "Open the menu", "help": "One line<br>and the next" },
+        { "type": "color", "text": "Tint", "help": "The color of the light." },
         { "type": "stepper", "text": "No help" },
         { "type": "dropdown", "text": "A help that is no text", "help": 7 }
     ] })",
@@ -891,10 +909,11 @@ TEST_CASE("McmLoader: a row has its help, in the game's language and without its
     CHECK(std::get<model::Setting>(rows[1]).help == "La force de la fonction.");
     // a help is one line of plain text, with or without html on its row
     CHECK(std::get<model::Button>(rows[2]).help == "Puts every value back. It asks first. (Default: ON)");
+    CHECK(std::get<model::Hotkey>(rows[3]).help == "One line and the next");
     // a control the menu does not support has its help too
-    CHECK(std::get<model::Placeholder>(rows[3]).help == "One line and the next");
-    CHECK(std::get<model::Setting>(rows[4]).help.empty());
+    CHECK(std::get<model::Placeholder>(rows[4]).help == "The color of the light.");
     CHECK(std::get<model::Setting>(rows[5]).help.empty());
+    CHECK(std::get<model::Setting>(rows[6]).help.empty());
 }
 
 TEST_CASE("McmLoader: a button has the function its action calls, with its parameters in their types")

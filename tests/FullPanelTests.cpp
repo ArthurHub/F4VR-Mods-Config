@@ -14,6 +14,7 @@
 
 #include "TestActions.h"
 #include "TestEvents.h"
+#include "TestFiles.h"
 #include "TestGlobals.h"
 #include "TestPanel.h"
 #include "Theme.h"
@@ -779,6 +780,35 @@ TEST_CASE("FullPanel: the help line says why a button is not run")
     CHECK(panel.helpLine().text() == "Nothing: Nothing runs.");
     point(panel, pageRow(2));
     CHECK(panel.helpLine().text() == "Notify: Not available: the menu does not run a CallGlobalFunction.");
+}
+
+TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press on its row does nothing")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder files;
+    files.write("Config/Alpha/keybinds.json", R"({ "modName": "Alpha", "keybinds": [
+        { "id": "open", "desc": "Open", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
+        { "id": "close", "desc": "Close", "action": { "type": "RunConsoleCommand", "command": "tgm" } }
+    ] })");
+    mcm::McmStore store(files.path);
+    auto mod = modOf("Alpha");
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "open", .text = "Open the menu", .help = "Opens it." });
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "close", .text = "Close the menu" });
+    mod.frontPage.items.push_back(model::Hotkey{ .id = "missing", .text = "Not in the file", .help = "Does nothing." });
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Open the menu: (Read-only) Opens it.");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Close the menu: (Read-only)");
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Not in the file: Not available: the hotkey missing is not in the keybinds.json of the mod.");
+
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
 }
 
 TEST_CASE("FullPanel: a press on a row that is not edited changes nothing")

@@ -59,6 +59,12 @@ namespace mods_config::model
         virtual bool set(const Setting& setting, const Value& value) = 0;
 
         /**
+         * The key a hotkey is bound to, as a text: its name, with the keys that are held with it. It is not
+         * available for a hotkey its source does not have.
+         */
+        virtual StoredValue hotkey(const Hotkey& hotkey) = 0;
+
+        /**
          * Runs an action. Returns whether it is run: not one the store does not run, and not one whose
          * target is not there.
          */

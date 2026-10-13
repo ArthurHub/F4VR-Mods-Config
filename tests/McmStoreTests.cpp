@@ -425,6 +425,144 @@ TEST_CASE("McmModSettings: a ModSetting that is set has the text MCM writes to i
     CHECK_FALSE(settings.find("bMissing:Main"));
 }
 
+TEST_CASE("McmStore: a hotkey has the key the player's file has for it, by the names of MCM's menu")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/keybinds.json", R"({
+        // MCM's reader skips a comment
+        "modName": "MyMod",
+        "keybinds": [
+            { "id": "OpenMenu", "desc": "Open the menu", "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "Open" } },
+            { "id": "Console", "desc": "A command", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
+            { "id": "Mouse", "desc": "A button of the mouse", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Trace" } },
+            { "id": "Unnamed", "desc": "A key with no name", "action": { "type": "SendEvent", "form": "MyMod.esp|800" } },
+            { "id": "TwoKeys", "desc": "Two keys", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
+            { "id": "NoKey", "desc": "No key", "action": { "type": "RunConsoleCommand", "command": "tgm" } }
+        ]
+    })");
+    mcm.write("Settings/Keybinds.json", R"({ "version": 1, "keybinds": [
+        { "keycode": 116, "modifiers": 0, "modName": "MyMod", "id": "OpenMenu" },
+        { "keycode": 96, "modifiers": 7, "modName": "mymod", "id": "console" },
+        { "keycode": 260, "modifiers": 2, "modName": "MyMod", "id": "Mouse" },
+        { "keycode": 270, "modifiers": 1, "modName": "MyMod", "id": "Unnamed" },
+        { "keycode": 90, "modifiers": 0, "modName": "MyMod", "id": "TwoKeys" },
+        { "keycode": 65, "modifiers": 4, "modName": "MyMod", "id": "TwoKeys" },
+        { "keycode": 66, "modifiers": 0, "modName": "Another", "id": "NoKey" }
+    ] })");
+    McmStore store(mcm.path);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    const auto keyOf = [&store](std::string id) {
+        const auto key = store.hotkey({ .id = std::move(id), .text = "A hotkey" });
+        CHECK(key.available);
+        CHECK(key.reason.empty());
+        return std::get<std::string>(key.value);
+    };
+
+    CHECK(keyOf("OpenMenu") == "F5");
+    // a mod and a hotkey are known in any letter case, and the keys that are held are in the order of MCM's menu
+    CHECK(keyOf("Console") == "Ctrl-Alt-Shift-NumPad0");
+    CHECK(keyOf("openmenu") == "F5");
+    CHECK(keyOf("Mouse") == "Ctrl-Mouse5");
+    // a key MCM's menu has no name for is its code
+    CHECK(keyOf("Unnamed") == "Shift-Key 270");
+    // the lower of two keys, as MCM's menu shows it
+    CHECK(keyOf("TwoKeys") == "Alt-A");
+    // the key of another mod's hotkey of that id is not this one's
+    CHECK(keyOf("NoKey") == "None");
+}
+
+TEST_CASE("McmStore: a hotkey the mod's keybinds file does not have is not available, with the reason")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/keybinds.json", R"({ "modName": "MyMod", "keybinds": [
+        { "id": "OpenMenu", "desc": "Open the menu", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
+        { "id": "NoAction", "desc": "With no action" },
+        { "id": "OtherAction", "desc": "With an action MCM does not have", "action": { "type": "NoSuchAction" } },
+        "not a hotkey"
+    ] })");
+    mcm.write("Config/Renamed/keybinds.json", R"({ "modName": "AnotherName", "keybinds": [
+        { "id": "OpenMenu", "desc": "Open the menu", "action": { "type": "RunConsoleCommand", "command": "tgm" } }
+    ] })");
+    mcm.write("Config/Broken/keybinds.json", "{ not JSON");
+    mcm.write("Settings/Keybinds.json", R"({ "version": 1, "keybinds": [
+        { "keycode": 116, "modifiers": 0, "modName": "MyMod", "id": "OpenMenu" },
+        { "keycode": 117, "modifiers": 0, "modName": "MyMod", "id": "Missing" },
+        { "keycode": 118, "modifiers": 0, "modName": "MyMod", "id": "NoAction" },
+        { "keycode": 119, "modifiers": 0, "modName": "Renamed", "id": "OpenMenu" },
+        { "keycode": 120, "modifiers": 0, "modName": "Broken", "id": "OpenMenu" },
+        { "keycode": 121, "modifiers": 0, "modName": "NoFile", "id": "OpenMenu" }
+    ] })");
+    McmStore store(mcm.path);
+    const auto open = [&store](std::string name) {
+        store.open({ .name = std::move(name), .displayName = {}, .frontPage = {}, .pages = {} });
+    };
+    const auto reasonOf = [&store](std::string id) {
+        const auto key = store.hotkey({ .id = std::move(id), .text = "A hotkey" });
+        CHECK_FALSE(key.available);
+        CHECK(key.value == model::Value("None"s));
+        return key.reason;
+    };
+
+    // MCM binds no key to a hotkey the mod's file does not have, and drops the key the player's file has for it
+    open("MyMod");
+    CHECK(store.hotkey({ .id = "OpenMenu", .text = "A hotkey" }).available);
+    CHECK(reasonOf("Missing") == "Not available: the hotkey Missing is not in the keybinds.json of the mod.");
+    CHECK(reasonOf("NoAction") == "Not available: the hotkey NoAction is not in the keybinds.json of the mod.");
+    CHECK(reasonOf("OtherAction") == "Not available: the hotkey OtherAction is not in the keybinds.json of the mod.");
+    CHECK(reasonOf("") == "Not available: the hotkey has no id.");
+
+    // a file that names another mod, one that is no JSON, and none
+    for (const auto* mod : { "Renamed", "Broken", "NoFile" }) {
+        open(mod);
+        CHECK(reasonOf("OpenMenu") == "Not available: the hotkey OpenMenu is not in the keybinds.json of the mod.");
+    }
+
+    // and with no mod selected, and with no folder of MCM
+    store.close();
+    CHECK_FALSE(store.hotkey({ .id = "OpenMenu", .text = "A hotkey" }).available);
+    McmStore noFolder;
+    noFolder.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    CHECK_FALSE(noFolder.hotkey({ .id = "OpenMenu", .text = "A hotkey" }).available);
+}
+
+TEST_CASE("McmStore: the key of a hotkey is read as its mod is selected, and with no player's file it has none")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/keybinds.json", R"({ "modName": "MyMod", "keybinds": [
+        { "id": "OpenMenu", "desc": "Open the menu", "action": { "type": "RunConsoleCommand", "command": "tgm" } }
+    ] })");
+    const model::Mod mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} };
+    const model::Hotkey hotkey{ .id = "OpenMenu", .text = "Open the menu" };
+    McmStore store(mcm.path);
+    store.open(mod);
+    CHECK(store.hotkey(hotkey).available);
+    CHECK(store.hotkey(hotkey).value == model::Value("None"s));
+
+    // MCM writes the file as its own menu closes
+    mcm.write("Settings/Keybinds.json", R"({ "version": 1, "keybinds": [{ "keycode": 71, "modifiers": 0, "modName": "MyMod", "id": "OpenMenu" }] })");
+    CHECK(store.hotkey(hotkey).value == model::Value("None"s));
+    store.open(mod);
+    CHECK(store.hotkey(hotkey).value == model::Value("G"s));
+
+    // a file of a version MCM does not read has no keys
+    mcm.write("Settings/Keybinds.json", R"({ "version": 0, "keybinds": [{ "keycode": 71, "modifiers": 0, "modName": "MyMod", "id": "OpenMenu" }] })");
+    store.open(mod);
+    CHECK(store.hotkey(hotkey).value == model::Value("None"s));
+}
+
+TEST_CASE("McmStore: the hotkeys of the MCM showcase are in its keybinds file, but for the one that shows one that is not")
+{
+    const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    McmStore store(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
+    store.open(mods[0]);
+
+    CHECK(store.hotkey({ .id = "TestHotkey", .text = {} }).available);
+    CHECK(store.hotkey({ .id = "TestHotkeyA", .text = {} }).available);
+    CHECK(store.hotkey({ .id = "TestHotkeyB", .text = {} }).available);
+    CHECK_FALSE(store.hotkey({ .id = "TestHotkeyMissing", .text = {} }).available);
+}
+
 TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its settings file")
 {
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
