@@ -293,19 +293,32 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 
 ### 3. MCM complete
 
-| #   | Repo | Commit                                                               | Status |
-| --- | ---- | -------------------------------------------------------------------- | ------ |
-| M33 | mod  | Buttons run `CallFunction`, with typed parameters                    | todo   |
-| M34 | mod  | A value row runs its action after the write, with `{value}`          | todo   |
-| M35 | mod  | Hotkeys are shown read-only                                          | todo   |
-| M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | todo   |
-| M37 | mod  | A test MCM mod for what the test set does not have                   | todo   |
-| M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo   |
-| M39 | mod  | `dropdownFiles`                                                      | todo   |
-| M40 | mod  | The actions beside `CallFunction`                                    | todo   |
-| M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo   |
-| M42 | mod  | A page that is shown reads its values again                          | todo   |
-| M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo   |
+| #   | Repo | Commit                                                               | Status    |
+| --- | ---- | -------------------------------------------------------------------- | --------- |
+| M33 | mod  | Buttons run `CallFunction`, with typed parameters                    | done      |
+| M34 | mod  | A value row runs its action after the write, with `{value}`          | todo      |
+| M35 | mod  | Hotkeys are shown read-only                                          | todo      |
+| M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | todo      |
+| M37 | mod  | A test MCM mod for what the test set does not have                   | todo      |
+| M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo      |
+| M39 | mod  | `dropdownFiles`                                                      | todo      |
+| M40 | mod  | The actions beside `CallFunction`                                    | todo      |
+| M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo      |
+| M42 | mod  | A page that is shown reads its values again                          | todo      |
+| M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo      |
+
+M33 makes a button run its `CallFunction`, as `mcm_vr.dll` does for MCM's menu:
+
+- A button is its text and a `Run` button in the control column. A press anywhere on its row runs its action, and the hand gets its pulse as the call is queued.
+- A `CallFunction` names the form of its script in `form`, as a global does, and its function in `function`. It can name the script in `scriptName`. With none it is the form's first script.
+- The call is queued to Papyrus and gives no result. A script that has no such function, or one with other parameters, has its error in Papyrus's log alone.
+- A parameter has the type MCM's menu gives it. A text that begins with `{i}` is a whole number, and with `{f}` a number: a text that is no number is 0, and a whole number is cut at its point. Any other text is a text. A JSON bool is a bool. A JSON number is a number, also one that is written whole: Papyrus does not call a function that takes a number with a whole one, and Game Configuration Menu's weather buttons have `"params": [0]` for a function that takes a number.
+- One parameter differs from MCM's menu. A text that begins with `{b}` is off for nothing, `0` and `false`, and on for anything else. MCM's menu has it on for any text, also `{b}0` and `{b}false`, which is not what its author meant.
+- A button with no action is disabled, and so is one whose `CallFunction` names no form or no function, with the reason in the log. A button with any other action is disabled until M40, and the help line says that the menu does not run it.
+- A function whose form is not in the game, or whose form has no such script attached, is not called: the press does nothing, and the log has the reason.
+- The store runs it with one function, `mcm::callFunction`, in `McmActions.cpp`. The unit tests link their own in its place, which keeps what is called.
+- MCM's menu sends no event for a button, and neither does this one.
+- The test set has 67 buttons with a `CallFunction`, in Sim Settlements 2 and Workshop Framework, and one with a `CallGlobalFunction`. The MCM showcase has one of each, and its `CallFunction` is of a form that is not in the game.
 
 M35 reads MCM's two keybind files, the mod's and the player's, and names each key.
 

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -241,6 +242,43 @@ namespace
         return row.pointed || listOpen;
     }
 
+    // the button of a button's row, in the panel's pixels: as wide as the Open of the menu's front page
+    constexpr float BUTTON_WIDTH = 160.0f;
+
+    /**
+     * The row of a button at the cursor: its text after the gutter, and a Run button where a control ends,
+     * before the room of a Reset. The whole row is pressed, so the button is only drawn, and a press runs
+     * the action in the store. A button with no action is disabled, and so is one whose action the menu
+     * does not run, which the reason says.
+     * Returns whether the ray is on the row.
+     */
+    bool drawButton(const model::Button& button, const PageDrawing& page, std::string& reason)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float width = rowWidth();
+        const auto row = addRow(true);
+
+        const auto* unknown = std::get_if<model::UnknownAction>(&button.action);
+        const bool runs = page.store && !unknown && !std::holds_alternative<model::NoAction>(button.action);
+        if (runs && row.pressed && page.store->run(button.action)) {
+            page.drawn.pressActed = true;
+        }
+        if (unknown) {
+            reason = std::format("Not available: the menu does not run a {}.", unknown->type.empty() ? "button of this kind" : unknown->type);
+        }
+        if (!row.shown) {
+            return false;
+        }
+
+        ImGui::BeginDisabled(!runs);
+        const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
+        ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
+        ui::drawTextIn(box, "Run", theme::color::GREEN, 0.5f);
+        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, box.Min.x - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, button.text);
+        ImGui::EndDisabled();
+        return row.pointed;
+    }
+
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page);
 
     /**
@@ -248,7 +286,8 @@ namespace
      * is empty space as high as its lines of text. An image that could not be read is a row that says an
      * image is there.
      * A row with a text that the ray is on is told as the pointed one. A setting whose value is not
-     * available has the reason as its help, where the store gives one.
+     * available has the reason as its help, where the store gives one, and so has a button whose action the
+     * menu does not run.
      */
     struct ItemDrawer
     {
@@ -270,8 +309,9 @@ namespace
 
         void operator()(const model::Button& button) const
         {
-            if (drawRow(button.text, "button")) {
-                page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = button.help };
+            std::string reason;
+            if (drawButton(button, page, reason)) {
+                page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason) };
             }
         }
 

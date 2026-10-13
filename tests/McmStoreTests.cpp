@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "TestActions.h"
 #include "TestEvents.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
@@ -14,6 +15,7 @@
 using namespace mods_config;
 using mcm::McmStore;
 using model::SettingType;
+using test_actions::TestActions;
 using test_events::TestEvents;
 using test_globals::TestGlobals;
 using test_properties::TestProperties;
@@ -490,4 +492,29 @@ TEST_CASE("McmStore: a setting that is set sends MCM's event, with its mod and t
     missing.sourceId = "bMissing";
     CHECK_FALSE(store.set(missing, true));
     CHECK(events.sent.empty());
+}
+
+TEST_CASE("McmStore: the action of a button calls its function, and no other action is run")
+{
+    TestActions actions;
+    TestEvents events;
+    McmStore store;
+    store.open(model::Mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    events.sent.clear();
+
+    const model::CallFunction call{ .plugin = PLUGIN, .formId = 0x800, .script = "MyMod:Main", .function = "Apply", .arguments = { 40, true, "a text"s } };
+    CHECK(store.run(call));
+    CHECK(actions.called == std::vector{ call });
+
+    // a button is no setting: MCM's menu sends no event for it
+    CHECK(events.sent.empty());
+
+    CHECK_FALSE(store.run(model::NoAction{}));
+    CHECK_FALSE(store.run(model::UnknownAction{ .type = "CallGlobalFunction" }));
+    CHECK(actions.called.size() == 1);
+
+    // a function of a form that is not in the game
+    actions.inGame = false;
+    CHECK_FALSE(store.run(call));
+    CHECK(actions.called.size() == 1);
 }

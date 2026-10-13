@@ -28,16 +28,16 @@ namespace mods_config::ui
         // The row of a dropdown while its list is open
         std::optional<PointedRow> pointed;
 
-        // a press did something in this frame: it changed a value, took hold of a slider, or opened the list
-        // of a dropdown. Or the thumbstick stepped a slider or a stepper
+        // a press did something in this frame: it changed a value, took hold of a slider, opened the list of
+        // a dropdown, or ran the action of a button. Or the thumbstick stepped a slider or a stepper
         bool pressActed = false;
     };
 
     /**
      * A page of a mod, in the content pane of the Full panel: its rows, in the order the mod gives them.
      * A section, a spacer, a text row and an image are drawn as they are. A setting is drawn as its control,
-     * with the value its store has for it. Any other row is its text and what it is, until the commit that
-     * draws its control.
+     * with the value its store has for it, and a button as its text and a Run button, which runs its action in
+     * the store. Any other row is its text and what it is, until the commit that draws its control.
      */
     class ModPage
     {

@@ -229,6 +229,90 @@ namespace
     }
 
     /**
+     * A text as the number MCM's menu reads it as, and 0 for a text that is none.
+     */
+    double toNumber(const std::string_view text)
+    {
+        double number = 0.0;
+        const auto* end = text.data() + text.size();
+        const auto [read, error] = std::from_chars(text.data(), end, number);
+        return error == std::errc() && read == end ? number : 0.0;
+    }
+
+    // the least and the most a whole number of Papyrus is
+    constexpr double MIN_WHOLE = -2147483648.0;
+    constexpr double MAX_WHOLE = 2147483647.0;
+
+    /**
+     * A parameter of a button's action, in the type the script gets it in, as MCM's menu types it. A text
+     * that begins with `{i}` is a whole number, with `{f}` a number, and with `{b}` a bool: off for nothing,
+     * `0` and `false`, and on for anything else. Any other text is a text. A JSON bool is a bool, and a JSON
+     * number is a number, also one that is written whole: Papyrus does not call a function that takes a
+     * number with a whole one. Anything else is an empty text, so the parameters after it keep their places.
+     */
+    model::Value loadArgument(const Json& param)
+    {
+        if (param.is_boolean()) {
+            return param.get<bool>();
+        }
+        if (param.is_number()) {
+            return param.get<float>();
+        }
+        if (!param.is_string()) {
+            return std::string();
+        }
+        auto text = param.get<std::string>();
+        const std::string_view typed = std::string_view(text).substr((std::min)(text.size(), std::size_t{ 3 }));
+        if (text.starts_with("{i}")) {
+            return static_cast<int>(std::clamp(toNumber(typed), MIN_WHOLE, MAX_WHOLE));
+        }
+        if (text.starts_with("{f}")) {
+            return static_cast<float>(toNumber(typed));
+        }
+        if (text.starts_with("{b}")) {
+            return !typed.empty() && typed != "0" && typed != "false";
+        }
+        return text;
+    }
+
+    /**
+     * What a button runs, by the `type` of its `action`. A `CallFunction` names the form of its script in
+     * `form`, as `MyMod.esp|800`, and its function in `function`. It can name the script in `scriptName`,
+     * and have the parameters of the function in `params`.
+     * A row with no action runs nothing, and neither does a `CallFunction` that is not written so. Any other
+     * action is one the menu does not run.
+     */
+    model::Action loadAction(const Json& row)
+    {
+        const auto action = row.find("action");
+        if (action == row.end() || !action->is_object()) {
+            return model::NoAction{};
+        }
+        auto type = getText(*action, "type");
+        if (type != "CallFunction") {
+            return model::UnknownAction{ .type = std::move(type) };
+        }
+        const auto formText = getText(*action, "form");
+        auto form = parseSourceForm(formText);
+        auto function = getText(*action, "function");
+        if (!form || function.empty()) {
+            logger::warn("The function '{}' of the form '{}' of the row '{}' is not a name, and a plugin and an id in hex", function, formText, getText(row, "text"));
+            return model::NoAction{};
+        }
+        model::CallFunction call{ .plugin = std::move(form->first),
+            .formId = form->second,
+            .script = getText(*action, "scriptName"),
+            .function = std::move(function),
+            .arguments = {} };
+        if (const auto params = action->find("params"); params != action->end() && params->is_array()) {
+            for (const auto& param : *params) {
+                call.arguments.push_back(loadArgument(param));
+            }
+        }
+        return call;
+    }
+
+    /**
      * The language file a FallUI mod names in a row of its front page or of a page. Empty for any other mod.
      */
     std::string findFallUILanguageFile(const Json& config)
@@ -413,7 +497,7 @@ namespace
                 .visibleWhen = {} };
         }
         if (type == "button") {
-            return model::Button{ .text = std::move(text), .help = getHelp(row, texts), .visibleWhen = {} };
+            return model::Button{ .text = std::move(text), .help = getHelp(row, texts), .action = loadAction(row), .visibleWhen = {} };
         }
         if (type == "text") {
             // the tags are read after the translation: a FallUI mod has its tokens inside them
@@ -481,7 +565,8 @@ namespace mods_config::mcm
     /**
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
      * text, the help and the type of every row, the lines of a text row, the height of a spacer, the range of a
-     * slider, the options of a stepper and a dropdown, the global a setting is kept in, and the pixels of an image.
+     * slider, the options of a stepper and a dropdown, the global a setting is kept in, the function a button
+     * calls, and the pixels of an image.
      * A setting has an id, and a row is shown by the groups its `groupCondition` names.
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.

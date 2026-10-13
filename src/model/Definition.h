@@ -193,12 +193,60 @@ namespace mods_config::model
     };
 
     /**
+     * A row with no action: nothing runs.
+     */
+    struct NoAction
+    {
+        bool operator==(const NoAction&) const = default;
+    };
+
+    /**
+     * A call of a function of a Papyrus script, on a form of a game plugin the script is attached to.
+     */
+    struct CallFunction
+    {
+        // the file name of the form's plugin, as `MyMod.esp`
+        std::string plugin;
+
+        // the form's id without the plugin's place in the load order
+        std::uint32_t formId = 0;
+
+        // the script that has the function. Empty for the form's first script
+        std::string script;
+
+        // the name of the function
+        std::string function;
+
+        // what the function is called with, each in the type the script gets it in
+        std::vector<Value> arguments;
+
+        bool operator==(const CallFunction&) const = default;
+    };
+
+    /**
+     * An action the menu does not run: its row is disabled.
+     */
+    struct UnknownAction
+    {
+        // what it is, as its config names it
+        std::string type;
+
+        bool operator==(const UnknownAction&) const = default;
+    };
+
+    /**
+     * What a row runs. Only the store runs it.
+     */
+    using Action = std::variant<NoAction, CallFunction, UnknownAction>;
+
+    /**
      * A row that runs an action.
      */
     struct Button
     {
         std::string text;
         std::string help;
+        Action action;
         std::optional<Condition> visibleWhen;
     };
 

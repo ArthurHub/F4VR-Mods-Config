@@ -57,5 +57,11 @@ namespace mods_config::model
          * Sets the value of a setting. Returns whether it is set.
          */
         virtual bool set(const Setting& setting, const Value& value) = 0;
+
+        /**
+         * Runs an action. Returns whether it is run: not one the store does not run, and not one whose
+         * target is not there.
+         */
+        virtual bool run(const Action& action) = 0;
     };
 }

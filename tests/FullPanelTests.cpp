@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "TestActions.h"
 #include "TestEvents.h"
 #include "TestGlobals.h"
 #include "TestPanel.h"
@@ -165,6 +166,26 @@ namespace
         FullPanel panel;
         panel.setStore(&store);
         panel.setMods({ std::move(mod), modOf("Beta") });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    /**
+     * A panel with one mod, shown on its front page, with a store: a button that calls a function, one with
+     * no action, and one with an action the menu does not run.
+     */
+    FullPanel modWithButtons(model::Store& store)
+    {
+        auto mod = modOf("Alpha");
+        mod.frontPage.items.push_back(model::Button{ .text = "Reset everything",
+            .help = "Puts every value back.",
+            .action = model::CallFunction{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .function = "ResetAll", .arguments = {} } });
+        mod.frontPage.items.push_back(model::Button{ .text = "Nothing", .help = "Nothing runs.", .action = {} });
+        mod.frontPage.items.push_back(model::Button{ .text = "Notify", .help = "Shows a text.", .action = model::UnknownAction{ .type = "CallGlobalFunction" } });
+
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
     }
@@ -719,6 +740,45 @@ TEST_CASE("FullPanel: a press on the row of a switcher turns it on or off in its
 
     // the page is the same one
     CHECK(panel.selection() == selectionOf(0));
+}
+
+TEST_CASE("FullPanel: a press on the row of a button runs its action in its store, and acts")
+{
+    const test_panel::PanelContext context;
+    test_actions::TestActions actions;
+    mcm::McmStore store;
+    auto panel = modWithButtons(store);
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    REQUIRE(actions.called.size() == 1);
+    CHECK(actions.called[0].function == "ResetAll");
+
+    // a button with no action, and one with an action the menu does not run
+    CHECK_FALSE(pressActs(panel, pageRow(1)));
+    CHECK_FALSE(pressActs(panel, pageRow(2)));
+    CHECK(actions.called.size() == 1);
+
+    // a function of a form that is not in the game
+    actions.inGame = false;
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+    CHECK(actions.called.size() == 1);
+}
+
+TEST_CASE("FullPanel: the help line says why a button is not run")
+{
+    const test_panel::PanelContext context;
+    test_actions::TestActions actions;
+    mcm::McmStore store;
+    auto panel = modWithButtons(store);
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Reset everything: Puts every value back.");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Nothing: Nothing runs.");
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Notify: Not available: the menu does not run a CallGlobalFunction.");
 }
 
 TEST_CASE("FullPanel: a press on a row that is not edited changes nothing")

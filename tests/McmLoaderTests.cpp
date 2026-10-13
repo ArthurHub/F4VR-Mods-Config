@@ -896,3 +896,61 @@ TEST_CASE("McmLoader: a row has its help, in the game's language and without its
     CHECK(std::get<model::Setting>(rows[4]).help.empty());
     CHECK(std::get<model::Setting>(rows[5]).help.empty());
 }
+
+TEST_CASE("McmLoader: a button has the function its action calls, with its parameters in their types")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "button", "text": "With no parameters", "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "ResetAll" } },
+        {
+            "type": "button", "text": "With a script and parameters",
+            "action": {
+                "type": "CallFunction", "form": "MyMod.esp|0x1F", "scriptName": "MyMod:Main", "function": "Apply",
+                "params": ["{i}40", "{i}-1", "{f}1.5", "{b}1", "{b}0", "{b}true", "{b}false", "{b}", "a text", "{s}kept", true, 4, 1.5, 2.0]
+            }
+        },
+        {
+            "type": "button", "text": "With what is no number",
+            "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "Apply", "params": ["{i}many", "{i}1.9", "{f}", "{i}99999999999", null, [1]] }
+        }
+    )");
+
+    const auto actionOf = [&page](const std::size_t place) {
+        return std::get<model::Button>(page.items[place]).action;
+    };
+    using Arguments = std::vector<model::Value>;
+
+    CHECK(actionOf(0) == model::Action(model::CallFunction{ .plugin = "MyMod.esp", .formId = 0x800, .script = {}, .function = "ResetAll", .arguments = {} }));
+
+    // a whole number, a number and a bool by the start of a text. A JSON number is a number, also a whole one
+    const auto typed = std::get<model::CallFunction>(actionOf(1));
+    CHECK(typed.formId == 0x1F);
+    CHECK(typed.script == "MyMod:Main");
+    CHECK(typed.function == "Apply");
+    CHECK(typed.arguments == Arguments{ 40, -1, 1.5f, true, false, true, false, false, "a text"s, "{s}kept"s, true, 4.0f, 1.5f, 2.0f });
+
+    // a text that is no number is 0, a whole number is cut at its point and kept in what Papyrus has, and
+    // what is no bool, number or text is an empty text
+    CHECK(std::get<model::CallFunction>(actionOf(2)).arguments == Arguments{ 0, 1, 0.0f, 2147483647, ""s, ""s });
+}
+
+TEST_CASE("McmLoader: a button with no action runs nothing, and one with another action is not run")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "button", "text": "No action" },
+        { "type": "button", "text": "An action that is no object", "action": "CallFunction" },
+        { "type": "button", "text": "No form", "action": { "type": "CallFunction", "function": "ResetAll" } },
+        { "type": "button", "text": "A form that is no id", "action": { "type": "CallFunction", "form": "MyMod.esp|Quest", "function": "ResetAll" } },
+        { "type": "button", "text": "No function", "action": { "type": "CallFunction", "form": "MyMod.esp|800" } },
+        { "type": "button", "text": "A global function", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Hi"] } },
+        { "type": "button", "text": "No type", "action": { "function": "ResetAll" } }
+    )");
+
+    const auto actionOf = [&page](const std::size_t place) {
+        return std::get<model::Button>(page.items[place]).action;
+    };
+    for (std::size_t place = 0; place < 5; ++place) {
+        CHECK(actionOf(place) == model::Action(model::NoAction{}));
+    }
+    CHECK(actionOf(5) == model::Action(model::UnknownAction{ .type = "CallGlobalFunction" }));
+    CHECK(actionOf(6) == model::Action(model::UnknownAction{ .type = {} }));
+}

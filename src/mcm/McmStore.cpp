@@ -308,6 +308,18 @@ namespace mods_config::mcm
     }
 
     /**
+     * Runs the action of a button, as MCM's menu does for a press on it: a `CallFunction` calls its function,
+     * which Papyrus runs on its own time, so nothing is known of how it ends.
+     * Returns false for a row with no action, for an action the store does not run, and for a function whose
+     * form or script is not in the game.
+     */
+    bool McmStore::run(const model::Action& action)
+    {
+        const auto* call = std::get_if<model::CallFunction>(&action);
+        return call && callFunction(*call);
+    }
+
+    /**
      * Writes a value where the setting's storage says. Returns false for a value that is not written: one of
      * a storage the store does not write, of a global or a property that is not in the game, or of a
      * ModSetting that is in neither of MCM's files, which MCM does not have.
