@@ -178,6 +178,22 @@ namespace
         }
         return ids;
     }
+
+    /**
+     * The ids the settings among the items have in their config, in their order, with those of the groups.
+     */
+    Lines sourceIdsOf(const std::vector<model::Item>& items)
+    {
+        Lines ids;
+        for (const auto& item : items) {
+            if (const auto* setting = std::get_if<model::Setting>(&item)) {
+                ids.push_back(setting->sourceId);
+            } else if (const auto* group = std::get_if<model::Group>(&item)) {
+                std::ranges::copy(sourceIdsOf(group->items), std::back_inserter(ids));
+            }
+        }
+        return ids;
+    }
 }
 
 TEST_CASE("McmLoader: a config becomes a mod with its front page and its pages")
@@ -462,6 +478,9 @@ TEST_CASE("McmLoader: a setting has the id of its row, or one from its page and 
     CHECK(idsOf(mod.frontPage.items) == Lines{ "main/2", "fStrength:Main", "main/5" });
     CHECK(idsOf(mod.pages[0].items) == Lines{ "page1/1", "page1/2" });
     CHECK(idsOf(mod.pages[1].items) == Lines{ "page2/2" });
+
+    // the id of its row is kept as it is, for MCM's event of a change
+    CHECK(sourceIdsOf(mod.frontPage.items) == Lines{ "", "fStrength:Main", "fStrength:Main" });
 }
 
 TEST_CASE("McmLoader: a row of a group is shown while the setting that controls the group is on")

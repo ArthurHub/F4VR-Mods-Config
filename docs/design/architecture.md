@@ -381,7 +381,7 @@ MCM pages remain a compatibility source rather than being rewritten into the new
 - Reads each mod's MCM `config.json` and its declared default settings.
 - Writes ModSettings through MCM's own `MCM.SetModSetting*` functions, so MCM's in-memory store and its settings file stay in agreement. It never writes MCM's settings files itself.
 - Reads and writes GlobalValue and PropertyValue sources directly, as MCM does.
-- Sends the existing `OnMCMSettingChange|ModName` external event after a change, and the menu open and close events when an MCM page is shown and left, so scripts react as they do to MCM's own menu.
+- Sends the existing `OnMCMSettingChange|ModName` external event after a change, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
 - Runs the supported MCM button actions.
 - Shows hotkeys read-only. MCM keeps dispatching them.
 

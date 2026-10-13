@@ -75,6 +75,7 @@ namespace mods_config
         _fullPanel.reset();
         createPanel();
         createWristButtons();
+        _store.menuOpened();
     }
 
     void ConfigMenu::close()
@@ -91,6 +92,9 @@ namespace mods_config
         _wristButtons.reset();
         _minimizeButton.reset();
         _imageTextures.clear();
+        // the mod that is shown is left, which its scripts are told before they are told of the menu
+        _fullPanel.reset();
+        _store.menuClosed();
     }
 
     /**

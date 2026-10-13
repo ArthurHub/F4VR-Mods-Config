@@ -151,6 +151,9 @@ namespace mods_config::model
     {
         // its identity, unique in its mod: its author's, or one its loader made
         std::string id;
+
+        // the id its source has for it, which MCM's events name an MCM row by. Empty for a row with none
+        std::string sourceId;
         SettingType type = SettingType::Switcher;
         std::string text;
 

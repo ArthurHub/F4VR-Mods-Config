@@ -31,6 +31,7 @@ A setting has:
 | Field        | What it is                                                                                            |
 | ------------ | ----------------------------------------------------------------------------------------------------- |
 | id           | Its identity, unique in its mod: its author's, or one the loader makes                                |
+| sourceId     | The id its source has for it, which MCM's events name an MCM row by. Empty for a row with none        |
 | type         | How it is edited, by MCM's names: switcher, slider, stepper, dropdown, textinput                      |
 | valueType    | What the value is: bool, int, float or string. Color comes with its control                           |
 | text         | What the row says                                                                                     |
@@ -45,7 +46,7 @@ A setting has:
 
 Three of these are as they are because of MCM:
 
-- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so the MCM store keeps that text with the row's storage. A package's setting has its author's id, or one made from its storage, the key and the section: see [Declarative schema](schema.md#settings).
+- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so a setting keeps that text too, as its `sourceId`. A package's setting has its author's id, or one made from its storage, the key and the section: see [Declarative schema](schema.md#settings).
 - **The default is optional for MCM only.** MCM declares a default only for a ModSetting, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package.
 - **The storage has several forms.** An MCM global, an MCM script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage.
 

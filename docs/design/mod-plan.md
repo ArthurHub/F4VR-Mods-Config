@@ -194,17 +194,17 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 
 ### 2. Edit MCM values
 
-| #   | Repo      | Commit                                                                              | Status |
-| --- | --------- | ----------------------------------------------------------------------------------- | ------ |
-| M25 | mod       | Globals are read and written: the switcher works                                    | done   |
-| M26 | mod       | The slider                                                                          | done   |
-| M27 | mod       | The stepper and the dropdown                                                        | done   |
-| M28 | mod       | Conditions show and hide rows                                                       | done   |
-| M29 | mod       | ModSettings are read from MCM's files                                               | done   |
-| M30 | mod       | ModSettings are written through MCM                                                 | done   |
-| M31 | mod       | MCM's events are sent: a setting changed, the menu opened and closed                | todo   |
-| M32 | mod       | Script properties are read and written                                              | todo   |
-| F24 | framework | f4sevr: script properties and external events, if CommonLibF4VR's do not work in VR | todo   |
+| #   | Repo      | Commit                                                                              | Status    |
+| --- | --------- | ----------------------------------------------------------------------------------- | --------- |
+| M25 | mod       | Globals are read and written: the switcher works                                    | done      |
+| M26 | mod       | The slider                                                                          | done      |
+| M27 | mod       | The stepper and the dropdown                                                        | done      |
+| M28 | mod       | Conditions show and hide rows                                                       | done      |
+| M29 | mod       | ModSettings are read from MCM's files                                               | done      |
+| M30 | mod       | ModSettings are written through MCM                                                 | done      |
+| M31 | mod       | MCM's events are sent: a setting changed, the menu opened and closed                | done      |
+| M32 | mod       | Script properties are read and written                                              | todo      |
+| F24 | framework | f4sevr: script properties, if CommonLibF4VR's do not work in VR                     | todo      |
 
 Globals come first: they are most of the test set, and need neither MCM nor Papyrus.
 
@@ -268,9 +268,19 @@ M30 writes a ModSetting through `MCM.SetModSetting*`, so MCM's memory and its fi
 - A unit test has no game, so MCM is not called there (`REL::NO_GAME`): it checks the value and the text the store keeps.
 - The switchers, sliders, steppers and dropdowns of the MCM showcase that are ModSettings work now.
 
+M31 sends the events MCM's menu sends, so a script acts on this menu as on MCM's:
+
+- A script registers for an event with F4SE's `RegisterForExternalEvent`. F4SE gives a plugin the scripts of an event, and each is called with the function it registered, as F4SE calls it for MCM's menu. The call is the framework's `f4sevr`, which M30 calls MCM with.
+- `OnMCMOpen` as the menu opens, and `OnMCMClose` as it closes. A menu that is minimized is still open.
+- `OnMCMMenuOpen` and `OnMCMMenuOpen|<mod>` as a mod is selected, and `OnMCMMenuClose|<mod>` as it is left: for another mod, for the menu's front page, and as the menu closes, before `OnMCMClose`.
+- MCM's menu differs in two things. It sends the close of a mod only as another mod is selected, and none as the menu closes. It sends the open again for every press on a row of its list, also on a page of the mod that is shown, where this menu sends none.
+- `OnMCMSettingChange` and `OnMCMSettingChange|<mod>` after a value is written, with the name of the mod and the id of the row. A row with no `id` in its config sends none, as in MCM's menu. A setting keeps the id of its row for it, beside its own, which the loader can make. A slider that is dragged sends them once, as the trigger is let go.
+- A ModSetting is set with a call that is queued to Papyrus, and the event's call is queued after it.
+- The store sends them with one function, `mcm::sendEvent`. The unit tests link their own in its place, which keeps what is sent, so a test checks the events and their order without the game.
+
 M32 reads and writes all four property types.
 
-F24 is made only if CommonLibF4VR's own calls for both do not work in VR, which M31 and M32 find out.
+F24 is made only if CommonLibF4VR's own calls for script properties do not work in VR, which M32 finds out. The events need none: they are sent with what `f4sevr` has.
 
 ### 3. MCM complete
 

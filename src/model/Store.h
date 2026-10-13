@@ -36,9 +36,14 @@ namespace mods_config::model
         virtual ~Store() = default;
 
         /**
-         * Starts the editing session of a mod, as the mod is selected.
+         * Starts the editing session of a mod, as the mod is selected. It ends the session of the mod before it.
          */
         virtual void open(const Mod& mod) = 0;
+
+        /**
+         * Ends the editing session, as the mod is left for no other. Nothing with no session.
+         */
+        virtual void close() = 0;
 
         virtual StoredValue value(const Setting& setting) = 0;
 

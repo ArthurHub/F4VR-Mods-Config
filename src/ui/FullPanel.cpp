@@ -143,7 +143,7 @@ namespace mods_config::ui
     /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
-     * Another mod than before starts its editing session in the store.
+     * Another mod than before starts its editing session in the store, and no mod ends the one there is.
      * Returns whether it shows another page than before.
      */
     bool FullPanel::select(const Selection& selection)
@@ -158,8 +158,12 @@ namespace mods_config::ui
         if (shown == _selection) {
             return false;
         }
-        if (_store && shown.mod && shown.mod != _selection.mod) {
-            _store->open(_mods[*shown.mod]);
+        if (_store && shown.mod != _selection.mod) {
+            if (shown.mod) {
+                _store->open(_mods[*shown.mod]);
+            } else {
+                _store->close();
+            }
         }
         _selection = shown;
         _pageChanged = true;
@@ -190,10 +194,13 @@ namespace mods_config::ui
 
     /**
      * The panel as the menu opens: on the menu's front page, with the tree at its top. A menu that was closed
-     * does not keep its place.
+     * does not keep its place. The editing session of a mod that was shown ends in the store.
      */
     void FullPanel::reset()
     {
+        if (_store && _selection.mod) {
+            _store->close();
+        }
         _selection = {};
         _pageChanged = true;
         _pressActed = false;

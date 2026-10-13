@@ -17,11 +17,14 @@ add_executable(${PROJECT_NAME}_tests
   TextMarkupTests.cpp
   TranslationsTests.cpp
   Setup.cpp
+  TestEvents.cpp
+  TestEvents.h
   TestFiles.h
   TestGlobals.h
   TestSwf.h
   TestPanel.h
-  # the mod's sources under test
+  # the mod's sources under test. Not mcm/McmEvents.cpp, which calls the scripts of the game: TestEvents.cpp has
+  # the tests' own sendEvent in its place
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/GameGlobals.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp

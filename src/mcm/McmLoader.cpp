@@ -363,6 +363,7 @@ namespace
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
             return model::Setting{ .id = std::move(id),
+                .sourceId = getText(row, "id"),
                 .type = setting->second,
                 .text = std::move(text),
                 .help = getHelp(row, texts),

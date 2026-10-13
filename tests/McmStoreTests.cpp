@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <string>
+#include <vector>
 
+#include "TestEvents.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
 #include "mcm/McmLoader.h"
@@ -11,11 +13,14 @@
 using namespace mods_config;
 using mcm::McmStore;
 using model::SettingType;
+using test_events::TestEvents;
 using test_globals::TestGlobals;
 using Type = model::ModSettingStorage::Type;
 
 namespace
 {
+    using Events = std::vector<std::string>;
+
     constexpr auto PLUGIN = "MyMod.esp";
 
     model::Setting settingOf(const SettingType type, model::Storage storage, model::ValueOptions valueOptions = {})
@@ -340,4 +345,57 @@ TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its 
     CHECK(store.valueById("fTenth:Sliders").value == model::Value(1.3f));
     CHECK(store.valueById("iCount:Sliders").value == model::Value(5.0f));
     CHECK_FALSE(store.valueById("bMissing:Switchers").available);
+}
+
+TEST_CASE("McmStore: a mod that is shown and left sends MCM's events of it")
+{
+    auto globals = someGlobals();
+    TestEvents events;
+    McmStore store(globals);
+    const model::Mod first{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} };
+    const model::Mod second{ .name = "Other", .displayName = {}, .frontPage = {}, .pages = {} };
+
+    store.menuOpened();
+    store.open(first);
+    CHECK(events.sent == Events{ "OnMCMOpen", "OnMCMMenuOpen", "OnMCMMenuOpen|MyMod" });
+
+    // another mod: the one before it is left first
+    events.sent.clear();
+    store.open(second);
+    CHECK(events.sent == Events{ "OnMCMMenuClose|MyMod", "OnMCMMenuOpen", "OnMCMMenuOpen|Other" });
+
+    events.sent.clear();
+    store.close();
+    store.menuClosed();
+    CHECK(events.sent == Events{ "OnMCMMenuClose|Other", "OnMCMClose" });
+
+    // no mod is left with none shown
+    events.sent.clear();
+    store.close();
+    CHECK(events.sent.empty());
+}
+
+TEST_CASE("McmStore: a setting that is set sends MCM's event, with its mod and the id of its row")
+{
+    auto globals = someGlobals();
+    TestEvents events;
+    McmStore store(globals);
+    store.open(model::Mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    events.sent.clear();
+
+    auto withId = globalSetting(SettingType::Switcher, 0x801);
+    withId.sourceId = "bOn";
+    CHECK(store.set(withId, true));
+    CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, bOn)", "OnMCMSettingChange|MyMod(MyMod, bOn)" });
+
+    // a row with no id in its config, as MCM's menu sends none for it
+    events.sent.clear();
+    CHECK(store.set(globalSetting(SettingType::Switcher, 0x801), false));
+    CHECK(events.sent.empty());
+
+    // a value that is not written
+    auto missing = globalSetting(SettingType::Switcher, 0x1234);
+    missing.sourceId = "bMissing";
+    CHECK_FALSE(store.set(missing, true));
+    CHECK(events.sent.empty());
 }

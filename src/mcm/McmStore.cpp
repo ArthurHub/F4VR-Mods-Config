@@ -173,20 +173,56 @@ namespace mods_config::mcm
     {}
 
     /**
-     * Starts the session of a mod: the values the store held for the mod before it are forgotten, and the
-     * settings of an id are the mod's. Its ModSettings are read from MCM's files now, and not again while
-     * it is selected: MCM writes the player's file on every set, so the files have what MCM has.
+     * Tells the scripts that the menu is opened, as MCM's menu does with `OnMCMOpen`.
+     */
+    void McmStore::menuOpened()
+    {
+        sendEvent("OnMCMOpen");
+    }
+
+    /**
+     * Tells the scripts that the menu is closed, as MCM's menu does with `OnMCMClose`. The menu ends the
+     * session of its mod before it.
+     */
+    void McmStore::menuClosed()
+    {
+        sendEvent("OnMCMClose");
+    }
+
+    /**
+     * Starts the session of a mod, after it ends the one of the mod before it: the settings of an id are the
+     * mod's. Its ModSettings are read from MCM's files now, and not again while it is selected: MCM writes
+     * the player's file on every set, so the files have what MCM has.
+     * The scripts are told that the mod is shown, as MCM's menu tells them for a press on the mod's row.
      */
     void McmStore::open(const model::Mod& mod)
     {
+        close();
+        _modName = mod.name;
         _modSettings.load(_mcmFolder, mod.name);
         logger::debug("Read {} ModSettings of '{}' from MCM's files", _modSettings.size(), mod.name);
-        _held.clear();
-        _settings.clear();
         addSettings(mod.frontPage.items, _settings);
         for (const auto& page : mod.pages) {
             addSettings(page.items, _settings);
         }
+        sendEvent("OnMCMMenuOpen");
+        sendEvent("OnMCMMenuOpen|" + _modName);
+    }
+
+    /**
+     * Ends the session of the mod: its values are forgotten, and the scripts are told that it is left, which
+     * they are not with no mod.
+     * It does not read the mod, which can be gone by now: the menu's mods are replaced before it is called.
+     */
+    void McmStore::close()
+    {
+        if (!_modName.empty()) {
+            sendEvent("OnMCMMenuClose|" + _modName);
+        }
+        _modName.clear();
+        _modSettings.load({}, {});
+        _held.clear();
+        _settings.clear();
     }
 
     /**
@@ -229,11 +265,28 @@ namespace mods_config::mcm
     }
 
     /**
-     * Writes a value where the setting's storage says, at once. Returns false for a value that is not
-     * written: one of a storage the store does not write, of a global that is not in the game, or of a
-     * ModSetting that is in neither of MCM's files, which MCM does not have.
+     * Sets a value, at once, and then tells the scripts that the setting changed, as MCM's menu does: with
+     * the name of the mod and the id of the row, for a row that has one in its config.
+     * Returns false for a value that is not written, which no script is told of.
      */
     bool McmStore::set(const model::Setting& setting, const model::Value& value)
+    {
+        if (!write(setting, value)) {
+            return false;
+        }
+        if (!setting.sourceId.empty()) {
+            sendEvent("OnMCMSettingChange", { _modName, setting.sourceId });
+            sendEvent("OnMCMSettingChange|" + _modName, { _modName, setting.sourceId });
+        }
+        return true;
+    }
+
+    /**
+     * Writes a value where the setting's storage says. Returns false for a value that is not written: one of
+     * a storage the store does not write, of a global that is not in the game, or of a ModSetting that is in
+     * neither of MCM's files, which MCM does not have.
+     */
+    bool McmStore::write(const model::Setting& setting, const model::Value& value)
     {
         if (std::holds_alternative<model::NoStorage>(setting.storage)) {
             _held.insert_or_assign(&setting, value);

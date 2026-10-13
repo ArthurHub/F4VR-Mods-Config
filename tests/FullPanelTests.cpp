@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "TestEvents.h"
 #include "TestGlobals.h"
 #include "TestPanel.h"
 #include "Theme.h"
@@ -1241,4 +1242,32 @@ TEST_CASE("FullPanel: a dropdown with no options is not opened")
 
     CHECK_FALSE(pressActs(panel, pageRow(3)));
     CHECK_FALSE(isListOpen());
+}
+
+TEST_CASE("FullPanel: a mod's editing session ends as the mod is left, and as the panel is reset")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    test_events::TestEvents events;
+    mcm::McmStore store(globals);
+    auto panel = modWithValues(store);
+    CHECK(events.sent == Names{ "OnMCMMenuOpen", "OnMCMMenuOpen|Alpha" });
+
+    // another mod
+    events.sent.clear();
+    panel.select(selectionOf(1));
+    CHECK(events.sent == Names{ "OnMCMMenuClose|Alpha", "OnMCMMenuOpen", "OnMCMMenuOpen|Beta" });
+
+    // the menu's front page, as Back goes to it
+    events.sent.clear();
+    CHECK(panel.back());
+    CHECK(events.sent == Names{ "OnMCMMenuClose|Beta" });
+
+    // as the menu closes
+    panel.select(selectionOf(0));
+    events.sent.clear();
+    panel.reset();
+    CHECK(events.sent == Names{ "OnMCMMenuClose|Alpha" });
+    panel.reset();
+    CHECK(events.sent.size() == 1);
 }
