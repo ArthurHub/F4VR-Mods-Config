@@ -77,6 +77,29 @@ namespace mods_config::model
     };
 
     /**
+     * A ModSetting of MCM: a value MCM keeps for a mod, in the mod's settings file.
+     */
+    struct ModSettingStorage
+    {
+        /**
+         * What MCM keeps the value as, by the `sourceType` of its row.
+         */
+        enum class Type : std::uint8_t
+        {
+            Bool,
+            Int,
+            Float,
+            String,
+        };
+
+        // as MCM names it, by its key and its section in the file: `fStrength:Main`
+        std::string name;
+        Type type = Type::Bool;
+
+        bool operator==(const ModSettingStorage&) const = default;
+    };
+
+    /**
      * A storage the menu does not read: the value of its setting is not available.
      */
     struct UnknownStorage
@@ -90,7 +113,7 @@ namespace mods_config::model
     /**
      * Where the value of a setting is kept. Only the store reads it.
      */
-    using Storage = std::variant<NoStorage, GlobalStorage, UnknownStorage>;
+    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, UnknownStorage>;
 
     /**
      * What a row is shown by: the value of one setting, or other conditions that are joined. It is asked of

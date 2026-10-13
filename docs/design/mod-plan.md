@@ -200,7 +200,7 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 | M26 | mod       | The slider                                                                          | done   |
 | M27 | mod       | The stepper and the dropdown                                                        | done   |
 | M28 | mod       | Conditions show and hide rows                                                       | done   |
-| M29 | mod       | ModSettings are read from MCM's files                                               | todo   |
+| M29 | mod       | ModSettings are read from MCM's files                                               | done   |
 | M30 | mod       | ModSettings are written through MCM                                                 | todo   |
 | M31 | mod       | MCM's events are sent: a setting changed, the menu opened and closed                | todo   |
 | M32 | mod       | Script properties are read and written                                              | todo   |
@@ -251,6 +251,14 @@ M28 translates `groupControl` and `groupCondition` to the model's conditions, as
 - A ModSetting with no id is kept nowhere, as it names no setting: FallUI's "Unfold settings" switchers work now, and so does the group of the MCM showcase.
 
 M29 reads a ModSetting from MCM's two files, the mod's defaults and the player's values, which MCM writes on every set. It is plain file code.
+
+- The defaults are `Data\MCM\Config\<mod>\settings.ini`, and the player's values `Data\MCM\Settings\<mod>.ini`, which is read over them.
+- A ModSetting is named by the `id` of its row as the config has it, its key and its section: `fStrength:Main` is `fStrength` of `[Main]`, in the letter case of the file, as MCM finds it.
+- The files are read as the mod is selected, and not in every frame as a global is. A value a script sets while the mod is shown is read by M42.
+- The text of a key is read as the `sourceType` of its row says, as MCM reads it: a bool is off at `0` and on at any other text, and a number is read up to what is no part of one.
+- A ModSetting that is in neither file is not available, and neither is one whose text is no number. The row is disabled, and the help line says why.
+- A row shows the value of its ModSetting, and a press on it changes nothing until M30.
+- A group that a ModSetting controls is now shown while that ModSetting is on.
 
 M30 writes a ModSetting through `MCM.SetModSetting*`, so MCM's memory and its file agree. It is the menu's first call into Papyrus.
 

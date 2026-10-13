@@ -1,5 +1,6 @@
 #include "McmStore.h"
 
+#include <charconv>
 #include <cmath>
 #include <format>
 #include <variant>
@@ -67,6 +68,57 @@ namespace
     }
 
     /**
+     * The text of a ModSetting as the number MCM reads it as: a bool is off at `0` and on at any other
+     * text, and a whole number and a number are read up to what is no part of one. None for a text that
+     * starts with no number, and for one MCM keeps as a text.
+     */
+    std::optional<float> modSettingNumber(const model::ModSettingStorage::Type type, const std::string& text)
+    {
+        using Type = model::ModSettingStorage::Type;
+        const auto* end = text.data() + text.size();
+        switch (type) {
+        case Type::Bool:
+            return text != "0" ? 1.0f : 0.0f;
+        case Type::Int: {
+            int whole = 0;
+            return std::from_chars(text.data(), end, whole).ec == std::errc() ? std::optional(static_cast<float>(whole)) : std::nullopt;
+        }
+        case Type::Float: {
+            float number = 0.0f;
+            return std::from_chars(text.data(), end, number).ec == std::errc() ? std::optional(number) : std::nullopt;
+        }
+        case Type::String:
+            break;
+        }
+        return std::nullopt;
+    }
+
+    /**
+     * The value of a setting that is a ModSetting, from the text MCM's files have for it. A text input has
+     * the text as it is written. One that is in neither file is not available, and neither is one whose
+     * text is no number for a setting that keeps one, with the reason.
+     */
+    model::StoredValue modSettingValue(const model::Setting& setting, const model::ModSettingStorage& modSetting, const std::string* text)
+    {
+        if (!text) {
+            return { .value = valueWithNone(setting),
+                .available = false,
+                .reason = std::format("Not available: the ModSetting {} is in neither of MCM's files.", modSetting.name) };
+        }
+        if (setting.type == model::SettingType::TextInput) {
+            return { .value = *text, .available = true, .reason = {} };
+        }
+        if (const auto number = modSettingNumber(modSetting.type, *text)) {
+            if (auto value = fromNumber(setting, *number)) {
+                return { .value = std::move(*value), .available = true, .reason = {} };
+            }
+        }
+        return { .value = valueWithNone(setting),
+            .available = false,
+            .reason = std::format("Not available: the ModSetting {} is '{}' in MCM's files, which is no number.", modSetting.name, *text) };
+    }
+
+    /**
      * Adds the settings of the items to the map, each by its id, with those of the groups among them.
      */
     void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings)
@@ -83,16 +135,20 @@ namespace
 
 namespace mods_config::mcm
 {
-    McmStore::McmStore(Globals& globals)
-        : _globals(globals)
+    McmStore::McmStore(Globals& globals, std::filesystem::path mcmFolder)
+        : _globals(globals),
+          _mcmFolder(std::move(mcmFolder))
     {}
 
     /**
      * Starts the session of a mod: the values the store held for the mod before it are forgotten, and the
-     * settings of an id are the mod's.
+     * settings of an id are the mod's. Its ModSettings are read from MCM's files now, and not again while
+     * it is selected: MCM writes the player's file on every set, so the files have what MCM has.
      */
     void McmStore::open(const model::Mod& mod)
     {
+        _modSettings.load(_mcmFolder, mod.name);
+        logger::debug("Read {} ModSettings of '{}' from MCM's files", _modSettings.size(), mod.name);
         _held.clear();
         _settings.clear();
         addSettings(mod.frontPage.items, _settings);
@@ -103,8 +159,9 @@ namespace mods_config::mcm
 
     /**
      * The value of a setting, read from its storage now: another mod or the console can change a global at
-     * any time. A global that is not in the game is not available, with the reason, and neither is a value
-     * of a storage the store does not read.
+     * any time. A ModSetting is the one of the mod that is selected, as its files had it then.
+     * A global that is not in the game is not available, with the reason, and neither is a ModSetting that
+     * is in no file, and a value of a storage the store does not read.
      */
     model::StoredValue McmStore::value(const model::Setting& setting)
     {
@@ -123,6 +180,9 @@ namespace mods_config::mcm
                 return { .value = std::move(*value), .available = true, .reason = {} };
             }
         }
+        if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
+            return modSettingValue(setting, *modSetting, _modSettings.find(modSetting->name));
+        }
         return { .value = valueWithNone(setting), .available = false, .reason = {} };
     }
 
@@ -137,7 +197,8 @@ namespace mods_config::mcm
 
     /**
      * Writes a value where the setting's storage says, at once. Returns false for a value that is not
-     * written: one of a storage the store does not write, or of a global that is not in the game.
+     * written: one of a storage the store does not write, as a ModSetting, or of a global that is not in
+     * the game.
      */
     bool McmStore::set(const model::Setting& setting, const model::Value& value)
     {

@@ -139,12 +139,22 @@ namespace
         return valueOptions;
     }
 
+    using ModSettingTypeName = std::pair<std::string_view, model::ModSettingStorage::Type>;
+
+    // what MCM keeps a ModSetting as, by the `sourceType` of its row
+    constexpr std::array MOD_SETTING_TYPES{
+        ModSettingTypeName{ "ModSettingBool", model::ModSettingStorage::Type::Bool },
+        ModSettingTypeName{ "ModSettingInt", model::ModSettingStorage::Type::Int },
+        ModSettingTypeName{ "ModSettingFloat", model::ModSettingStorage::Type::Float },
+        ModSettingTypeName{ "ModSettingString", model::ModSettingStorage::Type::String },
+    };
+
     /**
      * Where a row keeps its value, by the `sourceType` of its `valueOptions`. A row with none is kept
      * nowhere. A `GlobalValue` names its global in `sourceForm`, as the plugin's file and the form's id in
-     * hex, with or without `0x`: `MyMod.esp|1234`. A ModSetting is named by the `id` of its row, so one
-     * with no id is kept nowhere too. Any other source, and a global that is not written so, is one the menu
-     * does not read.
+     * hex, with or without `0x`: `MyMod.esp|1234`. A ModSetting is named by the `id` of its row as the
+     * config has it, also where another row has that id too, so one with no id is kept nowhere.
+     * Any other source, and a global that is not written so, is one the menu does not read.
      */
     model::Storage loadStorage(const Json& row)
     {
@@ -170,6 +180,9 @@ namespace
                 return model::GlobalStorage{ .plugin = plugin, .formId = formId };
             }
             logger::warn("The global '{}' of the row '{}' is not a plugin and an id in hex", sourceForm, getText(row, "text"));
+        }
+        if (const auto type = std::ranges::find(MOD_SETTING_TYPES, sourceType, &ModSettingTypeName::first); type != MOD_SETTING_TYPES.end()) {
+            return model::ModSettingStorage{ .name = getText(row, "id"), .type = type->second };
         }
         return model::UnknownStorage{ .type = std::move(sourceType) };
     }

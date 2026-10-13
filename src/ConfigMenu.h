@@ -55,7 +55,7 @@ namespace mods_config
 
         // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
         GameGlobals _globals;
-        mcm::McmStore _store{ _globals };
+        mcm::McmStore _store{ _globals, R"(Data\MCM)" };
 
         // what the panel shows
         ui::FullPanel _fullPanel;

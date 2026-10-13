@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <optional>
@@ -7,6 +8,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "McmModSettings.h"
 #include "model/Definition.h"
 #include "model/Store.h"
 
@@ -36,11 +38,12 @@ namespace mods_config::mcm
      * The store of an MCM mod: a value is read from where its storage says, and a change is written there at
      * once, as MCM's own menu does. It has no Save.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected.
+     * A ModSetting is read from MCM's files as its mod is selected, and is not written.
      */
     class McmStore : public model::Store
     {
     public:
-        explicit McmStore(Globals& globals);
+        explicit McmStore(Globals& globals, std::filesystem::path mcmFolder = {});
 
         void open(const model::Mod& mod) override;
         model::StoredValue value(const model::Setting& setting) override;
@@ -49,6 +52,12 @@ namespace mods_config::mcm
 
     private:
         Globals& _globals;
+
+        // MCM's folder, which is `Data\MCM` in the game. With none no ModSetting is available
+        std::filesystem::path _mcmFolder;
+
+        // the ModSettings of the mod that is selected, as MCM's files had them when it was
+        McmModSettings _modSettings;
 
         // the settings of the mod that is selected, by their ids
         std::map<std::string, const model::Setting*, std::less<>> _settings;

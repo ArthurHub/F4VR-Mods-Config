@@ -486,9 +486,9 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
 
-    // the showcase has no game plugin, so none of its globals is in the game
+    // the showcase has no game plugin, so none of its globals is in the game. Its ModSettings are its defaults
     test_globals::TestGlobals globals;
-    mcm::McmStore store(globals);
+    mcm::McmStore store(globals, std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
     const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
@@ -509,7 +509,7 @@ TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the 
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     test_globals::TestGlobals globals;
-    mcm::McmStore store(globals);
+    mcm::McmStore store(globals, std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
 
     // off, as the group is when the mod is selected, and on
     for (const bool on : { false, true }) {

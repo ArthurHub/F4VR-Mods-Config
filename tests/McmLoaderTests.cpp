@@ -396,8 +396,9 @@ TEST_CASE("McmLoader: a setting is kept in the global its row names, or nowhere"
     CHECK(storageOf(2) == model::Storage(model::NoStorage{}));
     CHECK(storageOf(3) == model::Storage(model::NoStorage{}));
 
-    // a source the menu does not read yet, and a global that is not written as one
-    CHECK(storageOf(4) == model::Storage(model::UnknownStorage{ .type = "ModSettingBool" }));
+    CHECK(storageOf(4) == model::Storage(model::ModSettingStorage{ .name = "bOn:Main", .type = model::ModSettingStorage::Type::Bool }));
+
+    // a global that is not written as one
     for (std::size_t row = 5; row < page.items.size(); ++row) {
         CHECK(storageOf(row) == model::Storage(model::UnknownStorage{ .type = "GlobalValue" }));
     }
@@ -412,6 +413,33 @@ TEST_CASE("McmLoader: a ModSetting with no id is kept nowhere, as it names no se
 
     CHECK(std::get<model::Setting>(page.items[0]).storage == model::Storage(model::NoStorage{}));
     CHECK(std::get<model::Setting>(page.items[1]).storage == model::Storage(model::UnknownStorage{ .type = "PropertyValueFloat" }));
+}
+
+TEST_CASE("McmLoader: a ModSetting is named by the id of its row, and typed by its sourceType")
+{
+    using Type = model::ModSettingStorage::Type;
+    const auto page = frontPageOf(R"(
+        { "type": "switcher", "text": "A bool", "id": "bOn:Main", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "dropdown", "text": "An int", "id": "iMode:Main", "valueOptions": { "sourceType": "ModSettingInt" } },
+        { "type": "slider", "text": "A float", "id": "fStrength:Main", "valueOptions": { "sourceType": "ModSettingFloat" } },
+        { "type": "textinput", "text": "A string", "id": "sName:Main", "valueOptions": { "sourceType": "ModSettingString" } },
+        { "type": "switcher", "text": "The id of another row", "id": "bOn:Main", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "switcher", "text": "No type of MCM", "id": "bOther:Main", "valueOptions": { "sourceType": "ModSettingColor" } }
+    )");
+    const auto storageOf = [&page](const std::size_t row) {
+        return std::get<model::Setting>(page.items[row]).storage;
+    };
+
+    CHECK(storageOf(0) == model::Storage(model::ModSettingStorage{ .name = "bOn:Main", .type = Type::Bool }));
+    CHECK(storageOf(1) == model::Storage(model::ModSettingStorage{ .name = "iMode:Main", .type = Type::Int }));
+    CHECK(storageOf(2) == model::Storage(model::ModSettingStorage{ .name = "fStrength:Main", .type = Type::Float }));
+    CHECK(storageOf(3) == model::Storage(model::ModSettingStorage{ .name = "sName:Main", .type = Type::String }));
+
+    // the row has an id of its place, and still the ModSetting its config names
+    CHECK(std::get<model::Setting>(page.items[4]).id == "main/5");
+    CHECK(storageOf(4) == storageOf(0));
+
+    CHECK(storageOf(5) == model::Storage(model::UnknownStorage{ .type = "ModSettingColor" }));
 }
 
 TEST_CASE("McmLoader: a setting has the id of its row, or one from its page and its place")
