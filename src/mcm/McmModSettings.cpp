@@ -112,11 +112,13 @@ namespace mods_config::mcm
     void McmModSettings::load(const std::filesystem::path& mcmFolder, const std::string_view modName)
     {
         _values.clear();
+        _defaults.clear();
         _modName = modName;
         if (mcmFolder.empty()) {
             return;
         }
-        readIni(mcmFolder / "Config" / _modName / "settings.ini", _values);
+        readIni(mcmFolder / "Config" / _modName / "settings.ini", _defaults);
+        _values = _defaults;
         readIni(mcmFolder / "Settings" / (_modName + ".ini"), _values);
     }
 
@@ -127,6 +129,16 @@ namespace mods_config::mcm
     {
         const auto found = _values.find(name);
         return found != _values.end() ? &found->second : nullptr;
+    }
+
+    /**
+     * The text the mod's own file has for a ModSetting, which is its default whatever the player's file
+     * has. None for one the mod's file does not have.
+     */
+    const std::string* McmModSettings::findDefault(const std::string_view name) const
+    {
+        const auto found = _defaults.find(name);
+        return found != _defaults.end() ? &found->second : nullptr;
     }
 
     /**

@@ -45,7 +45,8 @@ namespace mods_config::mcm
      * The store of an MCM mod: a value is read from where its storage says, and a change is written there at
      * once, as MCM's own menu does. It has no Save.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected.
-     * A ModSetting is read from MCM's files as its mod is selected, and is written through MCM.
+     * A ModSetting is read from MCM's files as its mod is selected, and is written through MCM. It alone
+     * has a default: the value of the mod's own file.
      * The key of a hotkey is read from MCM's files then too, and is only shown.
      * A global is read and written with `getGlobal` and `setGlobal`, and a property of a script with
      * `getProperty` and `setProperty`.
@@ -67,6 +68,7 @@ namespace mods_config::mcm
         model::StoredValue value(const model::Setting& setting) override;
         model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;
+        std::optional<model::Value> defaultValue(const model::Setting& setting) override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         bool run(const model::Action& action) override;
 

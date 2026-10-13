@@ -108,12 +108,7 @@ namespace
     void drawStepButton(const ImRect& box, const Arrow arrow, const bool enabled, const bool pointed, const bool held)
     {
         ImGui::BeginDisabled(!enabled);
-        if (enabled && (pointed || held)) {
-            ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(held ? theme::color::PRESSED : theme::color::HOVER), theme::RADIUS_FRAME);
-            ui::drawOutline(box.Min, box.Max, held ? theme::color::GLOW : theme::color::GREEN);
-        } else {
-            ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
-        }
+        ui::drawButtonFrame(box, enabled && pointed, enabled && held);
         drawArrow(box.GetCenter(), arrow);
         ImGui::EndDisabled();
     }

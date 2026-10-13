@@ -1,9 +1,13 @@
 #pragma once
 
+#include <string>
+
 #include "model/Definition.h"
 
 namespace mods_config::ui
 {
+    std::string sliderValueText(float value, float step);
+
     /**
      * What the row of a slider tells of the pointer in the frame that is drawn.
      */

@@ -373,6 +373,22 @@ namespace mods_config::mcm
     }
 
     /**
+     * The default of a setting: for a ModSetting, the value the mod's own `settings.ini` has for it, read as
+     * the value of the player's file is. MCM has no default for a global and a property of a script.
+     * None for a ModSetting the mod's file does not have, and for one whose text there is no value of the setting.
+     */
+    std::optional<model::Value> McmStore::defaultValue(const model::Setting& setting)
+    {
+        const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage);
+        const auto* text = modSetting ? _modSettings.findDefault(modSetting->name) : nullptr;
+        if (!text) {
+            return std::nullopt;
+        }
+        auto stored = modSettingValue(setting, *modSetting, text);
+        return stored.available ? std::optional(std::move(stored.value)) : std::nullopt;
+    }
+
+    /**
      * The key a hotkey of the mod that is selected is bound to, as MCM's files had it when the mod was
      * selected: MCM writes the player's file as its own menu closes, where a key is bound.
      * A hotkey the mod's `keybinds.json` does not have is not available, with the reason: MCM binds no key to it.

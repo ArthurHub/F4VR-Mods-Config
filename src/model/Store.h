@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -57,6 +58,12 @@ namespace mods_config::model
          * Sets the value of a setting. Returns whether it is set.
          */
         virtual bool set(const Setting& setting, const Value& value) = 0;
+
+        /**
+         * The default of a setting, in the type of its value, which Reset sets as any other value is set.
+         * None for a setting that has no default.
+         */
+        virtual std::optional<Value> defaultValue(const Setting& setting) = 0;
 
         /**
          * The key a hotkey is bound to, as a text: its name, with the keys that are held with it. It is not

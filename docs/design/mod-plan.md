@@ -299,6 +299,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M34 | mod  | A value row runs its action after the write, with `{value}`          | done      |
 | M35 | mod  | Hotkeys are shown read-only                                          | done      |
 | M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | done      |
+| M102 | mod | A ModSetting is reset to the default of its mod                      | done      |
 | M37 | mod  | A test MCM mod for what the test set does not have                   | todo      |
 | M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo      |
 | M39 | mod  | `dropdownFiles`                                                      | todo      |
@@ -357,6 +358,17 @@ M36 shows the text of a text input, which is only shown until milestone 4, and a
 - An image that could not be read stays a row that says `image`, with no help.
 - The test set has 25 text inputs, in FallUI, FallUI Workbench and XDI, all ModSettings. The MCM showcase has five, and a `dropdownFiles`, a `color`, a type that no menu knows and a row with no type.
 
+M102 gives a row whose setting has a default its Reset, which MCM's menu does not have. An MCM mod has a default for a ModSetting alone:
+
+- The default of a ModSetting is the value the mod's `settings.ini` has for it, whatever the player's file has. A global and a property of a script have none, and neither has a ModSetting that is in the player's file alone.
+- The UI asks the store for the default of a setting. The definition does not have it: it is in a file the store reads as the mod is selected.
+- Reset is an icon button in the room every row keeps for it, after the control. A switcher, a slider, a stepper and a dropdown with a default have it, and it is disabled while the value is the default, so nothing comes and goes under the ray. A row with no default keeps the room empty, and so does a stepper and a dropdown whose default is no option of theirs.
+- A press on it sets the default as any other value is set: it is written through MCM at once, the action of the row is run, and MCM's event is sent. The hand gets its pulse. There is no Save, so nothing takes a Reset back.
+- A press on it does nothing else in the row: a switcher is not turned, a stepper is not stepped, and the list of a dropdown is not opened.
+- The help line names the default after the help of the row, in brackets, as `(Default: 1.30)`: on and off for a switcher, the text of the option for a stepper and a dropdown, and the number of a slider as its box has it. While the ray is on a Reset that is not disabled, it says what Reset gives, with no period after it: `Reset to 1.30`
+- A text input has no Reset until it is edited, in milestone 4.
+- The test set has 151 ModSettings. The ModSettings of the MCM showcase all have a default, so each of its rows has a Reset, which is disabled until the row is changed.
+
 M37 adds a test mod: a game plugin with a quest, its script and globals, as DearModdingUI's test fixture is. It also proves what earlier commits made and the test set does not use: the other property types (M32) and `OR` conditions (M28).
 
 M38 shows `color` as a placeholder until the Color control of milestone 9.
@@ -411,6 +423,8 @@ M49 lets a package use the actions the menu supports for MCM, so a script-only m
 The milestone is INI only. A CommonFramework mod reloads its INI by itself, so it needs no native API.
 
 M52 to M54 follow the Save steps of [Architecture and lifecycle](architecture.md#save-lifecycle). M52 is the Save that goes well. M53 is the checks before the write, and the rollback of a write that fails.
+
+M56 is the Reset of a package's setting. The button of a row and the default in the help line are M102's. The package store answers the `default` of the setting, and a Reset is a pending value as any other: Save writes it, and Discard takes it back.
 
 M58 shows a package's `applies`. The help line says when the change of the pointed row takes effect, a row that needs a restart is marked, and a Save that wrote one says that the game has to be restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 7 there is no client, so a `live` setting is handled as `save`.
 

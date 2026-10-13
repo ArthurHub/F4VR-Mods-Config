@@ -35,18 +35,6 @@ namespace
     constexpr float STEPS_WITH_NO_STEP = 100.0f;
 
     /**
-     * A value of a slider as its text, with as many decimals as the slider's step has, and three at most.
-     */
-    std::string valueText(const float value, const float step)
-    {
-        int decimals = 0;
-        for (float scaled = std::abs(step); decimals < 3 && std::abs(scaled - std::round(scaled)) > 0.001f; scaled *= 10.0f) {
-            ++decimals;
-        }
-        return std::format("{:.{}f}", value, decimals);
-    }
-
-    /**
      * Where the parts of a slider that ends at the right are: its track, the box of its value after it, and
      * the two ends the middle of its grab moves between, so the grab is whole inside the track at both.
      */
@@ -98,6 +86,18 @@ namespace
 
 namespace mods_config::ui
 {
+    /**
+     * A value of a slider as its text, with as many decimals as the slider's step has, and three at most.
+     */
+    std::string sliderValueText(const float value, const float step)
+    {
+        int decimals = 0;
+        for (float scaled = std::abs(step); decimals < 3 && std::abs(scaled - std::round(scaled)) > 0.001f; scaled *= 10.0f) {
+            ++decimals;
+        }
+        return std::format("{:.{}f}", value, decimals);
+    }
+
     /**
      * Starts a frame of the page, before its rows. The thumbstick's value is how far the one of the hand
      * that points is pushed to a side, from -1 at the left to 1 at the right.
@@ -197,7 +197,7 @@ namespace mods_config::ui
             theme::RADIUS_GRAB);
 
         drawFrame(boxes.valueBox);
-        drawTextIn(boxes.valueBox, valueText(value, options.step), theme::color::GREEN, 1.0f, theme::SPACE_3);
+        drawTextIn(boxes.valueBox, sliderValueText(value, options.step), theme::color::GREEN, 1.0f, theme::SPACE_3);
         return track.Min.x;
     }
 

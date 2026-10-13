@@ -44,7 +44,7 @@ The primary browsing and editing state.
 │                   │                                                     │
 │ Search / Filter   │                                                     │
 ├───────────────────┴─────────────────────────────────────────────────────┤
-│ Brightness: How bright the beam is. Default 1.00.  [Discard]   [Save]   │
+│ Brightness: How bright the beam is. (Default: 1.00) [Discard]  [Save]   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 

@@ -390,10 +390,10 @@ namespace
             return model::Setting{ .type = model::SettingType::Switcher, .text = std::move(text), .help = std::move(help), .valueOptions = {} };
         };
         model::Mod mod{ .name = "Help", .displayName = "The help line", .frontPage = {}, .pages = {} };
-        mod.frontPage.items.push_back(row("Brightness", "How bright the beam is. Default 1.00."));
-        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + "Default off."));
-        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + sentence + "Default off."));
-        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + sentence + sentence + sentence + "Default off."));
+        mod.frontPage.items.push_back(row("Brightness", "How bright the beam is. (Default: 1.00)"));
+        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + "(Default: off)"));
+        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + sentence + "(Default: off)"));
+        mod.frontPage.items.push_back(row("Hide HUD in Pip-Boy", sentence + sentence + sentence + sentence + "(Default: off)"));
         mod.frontPage.items.push_back(row("A switcher with a name that is much too long for the room a row has before its control and ends in an ellipsis", {}));
 
         FullPanel panel;
@@ -571,6 +571,48 @@ TEST_CASE("FullPanel render: the values of a page's settings, and the status of 
         panel.setMods({ mod });
         panel.select({ .mod = 0, .page = std::nullopt });
         WARN("Saved " << renderToFile(panel, onRow ? "values-not-available" : "values", onRow ? pageRow(5) : POINTER_AWAY));
+    }
+}
+
+TEST_CASE("FullPanel render: the Reset of the rows with a default, disabled on those that are at it", "[.render]")
+{
+    using model::SettingType;
+    using Type = model::StoredType;
+    const auto modSetting = [](const SettingType type, std::string text, std::string name, const Type valueType, model::ValueOptions valueOptions = {}) {
+        return model::Setting{ .type = type,
+            .text = std::move(text),
+            .help = "What the setting does.",
+            .valueOptions = std::move(valueOptions),
+            .storage = model::ModSettingStorage{ .name = std::move(name), .type = valueType } };
+    };
+    const test_files::TempFolder files;
+    files.write("Config/Defaults/settings.ini", "[Main]\nbOn=1\nbSame=1\nfStrength=1.0\nfSame=1.0\niHours=1\niMode=1\niSame=1\n");
+    files.write("Settings/Defaults.ini", "[Main]\nbOn=0\nfStrength=1.300000\niHours=2\niMode=2\n");
+    mcm::McmStore store(files.path);
+
+    const model::ValueOptions range{ .min = 0.0f, .max = 2.0f, .step = 0.1f, .options = {} };
+    model::Mod mod{ .name = "Defaults", .displayName = "Defaults", .frontPage = {}, .pages = {} };
+    mod.frontPage.items.push_back(modSetting(SettingType::Switcher, "A switcher that is changed", "bOn:Main", Type::Bool));
+    mod.frontPage.items.push_back(modSetting(SettingType::Switcher, "A switcher at its default", "bSame:Main", Type::Bool));
+    mod.frontPage.items.push_back(modSetting(SettingType::Slider, "A slider that is changed", "fStrength:Main", Type::Float, range));
+    mod.frontPage.items.push_back(modSetting(SettingType::Slider, "A slider at its default", "fSame:Main", Type::Float, range));
+    mod.frontPage.items.push_back(modSetting(SettingType::Stepper, "A stepper that is changed", "iHours:Main", Type::Int, optionsOf({ "2", "4", "8" })));
+    mod.frontPage.items.push_back(modSetting(SettingType::Dropdown, "A dropdown that is changed", "iMode:Main", Type::Int, optionsOf({ "Spot", "Flood", "Lantern" })));
+    mod.frontPage.items.push_back(modSetting(SettingType::Dropdown, "A dropdown at its default", "iSame:Main", Type::Int, optionsOf({ "Spot", "Flood", "Lantern" })));
+
+    // with the ray on the row of the slider that is changed, on its Reset, and with the trigger held on it.
+    // And with the trigger held on the Reset of the slider at its default, which is disabled
+    const float reset = test_panel::PANEL_WIDTH - test_panel::CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2 - theme::CONTROL_HEIGHT * 0.5f;
+    const std::array images{ std::tuple{ "reset", pageRow(2).x, 2, false },
+        std::tuple{ "reset-hover", reset, 2, false },
+        std::tuple{ "reset-pressed", reset, 2, true },
+        std::tuple{ "reset-disabled", reset, 3, true } };
+    for (const auto& [name, x, row, pressed] : images) {
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ mod });
+        panel.select({ .mod = 0, .page = std::nullopt });
+        WARN("Saved " << renderToFile(panel, name, ImVec2(x, pageRow(row).y), pressed));
     }
 }
 

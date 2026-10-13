@@ -9,7 +9,7 @@ The help line: the left of the footer, which shows help for what the ray is on a
 - Two lines at `t-body`. Help that needs a third line is drawn at `t-detail` (three lines fit the 72 px footer); past three lines it ends in an ellipsis.
 - Priority: an active validation error, in `red` with the warning triangle; then help for the setting, dropdown option, Reset, quick launch entry, unavailable mod or crumb under the ray; then the status ("1 unsaved change", "No unsaved changes", or for an MCM mod "Changes are saved as they are made").
 - Hold the help while the ray is anywhere over the rows, the gaps between them included, and switch back to the status only when the ray leaves the list or the open popup. Without that it flickers as the ray sweeps.
-- Include the default where there is one ("Default 1.00"). Reset's help names the value it resets to. A package setting that takes effect after Save or after a restart says so ("Takes effect after the game is restarted.").
+- Include the default where there is one, in brackets after the help ("(Default: 1.00)"). Reset's help names the value it resets to. A package setting that takes effect after Save or after a restart says so ("Takes effect after the game is restarted.").
 - A page's own help is not here: it is the first item of the page's rows.
 - The Focused panel keeps this at the top, in a `description-height` area on `plate`, because its footer has no room.
 

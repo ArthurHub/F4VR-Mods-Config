@@ -313,6 +313,53 @@ namespace
     }
 
     /**
+     * A panel with one mod, shown on its front page, with its values in a store of MCM's files in a folder:
+     * a switcher, a slider from 0 to 2 by 0.1 and a dropdown of three options that are ModSettings, each
+     * with a default and another value in the player's file, and a switcher of a global, which has none.
+     */
+    FullPanel modWithDefaults(model::Store& store, const test_files::TempFolder& mcm)
+    {
+        const auto modSetting = [](const model::SettingType type, std::string text, std::string name, const model::StoredType valueType) {
+            return model::Setting{ .id = name,
+                .sourceId = name,
+                .type = type,
+                .text = std::move(text),
+                .help = "What it does.",
+                .valueOptions = {},
+                .storage = model::ModSettingStorage{ .name = name, .type = valueType } };
+        };
+        mcm.write("Config/Alpha/settings.ini", "[Main]\nbOn=1\nfStrength=1.0\niMode=1\n");
+        mcm.write("Settings/Alpha.ini", "[Main]\nbOn=0\nfStrength=1.300000\niMode=2\n");
+
+        auto strength = modSetting(model::SettingType::Slider, "Strength", "fStrength:Main", model::StoredType::Float);
+        strength.valueOptions = { .min = 0.0f, .max = 2.0f, .step = 0.1f, .options = {} };
+        auto mode = modSetting(model::SettingType::Dropdown, "Mode", "iMode:Main", model::StoredType::Int);
+        mode.help.clear();
+        for (const auto* option : { "Low", "Medium", "High" }) {
+            mode.valueOptions.options.push_back({ .value = static_cast<int>(mode.valueOptions.options.size()), .text = option });
+        }
+        auto mod = modOf("Alpha");
+        mod.frontPage.items.push_back(modSetting(model::SettingType::Switcher, "Enabled", "bOn:Main", model::StoredType::Bool));
+        mod.frontPage.items.push_back(std::move(strength));
+        mod.frontPage.items.push_back(std::move(mode));
+        mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Global", 0x800));
+
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ std::move(mod) });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    /**
+     * The middle of the Reset of a row of a page, by the row's place among the rows: in the room after its control.
+     */
+    ImVec2 resetButton(const int place)
+    {
+        return { controlRight() + theme::SPACE_2 + theme::CONTROL_HEIGHT * 0.5f, pageRow(place).y };
+    }
+
+    /**
      * The middle of a button of the stepper of a row of a page, by the row's place among the rows: the one
      * to the option after, or the one to the option before. The stepper is as Choices.cpp has it.
      */
@@ -1410,4 +1457,109 @@ TEST_CASE("FullPanel: a mod's editing session ends as the mod is left, and as th
     CHECK(events.sent == Names{ "OnMCMMenuClose|Alpha" });
     panel.reset();
     CHECK(events.sent.size() == 1);
+}
+
+TEST_CASE("FullPanel: a press on the Reset of a row sets the default of its setting in its store, and acts")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    test_events::TestEvents events;
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithDefaults(store, mcm);
+    const auto& rows = panel.mods()[0].frontPage.items;
+    const auto valueOf = [&store, &rows](const std::size_t row) {
+        return store.value(std::get<model::Setting>(rows[row])).value;
+    };
+    drawFrames(panel, 2);
+    events.sent.clear();
+
+    // the switcher is turned on by it once, and not off again by a press on the room it was in
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK(valueOf(0) == model::Value(true));
+    CHECK(events.sent == Names{ "OnMCMSettingChange(Alpha, bOn:Main)", "OnMCMSettingChange|Alpha(Alpha, bOn:Main)" });
+    CHECK_FALSE(pressActs(panel, resetButton(0)));
+    CHECK(valueOf(0) == model::Value(true));
+
+    CHECK(pressActs(panel, resetButton(1)));
+    CHECK(valueOf(1) == model::Value(1.0f));
+
+    // the list of the dropdown is not opened
+    CHECK(pressActs(panel, resetButton(2)));
+    CHECK(valueOf(2) == model::Value(1));
+    CHECK_FALSE(isListOpen());
+    CHECK_FALSE(pressActs(panel, resetButton(2)));
+    CHECK_FALSE(isListOpen());
+
+    // a row that is changed is reset again
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(valueOf(0) == model::Value(false));
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK(valueOf(0) == model::Value(true));
+}
+
+TEST_CASE("FullPanel: a row with no default has no Reset, and a press in its room is one on the row")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithDefaults(store, mcm);
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, resetButton(3)));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+}
+
+TEST_CASE("FullPanel: a slider that is dragged and let go on its Reset is not reset")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithDefaults(store, mcm);
+    const auto& strength = std::get<model::Setting>(panel.mods()[0].frontPage.items[1]);
+    drawFrames(panel, 2);
+
+    for (const bool held : { false, false, true }) {
+        test_panel::drawFrame(panel, sliderTrack(1, 0.25f), held);
+    }
+    test_panel::drawFrame(panel, resetButton(1), true);
+    test_panel::drawFrame(panel, resetButton(1), false);
+    test_panel::drawFrame(panel, resetButton(1), false);
+
+    // at its most, where the drag left it
+    CHECK(store.value(strength).value == model::Value(2.0f));
+}
+
+TEST_CASE("FullPanel: the help line names the default of the row the ray is on, and what its Reset gives")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithDefaults(store, mcm);
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Enabled: What it does. (Default: on)");
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Enabled: Reset to on");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Strength: What it does. (Default: 1.0)");
+    point(panel, resetButton(1));
+    CHECK(panel.helpLine().text() == "Strength: Reset to 1.0");
+
+    // a row with no help of its own, and one with no default
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Mode: (Default: Medium)");
+    point(panel, resetButton(2));
+    CHECK(panel.helpLine().text() == "Mode: Reset to Medium");
+    point(panel, resetButton(3));
+    CHECK(panel.helpLine().text() == "Global: What it does.");
+
+    // the Reset of a row at its default is disabled, and tells nothing
+    press(panel, resetButton(0));
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Enabled: What it does. (Default: on)");
 }

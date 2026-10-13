@@ -425,6 +425,53 @@ TEST_CASE("McmModSettings: a ModSetting that is set has the text MCM writes to i
     CHECK_FALSE(settings.find("bMissing:Main"));
 }
 
+TEST_CASE("McmStore: the default of a ModSetting is the value of the mod's file, whatever the player's file has")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=1\nfStrength=1.0\niMode=1\nsName=Sanctuary Hills\nfWord=strong\n");
+    mcm.write("Settings/MyMod.ini", "[Main]\nbOn=0\nfStrength=1.300000\nbPlayer=1\n");
+    auto globals = someGlobals();
+    McmStore store(mcm.path);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+
+    const auto on = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
+    const auto strength = modSetting(SettingType::Slider, "fStrength:Main", Type::Float);
+    CHECK(store.value(on).value == model::Value(false));
+    CHECK(store.defaultValue(on) == model::Value(true));
+    CHECK(store.defaultValue(strength) == model::Value(1.0f));
+    CHECK(store.defaultValue(modSetting(SettingType::Dropdown, "iMode:Main", Type::Int)) == model::Value(1));
+    CHECK(store.defaultValue(modSetting(SettingType::TextInput, "sName:Main", Type::String)) == model::Value("Sanctuary Hills"s));
+
+    // it stays as the value is set, to another and to the default
+    CHECK(store.set(strength, 0.5f));
+    CHECK(store.defaultValue(strength) == model::Value(1.0f));
+    CHECK(store.set(strength, 1.0f));
+    CHECK(store.value(strength).value == model::Value(1.0f));
+    CHECK(store.defaultValue(strength) == model::Value(1.0f));
+
+    // one the player's file has alone, one that is in neither file, and one whose default is no number
+    CHECK(store.value(modSetting(SettingType::Switcher, "bPlayer:Main", Type::Bool)).available);
+    CHECK_FALSE(store.defaultValue(modSetting(SettingType::Switcher, "bPlayer:Main", Type::Bool)));
+    CHECK_FALSE(store.defaultValue(modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool)));
+    CHECK_FALSE(store.defaultValue(modSetting(SettingType::Slider, "fWord:Main", Type::Float)));
+
+    // the mod that is left has none
+    store.close();
+    CHECK_FALSE(store.defaultValue(on));
+}
+
+TEST_CASE("McmStore: a global, a property of a script and a setting that is kept nowhere have no default")
+{
+    auto globals = someGlobals();
+    auto properties = someProperties();
+    McmStore store;
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+
+    CHECK_FALSE(store.defaultValue(globalSetting(SettingType::Switcher, 0x800)));
+    CHECK_FALSE(store.defaultValue(propertySetting(SettingType::Switcher, "bOn", Type::Bool)));
+    CHECK_FALSE(store.defaultValue(settingOf(SettingType::Switcher, model::NoStorage{})));
+}
+
 TEST_CASE("McmStore: a hotkey has the key the player's file has for it, by the names of MCM's menu")
 {
     const test_files::TempFolder mcm;

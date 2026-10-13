@@ -38,17 +38,16 @@ A setting has:
 | text         | What the row says                                                                                     |
 | help         | Its help text, shown in the help line while the ray is on the row                                     |
 | valueOptions | The least, the most and the step of a number, the length limits of a text, or the options of a choice |
-| default      | The value Reset gives. A package's setting always has one, an MCM row may not                         |
 | visibleWhen  | A condition on the values of other settings. The row is shown while it holds                          |
 | enabledWhen  | A condition of the same kind. The row can be edited while it holds                                    |
 | storage      | Where the value is kept. Only the store reads it                                                      |
 | applies      | When a change takes effect in the running mod: live, save or restart. A package's only                |
 | action       | What runs after the value is written, for an MCM row that has one                                     |
 
-Three of these are as they are because of MCM:
+Three things are as they are because of MCM:
 
 - **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so a setting keeps that text too, as its `sourceId`. A package's setting has its author's id, or one made from its storage, the key and the section: see [Declarative schema](schema.md#settings).
-- **The default is optional for MCM only.** MCM declares a default only for a ModSetting, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package.
+- **The default is the store's to answer, and not a field.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package.
 - **The storage has several forms.** An MCM global, an MCM script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage.
 
 `applies` is a package's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else its group's, its page's, its mod's. An MCM mod has none: an MCM config has no field for it.
@@ -60,8 +59,9 @@ What the UI asks of the store:
 - The value of a setting, with its state.
 - The key of a hotkey, which is only shown.
 - To set a value.
+- The default of a setting, where it has one. Reset sets it, as any other value is set.
 - Whether a change is saved at once or waits for Save.
-- With Save: whether a setting is dirty, and to Save, Discard, and Reset a setting.
+- With Save: whether a setting is dirty, and to Save and Discard.
 - To run an action.
 - To read its values again.
 
@@ -163,7 +163,6 @@ Mod "My Mod"
 │     └─ Setting fStrength:Main    "Strength"             float, slider from 0 to 2 by 0.1
 │           help         How strong the feature is.
 │           storage      MCM ModSetting fStrength of [Main]
-│           default      1.0, from the mod's settings.ini
 │           visibleWhen  main/2 is on
 └─ Page "Advanced"                 a row under the mod in the tree
    ├─ Setting page1/1              "Unfold settings"      bool, switcher
@@ -182,11 +181,11 @@ Mod "My Mod"
 What the MCM store answers while the mod is selected:
 
 ```text
-Setting          Value   State
-main/2           on      ready
-fStrength:Main   1.3     ready
-page1/1          off     ready           held by the store, off when the mod is selected
-iMode:Main               not available   the ModSetting is in neither of MCM's files
+Setting          Value   Default   State
+main/2           on                ready
+fStrength:Main   1.3     1.0       ready           the default is the one of the mod's settings.ini
+page1/1          off               ready           held by the store, off when the mod is selected
+iMode:Main                         not available   the ModSetting is in neither of MCM's files
 ```
 
 The front page, drawn from the two, with the ray on "Enable the feature". Its help is in the help line, at the bottom:

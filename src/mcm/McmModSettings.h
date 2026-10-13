@@ -17,12 +17,14 @@ namespace mods_config::mcm
      * key `fStrength` of the section `[Main]`, in the letter case of the file.
      * One is set through MCM's own Papyrus function, so MCM has the value in its memory and writes it to the
      * player's file. With no game, in a test, MCM is not called.
+     * The text of the mod's own file is kept beside it: it is the default of the ModSetting.
      */
     class McmModSettings
     {
     public:
         void load(const std::filesystem::path& mcmFolder, std::string_view modName);
         const std::string* find(std::string_view name) const;
+        const std::string* findDefault(std::string_view name) const;
         bool set(std::string_view name, const model::Value& value);
 
         std::size_t size() const
@@ -36,5 +38,8 @@ namespace mods_config::mcm
 
         // the text of each ModSetting, by its name
         std::map<std::string, std::string, std::less<>> _values;
+
+        // the text the mod's own file has for each, which is its default
+        std::map<std::string, std::string, std::less<>> _defaults;
     };
 }

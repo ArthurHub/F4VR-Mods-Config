@@ -36,5 +36,6 @@ namespace mods_config::ui
     void drawRowState();
     ImRect controlBox(float left, float top, float width);
     void drawFrame(const ImRect& box);
+    void drawButtonFrame(const ImRect& box, bool pointed, bool held);
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
 }

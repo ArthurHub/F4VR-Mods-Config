@@ -1,6 +1,7 @@
 #include "ModPage.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <format>
 #include <optional>
@@ -16,6 +17,7 @@
 #include "Drawing.h"
 #include "Sliders.h"
 #include "Theme.h"
+#include "common/CommonUtils.h"
 #include "model/Conditions.h"
 
 namespace
@@ -54,8 +56,8 @@ namespace
         const ImVec2 size(std::round(image.width * scale), std::round(image.height * scale));
         ImGui::Dummy(ImVec2(width, size.y));
         if (drawer && ImGui::IsItemVisible()) {
-            const ImVec2 min(pos.x + std::floor((width - size.x) * 0.5f), pos.y);
-            drawer(*image.pixels, min, ImVec2(min.x + size.x, min.y + size.y));
+            const ImVec2 topLeft(pos.x + std::floor((width - size.x) * 0.5f), pos.y);
+            drawer(*image.pixels, topLeft, ImVec2(topLeft.x + size.x, topLeft.y + size.y));
         }
     }
 
@@ -151,6 +153,89 @@ namespace
         return box.Min.x;
     }
 
+    // the strokes of the Reset icon, in the panel's pixels, as the design system draws its icons
+    constexpr float ICON_THICKNESS = 2.5f;
+
+    /**
+     * The Reset icon around a point: most of a circle, open at its left, with an arrowhead at its upper end.
+     */
+    void drawResetIcon(const ImVec2& center)
+    {
+        // as the design system draws it, in a box of 24: the circle from its lower left end around its
+        // right to its upper left end, in radians
+        constexpr float HALF_BOX = 12.0f;
+        constexpr float RADIUS = 7.5f;
+        constexpr float ARC_START = 2.744f;
+        constexpr float ARC_END = -2.396f;
+        const ImVec2 origin(center.x - HALF_BOX, center.y - HALF_BOX);
+        const auto at = [&origin](const float x, const float y) {
+            return ImVec2(origin.x + x, origin.y + y);
+        };
+        const auto color = ImGui::GetColorU32(theme::color::GREEN);
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathArcTo(at(12.1f, 12.1f), RADIUS, ARC_START, ARC_END);
+        drawList->PathLineTo(at(4.0f, 10.0f));
+        drawList->PathStroke(color, ImDrawFlags_None, ICON_THICKNESS);
+        const std::array head{ at(4.0f, 5.0f), at(4.0f, 10.0f), at(9.0f, 10.0f) };
+        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ImDrawFlags_None, ICON_THICKNESS);
+    }
+
+    /**
+     * Whether two values of a setting are the same one. Two numbers are, when they are as near as a number
+     * and the text of it in a file.
+     */
+    bool isSameValue(const model::Value& value, const model::Value& other)
+    {
+        const auto* number = std::get_if<float>(&value);
+        const auto* otherNumber = std::get_if<float>(&other);
+        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
+    }
+
+    /**
+     * The default the store has for a setting, where its control can show it: a switcher that is on or off,
+     * a number of a slider with a range, and an option of a stepper and a dropdown. None for a setting with
+     * no default, and for a text input, which is only shown.
+     */
+    std::optional<model::Value> defaultOf(const model::Setting& setting, model::Store& store)
+    {
+        auto value = store.defaultValue(setting);
+        if (!value) {
+            return std::nullopt;
+        }
+        bool shown = false;
+        switch (setting.type) {
+        case model::SettingType::Switcher:
+            shown = std::holds_alternative<bool>(*value);
+            break;
+        case model::SettingType::Slider:
+            shown = std::holds_alternative<float>(*value) && setting.valueOptions.max > setting.valueOptions.min;
+            break;
+        case model::SettingType::Stepper:
+        case model::SettingType::Dropdown:
+            shown = ui::chosenOption(setting, { .value = *value, .available = true, .reason = {} }).has_value();
+            break;
+        case model::SettingType::TextInput:
+            break;
+        }
+        return shown ? value : std::nullopt;
+    }
+
+    /**
+     * A default of a setting as the help line names it: on and off for a switcher, the number of a slider
+     * as the box of its value has it, and the text of the option of a stepper and a dropdown.
+     */
+    std::string defaultName(const model::Setting& setting, const model::Value& value)
+    {
+        if (const auto* on = std::get_if<bool>(&value)) {
+            return *on ? "on" : "off";
+        }
+        if (const auto* number = std::get_if<float>(&value)) {
+            return ui::sliderValueText(*number, setting.valueOptions.step);
+        }
+        const auto option = ui::chosenOption(setting, { .value = value, .available = true, .reason = {} });
+        return option ? setting.valueOptions.options[*option].text : std::string();
+    }
+
     /**
      * What the rows of a page are drawn with, and what their drawing tells.
      */
@@ -172,23 +257,43 @@ namespace
      * goes to the option before and after, and a dropdown opens its list. A control whose value is not
      * available is disabled, and so is a slider with no range and a stepper and a dropdown with no options.
      * The row itself has the look of a row under the ray, as it has a help.
+     * A setting with a default has its Reset in the room after the control, disabled while its value is the
+     * default: a press on it sets the default in the store. A press in that room does nothing else in the
+     * row, also while Reset is disabled, so a second press on it changes nothing.
      * A text input is not drawn here: it is only shown, by `drawTextInput`.
-     * Returns whether the ray is on the row or on its open list, and tells why a value is not available.
+     * Returns whether the ray is on the row or on its open list, and tells the help of the row: why a value
+     * is not available, what Reset gives while the ray is on it, and else the row's own, with its default.
      */
-    bool drawSetting(const model::Setting& setting, const PageDrawing& page, std::string& reason)
+    bool drawSetting(const model::Setting& setting, const PageDrawing& page, std::string& help)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
         const auto row = addRow(true);
+        const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
 
         auto stored = page.store ? page.store->value(setting) : model::StoredValue{};
+
+        // Reset is pressed a little beside it too, as a button of a stepper is. A press is its own when it
+        // began there: a slider that is dragged and let go on it is not reset
+        const auto& io = ImGui::GetIO();
+        const auto resetBox = ui::controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
+        const auto defaultValue = stored.available ? defaultOf(setting, *page.store) : std::nullopt;
+        const bool onReset = defaultValue && row.pointed && io.MousePos.x >= resetBox.Min.x - theme::SPACE_1;
+        const bool resetHeld = onReset && io.MouseClickedPos[ImGuiMouseButton_Left].x >= resetBox.Min.x - theme::SPACE_1;
+        bool resets = defaultValue && !isSameValue(stored.value, *defaultValue);
+        if (resets && resetHeld && row.pressed && page.store->set(setting, *defaultValue)) {
+            stored = page.store->value(setting);
+            resets = false;
+            page.drawn.pressActed = true;
+        }
+        const bool rowPressed = row.pressed && !onReset;
+
         const auto& options = setting.valueOptions;
         const auto* on = std::get_if<bool>(&stored.value);
         const auto* number = std::get_if<float>(&stored.value);
         const bool isSwitcher = stored.available && setting.type == model::SettingType::Switcher && on;
         const bool isSlider = stored.available && setting.type == model::SettingType::Slider && number && options.max > options.min;
         const bool isChoice = stored.available && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !options.options.empty();
-        const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
 
         // before the row is known to be shown: a slider that is dragged out of the page is still held
         float value = number ? *number : options.min;
@@ -202,12 +307,12 @@ namespace
             }
             page.drawn.pressActed = page.drawn.pressActed || pulse;
         }
-        if (isSwitcher && row.pressed && page.store->set(setting, !*on)) {
+        if (isSwitcher && rowPressed && page.store->set(setting, !*on)) {
             page.drawn.pressActed = true;
         }
         // before the row is known to be shown too: the list of a dropdown is not a part of its row
         auto chosen = ui::chosenOption(setting, stored);
-        const ui::ChoiceRow choiceRow{ .pointed = isChoice && row.pointed, .held = isChoice && row.held, .pressed = isChoice && row.pressed };
+        const ui::ChoiceRow choiceRow{ .pointed = isChoice && row.pointed, .held = isChoice && row.held, .pressed = isChoice && rowPressed };
         if (isChoice) {
             bool pulse = false;
             const auto picked = page.choices.edit(setting, right, pos.y, choiceRow, chosen, pulse);
@@ -219,7 +324,17 @@ namespace
         }
         // the ray is on the list then, and the help line keeps the row of its dropdown
         const bool listOpen = page.choices.isListOpen(setting);
-        reason = std::move(stored.reason);
+        if (row.pointed || listOpen) {
+            if (!stored.reason.empty()) {
+                help = std::move(stored.reason);
+            } else if (!defaultValue) {
+                help = setting.help;
+            } else if (resets && onReset) {
+                help = std::format("Reset to {}", defaultName(setting, *defaultValue));
+            } else {
+                help = std::format("{}{}(Default: {})", setting.help, setting.help.empty() ? "" : " ", defaultName(setting, *defaultValue));
+            }
+        }
         if (!row.shown) {
             return listOpen;
         }
@@ -242,6 +357,12 @@ namespace
         }
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
         ImGui::EndDisabled();
+        if (defaultValue) {
+            ImGui::BeginDisabled(!resets);
+            ui::drawButtonFrame(resetBox, resets && onReset, resets && onReset && resetHeld && row.held);
+            drawResetIcon(resetBox.GetCenter());
+            ImGui::EndDisabled();
+        }
         return row.pointed || listOpen;
     }
 
@@ -390,7 +511,7 @@ namespace
                     page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = readOnlyHelp(std::move(reason), setting.help) };
                 }
             } else if (drawSetting(setting, page, reason)) {
-                page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = reason.empty() ? setting.help : std::move(reason) };
+                page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = std::move(reason) };
             }
         }
 

@@ -291,6 +291,20 @@ namespace mods_config::ui
     }
 
     /**
+     * The frame of a button that is a part of a row, as a button of a stepper: an outline, and the look of a
+     * control under the ray while the ray is on it, with a stronger one while the trigger is held on it.
+     */
+    void drawButtonFrame(const ImRect& box, const bool pointed, const bool held)
+    {
+        if (pointed || held) {
+            ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(held ? theme::color::PRESSED : theme::color::HOVER), theme::RADIUS_FRAME);
+            drawOutline(box.Min, box.Max, held ? theme::color::GLOW : theme::color::GREEN);
+        } else {
+            drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
+        }
+    }
+
+    /**
      * One line of text in a box, in from its sides by a padding. The align sets it in that room: 0 at the
      * left, 0.5 in the middle and 1 at the right. A text that is wider than the room ends in an ellipsis.
      */
