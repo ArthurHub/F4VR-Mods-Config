@@ -296,7 +296,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | #   | Repo | Commit                                                               | Status    |
 | --- | ---- | -------------------------------------------------------------------- | --------- |
 | M33 | mod  | Buttons run `CallFunction`, with typed parameters                    | done      |
-| M34 | mod  | A value row runs its action after the write, with `{value}`          | todo      |
+| M34 | mod  | A value row runs its action after the write, with `{value}`          | done      |
 | M35 | mod  | Hotkeys are shown read-only                                          | todo      |
 | M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | todo      |
 | M37 | mod  | A test MCM mod for what the test set does not have                   | todo      |
@@ -319,6 +319,19 @@ M33 makes a button run its `CallFunction`, as `mcm_vr.dll` does for MCM's menu:
 - The store runs it with one function, `mcm::callFunction`, in `McmActions.cpp`. The unit tests link their own in its place, which keeps what is called.
 - MCM's menu sends no event for a button, and neither does this one.
 - The test set has 67 buttons with a `CallFunction`, in Sim Settlements 2 and Workshop Framework, and one with a `CallGlobalFunction`. The MCM showcase has one of each, and its `CallFunction` is of a form that is not in the game.
+
+M34 makes a value row run its `CallFunction` as its value is set, as MCM's menu does:
+
+- The order is MCM's: the value is written, then the function is called, then `OnMCMSettingChange` is sent. A value that is not written runs nothing. A slider that is dragged runs it once, as the trigger is let go.
+- A parameter with `{value}` in it has the value the row is set to in its place: 1 and 0 for a switcher, the place of its option for a stepper and a dropdown, and the number of a slider. Only the first `{value}` of a text is the value, as in MCM's menu.
+- `{value}` alone is given in the type of the row's `sourceType`: a number for a global, and what a ModSetting and a property are kept as.
+- A text that begins with `{i}`, `{f}` or `{b}` is given in that type, after the value is put in it, as a button's is in M33. A bool is on at any number but 0. Any other text is a text with the value in it.
+- A parameter with no `{value}` is as a button's. Sim Settlements 2 has `{i}{0}` to `{i}{10}`, which is no number and so 0, in MCM's menu too.
+- One thing differs from MCM's menu. `{value}` alone, in a row with no `sourceType`, is the value as a text. MCM's menu gives the script nothing there, for any row but a text input.
+- A function whose form is not in the game is not called, with the reason in the log. The value is set, and its event is sent.
+- A row with any other action sets its value, and runs nothing until M40.
+- The model has it as the action of the setting. The store fills the parameters and calls `mcm::callFunction`, which M33 made.
+- The test set has 33 value rows with a `CallFunction`, in Sim Settlements 2 and Workshop Framework: switchers, dropdowns, a stepper and sliders, all of a global or a property. 22 have `{value}`. The MCM showcase has one, of a form that is not in the game.
 
 M35 reads MCM's two keybind files, the mod's and the player's, and names each key.
 

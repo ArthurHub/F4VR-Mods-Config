@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -171,33 +172,28 @@ namespace mods_config::model
     };
 
     /**
-     * A row that edits one value.
-     */
-    struct Setting
-    {
-        // its identity, unique in its mod: its author's, or one its loader made
-        std::string id;
-
-        // the id its source has for it, which MCM's events name an MCM row by. Empty for a row with none
-        std::string sourceId;
-        SettingType type = SettingType::Switcher;
-        std::string text;
-
-        // what the help line says of the row while the ray is on it: plain text on one line, and empty for none
-        std::string help;
-        ValueOptions valueOptions;
-        Storage storage;
-
-        // the row is shown while it holds. A row with none is always shown
-        std::optional<Condition> visibleWhen;
-    };
-
-    /**
      * A row with no action: nothing runs.
      */
     struct NoAction
     {
         bool operator==(const NoAction&) const = default;
+    };
+
+    /**
+     * An argument of a call that has the value of its row in it: the value a setting is set to.
+     */
+    struct ValueArgument
+    {
+        // its place among the arguments of its call
+        std::size_t place = 0;
+
+        // the text the value is put in, in place of its first `{value}`
+        std::string text;
+
+        // what the text is given to the script as
+        StoredType type = StoredType::String;
+
+        bool operator==(const ValueArgument&) const = default;
     };
 
     /**
@@ -220,6 +216,10 @@ namespace mods_config::model
         // what the function is called with, each in the type the script gets it in
         std::vector<Value> arguments;
 
+        // those of them that have the value of the row in them, which the store fills as the value is set.
+        // None for a button
+        std::vector<ValueArgument> valueArguments;
+
         bool operator==(const CallFunction&) const = default;
     };
 
@@ -238,6 +238,31 @@ namespace mods_config::model
      * What a row runs. Only the store runs it.
      */
     using Action = std::variant<NoAction, CallFunction, UnknownAction>;
+
+    /**
+     * A row that edits one value.
+     */
+    struct Setting
+    {
+        // its identity, unique in its mod: its author's, or one its loader made
+        std::string id;
+
+        // the id its source has for it, which MCM's events name an MCM row by. Empty for a row with none
+        std::string sourceId;
+        SettingType type = SettingType::Switcher;
+        std::string text;
+
+        // what the help line says of the row while the ray is on it: plain text on one line, and empty for none
+        std::string help;
+        ValueOptions valueOptions;
+        Storage storage;
+
+        // what runs after its value is set, with the value. Most have none
+        Action action;
+
+        // the row is shown while it holds. A row with none is always shown
+        std::optional<Condition> visibleWhen;
+    };
 
     /**
      * A row that runs an action.

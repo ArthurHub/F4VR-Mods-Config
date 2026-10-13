@@ -49,7 +49,8 @@ namespace mods_config::mcm
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
      * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`.
-     * The `CallFunction` of a button is run with `callFunction`.
+     * The `CallFunction` of a button is run with `callFunction`, and so is the one of a value row, after its
+     * value is written, with the value in its arguments.
      */
     class McmStore : public model::Store
     {

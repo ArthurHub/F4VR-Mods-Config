@@ -518,3 +518,81 @@ TEST_CASE("McmStore: the action of a button calls its function, and no other act
     CHECK_FALSE(store.run(call));
     CHECK(actions.called.size() == 1);
 }
+
+TEST_CASE("McmStore: a setting that is set runs the action of its row, with the value in its arguments")
+{
+    auto globals = someGlobals();
+    TestActions actions;
+    McmStore store;
+    store.open(model::Mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+
+    using Arguments = std::vector<model::Value>;
+    const model::CallFunction call{ .plugin = PLUGIN,
+        .formId = 0x800,
+        .script = {},
+        .function = "Apply",
+        .arguments = { ""s, ""s, ""s, ""s, "kept"s },
+        .valueArguments = { { .place = 0, .text = "{value}", .type = Type::Float },
+            { .place = 1, .text = "{value}", .type = Type::Bool },
+            { .place = 2, .text = "{value}", .type = Type::Int },
+            { .place = 3, .text = "Is {value} of {value}", .type = Type::String } } };
+
+    // a switcher is 1 and 0, in the type of each argument. Only the first `{value}` of a text is the value
+    auto switcher = globalSetting(SettingType::Switcher, 0x801);
+    switcher.action = call;
+    CHECK(store.set(switcher, true));
+    REQUIRE(actions.called.size() == 1);
+    CHECK(actions.called[0].function == "Apply");
+    CHECK(actions.called[0].arguments == Arguments{ 1.0f, true, 1, "Is 1 of {value}"s, "kept"s });
+    CHECK(actions.called[0].valueArguments.empty());
+    CHECK(store.set(switcher, false));
+    CHECK(actions.called[1].arguments == Arguments{ 0.0f, false, 0, "Is 0 of {value}"s, "kept"s });
+
+    // a number, which a whole number cuts at its point, and the place of a choice's option
+    auto slider = globalSetting(SettingType::Slider, 0x802);
+    slider.action = call;
+    CHECK(store.set(slider, 1.75f));
+    CHECK(actions.called[2].arguments == Arguments{ 1.75f, true, 1, "Is 1.75 of {value}"s, "kept"s });
+    auto choice = globalSetting(SettingType::Dropdown, 0x803);
+    choice.action = call;
+    CHECK(store.set(choice, 2));
+    CHECK(actions.called[3].arguments == Arguments{ 2.0f, true, 2, "Is 2 of {value}"s, "kept"s });
+
+    // a text, which is 0 as a number
+    auto text = settingOf(SettingType::TextInput, model::NoStorage{});
+    text.action = call;
+    CHECK(store.set(text, "Sanctuary"s));
+    CHECK(actions.called[4].arguments == Arguments{ 0.0f, false, 0, "Is Sanctuary of {value}"s, "kept"s });
+}
+
+TEST_CASE("McmStore: no action is run for a value that is not written, and none but a CallFunction")
+{
+    auto globals = someGlobals();
+    TestActions actions;
+    TestEvents events;
+    McmStore store;
+    store.open(model::Mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    events.sent.clear();
+
+    const model::CallFunction call{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .function = "Apply", .arguments = {}, .valueArguments = {} };
+    auto missing = globalSetting(SettingType::Switcher, 0x1234);
+    missing.action = call;
+    CHECK_FALSE(store.set(missing, true));
+    CHECK(actions.called.empty());
+
+    auto other = globalSetting(SettingType::Switcher, 0x801);
+    other.action = model::UnknownAction{ .type = "CallGlobalFunction" };
+    CHECK(store.set(other, true));
+    CHECK(store.set(globalSetting(SettingType::Switcher, 0x801), false));
+    CHECK(actions.called.empty());
+
+    // a function of a form that is not in the game: the value is set, and its event is sent
+    actions.inGame = false;
+    auto withId = globalSetting(SettingType::Switcher, 0x801);
+    withId.sourceId = "bOn";
+    withId.action = call;
+    CHECK(store.set(withId, true));
+    CHECK(actions.called.empty());
+    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 1.0f);
+    CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, bOn)", "OnMCMSettingChange|MyMod(MyMod, bOn)" });
+}

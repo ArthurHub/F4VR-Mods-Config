@@ -954,3 +954,61 @@ TEST_CASE("McmLoader: a button with no action runs nothing, and one with another
     CHECK(actionOf(5) == model::Action(model::UnknownAction{ .type = "CallGlobalFunction" }));
     CHECK(actionOf(6) == model::Action(model::UnknownAction{ .type = {} }));
 }
+
+TEST_CASE("McmLoader: a value row has the function its action calls, with the parameters its value is put in")
+{
+    const auto page = frontPageOf(R"(
+        {
+            "type": "slider", "text": "A global", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp|801" },
+            "action": {
+                "type": "CallFunction", "form": "MyMod.esp|800", "function": "Apply",
+                "params": ["{value}", "{i}{value}", "{b}{value}", "{f}{value}", "Now {value}", "{i}7", "kept"]
+            }
+        },
+        {
+            "type": "switcher", "text": "A ModSetting", "id": "bOn:Main", "valueOptions": { "sourceType": "ModSettingBool" },
+            "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "Apply", "params": ["{value}"] }
+        },
+        {
+            "type": "dropdown", "text": "A property",
+            "valueOptions": { "sourceType": "PropertyValueInt", "sourceForm": "MyMod.esp|800", "propertyName": "iMode", "options": ["Low", "High"] },
+            "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "Apply", "params": ["{value}"] }
+        },
+        {
+            "type": "switcher", "text": "Kept nowhere",
+            "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "Apply", "params": ["{value}"] }
+        },
+        { "type": "switcher", "text": "No action" },
+        { "type": "button", "text": "A button", "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "Apply", "params": ["{value}"] } }
+    )");
+
+    const auto callOf = [&page](const std::size_t place) {
+        return std::get<model::CallFunction>(std::get<model::Setting>(page.items[place]).action);
+    };
+    using Arguments = std::vector<model::Value>;
+    using ValueArguments = std::vector<model::ValueArgument>;
+    using Type = model::StoredType;
+
+    // a parameter with the value has its place kept by an empty text. `{value}` alone is in the type of the
+    // row's storage, which is a number for a global, and the start of a text gives it another
+    const auto global = callOf(0);
+    CHECK(global.function == "Apply");
+    CHECK(global.arguments == Arguments{ ""s, ""s, ""s, ""s, ""s, 7, "kept"s });
+    CHECK(global.valueArguments == ValueArguments{ { .place = 0, .text = "{value}", .type = Type::Float },
+                                       { .place = 1, .text = "{value}", .type = Type::Int },
+                                       { .place = 2, .text = "{value}", .type = Type::Bool },
+                                       { .place = 3, .text = "{value}", .type = Type::Float },
+                                       { .place = 4, .text = "Now {value}", .type = Type::String } });
+
+    // a ModSetting and a property are what they are kept as, and a row that is kept nowhere is a text
+    CHECK(callOf(1).valueArguments == ValueArguments{ { .place = 0, .text = "{value}", .type = Type::Bool } });
+    CHECK(callOf(2).valueArguments == ValueArguments{ { .place = 0, .text = "{value}", .type = Type::Int } });
+    CHECK(callOf(3).valueArguments == ValueArguments{ { .place = 0, .text = "{value}", .type = Type::String } });
+
+    CHECK(std::get<model::Setting>(page.items[4]).action == model::Action(model::NoAction{}));
+
+    // a button has no value: its `{value}` is a text as it is written
+    const auto button = std::get<model::CallFunction>(std::get<model::Button>(page.items[5]).action);
+    CHECK(button.arguments == Arguments{ "{value}"s });
+    CHECK(button.valueArguments.empty());
+}

@@ -225,6 +225,8 @@
         { "type": "button", "text": "A button with a name that is much too long for the room a row has before its control and ends in an ellipsis", "help": "Nothing runs." },
         { "type": "button", "text": "CallFunction on a form that is not there", "help": "The form is of a plugin that is not loaded.", "action": { "type": "CallFunction", "form": "NoSuchPlugin.esp|800", "function": "DoIt", "params": ["text", 1, true] } },
         { "type": "button", "text": "CallGlobalFunction", "help": "Debug.Notification with a text.", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["MCM Showcase: the button ran"] } },
+        { "type": "section", "text": "Value rows with an action" },
+        { "type": "switcher", "text": "A switcher with a CallFunction", "help": "Its function is of a form that is not there: the switcher is set, and nothing runs.", "action": { "type": "CallFunction", "form": "NoSuchPlugin.esp|800", "function": "OnToggle", "params": ["{b}{value}"] } },
         { "type": "section", "text": "Text input" },
         { "type": "textinput", "text": "A text", "help": "A ModSettingString.", "id": "sName:Inputs", "valueOptions": { "sourceType": "ModSettingString" } },
         { "type": "textinput", "text": "An empty text", "id": "sEmpty:Inputs", "valueOptions": { "sourceType": "ModSettingString" } },

@@ -1,5 +1,6 @@
 #include "McmStore.h"
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <format>
@@ -174,6 +175,59 @@ namespace
     }
 
     /**
+     * A value as the text MCM's menu puts in a parameter: a switcher is `1` and `0`, a choice is the place
+     * of its option, and a number is written as short as it can be.
+     */
+    std::string valueText(const model::Value& value)
+    {
+        if (const auto* on = std::get_if<bool>(&value)) {
+            return *on ? "1" : "0";
+        }
+        if (const auto* whole = std::get_if<int>(&value)) {
+            return std::format("{}", *whole);
+        }
+        if (const auto* number = std::get_if<float>(&value)) {
+            return std::format("{}", *number);
+        }
+        return std::get<std::string>(value);
+    }
+
+    constexpr std::string_view VALUE_TOKEN = "{value}";
+
+    // the least and the most a whole number of Papyrus is
+    constexpr double MIN_WHOLE = -2147483648.0;
+    constexpr double MAX_WHOLE = 2147483647.0;
+
+    /**
+     * An argument of a call with the value its row is set to: the value is put in the argument's text, in
+     * place of its first `{value}`, and the text is given in the argument's type, as MCM's menu does.
+     * A text that is no number is 0, a whole number is cut at its point, and a bool is on at any number but 0.
+     */
+    model::Value filledArgument(const model::ValueArgument& argument, const model::Value& value)
+    {
+        auto text = argument.text;
+        if (const auto token = text.find(VALUE_TOKEN); token != std::string::npos) {
+            text.replace(token, VALUE_TOKEN.size(), valueText(value));
+        }
+        if (argument.type == model::StoredType::String) {
+            return text;
+        }
+        double number = 0.0;
+        const auto* end = text.data() + text.size();
+        if (const auto [read, error] = std::from_chars(text.data(), end, number); error != std::errc() || read != end) {
+            number = 0.0;
+        }
+        switch (argument.type) {
+        case model::StoredType::Bool:
+            return common::fNotEqual(static_cast<float>(number), 0.0f);
+        case model::StoredType::Int:
+            return static_cast<int>(std::clamp(number, MIN_WHOLE, MAX_WHOLE));
+        default:
+            return static_cast<float>(number);
+        }
+    }
+
+    /**
      * Adds the settings of the items to the map, each by its id, with those of the groups among them.
      */
     void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings)
@@ -291,14 +345,23 @@ namespace mods_config::mcm
     }
 
     /**
-     * Sets a value, at once, and then tells the scripts that the setting changed, as MCM's menu does: with
-     * the name of the mod and the id of the row, for a row that has one in its config.
-     * Returns false for a value that is not written, which no script is told of.
+     * Sets a value, at once, then runs the action of its row with the value, and then tells the scripts
+     * that the setting changed, in the order of MCM's menu: with the name of the mod and the id of the row,
+     * for a row that has one in its config.
+     * Returns false for a value that is not written: no action is run for it, and no script is told of it.
      */
     bool McmStore::set(const model::Setting& setting, const model::Value& value)
     {
         if (!write(setting, value)) {
             return false;
+        }
+        if (const auto* call = std::get_if<model::CallFunction>(&setting.action)) {
+            auto filled = *call;
+            for (const auto& argument : filled.valueArguments) {
+                filled.arguments[argument.place] = filledArgument(argument, value);
+            }
+            filled.valueArguments.clear();
+            callFunction(filled);
         }
         if (!setting.sourceId.empty()) {
             sendEvent("OnMCMSettingChange", { _modName, setting.sourceId });

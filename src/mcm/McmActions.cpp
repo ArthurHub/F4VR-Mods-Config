@@ -58,6 +58,29 @@ namespace
             },
             value);
     }
+
+    /**
+     * The arguments of a call for the log, each so that its type shows: `true`, `4`, `4.0` and `"a text"`.
+     */
+    std::string describeArguments(const std::vector<model::Value>& arguments)
+    {
+        std::string described;
+        for (const auto& argument : arguments) {
+            described += described.empty() ? "" : ", ";
+            if (const auto* on = std::get_if<bool>(&argument)) {
+                described += *on ? "true" : "false";
+            } else if (const auto* whole = std::get_if<int>(&argument)) {
+                described += std::format("{}", *whole);
+            } else if (const auto* number = std::get_if<float>(&argument)) {
+                // a number that is written whole gets its point, to tell it from a whole number
+                const auto text = std::format("{}", *number);
+                described += text.find_first_not_of("-0123456789") == std::string::npos ? text + ".0" : text;
+            } else {
+                described += std::format("\"{}\"", std::get<std::string>(argument));
+            }
+        }
+        return described;
+    }
 }
 
 namespace mods_config::mcm
@@ -97,7 +120,7 @@ namespace mods_config::mcm
         F4SEVR::PackValue(&packed, &arguments, vm);
         const F4SEVR::BSFixedString function(call.function.c_str());
         F4SEVR::CallFunctionNoWait_Internal(vm, 0, script.get(), &function, &packed);
-        logger::debug("Called the function {} of the form {:X} of '{}' with {} arguments", call.function, call.formId, call.plugin, call.arguments.size());
+        logger::debug("Called the function {}({}) of the form {:X} of '{}'", call.function, describeArguments(call.arguments), call.formId, call.plugin);
         return true;
     }
 }

@@ -275,14 +275,64 @@ namespace
         return text;
     }
 
+    constexpr std::string_view VALUE_TOKEN = "{value}";
+
     /**
-     * What a button runs, by the `type` of its `action`. A `CallFunction` names the form of its script in
+     * What the value of a row is given to a script as, for a parameter that is `{value}` alone, as MCM's menu
+     * types it by the row's `sourceType`: a global is a number, a ModSetting and a property are what they
+     * are kept as, and a row with none is a text.
+     */
+    model::StoredType storedTypeOf(const model::Storage& storage)
+    {
+        if (std::holds_alternative<model::GlobalStorage>(storage)) {
+            return model::StoredType::Float;
+        }
+        if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&storage)) {
+            return modSetting->type;
+        }
+        if (const auto* property = std::get_if<model::PropertyStorage>(&storage)) {
+            return property->type;
+        }
+        return model::StoredType::String;
+    }
+
+    using TypePrefix = std::pair<std::string_view, model::StoredType>;
+
+    // what a parameter is given to a script as, by the start of its text
+    constexpr std::array TYPE_PREFIXES{
+        TypePrefix{ "{i}", model::StoredType::Int },
+        TypePrefix{ "{f}", model::StoredType::Float },
+        TypePrefix{ "{b}", model::StoredType::Bool },
+    };
+
+    /**
+     * A parameter of a value row's action that has `{value}` in it, which the store fills as the value is
+     * set. `{value}` alone is the value in the type of the row's storage. A text that begins with `{i}`,
+     * `{f}` or `{b}` is the rest of it in that type, and any other text is a text.
+     */
+    model::ValueArgument loadValueArgument(const std::string_view text, const std::size_t place, const model::Storage& storage)
+    {
+        if (text == VALUE_TOKEN) {
+            return { .place = place, .text = std::string(text), .type = storedTypeOf(storage) };
+        }
+        for (const auto& [prefix, type] : TYPE_PREFIXES) {
+            if (text.starts_with(prefix)) {
+                return { .place = place, .text = std::string(text.substr(prefix.size())), .type = type };
+            }
+        }
+        return { .place = place, .text = std::string(text), .type = model::StoredType::String };
+    }
+
+    /**
+     * What a row runs, by the `type` of its `action`. A `CallFunction` names the form of its script in
      * `form`, as `MyMod.esp|800`, and its function in `function`. It can name the script in `scriptName`,
      * and have the parameters of the function in `params`.
      * A row with no action runs nothing, and neither does a `CallFunction` that is not written so. Any other
      * action is one the menu does not run.
+     * A value row gives its storage: a parameter of it with `{value}` is filled as the value is set. A
+     * button gives none, and its `{value}` is a text as it is written, as in MCM's menu.
      */
-    model::Action loadAction(const Json& row)
+    model::Action loadAction(const Json& row, const model::Storage* valueStorage = nullptr)
     {
         const auto action = row.find("action");
         if (action == row.end() || !action->is_object()) {
@@ -303,10 +353,16 @@ namespace
             .formId = form->second,
             .script = getText(*action, "scriptName"),
             .function = std::move(function),
-            .arguments = {} };
+            .arguments = {},
+            .valueArguments = {} };
         if (const auto params = action->find("params"); params != action->end() && params->is_array()) {
             for (const auto& param : *params) {
-                call.arguments.push_back(loadArgument(param));
+                if (valueStorage && param.is_string() && param.get_ref<const std::string&>().contains(VALUE_TOKEN)) {
+                    call.valueArguments.push_back(loadValueArgument(param.get_ref<const std::string&>(), call.arguments.size(), *valueStorage));
+                    call.arguments.emplace_back(std::string());
+                } else {
+                    call.arguments.push_back(loadArgument(param));
+                }
             }
         }
         return call;
@@ -487,13 +543,16 @@ namespace
         auto text = getShownText(row, "text", texts);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
+            auto storage = loadStorage(row);
+            auto action = loadAction(row, &storage);
             return model::Setting{ .id = std::move(id),
                 .sourceId = getText(row, "id"),
                 .type = setting->second,
                 .text = std::move(text),
                 .help = getHelp(row, texts),
                 .valueOptions = loadValueOptions(row, texts),
-                .storage = loadStorage(row),
+                .storage = std::move(storage),
+                .action = std::move(action),
                 .visibleWhen = {} };
         }
         if (type == "button") {
