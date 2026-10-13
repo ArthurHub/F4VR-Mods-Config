@@ -20,13 +20,13 @@ add_executable(${PROJECT_NAME}_tests
   TestEvents.cpp
   TestEvents.h
   TestFiles.h
+  TestGlobals.cpp
   TestGlobals.h
   TestSwf.h
   TestPanel.h
-  # the mod's sources under test. Not mcm/McmEvents.cpp, which calls the scripts of the game: TestEvents.cpp has
-  # the tests' own sendEvent in its place
+  # the mod's sources under test. Not mcm/McmEvents.cpp and mcm/McmGlobals.cpp, which call the game: TestEvents.cpp
+  # and TestGlobals.cpp have the tests' own functions in their place
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
-  ${SOURCE_DIR}/mcm/GameGlobals.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
   ${SOURCE_DIR}/mcm/McmModSettings.cpp

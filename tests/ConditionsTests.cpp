@@ -66,7 +66,7 @@ TEST_CASE("Conditions: a condition on a setting holds while the setting is on")
 {
     const auto mod = someMod();
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     store.open(mod);
 
     CHECK(model::holds(on("on"), store));
@@ -87,7 +87,7 @@ TEST_CASE("Conditions: a value that is no switcher is on at the number 1, as in 
 {
     const auto mod = someMod();
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     store.open(mod);
 
     CHECK(model::holds(on("one"), store));
@@ -98,7 +98,7 @@ TEST_CASE("Conditions: an All holds with every one of its conditions, and an Any
 {
     const auto mod = someMod();
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     store.open(mod);
 
     CHECK(model::holds(joined(Kind::All, { on("on"), on("one") }), store));
@@ -119,7 +119,7 @@ TEST_CASE("Conditions: a Not holds while its condition does not")
 {
     const auto mod = someMod();
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     store.open(mod);
 
     CHECK(model::holds(joined(Kind::Not, { on("off") }), store));
@@ -131,7 +131,7 @@ TEST_CASE("Conditions: a condition that a value which is not available leaves op
 {
     const auto mod = someMod();
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     store.open(mod);
 
     // a global that is not in the game, and an id that no setting of the mod has
@@ -153,7 +153,7 @@ TEST_CASE("Conditions: the settings of an id are those of the mod whose session 
     model::Mod other{ .name = "Other", .displayName = "Other", .frontPage = {}, .pages = {} };
     other.frontPage.items.push_back(globalSetting("off", model::SettingType::Switcher, 0x800));
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
 
     store.open(mod);
     CHECK_FALSE(store.valueById("off").value == model::Value(true));

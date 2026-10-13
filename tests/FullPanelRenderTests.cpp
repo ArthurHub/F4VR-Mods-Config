@@ -488,7 +488,7 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
 
     // the showcase has no game plugin, so none of its globals is in the game. Its ModSettings are its defaults
     test_globals::TestGlobals globals;
-    mcm::McmStore store(globals, std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
+    mcm::McmStore store(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
     const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
@@ -509,7 +509,7 @@ TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the 
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     test_globals::TestGlobals globals;
-    mcm::McmStore store(globals, std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
+    mcm::McmStore store(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
 
     // off, as the group is when the mod is selected, and on
     for (const bool on : { false, true }) {
@@ -552,7 +552,7 @@ TEST_CASE("FullPanel render: the values of a page's settings, and the status of 
     };
     test_globals::TestGlobals globals;
     globals.values = { { { "MyMod.esp", 0x800 }, 1.0f }, { { "MyMod.esp", 0x801 }, 0.0f }, { { "MyMod.esp", 0x802 }, 1.3f }, { { "MyMod.esp", 0x803 }, 2.0f } };
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
 
     model::Mod mod{ .name = "Values", .displayName = "Values", .frontPage = {}, .pages = {} };
     mod.frontPage.items.push_back(global(SettingType::Switcher, "A switcher that is on", 0x800));
@@ -585,7 +585,7 @@ TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")
     };
     test_globals::TestGlobals globals;
     globals.values = { { { "MyMod.esp", 0x800 }, 0.5f }, { { "MyMod.esp", 0x801 }, 40.0f } };
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
 
     model::Mod mod{ .name = "Sliders", .displayName = "Sliders", .frontPage = {}, .pages = {} };
     mod.frontPage.items.push_back(slider("Strength", 0x800, 2.0f, 0.1f));
@@ -616,7 +616,7 @@ TEST_CASE("FullPanel render: a stepper under the ray, and the open list of a dro
     }
     test_globals::TestGlobals globals;
     globals.values = { { { "MyMod.esp", 0x800 }, 0.0f }, { { "MyMod.esp", 0x801 }, 1.0f }, { { "MyMod.esp", 0x802 }, 2.0f }, { { "MyMod.esp", 0x803 }, 11.0f } };
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
 
     model::Mod mod{ .name = "Choices", .displayName = "Choices", .frontPage = {}, .pages = {} };
     mod.frontPage.items.push_back(choice(SettingType::Stepper, "A stepper at its first option", 0x800, optionsOf({ "Low", "Medium", "High" })));

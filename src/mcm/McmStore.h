@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <functional>
 #include <map>
-#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -16,29 +15,18 @@
 
 namespace mods_config::mcm
 {
-    /**
-     * The globals of the game, which the store reads and writes through: the game's own in the mod, and a
-     * test's without the game.
-     */
-    class Globals
-    {
-    public:
-        virtual ~Globals() = default;
+    // What the store does in the game is in files of their own, which the unit tests do not compile: they
+    // link their own in place of each, so the store is tested with no game.
 
-        /**
-         * The value of a global, and none for one that is not in the game.
-         */
-        virtual std::optional<float> get(const model::GlobalStorage& global) = 0;
-
-        /**
-         * Sets the value of a global. Returns false for one that is not in the game.
-         */
-        virtual bool set(const model::GlobalStorage& global, float value) = 0;
-    };
+    // The value of a global of the game, and none for one that is not in the game. Setting one returns false
+    // for one that is not in the game. The mod's are in McmGlobals.cpp, and the tests' in tests/TestGlobals.cpp,
+    // which keeps the globals in a map.
+    std::optional<float> getGlobal(const model::GlobalStorage& global);
+    bool setGlobal(const model::GlobalStorage& global, float value);
 
     // Sends an event of MCM's menu to the scripts that wait for it, with the texts their function takes.
-    // The mod's is in McmEvents.cpp, which calls the scripts of the game. The unit tests do not compile that
-    // file: they have their own in tests/TestEvents.cpp, which keeps what is sent.
+    // The mod's is in McmEvents.cpp, which calls the scripts of the game, and the tests' in
+    // tests/TestEvents.cpp, which keeps what is sent.
     void sendEvent(const std::string& event, const std::vector<std::string>& arguments = {});
 
     /**
@@ -46,15 +34,14 @@ namespace mods_config::mcm
      * once, as MCM's own menu does. It has no Save.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected.
      * A ModSetting is read from MCM's files as its mod is selected, and is written through MCM.
-     * A global is the game's, and a test gives the store globals of its own.
+     * A global is read and written with `getGlobal` and `setGlobal`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
      * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`.
      */
     class McmStore : public model::Store
     {
     public:
-        explicit McmStore(std::filesystem::path mcmFolder);
-        explicit McmStore(Globals& globals, std::filesystem::path mcmFolder = {});
+        explicit McmStore(std::filesystem::path mcmFolder = {});
 
         void menuOpened();
         void menuClosed();
@@ -67,12 +54,6 @@ namespace mods_config::mcm
 
     private:
         bool write(const model::Setting& setting, const model::Value& value);
-
-        // the globals of the running game, for a store that is given none
-        std::unique_ptr<Globals> _gameGlobals;
-
-        // the globals a value is read from and written to: the game's, or a test's
-        Globals& _globals;
 
         // MCM's folder, which is `Data\MCM` in the game. With none no ModSetting is available
         std::filesystem::path _mcmFolder;

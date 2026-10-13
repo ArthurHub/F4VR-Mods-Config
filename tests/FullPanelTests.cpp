@@ -705,7 +705,7 @@ TEST_CASE("FullPanel: a press on the row of a switcher turns it on or off in its
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithValues(store);
     drawFrames(panel, 2);
 
@@ -725,7 +725,7 @@ TEST_CASE("FullPanel: a press on a row that is not edited changes nothing")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithValues(store);
     drawFrames(panel, 2);
     const auto before = globals.values;
@@ -740,7 +740,7 @@ TEST_CASE("FullPanel: a switcher that is kept nowhere is held until another mod 
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithValues(store);
     drawFrames(panel, 2);
     const auto& unfold = std::get<model::Setting>(panel.mods()[0].frontPage.items[4]);
@@ -758,7 +758,7 @@ TEST_CASE("FullPanel: a row of a group is shown while the switcher that controls
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
 
     // a switcher that is kept nowhere, a row that is shown while it is on, and a row after them
     auto mod = modOf("Alpha");
@@ -797,7 +797,7 @@ TEST_CASE("FullPanel: the help line says that changes are saved as they are made
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithValues(store);
     drawFrames(panel, 2);
     CHECK(panel.helpLine().status() == "Changes are saved as they are made");
@@ -820,7 +820,7 @@ TEST_CASE("FullPanel: the help line says why the value of the row the ray is on 
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithValues(store);
     drawFrames(panel, 2);
 
@@ -832,7 +832,7 @@ TEST_CASE("FullPanel: a press on the track of a slider puts its grab there, on a
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
 
@@ -852,7 +852,7 @@ TEST_CASE("FullPanel: a slider that is dragged is written as the trigger is let 
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
     const auto& percent = globals.values.at({ PLUGIN, 0x810 });
@@ -898,7 +898,7 @@ TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
     const auto& percent = globals.values.at({ PLUGIN, 0x810 });
@@ -925,7 +925,7 @@ TEST_CASE("FullPanel: Back ends the drag of a slider with nothing written, and t
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
     const auto& percent = globals.values.at({ PLUGIN, 0x810 });
@@ -955,7 +955,7 @@ TEST_CASE("FullPanel: the thumbstick steps the slider the ray is on, and again w
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
     const auto& percent = globals.values.at({ PLUGIN, 0x810 });
@@ -1002,7 +1002,7 @@ TEST_CASE("FullPanel: the thumbstick steps a slider only once the ray is on its 
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
     const auto& percent = globals.values.at({ PLUGIN, 0x810 });
@@ -1036,7 +1036,7 @@ TEST_CASE("FullPanel: a press on the name of a slider changes nothing")
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
 
@@ -1048,7 +1048,7 @@ TEST_CASE("FullPanel: a button of a stepper goes to the option before or after, 
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
     const auto& quality = globals.values.at({ PLUGIN, 0x820 });
@@ -1076,7 +1076,7 @@ TEST_CASE("FullPanel: a press on the row of a stepper goes to the option after, 
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
     const auto& quality = globals.values.at({ PLUGIN, 0x820 });
@@ -1093,7 +1093,7 @@ TEST_CASE("FullPanel: a push of the thumbstick steps the stepper the ray is on, 
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
     const auto& quality = globals.values.at({ PLUGIN, 0x820 });
@@ -1132,7 +1132,7 @@ TEST_CASE("FullPanel: a press on the row of a dropdown opens its list, and a pre
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
     const auto& place = globals.values.at({ PLUGIN, 0x821 });
@@ -1164,7 +1164,7 @@ TEST_CASE("FullPanel: a press beside the open list of a dropdown closes it, and 
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
 
@@ -1183,7 +1183,7 @@ TEST_CASE("FullPanel: Back closes the open list of a dropdown, with no option pi
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
 
@@ -1206,7 +1206,7 @@ TEST_CASE("FullPanel: the list of a dropdown is closed as another page is shown"
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
 
@@ -1222,7 +1222,7 @@ TEST_CASE("FullPanel: the help line keeps the row of a dropdown while the ray is
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
 
@@ -1236,7 +1236,7 @@ TEST_CASE("FullPanel: a dropdown with no options is not opened")
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
 
@@ -1249,7 +1249,7 @@ TEST_CASE("FullPanel: a mod's editing session ends as the mod is left, and as th
     const test_panel::PanelContext context;
     auto globals = someGlobals();
     test_events::TestEvents events;
-    mcm::McmStore store(globals);
+    mcm::McmStore store;
     auto panel = modWithValues(store);
     CHECK(events.sent == Names{ "OnMCMMenuOpen", "OnMCMMenuOpen|Alpha" });
 

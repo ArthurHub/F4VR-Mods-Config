@@ -1,7 +1,5 @@
 #include "McmStore.h"
 
-#include "GameGlobals.h"
-
 #include <charconv>
 #include <cmath>
 #include <format>
@@ -162,14 +160,7 @@ namespace
 namespace mods_config::mcm
 {
     McmStore::McmStore(std::filesystem::path mcmFolder)
-        : _gameGlobals(std::make_unique<GameGlobals>()),
-          _globals(*_gameGlobals),
-          _mcmFolder(std::move(mcmFolder))
-    {}
-
-    McmStore::McmStore(Globals& globals, std::filesystem::path mcmFolder)
-        : _globals(globals),
-          _mcmFolder(std::move(mcmFolder))
+        : _mcmFolder(std::move(mcmFolder))
     {}
 
     /**
@@ -239,7 +230,7 @@ namespace mods_config::mcm
             return { .value = held != _held.end() ? held->second : valueWithNone(setting), .available = true, .reason = {} };
         }
         if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
-            const auto number = _globals.get(*global);
+            const auto number = getGlobal(*global);
             if (!number) {
                 return { .value = valueWithNone(setting),
                     .available = false,
@@ -294,7 +285,7 @@ namespace mods_config::mcm
         }
         if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
             const auto number = toNumber(value);
-            if (number && _globals.set(*global, *number)) {
+            if (number && setGlobal(*global, *number)) {
                 logger::debug("Set the global {:X} of {} to {} ('{}')", global->formId, global->plugin, *number, setting.text);
                 return true;
             }

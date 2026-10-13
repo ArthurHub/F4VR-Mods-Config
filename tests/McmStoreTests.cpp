@@ -52,7 +52,7 @@ namespace
 TEST_CASE("McmStore: a switcher of a global is on at 1, and off at any other number")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
 
     const auto on = store.value(globalSetting(SettingType::Switcher, 0x800));
     CHECK(on.available);
@@ -66,7 +66,7 @@ TEST_CASE("McmStore: a switcher of a global is on at 1, and off at any other num
 TEST_CASE("McmStore: a switcher is written to its global at once, as 1 and 0")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
     const auto setting = globalSetting(SettingType::Switcher, 0x801);
 
     CHECK(store.set(setting, true));
@@ -81,7 +81,7 @@ TEST_CASE("McmStore: a switcher is written to its global at once, as 1 and 0")
 TEST_CASE("McmStore: a choice is written to its global as the place of its option")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
     const auto setting = globalSetting(SettingType::Dropdown, 0x801, { .options = { { .value = 0, .text = "Low" }, { .value = 1, .text = "High" } } });
 
     CHECK(store.set(setting, setting.valueOptions.options[1].value));
@@ -92,7 +92,7 @@ TEST_CASE("McmStore: a choice is written to its global as the place of its optio
 TEST_CASE("McmStore: a value is read from its global every time, as another can change it")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
     const auto setting = globalSetting(SettingType::Switcher, 0x801);
     REQUIRE(store.value(setting).value == model::Value(false));
 
@@ -103,7 +103,7 @@ TEST_CASE("McmStore: a value is read from its global every time, as another can 
 TEST_CASE("McmStore: a slider has the number of its global, and a choice the option at that place")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
 
     CHECK(store.value(globalSetting(SettingType::Slider, 0x802)).value == model::Value(2.5f));
     CHECK(store.value(globalSetting(SettingType::Stepper, 0x803)).value == model::Value(2));
@@ -116,7 +116,7 @@ TEST_CASE("McmStore: a slider has the number of its global, and a choice the opt
 TEST_CASE("McmStore: a global that is not in the game is not available, with the reason")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
     const auto setting = globalSetting(SettingType::Switcher, 0x1234);
 
     const auto value = store.value(setting);
@@ -131,7 +131,7 @@ TEST_CASE("McmStore: a global that is not in the game is not available, with the
 TEST_CASE("McmStore: a setting with no storage is held while its mod is selected, from the value it has with none")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
     const auto switcher = settingOf(SettingType::Switcher, model::NoStorage{});
     const auto slider = settingOf(SettingType::Slider, model::NoStorage{}, { .min = 0.5f, .max = 2.0f, .step = 0.1f, .options = {} });
     const auto stepper = settingOf(SettingType::Stepper, model::NoStorage{}, { .options = { { .value = 0, .text = "Low" }, { .value = 1, .text = "High" } } });
@@ -154,7 +154,7 @@ TEST_CASE("McmStore: a setting with no storage is held while its mod is selected
 TEST_CASE("McmStore: a value of a storage the menu does not read is not available, and is not set")
 {
     auto globals = someGlobals();
-    McmStore store(globals);
+    McmStore store;
     const auto setting = settingOf(SettingType::Switcher, model::UnknownStorage{ .type = "PropertyValueBool" });
 
     const auto value = store.value(setting);
@@ -171,7 +171,7 @@ TEST_CASE("McmStore: a ModSetting is read from the mod's defaults, and from the 
     mcm.write("Settings/MyMod.ini", "[Main]\r\nfStrength=1.300000\r\n");
     mcm.write("Settings/Another.ini", "[Main]\r\nbOn=0\r\n");
     auto globals = someGlobals();
-    McmStore store(globals, mcm.path);
+    McmStore store(mcm.path);
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
     const auto on = store.value(modSetting(SettingType::Switcher, "bOn:Main", Type::Bool));
@@ -192,7 +192,7 @@ TEST_CASE("McmStore: a ModSetting is read as MCM reads its files")
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "\xEF\xBB\xBF; a comment\nbBefore=1\n\n  [Main]  \n  bOn = 1 \n;bOff=1\nbTrue=true\nbEmpty=\niPart=7.5 or so\nno key\n");
     auto globals = someGlobals();
-    McmStore store(globals, mcm.path);
+    McmStore store(mcm.path);
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
     CHECK(store.value(modSetting(SettingType::Switcher, "bOn:Main", Type::Bool)).value == model::Value(true));
@@ -215,7 +215,7 @@ TEST_CASE("McmStore: a ModSetting that is in neither file is not available, and 
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nfStrength=strong\nsName=Sanctuary Hills\n");
     auto globals = someGlobals();
-    McmStore store(globals, mcm.path);
+    McmStore store(mcm.path);
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
     const auto missing = store.value(modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool));
@@ -233,7 +233,7 @@ TEST_CASE("McmStore: a ModSetting that is in neither file is not available, and 
     // a mod with no files, and a store with no folder of MCM
     store.open({ .name = "Another", .displayName = {}, .frontPage = {}, .pages = {} });
     CHECK_FALSE(store.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).available);
-    McmStore noFolder(globals);
+    McmStore noFolder;
     noFolder.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
     CHECK_FALSE(noFolder.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).available);
 }
@@ -243,7 +243,7 @@ TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and not again 
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\n");
     auto globals = someGlobals();
-    McmStore store(globals, mcm.path);
+    McmStore store(mcm.path);
     const model::Mod mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} };
     const auto setting = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
     store.open(mod);
@@ -267,7 +267,7 @@ TEST_CASE("McmStore: a ModSetting that is set has the value at once, as the type
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\nfStrength=1.0\niMode=0\niCount=1\nbChoice=0\nsName=Sanctuary Hills\n");
     auto globals = someGlobals();
-    McmStore store(globals, mcm.path);
+    McmStore store(mcm.path);
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
     const auto on = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
@@ -297,7 +297,7 @@ TEST_CASE("McmStore: a ModSetting MCM does not have is not set, and neither is a
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nfStrength=1.0\nsName=Sanctuary Hills\n");
     auto globals = someGlobals();
-    McmStore store(globals, mcm.path);
+    McmStore store(mcm.path);
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
     // MCM has the ModSettings of its files alone
@@ -336,7 +336,7 @@ TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its 
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     auto globals = someGlobals();
-    McmStore store(globals, std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
+    McmStore store(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
     store.open(mods[0]);
 
     CHECK(store.valueById("bSwitcher:Main").value == model::Value(true));
@@ -351,7 +351,7 @@ TEST_CASE("McmStore: a mod that is shown and left sends MCM's events of it")
 {
     auto globals = someGlobals();
     TestEvents events;
-    McmStore store(globals);
+    McmStore store;
     const model::Mod first{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} };
     const model::Mod second{ .name = "Other", .displayName = {}, .frontPage = {}, .pages = {} };
 
@@ -379,7 +379,7 @@ TEST_CASE("McmStore: a setting that is set sends MCM's event, with its mod and t
 {
     auto globals = someGlobals();
     TestEvents events;
-    McmStore store(globals);
+    McmStore store;
     store.open(model::Mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
     events.sent.clear();
 

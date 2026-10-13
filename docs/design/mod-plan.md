@@ -216,7 +216,7 @@ M25 adds the store of [The settings model](model.md#the-store), and the MCM stor
 - A slider, a stepper and a dropdown show the value of their global, and stay disabled until M26 and M27.
 - A global that is not in the game is not available: its plugin is not loaded, or has no global of that id. Its row is disabled, and the help line says why while the ray is on it.
 - The help line says "Changes are saved as they are made" while a mod is shown and the ray is on no row. There is no Save bar.
-- The store does not know the game: it reads and writes a global through an interface, which a test gives it without the game.
+- The store reads and writes a global with two functions, `mcm::getGlobal` and `mcm::setGlobal`. The unit tests link their own in their place, which keep the globals in a map, so the store is tested without the game.
 
 M26 makes the slider work, as in [Controls](controls.md#slider):
 
