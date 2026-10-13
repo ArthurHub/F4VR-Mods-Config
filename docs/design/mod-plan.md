@@ -46,7 +46,7 @@ What it does not have, from DearModdingUI's inventory of MCM:
 - A mod whose `pluginRequirements` are not met, a config that does not parse, and a game language other than English.
 - A script that changes a value while its page is shown.
 
-A test MCM mod of our own covers these (M37). The inventory is DearModdingUI's and not MCM's own documentation, so the table of M43 is checked against MCM's.
+Two mods of the author's other mod lists have some of these, and are installed beside the test set for the trial of M37: Global Stash and JOURNEY. The rest is in none of the 65 MCM configs of the author's four mod lists, so the unit tests and the MCM showcase cover it, and there is no test mod with a game plugin of its own. The inventory is DearModdingUI's and not MCM's own documentation, so the table of M43 is checked against MCM's.
 
 ## Milestones
 
@@ -300,10 +300,10 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M35 | mod  | Hotkeys are shown read-only                                          | done      |
 | M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | done      |
 | M102 | mod | A ModSetting is reset to the default of its mod                      | done      |
-| M37 | mod  | A test MCM mod for what the test set does not have                   | todo      |
 | M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo      |
 | M39 | mod  | `dropdownFiles`                                                      | todo      |
 | M40 | mod  | The actions beside `CallFunction`                                    | todo      |
+| M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | todo      |
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo      |
 | M42 | mod  | A page that is shown reads its values again                          | todo      |
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo      |
@@ -369,11 +369,17 @@ M102 gives a row whose setting has a default its Reset, which MCM's menu does no
 - A text input has no Reset until it is edited, in milestone 4.
 - The test set has 151 ModSettings. The ModSettings of the MCM showcase all have a default, so each of its rows has a Reset, which is disabled until the row is changed.
 
-M37 adds a test mod: a game plugin with a quest, its script and globals, as DearModdingUI's test fixture is. It also proves what earlier commits made and the test set does not use: the other property types (M32) and `OR` conditions (M28).
-
 M38 shows `color` as a placeholder until the Color control of milestone 9.
 
 M40 supports each action, or marks it unsupported with the reason.
+
+M37 tries in the game what M38 and M40 make and the test set does not have, with two mods that are installed beside it. Its commit is what the trial finds:
+
+- Global Stash has a `CallFunction` with a `scriptName`, 15 times, one with a parameter that is a JSON bool, and 4 `hiddenSwitcher`.
+- JOURNEY has a `CallGlobalFunction`, 5 times, with `{b}` and `{i}` parameters, and 2 `hiddenSwitcher`. Its MCM config is a mod of its own, beside the mod.
+- Game Configuration Menu, which M32 installed, has the parameters that are JSON numbers.
+- The MCM showcase has a `RunConsoleCommand`, which M40 adds to it: no mod of the author's lists has one, and it needs no script.
+- No mod of the author's lists has the rest, so it is not tried with a real script: a `PropertyValueString`, a property with a `scriptName`, an `OR` condition and one inside another, `CallExternalFunction`, `SendEvent`, and the controls of M38 and M39 beside `hiddenSwitcher`. The unit tests cover it, and the MCM showcase has a row of what needs no script.
 
 M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices): one whose required plugins are missing, and one whose config does not parse, which until then is in the log alone. It adds the notices to the menu's front page.
 
