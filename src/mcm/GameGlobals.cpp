@@ -1,6 +1,6 @@
 #include "GameGlobals.h"
 
-namespace mods_config
+namespace mods_config::mcm
 {
     std::optional<float> GameGlobals::get(const model::GlobalStorage& global)
     {

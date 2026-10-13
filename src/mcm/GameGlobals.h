@@ -5,14 +5,14 @@
 #include <string>
 #include <utility>
 
-#include "mcm/McmStore.h"
+#include "McmStore.h"
 
-namespace mods_config
+namespace mods_config::mcm
 {
     /**
      * The globals of the running game, which the MCM store reads and writes a setting of a global through.
      */
-    class GameGlobals : public mcm::Globals
+    class GameGlobals : public Globals
     {
     public:
         std::optional<float> get(const model::GlobalStorage& global) override;

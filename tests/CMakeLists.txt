@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}_tests
   TestPanel.h
   # the mod's sources under test
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
+  ${SOURCE_DIR}/mcm/GameGlobals.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
   ${SOURCE_DIR}/mcm/McmModSettings.cpp

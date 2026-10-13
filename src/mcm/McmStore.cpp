@@ -1,5 +1,7 @@
 #include "McmStore.h"
 
+#include "GameGlobals.h"
+
 #include <charconv>
 #include <cmath>
 #include <format>
@@ -159,6 +161,12 @@ namespace
 
 namespace mods_config::mcm
 {
+    McmStore::McmStore(std::filesystem::path mcmFolder)
+        : _gameGlobals(std::make_unique<GameGlobals>()),
+          _globals(*_gameGlobals),
+          _mcmFolder(std::move(mcmFolder))
+    {}
+
     McmStore::McmStore(Globals& globals, std::filesystem::path mcmFolder)
         : _globals(globals),
           _mcmFolder(std::move(mcmFolder))

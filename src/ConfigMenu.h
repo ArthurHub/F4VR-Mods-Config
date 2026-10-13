@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "GameGlobals.h"
 #include "imgui/UIImGuiPanel.h"
 #include "mcm/McmStore.h"
 #include "model/Definition.h"
@@ -54,8 +53,7 @@ namespace mods_config
         bool _openFrikRequested = false;
 
         // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
-        GameGlobals _globals;
-        mcm::McmStore _store{ _globals, R"(Data\MCM)" };
+        mcm::McmStore _store{ R"(Data\MCM)" };
 
         // what the panel shows
         ui::FullPanel _fullPanel;

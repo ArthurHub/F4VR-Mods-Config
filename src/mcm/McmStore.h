@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -39,10 +40,12 @@ namespace mods_config::mcm
      * once, as MCM's own menu does. It has no Save.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected.
      * A ModSetting is read from MCM's files as its mod is selected, and is written through MCM.
+     * A global is the game's, and a test gives the store globals of its own.
      */
     class McmStore : public model::Store
     {
     public:
+        explicit McmStore(std::filesystem::path mcmFolder);
         explicit McmStore(Globals& globals, std::filesystem::path mcmFolder = {});
 
         void open(const model::Mod& mod) override;
@@ -51,6 +54,10 @@ namespace mods_config::mcm
         bool set(const model::Setting& setting, const model::Value& value) override;
 
     private:
+        // the globals of the running game, for a store that is given none
+        std::unique_ptr<Globals> _gameGlobals;
+
+        // the globals a value is read from and written to: the game's, or a test's
         Globals& _globals;
 
         // MCM's folder, which is `Data\MCM` in the game. With none no ModSetting is available
