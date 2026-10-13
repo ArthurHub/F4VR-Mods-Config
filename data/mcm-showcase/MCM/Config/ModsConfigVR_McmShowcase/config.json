@@ -3,7 +3,7 @@
   // in MCM too: what Mods Config VR adds to MCM is not here.
   // It shows how an MCM menu looks in Mods Config VR, and is an optional file of the mod, for developers.
   "modName": "ModsConfigVR_McmShowcase",
-  "displayName": "Mods Config VR - MCM Showcase",
+  "displayName": "Mods Config: MCM Showcase",
   "minMcmVersion": 2,
   "content": [
     { "type": "text", "text": "<p align='center'><font size='30'>MCM Showcase</font></p>", "html": true },
@@ -207,7 +207,12 @@
         { "type": "dropdown", "text": "A value that is no option", "help": "The file has 7, and there are three options.", "id": "iOutside:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Zero", "One", "Two"] } },
         { "type": "dropdown", "text": "With no options", "id": "iNone:Choices", "valueOptions": { "sourceType": "ModSettingInt" } },
         { "type": "text", "text": "A row under the dropdowns, which an open list covers." },
-        { "type": "switcher", "text": "A row under the dropdowns", "id": "bUnder:Choices", "valueOptions": { "sourceType": "ModSettingBool" } }
+        { "type": "switcher", "text": "A row under the dropdowns", "id": "bUnder:Choices", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "section", "text": "With no storage" },
+        { "type": "stepper", "text": "Five options", "help": "A stepper with no sourceType. It is kept nowhere, and is at its first option again when the mod is selected again.", "valueOptions": { "options": ["Very low", "Low", "Medium", "High", "Very high"] } },
+        { "type": "dropdown", "text": "Three options", "help": "A dropdown with no sourceType. It is kept nowhere.", "valueOptions": { "options": ["Head", "Offhand", "Primary hand"] } },
+        { "type": "dropdown", "text": "Twenty options", "help": "More than the list has room for, so it scrolls. It is kept nowhere.", "valueOptions": { "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13", "Option 14", "Option 15", "Option 16", "Option 17", "Option 18", "Option 19", "Option 20"] } },
+        { "type": "dropdown", "text": "Long options", "help": "It is kept nowhere.", "valueOptions": { "options": ["An option with a long name", "Another option with a name that is much longer than the control is wide", "Short"] } }
       ]
     },
     {

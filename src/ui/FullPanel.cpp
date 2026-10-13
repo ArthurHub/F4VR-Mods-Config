@@ -132,7 +132,7 @@ namespace mods_config::ui
 
     /**
      * How far the thumbstick of the hand that points is pushed to a side, from -1 at the left to 1 at the
-     * right, for the frames that are drawn next: it steps the slider the ray is on. The panel does not know
+     * right, for the frames that are drawn next: it steps the slider or the stepper the ray is on. The panel does not know
      * the game, so the menu tells it.
      */
     void FullPanel::setThumbstickSideValue(const float value)
@@ -171,13 +171,14 @@ namespace mods_config::ui
     }
 
     /**
-     * Goes one step back: a slider that is dragged has the value it had before the drag. With none, from a
-     * page of a mod to the mod's front page, and from there to the menu's front page.
+     * Goes one step back: a slider that is dragged has the value it had before the drag, and the list of a
+     * dropdown that is open is closed. With neither, from a page of a mod to the mod's front page, and from
+     * there to the menu's front page.
      * Returns false on the menu's front page, which has nothing before it: Back closes the menu there.
      */
     bool FullPanel::back()
     {
-        if (_modPage.cancelDrag(_store)) {
+        if (_modPage.cancelDrag(_store) || _modPage.closeList()) {
             return true;
         }
         if (!_selection.mod) {

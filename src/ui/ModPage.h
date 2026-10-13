@@ -5,6 +5,7 @@
 
 #include <imgui.h>
 
+#include "Choices.h"
 #include "HelpLine.h"
 #include "Sliders.h"
 #include "model/Definition.h"
@@ -23,11 +24,12 @@ namespace mods_config::ui
      */
     struct PageDrawn
     {
-        // the row the ray is on, for the help line: none in the gap between two rows, and on a row with no text
+        // the row the ray is on, for the help line: none in the gap between two rows, and on a row with no text.
+        // The row of a dropdown while its list is open
         std::optional<PointedRow> pointed;
 
-        // a press did something in this frame: it changed a value, or took hold of a slider. Or the
-        // thumbstick stepped a slider
+        // a press did something in this frame: it changed a value, took hold of a slider, or opened the list
+        // of a dropdown. Or the thumbstick stepped a slider or a stepper
         bool pressActed = false;
     };
 
@@ -43,6 +45,7 @@ namespace mods_config::ui
         void setImageDrawer(ImageDrawer drawer);
         PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue);
         bool cancelDrag(model::Store* store);
+        bool closeList();
         void reset();
 
     private:
@@ -51,5 +54,8 @@ namespace mods_config::ui
 
         // the sliders of the page that is shown, and how the player edits one
         Sliders _sliders;
+
+        // its steppers and dropdowns, and the list that is open
+        Choices _choices;
     };
 }

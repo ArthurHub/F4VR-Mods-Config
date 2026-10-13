@@ -78,7 +78,10 @@ Choice behavior:
 - Each option has a typed stored value, a text, and an optional help.
 - The current option has a strong visual marker.
 - Popup rows use large VR targets.
-- Trigger selects; thumbstick scrolls; Back closes without changing the selection.
+- Trigger selects; thumbstick scrolls; Back closes without changing the selection. So does a press beside the list, which does nothing else.
+- A press anywhere on the row of a dropdown opens its list.
+- The buttons of a stepper stop at the first and the last option. A press on the rest of its row goes to the option after, and from the last to the first.
+- Thumbstick left/right steps the stepper the ray is on, one option for a push.
 - The help line may show the pointed option's help before it is selected.
 
 ### Text input

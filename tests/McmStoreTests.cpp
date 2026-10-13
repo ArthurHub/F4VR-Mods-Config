@@ -65,6 +65,17 @@ TEST_CASE("McmStore: a switcher is written to its global at once, as 1 and 0")
     CHECK(store.value(setting).value == model::Value(false));
 }
 
+TEST_CASE("McmStore: a choice is written to its global as the place of its option")
+{
+    auto globals = someGlobals();
+    McmStore store(globals);
+    const auto setting = globalSetting(SettingType::Dropdown, 0x801, { .options = { { .value = 0, .text = "Low" }, { .value = 1, .text = "High" } } });
+
+    CHECK(store.set(setting, setting.valueOptions.options[1].value));
+    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 1.0f);
+    CHECK(store.value(setting).value == model::Value(1));
+}
+
 TEST_CASE("McmStore: a value is read from its global every time, as another can change it")
 {
     auto globals = someGlobals();

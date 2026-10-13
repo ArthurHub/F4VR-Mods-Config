@@ -242,6 +242,80 @@ namespace
     }
 
     /**
+     * Globals for the mod with choices: 0x820 is 1, 0x821 is 0, 0x822 is 0 and 0x823 is 7.
+     */
+    test_globals::TestGlobals choiceGlobals()
+    {
+        test_globals::TestGlobals globals;
+        globals.values = { { { PLUGIN, 0x820 }, 1.0f }, { { PLUGIN, 0x821 }, 0.0f }, { { PLUGIN, 0x822 }, 0.0f }, { { PLUGIN, 0x823 }, 7.0f } };
+        return globals;
+    }
+
+    /**
+     * A panel with one mod, shown on its front page, with its values in a store. Its rows are a stepper of
+     * three options at its second, a dropdown of three at its first, a switcher, which the open list of the
+     * dropdown is over, a dropdown with no options, and a stepper of three whose value is no option.
+     * The mod has a page with nothing.
+     */
+    FullPanel modWithChoices(model::Store& store)
+    {
+        const auto choice = [](const model::SettingType type, std::string text, const std::uint32_t formId, const Names& options) {
+            auto item = globalSetting(type, std::move(text), formId);
+            auto& valueOptions = std::get<model::Setting>(item).valueOptions;
+            for (const auto& option : options) {
+                valueOptions.options.push_back({ .value = static_cast<int>(valueOptions.options.size()), .text = option });
+            }
+            return item;
+        };
+        auto mod = modOf("Alpha", { "Other" });
+        mod.frontPage.items.push_back(choice(model::SettingType::Stepper, "Quality", 0x820, { "Low", "Medium", "High" }));
+        mod.frontPage.items.push_back(choice(model::SettingType::Dropdown, "Place", 0x821, { "Head", "Offhand", "Primary hand" }));
+        mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Switch", 0x822));
+        mod.frontPage.items.push_back(choice(model::SettingType::Dropdown, "Empty", 0x821, {}));
+        mod.frontPage.items.push_back(choice(model::SettingType::Stepper, "Outside", 0x823, { "Zero", "One", "Two" }));
+
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ std::move(mod) });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    /**
+     * Where the control of a row of a page ends at the right, before the room of its Reset.
+     */
+    float controlRight()
+    {
+        return test_panel::PANEL_WIDTH - CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2 - theme::CONTROL_HEIGHT - theme::SPACE_2;
+    }
+
+    /**
+     * The middle of a button of the stepper of a row of a page, by the row's place among the rows: the one
+     * to the option after, or the one to the option before. The stepper is as Choices.cpp has it.
+     */
+    ImVec2 stepperButton(const int place, const bool after)
+    {
+        constexpr float OPTION_WIDTH = 280.0f;
+        const float afterMiddle = controlRight() - theme::CONTROL_HEIGHT * 0.5f;
+        return { after ? afterMiddle : afterMiddle - theme::CONTROL_HEIGHT - theme::SPACE_2 - OPTION_WIDTH - theme::SPACE_2, pageRow(place).y };
+    }
+
+    /**
+     * The middle of an option of the open list of the dropdown of a row of a page, by the option's place in
+     * the list, while the list is under its dropdown and at its top. The list is as Choices.cpp has it.
+     */
+    ImVec2 listOption(const int place, const int option)
+    {
+        const float listTop = pageRow(place).y + theme::CONTROL_HEIGHT * 0.5f;
+        return { controlRight() - 100.0f, listTop + theme::SPACE_2 + static_cast<float>(option) * (theme::CONTROL_HEIGHT + theme::SPACE_1) + theme::CONTROL_HEIGHT * 0.5f };
+    }
+
+    bool isListOpen()
+    {
+        return !ImGui::GetCurrentContext()->OpenPopupStack.empty();
+    }
+
+    /**
      * The ray at a place on the panel, for the frames ImGui needs to find what it is on.
      */
     void point(FullPanel& panel, const ImVec2 at)
@@ -918,4 +992,204 @@ TEST_CASE("FullPanel: a press on the name of a slider changes nothing")
 
     CHECK_FALSE(pressActs(panel, pageRow(0)));
     CHECK(globals.values.at({ PLUGIN, 0x810 }) == 20.0f);
+}
+
+TEST_CASE("FullPanel: a button of a stepper goes to the option before or after, and stops at the first and the last")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+    const auto& quality = globals.values.at({ PLUGIN, 0x820 });
+
+    CHECK(pressActs(panel, stepperButton(0, true)));
+    CHECK(quality == 2.0f);
+    CHECK_FALSE(pressActs(panel, stepperButton(0, true)));
+    CHECK(quality == 2.0f);
+
+    CHECK(pressActs(panel, stepperButton(0, false)));
+    CHECK(pressActs(panel, stepperButton(0, false)));
+    CHECK(quality == 0.0f);
+    CHECK_FALSE(pressActs(panel, stepperButton(0, false)));
+    CHECK(quality == 0.0f);
+
+    // a stepper whose value is no option has none before it, and its first after it
+    const auto& outside = globals.values.at({ PLUGIN, 0x823 });
+    CHECK_FALSE(pressActs(panel, stepperButton(4, false)));
+    CHECK(outside == 7.0f);
+    CHECK(pressActs(panel, stepperButton(4, true)));
+    CHECK(outside == 0.0f);
+}
+
+TEST_CASE("FullPanel: a press on the row of a stepper goes to the option after, and from the last to the first")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+    const auto& quality = globals.values.at({ PLUGIN, 0x820 });
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(quality == 2.0f);
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(quality == 0.0f);
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(quality == 1.0f);
+}
+
+TEST_CASE("FullPanel: a push of the thumbstick steps the stepper the ray is on, once for a push")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+    const auto& quality = globals.values.at({ PLUGIN, 0x820 });
+
+    // a push that is held is one step, with a pulse in its frame
+    pushFrames(panel, pageRow(0), 0.0f, 3);
+    pushFrames(panel, pageRow(0), 1.0f, 1);
+    CHECK(quality == 2.0f);
+    CHECK(panel.pressActed());
+    pushFrames(panel, pageRow(0), 1.0f, 90);
+    CHECK(quality == 2.0f);
+
+    // it stops at the last option, with no pulse, and a push that is not far steps nothing
+    pushFrames(panel, pageRow(0), 0.0f, 1);
+    pushFrames(panel, pageRow(0), 1.0f, 1);
+    CHECK(quality == 2.0f);
+    CHECK_FALSE(panel.pressActed());
+    pushFrames(panel, pageRow(0), 0.0f, 1);
+    pushFrames(panel, pageRow(0), -0.4f, 2);
+    CHECK(quality == 2.0f);
+    pushFrames(panel, pageRow(0), -1.0f, 1);
+    CHECK(quality == 1.0f);
+
+    // a push that began off the row steps nothing on it, and neither does one on the row of a dropdown
+    pushFrames(panel, pageRow(0), 0.0f, 1);
+    pushFrames(panel, test_panel::POINTER_AWAY, 1.0f, 2);
+    pushFrames(panel, pageRow(0), 1.0f, 10);
+    CHECK(quality == 1.0f);
+    pushFrames(panel, pageRow(1), 0.0f, 3);
+    pushFrames(panel, pageRow(1), 1.0f, 2);
+    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 0.0f);
+    panel.setThumbstickSideValue(0.0f);
+}
+
+TEST_CASE("FullPanel: a press on the row of a dropdown opens its list, and a press on an option picks it")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+    const auto& place = globals.values.at({ PLUGIN, 0x821 });
+
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(isListOpen());
+    CHECK(place == 0.0f);
+
+    CHECK(pressActs(panel, listOption(1, 2)));
+    CHECK_FALSE(isListOpen());
+    CHECK(place == 2.0f);
+
+    // the option it is at already closes the list, and changes nothing
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK_FALSE(pressActs(panel, listOption(1, 2)));
+    CHECK_FALSE(isListOpen());
+    CHECK(place == 2.0f);
+
+    // the first option is over the row of the switcher, which is not pressed
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(pressActs(panel, listOption(1, 0)));
+    CHECK(place == 0.0f);
+    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 0.0f);
+    CHECK(pressActs(panel, listOption(1, 0)));
+    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 1.0f);
+}
+
+TEST_CASE("FullPanel: a press beside the open list of a dropdown closes it, and does nothing else")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+
+    // on the name of the switcher, beside the list
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK_FALSE(pressActs(panel, pageRow(2)));
+    CHECK_FALSE(isListOpen());
+    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 0.0f);
+    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 0.0f);
+
+    CHECK(pressActs(panel, pageRow(2)));
+    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 1.0f);
+}
+
+TEST_CASE("FullPanel: Back closes the open list of a dropdown, with no option picked")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+
+    press(panel, pageRow(1));
+    point(panel, listOption(1, 1));
+    REQUIRE(isListOpen());
+
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(isListOpen());
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 0.0f);
+
+    // Back again is a step back in the panel
+    CHECK(panel.back());
+    CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: the list of a dropdown is closed as another page is shown")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+
+    press(panel, pageRow(1));
+    REQUIRE(isListOpen());
+    panel.select(selectionOf(0, 0));
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isListOpen());
+}
+
+TEST_CASE("FullPanel: the help line keeps the row of a dropdown while the ray is on its open list")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+
+    press(panel, pageRow(1));
+    point(panel, listOption(1, 2));
+    REQUIRE(isListOpen());
+    CHECK(panel.helpLine().text() == "Place: What it does.");
+}
+
+TEST_CASE("FullPanel: a dropdown with no options is not opened")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store(globals);
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+
+    CHECK_FALSE(pressActs(panel, pageRow(3)));
+    CHECK_FALSE(isListOpen());
 }

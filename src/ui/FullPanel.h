@@ -64,8 +64,8 @@ namespace mods_config::ui
 
         /**
          * Whether a press did something in the frame that was drawn last: it showed another page, opened a
-         * quick launch entry, changed a value, or took hold of a slider. It is the frame the hand that points
-         * gets its pulse in. So is a step of a slider by the thumbstick. A press that changes nothing, as one
+         * quick launch entry, changed a value, took hold of a slider, or opened the list of a dropdown. It is
+         * the frame the hand that points gets its pulse in. So is a step of a slider or a stepper by the thumbstick. A press that changes nothing, as one
          * on the row that is selected, is not told, and neither are the steps of a slider that is dragged.
          */
         bool pressActed() const

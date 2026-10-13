@@ -198,7 +198,7 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 | --- | --------- | ----------------------------------------------------------------------------------- | ------ |
 | M25 | mod       | Globals are read and written: the switcher works                                    | done   |
 | M26 | mod       | The slider                                                                          | done   |
-| M27 | mod       | The stepper and the dropdown                                                        | todo   |
+| M27 | mod       | The stepper and the dropdown                                                        | done   |
 | M28 | mod       | Conditions show and hide rows                                                       | todo   |
 | M29 | mod       | ModSettings are read from MCM's files                                               | todo   |
 | M30 | mod       | ModSettings are written through MCM                                                 | todo   |
@@ -228,6 +228,18 @@ M26 makes the slider work, as in [Controls](controls.md#slider):
 - A slider whose `max` is not over its `min` is disabled.
 - The box of the value is not pressed until M46.
 - The MCM showcase has two sliders with no `sourceType`, which work now. Its others are ModSettings, which M29 reads.
+
+M27 makes the stepper and the dropdown work, as in [Controls](controls.md#dropdown-and-stepper):
+
+- A stepper has a button to the option before and one to the option after. They stop at the first and the last option, where the button is disabled. A press anywhere else on the row goes to the option after, and from the last to the first, as in MCM's menu. A button has the look of a control under the ray, and the stronger one while the trigger is held on it.
+- A press anywhere on the row of a dropdown opens its list, in a popup of ImGui inside the panel. The list is as wide as the box of the dropdown, and under it, or over it where the page has no room under it. It is never over the title bar and the footer. It shows five options at most, and one with more scrolls with the thumbstick, from the chosen option as it opens.
+- A press on an option picks it and closes the list. A press beside the list closes it and does nothing else. Back closes it too, with no option picked: it is Back's step after a drag, before the pages.
+- The chosen option is a solid fill with a check. While the list is open the box of the dropdown has its outline in `green`, and the help line keeps the row of the dropdown: an MCM option has no help of its own.
+- The value is written as it is picked: for a global, the place of the option in the list.
+- The hand gets its pulse as a press picks another option, and as it opens a list. A press that picks the option the choice is at gives none.
+- A stepper and a dropdown with no options are disabled. One whose value is no option shows none: its list has no chosen option, and a stepper goes to its first option from there.
+- The thumbstick steps the stepper whose row the ray is on: a push to a side is one step, to the option before or after, and stops at the first and the last as the buttons do. A push that is held steps no more, and there is no wait for the ray as a slider has. The hand gets its pulse for a step that changes the option.
+- The MCM showcase has a stepper and three dropdowns with no `sourceType`, which work now. Its others are ModSettings, which M29 reads.
 
 M28 translates `groupControl` and `groupCondition` to the model's conditions: a number, `AND`, `OR`, and one inside another. Until this commit every row is shown.
 

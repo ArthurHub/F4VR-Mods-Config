@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -255,15 +256,19 @@ namespace
     /**
      * Draws the panel with the pointer at a place and saves it as an image, at the size the framework
      * rasterizes the panel. A few frames are drawn first: ImGui needs them to find what the pointer is on, and
-     * to scroll to a row.
+     * to scroll to a row. What is given to run before them draws the frames that bring the panel to the
+     * state it is drawn in, as a press that opens a list.
      */
-    std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer, const bool pressed = false)
+    std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer, const bool pressed = false, const std::function<void()>& before = {})
     {
         const test_panel::PanelContext context;
         // an image is drawn with its pixels as its texture, which the rasterizer reads
         panel.setImageDrawer([](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
             ImGui::GetWindowDrawList()->AddImage(const_cast<model::ImagePixels*>(&pixels), min, max);
         });
+        if (before) {
+            before();
+        }
         // the ray comes there, and then the trigger is pulled and held
         for (int i = 0; i < 5; ++i) {
             test_panel::drawFrame(panel, pointer, pressed && i >= 3);
@@ -557,6 +562,67 @@ TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")
     panel.select({ .mod = 0, .page = std::nullopt });
     // on the track of the first slider, with the trigger held
     WARN("Saved " << renderToFile(panel, "slider-dragged", ImVec2(820.0f, pageRow(0).y), true));
+}
+
+TEST_CASE("FullPanel render: a stepper under the ray, and the open list of a dropdown", "[.render]")
+{
+    using model::SettingType;
+    const auto choice = [](const SettingType type, std::string text, const std::uint32_t formId, model::ValueOptions valueOptions) {
+        return model::Setting{ .type = type,
+            .text = std::move(text),
+            .help = "Where the flashlight is.",
+            .valueOptions = std::move(valueOptions),
+            .storage = model::GlobalStorage{ .plugin = "MyMod.esp", .formId = formId } };
+    };
+    std::vector<std::string> many;
+    for (int i = 1; i <= 20; ++i) {
+        many.push_back(std::format("Option {}", i));
+    }
+    test_globals::TestGlobals globals;
+    globals.values = { { { "MyMod.esp", 0x800 }, 0.0f }, { { "MyMod.esp", 0x801 }, 1.0f }, { { "MyMod.esp", 0x802 }, 2.0f }, { { "MyMod.esp", 0x803 }, 11.0f } };
+    mcm::McmStore store(globals);
+
+    model::Mod mod{ .name = "Choices", .displayName = "Choices", .frontPage = {}, .pages = {} };
+    mod.frontPage.items.push_back(choice(SettingType::Stepper, "A stepper at its first option", 0x800, optionsOf({ "Low", "Medium", "High" })));
+    mod.frontPage.items.push_back(choice(SettingType::Stepper, "A stepper at its second", 0x801, optionsOf({ "Low", "Medium", "High" })));
+    mod.frontPage.items.push_back(choice(SettingType::Stepper, "A stepper at its last", 0x802, optionsOf({ "Low", "Medium", "High" })));
+    mod.frontPage.items.push_back(
+        choice(SettingType::Dropdown, "Three options", 0x801, optionsOf({ "Head", "Offhand", "A place with a name that is much longer than the list is wide" })));
+    mod.frontPage.items.push_back(choice(SettingType::Dropdown, "Twenty options", 0x803, optionsOf(many)));
+    mod.frontPage.items.push_back(choice(SettingType::Dropdown, "With no options", 0x800, {}));
+    for (int i = 1; i <= 2; ++i) {
+        mod.frontPage.items.push_back(setting(SettingType::Switcher, std::format("A row under the dropdowns {}", i)));
+    }
+    mod.frontPage.items.push_back(choice(SettingType::Dropdown, "At the bottom of the page", 0x801, optionsOf({ "Head", "Offhand", "Primary hand", "Chest" })));
+
+    const auto panelOf = [&mod, &store] {
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ mod });
+        panel.select({ .mod = 0, .page = std::nullopt });
+        return panel;
+    };
+    // where a control ends at the right, and the middle of a stepper's button to the option after
+    const float right = test_panel::PANEL_WIDTH - test_panel::CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2 - theme::CONTROL_HEIGHT - theme::SPACE_2;
+    const float after = right - theme::CONTROL_HEIGHT * 0.5f;
+    for (const bool pressed : { false, true }) {
+        auto panel = panelOf();
+        WARN("Saved " << renderToFile(panel, pressed ? "stepper-button-pressed" : "stepper-button-hover", ImVec2(after, pageRow(1).y), pressed));
+    }
+
+    // a list is opened by a press on its row, and then the ray is on an option of it. The list of the last
+    // row opens over it
+    const std::array lists{ std::pair{ "dropdown-open", 3 }, std::pair{ "dropdown-open-scrolls", 4 }, std::pair{ "dropdown-open-over", 8 } };
+    for (const auto& [name, row] : lists) {
+        auto panel = panelOf();
+        const auto open = [&panel, row] {
+            for (const bool held : { false, false, true, false, false }) {
+                test_panel::drawFrame(panel, pageRow(row), held);
+            }
+        };
+        const float optionY = row == 8 ? pageRow(row).y - theme::ROW_PITCH * 2.0f : pageRow(row).y + theme::ROW_PITCH * 2.0f;
+        WARN("Saved " << renderToFile(panel, name, ImVec2(right - 150.0f, optionY), false, open));
+    }
 }
 
 TEST_CASE("FullPanel render: the help line, with a help of each length", "[.render]")

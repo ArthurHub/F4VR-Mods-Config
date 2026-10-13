@@ -195,7 +195,7 @@ Whether world geometry hides the panel, and where the panel goes when a wall is 
 - Only one controller owns focus/active interaction at a time. The ray of the other one is drawn fainter and without a mark.
 - A preferred interaction hand may be configurable, but the other controller should still be usable where practical.
 - Trigger activates controls and performs drags.
-- Thumbstick up and down scrolls the list under the pointer. Left and right steps the slider under the pointer, once the ray is on its row for a short time.
+- Thumbstick up and down scrolls the list under the pointer. Left and right steps the slider under the pointer, once the ray is on its row for a short time, and the stepper under the pointer, one option for a push.
 - A dropdown, popup, or confirmation opens inside the panel and stays within its edges, so the panel is the only surface the ray has to reach. A list too long for the panel scrolls inside its popup.
 - Back follows the navigation hierarchy; see [Back behavior](#back-behavior). It is a short press of the grip of the hand that points at the panel, and the button can be changed.
 - Direct touch on the ImGui panel can be explored later.
@@ -237,7 +237,7 @@ Haptic feedback should be restrained and meaningful:
 - Distinct error pulse for rejected input
 - No pulse for every rendered frame or every tiny increment of a slider that is dragged. A step of a slider by the thumbstick gets one
 
-The light pulse is given to the hand that points, in the frame its press does something: another page is shown, a quick launch entry is opened, a value is changed, Back goes a step back or closes the menu. A press that changes nothing gives none, as one on the row that is selected already. It is a pattern of the framework by its name, `Tick`, which can be changed and turned off.
+The light pulse is given to the hand that points, in the frame its press does something: another page is shown, a quick launch entry is opened, a value is changed, the list of a dropdown is opened, Back goes a step back or closes the menu. A press that changes nothing gives none, as one on the row that is selected already. It is a pattern of the framework by its name, `Tick`, which can be changed and turned off.
 
 Exact haptic profiles can use the future CommonFramework `Haptic` control/configuration design.
 

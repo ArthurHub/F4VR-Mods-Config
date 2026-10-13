@@ -1,9 +1,7 @@
 #include "ModPage.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -13,6 +11,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "Choices.h"
 #include "Drawing.h"
 #include "Sliders.h"
 #include "Theme.h"
@@ -120,39 +119,8 @@ namespace
         return row.pointed;
     }
 
-    // The sizes of the controls that are not tokens of the design system, in the panel's pixels.
-    // A cell of a switcher, which has two:
+    // a cell of a switcher, which has two, in the panel's pixels: not a token of the design system
     constexpr float TOGGLE_CELL_WIDTH = 88.0f;
-    // the box an arrow is drawn in:
-    constexpr float ARROW_SIZE = 14.0f;
-    // and the room of a control in its row, which the widest fill: the control column without the room of Reset
-    constexpr float CONTROL_ROOM = theme::CONTROL_WIDTH - theme::CONTROL_HEIGHT - theme::SPACE_2;
-
-    enum class Arrow : std::uint8_t
-    {
-        Left,
-        Right,
-        Down,
-    };
-
-    /**
-     * A filled arrow around a point, as the buttons of a stepper and a dropdown have.
-     */
-    void drawArrow(const ImVec2& center, const Arrow arrow)
-    {
-        // the corners of each arrow in its box, as the design system draws them
-        static constexpr std::array<std::array<ImVec2, 3>, 3> CORNERS{ {
-            { ImVec2(10.0f, 2.0f), ImVec2(3.0f, 7.0f), ImVec2(10.0f, 12.0f) },
-            { ImVec2(4.0f, 2.0f), ImVec2(11.0f, 7.0f), ImVec2(4.0f, 12.0f) },
-            { ImVec2(2.0f, 4.0f), ImVec2(12.0f, 4.0f), ImVec2(7.0f, 11.0f) },
-        } };
-        const auto& corners = CORNERS[static_cast<std::size_t>(arrow)];
-        const ImVec2 origin(center.x - ARROW_SIZE * 0.5f, center.y - ARROW_SIZE * 0.5f);
-        const auto at = [&origin](const ImVec2& corner) {
-            return ImVec2(origin.x + corner.x, origin.y + corner.y);
-        };
-        ImGui::GetWindowDrawList()->AddTriangleFilled(at(corners[0]), at(corners[1]), at(corners[2]), ImGui::GetColorU32(theme::color::GREEN));
-    }
 
     /**
      * A switcher that ends at the right: an Off and an On cell, with the one of its value marked. On is a
@@ -176,52 +144,6 @@ namespace
     }
 
     /**
-     * A stepper that ends at the right: the option in a box, between a button to the option before it and
-     * one to the option after. Returns its left edge.
-     */
-    float drawStepper(const float right, const float top, const std::string_view option)
-    {
-        const auto next = ui::controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT);
-        const auto box = ui::controlBox(next.Min.x - theme::SPACE_2 - ui::TRACK_WIDTH, top, ui::TRACK_WIDTH);
-        const auto previous = ui::controlBox(box.Min.x - theme::SPACE_2 - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT);
-
-        ui::drawOutline(previous.Min, previous.Max, theme::color::FRAME_BORDER);
-        drawArrow(previous.GetCenter(), Arrow::Left);
-        ui::drawFrame(box);
-        ui::drawTextIn(box, option, theme::color::GREEN, 0.5f, theme::SPACE_3);
-        ui::drawOutline(next.Min, next.Max, theme::color::FRAME_BORDER);
-        drawArrow(next.GetCenter(), Arrow::Right);
-        return previous.Min.x;
-    }
-
-    /**
-     * A dropdown that ends at the right, closed: the option at the left of its box, and an arrow at the
-     * right. Returns its left edge.
-     */
-    float drawDropdown(const float right, const float top, const std::string_view option)
-    {
-        const auto box = ui::controlBox(right - CONTROL_ROOM, top, CONTROL_ROOM);
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
-        ui::drawFrame(box);
-        ui::drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, theme::color::GREEN, option);
-        drawArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), Arrow::Down);
-        return box.Min.x;
-    }
-
-    /**
-     * The text of the option a choice is at: the one whose value is the stored one, and none where no option
-     * has it. A choice whose value is not available shows its first option.
-     */
-    std::string_view optionText(const std::vector<model::Option>& options, const model::StoredValue& stored)
-    {
-        if (!stored.available) {
-            return options.empty() ? std::string_view() : std::string_view(options.front().text);
-        }
-        const auto option = std::ranges::find(options, stored.value, &model::Option::value);
-        return option != options.end() ? std::string_view(option->text) : std::string_view();
-    }
-
-    /**
      * What the rows of a page are drawn with, and what their drawing tells.
      */
     struct PageDrawing
@@ -229,6 +151,7 @@ namespace
         const ui::ImageDrawer& imageDrawer;
         model::Store* store;
         ui::Sliders& sliders;
+        ui::Choices& choices;
         ui::PageDrawn& drawn;
     };
 
@@ -236,12 +159,12 @@ namespace
      * The row of a setting at the cursor: its text after the gutter, and its control where the control column
      * ends, before the room of its Reset. The text has the room up to its own control.
      * The control shows the value the store has for the setting. A press anywhere on the row of a switcher
-     * turns it on or off, and a slider is dragged by its track and stepped by the thumbstick. A stepper and
-     * a dropdown are disabled until the commit that makes them work, and so is a control whose value is
-     * not available and a slider with no range. The row itself has the look of a row under the ray, as it
-     * has a help.
+     * turns it on or off, and a slider is dragged by its track and stepped by the thumbstick. A stepper
+     * goes to the option before and after, and a dropdown opens its list. A control whose value is not
+     * available is disabled, and so is a slider with no range and a stepper and a dropdown with no options.
+     * The row itself has the look of a row under the ray, as it has a help.
      * A text input is its text and its type until the commit that draws it.
-     * Returns whether the ray is on the row, and tells why a value is not available.
+     * Returns whether the ray is on the row or on its open list, and tells why a value is not available.
      */
     bool drawSetting(const model::Setting& setting, const PageDrawing& page, std::string& reason)
     {
@@ -258,6 +181,7 @@ namespace
         const auto* number = std::get_if<float>(&stored.value);
         const bool isSwitcher = stored.available && setting.type == model::SettingType::Switcher && on;
         const bool isSlider = stored.available && setting.type == model::SettingType::Slider && number && options.max > options.min;
+        const bool isChoice = stored.available && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !options.options.empty();
         const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
 
         // before the row is known to be shown: a slider that is dragged out of the page is still held
@@ -274,13 +198,27 @@ namespace
         if (isSwitcher && row.pressed && page.store->set(setting, !*on)) {
             page.drawn.pressActed = true;
         }
+        // before the row is known to be shown too: the list of a dropdown is not a part of its row
+        auto chosen = ui::chosenOption(setting, stored);
+        const ui::ChoiceRow choiceRow{ .pointed = isChoice && row.pointed, .held = isChoice && row.held, .pressed = isChoice && row.pressed };
+        if (isChoice) {
+            bool pulse = false;
+            const auto picked = page.choices.edit(setting, right, pos.y, choiceRow, chosen, pulse);
+            if (picked && picked != chosen && page.store->set(setting, options.options[*picked].value)) {
+                chosen = picked;
+                pulse = true;
+            }
+            page.drawn.pressActed = page.drawn.pressActed || pulse;
+        }
+        // the ray is on the list then, and the help line keeps the row of its dropdown
+        const bool listOpen = page.choices.isListOpen(setting);
         reason = std::move(stored.reason);
         if (!row.shown) {
-            return false;
+            return listOpen;
         }
 
         float left = right;
-        ImGui::BeginDisabled(!isSwitcher && !isSlider);
+        ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice);
         switch (setting.type) {
         case model::SettingType::Switcher:
             left = drawSwitcher(right, pos.y, on && *on);
@@ -289,17 +227,15 @@ namespace
             left = page.sliders.draw(setting, right, pos.y, value);
             break;
         case model::SettingType::Stepper:
-            left = drawStepper(right, pos.y, optionText(options.options, stored));
-            break;
         case model::SettingType::Dropdown:
-            left = drawDropdown(right, pos.y, optionText(options.options, stored));
+            left = page.choices.draw(setting, right, pos.y, choiceRow, chosen);
             break;
         case model::SettingType::TextInput:
             break;
         }
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
         ImGui::EndDisabled();
-        return row.pointed;
+        return row.pointed || listOpen;
     }
 
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page);
@@ -385,17 +321,20 @@ namespace mods_config::ui
      * Draws the rows of a page into the current ImGui window, which scrolls them, with the values the store
      * has for its settings. With no store no value is available. The thumbstick's value is how far the one
      * of the hand that points is pushed to a side, from -1 at the left to 1 at the right: it steps the
-     * slider whose row the ray is on.
+     * slider or the stepper whose row the ray is on.
      * Returns the row the ray is on, for the help line: none in the gap between two rows, and none on a row
-     * that has no text of its own, as a section, a text row, an image and a spacer. And whether a press
-     * did something, or the thumbstick stepped a slider.
+     * that has no text of its own, as a section, a text row, an image and a spacer. While the list of a
+     * dropdown is open it is the row of that dropdown. And whether a press did something, or the thumbstick
+     * stepped a slider or a stepper.
      */
     PageDrawn ModPage::draw(const model::Page& page, model::Store* store, const float thumbstickSideValue)
     {
         PageDrawn drawn;
         _sliders.startFrame(thumbstickSideValue);
-        drawItems(page.items, PageDrawing{ .imageDrawer = _imageDrawer, .store = store, .sliders = _sliders, .drawn = drawn });
+        _choices.startFrame(thumbstickSideValue);
+        drawItems(page.items, PageDrawing{ .imageDrawer = _imageDrawer, .store = store, .sliders = _sliders, .choices = _choices, .drawn = drawn });
         _sliders.endFrame();
+        _choices.endFrame();
         return drawn;
     }
 
@@ -409,10 +348,20 @@ namespace mods_config::ui
     }
 
     /**
+     * Closes the list of a dropdown that is open, with no option picked, for Back.
+     * Returns false while none is open.
+     */
+    bool ModPage::closeList()
+    {
+        return _choices.closeList();
+    }
+
+    /**
      * Forgets what is edited in the page, as another page is shown.
      */
     void ModPage::reset()
     {
         _sliders.reset();
+        _choices.reset();
     }
 }

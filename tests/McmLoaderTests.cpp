@@ -519,7 +519,7 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
 
     REQUIRE(mods.size() == 1);
     CHECK(mods[0].name == "ModsConfigVR_McmShowcase");
-    CHECK(mods[0].displayName == "Mods Config VR - MCM Showcase");
+    CHECK(mods[0].displayName == "Mods Config: MCM Showcase");
     CHECK_FALSE(mods[0].frontPage.items.empty());
     CHECK(mods[0].pages.size() == 13);
 
