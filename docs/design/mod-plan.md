@@ -203,8 +203,8 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 | M29 | mod       | ModSettings are read from MCM's files                                               | done      |
 | M30 | mod       | ModSettings are written through MCM                                                 | done      |
 | M31 | mod       | MCM's events are sent: a setting changed, the menu opened and closed                | done      |
-| M32 | mod       | Script properties are read and written                                              | todo      |
-| F24 | framework | f4sevr: script properties, if CommonLibF4VR's do not work in VR                     | todo      |
+| M32 | mod       | Script properties are read and written                                              | done      |
+| F24 | framework | f4sevr: script properties, if the calls it has do not work in the game              | done      |
 
 Globals come first: they are most of the test set, and need neither MCM nor Papyrus.
 
@@ -278,9 +278,18 @@ M31 sends the events MCM's menu sends, so a script acts on this menu as on MCM's
 - A ModSetting is set with a call that is queued to Papyrus, and the event's call is queued after it.
 - The store sends them with one function, `mcm::sendEvent`. The unit tests link their own in its place, which keeps what is sent, so a test checks the events and their order without the game.
 
-M32 reads and writes all four property types.
+M32 reads and writes a property of a script, in all four types, as `mcm_vr.dll` does for MCM's menu:
 
-F24 is made only if CommonLibF4VR's own calls for script properties do not work in VR, which M32 finds out. The events need none: they are sent with what `f4sevr` has.
+- A `PropertyValueBool`, `Int`, `Float` or `String` names the form of its script in `sourceForm`, as a global does, and its property in `propertyName`. It can name the script in `scriptName`. With none it is the form's first script.
+- A page asks for the value in every frame, as it does for a global, so a property that a script changes shows at once. The form and the place of the property in its script are looked up once.
+- The value is read in the type the script keeps it in. A bool is on at any number but 0, as in MCM's menu, and a switcher of a number is on at 1.
+- It is written in the type of the row's `sourceType`, as in MCM's menu: a slider of a whole number as the nearest one, and a choice as the place of its option. The game keeps it in the save.
+- A property is not available while its form is not in the game, its form has no such script attached, or the script has no property of that name. Its row is disabled, and the help line says that it is not in the game. The log has which of the three it is, once.
+- The store reads and writes it with two functions, `mcm::getProperty` and `mcm::setProperty`, in `McmProperties.cpp`. The unit tests link their own in their place, which keep the properties in a map.
+- The calls are the framework's `f4sevr`, which has what `mcm_vr.dll` calls: `GetObjectIdentifier`, `GetVMPropertyInfo`, `GetPropertyValueByIndex` and `SetPropertyValue`.
+- The test set has two, whole numbers of Sim Settlements 2. Game Configuration Menu is installed beside it for the trial: it has 171, numbers, whole numbers and bools, all on one form with no `scriptName`. The MCM showcase has one that is not in the game: a property needs a script of a plugin, which the showcase does not have.
+
+F24 has no commit: the calls `f4sevr` has for script properties work in the game, as the trial of M32 found. The events need none: they are sent with what `f4sevr` has.
 
 ### 3. MCM complete
 

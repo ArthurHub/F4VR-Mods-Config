@@ -165,6 +165,7 @@
         { "type": "switcher", "text": "A setting that is in no file", "help": "Its ModSetting is in neither of MCM's files.", "id": "bMissing:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "With no storage", "help": "A switcher with no valueOptions. It is kept nowhere, and is off again when the mod is selected again." },
         { "type": "switcher", "text": "A global that is not in the game", "help": "A GlobalValue of a plugin that is not installed.", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800" } },
+        { "type": "switcher", "text": "A property that is not in the game", "help": "A PropertyValueBool of a script of a plugin that is not installed.", "valueOptions": { "sourceType": "PropertyValueBool", "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800", "propertyName": "bOn" } },
         { "type": "section", "text": "A group that a switcher shows" },
         { "type": "switcher", "text": "Unfold settings", "help": "Shows the rows of its group. It has no id, so it is kept nowhere, and is off again when the mod is selected again.", "groupControl": 1, "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "A row of the group", "groupCondition": 1, "id": "bGroupA:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },

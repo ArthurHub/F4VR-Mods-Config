@@ -5,6 +5,8 @@
 #include <format>
 #include <variant>
 
+#include "common/CommonUtils.h"
+
 using namespace mods_config;
 
 namespace
@@ -119,12 +121,13 @@ namespace
     }
 
     /**
-     * A value as the type MCM keeps a ModSetting in, which its function takes: a bool is on at any number
-     * but 0, and a whole number is the nearest one. None for a number as a text, and a text as a number.
+     * A value as the type its storage keeps it in, which MCM's function and a script's property take: a bool
+     * is on at any number but 0, and a whole number is the nearest one. None for a number as a text, and a
+     * text as a number.
      */
-    std::optional<model::Value> modSettingTyped(const model::ModSettingStorage::Type type, const model::Value& value)
+    std::optional<model::Value> typedValue(const model::StoredType type, const model::Value& value)
     {
-        using Type = model::ModSettingStorage::Type;
+        using Type = model::StoredType;
         if (type == Type::String) {
             return std::holds_alternative<std::string>(value) ? std::optional(value) : std::nullopt;
         }
@@ -140,6 +143,34 @@ namespace
         default:
             return *number;
         }
+    }
+
+    /**
+     * The value of a setting that is a property of a script, from the value the script has for it. A bool is
+     * on at any number but 0, as MCM's menu reads it, and a text input has a number as its text. One that is
+     * not in the game is not available, and neither is a text for a setting that keeps a number, with the reason.
+     */
+    model::StoredValue propertyValue(const model::Setting& setting, const model::PropertyStorage& property, const std::optional<model::Value>& stored)
+    {
+        if (!stored) {
+            return { .value = valueWithNone(setting),
+                .available = false,
+                .reason = std::format("Not available: the property {} of the form {:X} of {} is not in the game.", property.name, property.formId, property.plugin) };
+        }
+        const auto number = toNumber(*stored);
+        if (setting.type == model::SettingType::TextInput) {
+            const auto* text = std::get_if<std::string>(&*stored);
+            return { .value = text ? *text : std::format("{}", *number), .available = true, .reason = {} };
+        }
+        if (number) {
+            const auto isBool = property.type == model::StoredType::Bool;
+            if (auto value = fromNumber(setting, isBool && common::fNotEqual(*number, 0.0f) ? 1.0f : *number)) {
+                return { .value = std::move(*value), .available = true, .reason = {} };
+            }
+        }
+        return { .value = valueWithNone(setting),
+            .available = false,
+            .reason = std::format("Not available: the property {} of the form {:X} of {} is a text, which is no number.", property.name, property.formId, property.plugin) };
     }
 
     /**
@@ -220,8 +251,9 @@ namespace mods_config::mcm
      * The value of a setting, read from its storage now: another mod or the console can change a global at
      * any time. A ModSetting is the one of the mod that is selected, as its files had it then or as it was
      * set since.
+     * A property of a script is read from the script now too.
      * A global that is not in the game is not available, with the reason, and neither is a ModSetting that
-     * is in no file, and a value of a storage the store does not read.
+     * is in no file, a property that is not in the game, and a value of a storage the store does not read.
      */
     model::StoredValue McmStore::value(const model::Setting& setting)
     {
@@ -242,6 +274,9 @@ namespace mods_config::mcm
         }
         if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
             return modSettingValue(setting, *modSetting, _modSettings.find(modSetting->name));
+        }
+        if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
+            return propertyValue(setting, *property, getProperty(*property));
         }
         return { .value = valueWithNone(setting), .available = false, .reason = {} };
     }
@@ -274,8 +309,8 @@ namespace mods_config::mcm
 
     /**
      * Writes a value where the setting's storage says. Returns false for a value that is not written: one of
-     * a storage the store does not write, of a global that is not in the game, or of a ModSetting that is in
-     * neither of MCM's files, which MCM does not have.
+     * a storage the store does not write, of a global or a property that is not in the game, or of a
+     * ModSetting that is in neither of MCM's files, which MCM does not have.
      */
     bool McmStore::write(const model::Setting& setting, const model::Value& value)
     {
@@ -291,8 +326,15 @@ namespace mods_config::mcm
             }
         }
         if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
-            const auto typed = modSettingTyped(modSetting->type, value);
+            const auto typed = typedValue(modSetting->type, value);
             return typed && _modSettings.set(modSetting->name, *typed);
+        }
+        if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
+            const auto typed = typedValue(property->type, value);
+            if (typed && setProperty(*property, *typed)) {
+                logger::debug("Set the property {} of the form {:X} of {} ('{}')", property->name, property->formId, property->plugin, setting.text);
+                return true;
+            }
         }
         return false;
     }

@@ -24,6 +24,12 @@ namespace mods_config::mcm
     std::optional<float> getGlobal(const model::GlobalStorage& global);
     bool setGlobal(const model::GlobalStorage& global, float value);
 
+    // The value of a property of a script, in the type the script keeps it in, and none for one that is not in
+    // the game. Setting one returns false for one that is not in the game. The mod's are in McmProperties.cpp,
+    // and the tests' in tests/TestProperties.cpp, which keeps the properties in a map.
+    std::optional<model::Value> getProperty(const model::PropertyStorage& property);
+    bool setProperty(const model::PropertyStorage& property, const model::Value& value);
+
     // Sends an event of MCM's menu to the scripts that wait for it, with the texts their function takes.
     // The mod's is in McmEvents.cpp, which calls the scripts of the game, and the tests' in
     // tests/TestEvents.cpp, which keeps what is sent.
@@ -34,7 +40,8 @@ namespace mods_config::mcm
      * once, as MCM's own menu does. It has no Save.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected.
      * A ModSetting is read from MCM's files as its mod is selected, and is written through MCM.
-     * A global is read and written with `getGlobal` and `setGlobal`.
+     * A global is read and written with `getGlobal` and `setGlobal`, and a property of a script with
+     * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
      * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`.
      */

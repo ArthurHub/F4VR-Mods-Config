@@ -431,6 +431,35 @@ TEST_CASE("McmLoader: a ModSetting with no id is kept nowhere, as it names no se
     CHECK(std::get<model::Setting>(page.items[1]).storage == model::Storage(model::UnknownStorage{ .type = "PropertyValueFloat" }));
 }
 
+TEST_CASE("McmLoader: a property of a script is named by its form and its name, and typed by its sourceType")
+{
+    using Type = model::StoredType;
+    const auto page = frontPageOf(R"(
+        { "type": "slider", "text": "A float", "valueOptions": { "sourceType": "PropertyValueFloat", "sourceForm": "MyMod.esp|800", "propertyName": "fStrength" } },
+        { "type": "switcher", "text": "A bool of a script", "valueOptions": { "sourceType": "PropertyValueBool", "sourceForm": "MyMod.esp|0x801", "scriptName": "MyMod:Main", "propertyName": "bOn" } },
+        { "type": "dropdown", "text": "An int", "valueOptions": { "sourceType": "PropertyValueInt", "sourceForm": "MyMod.esp|800", "propertyName": "iMode" } },
+        { "type": "textinput", "text": "A string", "valueOptions": { "sourceType": "PropertyValueString", "sourceForm": "MyMod.esp|800", "propertyName": "sName" } },
+        { "type": "switcher", "text": "No propertyName", "valueOptions": { "sourceType": "PropertyValueBool", "sourceForm": "MyMod.esp|800" } },
+        { "type": "switcher", "text": "No sourceForm", "valueOptions": { "sourceType": "PropertyValueBool", "propertyName": "bOn" } },
+        { "type": "switcher", "text": "An id that is not hex", "valueOptions": { "sourceType": "PropertyValueBool", "sourceForm": "MyMod.esp|8G0", "propertyName": "bOn" } },
+        { "type": "switcher", "text": "No type of MCM", "valueOptions": { "sourceType": "PropertyValueColor", "sourceForm": "MyMod.esp|800", "propertyName": "bOn" } }
+    )");
+    const auto storageOf = [&page](const std::size_t row) {
+        return std::get<model::Setting>(page.items[row]).storage;
+    };
+
+    CHECK(storageOf(0) == model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x800, .script = {}, .name = "fStrength", .type = Type::Float }));
+    CHECK(storageOf(1) == model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x801, .script = "MyMod:Main", .name = "bOn", .type = Type::Bool }));
+    CHECK(storageOf(2) == model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x800, .script = {}, .name = "iMode", .type = Type::Int }));
+    CHECK(storageOf(3) == model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x800, .script = {}, .name = "sName", .type = Type::String }));
+
+    // a property that is not written as one
+    for (std::size_t row = 4; row < 7; ++row) {
+        CHECK(storageOf(row) == model::Storage(model::UnknownStorage{ .type = "PropertyValueBool" }));
+    }
+    CHECK(storageOf(7) == model::Storage(model::UnknownStorage{ .type = "PropertyValueColor" }));
+}
+
 TEST_CASE("McmLoader: a ModSetting is named by the id of its row, and typed by its sourceType")
 {
     using Type = model::ModSettingStorage::Type;

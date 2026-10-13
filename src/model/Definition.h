@@ -77,26 +77,52 @@ namespace mods_config::model
     };
 
     /**
+     * What a storage keeps its value as, by the `sourceType` of an MCM row.
+     */
+    enum class StoredType : std::uint8_t
+    {
+        Bool,
+        Int,
+        Float,
+        String,
+    };
+
+    /**
      * A ModSetting of MCM: a value MCM keeps for a mod, in the mod's settings file.
      */
     struct ModSettingStorage
     {
-        /**
-         * What MCM keeps the value as, by the `sourceType` of its row.
-         */
-        enum class Type : std::uint8_t
-        {
-            Bool,
-            Int,
-            Float,
-            String,
-        };
+        using Type = StoredType;
 
         // as MCM names it, by its key and its section in the file: `fStrength:Main`
         std::string name;
         Type type = Type::Bool;
 
         bool operator==(const ModSettingStorage&) const = default;
+    };
+
+    /**
+     * A property of a script: a value a Papyrus script keeps, on a form of a game plugin the script is
+     * attached to. The game keeps it in the save.
+     */
+    struct PropertyStorage
+    {
+        using Type = StoredType;
+
+        // the file name of the form's plugin, as `MyMod.esp`
+        std::string plugin;
+
+        // the form's id without the plugin's place in the load order
+        std::uint32_t formId = 0;
+
+        // the script that has the property. Empty for any script of the form
+        std::string script;
+
+        // the name of the property
+        std::string name;
+        Type type = Type::Bool;
+
+        bool operator==(const PropertyStorage&) const = default;
     };
 
     /**
@@ -113,7 +139,7 @@ namespace mods_config::model
     /**
      * Where the value of a setting is kept. Only the store reads it.
      */
-    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, UnknownStorage>;
+    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, UnknownStorage>;
 
     /**
      * What a row is shown by: the value of one setting, or other conditions that are joined. It is asked of

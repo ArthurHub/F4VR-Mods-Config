@@ -6,6 +6,7 @@
 #include "TestEvents.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
+#include "TestProperties.h"
 #include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
 #include "model/Definition.h"
@@ -15,6 +16,7 @@ using mcm::McmStore;
 using model::SettingType;
 using test_events::TestEvents;
 using test_globals::TestGlobals;
+using test_properties::TestProperties;
 using Type = model::ModSettingStorage::Type;
 
 namespace
@@ -46,6 +48,27 @@ namespace
         TestGlobals globals;
         globals.values = { { { PLUGIN, 0x800 }, 1.0f }, { { PLUGIN, 0x801 }, 0.0f }, { { PLUGIN, 0x802 }, 2.5f }, { { PLUGIN, 0x803 }, 2.0f } };
         return globals;
+    }
+
+    model::Setting propertySetting(const SettingType type, std::string name, const Type valueType)
+    {
+        return settingOf(type, model::PropertyStorage{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .name = std::move(name), .type = valueType });
+    }
+
+    /**
+     * Properties of the form 0x800 with one of each type a script keeps: `bOn` is on, `fStrength` is 1.3,
+     * `iMode` is 2 and `sName` is a text.
+     */
+    TestProperties someProperties()
+    {
+        TestProperties properties;
+        properties.values = {
+            { { PLUGIN, 0x800, "", "bOn" }, true },
+            { { PLUGIN, 0x800, "", "fStrength" }, 1.3f },
+            { { PLUGIN, 0x800, "", "iMode" }, 2 },
+            { { PLUGIN, 0x800, "", "sName" }, "Sanctuary Hills"s },
+        };
+        return properties;
     }
 }
 
@@ -155,13 +178,82 @@ TEST_CASE("McmStore: a value of a storage the menu does not read is not availabl
 {
     auto globals = someGlobals();
     McmStore store;
-    const auto setting = settingOf(SettingType::Switcher, model::UnknownStorage{ .type = "PropertyValueBool" });
+    const auto setting = settingOf(SettingType::Switcher, model::UnknownStorage{ .type = "PropertyValueColor" });
 
     const auto value = store.value(setting);
     CHECK_FALSE(value.available);
     CHECK(value.reason.empty());
     CHECK_FALSE(store.set(setting, true));
     CHECK_FALSE(store.value(setting).available);
+}
+
+TEST_CASE("McmStore: a property of a script is read every time, in the type its script keeps it in")
+{
+    auto properties = someProperties();
+    McmStore store;
+
+    const auto on = store.value(propertySetting(SettingType::Switcher, "bOn", Type::Bool));
+    CHECK(on.available);
+    CHECK(on.value == model::Value(true));
+    CHECK(store.value(propertySetting(SettingType::Slider, "fStrength", Type::Float)).value == model::Value(1.3f));
+    CHECK(store.value(propertySetting(SettingType::Dropdown, "iMode", Type::Int)).value == model::Value(2));
+    CHECK(store.value(propertySetting(SettingType::TextInput, "sName", Type::String)).value == model::Value("Sanctuary Hills"s));
+
+    // a slider of a whole number, a text input of a number, and a bool that is on at any number but 0
+    CHECK(store.value(propertySetting(SettingType::Slider, "iMode", Type::Int)).value == model::Value(2.0f));
+    CHECK(store.value(propertySetting(SettingType::TextInput, "iMode", Type::Int)).value == model::Value("2"s));
+    CHECK(store.value(propertySetting(SettingType::Switcher, "iMode", Type::Bool)).value == model::Value(true));
+    CHECK(store.value(propertySetting(SettingType::Switcher, "iMode", Type::Int)).value == model::Value(false));
+
+    // a script changes it
+    properties.values[{ PLUGIN, 0x800, "", "bOn" }] = false;
+    CHECK(store.value(propertySetting(SettingType::Switcher, "bOn", Type::Bool)).value == model::Value(false));
+}
+
+TEST_CASE("McmStore: a property of a script is written at once, in the type of its row")
+{
+    auto properties = someProperties();
+    McmStore store;
+
+    CHECK(store.set(propertySetting(SettingType::Switcher, "bOn", Type::Bool), false));
+    CHECK(store.set(propertySetting(SettingType::Slider, "fStrength", Type::Float), 0.5f));
+    CHECK(store.set(propertySetting(SettingType::TextInput, "sName", Type::String), "Diamond City"s));
+    CHECK(properties.values.at({ PLUGIN, 0x800, "", "bOn" }) == model::Value(false));
+    CHECK(properties.values.at({ PLUGIN, 0x800, "", "fStrength" }) == model::Value(0.5f));
+    CHECK(properties.values.at({ PLUGIN, 0x800, "", "sName" }) == model::Value("Diamond City"s));
+
+    // a slider of a whole number is written as the nearest one
+    const auto mode = propertySetting(SettingType::Slider, "iMode", Type::Int);
+    CHECK(store.set(mode, 6.6f));
+    CHECK(properties.values.at({ PLUGIN, 0x800, "", "iMode" }) == model::Value(7));
+    CHECK(store.value(mode).value == model::Value(7.0f));
+
+    // a text for a number is not written
+    CHECK_FALSE(store.set(propertySetting(SettingType::TextInput, "fStrength", Type::Float), "strong"s));
+    CHECK(properties.values.at({ PLUGIN, 0x800, "", "fStrength" }) == model::Value(0.5f));
+}
+
+TEST_CASE("McmStore: a property that is not in the game is not available, with the reason, and neither is a text for a number")
+{
+    auto properties = someProperties();
+    McmStore store;
+
+    const auto missing = propertySetting(SettingType::Switcher, "bMissing", Type::Bool);
+    const auto value = store.value(missing);
+    CHECK_FALSE(value.available);
+    CHECK(value.value == model::Value(false));
+    CHECK(value.reason == "Not available: the property bMissing of the form 800 of MyMod.esp is not in the game.");
+    CHECK_FALSE(store.set(missing, true));
+    CHECK_FALSE(properties.values.contains({ PLUGIN, 0x800, "", "bMissing" }));
+
+    // the property of another script of the form
+    auto ofScript = propertySetting(SettingType::Switcher, "bOn", Type::Bool);
+    std::get<model::PropertyStorage>(ofScript.storage).script = "MyMod:Other";
+    CHECK_FALSE(store.value(ofScript).available);
+
+    const auto noNumber = store.value(propertySetting(SettingType::Slider, "sName", Type::Float));
+    CHECK_FALSE(noNumber.available);
+    CHECK(noNumber.reason == "Not available: the property sName of the form 800 of MyMod.esp is a text, which is no number.");
 }
 
 TEST_CASE("McmStore: a ModSetting is read from the mod's defaults, and from the player's file over them")

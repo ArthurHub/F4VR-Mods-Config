@@ -139,22 +139,59 @@ namespace
         return valueOptions;
     }
 
-    using ModSettingTypeName = std::pair<std::string_view, model::ModSettingStorage::Type>;
+    using StoredTypeName = std::pair<std::string_view, model::StoredType>;
 
-    // what MCM keeps a ModSetting as, by the `sourceType` of its row
-    constexpr std::array MOD_SETTING_TYPES{
-        ModSettingTypeName{ "ModSettingBool", model::ModSettingStorage::Type::Bool },
-        ModSettingTypeName{ "ModSettingInt", model::ModSettingStorage::Type::Int },
-        ModSettingTypeName{ "ModSettingFloat", model::ModSettingStorage::Type::Float },
-        ModSettingTypeName{ "ModSettingString", model::ModSettingStorage::Type::String },
+    // what a ModSetting and a property of a script are kept as, by the end of the `sourceType` of their rows
+    constexpr std::array STORED_TYPES{
+        StoredTypeName{ "Bool", model::StoredType::Bool },
+        StoredTypeName{ "Int", model::StoredType::Int },
+        StoredTypeName{ "Float", model::StoredType::Float },
+        StoredTypeName{ "String", model::StoredType::String },
     };
+
+    constexpr std::string_view MOD_SETTING_SOURCE = "ModSetting";
+    constexpr std::string_view PROPERTY_SOURCE = "PropertyValue";
+
+    /**
+     * The type a `sourceType` ends in after the name of its source, as `ModSettingFloat` does in `Float`.
+     * None for one of another source, and for one that ends in no type of MCM.
+     */
+    std::optional<model::StoredType> findStoredType(const std::string_view sourceType, const std::string_view source)
+    {
+        if (!sourceType.starts_with(source)) {
+            return std::nullopt;
+        }
+        const auto type = std::ranges::find(STORED_TYPES, sourceType.substr(source.size()), &StoredTypeName::first);
+        return type != STORED_TYPES.end() ? std::optional(type->second) : std::nullopt;
+    }
+
+    /**
+     * A form as a `sourceForm` names it: the plugin's file and the form's id in hex, with or without `0x`,
+     * as `MyMod.esp|1234`. None for a text that is not written so.
+     */
+    std::optional<std::pair<std::string, std::uint32_t>> parseSourceForm(const std::string& sourceForm)
+    {
+        const auto separator = sourceForm.find('|');
+        auto plugin = common::trim(sourceForm.substr(0, separator));
+        auto id = separator == std::string::npos ? std::string() : common::trim(sourceForm.substr(separator + 1));
+        if (id.starts_with("0x") || id.starts_with("0X")) {
+            id.erase(0, 2);
+        }
+        std::uint32_t formId = 0;
+        const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), formId, 16);
+        if (plugin.empty() || id.empty() || error != std::errc() || end != id.data() + id.size()) {
+            return std::nullopt;
+        }
+        return std::pair(std::move(plugin), formId);
+    }
 
     /**
      * Where a row keeps its value, by the `sourceType` of its `valueOptions`. A row with none is kept
-     * nowhere. A `GlobalValue` names its global in `sourceForm`, as the plugin's file and the form's id in
-     * hex, with or without `0x`: `MyMod.esp|1234`. A ModSetting is named by the `id` of its row as the
-     * config has it, also where another row has that id too, so one with no id is kept nowhere.
-     * Any other source, and a global that is not written so, is one the menu does not read.
+     * nowhere. A `GlobalValue` names its global in `sourceForm`, as `MyMod.esp|1234`. A ModSetting is named
+     * by the `id` of its row as the config has it, also where another row has that id too, so one with no id
+     * is kept nowhere. A `PropertyValue` names the form of its script in `sourceForm`, its property in
+     * `propertyName`, and can name the script in `scriptName`.
+     * Any other source, and a global or a property that is not written so, is one the menu does not read.
      */
     model::Storage loadStorage(const Json& row)
     {
@@ -163,26 +200,30 @@ namespace
             return model::NoStorage{};
         }
         auto sourceType = getText(*valueOptions, "sourceType");
-        if (sourceType.empty() || (sourceType.starts_with("ModSetting") && getText(row, "id").empty())) {
+        if (sourceType.empty() || (sourceType.starts_with(MOD_SETTING_SOURCE) && getText(row, "id").empty())) {
             return model::NoStorage{};
         }
+        const auto sourceForm = getText(*valueOptions, "sourceForm");
         if (sourceType == "GlobalValue") {
-            const auto sourceForm = getText(*valueOptions, "sourceForm");
-            const auto separator = sourceForm.find('|');
-            const auto plugin = common::trim(sourceForm.substr(0, separator));
-            auto id = separator == std::string::npos ? std::string() : common::trim(sourceForm.substr(separator + 1));
-            if (id.starts_with("0x") || id.starts_with("0X")) {
-                id.erase(0, 2);
-            }
-            std::uint32_t formId = 0;
-            const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), formId, 16);
-            if (!plugin.empty() && !id.empty() && error == std::errc() && end == id.data() + id.size()) {
-                return model::GlobalStorage{ .plugin = plugin, .formId = formId };
+            if (auto form = parseSourceForm(sourceForm)) {
+                return model::GlobalStorage{ .plugin = std::move(form->first), .formId = form->second };
             }
             logger::warn("The global '{}' of the row '{}' is not a plugin and an id in hex", sourceForm, getText(row, "text"));
         }
-        if (const auto type = std::ranges::find(MOD_SETTING_TYPES, sourceType, &ModSettingTypeName::first); type != MOD_SETTING_TYPES.end()) {
-            return model::ModSettingStorage{ .name = getText(row, "id"), .type = type->second };
+        if (const auto type = findStoredType(sourceType, MOD_SETTING_SOURCE)) {
+            return model::ModSettingStorage{ .name = getText(row, "id"), .type = *type };
+        }
+        if (const auto type = findStoredType(sourceType, PROPERTY_SOURCE)) {
+            auto form = parseSourceForm(sourceForm);
+            auto name = getText(*valueOptions, "propertyName");
+            if (form && !name.empty()) {
+                return model::PropertyStorage{ .plugin = std::move(form->first),
+                    .formId = form->second,
+                    .script = getText(*valueOptions, "scriptName"),
+                    .name = std::move(name),
+                    .type = *type };
+            }
+            logger::warn("The property '{}' of the form '{}' of the row '{}' is not a name, and a plugin and an id in hex", name, sourceForm, getText(row, "text"));
         }
         return model::UnknownStorage{ .type = std::move(sourceType) };
     }
