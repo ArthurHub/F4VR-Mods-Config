@@ -110,15 +110,16 @@ namespace mods_config::ui
     }
 
     /**
-     * The value the player gives a slider that ends at the right in this frame, and its own where they give
-     * none. A pull of the trigger on the track takes hold of the grab, which follows the ray until the
-     * trigger is let go, also beside the track. A pull on the grab itself does not move it. After Back the
-     * rest of the press gives nothing.
-     * The thumbstick steps the slider whose row the ray is on, once it is there for a short time.
+     * The value a slider that ends at the right shows in this frame: the one the player gives it, and its
+     * own where they give none. A pull of the trigger on the track takes hold of the grab, which follows
+     * the ray until the trigger is let go, also beside the track. A pull on the grab itself does not move
+     * it. The value of a drag is to be written as the trigger is let go, and not before: a store can write
+     * a file for each. After Back the drag gives nothing.
+     * The thumbstick steps the slider whose row the ray is on, once it is there for a short time, and each
+     * step is to be written.
      * Tells whether the hand gets its pulse: the pull took hold of the slider, or the thumbstick stepped it.
-     * A slider that is dragged gives none for its steps.
      */
-    float Sliders::edit(const model::Setting& setting, const float right, const float top, const SliderRow& row, const float value, bool& pulse)
+    float Sliders::edit(const model::Setting& setting, const float right, const float top, const SliderRow& row, const float value, bool& write, bool& pulse)
     {
         const auto& options = setting.valueOptions;
         const auto& io = ImGui::GetIO();
@@ -126,7 +127,7 @@ namespace mods_config::ui
         if (row.started && boxes.track.Contains(io.MousePos)) {
             const float grab = boxes.grabAt(options, value);
             _dragged = &setting;
-            _dragStart = value;
+            _dragValue = value;
             _grabOffset = std::abs(io.MousePos.x - grab) <= theme::GRAB_WIDTH * 0.5f ? io.MousePos.x - grab : 0.0f;
             _dragCancelled = false;
             pulse = true;
@@ -145,16 +146,23 @@ namespace mods_config::ui
             }
         }
         if (_dragged == &setting) {
-            if (!row.held) {
+            if (_dragCancelled) {
+                _dragHeld = row.held;
                 return value;
             }
+            if (!row.held) {
+                write = _dragValue != value;
+                return _dragValue;
+            }
             _dragHeld = true;
-            return _dragCancelled ? value : onStep(options, boxes.valueAt(options, io.MousePos.x - _grabOffset));
+            _dragValue = onStep(options, boxes.valueAt(options, io.MousePos.x - _grabOffset));
+            return _dragValue;
         }
         if (wasPointed && _steps != 0) {
             const float step = options.step > 0.0f ? options.step : (options.max - options.min) / STEPS_WITH_NO_STEP;
             const float stepped = onStep(options, value + static_cast<float>(_steps) * step);
-            pulse = pulse || stepped != value;
+            write = stepped != value;
+            pulse = pulse || write;
             return stepped;
         }
         return value;
@@ -208,19 +216,16 @@ namespace mods_config::ui
     }
 
     /**
-     * Ends the drag of a slider and gives the slider the value it had as the drag began, for Back. The
-     * trigger is still held then: the rest of its press changes nothing.
+     * Ends the drag of a slider with nothing written, for Back: the slider has the value it had as the drag
+     * began. The trigger is still held then, and the rest of its press changes nothing.
      * Returns false while no slider is dragged.
      */
-    bool Sliders::cancelDrag(model::Store* store)
+    bool Sliders::cancelDrag()
     {
         if (!_dragged || _dragCancelled) {
             return false;
         }
         _dragCancelled = true;
-        if (store) {
-            store->set(*_dragged, _dragStart);
-        }
         return true;
     }
 

@@ -847,7 +847,7 @@ TEST_CASE("FullPanel: a press on the track of a slider puts its grab there, on a
     CHECK(globals.values.at({ PLUGIN, 0x810 }) == 85.0f);
 }
 
-TEST_CASE("FullPanel: a slider follows the ray while the trigger is held, also beside its track")
+TEST_CASE("FullPanel: a slider that is dragged is written as the trigger is let go, also beside its track")
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
@@ -864,27 +864,33 @@ TEST_CASE("FullPanel: a slider follows the ray while the trigger is held, also b
     frame(sliderTrack(0, 0.6f), false);
     frame(sliderTrack(0, 0.6f), false);
     frame(sliderTrack(0, 0.6f), true);
-    CHECK(percent == 60.0f);
     frame(sliderTrack(0, 0.8f), true);
+
+    // nothing is written while the trigger is held
+    CHECK(percent == 20.0f);
+    frame(sliderTrack(0, 0.8f), false);
     CHECK(percent == 80.0f);
 
     // past the end of the track, and on the row under it
+    frame(sliderTrack(0, 0.6f), true);
     frame(ImVec2(sliderTrack(0, 1.0f).x + 200.0f, pageRow(1).y), true);
+    frame(ImVec2(sliderTrack(0, 1.0f).x + 200.0f, pageRow(1).y), false);
     CHECK(percent == 100.0f);
+    frame(sliderTrack(0, 0.6f), true);
     frame(ImVec2(sliderTrack(0, 0.0f).x - 200.0f, pageRow(1).y), true);
-    CHECK(percent == 0.0f);
     frame(sliderTrack(0, 0.3f), true);
-    CHECK(percent == 30.0f);
+    CHECK(percent == 100.0f);
 
     // let go: the ray moves nothing, and the slider of the row it was on is not changed
     frame(sliderTrack(0, 0.3f), false);
+    CHECK(percent == 30.0f);
     frame(sliderTrack(0, 0.9f), false);
     frame(sliderTrack(1, 0.9f), false);
     CHECK(percent == 30.0f);
     CHECK(globals.values.at({ PLUGIN, 0x811 }) == 1.0f);
 
-    // the hand gets one pulse, as it takes hold
-    CHECK(acted == 1);
+    // the hand gets a pulse as it takes hold, and none for the steps of a drag
+    CHECK(acted == 3);
 }
 
 TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
@@ -901,14 +907,20 @@ TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
     for (const bool held : { false, false, true, true }) {
         test_panel::drawFrame(panel, onGrab, held);
     }
+    test_panel::drawFrame(panel, onGrab, false);
     CHECK(percent == 20.0f);
 
     // the grab then moves as far as the ray does
-    test_panel::drawFrame(panel, ImVec2(sliderTrack(0, 0.5f).x + 8.0f, pageRow(0).y), true);
+    for (const bool held : { false, true, true }) {
+        test_panel::drawFrame(panel, onGrab, held);
+    }
+    const auto moved = ImVec2(sliderTrack(0, 0.5f).x + 8.0f, pageRow(0).y);
+    test_panel::drawFrame(panel, moved, true);
+    test_panel::drawFrame(panel, moved, false);
     CHECK(percent == 50.0f);
 }
 
-TEST_CASE("FullPanel: Back gives a slider that is dragged the value it had, and the rest of the press changes nothing")
+TEST_CASE("FullPanel: Back ends the drag of a slider with nothing written, and the rest of the press changes nothing")
 {
     const test_panel::PanelContext context;
     auto globals = sliderGlobals();
@@ -921,10 +933,8 @@ TEST_CASE("FullPanel: Back gives a slider that is dragged the value it had, and 
         test_panel::drawFrame(panel, sliderTrack(0, 0.6f), held);
     }
     test_panel::drawFrame(panel, sliderTrack(0, 0.8f), true);
-    REQUIRE(percent == 80.0f);
 
     CHECK(panel.back());
-    CHECK(percent == 20.0f);
     CHECK(panel.selection() == selectionOf(0));
     test_panel::drawFrame(panel, sliderTrack(0, 0.9f), true);
     CHECK(percent == 20.0f);

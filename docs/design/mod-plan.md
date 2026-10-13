@@ -220,9 +220,9 @@ M25 adds the store of [The settings model](model.md#the-store), and the MCM stor
 
 M26 makes the slider work, as in [Controls](controls.md#slider):
 
-- The trigger drags it. A pull on the track puts the grab under the ray, and the grab follows the ray until the trigger is let go, also beside the track. A pull on the grab itself does not move it. The value is on a step of the slider, counted from its least, and is written as it changes.
+- The trigger drags it. A pull on the track puts the grab under the ray, and the grab follows the ray until the trigger is let go, also beside the track. A pull on the grab itself does not move it. The value is on a step of the slider, counted from its least. It is written as the trigger is let go, and not while it is dragged: MCM writes its file for every ModSetting that is set.
 - While it is dragged, the grab and the outline of the track are in `glow`.
-- Back during a drag gives the slider the value it had before the drag, and the rest of that press changes nothing. It is Back's first step, before the pages.
+- Back during a drag ends it with nothing written, so the slider has the value it had before the drag, and the rest of that press changes nothing. It is Back's first step, before the pages.
 - The thumbstick steps the slider whose row the ray is on, once the ray is there for 0.3 seconds, so a ray that crosses a row steps nothing. A push to a side is one step. A push that is held steps again after 0.4 seconds, and faster after 1.5. A push that began off that row steps nothing until the thumbstick is let go. A push that is more up or down scrolls the page, and steps nothing. A slider is not selected, and has no focused state.
 - The hand gets its pulse as it takes hold of a slider, and none for the steps of the drag. It gets one for each step of the thumbstick that changes the value.
 - A slider whose `max` is not over its `min` is disabled.

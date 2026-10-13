@@ -160,7 +160,8 @@ namespace
      * The row of a setting at the cursor: its text after the gutter, and its control where the control column
      * ends, before the room of its Reset. The text has the room up to its own control.
      * The control shows the value the store has for the setting. A press anywhere on the row of a switcher
-     * turns it on or off, and a slider is dragged by its track and stepped by the thumbstick. A stepper
+     * turns it on or off, and a slider is dragged by its track, which is written as the trigger is let go,
+     * and stepped by the thumbstick. A stepper
      * goes to the option before and after, and a dropdown opens its list. A control whose value is not
      * available is disabled, and so is a slider with no range and a stepper and a dropdown with no options.
      * The row itself has the look of a row under the ray, as it has a help.
@@ -188,10 +189,11 @@ namespace
         // before the row is known to be shown: a slider that is dragged out of the page is still held
         float value = number ? *number : options.min;
         if (isSlider) {
+            bool write = false;
             bool pulse = false;
             const ui::SliderRow sliderRow{ .pointed = row.pointed, .started = row.started, .held = row.held };
-            const float edited = page.sliders.edit(setting, right, pos.y, sliderRow, value, pulse);
-            if (edited != value && page.store->set(setting, edited)) {
+            const float edited = page.sliders.edit(setting, right, pos.y, sliderRow, value, write, pulse);
+            if (!write || page.store->set(setting, edited)) {
                 value = edited;
             }
             page.drawn.pressActed = page.drawn.pressActed || pulse;
@@ -362,12 +364,12 @@ namespace mods_config::ui
     }
 
     /**
-     * Ends the drag of a slider, which has the value it had before the drag again, for Back.
+     * Ends the drag of a slider with nothing written, for Back.
      * Returns false while no slider is dragged.
      */
-    bool ModPage::cancelDrag(model::Store* store)
+    bool ModPage::cancelDrag()
     {
-        return _sliders.cancelDrag(store);
+        return _sliders.cancelDrag();
     }
 
     /**

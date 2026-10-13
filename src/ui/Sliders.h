@@ -1,7 +1,6 @@
 #pragma once
 
 #include "model/Definition.h"
-#include "model/Store.h"
 
 namespace mods_config::ui
 {
@@ -20,17 +19,18 @@ namespace mods_config::ui
 
     /**
      * The sliders of the page that is shown: how one is drawn, and how the player edits one. The trigger
-     * drags a slider by its track, and the thumbstick steps the one whose row the ray is on.
+     * drags a slider by its track, and the thumbstick steps the one whose row the ray is on. A slider that
+     * is dragged keeps its value here, and it is written as the trigger is let go.
      * It points into the page that is shown, so it is reset as another page is.
      */
     class Sliders
     {
     public:
         void startFrame(float thumbstickSideValue);
-        float edit(const model::Setting& setting, float right, float top, const SliderRow& row, float value, bool& pulse);
+        float edit(const model::Setting& setting, float right, float top, const SliderRow& row, float value, bool& write, bool& pulse);
         float draw(const model::Setting& setting, float right, float top, float value) const;
         void endFrame();
-        bool cancelDrag(model::Store* store);
+        bool cancelDrag();
         void reset();
 
     private:
@@ -39,8 +39,8 @@ namespace mods_config::ui
         // the slider the trigger is held on since a press on its track, and none
         const model::Setting* _dragged = nullptr;
 
-        // its value as the drag began, which Back gives it again
-        float _dragStart = 0.0f;
+        // the value the drag gave it, which is written as the trigger is let go
+        float _dragValue = 0.0f;
 
         // from the middle of the grab to the ray, for a press on the grab itself: the grab does not jump
         float _grabOffset = 0.0f;

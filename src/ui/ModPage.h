@@ -44,7 +44,7 @@ namespace mods_config::ui
     public:
         void setImageDrawer(ImageDrawer drawer);
         PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue);
-        bool cancelDrag(model::Store* store);
+        bool cancelDrag();
         bool closeList();
         void reset();
 

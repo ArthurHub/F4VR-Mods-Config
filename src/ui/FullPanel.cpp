@@ -178,7 +178,7 @@ namespace mods_config::ui
      */
     bool FullPanel::back()
     {
-        if (_modPage.cancelDrag(_store) || _modPage.closeList()) {
+        if (_modPage.cancelDrag() || _modPage.closeList()) {
             return true;
         }
         if (!_selection.mod) {
