@@ -102,22 +102,28 @@ namespace
     }
 
     /**
-     * A row at the cursor, as its text and what it is. It is laid out as a setting's row: the text after the
-     * gutter, and the type where the control ends, before the room of its Reset.
+     * A row at the cursor that has no control, as its text and what it is. It is laid out as a setting's row:
+     * the text after the gutter, and the type where the control ends, before the room of its Reset.
+     * A row with a help is disabled, with the look of a row under the ray, and none of a press, which does nothing.
      * Returns whether the ray is on the row.
      */
-    bool drawRow(const std::string_view text, const std::string_view type, const bool pressable = true)
+    bool drawRow(const std::string_view text, const std::string_view type, const bool hasHelp)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        const auto row = addRow(pressable);
+        const auto row = addRow(false);
         if (!row.shown) {
             return false;
         }
+        if (hasHelp) {
+            ui::drawRowState();
+        }
 
+        ImGui::BeginDisabled(hasHelp);
         const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
         ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, typeLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+        ImGui::EndDisabled();
         return row.pointed;
     }
 
@@ -166,14 +172,11 @@ namespace
      * goes to the option before and after, and a dropdown opens its list. A control whose value is not
      * available is disabled, and so is a slider with no range and a stepper and a dropdown with no options.
      * The row itself has the look of a row under the ray, as it has a help.
-     * A text input is its text and its type until the commit that draws it.
+     * A text input is not drawn here: it is only shown, by `drawTextInput`.
      * Returns whether the ray is on the row or on its open list, and tells why a value is not available.
      */
     bool drawSetting(const model::Setting& setting, const PageDrawing& page, std::string& reason)
     {
-        if (setting.type == model::SettingType::TextInput) {
-            return drawRow(setting.text, "textinput");
-        }
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
         const auto row = addRow(true);
@@ -315,8 +318,54 @@ namespace
         return row.pointed;
     }
 
-    // what the help line says of every hotkey, before its own help: the key cannot be changed in the menu
-    constexpr std::string_view HOTKEY_READ_ONLY = "(Read-only)";
+    // the box of a text input's text, in the panel's pixels: as wide as a slider with the box of its value
+    constexpr float TEXT_FIELD_WIDTH = ui::TRACK_WIDTH + theme::SPACE_2 + theme::VALUE_WIDTH;
+
+    /**
+     * The row of a text input at the cursor: its text after the gutter, and the text the store has for it
+     * at the left of a box, where a control ends, before the room of a Reset. A longer one ends in an ellipsis.
+     * The text is only shown, so the whole row is always disabled, as a hotkey's is: it has the look of a
+     * row under the ray, for its help, but none of a press, which does nothing.
+     * One whose value is not available has an empty box, and the reason tells it from the others.
+     * Returns whether the ray is on the row.
+     */
+    bool drawTextInput(const model::Setting& setting, const PageDrawing& page, std::string& reason)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float width = rowWidth();
+        const auto row = addRow(false);
+
+        auto stored = page.store ? page.store->value(setting) : model::StoredValue{};
+        reason = std::move(stored.reason);
+        if (!row.shown) {
+            return false;
+        }
+        ui::drawRowState();
+        const auto* text = std::get_if<std::string>(&stored.value);
+        const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - TEXT_FIELD_WIDTH, pos.y, TEXT_FIELD_WIDTH);
+
+        ImGui::BeginDisabled();
+        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, box.Min.x - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
+        ui::drawFrame(box);
+        ui::drawTextIn(box, text ? std::string_view(*text) : std::string_view(), theme::color::GREEN, 0.0f, theme::SPACE_4);
+        ImGui::EndDisabled();
+        return row.pointed;
+    }
+
+    // what the help line says of every row that is only shown, before its own help: it cannot be changed in the menu
+    constexpr std::string_view READ_ONLY = "(Read-only)";
+
+    /**
+     * The help of a row that is only shown: that it is read-only, before the help of the row. One that is
+     * not available has the reason alone.
+     */
+    std::string readOnlyHelp(std::string reason, const std::string& help)
+    {
+        if (!reason.empty()) {
+            return reason;
+        }
+        return help.empty() ? std::string(READ_ONLY) : std::format("{} {}", READ_ONLY, help);
+    }
 
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page);
 
@@ -327,7 +376,7 @@ namespace
      * A row with a text that the ray is on is told as the pointed one. A setting whose value is not
      * available has the reason as its help, where the store gives one, and so has a button whose action the
      * menu does not run, and a hotkey that is not available. Any other hotkey has that it is read-only
-     * before its help.
+     * before its help, and so has a text input. A control the menu does not have says so as its help.
      */
     struct ItemDrawer
     {
@@ -336,7 +385,11 @@ namespace
         void operator()(const model::Setting& setting) const
         {
             std::string reason;
-            if (drawSetting(setting, page, reason)) {
+            if (setting.type == model::SettingType::TextInput) {
+                if (drawTextInput(setting, page, reason)) {
+                    page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = readOnlyHelp(std::move(reason), setting.help) };
+                }
+            } else if (drawSetting(setting, page, reason)) {
                 page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = reason.empty() ? setting.help : std::move(reason) };
             }
         }
@@ -359,8 +412,7 @@ namespace
         {
             std::string reason;
             if (drawHotkey(hotkey, page, reason)) {
-                auto help = !reason.empty() ? std::move(reason) : hotkey.help.empty() ? std::string(HOTKEY_READ_ONLY) : std::format("{} {}", HOTKEY_READ_ONLY, hotkey.help);
-                page.drawn.pointed = ui::PointedRow{ .text = hotkey.text, .help = std::move(help) };
+                page.drawn.pointed = ui::PointedRow{ .text = hotkey.text, .help = readOnlyHelp(std::move(reason), hotkey.help) };
             }
         }
 
@@ -385,8 +437,10 @@ namespace
 
         void operator()(const model::Placeholder& placeholder) const
         {
-            if (drawRow(placeholder.text, placeholder.type.empty() ? "unknown" : std::string_view(placeholder.type))) {
-                page.drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = placeholder.help };
+            const bool typed = !placeholder.type.empty();
+            if (drawRow(placeholder.text, typed ? std::string_view(placeholder.type) : "unknown", true)) {
+                auto help = typed ? std::format("Not available: the menu has no {} control.", placeholder.type) : std::string("Not available: the row has no type of control.");
+                page.drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = std::move(help) };
             }
         }
     };

@@ -811,6 +811,56 @@ TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press
     CHECK_FALSE(pressActs(panel, pageRow(0)));
 }
 
+TEST_CASE("FullPanel: the help line says that a text input is read-only, and a press on its row does nothing")
+{
+    using Type = model::StoredType;
+    const auto textInput = [](std::string text, std::string help, model::Storage storage) {
+        return model::Setting{ .type = model::SettingType::TextInput, .text = std::move(text), .help = std::move(help), .valueOptions = {}, .storage = std::move(storage) };
+    };
+    const test_panel::PanelContext context;
+    test_events::TestEvents events;
+    const test_files::TempFolder files;
+    files.write("Config/Alpha/settings.ini", "[Main]\nsName=Sanctuary Hills\n");
+    mcm::McmStore store(files.path);
+    auto mod = modOf("Alpha");
+    mod.frontPage.items.push_back(textInput("Name", "The name of the settlement.", model::ModSettingStorage{ .name = "sName:Main", .type = Type::String }));
+    mod.frontPage.items.push_back(textInput("Note", {}, model::NoStorage{}));
+    mod.frontPage.items.push_back(textInput("Missing", "Is in no file.", model::ModSettingStorage{ .name = "sMissing:Main", .type = Type::String }));
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Name: (Read-only) The name of the settlement.");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Note: (Read-only)");
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Missing: Not available: the ModSetting sMissing:Main is in neither of MCM's files.");
+
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+}
+
+TEST_CASE("FullPanel: the help line says that the menu does not have a control, and a press on its row does nothing")
+{
+    const test_panel::PanelContext context;
+    auto mod = modOf("Alpha");
+    mod.frontPage.items.push_back(model::Placeholder{ .text = "Tint", .help = "The color of the light.", .type = "color" });
+    mod.frontPage.items.push_back(model::Placeholder{ .text = "No type", .help = {}, .type = {} });
+    FullPanel panel;
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Tint: Not available: the menu has no color control.");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "No type: Not available: the row has no type of control.");
+
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+}
+
 TEST_CASE("FullPanel: a press on a row that is not edited changes nothing")
 {
     const test_panel::PanelContext context;

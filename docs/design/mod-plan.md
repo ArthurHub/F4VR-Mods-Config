@@ -298,7 +298,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M33 | mod  | Buttons run `CallFunction`, with typed parameters                    | done      |
 | M34 | mod  | A value row runs its action after the write, with `{value}`          | done      |
 | M35 | mod  | Hotkeys are shown read-only                                          | done      |
-| M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | todo      |
+| M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | done      |
 | M37 | mod  | A test MCM mod for what the test set does not have                   | todo      |
 | M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo      |
 | M39 | mod  | `dropdownFiles`                                                      | todo      |
@@ -347,7 +347,15 @@ M35 shows the key of a hotkey, read from MCM's two keybind files. It is only sho
 - The model has it as an item of its own, a hotkey with its id. The store answers its key, as it answers the value of a setting, with `McmKeybinds`.
 - The test set has 23 hotkeys, 22 in Sim Settlements 2 and one in Workshop Framework, and each is in the `keybinds.json` of its mod. It has no player's file: no key is bound. The MCM showcase has a `keybinds.json` with three hotkeys, which show a notification, and a row of one that is not in it.
 
-M36 shows a text row read-only until milestone 4.
+M36 shows the text of a text input, which is only shown until milestone 4, and a control the menu does not have as a row that says so:
+
+- A text input is its text and the text of its value at the left of a box, in the control column. A longer one ends in an ellipsis. Its whole row is always disabled, as a hotkey's is: a press on it does nothing, and the row has no look of one.
+- The help line says that it is read-only, before the help of the row: `(Read-only)`.
+- The value is the one the store already has for it: the text of a ModSetting as MCM's files have it, also for a `textinputInt` and a `textinputFloat`, and a property of a script, with a number as its text. One with no `sourceType` is empty.
+- A text input whose value is not available has an empty box, and the help line says why.
+- A control the menu does not have is its text and the type its config names, in the control column. Its row is disabled too, and the help line says that the menu has no such control: `Not available: the menu has no color control.` A row with no type is `unknown`, and the help line says that it has no type.
+- An image that could not be read stays a row that says `image`, with no help.
+- The test set has 25 text inputs, in FallUI, FallUI Workbench and XDI, all ModSettings. The MCM showcase has five, and a `dropdownFiles`, a `color`, a type that no menu knows and a row with no type.
 
 M37 adds a test mod: a game plugin with a quest, its script and globals, as DearModdingUI's test fixture is. It also proves what earlier commits made and the test set does not use: the other property types (M32) and `OR` conditions (M28).
 

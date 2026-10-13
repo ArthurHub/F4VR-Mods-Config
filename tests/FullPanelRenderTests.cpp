@@ -607,6 +607,39 @@ TEST_CASE("FullPanel render: the keys of a mod's hotkeys", "[.render]")
     }
 }
 
+TEST_CASE("FullPanel render: the texts of a mod's text inputs, and the controls the menu does not have", "[.render]")
+{
+    using Type = model::StoredType;
+    const auto textInput = [](std::string text, std::string id, const Type type) {
+        return model::Setting{ .type = model::SettingType::TextInput,
+            .text = std::move(text),
+            .help = "What the text is.",
+            .valueOptions = {},
+            .storage = model::ModSettingStorage{ .name = std::move(id), .type = type } };
+    };
+    const test_files::TempFolder files;
+    files.write("Config/Texts/settings.ini", "[Main]\nsName=Sanctuary Hills\nsEmpty=\nsLong=A text that is much longer than the box it is shown in is wide\nfNumber=3.14\n");
+    mcm::McmStore store(files.path);
+
+    model::Mod mod{ .name = "Texts", .displayName = "Texts", .frontPage = {}, .pages = {} };
+    mod.frontPage.items.push_back(textInput("A text", "sName:Main", Type::String));
+    mod.frontPage.items.push_back(textInput("An empty text", "sEmpty:Main", Type::String));
+    mod.frontPage.items.push_back(textInput("A long text", "sLong:Main", Type::String));
+    mod.frontPage.items.push_back(textInput("A number", "fNumber:Main", Type::Float));
+    mod.frontPage.items.push_back(textInput("A text that is in no file", "sMissing:Main", Type::String));
+    mod.frontPage.items.push_back(model::Placeholder{ .text = "A control the menu does not have", .help = {}, .type = "color" });
+    mod.frontPage.items.push_back(model::Placeholder{ .text = "A row with no type", .help = {}, .type = {} });
+
+    // with the ray on a text input, and on a control the menu does not have
+    for (const bool onText : { true, false }) {
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ mod });
+        panel.select({ .mod = 0, .page = std::nullopt });
+        WARN("Saved " << renderToFile(panel, onText ? "text-inputs" : "controls-not-supported", pageRow(onText ? 0 : 5)));
+    }
+}
+
 TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")
 {
     using model::SettingType;
