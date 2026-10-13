@@ -1,0 +1,9 @@
+#pragma once
+
+#include "Definition.h"
+#include "Store.h"
+
+namespace mods_config::model
+{
+    bool holds(const Condition& condition, Store& store);
+}

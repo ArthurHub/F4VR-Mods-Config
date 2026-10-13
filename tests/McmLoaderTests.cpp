@@ -128,6 +128,56 @@ namespace
     {
         return loaded(std::format(R"({{ "modName": "MyMod", "content": [{}] }})", rows)).frontPage;
     }
+
+    /**
+     * A condition as a text: the id of the setting that has to be on, and `all(...)`, `any(...)` and
+     * `not(...)` around the conditions that are joined.
+     */
+    std::string describe(const model::Condition& condition)
+    {
+        using Kind = model::Condition::Kind;
+        if (condition.kind == Kind::On) {
+            return condition.setting;
+        }
+        std::string inner;
+        for (const auto& joined : condition.conditions) {
+            inner += (inner.empty() ? "" : ", ") + describe(joined);
+        }
+        return (condition.kind == Kind::All ? "all(" : condition.kind == Kind::Any ? "any(" : "not(") + inner + ")";
+    }
+
+    /**
+     * What each item is shown by, in their order, and "always" for one with no condition.
+     */
+    Lines conditionsOf(const std::vector<model::Item>& items)
+    {
+        Lines lines;
+        for (const auto& item : items) {
+            const auto& visibleWhen = std::visit(
+                [](const auto& row) -> const std::optional<model::Condition>& {
+                    return row.visibleWhen;
+                },
+                item);
+            lines.push_back(visibleWhen ? describe(*visibleWhen) : "always");
+        }
+        return lines;
+    }
+
+    /**
+     * The ids of the settings among the items, in their order, with those of the groups.
+     */
+    Lines idsOf(const std::vector<model::Item>& items)
+    {
+        Lines ids;
+        for (const auto& item : items) {
+            if (const auto* setting = std::get_if<model::Setting>(&item)) {
+                ids.push_back(setting->id);
+            } else if (const auto* group = std::get_if<model::Group>(&item)) {
+                std::ranges::copy(idsOf(group->items), std::back_inserter(ids));
+            }
+        }
+        return ids;
+    }
 }
 
 TEST_CASE("McmLoader: a config becomes a mod with its front page and its pages")
@@ -351,6 +401,128 @@ TEST_CASE("McmLoader: a setting is kept in the global its row names, or nowhere"
     for (std::size_t row = 5; row < page.items.size(); ++row) {
         CHECK(storageOf(row) == model::Storage(model::UnknownStorage{ .type = "GlobalValue" }));
     }
+}
+
+TEST_CASE("McmLoader: a ModSetting with no id is kept nowhere, as it names no setting")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "switcher", "text": "Unfold settings", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "slider", "text": "A property", "valueOptions": { "sourceType": "PropertyValueFloat" } }
+    )");
+
+    CHECK(std::get<model::Setting>(page.items[0]).storage == model::Storage(model::NoStorage{}));
+    CHECK(std::get<model::Setting>(page.items[1]).storage == model::Storage(model::UnknownStorage{ .type = "PropertyValueFloat" }));
+}
+
+TEST_CASE("McmLoader: a setting has the id of its row, or one from its page and its place")
+{
+    const auto mod = loaded(R"({
+        "modName": "MyMod",
+        "content": [
+            { "type": "section", "text": "General" },
+            { "type": "switcher", "text": "With no id" },
+            { "type": "slider", "text": "With an id", "id": "fStrength:Main" },
+            { "type": "button", "text": "No setting", "id": "aButton" },
+            { "type": "switcher", "text": "The same id again", "id": "fStrength:Main" }
+        ],
+        "pages": [
+            { "pageDisplayName": "Advanced", "content": [{ "type": "switcher", "text": "With no id" }, { "type": "switcher", "text": "An id of the front page", "id": "fStrength:Main" }] },
+            { "pageDisplayName": "More", "content": [{ "type": "text", "text": "Some text" }, { "type": "dropdown", "text": "With no id" }] }
+        ]
+    })");
+
+    CHECK(idsOf(mod.frontPage.items) == Lines{ "main/2", "fStrength:Main", "main/5" });
+    CHECK(idsOf(mod.pages[0].items) == Lines{ "page1/1", "page1/2" });
+    CHECK(idsOf(mod.pages[1].items) == Lines{ "page2/2" });
+}
+
+TEST_CASE("McmLoader: a row of a group is shown while the setting that controls the group is on")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "text", "text": "A row before its control", "groupCondition": 2 },
+        { "type": "switcher", "text": "Enable the feature", "groupControl": 2 },
+        { "type": "slider", "text": "Strength", "id": "fStrength:Main", "groupCondition": 2 },
+        { "type": "switcher", "text": "Unfold", "id": "bUnfold:Main", "groupControl": 3, "groupCondition": 2 },
+        { "type": "button", "text": "A button", "groupCondition": 3 },
+        { "type": "image", "groupCondition": 3 },
+        { "type": "spacer", "groupCondition": 3 },
+        { "type": "hotkey", "text": "A hotkey", "groupCondition": 3 },
+        { "type": "switcher", "text": "With no condition" }
+    )");
+
+    CHECK(conditionsOf(page.items) == Lines{ "main/2", "always", "main/2", "main/2", "bUnfold:Main", "bUnfold:Main", "bUnfold:Main", "bUnfold:Main", "always" });
+}
+
+TEST_CASE("McmLoader: a condition joins groups with AND, OR, ONLY and a list, and one can be inside another")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "switcher", "text": "One", "id": "one", "groupControl": 1 },
+        { "type": "switcher", "text": "Two", "id": "two", "groupControl": 2 },
+        { "type": "switcher", "text": "Three", "id": "three", "groupControl": 3 },
+        { "type": "text", "text": "Both", "groupCondition": { "AND": [1, 2] } },
+        { "type": "text", "text": "Either", "groupCondition": { "OR": [1, 2] } },
+        { "type": "text", "text": "A list is either", "groupCondition": [2, 3] },
+        { "type": "text", "text": "These and no other", "groupCondition": { "ONLY": [1, 3] } },
+        { "type": "text", "text": "One inside another", "groupCondition": { "AND": [1, { "OR": [2, 3] }] } },
+        { "type": "text", "text": "One group", "groupCondition": { "AND": [3] } }
+    )");
+
+    CHECK(conditionsOf(page.items) ==
+          Lines{ "always", "always", "always", "all(one, two)", "any(one, two)", "any(two, three)", "all(one, three, not(any(two)))", "all(one, any(two, three))", "all(three)" });
+}
+
+TEST_CASE("McmLoader: a group that no row controls is never on, and the group 0 always is")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "switcher", "text": "One", "id": "one", "groupControl": 1 },
+        { "type": "button", "text": "A row with no value controls no group", "groupControl": 5 },
+        { "type": "text", "text": "No such group", "groupCondition": 4 },
+        { "type": "text", "text": "A group of a button", "groupCondition": 5 },
+        { "type": "text", "text": "One and no such group", "groupCondition": { "AND": [1, 4] } },
+        { "type": "text", "text": "The group 0", "groupCondition": 0 },
+        { "type": "text", "text": "One and the group 0", "groupCondition": { "AND": [1, 0] } },
+        { "type": "text", "text": "No operator MCM knows", "groupCondition": { "XOR": [1, 4] } },
+        { "type": "text", "text": "Not a condition", "groupCondition": "one" }
+    )");
+
+    // any() never holds, and all() always does
+    CHECK(conditionsOf(page.items) == Lines{ "always", "always", "any()", "any()", "all(one, any())", "always", "all(one, all())", "always", "always" });
+}
+
+TEST_CASE("McmLoader: a group that two rows control is on with the later one")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "switcher", "text": "First", "id": "first", "groupControl": 1 },
+        { "type": "switcher", "text": "Second", "id": "second", "groupControl": 1 },
+        { "type": "text", "text": "A row of the group", "groupCondition": 1 }
+    )");
+
+    CHECK(conditionsOf(page.items).back() == "second");
+}
+
+TEST_CASE("McmLoader: the groups of a page are its own, and a section's condition is of its heading alone")
+{
+    const auto mod = loaded(R"({
+        "modName": "MyMod",
+        "content": [
+            { "type": "switcher", "text": "Unfold", "id": "front", "groupControl": 1 },
+            { "type": "section", "text": "A section of the group", "groupCondition": 1 },
+            { "type": "text", "text": "A row of the group", "groupCondition": 1 },
+            { "type": "text", "text": "A row that is always shown" }
+        ],
+        "pages": [
+            {
+                "pageDisplayName": "Advanced",
+                "content": [{ "type": "switcher", "text": "Unfold", "id": "advanced", "groupControl": 1 }, { "type": "text", "text": "A row of the group", "groupCondition": 1 }]
+            },
+            { "pageDisplayName": "With no control", "content": [{ "type": "text", "text": "A row of a group", "groupCondition": 1 }] }
+        ]
+    })");
+
+    CHECK(conditionsOf(mod.frontPage.items) == Lines{ "always", "front" });
+    CHECK(conditionsOf(std::get<model::Group>(mod.frontPage.items[1]).items) == Lines{ "front", "always" });
+    CHECK(conditionsOf(mod.pages[0].items) == Lines{ "always", "advanced" });
+    CHECK(conditionsOf(mod.pages[1].items) == Lines{ "any()" });
 }
 
 TEST_CASE("McmLoader: a control the menu does not support is a placeholder with its type")

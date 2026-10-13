@@ -504,6 +504,42 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     }
 }
 
+TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the switcher that controls it is on", "[.render]")
+{
+    const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    test_globals::TestGlobals globals;
+    mcm::McmStore store(globals);
+
+    // off, as the group is when the mod is selected, and on
+    for (const bool on : { false, true }) {
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods(mods);
+        const auto& pages = panel.mods()[0].pages;
+        const auto page = std::ranges::find(pages, "Switchers", &model::Page::name);
+        REQUIRE(page != pages.end());
+        panel.select({ .mod = 0, .page = static_cast<std::size_t>(page - pages.begin()) });
+
+        const auto& rows = std::get<model::Group>(page->items.back()).items;
+        const auto unfold = std::ranges::find_if(rows, [](const model::Item& row) {
+            const auto* setting = std::get_if<model::Setting>(&row);
+            return setting && setting->text == "Unfold settings";
+        });
+        REQUIRE(unfold != rows.end());
+        REQUIRE(store.set(std::get<model::Setting>(*unfold), on));
+
+        // the group is at the end of the page: the thumbstick scrolls the page the ray is on
+        const auto scrollToEnd = [&panel] {
+            test_panel::drawFrame(panel, pageRow(3));
+            test_panel::drawFrame(panel, pageRow(3));
+            ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+            test_panel::drawFrame(panel, pageRow(3));
+        };
+        WARN("Saved " << renderToFile(panel, on ? "mcm-showcase-group-on" : "mcm-showcase-group-off", POINTER_AWAY, false, scrollToEnd));
+    }
+}
+
 TEST_CASE("FullPanel render: the values of a page's settings, and the status of the mod", "[.render]")
 {
     using model::SettingType;

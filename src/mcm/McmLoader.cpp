@@ -5,8 +5,10 @@
 #include <charconv>
 #include <format>
 #include <fstream>
+#include <map>
 #include <optional>
 #include <sstream>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -140,8 +142,9 @@ namespace
     /**
      * Where a row keeps its value, by the `sourceType` of its `valueOptions`. A row with none is kept
      * nowhere. A `GlobalValue` names its global in `sourceForm`, as the plugin's file and the form's id in
-     * hex, with or without `0x`: `MyMod.esp|1234`. Any other source, and a global that is not written so,
-     * is one the menu does not read.
+     * hex, with or without `0x`: `MyMod.esp|1234`. A ModSetting is named by the `id` of its row, so one
+     * with no id is kept nowhere too. Any other source, and a global that is not written so, is one the menu
+     * does not read.
      */
     model::Storage loadStorage(const Json& row)
     {
@@ -150,7 +153,7 @@ namespace
             return model::NoStorage{};
         }
         auto sourceType = getText(*valueOptions, "sourceType");
-        if (sourceType.empty()) {
+        if (sourceType.empty() || (sourceType.starts_with("ModSetting") && getText(row, "id").empty())) {
             return model::NoStorage{};
         }
         if (sourceType == "GlobalValue") {
@@ -211,59 +214,199 @@ namespace
         SettingTypeName{ "textinputFloat", model::SettingType::TextInput },
     };
 
+    // the groups of a page that a row controls, by their numbers: the id of the setting each is on with
+    using Groups = std::map<int, std::string>;
+
+    /**
+     * A page as its rows have to be known before they are read: the ids of its settings, and its groups.
+     */
+    struct PageRows
+    {
+        // by the place of the row in the page's content. Empty for a row that is no setting
+        std::vector<std::string> ids;
+        Groups groups;
+    };
+
+    /**
+     * The number of a group, as a row names it. It is 0 for what is no number: MCM's menu has a group 0
+     * that is always on, which no row controls.
+     */
+    int getGroup(const Json& value)
+    {
+        return value.is_number() ? static_cast<int>(value.get<double>()) : 0;
+    }
+
+    /**
+     * The ids of the settings of a page, and the groups its rows control with `groupControl`.
+     * A setting has the `id` of its row. One with none, or with an id another setting of the mod has, gets
+     * one from its place: the page's name for an id and the place of its row, from 1, as `main/2`.
+     * A group that two rows control is on with the later one, as it is when MCM's menu opens the page.
+     */
+    PageRows readPageRows(const Json& content, const std::string& pageId, std::unordered_set<std::string>& takenIds)
+    {
+        PageRows rows;
+        for (std::size_t place = 0; place < content.size(); ++place) {
+            const auto& row = content[place];
+            auto& id = rows.ids.emplace_back();
+            if (std::ranges::find(SETTING_TYPES, getText(row, "type"), &SettingTypeName::first) == SETTING_TYPES.end()) {
+                continue;
+            }
+            id = getText(row, "id");
+            if (id.empty() || !takenIds.insert(id).second) {
+                id = std::format("{}/{}", pageId, place + 1);
+                takenIds.insert(id);
+            }
+            if (const auto control = row.find("groupControl"); control != row.end() && getGroup(*control) != 0) {
+                rows.groups.insert_or_assign(getGroup(*control), id);
+            }
+        }
+        return rows;
+    }
+
+    model::Condition toCondition(const Json& value, const Groups& groups);
+
+    /**
+     * The conditions of a list, joined: each is the number of a group, or a condition of its own.
+     */
+    model::Condition joinConditions(const model::Condition::Kind kind, const Json& list, const Groups& groups)
+    {
+        model::Condition joined{ .kind = kind, .setting = {}, .conditions = {} };
+        if (list.is_array()) {
+            for (const auto& value : list) {
+                joined.conditions.push_back(toCondition(value, groups));
+            }
+        }
+        return joined;
+    }
+
+    /**
+     * A `groupCondition`, or a part of one, as a condition on the settings that control the page's groups.
+     * A number is a group, which is on while the setting that controls it is on. A group that no row of the
+     * page controls is never on. A list is on with one of its groups, as an `OR` is, and an `AND` with all of
+     * them. An `ONLY` is on with all of its groups while no other group of the page is on.
+     * Anything else always holds, as MCM's menu shows its row.
+     */
+    model::Condition toCondition(const Json& value, const Groups& groups)
+    {
+        using Kind = model::Condition::Kind;
+        if (value.is_array()) {
+            return joinConditions(Kind::Any, value, groups);
+        }
+        if (value.is_object()) {
+            if (const auto all = value.find("AND"); all != value.end()) {
+                return joinConditions(Kind::All, *all, groups);
+            }
+            if (const auto only = value.find("ONLY"); only != value.end()) {
+                auto joined = joinConditions(Kind::All, *only, groups);
+                model::Condition others{ .kind = Kind::Any, .setting = {}, .conditions = {} };
+                for (const auto& [group, id] : groups) {
+                    const auto isGroup = [group](const Json& listed) {
+                        return getGroup(listed) == group;
+                    };
+                    if (!only->is_array() || std::ranges::none_of(*only, isGroup)) {
+                        others.conditions.push_back({ .kind = Kind::On, .setting = id, .conditions = {} });
+                    }
+                }
+                joined.conditions.push_back({ .kind = Kind::Not, .setting = {}, .conditions = { std::move(others) } });
+                return joined;
+            }
+            if (const auto any = value.find("OR"); any != value.end()) {
+                return joinConditions(Kind::Any, *any, groups);
+            }
+            return { .kind = Kind::All, .setting = {}, .conditions = {} };
+        }
+        const int group = getGroup(value);
+        if (group == 0) {
+            return { .kind = Kind::All, .setting = {}, .conditions = {} };
+        }
+        const auto control = groups.find(group);
+        return control != groups.end() ? model::Condition{ .kind = Kind::On, .setting = control->second, .conditions = {} }
+                                       : model::Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} };
+    }
+
+    /**
+     * What a row is shown by: its `groupCondition`. None for a row that is always shown.
+     */
+    std::optional<model::Condition> loadVisibleWhen(const Json& row, const Groups& groups)
+    {
+        const auto found = row.find("groupCondition");
+        if (found == row.end()) {
+            return std::nullopt;
+        }
+        auto condition = toCondition(*found, groups);
+        if (condition.kind == model::Condition::Kind::All && condition.conditions.empty()) {
+            return std::nullopt;
+        }
+        return condition;
+    }
+
     /**
      * A row of a config, by its type. A type the menu does not support is a placeholder, and so is a row
-     * with no type.
+     * with no type. A setting has the given id.
      */
-    model::Item loadRow(const std::string& type, const Json& row, const ConfigTexts& texts, mcm::McmConfigImages& images)
+    model::Item loadRow(const std::string& type, const Json& row, std::string id, const ConfigTexts& texts, mcm::McmConfigImages& images)
     {
         auto text = getShownText(row, "text", texts);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
-            return model::Setting{ .type = setting->second,
+            return model::Setting{ .id = std::move(id),
+                .type = setting->second,
                 .text = std::move(text),
                 .help = getHelp(row, texts),
                 .valueOptions = loadValueOptions(row, texts),
-                .storage = loadStorage(row) };
+                .storage = loadStorage(row),
+                .visibleWhen = {} };
         }
         if (type == "button") {
-            return model::Button{ .text = std::move(text), .help = getHelp(row, texts) };
+            return model::Button{ .text = std::move(text), .help = getHelp(row, texts), .visibleWhen = {} };
         }
         if (type == "text") {
             // the tags are read after the translation: a FallUI mod has its tokens inside them
-            return model::Text{ .lines = getFlag(row, "html") ? model::parseMarkup(text) : model::plainLines(text) };
+            return model::Text{ .lines = getFlag(row, "html") ? model::parseMarkup(text) : model::plainLines(text), .visibleWhen = {} };
         }
         if (type == "image") {
             return images.load(getText(row, "libName"), getText(row, "className"));
         }
         if (type == "spacer") {
-            return model::Spacer{ .lines = getSpacerLines(row) };
+            return model::Spacer{ .lines = getSpacerLines(row), .visibleWhen = {} };
         }
-        return model::Placeholder{ .text = std::move(text), .help = getHelp(row, texts), .type = type };
+        return model::Placeholder{ .text = std::move(text), .help = getHelp(row, texts), .type = type, .visibleWhen = {} };
     }
 
     /**
-     * The items of a `content` array. A section becomes a group, with the rows that follow it up to the next
-     * section. The rows before the first section are items of the page itself.
+     * The items of the `content` array of a page. A section becomes a group, with the rows that follow it up
+     * to the next section. The rows before the first section are items of the page itself.
+     * A row with a `groupCondition` is shown by the groups of its own page, and a section's is of its heading
+     * alone, as in MCM's menu. The page's name for an id is in the ids the loader makes for its settings.
      */
-    std::vector<model::Item> loadItems(const Json& config, const char* key, const ConfigTexts& texts, mcm::McmConfigImages& images)
+    std::vector<model::Item> loadItems(const Json& page, const std::string& pageId, const ConfigTexts& texts, mcm::McmConfigImages& images,
+        std::unordered_set<std::string>& takenIds)
     {
         std::vector<model::Item> items;
-        const auto content = config.find(key);
-        if (content == config.end() || !content->is_array()) {
+        const auto content = page.find("content");
+        if (content == page.end() || !content->is_array()) {
             return items;
         }
+        auto rows = readPageRows(*content, pageId, takenIds);
 
         bool inGroup = false;
-        for (const auto& row : *content) {
+        for (std::size_t place = 0; place < content->size(); ++place) {
+            const auto& row = (*content)[place];
             const auto type = getText(row, "type");
+            auto visibleWhen = loadVisibleWhen(row, rows.groups);
             if (type == "section") {
-                items.emplace_back(model::Group{ .text = getShownText(row, "text", texts), .items = {} });
+                items.emplace_back(model::Group{ .text = getShownText(row, "text", texts), .items = {}, .visibleWhen = std::move(visibleWhen) });
                 inGroup = true;
                 continue;
             }
+            auto item = loadRow(type, row, std::move(rows.ids[place]), texts, images);
+            std::visit(
+                [&visibleWhen](auto& loaded) {
+                    loaded.visibleWhen = std::move(visibleWhen);
+                },
+                item);
             auto& target = inGroup ? std::get<model::Group>(items.back()).items : items;
-            target.push_back(loadRow(type, row, texts, images));
+            target.push_back(std::move(item));
         }
         return items;
     }
@@ -284,6 +427,7 @@ namespace mods_config::mcm
      * Reads the text of an MCM `config.json` into the model: the mod, its front page and its pages, and the
      * text, the help and the type of every row, the lines of a text row, the height of a spacer, the range of a
      * slider, the options of a stepper and a dropdown, the global a setting is kept in, and the pixels of an image.
+     * A setting has an id, and a row is shown by the groups its `groupCondition` names.
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.
      * An image is read from the `lib.swf` of the mod its row names, in that mod's folder of the config folder.
@@ -318,11 +462,13 @@ namespace mods_config::mcm
             mod.displayName = mod.name;
         }
         McmConfigImages images(configFolder);
-        mod.frontPage.items = loadItems(config, "content", texts, images);
+        std::unordered_set<std::string> takenIds;
+        mod.frontPage.items = loadItems(config, "main", texts, images, takenIds);
 
         if (const auto pages = config.find("pages"); pages != config.end() && pages->is_array()) {
             for (const auto& page : *pages) {
-                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, "content", texts, images) });
+                const auto pageId = std::format("page{}", mod.pages.size() + 1);
+                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, pageId, texts, images, takenIds) });
             }
         }
         return mod;

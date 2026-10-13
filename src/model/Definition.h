@@ -93,10 +93,41 @@ namespace mods_config::model
     using Storage = std::variant<NoStorage, GlobalStorage, UnknownStorage>;
 
     /**
+     * What a row is shown by: the value of one setting, or other conditions that are joined. It is asked of
+     * the store's values, so a row shows and hides as the player edits.
+     */
+    struct Condition
+    {
+        enum class Kind : std::uint8_t
+        {
+            // its setting is on: a switcher that is on, and any other value that is the number 1
+            On,
+            // every one of its conditions holds. With none it holds
+            All,
+            // one of its conditions holds. With none it does not
+            Any,
+            // its one condition does not hold
+            Not,
+        };
+
+        Kind kind = Kind::All;
+
+        // the id of the setting of an On
+        std::string setting;
+
+        // what an All, an Any and a Not join
+        std::vector<Condition> conditions;
+
+        bool operator==(const Condition&) const = default;
+    };
+
+    /**
      * A row that edits one value.
      */
     struct Setting
     {
+        // its identity, unique in its mod: its author's, or one its loader made
+        std::string id;
         SettingType type = SettingType::Switcher;
         std::string text;
 
@@ -104,6 +135,9 @@ namespace mods_config::model
         std::string help;
         ValueOptions valueOptions;
         Storage storage;
+
+        // the row is shown while it holds. A row with none is always shown
+        std::optional<Condition> visibleWhen;
     };
 
     /**
@@ -113,6 +147,7 @@ namespace mods_config::model
     {
         std::string text;
         std::string help;
+        std::optional<Condition> visibleWhen;
     };
 
     enum class TextAlign : std::uint8_t
@@ -156,6 +191,7 @@ namespace mods_config::model
     struct Text
     {
         std::vector<TextLine> lines;
+        std::optional<Condition> visibleWhen;
     };
 
     /**
@@ -182,6 +218,7 @@ namespace mods_config::model
         // does the size of a text
         float width = 0.0f;
         float height = 0.0f;
+        std::optional<Condition> visibleWhen;
     };
 
     /**
@@ -190,6 +227,7 @@ namespace mods_config::model
     struct Spacer
     {
         int lines = 1;
+        std::optional<Condition> visibleWhen;
     };
 
     /**
@@ -202,6 +240,7 @@ namespace mods_config::model
 
         // the control's type, as its config names it
         std::string type;
+        std::optional<Condition> visibleWhen;
     };
 
     struct Group;
@@ -215,6 +254,9 @@ namespace mods_config::model
     {
         std::string text;
         std::vector<Item> items;
+
+        // of the heading alone: an item is shown by its own
+        std::optional<Condition> visibleWhen;
     };
 
     struct Page

@@ -753,6 +753,45 @@ TEST_CASE("FullPanel: a switcher that is kept nowhere is held until another mod 
     CHECK(store.value(unfold).value == model::Value(false));
 }
 
+TEST_CASE("FullPanel: a row of a group is shown while the switcher that controls the group is on, and has no room while it is off")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store(globals);
+
+    // a switcher that is kept nowhere, a row that is shown while it is on, and a row after them
+    auto mod = modOf("Alpha");
+    mod.frontPage.items.push_back(model::Setting{ .id = "unfold", .type = model::SettingType::Switcher, .text = "Unfold", .help = {}, .valueOptions = {}, .storage = {} });
+    mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "In the group", 0x800));
+    std::get<model::Setting>(mod.frontPage.items.back()).visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "unfold", .conditions = {} };
+    mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "After", 0x801));
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // the row after the group is under the switcher
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "After: What it does.");
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "In the group: What it does.");
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "After: What it does.");
+
+    // and is hidden again
+    CHECK(pressActs(panel, pageRow(0)));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "After: What it does.");
+}
+
 TEST_CASE("FullPanel: the help line says that changes are saved as they are made, while a mod is shown")
 {
     const test_panel::PanelContext context;

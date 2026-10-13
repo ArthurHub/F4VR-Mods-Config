@@ -65,6 +65,20 @@ namespace
         }
         return std::nullopt;
     }
+
+    /**
+     * Adds the settings of the items to the map, each by its id, with those of the groups among them.
+     */
+    void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings)
+    {
+        for (const auto& item : items) {
+            if (const auto* setting = std::get_if<model::Setting>(&item)) {
+                settings.try_emplace(setting->id, setting);
+            } else if (const auto* group = std::get_if<model::Group>(&item)) {
+                addSettings(group->items, settings);
+            }
+        }
+    }
 }
 
 namespace mods_config::mcm
@@ -74,11 +88,17 @@ namespace mods_config::mcm
     {}
 
     /**
-     * Starts the session of a mod: the values the store held for the mod before it are forgotten.
+     * Starts the session of a mod: the values the store held for the mod before it are forgotten, and the
+     * settings of an id are the mod's.
      */
-    void McmStore::open(const model::Mod&)
+    void McmStore::open(const model::Mod& mod)
     {
         _held.clear();
+        _settings.clear();
+        addSettings(mod.frontPage.items, _settings);
+        for (const auto& page : mod.pages) {
+            addSettings(page.items, _settings);
+        }
     }
 
     /**
@@ -104,6 +124,15 @@ namespace mods_config::mcm
             }
         }
         return { .value = valueWithNone(setting), .available = false, .reason = {} };
+    }
+
+    /**
+     * The value of the setting of an id, which a condition names its setting by.
+     */
+    model::StoredValue McmStore::valueById(const std::string_view id)
+    {
+        const auto found = _settings.find(id);
+        return found != _settings.end() ? value(*found->second) : model::StoredValue{};
     }
 
     /**

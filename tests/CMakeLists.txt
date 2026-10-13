@@ -7,6 +7,7 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}_tests
+  ConditionsTests.cpp
   FallUITranslationsTests.cpp
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
@@ -26,6 +27,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/mcm/McmLoader.cpp
   ${SOURCE_DIR}/mcm/McmStore.cpp
   ${SOURCE_DIR}/mcm/SwfImages.cpp
+  ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Choices.cpp

@@ -45,9 +45,9 @@ A setting has:
 
 Three of these are as they are because of MCM:
 
-- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config, its page and its position, which is the same on every run. MCM's event carries the id as the config has it, so the MCM store keeps that text with the row's storage. A package's setting has its author's id, or one made from its storage, the key and the section: see [Declarative schema](schema.md#settings).
+- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so the MCM store keeps that text with the row's storage. A package's setting has its author's id, or one made from its storage, the key and the section: see [Declarative schema](schema.md#settings).
 - **The default is optional for MCM only.** MCM declares a default only for a ModSetting, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package.
-- **The storage has several forms.** An MCM global, an MCM script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage.
+- **The storage has several forms.** An MCM global, an MCM script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage.
 
 `applies` is a package's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else its group's, its page's, its mod's. An MCM mod has none: an MCM config has no field for it.
 
@@ -89,6 +89,8 @@ A value has a state, and a row whose value is not ready says why:
 A condition compares the value of one setting, named by its id, or joins other conditions with all, any and not. It is evaluated on the store's values, which for a package are the pending ones, so a row shows and hides as the player edits.
 
 - The MCM loader turns `groupControl` and `groupCondition` into `visibleWhen`: a group is on when the row that controls it is on. A group's number belongs to its page: the test set uses the same numbers again on other pages. Each of its 23 groups has one controlling row, a switcher, on the group's own page.
+- A `groupCondition` is a number, a list of numbers, or `AND`, `OR` or `ONLY` with a list, as MCM's menu reads it. A list is `OR`. `ONLY` holds with all of its groups while no other group of the page is on. A group that no row controls is never on.
+- A condition that a value which is not available leaves open holds, so its row is shown: nothing is hidden for a reason the player cannot change. A value that is available still settles it: a row that needs two groups is hidden while one of them is off.
 - A package has `visibleWhen` and `enabledWhen`, as in [Declarative schema](schema.md#conditions). A section's condition covers its rows there. The package loader gives it to each of those rows, joined with the row's own, so in the model a condition is always a row's. An MCM section's condition stays on its header row alone, as in MCM.
 
 ## A group with a role
@@ -161,17 +163,17 @@ Mod "My Mod"
 │           default      1.0, from the mod's settings.ini
 │           visibleWhen  main/2 is on
 └─ Page "Advanced"                 a row under the mod in the tree
-   ├─ Setting advanced/1           "Unfold settings"      bool, switcher
+   ├─ Setting page1/1              "Unfold settings"      bool, switcher
    │     storage      none: the store holds the value
    ├─ Setting iMode:Main           "Mode"                 int, dropdown: 0 "Low", 1 "High"
    │     help         Low is easier on the frame rate.
    │     storage      MCM ModSetting iMode of [Main]
-   │     visibleWhen  advanced/1 is on
+   │     visibleWhen  page1/1 is on
    └─ Button "Reset everything"    CallFunction ResetAll() on MyMod.esp|800
          help         Puts every value of the mod back.
 ```
 
-- `main/2` and `advanced/1` are ids the loader made, from the page and the row's position. The two other settings have their author's.
+- `main/2` and `page1/1` are ids the loader made, from the page and the row's place in it. The two other settings have their author's.
 - The section row became a group, with the rows that follow it.
 
 What the MCM store answers while the mod is selected:
@@ -180,7 +182,7 @@ What the MCM store answers while the mod is selected:
 Setting          Value   State
 main/2           on      ready
 fStrength:Main   1.3     ready
-advanced/1       off     ready           held by the store, off when the mod is selected
+page1/1          off     ready           held by the store, off when the mod is selected
 iMode:Main               not available   the ModSetting is in neither of MCM's files
 ```
 

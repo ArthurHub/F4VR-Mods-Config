@@ -1,6 +1,10 @@
 #pragma once
 
+#include <functional>
+#include <map>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "model/Definition.h"
@@ -40,10 +44,14 @@ namespace mods_config::mcm
 
         void open(const model::Mod& mod) override;
         model::StoredValue value(const model::Setting& setting) override;
+        model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;
 
     private:
         Globals& _globals;
+
+        // the settings of the mod that is selected, by their ids
+        std::map<std::string, const model::Setting*, std::less<>> _settings;
 
         // the values of the settings with no storage that were set, of the mod that is selected
         std::unordered_map<const model::Setting*, model::Value> _held;

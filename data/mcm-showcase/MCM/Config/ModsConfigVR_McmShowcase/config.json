@@ -166,12 +166,13 @@
         { "type": "switcher", "text": "With no storage", "help": "A switcher with no valueOptions. It is kept nowhere, and is off again when the mod is selected again." },
         { "type": "switcher", "text": "A global that is not in the game", "help": "A GlobalValue of a plugin that is not installed.", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800" } },
         { "type": "section", "text": "A group that a switcher shows" },
-        { "type": "switcher", "text": "Unfold settings", "help": "Shows the two rows under it.", "groupControl": 1, "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "switcher", "text": "Unfold settings", "help": "Shows the rows of its group. It has no id, so it is kept nowhere, and is off again when the mod is selected again.", "groupControl": 1, "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "A row of the group", "groupCondition": 1, "id": "bGroupA:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "text", "text": "A text row of the group.", "groupCondition": 1 },
         { "type": "switcher", "text": "A row of groups 1 and 2", "groupControl": 2, "groupCondition": 1, "id": "bGroupB:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "A row that needs both", "groupCondition": { "AND": [1, 2] }, "id": "bGroupC:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "A row that needs either", "groupCondition": { "OR": [1, 2] }, "id": "bGroupD:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } }
+        { "type": "switcher", "text": "A row that needs either", "groupCondition": { "OR": [1, 2] }, "id": "bGroupD:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "text", "text": "A text row that needs group 1 and no other.", "groupCondition": { "ONLY": [1] } }
       ]
     },
     {

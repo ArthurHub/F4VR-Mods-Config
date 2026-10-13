@@ -15,6 +15,7 @@
 #include "Drawing.h"
 #include "Sliders.h"
 #include "Theme.h"
+#include "model/Conditions.h"
 
 namespace
 {
@@ -299,12 +300,34 @@ namespace
         }
     };
 
+    /**
+     * Whether an item is shown: one with a condition is, while it holds on the values of the store. With no
+     * store every item is shown.
+     */
+    bool isShown(const model::Item& item, model::Store* store)
+    {
+        const auto& visibleWhen = std::visit(
+            [](const auto& row) -> const std::optional<model::Condition>& {
+                return row.visibleWhen;
+            },
+            item);
+        return !visibleWhen || !store || model::holds(*visibleWhen, *store);
+    }
+
+    /**
+     * Draws the items that are shown, each as its row. An item that is not shown has no row and no room.
+     * A section that is not shown is without its heading alone: its items are shown by their own conditions.
+     */
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page)
     {
         for (const auto& item : items) {
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
-            std::visit(ItemDrawer{ page }, item);
+            if (isShown(item, page.store)) {
+                std::visit(ItemDrawer{ page }, item);
+            } else if (const auto* group = std::get_if<model::Group>(&item)) {
+                drawItems(group->items, page);
+            }
             ImGui::PopID();
         }
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 #include "Definition.h"
 
@@ -40,6 +41,12 @@ namespace mods_config::model
         virtual void open(const Mod& mod) = 0;
 
         virtual StoredValue value(const Setting& setting) = 0;
+
+        /**
+         * The value of the setting of an id, of the mod whose session it is. It is not available for an id
+         * that no setting of the mod has.
+         */
+        virtual StoredValue valueById(std::string_view id) = 0;
 
         /**
          * Sets the value of a setting. Returns whether it is set.

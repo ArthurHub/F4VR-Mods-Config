@@ -199,7 +199,7 @@ M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.m
 | M25 | mod       | Globals are read and written: the switcher works                                    | done   |
 | M26 | mod       | The slider                                                                          | done   |
 | M27 | mod       | The stepper and the dropdown                                                        | done   |
-| M28 | mod       | Conditions show and hide rows                                                       | todo   |
+| M28 | mod       | Conditions show and hide rows                                                       | done   |
 | M29 | mod       | ModSettings are read from MCM's files                                               | todo   |
 | M30 | mod       | ModSettings are written through MCM                                                 | todo   |
 | M31 | mod       | MCM's events are sent: a setting changed, the menu opened and closed                | todo   |
@@ -241,7 +241,14 @@ M27 makes the stepper and the dropdown work, as in [Controls](controls.md#dropdo
 - The thumbstick steps the stepper whose row the ray is on: a push to a side is one step, to the option before or after, and stops at the first and the last as the buttons do. A push that is held steps no more, and there is no wait for the ray as a slider has. The hand gets its pulse for a step that changes the option.
 - The MCM showcase has a stepper and three dropdowns with no `sourceType`, which work now. Its others are ModSettings, which M29 reads.
 
-M28 translates `groupControl` and `groupCondition` to the model's conditions: a number, `AND`, `OR`, and one inside another. Until this commit every row is shown.
+M28 translates `groupControl` and `groupCondition` to the model's conditions, as in [The settings model](model.md#conditions). Until this commit every row is shown.
+
+- A setting has its id: its row's, or one the loader makes from its page and its place. A condition names the setting that controls its group by it, and the store gives the value of an id.
+- A group is on while the value of the row that controls it is 1, as in MCM's menu: a switcher that is on. A group that two rows control is on with the later one.
+- A `groupCondition` is a number, a list, `AND`, `OR` or `ONLY`. MCM's menu reads no condition inside another. The loader reads one, as DearModdingUI does, since that is what its author meant.
+- A row that is not shown has no room in the page. A section's condition hides its heading alone, as in MCM's menu.
+- A row whose condition needs a value that is not available is shown. So the rows of a group that a ModSetting controls are all shown until M29 reads it.
+- A ModSetting with no id is kept nowhere, as it names no setting: FallUI's "Unfold settings" switchers work now, and so does the group of the MCM showcase.
 
 M29 reads a ModSetting from MCM's two files, the mod's defaults and the player's values, which MCM writes on every set. It is plain file code.
 
