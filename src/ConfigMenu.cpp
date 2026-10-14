@@ -15,10 +15,6 @@ using namespace vrui;
 
 namespace
 {
-    // The panel in vrui units. Its scale, and where it is put from the HMD, are the config's.
-    constexpr float PANEL_WIDTH = 24.0f;
-    constexpr float PANEL_HEIGHT = 15.0f;
-
     // The radius the panel is curved at toward the player, for its distance: a higher radius is a flatter
     // panel. At 1 the sides are as far from the player as the middle. It is a little flatter than that, as
     // tuned in the headset: 25 of the panel's own units at the shipped distance and scale, which are 20.
@@ -204,7 +200,7 @@ namespace mods_config
 
     void ConfigMenu::createPanel()
     {
-        _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigVR_Panel", PANEL_WIDTH, PANEL_HEIGHT);
+        _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigVR_Panel", g_config.panelWidth, g_config.panelHeight);
         applyPanelConfig();
         // the menu's one ImGui panel: at this size it needs a texture of its own, and a dropdown's list or a dialog opens inside it
         _panel->setDedicated(true);
@@ -229,11 +225,11 @@ namespace mods_config
     }
 
     /**
-     * Gives the panel what the config has for it: its look, its size, its place from where it was put in
+     * Gives the panel what the config has for it: its look, its size and scale, the width of its tree, its place from where it was put in
      * front of the player, and how it is moved: after a short press, where that is Back. It is called when the menu opens, and when the config is loaded
      * again while the menu is open, so a change of the file shows at once. The place is from where the panel is now, also after a hand moved it.
      */
-    void ConfigMenu::applyPanelConfig() const
+    void ConfigMenu::applyPanelConfig()
     {
         _panel->setStyle({
             // Opaque, both of them: these are picked to match the widgets beside the panel, and an alpha
@@ -246,8 +242,11 @@ namespace mods_config
             .cornerRadiusUnits = 0.5f,
             .padding = UIPadding::all(0.3f),
         });
+        // the canvas follows the size at its next frame, with as many pixels per unit
+        _panel->setSize(g_config.panelWidth, g_config.panelHeight);
+        _fullPanel.setTreeWidth(g_config.treeWidth * imgui::CANVAS_PIXELS_PER_UNIT);
         _panel->setScale(g_config.panelScale);
-        _panel->setPosition(0, g_config.panelDistance, g_config.panelHeight);
+        _panel->setPosition(0, g_config.panelDistance, g_config.panelElevation);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(g_config.panelTilt, 0, 0));
         // the radius is in the panel's own units, so the curve is the same at any scale and distance
         _panel->setCurveRadius(PANEL_CURVE_BY_DISTANCE * g_config.panelDistance / g_config.panelScale);

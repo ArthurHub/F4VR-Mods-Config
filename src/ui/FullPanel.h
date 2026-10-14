@@ -42,6 +42,7 @@ namespace mods_config::ui
         void setImageDrawer(ImageDrawer drawer);
         void setStore(model::Store* store);
         void setThumbstickSideValue(float value);
+        void setTreeWidth(float width);
         bool select(const Selection& selection);
         bool back();
         void reset();

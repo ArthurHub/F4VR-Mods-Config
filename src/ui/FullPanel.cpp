@@ -141,6 +141,15 @@ namespace mods_config::ui
     }
 
     /**
+     * The width of the tree of the mods, in the panel's pixels: the content of a page has the rest of the
+     * panel's width. The design system's is `theme::NAV_WIDTH`, which the panel has until it is told another.
+     */
+    void FullPanel::setTreeWidth(const float width)
+    {
+        _modTree.setWidth(width);
+    }
+
+    /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
      * Another mod than before starts its editing session in the store, and no mod ends the one there is.

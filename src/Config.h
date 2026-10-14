@@ -29,12 +29,21 @@ namespace mods_config
         std::optional<vr::EVRButtonId> backButton;
 
         // The size of the menu's panel, with its text and its rows, and where it is put in front of the player:
-        // how far, how much above the eyes, and tilted back by how many degrees. The distance and the height
+        // how far, how much above the eyes, and tilted back by how many degrees. The distance and the elevation
         // are in game units.
         float panelScale = 0.0f;
         float panelDistance = 0.0f;
-        float panelHeight = 0.0f;
+        float panelElevation = 0.0f;
         float panelTilt = 0.0f;
+
+        // The room on the panel for its rows, in the panel's own units, which the scale makes larger: a larger
+        // panel shows more of a page, with its text at the same size.
+        float panelWidth = 0.0f;
+        float panelHeight = 0.0f;
+
+        // The width of the tree of the mods on the left of the panel, in the panel's own units: the page beside
+        // it has the rest of the panel's width.
+        float treeWidth = 0.0f;
 
         // How much the panel's background hides the world behind it: 0 for none of it, 255 for all.
         std::uint8_t panelBackgroundOpacity = 0;

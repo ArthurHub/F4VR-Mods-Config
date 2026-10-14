@@ -826,3 +826,12 @@ TEST_CASE("FullPanel render: names too long for the title bar and for the tree",
     select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", "Settlement Gameplay and City Plan Options of Chapter 2");
     WARN("Saved " << renderToFile(panel, "long-names", POINTER_AWAY));
 }
+
+TEST_CASE("FullPanel render: a wider tree and a page in the rest of the panel", "[.render]")
+{
+    FullPanel panel;
+    panel.setMods({ modOf("Sim Settlements 2 - All Chapters with the City Plan Contest Packs", { "Settlement Gameplay and City Plan Options of Chapter 2" }) });
+    select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", "Settlement Gameplay and City Plan Options of Chapter 2");
+    panel.setTreeWidth(theme::NAV_WIDTH * 1.5f);
+    WARN("Saved " << renderToFile(panel, "wide-tree", POINTER_AWAY));
+}

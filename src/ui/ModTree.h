@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Selection.h"
+#include "Theme.h"
 #include "model/Definition.h"
 
 namespace mods_config::ui
@@ -19,8 +20,12 @@ namespace mods_config::ui
         std::optional<Selection> draw(const std::vector<model::Mod>& mods, const Selection& selection, float height);
         void showSelection();
         void showTop();
+        void setWidth(float width);
 
     private:
+        // the plate's width, in the panel's pixels
+        float _width = theme::NAV_WIDTH;
+
         // what the rows scroll to when they are drawn next: the selected row, or their top
         bool _showSelection = false;
         bool _showTop = false;

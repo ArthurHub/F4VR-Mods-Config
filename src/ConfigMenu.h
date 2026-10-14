@@ -39,7 +39,7 @@ namespace mods_config
 
     private:
         void createPanel();
-        void applyPanelConfig() const;
+        void applyPanelConfig();
         void createWristButtons();
         static void pulse();
         static float getThumbstickSideValue();
