@@ -4,6 +4,7 @@
 #include <array>
 #include <charconv>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 
 using namespace mods_config;
@@ -375,6 +376,27 @@ namespace mods_config::model
     std::vector<TextLine> plainLines(const std::string_view text)
     {
         return readLines(text, false);
+    }
+
+    /**
+     * The runs of a text with tags, on one line: a line break and the end of a paragraph become a space, and
+     * an empty line is dropped. A run keeps the size and the color of its font tag.
+     */
+    std::vector<TextRun> markupRuns(const std::string_view text)
+    {
+        std::vector<TextRun> runs;
+        for (auto& line : parseMarkup(text)) {
+            if (std::ranges::all_of(line.runs, [](const TextRun& run) {
+                    return run.text.find_first_not_of(' ') == std::string::npos;
+                })) {
+                continue;
+            }
+            if (!runs.empty()) {
+                runs.push_back({ .text = " ", .size = {}, .color = {} });
+            }
+            std::ranges::move(line.runs, std::back_inserter(runs));
+        }
+        return runs;
     }
 
     /**

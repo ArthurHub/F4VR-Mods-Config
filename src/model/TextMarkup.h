@@ -13,5 +13,6 @@ namespace mods_config::model
 {
     std::vector<TextLine> parseMarkup(std::string_view text);
     std::vector<TextLine> plainLines(std::string_view text);
+    std::vector<TextRun> markupRuns(std::string_view text);
     std::string removeMarkup(std::string_view text);
 }

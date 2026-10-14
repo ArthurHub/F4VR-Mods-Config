@@ -183,3 +183,15 @@ TEST_CASE("TextMarkup: a text without its tags is on one line")
     CHECK(model::removeMarkup("Salt &amp; pepper") == "Salt & pepper");
     CHECK(model::removeMarkup("<p> </p><br>").empty());
 }
+
+TEST_CASE("TextMarkup: the runs of a text are on one line, with a space between its lines")
+{
+    const auto line = [](const std::string_view text) {
+        return describe({ model::TextLine{ .align = model::TextAlign::Left, .runs = model::markupRuns(text) } });
+    };
+    CHECK(line("<font size='16' color='#AAAAAA'>(Descriptions)</font>") == Lines{ "[16 #AAAAAA](Descriptions)" });
+    CHECK(line("<p align='center'>Before</p><font color='#FF0000'>After</font>") == Lines{ "Before [#FF0000]After" });
+    // an empty line leaves no space
+    CHECK(line("One<br><br><p> </p>Two") == Lines{ "One Two" });
+    CHECK(model::markupRuns("<br>").empty());
+}

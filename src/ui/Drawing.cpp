@@ -115,6 +115,31 @@ namespace
         }
         return height;
     }
+
+    /**
+     * Draws the words from the first on one line, as many as leave room for an ellipsis in the width, and the
+     * first in any case, and the ellipsis after them in the size and color of the last.
+     */
+    void drawCutLine(const std::span<const Word> words, const ImVec2& pos, const float width)
+    {
+        const auto* font = ImGui::GetFont();
+        const float room = width - font->EllipsisWidth * (words.front().fontSize / font->FontSize);
+        std::size_t last = 0;
+        float lineWidth = words.front().width;
+        while (last + 1 < words.size() && lineWidth + words[last + 1].inkWidth <= room) {
+            lineWidth += words[++last].width;
+        }
+        const auto drawn = words.first(last + 1);
+        const float height = drawWords(drawn, model::TextAlign::Left, pos, width);
+
+        const auto& end = words[last];
+        const float scale = end.fontSize / font->FontSize;
+        ImVec2 at(std::floor(pos.x + lineWidth - end.width + end.inkWidth), std::floor(pos.y + height - end.fontSize));
+        for (int i = 0; i < font->EllipsisCharCount; ++i) {
+            font->RenderChar(ImGui::GetWindowDrawList(), end.fontSize, at, end.color, font->EllipsisChar);
+            at.x += font->EllipsisCharStep * scale;
+        }
+    }
 }
 
 namespace mods_config::ui
@@ -204,34 +229,49 @@ namespace mods_config::ui
         const auto words = wordsOf(pieces);
         const auto starts = wrapWords(words, width);
         const auto lineCount = (std::min)(starts.size(), static_cast<std::size_t>((std::max)(maxLines, 0)));
-        const auto* font = ImGui::GetFont();
-        const float fontSize = ImGui::GetFontSize();
-        const float fontScale = fontSize / font->FontSize;
-
         for (std::size_t line = 0; line < lineCount; ++line) {
-            const float y = pos.y + static_cast<float>(line) * fontSize;
+            const ImVec2 at(pos.x, pos.y + static_cast<float>(line) * ImGui::GetFontSize());
             const auto first = starts[line];
             if (line + 1 < lineCount || lineCount == starts.size()) {
                 const auto end = line + 1 < starts.size() ? starts[line + 1] : words.size();
-                drawWords(std::span<const Word>(words).subspan(first, end - first), model::TextAlign::Left, ImVec2(pos.x, y), width);
-                continue;
-            }
-
-            // the last line of a text that is cut: the words that leave room for the ellipsis, and the first in any case
-            const float room = width - font->EllipsisWidth * fontScale;
-            auto last = first;
-            float lineWidth = words[first].width;
-            while (last + 1 < words.size() && lineWidth + words[last + 1].inkWidth <= room) {
-                lineWidth += words[++last].width;
-            }
-            drawWords(std::span<const Word>(words).subspan(first, last + 1 - first), model::TextAlign::Left, ImVec2(pos.x, y), width);
-
-            ImVec2 at(std::floor(pos.x + lineWidth - words[last].width + words[last].inkWidth), std::floor(y));
-            for (int i = 0; i < font->EllipsisCharCount; ++i) {
-                font->RenderChar(ImGui::GetWindowDrawList(), fontSize, at, words[last].color, font->EllipsisChar);
-                at.x += font->EllipsisCharStep * fontScale;
+                drawWords(std::span<const Word>(words).subspan(first, end - first), model::TextAlign::Left, at, width);
+            } else {
+                drawCutLine(std::span<const Word>(words).subspan(first), at, width);
             }
         }
+    }
+
+    /**
+     * One line of text in pieces of a size and a color each, centered in a height, as `drawText` draws a
+     * line. A piece is never larger than the current font size, so it stays in its row, and one with no color
+     * is in the given color. It ends in an ellipsis where it does not fit before the right edge.
+     */
+    void drawTextRuns(const float left, const float right, const float top, const float height, const ImU32 color, const std::span<const model::TextRun> runs)
+    {
+        std::vector<Word> words;
+        for (const auto& run : runs) {
+            const float fontSize = run.size ? (std::min)(static_cast<float>(*run.size) * mcmScale(), ImGui::GetFontSize()) : ImGui::GetFontSize();
+            const auto runColor = run.color ? IM_COL32(*run.color >> 16, (*run.color >> 8) & 0xFF, *run.color & 0xFF, 255) : color;
+            addWords(run.text, fontSize, ImGui::GetColorU32(runColor), words);
+        }
+        if (words.empty()) {
+            return;
+        }
+
+        float lineHeight = 0.0f;
+        float lineWidth = 0.0f;
+        for (const auto& word : words) {
+            lineHeight = (std::max)(lineHeight, word.fontSize);
+            lineWidth += &word == &words.back() ? word.inkWidth : word.width;
+        }
+        const ImVec2 pos(left, top + (height - lineHeight) * 0.5f);
+        ImGui::PushClipRect(ImVec2(left, top), ImVec2(right, top + height), true);
+        if (lineWidth <= right - left) {
+            drawWords(words, model::TextAlign::Left, pos, right - left);
+        } else {
+            drawCutLine(words, pos, right - left);
+        }
+        ImGui::PopClipRect();
     }
 
     /**

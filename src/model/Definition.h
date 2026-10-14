@@ -248,6 +248,23 @@ namespace mods_config::model
     using Action = std::variant<NoAction, CallFunction, UnknownAction>;
 
     /**
+     * A piece of a line that is drawn in one size and one color.
+     */
+    struct TextRun
+    {
+        std::string text;
+
+        // the size of its font as its config has it, which is a size of MCM's menu. A run without one is in the
+        // size of the text it is in
+        std::optional<int> size;
+
+        // as 0xRRGGBB. A run without one is in the color of the text it is in
+        std::optional<std::uint32_t> color;
+
+        bool operator==(const TextRun&) const = default;
+    };
+
+    /**
      * A row that edits one value.
      */
     struct Setting
@@ -258,7 +275,13 @@ namespace mods_config::model
         // the id its source has for it, which MCM's events name an MCM row by. Empty for a row with none
         std::string sourceId;
         SettingType type = SettingType::Switcher;
+
+        // as plain text on one line, as the help line shows it
         std::string text;
+
+        // the text's pieces, with the size and the color its tags give them, on one line. Empty for a text
+        // whose tags give it neither, which is drawn as its plain text
+        std::vector<TextRun> textRuns;
 
         // what the help line says of the row while the ray is on it: plain text on one line, and empty for none
         std::string help;
@@ -278,6 +301,7 @@ namespace mods_config::model
     struct Button
     {
         std::string text;
+        std::vector<TextRun> textRuns;
         std::string help;
         Action action;
         std::optional<Condition> visibleWhen;
@@ -292,6 +316,7 @@ namespace mods_config::model
         // what its source knows the hotkey by. Empty for a row with none, which has no key
         std::string id;
         std::string text;
+        std::vector<TextRun> textRuns;
         std::string help;
         std::optional<Condition> visibleWhen;
     };
@@ -301,23 +326,6 @@ namespace mods_config::model
         Left,
         Center,
         Right,
-    };
-
-    /**
-     * A piece of a line that is drawn in one size and one color.
-     */
-    struct TextRun
-    {
-        std::string text;
-
-        // the size of its font as its config has it, which is a size of MCM's menu. A run without one is in the
-        // size of the text it is in
-        std::optional<int> size;
-
-        // as 0xRRGGBB. A run without one is in the color of the text it is in
-        std::optional<std::uint32_t> color;
-
-        bool operator==(const TextRun&) const = default;
     };
 
     /**
@@ -382,6 +390,7 @@ namespace mods_config::model
     struct Placeholder
     {
         std::string text;
+        std::vector<TextRun> textRuns;
         std::string help;
 
         // the control's type, as its config names it

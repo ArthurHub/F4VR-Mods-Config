@@ -1014,6 +1014,36 @@ TEST_CASE("McmLoader: the text of a row that is not a text row is shown without 
     CHECK(std::get<model::Setting>(section.items[2]).text == "    - Indented");
 }
 
+TEST_CASE("McmLoader: the text of a row that is not a text row has the size and the color of its font tags in its pieces")
+{
+    model::Translations translations;
+    translations.add("$Modes", "Show modes");
+    const auto mod = mcm::loadConfig(R"({ "modName": "MyMod", "content": [
+        { "type": "switcher", "text": "<font size='16' color='#AAAAAA'>$Modes</font>" },
+        { "type": "button", "text": "Spawn <font color='#FF0000'>now</font><br>please" },
+        { "type": "hotkey", "text": "<b>Bold</b> &amp; <u>underlined</u>" },
+        { "type": "colorPicker", "text": "<font size='15'>Tint</font>" }
+    ] })",
+        translations);
+    REQUIRE(mod);
+    const auto& items = mod->frontPage.items;
+
+    // a token of the game's that is a piece by itself is translated
+    const auto& setting = std::get<model::Setting>(items[0]);
+    CHECK(setting.text == "Show modes");
+    CHECK(setting.textRuns == std::vector<model::TextRun>{ { .text = "Show modes", .size = 16, .color = 0xAAAAAA } });
+
+    // a line break is a space, as in its plain text
+    CHECK(std::get<model::Button>(items[1]).textRuns == std::vector<model::TextRun>{ { .text = "Spawn ", .size = {}, .color = {} },
+                                                            { .text = "now", .size = {}, .color = 0xFF0000 },
+                                                            { .text = " ", .size = {}, .color = {} },
+                                                            { .text = "please", .size = {}, .color = {} } });
+
+    // tags that give no size and no color leave the text plain
+    CHECK(std::get<model::Hotkey>(items[2]).textRuns.empty());
+    CHECK(std::get<model::Placeholder>(items[3]).textRuns == std::vector<model::TextRun>{ { .text = "Tint", .size = 15, .color = {} } });
+}
+
 TEST_CASE("McmLoader: the configs of a folder are translated")
 {
     const test_files::TempFolder folder;

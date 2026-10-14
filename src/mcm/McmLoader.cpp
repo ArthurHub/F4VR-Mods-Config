@@ -121,6 +121,24 @@ namespace
     }
 
     /**
+     * The pieces of the text of a row that is not a text row, with the size and the color its font tags give
+     * them, each in the game's language. Empty where its tags give none, as the text is then drawn plain.
+     */
+    std::vector<model::TextRun> getLabelRuns(const Json& row, const ConfigTexts& texts)
+    {
+        auto runs = model::markupRuns(getShownText(row, "text", texts));
+        if (std::ranges::none_of(runs, [](const model::TextRun& run) {
+                return run.size || run.color;
+            })) {
+            return {};
+        }
+        for (auto& run : runs) {
+            run.text = texts.game.translate(std::move(run.text));
+        }
+        return runs;
+    }
+
+    /**
      * The help of a row, as the help line shows it, on one line.
      */
     std::string getHelp(const Json& row, const ConfigTexts& texts)
@@ -750,6 +768,7 @@ namespace
         }
 
         auto text = getLabel(row, texts);
+        auto textRuns = getLabelRuns(row, texts);
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
             auto storage = loadStorage(row);
             auto action = loadAction(row, &storage);
@@ -761,6 +780,7 @@ namespace
                 .sourceId = getText(row, "id"),
                 .type = setting->second,
                 .text = std::move(text),
+                .textRuns = std::move(textRuns),
                 .help = getHelp(row, texts),
                 .valueOptions = std::move(valueOptions),
                 .storage = std::move(storage),
@@ -768,12 +788,12 @@ namespace
                 .visibleWhen = {} };
         }
         if (type == "button") {
-            return model::Button{ .text = std::move(text), .help = getHelp(row, texts), .action = loadAction(row), .visibleWhen = {} };
+            return model::Button{ .text = std::move(text), .textRuns = std::move(textRuns), .help = getHelp(row, texts), .action = loadAction(row), .visibleWhen = {} };
         }
         if (type == "hotkey") {
-            return model::Hotkey{ .id = getText(row, "id"), .text = std::move(text), .help = getHelp(row, texts), .visibleWhen = {} };
+            return model::Hotkey{ .id = getText(row, "id"), .text = std::move(text), .textRuns = std::move(textRuns), .help = getHelp(row, texts), .visibleWhen = {} };
         }
-        return model::Placeholder{ .text = std::move(text), .help = getHelp(row, texts), .type = type, .visibleWhen = {} };
+        return model::Placeholder{ .text = std::move(text), .textRuns = std::move(textRuns), .help = getHelp(row, texts), .type = type, .visibleWhen = {} };
     }
 
     /**

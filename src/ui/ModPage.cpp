@@ -5,6 +5,7 @@
 #include <cmath>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -104,12 +105,26 @@ namespace
     }
 
     /**
+     * The text of a row at a place, after the gutter and up to a right edge. A text whose tags give it pieces
+     * is drawn in their sizes and colors, and any other as its plain text.
+     */
+    void drawLabel(const ImVec2& pos, const float right, const std::string_view text, const std::span<const model::TextRun> runs)
+    {
+        const float left = pos.x + theme::SPACE_6 + theme::SPACE_3;
+        if (runs.empty()) {
+            ui::drawText(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+        } else {
+            ui::drawTextRuns(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, runs);
+        }
+    }
+
+    /**
      * A row at the cursor that has no control, as its text and what it is. It is laid out as a setting's row:
      * the text after the gutter, and the type where the control ends, before the room of its Reset.
      * A row with a help is disabled, with the look of a row under the ray, and none of a press, which does nothing.
      * Returns whether the ray is on the row.
      */
-    bool drawRow(const std::string_view text, const std::string_view type, const bool hasHelp)
+    bool drawRow(const std::string_view text, const std::span<const model::TextRun> runs, const std::string_view type, const bool hasHelp)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
@@ -124,7 +139,7 @@ namespace
         ImGui::BeginDisabled(hasHelp);
         const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
         ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
-        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, typeLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+        drawLabel(pos, typeLeft - theme::SPACE_3, text, runs);
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -355,7 +370,7 @@ namespace
         case model::SettingType::TextInput:
             break;
         }
-        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
+        drawLabel(pos, left - theme::SPACE_3, setting.text, setting.textRuns);
         ImGui::EndDisabled();
         if (defaultValue) {
             ImGui::BeginDisabled(!resets);
@@ -398,7 +413,7 @@ namespace
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
         ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
         ui::drawTextIn(box, "Run", theme::color::GREEN, 0.5f);
-        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, box.Min.x - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, button.text);
+        drawLabel(pos, box.Min.x - theme::SPACE_3, button.text, button.textRuns);
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -432,7 +447,7 @@ namespace
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - boxWidth, pos.y, boxWidth);
 
         ImGui::BeginDisabled();
-        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, box.Min.x - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, hotkey.text);
+        drawLabel(pos, box.Min.x - theme::SPACE_3, hotkey.text, hotkey.textRuns);
         ui::drawFrame(box);
         ui::drawTextIn(box, name, theme::color::GREEN, 0.5f);
         ImGui::EndDisabled();
@@ -466,7 +481,7 @@ namespace
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - TEXT_FIELD_WIDTH, pos.y, TEXT_FIELD_WIDTH);
 
         ImGui::BeginDisabled();
-        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, box.Min.x - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
+        drawLabel(pos, box.Min.x - theme::SPACE_3, setting.text, setting.textRuns);
         ui::drawFrame(box);
         ui::drawTextIn(box, text ? std::string_view(*text) : std::string_view(), theme::color::GREEN, 0.0f, theme::SPACE_4);
         ImGui::EndDisabled();
@@ -547,7 +562,7 @@ namespace
             if (image.pixels) {
                 drawImage(image, page.imageDrawer);
             } else {
-                drawRow({}, "image", false);
+                drawRow({}, {}, "image", false);
             }
         }
 
@@ -559,7 +574,7 @@ namespace
         void operator()(const model::Placeholder& placeholder) const
         {
             const bool typed = !placeholder.type.empty();
-            if (drawRow(placeholder.text, typed ? std::string_view(placeholder.type) : "unknown", true)) {
+            if (drawRow(placeholder.text, placeholder.textRuns, typed ? std::string_view(placeholder.type) : "unknown", true)) {
                 auto help = typed ? std::format("Not available: the menu has no {} control.", placeholder.type) : std::string("Not available: the row has no type of control.");
                 page.drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = std::move(help) };
             }
