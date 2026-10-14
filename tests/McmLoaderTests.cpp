@@ -245,6 +245,42 @@ TEST_CASE("McmLoader: a config becomes a mod with its front page and its pages")
     CHECK(describe(mod.pages[1]) == Lines{ "text: Made by me." });
 }
 
+TEST_CASE("McmLoader: a mod whose required plugins are not all loaded is not available, and is its names and the reason alone")
+{
+    const auto config = R"({
+        "modName": "MyMod",
+        "displayName": "My Mod",
+        "pluginRequirements": ["Fallout4.esm", "MyMod.esp", 7, "MyMod - Extra.esl", "MyMod - More.esp"],
+        "content": [{ "type": "switcher", "text": "Enable the feature" }],
+        "pages": [{ "pageDisplayName": "Advanced", "content": [] }]
+    })";
+    const auto loadedWith = [config](const std::vector<std::string>& loadedPlugins) {
+        auto mod = mcm::loadConfig(config, {}, {}, {}, [&loadedPlugins](const std::string_view plugin) {
+            return std::ranges::contains(loadedPlugins, plugin);
+        });
+        REQUIRE(mod);
+        return std::move(*mod);
+    };
+
+    // every one is loaded, and an entry that is no text is passed over
+    const auto all = loadedWith({ "Fallout4.esm", "MyMod.esp", "MyMod - Extra.esl", "MyMod - More.esp" });
+    CHECK(all.notAvailable.empty());
+    CHECK(all.pages.size() == 1);
+
+    const auto one = loadedWith({ "Fallout4.esm", "MyMod - Extra.esl", "MyMod - More.esp" });
+    CHECK(one.name == "MyMod");
+    CHECK(one.displayName == "My Mod");
+    CHECK(one.notAvailable == "its plugin MyMod.esp is not loaded");
+    CHECK(one.frontPage.items.empty());
+    CHECK(one.pages.empty());
+
+    CHECK(loadedWith({ "Fallout4.esm", "MyMod - Extra.esl" }).notAvailable == "its plugins MyMod.esp and MyMod - More.esp are not loaded");
+    CHECK(loadedWith({}).notAvailable == "its plugins Fallout4.esm, MyMod.esp, MyMod - Extra.esl and MyMod - More.esp are not loaded");
+
+    // with no check, as for a config alone, every plugin is loaded
+    CHECK(loaded(config).notAvailable.empty());
+}
+
 TEST_CASE("McmLoader: a mod with no displayName is shown by its modName")
 {
     CHECK(loaded(R"({ "modName": "MyMod" })").displayName == "MyMod");
@@ -1057,14 +1093,43 @@ TEST_CASE("McmLoader: the configs of a folder are translated")
     CHECK(mods[0].displayName == "Auto Eat");
 }
 
-TEST_CASE("McmLoader: a config that cannot be read is left out, and the others are loaded")
+TEST_CASE("McmLoader: a config that cannot be read is a mod that is not available, named by its folder")
 {
     const test_files::TempFolder folder;
-    folder.write("Broken/config.json", R"({ "modName": "Broken", )");
+    folder.write("Broken Mod/config.json", R"({ "modName": "Broken", )");
     folder.write("NoName/config.json", R"({ "displayName": "No name" })");
-    folder.write("Good/config.json", R"({ "modName": "Good" })");
+    folder.write("Good/config.json", R"({ "modName": "Good", "content": [{ "type": "switcher", "text": "Enabled" }] })");
 
-    CHECK(namesOf(mcm::loadConfigs(folder.path)) == Lines{ "Good" });
+    const auto mods = mcm::loadConfigs(folder.path);
+
+    CHECK(namesOf(mods) == Lines{ "Broken Mod", "Good", "NoName" });
+    for (const auto& mod : mods) {
+        if (mod.name == "Good") {
+            CHECK(mod.notAvailable.empty());
+            CHECK(describe(mod.frontPage) == Lines{ "switcher: Enabled" });
+        } else {
+            CHECK(mod.displayName == mod.name);
+            CHECK(mod.notAvailable == "its config cannot be read");
+            CHECK(mod.frontPage.items.empty());
+            CHECK(mod.pages.empty());
+        }
+    }
+}
+
+TEST_CASE("McmLoader: the configs of a folder are checked for their required plugins")
+{
+    const test_files::TempFolder folder;
+    folder.write("Loaded/config.json", R"({ "modName": "Loaded", "pluginRequirements": ["Loaded.esp"] })");
+    folder.write("Missing/config.json", R"({ "modName": "Missing", "pluginRequirements": ["Missing.esp"] })");
+
+    const auto mods = mcm::loadConfigs(folder.path, {}, {}, [](const std::string_view plugin) {
+        return plugin == "Loaded.esp";
+    });
+
+    REQUIRE(namesOf(mods) == Lines{ "Loaded", "Missing" });
+    const auto missing = std::ranges::find(mods, "Missing", &model::Mod::name);
+    CHECK(missing->notAvailable == "its plugin Missing.esp is not loaded");
+    CHECK(std::ranges::find(mods, "Loaded", &model::Mod::name)->notAvailable.empty());
 }
 
 TEST_CASE("McmLoader: what is in the config folder and is not a mod's config is passed over")

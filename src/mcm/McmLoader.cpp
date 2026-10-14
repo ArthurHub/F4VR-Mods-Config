@@ -835,6 +835,46 @@ namespace
     }
 
     /**
+     * Why a mod is not available while a plugin of its `pluginRequirements` is not loaded, as
+     * `its plugins A.esp and B.esp are not loaded`. Empty while every one is, and with no check, as in a test
+     * of a config alone. MCM's menu checks each the same way, and names the missing ones.
+     */
+    std::string findMissingPlugins(const Json& config, const mcm::PluginCheck& isPluginLoaded)
+    {
+        const auto required = config.find("pluginRequirements");
+        if (!isPluginLoaded || required == config.end() || !required->is_array()) {
+            return {};
+        }
+        std::vector<std::string> missing;
+        for (const auto& plugin : *required) {
+            if (plugin.is_string() && !isPluginLoaded(plugin.get_ref<const std::string&>())) {
+                missing.push_back(plugin.get<std::string>());
+            }
+        }
+        if (missing.empty()) {
+            return {};
+        }
+        if (missing.size() == 1) {
+            return std::format("its plugin {} is not loaded", missing[0]);
+        }
+        std::string names = missing[0];
+        for (std::size_t i = 1; i < missing.size(); ++i) {
+            names += (i + 1 == missing.size() ? " and " : ", ") + missing[i];
+        }
+        return std::format("its plugins {} are not loaded", names);
+    }
+
+    /**
+     * Whether a game plugin is loaded in the running game, as MCM's menu asks it of `mcm_vr.dll`: one that is
+     * in the Data folder and not enabled is not.
+     */
+    bool isGamePluginLoaded(const std::string_view plugin)
+    {
+        auto* const dataHandler = RE::TESDataHandler::GetSingleton();
+        return dataHandler && dataHandler->LookupLoadedFile(plugin).first;
+    }
+
+    /**
      * A path as UTF-8 text for the log. A path's own string() throws on a name the system's code page lacks.
      */
     std::string toLogText(const std::filesystem::path& path)
@@ -857,10 +897,11 @@ namespace mods_config::mcm
      * An image is read from the `lib.swf` of the mod its row names, in that mod's folder of the config folder.
      * The files of a `dropdownFiles` are listed from the game's folder, which has the config folder in
      * `Data\MCM\Config`: the game's own folder is the one it runs in.
+     * A mod whose required plugins are not all loaded is not available, and is its names and the reason alone.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
      */
     std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations, const std::filesystem::path& interfaceFolder,
-        const std::filesystem::path& configFolder)
+        const std::filesystem::path& configFolder, const PluginCheck& isPluginLoaded)
     {
         Json config;
         try {
@@ -888,6 +929,10 @@ namespace mods_config::mcm
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
         }
+        mod.notAvailable = findMissingPlugins(config, isPluginLoaded);
+        if (!mod.notAvailable.empty()) {
+            return mod;
+        }
         McmConfigImages images(configFolder);
         const auto gameFolder = configFolder.parent_path().parent_path().parent_path();
         std::unordered_set<std::string> takenIds;
@@ -904,9 +949,11 @@ namespace mods_config::mcm
 
     /**
      * Loads the `config.json` of every folder in MCM's config folder, which is `Data\MCM\Config` in the game.
-     * A config that cannot be read is left out, with the reason in the log. No such folder is no mods.
+     * A config that cannot be read is a mod that is not available, named by its folder as in MCM's menu. A mod
+     * that is not available has the reason in the log. No such folder is no mods.
      */
-    std::vector<model::Mod> loadConfigs(const std::filesystem::path& configFolder, const model::Translations& translations, const std::filesystem::path& interfaceFolder)
+    std::vector<model::Mod> loadConfigs(const std::filesystem::path& configFolder, const model::Translations& translations, const std::filesystem::path& interfaceFolder,
+        const PluginCheck& isPluginLoaded)
     {
         std::vector<model::Mod> mods;
         std::error_code error;
@@ -919,11 +966,16 @@ namespace mods_config::mcm
             std::ostringstream text;
             text << std::ifstream(file, std::ios::binary).rdbuf();
 
-            if (auto mod = loadConfig(text.str(), translations, interfaceFolder, configFolder)) {
-                mods.push_back(std::move(*mod));
-            } else {
-                logger::warn("MCM config '{}' is not loaded: {}", toLogText(file), mod.error());
+            auto mod = loadConfig(text.str(), translations, interfaceFolder, configFolder, isPluginLoaded);
+            if (!mod) {
+                logger::warn("MCM config '{}' cannot be read: {}", toLogText(file), mod.error());
+                const auto folderName = toLogText(folder->path().filename());
+                mod = model::Mod{ .name = folderName, .displayName = folderName, .frontPage = {}, .pages = {}, .notAvailable = "its config cannot be read" };
             }
+            if (!mod->notAvailable.empty()) {
+                logger::warn("MCM mod '{}' is not available: {}", mod->name, mod->notAvailable);
+            }
+            mods.push_back(std::move(*mod));
         }
         return mods;
     }
@@ -938,7 +990,7 @@ namespace mods_config::mcm
             logger::info("MCM is not loaded ({}): no MCM mods are listed", MCM_DLL);
             return {};
         }
-        auto mods = loadConfigs(MCM_CONFIG_FOLDER, translations, INTERFACE_FOLDER);
+        auto mods = loadConfigs(MCM_CONFIG_FOLDER, translations, INTERFACE_FOLDER, isGamePluginLoaded);
         logger::info("Loaded {} MCM mods from '{}'", mods.size(), MCM_CONFIG_FOLDER);
         return mods;
     }

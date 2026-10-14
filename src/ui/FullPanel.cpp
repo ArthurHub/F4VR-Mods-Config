@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <string_view>
 
 #include <imgui.h>
@@ -67,6 +68,20 @@ namespace
         }
         ui::drawText(min.x + theme::SPACE_2, max.x - theme::SPACE_1, min.y, theme::CONTROL_HEIGHT, color, text);
         return pressed;
+    }
+
+    /**
+     * A text of the menu's front page at the cursor, wrapped in the page's width, in the muted color. It is in
+     * from the edges of the page, as the texts of its rows are.
+     */
+    void pageText(const std::string_view text)
+    {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2);
+        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
+        ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x - theme::SPACE_2);
+        ImGui::TextUnformatted(text.data(), text.data() + text.size());
+        ImGui::PopTextWrapPos();
+        ImGui::PopStyleColor();
     }
 
     /**
@@ -151,14 +166,15 @@ namespace mods_config::ui
 
     /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
-     * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod.
+     * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod,
+     * and for a mod that is not available.
      * Another mod than before starts its editing session in the store, and no mod ends the one there is.
      * Returns whether it shows another page than before.
      */
     bool FullPanel::select(const Selection& selection)
     {
         Selection shown;
-        if (selection.mod && *selection.mod < _mods.size()) {
+        if (selection.mod && *selection.mod < _mods.size() && _mods[*selection.mod].notAvailable.empty()) {
             shown.mod = selection.mod;
             if (selection.page && *selection.page < _mods[*selection.mod].pages.size()) {
                 shown.page = selection.page;
@@ -223,7 +239,8 @@ namespace mods_config::ui
     /**
      * Draws the panel into the current ImGui window: the title bar, under it the tree of the mods with the
      * menu's front page or the selected mod's page beside it, and the footer at the bottom.
-     * The help line has the row of the page the ray is on, until the ray is on another or leaves the page:
+     * The help line has the row of the page the ray is on, or the row of the tree of a mod that is not
+     * available, until the ray is on another or leaves the page:
      * in the gap between two rows it keeps the row it has, so it does not flicker as the ray sweeps the rows.
      * With no row it says that the changes of the selected mod are saved as they are made.
      * A press selects once all of the panel is drawn, so a frame is drawn with one selection.
@@ -245,8 +262,9 @@ namespace mods_config::ui
         const auto bodyPos = ImGui::GetCursorScreenPos();
         const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
 
-        if (const auto row = _modTree.draw(_mods, _selection, bodyHeight)) {
-            pressed = row;
+        auto tree = _modTree.draw(_mods, _selection, bodyHeight);
+        if (tree.pressed) {
+            pressed = tree.pressed;
         }
 
         ImGui::SameLine(0.0f, theme::SPACE_4);
@@ -270,6 +288,9 @@ namespace mods_config::ui
         }
         ImGui::EndChild();
 
+        if (!pointed) {
+            pointed = std::move(tree.pointed);
+        }
         if (pointed) {
             _helpLine.show(*pointed);
         } else if (!onPage) {
@@ -346,24 +367,19 @@ namespace mods_config::ui
 
     /**
      * The menu's front page, which is what the menu shows while no mod is selected: what the menu is, with its
-     * version, and the quick launch section. The section is left out while it has no entry.
+     * version, the quick launch section, and the notices: a line for each mod that is not available, with the
+     * reason its row in the tree has. A section is left out while it has nothing in it.
      * Returns the quick launch entry the ray is on, for the help line.
      */
     std::optional<PointedRow> FullPanel::drawFrontPage()
     {
-        // a page's own text is in from the edges of the page, as its rows' texts are
-        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + theme::SPACE_2, ImGui::GetCursorPosY() + theme::SPACE_1));
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
-        ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x - theme::SPACE_2);
-        ImGui::Text("Settings for the mods you have installed. Pick a mod on the left to see its settings.\nVersion %s", Version::NAME.data());
-        ImGui::PopTextWrapPos();
-        ImGui::PopStyleColor();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
+        pageText(std::format("Settings for the mods you have installed. Pick a mod on the left to see its settings.\nVersion {}", Version::NAME));
 
         std::optional<PointedRow> pointed;
-        if (_quickLaunch.empty()) {
-            return pointed;
+        if (!_quickLaunch.empty()) {
+            ImGui::SeparatorText("Quick launch");
         }
-        ImGui::SeparatorText("Quick launch");
         for (const auto& entry : _quickLaunch) {
             bool onRow = false;
             if (quickLaunchRow(entry.name.c_str(), onRow)) {
@@ -373,6 +389,18 @@ namespace mods_config::ui
             if (onRow) {
                 pointed = PointedRow{ .text = entry.name, .help = entry.help };
             }
+        }
+
+        bool hasNotices = false;
+        for (const auto& mod : _mods) {
+            if (mod.notAvailable.empty()) {
+                continue;
+            }
+            if (!hasNotices) {
+                ImGui::SeparatorText("Notices");
+                hasNotices = true;
+            }
+            pageText(std::format("{} is not available: {}.", mod.displayName, mod.notAvailable));
         }
         return pointed;
     }

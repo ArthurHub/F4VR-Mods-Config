@@ -428,5 +428,9 @@ namespace mods_config::model
         std::string displayName;
         Page frontPage;
         std::vector<Page> pages;
+
+        // why the mod is not available, as `its plugin SS2.esm is not loaded`: empty for one that is. A mod
+        // that is not available has its names and this, and no pages
+        std::string notAvailable;
     };
 }

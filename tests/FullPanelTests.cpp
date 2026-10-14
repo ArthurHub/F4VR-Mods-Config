@@ -549,6 +549,33 @@ TEST_CASE("FullPanel: a press where the tree has no row changes nothing")
     CHECK(panel.selection() == selectionOf(1));
 }
 
+TEST_CASE("FullPanel: a mod that is not available is a row of the tree, which a press does not select, and says why")
+{
+    const test_panel::PanelContext context;
+    auto missing = modOf("Beta");
+    missing.notAvailable = "its plugin Beta.esp is not loaded";
+    FullPanel panel;
+    panel.setMods({ modOf("Gamma"), std::move(missing), modOf("Alpha", { "First" }) });
+    drawFrames(panel, 2);
+
+    // in its place by name
+    CHECK(namesOf(panel) == Names{ "Alpha", "Beta", "Gamma" });
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == Selection{});
+    CHECK(panel.helpLine().text() == "Beta: Not available: its plugin Beta.esp is not loaded.");
+
+    // the help leaves with the ray, as the tree's rows have no help of their own
+    point(panel, treeRow(2));
+    CHECK(panel.helpLine().text().empty());
+
+    // nor is it selected from outside the tree, as the devbench tool selects
+    CHECK_FALSE(panel.select(selectionOf(1)));
+    CHECK(panel.selection() == Selection{});
+    panel.select(selectionOf(0));
+    panel.select(selectionOf(1));
+    CHECK(panel.selection() == Selection{});
+}
+
 TEST_CASE("FullPanel: a breadcrumb before the last is pressed to go there")
 {
     const test_panel::PanelContext context;

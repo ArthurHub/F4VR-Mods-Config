@@ -447,6 +447,29 @@ TEST_CASE("FullPanel render: no mods and no quick launch", "[.render]")
     WARN("Saved " << renderToFile(panel, "front-page-empty", POINTER_AWAY));
 }
 
+TEST_CASE("FullPanel render: mods that are not available, in the tree and in the notices, with the ray on one", "[.render]")
+{
+    const auto notAvailable = [](const std::string& name, const std::string& reason) {
+        return model::Mod{ .name = name, .displayName = name, .frontPage = {}, .pages = {}, .notAvailable = reason };
+    };
+    std::vector<model::Mod> mods;
+    mods.push_back(modOf("XDI"));
+    mods.push_back(modOf("Chemfluence"));
+    mods.push_back(notAvailable("Sim Settlements 2", "its plugin SS2.esm is not loaded"));
+    mods.push_back(notAvailable("BrokenConfig", "its config cannot be read"));
+    mods.push_back(modOf("Workshop Framework", { "Hotkeys", "Settlement Gameplay" }));
+
+    FullPanel panel;
+    panel.setMods(std::move(mods));
+    panel.setQuickLaunch({ { .name = "FRIK", .help = "Opens FRIK's own configuration in the world.", .open = [] {
+                            } } });
+
+    // the third row of the tree, which is Sim Settlements 2's in the order of the names
+    const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
+    const ImVec2 onRow(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, rowsTop + 2.0f * (theme::CONTROL_HEIGHT + theme::SPACE_1) + theme::CONTROL_HEIGHT * 0.5f);
+    WARN("Saved " << renderToFile(panel, "mods-not-available", onRow));
+}
+
 TEST_CASE("FullPanel render: a mod's front page, with the ray on the row of another mod", "[.render]")
 {
     auto panel = testSetPanel();

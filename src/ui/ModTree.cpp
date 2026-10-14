@@ -1,6 +1,7 @@
 #include "ModTree.h"
 
 #include <cstdint>
+#include <format>
 #include <string>
 #include <string_view>
 
@@ -36,6 +37,7 @@ namespace
     /**
      * The arrow of a mod's row: it points down at the mod whose pages are the rows under it, and right at
      * any other. A mod with no pages has nothing to open, so its arrow stays when it is selected.
+     * It is faded in a disabled row, as the row's text is.
      */
     void drawArrow(const ImVec2& rowMin, const bool open, const ImU32 color)
     {
@@ -44,9 +46,9 @@ namespace
             return ImVec2(box.x + x, box.y + y);
         };
         if (open) {
-            ImGui::GetWindowDrawList()->AddTriangleFilled(at(2.0f, 4.0f), at(12.0f, 4.0f), at(7.0f, 11.0f), color);
+            ImGui::GetWindowDrawList()->AddTriangleFilled(at(2.0f, 4.0f), at(12.0f, 4.0f), at(7.0f, 11.0f), ImGui::GetColorU32(color));
         } else {
-            ImGui::GetWindowDrawList()->AddTriangleFilled(at(4.0f, 2.0f), at(11.0f, 7.0f), at(4.0f, 12.0f), color);
+            ImGui::GetWindowDrawList()->AddTriangleFilled(at(4.0f, 2.0f), at(11.0f, 7.0f), at(4.0f, 12.0f), ImGui::GetColorU32(color));
         }
     }
 
@@ -98,6 +100,28 @@ namespace
         ui::drawText(nameLeft, max.x - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, color, name);
         return pressed;
     }
+
+    /**
+     * The row of a mod that is not available, at the cursor, in the width of every row. It is disabled: it
+     * has the look of a row under the ray, so the reason in the help line is seen to be its, and none of a
+     * press, which does nothing. Returns whether the ray is on the row.
+     */
+    bool notAvailableRow(const std::string_view name, const float width)
+    {
+        const auto min = ImGui::GetCursorScreenPos();
+        ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
+        if (!ImGui::IsItemVisible()) {
+            return false;
+        }
+        const bool pointed = ImGui::IsItemHovered();
+        ui::drawRowState();
+
+        ImGui::BeginDisabled();
+        drawArrow(min, false, theme::color::GREEN);
+        ui::drawText(min.x + theme::SPACE_2 + ARROW_COLUMN + theme::SPACE_2, min.x + width - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
+        ImGui::EndDisabled();
+        return pointed;
+    }
 }
 
 namespace mods_config::ui
@@ -106,11 +130,12 @@ namespace mods_config::ui
      * Draws the tree at the cursor of the current ImGui window, in the height it is given. The header stays,
      * and the rows scroll under it.
      * The selected mod's own row is its front page, and it is open when it has pages: they are the rows under it.
-     * Returns what a pressed row selects.
+     * A mod that is not available is a disabled row, in its place, which says why while the ray is on it.
+     * Returns what a pressed row selects, and the row of a mod that is not available the ray is on.
      */
-    std::optional<Selection> ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height)
+    TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height)
     {
-        std::optional<Selection> pressed;
+        TreeDrawn drawn;
         // a row is the same width whether or not the scroll bar shows
         const float rowWidth = _width - theme::SPACE_2 - RIGHT_ROOM;
 
@@ -143,13 +168,20 @@ namespace mods_config::ui
                     const bool selected = selection.mod == modIndex;
                     const bool open = selected && !mod.pages.empty();
                     ImGui::PushID(static_cast<int>(modIndex));
+                    if (!mod.notAvailable.empty()) {
+                        if (notAvailableRow(mod.displayName, rowWidth)) {
+                            drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
+                        }
+                        ImGui::PopID();
+                        continue;
+                    }
                     if (treeRow(mod.displayName, open ? RowKind::OpenMod : RowKind::ClosedMod, selected && !selection.page, _showSelection, rowWidth)) {
-                        pressed = Selection{ .mod = modIndex, .page = std::nullopt };
+                        drawn.pressed = Selection{ .mod = modIndex, .page = std::nullopt };
                     }
                     for (std::size_t pageIndex = 0; open && pageIndex < mod.pages.size(); ++pageIndex) {
                         ImGui::PushID(static_cast<int>(pageIndex));
                         if (treeRow(mod.pages[pageIndex].name, RowKind::Page, selection.page == pageIndex, _showSelection, rowWidth)) {
-                            pressed = Selection{ .mod = modIndex, .page = pageIndex };
+                            drawn.pressed = Selection{ .mod = modIndex, .page = pageIndex };
                         }
                         ImGui::PopID();
                     }
@@ -161,7 +193,7 @@ namespace mods_config::ui
         }
         ImGui::PopStyleVar();
         ImGui::EndChild();
-        return pressed;
+        return drawn;
     }
 
     /**

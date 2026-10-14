@@ -132,7 +132,8 @@ namespace mods_config::devbench
         }
 
         /**
-         * The mods the menu lists, in its order: each with its names and the names of its pages.
+         * The mods the menu lists, in its order: each with its names, the names of its pages, and why it is not
+         * available, which is null for one that is.
          */
         json runMods(const json&)
         {
@@ -142,14 +143,18 @@ namespace mods_config::devbench
                 for (const auto& page : mod.pages) {
                     pages.push_back(page.name);
                 }
-                mods.push_back({ { "name", mod.name }, { "displayName", mod.displayName }, { "pages", std::move(pages) } });
+                mods.push_back({ { "name", mod.name },
+                    { "displayName", mod.displayName },
+                    { "pages", std::move(pages) },
+                    { "notAvailable", mod.notAvailable.empty() ? json(nullptr) : json(mod.notAvailable) } });
             }
             return { { "mods", std::move(mods) } };
         }
 
         /**
          * Shows a mod's front page or one of its pages, as a press on its row does: the mod by its name, and
-         * the page by its name. With no mod it is the menu's front page.
+         * the page by its name. With no mod it is the menu's front page. A mod that is not available is not
+         * shown, as its row is not pressed.
          */
         json runSelect(const json& args)
         {
@@ -164,6 +169,9 @@ namespace mods_config::devbench
                 const auto mod = std::ranges::find(mods, modName, &model::Mod::name);
                 if (mod == mods.end()) {
                     throw std::runtime_error("no mod is named '" + modName + "'");
+                }
+                if (!mod->notAvailable.empty()) {
+                    throw std::runtime_error("the mod is not available: " + mod->notAvailable);
                 }
                 selection.mod = static_cast<std::size_t>(mod - mods.begin());
 
@@ -204,7 +212,7 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "mods",
-            .description = "the mods the menu lists, in its order: each with its name, its display name and its pages",
+            .description = "the mods the menu lists, in its order: each with its name, its display name, its pages, and why it is not available (null for one that is)",
             .handler = &runMods,
         });
         f4cf::devbench::addAction({

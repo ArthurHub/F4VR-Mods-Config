@@ -305,7 +305,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M40 | mod  | The actions beside `CallFunction`                                    | done      |
 | M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | done      |
 | M104 | mod | The text of a row has the size and the color of its font tags        | done      |
-| M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo      |
+| M41 | mod  | A mod that is not available: its disabled row, and the notices       | done      |
 | M42 | mod  | A page that is shown reads its values again                          | todo      |
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo      |
 
@@ -420,7 +420,15 @@ JOURNEY's rows run its script, with their typed parameters. The trial, and a loa
 
 M104 draws the text of a row as MCM's menu does: a setting, a button, a hotkey and a placeholder have the size and the color of its `<font>` tags, on one line. A size is no larger than the rows' text, so the text stays in its row, and a `<br>` and a paragraph are a space. Sim Settlements 2's switchers are smaller, and JOURNEY has one in gray. A section is its text without the tags, in the look of a heading. The help line and the log have the text without its tags. The MCM showcase has a switcher in a small gray, and one with a red and a large word that ends in an ellipsis.
 
-M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices): one whose required plugins are missing, and one whose config does not parse, which until then is in the log alone. It adds the notices to the menu's front page.
+M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices), as MCM's menu (`mcm/MCM_Menu.as`) finds one:
+
+- A config's `pluginRequirements` names the game plugins its mod needs. While one is not loaded the mod is not available, and the reason names each that is not: `its plugins A.esp and B.esp are not loaded`. A plugin is loaded as `mcm_vr.dll` checks it for MCM's menu: one that is in the Data folder and not enabled is not.
+- A config that cannot be read is a mod that is not available, named by its folder, as in MCM's menu: `its config cannot be read`. The log has what is wrong with it.
+- A mod that is not available is its names and the reason alone: its pages are not read. The log has the reason too.
+- Its row is in the tree, in its place by name, and is disabled: a press does nothing, and the row has the look of a row under the ray. While the ray is on it, the help line says why: `Sim Settlements 2: Not available: its plugin SS2.esm is not loaded.`
+- The front page has a `Notices` section after the quick launch section, with a line for each such mod and the same reason: `Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.` It is left out while there is none.
+- `minMcmVersion` is not checked: it asks for a version of MCM's own menu, and a row this menu does not show says so on its own.
+- 43 of the 69 MCM configs of the author's lists name a required plugin. A trial needs no test mod: a plugin of an MCM mod is disabled in MO2, and its config kept.
 
 M43 answers the MCM items of [Open questions](open-questions.md). Its table also lists the names of DearModdingUI's inventory that are no type of MCM's menu, as `menu` and `switch`, and that each is a placeholder: M38 has why.
 
