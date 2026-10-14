@@ -581,6 +581,25 @@ TEST_CASE("McmLoader: a group that two rows control is on with the later one")
     CHECK(conditionsOf(page.items).back() == "second");
 }
 
+TEST_CASE("McmLoader: a hidden switcher is a switcher that is never shown, and controls its group")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "hiddenSwitcher", "groupControl": 1, "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp|1752" } },
+        { "type": "text", "text": "A row of its group", "groupCondition": 1 },
+        { "type": "switcher", "text": "Unfold", "id": "bUnfold:Main", "groupControl": 2 },
+        { "type": "hiddenSwitcher", "id": "bBusy:Main", "groupControl": 3, "groupCondition": 2, "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "text", "text": "A row of the group of one with a condition", "groupCondition": 3 }
+    )");
+
+    // any() never holds: its own condition does not show it
+    CHECK(conditionsOf(page.items) == Lines{ "any()", "main/1", "always", "any()", "bBusy:Main" });
+
+    const auto& first = std::get<model::Setting>(page.items[0]);
+    CHECK(first.type == model::SettingType::Switcher);
+    CHECK(first.storage == model::Storage(model::GlobalStorage{ .plugin = "MyMod.esp", .formId = 0x1752 }));
+    CHECK(std::get<model::Setting>(page.items[3]).storage == model::Storage(model::ModSettingStorage{ .name = "bBusy:Main", .type = model::StoredType::Bool }));
+}
+
 TEST_CASE("McmLoader: the groups of a page are its own, and a section's condition is of its heading alone")
 {
     const auto mod = loaded(R"({
@@ -611,6 +630,9 @@ TEST_CASE("McmLoader: a control the menu does not support is a placeholder with 
     const auto page = frontPageOf(R"(
         { "type": "color", "text": "Tint", "id": "iTint:Main" },
         { "type": "dropdownFiles", "text": "Preset" },
+        { "type": "positioner", "text": "Place of the widget" },
+        { "type": "keyinput", "text": "Keys" },
+        { "type": "switch", "text": "A name MCM's menu does not have" },
         { "type": "Switcher", "text": "A type in another letter case" },
         { "text": "A row with no type" },
         { "type": 3, "text": "A type that is not a text" },
@@ -620,6 +642,9 @@ TEST_CASE("McmLoader: a control the menu does not support is a placeholder with 
     CHECK(describe(page) == Lines{
                                 "placeholder color: Tint",
                                 "placeholder dropdownFiles: Preset",
+                                "placeholder positioner: Place of the widget",
+                                "placeholder keyinput: Keys",
+                                "placeholder switch: A name MCM's menu does not have",
                                 "placeholder Switcher: A type in another letter case",
                                 "placeholder : A row with no type",
                                 "placeholder : A type that is not a text",

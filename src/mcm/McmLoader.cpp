@@ -397,9 +397,13 @@ namespace
 
     using SettingTypeName = std::pair<std::string_view, model::SettingType>;
 
+    // a switcher MCM's menu never shows: a script sets its value, and it controls a group as a switcher does
+    constexpr std::string_view HIDDEN_SWITCHER = "hiddenSwitcher";
+
     // the rows that edit a value, by the type MCM's own menu knows each by
     constexpr std::array SETTING_TYPES{
         SettingTypeName{ "switcher", model::SettingType::Switcher },
+        SettingTypeName{ HIDDEN_SWITCHER, model::SettingType::Switcher },
         SettingTypeName{ "slider", model::SettingType::Slider },
         SettingTypeName{ "stepper", model::SettingType::Stepper },
         SettingTypeName{ "dropdown", model::SettingType::Dropdown },
@@ -435,6 +439,7 @@ namespace
      * A setting has the `id` of its row. One with none, or with an id another setting of the mod has, gets
      * one from its place: the page's name for an id and the place of its row, from 1, as `main/2`.
      * A group that two rows control is on with the later one, as it is when MCM's menu opens the page.
+     * A hidden switcher is a setting too: it has a value and controls a group, and only is not shown.
      */
     PageRows readPageRows(const Json& content, const std::string& pageId, std::unordered_set<std::string>& takenIds)
     {
@@ -520,9 +525,13 @@ namespace
 
     /**
      * What a row is shown by: its `groupCondition`. None for a row that is always shown.
+     * A hidden switcher is never shown, whatever its `groupCondition`, as in MCM's menu.
      */
     std::optional<model::Condition> loadVisibleWhen(const Json& row, const Groups& groups)
     {
+        if (getText(row, "type") == HIDDEN_SWITCHER) {
+            return model::Condition{ .kind = model::Condition::Kind::Any, .setting = {}, .conditions = {} };
+        }
         const auto found = row.find("groupCondition");
         if (found == row.end()) {
             return std::nullopt;

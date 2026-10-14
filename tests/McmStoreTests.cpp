@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -10,6 +11,7 @@
 #include "TestProperties.h"
 #include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
+#include "model/Conditions.h"
 #include "model/Definition.h"
 
 using namespace mods_config;
@@ -608,6 +610,30 @@ TEST_CASE("McmStore: the hotkeys of the MCM showcase are in its keybinds file, b
     CHECK(store.hotkey({ .id = "TestHotkeyA", .text = {} }).available);
     CHECK(store.hotkey({ .id = "TestHotkeyB", .text = {} }).available);
     CHECK_FALSE(store.hotkey({ .id = "TestHotkeyMissing", .text = {} }).available);
+}
+
+TEST_CASE("McmStore: a hidden switcher of the MCM showcase that is on shows the row of its group, and one that is off does not")
+{
+    const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    McmStore store(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
+    store.open(mods[0]);
+
+    const auto page = std::ranges::find(mods[0].pages, "Buttons, text input and others", &model::Page::name);
+    REQUIRE(page != mods[0].pages.end());
+    const auto section = std::ranges::find_if(page->items, [](const model::Item& item) {
+        const auto* group = std::get_if<model::Group>(&item);
+        return group && group->text == "Hidden switchers";
+    });
+    REQUIRE(section != page->items.end());
+
+    // the two hidden switchers, and the text row of the group of each
+    const auto& rows = std::get<model::Group>(*section).items;
+    REQUIRE(rows.size() == 4);
+    CHECK_FALSE(model::holds(*std::get<model::Setting>(rows[0]).visibleWhen, store));
+    CHECK_FALSE(model::holds(*std::get<model::Setting>(rows[1]).visibleWhen, store));
+    CHECK(model::holds(*std::get<model::Text>(rows[2]).visibleWhen, store));
+    CHECK_FALSE(model::holds(*std::get<model::Text>(rows[3]).visibleWhen, store));
 }
 
 TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its settings file")

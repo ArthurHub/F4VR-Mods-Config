@@ -38,7 +38,7 @@ What it has:
 
 What it does not have, from DearModdingUI's inventory of MCM:
 
-- Controls: `dropdownFiles`, `color`, `hidden` and `hiddenSwitcher`, `menu` and `enum`, and the other names of controls it has (`switch`, `input`, `header`, `empty`, `keymap`).
+- Controls: `dropdownFiles`, `hiddenSwitcher`, `positioner` and `keyinput`, which MCM's menu has. The inventory also has `color`, `hidden`, `menu` and `enum`, and other names of controls (`switch`, `input`, `header`, `empty`, `keymap`): MCM's menu has none of them, and shows an empty line for a type it does not know.
 - Value sources: `PropertyValueBool`, `PropertyValueFloat`, `PropertyValueString`.
 - Actions: `CallGlobalFunction`, `CallExternalFunction`, `SendEvent`, `RunConsoleCommand`, and parameters that are plain numbers and booleans.
 - Conditions: `OR`, and a condition inside a condition.
@@ -300,7 +300,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M35 | mod  | Hotkeys are shown read-only                                          | done      |
 | M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | done      |
 | M102 | mod | A ModSetting is reset to the default of its mod                      | done      |
-| M38 | mod  | The hidden controls, `menu`, `enum`, and the other names of controls | todo      |
+| M38 | mod  | A hidden switcher controls its group, and is not shown               | done      |
 | M39 | mod  | `dropdownFiles`                                                      | todo      |
 | M40 | mod  | The actions beside `CallFunction`                                    | todo      |
 | M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | todo      |
@@ -369,7 +369,14 @@ M102 gives a row whose setting has a default its Reset, which MCM's menu does no
 - A text input has no Reset until it is edited, in milestone 4.
 - The test set has 151 ModSettings. The ModSettings of the MCM showcase all have a default, so each of its rows has a Reset, which is disabled until the row is changed.
 
-M38 shows `color` as a placeholder until the Color control of milestone 9.
+M38 reads a `hiddenSwitcher`, as MCM's menu (`mcm/MCM_Menu.as`) has it:
+
+- It is a switcher that is never shown, whatever its `groupCondition`. A script sets its value, and it controls a group with its `groupControl`: a mod shows a row with it while something of the game holds, as Global Stash shows a warning while it is busy.
+- It is a setting of the model with a condition that never holds, so the store has its value and the page draws nothing for it. The definition and the UI do not change.
+- Its value is read in every frame, as any other, so its group shows and hides while the page is shown. MCM's menu reads it as the page is opened.
+- One with no `sourceType` is off, so its group is never on, as in MCM's menu.
+- The other controls of DearModdingUI's inventory are not MCM's: `hidden`, `menu`, `enum`, `color`, `switch`, `input`, `header`, `empty` and `keymap` are no type of MCM's menu, so no MCM config has them, and each stays a placeholder with its type. So do `positioner` and `keyinput`, which MCM's menu has and the inventory does not: no mod of the author's lists has one.
+- The author's lists have 7 `hiddenSwitcher`: 4 in Global Stash, 2 in JOURNEY and 1 in NAC X. The MCM showcase has two, one on and one off, with a text row of the group of each.
 
 M40 supports each action, or marks it unsupported with the reason.
 
@@ -379,11 +386,11 @@ M37 tries in the game what M38 and M40 make and the test set does not have, with
 - JOURNEY has a `CallGlobalFunction`, 5 times, with `{b}` and `{i}` parameters, and 2 `hiddenSwitcher`. Its MCM config is a mod of its own, beside the mod.
 - Game Configuration Menu, which M32 installed, has the parameters that are JSON numbers.
 - The MCM showcase has a `RunConsoleCommand`, which M40 adds to it: no mod of the author's lists has one, and it needs no script.
-- No mod of the author's lists has the rest, so it is not tried with a real script: a `PropertyValueString`, a property with a `scriptName`, an `OR` condition and one inside another, `CallExternalFunction`, `SendEvent`, and the controls of M38 and M39 beside `hiddenSwitcher`. The unit tests cover it, and the MCM showcase has a row of what needs no script.
+- No mod of the author's lists has the rest, so it is not tried with a real script: a `PropertyValueString`, a property with a `scriptName`, an `OR` condition and one inside another, `CallExternalFunction`, `SendEvent`, and the `dropdownFiles` of M39. The unit tests cover it, and the MCM showcase has a row of what needs no script.
 
 M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices): one whose required plugins are missing, and one whose config does not parse, which until then is in the log alone. It adds the notices to the menu's front page.
 
-M43 answers the MCM items of [Open questions](open-questions.md).
+M43 answers the MCM items of [Open questions](open-questions.md). Its table also lists the names of DearModdingUI's inventory that are no type of MCM's menu, as `menu` and `switch`, and that each is a placeholder: M38 has why.
 
 ### 4. VR keyboard
 
@@ -406,6 +413,7 @@ The largest milestone. A package's features match MCM's, but its lifecycle is ne
 
 | #   | Repo | Commit                                                                                    | Status |
 | --- | ---- | ----------------------------------------------------------------------------------------- | ------ |
+| M103 | mod | docs: what a package has beyond MCM                                                      | todo   |
 | M47 | mod  | The package loader: files, pages, sections and settings, and Mods Config VR's own package | todo   |
 | M48 | mod  | Choices and conditions in a package                                                       | todo   |
 | M49 | mod  | A package's button calls a Papyrus function, as an MCM button does                        | todo   |
@@ -421,6 +429,13 @@ The largest milestone. A package's features match MCM's, but its lifecycle is ne
 | M59 | mod  | Text, spacers and images in a package                                                     | todo   |
 | M60 | mod  | A package whose requirements are missing is not available                                 | todo   |
 | M61 | mod  | A package's errors are reported                                                           | todo   |
+
+M103 decides what the package schema has that MCM does not, before any of it is built. It updates [Declarative schema](schema.md), and M47 builds what it has then:
+
+- M43's table shows what MCM lacks, and what its authors work around: a `hiddenSwitcher` that controls a group, the numbers of groups, the types of parameters written in their text, and `{value}`.
+- M37's trial shows what real configs do with it.
+- Each item of Schema evolution in [Open questions](open-questions.md#schema-evolution) is put in the schema, left to the native API, or left out, with the reason.
+- What it leaves out can still be added before the first release. M82's version rules then fix the schema, and a later addition is a new version of it.
 
 M47 ships the first package, which is this mod's own, for `ModsConfigVR.ini`. The mod reloads its INI when it changes, so a Save shows at once with no other mod involved. A package's text takes the three forms of [Localization](schema.md#localization): plain, a `$` token, and a token with a fallback. The lookup of a token is M17's.
 
@@ -504,8 +519,6 @@ The milestone is measured by Immersive Flashlight's INI. Beside numbers, switche
 M74 settles what the design leaves open: a control that is bound to a whole section, a color in three keys, and whether a transform is moved in the world with the framework's live tuning.
 
 The commits after M74 are split once it is written. Transform, InputBinding and ActivationSphere are each likely two: edited in the panel, then tuned in the world. Color is likely two, and each of the values that are left a commit of its own.
-
-MCM's `color` rows use the Color control of M75.
 
 Immersive Flashlight's package and its client are commits in its own repository, on a framework with F29 and F30. They are made when the milestone needs them, and a build is enough.
 
