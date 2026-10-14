@@ -416,8 +416,9 @@ namespace mods_config::mcm
     }
 
     /**
-     * Runs the action of a button, as MCM's menu does for a press on it: a `CallFunction` calls its function,
-     * which Papyrus runs on its own time, so nothing is known of how it ends.
+     * Runs the action of a button, as MCM's menu does for a press on it: a `CallFunction` and a
+     * `CallGlobalFunction` call their function, which Papyrus runs on its own time, so nothing is known of
+     * how it ends.
      * Returns false for a row with no action, for an action the store does not run, and for a function whose
      * form or script is not in the game.
      */

@@ -182,7 +182,9 @@ namespace
             .help = "Puts every value back.",
             .action = model::CallFunction{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .function = "ResetAll", .arguments = {} } });
         mod.frontPage.items.push_back(model::Button{ .text = "Nothing", .help = "Nothing runs.", .action = {} });
-        mod.frontPage.items.push_back(model::Button{ .text = "Notify", .help = "Shows a text.", .action = model::UnknownAction{ .type = "CallGlobalFunction" } });
+        mod.frontPage.items.push_back(model::Button{ .text = "Notify",
+            .help = "Shows a text.",
+            .action = model::UnknownAction{ .type = "CallExternalFunction", .reason = "Not available: the menu has no Flash." } });
 
         FullPanel panel;
         panel.setStore(&store);
@@ -826,7 +828,7 @@ TEST_CASE("FullPanel: the help line says why a button is not run")
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Nothing: Nothing runs.");
     point(panel, pageRow(2));
-    CHECK(panel.helpLine().text() == "Notify: Not available: the menu does not run a CallGlobalFunction.");
+    CHECK(panel.helpLine().text() == "Notify: Not available: the menu has no Flash.");
 }
 
 TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press on its row does nothing")

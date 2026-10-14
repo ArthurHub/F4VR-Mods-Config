@@ -755,19 +755,21 @@ TEST_CASE("McmStore: the action of a button calls its function, and no other act
 
     const model::CallFunction call{ .plugin = PLUGIN, .formId = 0x800, .script = "MyMod:Main", .function = "Apply", .arguments = { 40, true, "a text"s } };
     CHECK(store.run(call));
-    CHECK(actions.called == std::vector{ call });
+    const model::CallFunction global{ .plugin = {}, .formId = 0, .script = "Debug", .function = "Notification", .arguments = { "Hi"s } };
+    CHECK(store.run(global));
+    CHECK(actions.called == std::vector{ call, global });
 
     // a button is no setting: MCM's menu sends no event for it
     CHECK(events.sent.empty());
 
     CHECK_FALSE(store.run(model::NoAction{}));
-    CHECK_FALSE(store.run(model::UnknownAction{ .type = "CallGlobalFunction" }));
-    CHECK(actions.called.size() == 1);
+    CHECK_FALSE(store.run(model::UnknownAction{ .type = "CallExternalFunction", .reason = {} }));
+    CHECK(actions.called.size() == 2);
 
     // a function of a form that is not in the game
     actions.inGame = false;
     CHECK_FALSE(store.run(call));
-    CHECK(actions.called.size() == 1);
+    CHECK(actions.called.size() == 2);
 }
 
 TEST_CASE("McmStore: a setting that is set runs the action of its row, with the value in its arguments")
@@ -814,9 +816,22 @@ TEST_CASE("McmStore: a setting that is set runs the action of its row, with the 
     text.action = call;
     CHECK(store.set(text, "Sanctuary"s));
     CHECK(actions.called[4].arguments == Arguments{ 0.0f, false, 0, "Is Sanctuary of {value}"s, "kept"s });
+
+    // a global function, which has no form, the same
+    auto global = globalSetting(SettingType::Switcher, 0x801);
+    global.action = model::CallFunction{ .plugin = {},
+        .formId = 0,
+        .script = "M8rJourney",
+        .function = "SetQuestRunning",
+        .arguments = { ""s },
+        .valueArguments = { { .place = 0, .text = "{value}", .type = Type::Bool } } };
+    CHECK(store.set(global, true));
+    REQUIRE(actions.called.size() == 6);
+    CHECK(actions.called[5].script == "M8rJourney");
+    CHECK(actions.called[5].arguments == Arguments{ true });
 }
 
-TEST_CASE("McmStore: no action is run for a value that is not written, and none but a CallFunction")
+TEST_CASE("McmStore: no action is run for a value that is not written, nor one the store does not run")
 {
     auto globals = someGlobals();
     TestActions actions;
@@ -832,7 +847,7 @@ TEST_CASE("McmStore: no action is run for a value that is not written, and none 
     CHECK(actions.called.empty());
 
     auto other = globalSetting(SettingType::Switcher, 0x801);
-    other.action = model::UnknownAction{ .type = "CallGlobalFunction" };
+    other.action = model::UnknownAction{ .type = "CallExternalFunction", .reason = {} };
     CHECK(store.set(other, true));
     CHECK(store.set(globalSetting(SettingType::Switcher, 0x801), false));
     CHECK(actions.called.empty());

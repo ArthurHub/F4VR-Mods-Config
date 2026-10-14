@@ -197,17 +197,18 @@ namespace mods_config::model
     };
 
     /**
-     * A call of a function of a Papyrus script, on a form of a game plugin the script is attached to.
+     * A call of a function of a Papyrus script, on a form of a game plugin the script is attached to. One
+     * with no form, an empty plugin, calls a global function of the script it names.
      */
     struct CallFunction
     {
-        // the file name of the form's plugin, as `MyMod.esp`
+        // the file name of the form's plugin, as `MyMod.esp`. Empty for a global function
         std::string plugin;
 
         // the form's id without the plugin's place in the load order
         std::uint32_t formId = 0;
 
-        // the script that has the function. Empty for the form's first script
+        // the script that has the function. Empty for the form's first script, which a global function does not have
         std::string script;
 
         // the name of the function
@@ -224,12 +225,15 @@ namespace mods_config::model
     };
 
     /**
-     * An action the menu does not run: its row is disabled.
+     * An action the menu does not run: a button of it is disabled, and a value row is set with nothing run.
      */
     struct UnknownAction
     {
         // what it is, as its config names it
         std::string type;
+
+        // what the help line of its button says of why it is not run
+        std::string reason;
 
         bool operator==(const UnknownAction&) const = default;
     };

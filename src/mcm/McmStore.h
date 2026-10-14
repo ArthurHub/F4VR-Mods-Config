@@ -36,8 +36,8 @@ namespace mods_config::mcm
     // tests/TestEvents.cpp, which keeps what is sent.
     void sendEvent(const std::string& event, const std::vector<std::string>& arguments = {});
 
-    // Calls a function of a script of a form, with its arguments. Returns false for one whose form or script
-    // is not in the game. The mod's is in McmActions.cpp, which queues the call to Papyrus, and the tests' in
+    // Calls a function of a script of a form, or a global function of a script, with its arguments. Returns
+    // false for one whose form or script is not in the game. The mod's is in McmActions.cpp, which queues the call to Papyrus, and the tests' in
     // tests/TestActions.cpp, which keeps what is called.
     bool callFunction(const model::CallFunction& call);
 
@@ -52,8 +52,8 @@ namespace mods_config::mcm
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
      * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`.
-     * The `CallFunction` of a button is run with `callFunction`, and so is the one of a value row, after its
-     * value is written, with the value in its arguments.
+     * The `CallFunction` and the `CallGlobalFunction` of a button are run with `callFunction`, and so are
+     * the ones of a value row, after its value is written, with the value in their arguments.
      */
     class McmStore : public model::Store
     {

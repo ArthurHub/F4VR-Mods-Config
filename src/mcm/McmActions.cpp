@@ -81,14 +81,36 @@ namespace
         }
         return described;
     }
+
+    /**
+     * The arguments of a call, packed as Papyrus takes them. It holds them while it lives, which the call is
+     * made in.
+     */
+    class PackedArguments
+    {
+    public:
+        PackedArguments(F4SEVR::VirtualMachine& vm, const std::vector<model::Value>& values)
+        {
+            for (const auto& value : values) {
+                addArgument(_arguments, value);
+            }
+            F4SEVR::PackValue(&packed, &_arguments, &vm);
+        }
+
+        F4SEVR::VMValue packed;
+
+    private:
+        F4SEVR::VMArray<F4SEVR::VMVariable> _arguments;
+    };
 }
 
 namespace mods_config::mcm
 {
     /**
-     * Calls a function of a script of a form, as `mcm_vr.dll` does for MCM's menu. The call is queued to
-     * Papyrus, which runs it on its own time and gives no result: a script that has no such function, or
-     * one with other parameters, has its error in Papyrus's log alone.
+     * Calls a function of a script of a form, or a global function of a script, as `mcm_vr.dll` does for
+     * MCM's menu. The call is queued to Papyrus, which runs it on its own time and gives no result: a script
+     * that has no such function, or one with other parameters, has its error in Papyrus's log alone, and so
+     * has a global function's script that is not in the game, which is not looked up.
      * Returns false for a call that is not queued, with the reason in the log: the form is not in the game,
      * or it has no such script attached.
      */
@@ -100,6 +122,15 @@ namespace mods_config::mcm
             logger::warn("The function {} is not called: Papyrus is not running", call.function);
             return false;
         }
+        const F4SEVR::BSFixedString function(call.function.c_str());
+        if (call.plugin.empty()) {
+            PackedArguments arguments(*vm, call.arguments);
+            const F4SEVR::BSFixedString script(call.script.c_str());
+            F4SEVR::CallGlobalFunctionNoWait_Internal(vm, 0, 0, &script, &function, &arguments.packed);
+            logger::debug("Called the global function {}.{}({})", call.script, call.function, describeArguments(call.arguments));
+            return true;
+        }
+
         const auto dataHandler = RE::TESDataHandler::GetSingleton();
         auto* form = dataHandler ? dataHandler->LookupForm(call.formId, call.plugin) : nullptr;
         if (!form) {
@@ -111,15 +142,8 @@ namespace mods_config::mcm
             logger::warn("The function {} is not called: the form {:X} of '{}' has no script '{}' attached", call.function, call.formId, call.plugin, call.script);
             return false;
         }
-
-        F4SEVR::VMArray<F4SEVR::VMVariable> arguments;
-        for (const auto& argument : call.arguments) {
-            addArgument(arguments, argument);
-        }
-        F4SEVR::VMValue packed;
-        F4SEVR::PackValue(&packed, &arguments, vm);
-        const F4SEVR::BSFixedString function(call.function.c_str());
-        F4SEVR::CallFunctionNoWait_Internal(vm, 0, script.get(), &function, &packed);
+        PackedArguments arguments(*vm, call.arguments);
+        F4SEVR::CallFunctionNoWait_Internal(vm, 0, script.get(), &function, &arguments.packed);
         logger::debug("Called the function {}({}) of the form {:X} of '{}'", call.function, describeArguments(call.arguments), call.formId, call.plugin);
         return true;
     }

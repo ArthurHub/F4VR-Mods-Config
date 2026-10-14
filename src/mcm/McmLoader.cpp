@@ -324,11 +324,53 @@ namespace
     }
 
     /**
-     * What a row runs, by the `type` of its `action`. A `CallFunction` names the form of its script in
-     * `form`, as `MyMod.esp|800`, and its function in `function`. It can name the script in `scriptName`,
-     * and have the parameters of the function in `params`.
-     * A row with no action runs nothing, and neither does a `CallFunction` that is not written so. Any other
-     * action is one the menu does not run.
+     * What the help line says of an action the menu does not run, by its `type`. MCM's menu runs none of these
+     * either but a `CallExternalFunction`, which calls a function an F4SE plugin gives a Flash menu.
+     */
+    std::string unknownActionReason(const std::string& type)
+    {
+        if (type == "CallExternalFunction") {
+            return "Not available: a CallExternalFunction calls a Flash function of an F4SE plugin, and the menu has no Flash.";
+        }
+        return type.empty() ? "Not available: the action has no type."s : std::format("Not available: the menu does not run a {}.", type);
+    }
+
+    /**
+     * The function a `CallFunction` or a `CallGlobalFunction` calls, with no parameters, or none for one
+     * that is not written so, with the reason in the log. A `CallFunction` names the form of its script in
+     * `form`, as `MyMod.esp|800`, and can name the script in `scriptName`. A `CallGlobalFunction` names its
+     * script in `script`, and has no form.
+     */
+    std::optional<model::CallFunction> loadCall(const Json& row, const Json& action, const bool global)
+    {
+        auto function = getText(action, "function");
+        if (global) {
+            auto script = getText(action, "script");
+            if (script.empty() || function.empty()) {
+                logger::warn("The global function '{}' of the script '{}' of the row '{}' has no name, or no script", function, script, getText(row, "text"));
+                return std::nullopt;
+            }
+            return model::CallFunction{ .plugin = {}, .formId = 0, .script = std::move(script), .function = std::move(function), .arguments = {}, .valueArguments = {} };
+        }
+        const auto formText = getText(action, "form");
+        auto form = parseSourceForm(formText);
+        if (!form || function.empty()) {
+            logger::warn("The function '{}' of the form '{}' of the row '{}' is not a name, and a plugin and an id in hex", function, formText, getText(row, "text"));
+            return std::nullopt;
+        }
+        return model::CallFunction{ .plugin = std::move(form->first),
+            .formId = form->second,
+            .script = getText(action, "scriptName"),
+            .function = std::move(function),
+            .arguments = {},
+            .valueArguments = {} };
+    }
+
+    /**
+     * What a row runs, by the `type` of its `action`, as MCM's menu runs it: a `CallFunction` and a
+     * `CallGlobalFunction`, with the parameters of the function in `params`.
+     * A row with no action runs nothing, and neither does a call that is not written so. Any other action is
+     * one the menu does not run, with the reason, which the log has for a row as it is loaded.
      * A value row gives its storage: a parameter of it with `{value}` is filled as the value is set. A
      * button gives none, and its `{value}` is a text as it is written, as in MCM's menu.
      */
@@ -339,22 +381,16 @@ namespace
             return model::NoAction{};
         }
         auto type = getText(*action, "type");
-        if (type != "CallFunction") {
-            return model::UnknownAction{ .type = std::move(type) };
+        if (type != "CallFunction" && type != "CallGlobalFunction") {
+            logger::info("The row '{}' has an action '{}', which the menu does not run", getText(row, "text"), type);
+            auto reason = unknownActionReason(type);
+            return model::UnknownAction{ .type = std::move(type), .reason = std::move(reason) };
         }
-        const auto formText = getText(*action, "form");
-        auto form = parseSourceForm(formText);
-        auto function = getText(*action, "function");
-        if (!form || function.empty()) {
-            logger::warn("The function '{}' of the form '{}' of the row '{}' is not a name, and a plugin and an id in hex", function, formText, getText(row, "text"));
+        auto loaded = loadCall(row, *action, type == "CallGlobalFunction");
+        if (!loaded) {
             return model::NoAction{};
         }
-        model::CallFunction call{ .plugin = std::move(form->first),
-            .formId = form->second,
-            .script = getText(*action, "scriptName"),
-            .function = std::move(function),
-            .arguments = {},
-            .valueArguments = {} };
+        auto& call = *loaded;
         if (const auto params = action->find("params"); params != action->end() && params->is_array()) {
             for (const auto& param : *params) {
                 if (valueStorage && param.is_string() && param.get_ref<const std::string&>().contains(VALUE_TOKEN)) {
@@ -365,7 +401,7 @@ namespace
                 }
             }
         }
-        return call;
+        return std::move(call);
     }
 
     /**

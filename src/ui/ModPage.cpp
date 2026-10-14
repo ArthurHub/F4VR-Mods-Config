@@ -388,7 +388,7 @@ namespace
             page.drawn.pressActed = true;
         }
         if (unknown) {
-            reason = std::format("Not available: the menu does not run a {}.", unknown->type.empty() ? "button of this kind" : unknown->type);
+            reason = unknown->reason;
         }
         if (!row.shown) {
             return false;

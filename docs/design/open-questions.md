@@ -32,6 +32,7 @@ A setting is stored in one key. An activation sphere spans a section, so it is a
 - Dynamic pages, options, visibility, and values supplied by native code
 - A condition that a game plugin is loaded, as `{ "plugin": "Other.esp", "loaded": true }`, for a row that needs another mod: what an MCM config does with a `hiddenSwitcher` on a property its script sets. It is static, and the check of `pluginRequirements` answers it. A condition on a value of the game that changes, as MCM's `hiddenSwitcher` on a global, stays with the native API
 - Whether and how declarative packages can extend an existing package owned by another component
+- A button that runs a console command, as `{ "type": "RunConsoleCommand", "command": "..." }`: MCM runs one for a hotkey, but not for a row of its menu. It needs no script, so a mod with no plugin of its own has buttons too
 
 ## Storage edge cases
 

@@ -40,7 +40,7 @@ What it does not have, from DearModdingUI's inventory of MCM:
 
 - Controls: `dropdownFiles`, `hiddenSwitcher`, `positioner` and `keyinput`, which MCM's menu has. The inventory also has `color`, `hidden`, `menu` and `enum`, and other names of controls (`switch`, `input`, `header`, `empty`, `keymap`): MCM's menu has none of them, and shows an empty line for a type it does not know.
 - Value sources: `PropertyValueBool`, `PropertyValueFloat`, `PropertyValueString`.
-- Actions: `CallGlobalFunction`, `CallExternalFunction`, `SendEvent`, `RunConsoleCommand`, and parameters that are plain numbers and booleans.
+- Actions: `CallGlobalFunction`, `CallExternalFunction`, and parameters that are plain numbers and booleans. The inventory also has `SendEvent` and `RunConsoleCommand`: MCM runs them for a hotkey alone, and its menu does nothing for them in a row.
 - Conditions: `OR`, and a condition inside a condition.
 - An image that is drawn as vectors or animated.
 - A mod whose `pluginRequirements` are not met, a config that does not parse, and a game language other than English.
@@ -302,7 +302,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M102 | mod | A ModSetting is reset to the default of its mod                      | done      |
 | M38 | mod  | A hidden switcher controls its group, and is not shown               | done      |
 | M39 | mod  | A `dropdownFiles` lists the files of a folder                        | done      |
-| M40 | mod  | The actions beside `CallFunction`                                    | todo      |
+| M40 | mod  | The actions beside `CallFunction`                                    | done      |
 | M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | todo      |
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo      |
 | M42 | mod  | A page that is shown reads its values again                          | todo      |
@@ -315,7 +315,7 @@ M33 makes a button run its `CallFunction`, as `mcm_vr.dll` does for MCM's menu:
 - The call is queued to Papyrus and gives no result. A script that has no such function, or one with other parameters, has its error in Papyrus's log alone.
 - A parameter has the type MCM's menu gives it. A text that begins with `{i}` is a whole number, and with `{f}` a number: a text that is no number is 0, and a whole number is cut at its point. Any other text is a text. A JSON bool is a bool. A JSON number is a number, also one that is written whole: Papyrus does not call a function that takes a number with a whole one, and Game Configuration Menu's weather buttons have `"params": [0]` for a function that takes a number.
 - One parameter differs from MCM's menu. A text that begins with `{b}` is off for nothing, `0` and `false`, and on for anything else. MCM's menu has it on for any text, also `{b}0` and `{b}false`, which is not what its author meant.
-- A button with no action is disabled, and so is one whose `CallFunction` names no form or no function, with the reason in the log. A button with any other action is disabled until M40, and the help line says that the menu does not run it.
+- A button with no action is disabled, and so is one whose `CallFunction` names no form or no function, with the reason in the log. A button with an action the menu does not run is disabled, and the help line says why (M40).
 - A function whose form is not in the game, or whose form has no such script attached, is not called: the press does nothing, and the log has the reason.
 - The store runs it with one function, `mcm::callFunction`, in `McmActions.cpp`. The unit tests link their own in its place, which keeps what is called.
 - MCM's menu sends no event for a button, and neither does this one.
@@ -330,7 +330,7 @@ M34 makes a value row run its `CallFunction` as its value is set, as MCM's menu 
 - A parameter with no `{value}` is as a button's. Sim Settlements 2 has `{i}{0}` to `{i}{10}`, which is no number and so 0, in MCM's menu too.
 - One thing differs from MCM's menu. `{value}` alone, in a row with no `sourceType`, is the value as a text. MCM's menu gives the script nothing there, for any row but a text input.
 - A function whose form is not in the game is not called, with the reason in the log. The value is set, and its event is sent.
-- A row with any other action sets its value, and runs nothing until M40.
+- A row with an action the menu does not run sets its value, and runs nothing (M40).
 - The model has it as the action of the setting. The store fills the parameters and calls `mcm::callFunction`, which M33 made.
 - The test set has 33 value rows with a `CallFunction`, in Sim Settlements 2 and Workshop Framework: switchers, dropdowns, a stepper and sliders, all of a global or a property. 22 have `{value}`. The MCM showcase has one, of a form that is not in the game.
 
@@ -387,15 +387,23 @@ M39 reads a `dropdownFiles`, as MCM's menu (`mcm/MCM_Menu.as`) has it:
 - One thing differs from MCM's menu. Its pick writes no name: the name of the file is lost on the way to the write, so MCM writes nothing useful and reads `None` the next time. Its own example (`KNOW ISSUES.txt`) keeps the name in a `ModSettingString` and loads it with `"Loading {value}!"`, which is what its author meant.
 - No mod of the author's lists has one. The MCM showcase has three on its "Steppers and dropdowns" page, of its own folder, and one with no storage.
 
-M40 supports each action, or marks it unsupported with the reason.
+M40 runs the actions MCM's menu (`mcm/OptionsList.as`) runs beside `CallFunction`, or says why it does not:
+
+- A `CallGlobalFunction` calls a global function of the script its `script` names, with its `params`, on a button and on a value row, as a `CallFunction` is called: the same parameters, `{value}` and order. It is queued to Papyrus as `mcm_vr.dll` queues it, with no lookup, so a script that is not in the game has its error in Papyrus's log alone.
+- One with no `script` or no `function` runs nothing, with the reason in the log, as a `CallFunction` with no form.
+- The model has it as a `CallFunction` with no form, and `mcm::callFunction` calls it.
+- A `CallExternalFunction` is not run: it calls a Flash function an F4SE plugin gives MCM's menu, and this menu has no Flash. Its button is disabled, and the help line says so. No mod of the author's lists has one.
+- MCM's menu runs no other action in a row: `RunConsoleCommand` and `SendEvent` are actions of a hotkey, which MCM runs. A row with one, or with an action of no type, is as one the menu does not run, and the help line of its button says that the menu does not run it.
+- A value row with an action the menu does not run is set as any other, and runs nothing. The log has each such action as its config is loaded.
+- The test set has one `CallGlobalFunction`, on a button. JOURNEY has 5, on value rows, with `{b}{value}` and `{i}{value}`. The MCM showcase has a button and a switcher of `Debug.Notification`, which need no script of a mod, and a button with a `CallExternalFunction`.
 
 M37 tries in the game what M38 and M40 make and the test set does not have, with two mods that are installed beside it. Its commit is what the trial finds:
 
 - Global Stash has a `CallFunction` with a `scriptName`, 15 times, one with a parameter that is a JSON bool, and 4 `hiddenSwitcher`.
 - JOURNEY has a `CallGlobalFunction`, 5 times, with `{b}` and `{i}` parameters, and 2 `hiddenSwitcher`. Its MCM config is a mod of its own, beside the mod.
 - Game Configuration Menu, which M32 installed, has the parameters that are JSON numbers.
-- The MCM showcase has a `RunConsoleCommand`, which M40 adds to it: no mod of the author's lists has one, and it needs no script.
-- No mod of the author's lists has the rest, so it is not tried with a real script: a `PropertyValueString`, a property with a `scriptName`, an `OR` condition and one inside another, `CallExternalFunction`, `SendEvent`, and the `dropdownFiles` of M39. The unit tests cover it, and the MCM showcase has a row of what needs no script.
+- The MCM showcase has a `CallGlobalFunction` of `Debug.Notification` on a switcher, which M40 adds to it, with the value in its text.
+- No mod of the author's lists has the rest, so it is not tried with a real script: a `PropertyValueString`, a property with a `scriptName`, an `OR` condition and one inside another, and the `dropdownFiles` of M39. The unit tests cover it, and the MCM showcase has a row of what needs no script.
 
 M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices): one whose required plugins are missing, and one whose config does not parse, which until then is in the log alone. It adds the notices to the menu's front page.
 

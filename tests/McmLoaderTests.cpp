@@ -1039,7 +1039,24 @@ TEST_CASE("McmLoader: a button has the function its action calls, with its param
     CHECK(std::get<model::CallFunction>(actionOf(2)).arguments == Arguments{ 0, 1, 0.0f, 2147483647, ""s, ""s });
 }
 
-TEST_CASE("McmLoader: a button with no action runs nothing, and one with another action is not run")
+TEST_CASE("McmLoader: a button has the global function its action calls, with no form")
+{
+    const auto page = frontPageOf(R"(
+        { "type": "button", "text": "Notify", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Hi", "{i}2"] } },
+        { "type": "button", "text": "A form is not read", "action": { "type": "CallGlobalFunction", "form": "MyMod.esp|800", "scriptName": "MyMod:Main", "script": "MyMod:Utils", "function": "Apply" } }
+    )");
+
+    const auto actionOf = [&page](const std::size_t place) {
+        return std::get<model::Button>(page.items[place]).action;
+    };
+    using Arguments = std::vector<model::Value>;
+
+    CHECK(actionOf(0) ==
+          model::Action(model::CallFunction{ .plugin = {}, .formId = 0, .script = "Debug", .function = "Notification", .arguments = Arguments{ "Hi"s, 2 }, .valueArguments = {} }));
+    CHECK(actionOf(1) == model::Action(model::CallFunction{ .plugin = {}, .formId = 0, .script = "MyMod:Utils", .function = "Apply", .arguments = {}, .valueArguments = {} }));
+}
+
+TEST_CASE("McmLoader: a button with no action runs nothing, and one with another action is not run, with the reason")
 {
     const auto page = frontPageOf(R"(
         { "type": "button", "text": "No action" },
@@ -1047,18 +1064,23 @@ TEST_CASE("McmLoader: a button with no action runs nothing, and one with another
         { "type": "button", "text": "No form", "action": { "type": "CallFunction", "function": "ResetAll" } },
         { "type": "button", "text": "A form that is no id", "action": { "type": "CallFunction", "form": "MyMod.esp|Quest", "function": "ResetAll" } },
         { "type": "button", "text": "No function", "action": { "type": "CallFunction", "form": "MyMod.esp|800" } },
-        { "type": "button", "text": "A global function", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Hi"] } },
+        { "type": "button", "text": "A global function with no script", "action": { "type": "CallGlobalFunction", "function": "Notification" } },
+        { "type": "button", "text": "A global function with no name", "action": { "type": "CallGlobalFunction", "script": "Debug" } },
+        { "type": "button", "text": "A Flash function", "action": { "type": "CallExternalFunction", "plugin": "MyPlugin", "function": "Apply" } },
+        { "type": "button", "text": "A hotkey's action", "action": { "type": "RunConsoleCommand", "command": "tgm" } },
         { "type": "button", "text": "No type", "action": { "function": "ResetAll" } }
     )");
 
     const auto actionOf = [&page](const std::size_t place) {
         return std::get<model::Button>(page.items[place]).action;
     };
-    for (std::size_t place = 0; place < 5; ++place) {
+    for (std::size_t place = 0; place < 7; ++place) {
         CHECK(actionOf(place) == model::Action(model::NoAction{}));
     }
-    CHECK(actionOf(5) == model::Action(model::UnknownAction{ .type = "CallGlobalFunction" }));
-    CHECK(actionOf(6) == model::Action(model::UnknownAction{ .type = {} }));
+    CHECK(actionOf(7) == model::Action(model::UnknownAction{ .type = "CallExternalFunction",
+                             .reason = "Not available: a CallExternalFunction calls a Flash function of an F4SE plugin, and the menu has no Flash." }));
+    CHECK(actionOf(8) == model::Action(model::UnknownAction{ .type = "RunConsoleCommand", .reason = "Not available: the menu does not run a RunConsoleCommand." }));
+    CHECK(actionOf(9) == model::Action(model::UnknownAction{ .type = {}, .reason = "Not available: the action has no type." }));
 }
 
 TEST_CASE("McmLoader: a value row has the function its action calls, with the parameters its value is put in")
@@ -1117,4 +1139,41 @@ TEST_CASE("McmLoader: a value row has the function its action calls, with the pa
     const auto button = std::get<model::CallFunction>(std::get<model::Button>(page.items[5]).action);
     CHECK(button.arguments == Arguments{ "{value}"s });
     CHECK(button.valueArguments.empty());
+}
+
+TEST_CASE("McmLoader: a value row has the global function its action calls, with the value, and another action is not run")
+{
+    // as JOURNEY has them
+    const auto page = frontPageOf(R"(
+        {
+            "type": "switcher", "text": "Running", "id": "bQuestIsRunning:JOURNEY", "valueOptions": { "sourceType": "ModSettingBool" },
+            "action": { "type": "CallGlobalFunction", "script": "M8rJourney", "function": "SetQuestRunning", "params": ["{b}{value}"] }
+        },
+        {
+            "type": "dropdown", "text": "Travel mode", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "Journey.esp|5BAE", "options": ["A", "B"] },
+            "action": { "type": "CallGlobalFunction", "script": "M8rJourney", "function": "SetTravelMode", "params": ["{i}{value}"] }
+        },
+        {
+            "type": "switcher", "text": "A Flash function", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp|801" },
+            "action": { "type": "CallExternalFunction", "plugin": "MyPlugin", "function": "Apply", "params": ["{value}"] }
+        }
+    )");
+
+    const auto actionOf = [&page](const std::size_t place) {
+        return std::get<model::Setting>(page.items[place]).action;
+    };
+    using Arguments = std::vector<model::Value>;
+    using ValueArguments = std::vector<model::ValueArgument>;
+    using Type = model::StoredType;
+
+    CHECK(actionOf(0) == model::Action(model::CallFunction{ .plugin = {},
+                             .formId = 0,
+                             .script = "M8rJourney",
+                             .function = "SetQuestRunning",
+                             .arguments = Arguments{ ""s },
+                             .valueArguments = ValueArguments{ { .place = 0, .text = "{value}", .type = Type::Bool } } }));
+    CHECK(std::get<model::CallFunction>(actionOf(1)).valueArguments == ValueArguments{ { .place = 0, .text = "{value}", .type = Type::Int } });
+
+    // its row is set as any other, and nothing runs
+    CHECK(std::get<model::UnknownAction>(actionOf(2)).type == "CallExternalFunction");
 }
