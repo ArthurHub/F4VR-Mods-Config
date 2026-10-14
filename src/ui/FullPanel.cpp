@@ -169,6 +169,7 @@ namespace mods_config::ui
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod,
      * and for a mod that is not available.
      * Another mod than before starts its editing session in the store, and no mod ends the one there is.
+     * Another page of the same mod is told to the store, which reads the values it keeps in files again.
      * Returns whether it shows another page than before.
      */
     bool FullPanel::select(const Selection& selection)
@@ -189,6 +190,8 @@ namespace mods_config::ui
             } else {
                 _store->close();
             }
+        } else if (_store && shown.mod) {
+            _store->pageShown();
         }
         _selection = shown;
         _pageChanged = true;

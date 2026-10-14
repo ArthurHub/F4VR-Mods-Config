@@ -75,7 +75,6 @@ The bridge model is settled. MCM stays installed and owns its settings, and Mods
 Still open:
 
 - Inventory the complete Fallout 4 MCM schema and control behavior. DearModdingUI's MCM bridge for flat Fallout 4 has made this inventory and is the place to start
-- How often an MCM page re-reads its values while it is visible
 - Which MCM builds for Fallout 4 VR the bridge supports, and how it detects them
 - Map MCM immediate-change, event, and Papyrus behavior precisely
 - Whether MCM hotkeys, which are keyboard and gamepad codes, can be made useful in VR

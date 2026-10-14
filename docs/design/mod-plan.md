@@ -263,7 +263,7 @@ M29 reads a ModSetting from MCM's two files, the mod's defaults and the player's
 M30 writes a ModSetting through `MCM.SetModSetting*`, so MCM's memory and its file agree. It is the menu's first call into Papyrus.
 
 - The function is the one of the row's `sourceType`, as in MCM's menu: `SetModSettingBool`, `Int`, `Float` or `String`. A slider of a whole number is written as the nearest one, and a choice as the place of its option.
-- The call is queued to Papyrus and gives no result, so the store keeps the text MCM writes to its file for the value. The row shows the change at once, and the files are read again as the mod is selected again.
+- The call is queued to Papyrus and gives no result, so the store keeps the text MCM writes to its file for the value. The row shows the change at once, and the player's file is read again as another page of the mod is shown (M42).
 - A ModSetting that is in neither file is not written: MCM has only those of its files. The store holds it while its mod is selected, as MCM's menu does (M37).
 - A unit test has no game, so MCM is not called there (`REL::NO_GAME`): it checks the value and the text the store keeps.
 - The switchers, sliders, steppers and dropdowns of the MCM showcase that are ModSettings work now.
@@ -306,7 +306,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | done      |
 | M104 | mod | The text of a row has the size and the color of its font tags        | done      |
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | done      |
-| M42 | mod  | A page that is shown reads its values again                          | todo      |
+| M42 | mod  | A page that is shown reads its values again                          | done      |
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo      |
 
 M33 makes a button run its `CallFunction`, as `mcm_vr.dll` does for MCM's menu:
@@ -429,6 +429,14 @@ M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices), as MC
 - The front page has a `Notices` section after the quick launch section, with a line for each such mod and the same reason: `Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.` It is left out while there is none.
 - `minMcmVersion` is not checked: it asks for a version of MCM's own menu, and a row this menu does not show says so on its own.
 - 43 of the 69 MCM configs of the author's lists name a required plugin. A trial needs no test mod: a plugin of an MCM mod is disabled in MO2, and its config kept.
+
+M42 reads the player's file of a ModSetting again as another page of its mod is shown, so a value a script set since shows there:
+
+- A global and a property of a script are read in every frame already (M25, M32). A ModSetting is the one storage that is read from a file, as its mod is selected.
+- MCM writes `Data\MCM\Settings\<mod>.ini` on every set, also one of a script, so the file has what MCM has in its memory. It is read again over the mod's defaults as another page of the mod is shown, also its front page. The mod's own `settings.ini` does not change while the game runs, and is not read again.
+- It is not read while a page is shown: no player expects a page to change under the ray. A script that sets a value as the player changes another shows it on the next page.
+- Hotkeys are not read again: MCM writes their file as its own menu closes, which is not open while this one is.
+- No mod of the test set sets a ModSetting while its page is shown. The trial sets one of the MCM showcase from the console, and shows another page and back: `cgf "MCM.SetModSettingBool" "ModsConfigVR_McmShowcase" "bOn:Switchers" false`.
 
 M43 answers the MCM items of [Open questions](open-questions.md). Its table also lists the names of DearModdingUI's inventory that are no type of MCM's menu, as `menu` and `switch`, and that each is a placeholder: M38 has why.
 

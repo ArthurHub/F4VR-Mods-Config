@@ -338,28 +338,40 @@ TEST_CASE("McmStore: a ModSetting that is in neither file is what MCM reads for 
     CHECK(noFolder.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).value == model::Value(""s));
 }
 
-TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and not again until it is selected again")
+TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and from the player's file again as another of its pages is shown")
 {
     const test_files::TempFolder mcm;
-    mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\n");
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\nfStrength=1.0\n");
     auto globals = someGlobals();
     McmStore store(mcm.path);
-    const model::Mod mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} };
-    const auto setting = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
-    store.open(mod);
-    REQUIRE(store.value(setting).value == model::Value(false));
+    const auto on = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
+    const auto strength = modSetting(SettingType::Slider, "fStrength:Main", Type::Float);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    REQUIRE(store.value(on).value == model::Value(false));
 
     // MCM writes the player's file as a script sets the value
     mcm.write("Settings/MyMod.ini", "[Main]\nbOn=1\n");
-    CHECK(store.value(setting).value == model::Value(false));
-    store.open(mod);
-    CHECK(store.value(setting).value == model::Value(true));
+    CHECK(store.value(on).value == model::Value(false));
+    store.pageShown();
+    CHECK(store.value(on).value == model::Value(true));
+
+    // over the mod's defaults, in place of what was read before
+    mcm.write("Settings/MyMod.ini", "[Main]\nfStrength=1.300000\n");
+    store.pageShown();
+    CHECK(store.value(on).value == model::Value(false));
+    CHECK(store.value(strength).value == model::Value(1.3f));
 
     // one that was set here is read again too: a test has no MCM that writes the file
-    CHECK(store.set(setting, false));
-    CHECK(store.value(setting).value == model::Value(false));
-    store.open(mod);
-    CHECK(store.value(setting).value == model::Value(true));
+    CHECK(store.set(on, true));
+    CHECK(store.value(on).value == model::Value(true));
+    store.pageShown();
+    CHECK(store.value(on).value == model::Value(false));
+
+    // a ModSetting that is held is in neither file, and is kept
+    const auto missing = modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool);
+    CHECK(store.set(missing, true));
+    store.pageShown();
+    CHECK(store.value(missing).value == model::Value(true));
 }
 
 TEST_CASE("McmStore: a ModSetting that is set has the value at once, as the type MCM keeps it in")

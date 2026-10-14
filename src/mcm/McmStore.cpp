@@ -291,8 +291,9 @@ namespace mods_config::mcm
 
     /**
      * Starts the session of a mod, after it ends the one of the mod before it: the settings of an id are the
-     * mod's. Its ModSettings are read from MCM's files now, and not again while it is selected: MCM writes
-     * the player's file on every set, so the files have what MCM has.
+     * mod's. Its ModSettings are read from MCM's files now, and the player's file again as another of its pages
+     * is shown: MCM writes it on every set, so the files have what MCM has. Its hotkeys are read now alone: MCM
+     * writes their file as its own menu closes.
      * The scripts are told that the mod is shown, as MCM's menu tells them for a press on the mod's row.
      */
     void McmStore::open(const model::Mod& mod)
@@ -328,9 +329,24 @@ namespace mods_config::mcm
     }
 
     /**
+     * Reads the player's file of the ModSettings of the mod that is selected again, as another of its pages is
+     * shown, so a value a script set since shows there: MCM writes the file on every set, also one of a script.
+     * Nothing with no mod selected.
+     */
+    void McmStore::pageShown()
+    {
+        if (_modName.empty()) {
+            return;
+        }
+        if (const auto changed = _modSettings.readAgain()) {
+            logger::debug("Read the ModSettings of '{}' from MCM's files again: {} changed", _modName, changed);
+        }
+    }
+
+    /**
      * The value of a setting, read from its storage now: another mod or the console can change a global at
-     * any time. A ModSetting is the one of the mod that is selected, as its files had it then or as it was
-     * set since.
+     * any time. A ModSetting is the one of the mod that is selected, as its files had it when they were last
+     * read, or as it was set since.
      * A property of a script is read from the script now too.
      * A ModSetting that is in neither of MCM's files is what MCM reads for it, until it is set and held.
      * A global that is not in the game is not available, with the reason, and neither is a property that is

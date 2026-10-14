@@ -971,6 +971,37 @@ TEST_CASE("FullPanel: a switcher that is kept nowhere is held until another mod 
     CHECK(store.value(unfold).value == model::Value(false));
 }
 
+TEST_CASE("FullPanel: another page of the mod that is shown reads its ModSettings from MCM's files again")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder mcm;
+    mcm.write("Config/Alpha/settings.ini", "[Main]\nbOn=0\n");
+    mcm::McmStore store(mcm.path);
+    auto mod = modOf("Alpha", { "First" });
+    mod.frontPage.items.push_back(model::Setting{ .id = "bOn:Main",
+        .type = model::SettingType::Switcher,
+        .text = "Enabled",
+        .help = {},
+        .valueOptions = {},
+        .storage = model::ModSettingStorage{ .name = "bOn:Main", .type = model::StoredType::Bool } });
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    const auto& on = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    REQUIRE(store.value(on).value == model::Value(false));
+
+    // MCM writes the player's file as a script sets the value, which shows on the page after
+    mcm.write("Settings/Alpha.ini", "[Main]\nbOn=1\n");
+    panel.select(selectionOf(0));
+    CHECK(store.value(on).value == model::Value(false));
+    panel.select(selectionOf(0, 0));
+    CHECK(store.value(on).value == model::Value(true));
+    mcm.write("Settings/Alpha.ini", "[Main]\nbOn=0\n");
+    panel.select(selectionOf(0));
+    CHECK(store.value(on).value == model::Value(false));
+}
+
 TEST_CASE("FullPanel: a row of a group is shown while the switcher that controls the group is on, and has no room while it is off")
 {
     const test_panel::PanelContext context;

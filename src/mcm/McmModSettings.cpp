@@ -114,12 +114,35 @@ namespace mods_config::mcm
         _values.clear();
         _defaults.clear();
         _modName = modName;
+        _playerFile.clear();
         if (mcmFolder.empty()) {
             return;
         }
+        _playerFile = mcmFolder / "Settings" / (_modName + ".ini");
         readIni(mcmFolder / "Config" / _modName / "settings.ini", _defaults);
         _values = _defaults;
-        readIni(mcmFolder / "Settings" / (_modName + ".ini"), _values);
+        readIni(_playerFile, _values);
+    }
+
+    /**
+     * Reads the player's file again over the defaults, in place of the values there are: MCM writes it as a
+     * script sets a ModSetting, so it has what MCM has. The mod's own file does not change while the game runs.
+     * Returns how many ModSettings have another text than before.
+     */
+    std::size_t McmModSettings::readAgain()
+    {
+        if (_playerFile.empty()) {
+            return 0;
+        }
+        auto values = _defaults;
+        readIni(_playerFile, values);
+        std::size_t changed = 0;
+        for (const auto& [name, text] : values) {
+            const auto before = _values.find(name);
+            changed += before == _values.end() || before->second != text ? 1 : 0;
+        }
+        _values = std::move(values);
+        return changed;
     }
 
     /**
@@ -143,7 +166,7 @@ namespace mods_config::mcm
 
     /**
      * Sets a ModSetting in MCM, to a value of the type MCM keeps it in, and keeps the text MCM then writes
-     * to the player's file: MCM sets it on Papyrus's own time, and the files are not read again for it.
+     * to the player's file: MCM sets it on Papyrus's own time, so the file has it only after that.
      * Returns false for one that is in neither file, which MCM does not have.
      */
     bool McmModSettings::set(const std::string_view name, const model::Value& value)

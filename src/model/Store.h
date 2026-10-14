@@ -46,6 +46,11 @@ namespace mods_config::model
          */
         virtual void close() = 0;
 
+        /**
+         * Another page of the mod whose session it is is shown: a store reads the values it keeps in files again.
+         */
+        virtual void pageShown() = 0;
+
         virtual StoredValue value(const Setting& setting) = 0;
 
         /**
