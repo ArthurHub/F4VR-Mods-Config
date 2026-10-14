@@ -34,6 +34,7 @@ namespace mods_config::mcm
         static std::expected<SwfFile, std::string> read(std::span<const std::uint8_t> file);
 
         std::expected<model::Image, std::string> image(std::string_view className) const;
+        std::string mainClass() const;
 
     private:
         /**

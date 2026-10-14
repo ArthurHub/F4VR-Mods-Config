@@ -868,13 +868,14 @@ TEST_CASE("FullPanel: the help line says that a text input is read-only, and a p
     };
     const test_panel::PanelContext context;
     test_events::TestEvents events;
+    const test_globals::TestGlobals globals;
     const test_files::TempFolder files;
     files.write("Config/Alpha/settings.ini", "[Main]\nsName=Sanctuary Hills\n");
     mcm::McmStore store(files.path);
     auto mod = modOf("Alpha");
     mod.frontPage.items.push_back(textInput("Name", "The name of the settlement.", model::ModSettingStorage{ .name = "sName:Main", .type = Type::String }));
     mod.frontPage.items.push_back(textInput("Note", {}, model::NoStorage{}));
-    mod.frontPage.items.push_back(textInput("Missing", "Is in no file.", model::ModSettingStorage{ .name = "sMissing:Main", .type = Type::String }));
+    mod.frontPage.items.push_back(textInput("Missing", "Is not in the game.", model::GlobalStorage{ .plugin = PLUGIN, .formId = 0x1234 }));
     FullPanel panel;
     panel.setStore(&store);
     panel.setMods({ std::move(mod) });
@@ -886,7 +887,7 @@ TEST_CASE("FullPanel: the help line says that a text input is read-only, and a p
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Note: (Read-only)");
     point(panel, pageRow(2));
-    CHECK(panel.helpLine().text() == "Missing: Not available: the ModSetting sMissing:Main is in neither of MCM's files.");
+    CHECK(panel.helpLine().text() == "Missing: Not available: the global 1234 of MyMod.esp is not in the game.");
 
     CHECK_FALSE(pressActs(panel, pageRow(0)));
 }

@@ -26,14 +26,18 @@ namespace
     /**
      * Whether a condition holds, and none where a value that would tell is not available. So a setting that
      * is off hides a row that needs it and another whose value is not available, and a setting that is on
-     * shows a row that needs it or such another.
+     * shows a row that needs it or such another. The value of a setting no row shows is off where it is not
+     * available, as MCM's menu reads a hidden switcher.
      */
     std::optional<bool> evaluate(const model::Condition& condition, model::Store& store)
     {
         using Kind = model::Condition::Kind;
         if (condition.kind == Kind::On) {
             const auto stored = store.valueById(condition.setting);
-            return stored.available ? std::optional(isOn(stored.value)) : std::nullopt;
+            if (!stored.available) {
+                return condition.offWhenNotAvailable ? std::optional(false) : std::nullopt;
+            }
+            return isOn(stored.value);
         }
         if (condition.kind == Kind::Not) {
             const auto inner = condition.conditions.empty() ? std::nullopt : evaluate(condition.conditions.front(), store);

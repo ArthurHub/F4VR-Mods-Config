@@ -168,6 +168,10 @@ namespace mods_config::model
         // what an All, an Any and a Not join
         std::vector<Condition> conditions;
 
+        // an On whose setting no row shows, as MCM's hidden switcher: its value that is not available is
+        // off, as MCM's menu reads it, where any other leaves the condition open
+        bool offWhenNotAvailable = false;
+
         bool operator==(const Condition&) const = default;
     };
 

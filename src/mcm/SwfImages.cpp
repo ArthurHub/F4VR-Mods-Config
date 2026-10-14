@@ -52,6 +52,9 @@ namespace
     // a class that shows another, which shows another: more than this deep is a file that is wrong
     constexpr int MAX_DEPTH = 8;
 
+    // the number the class of the file itself has, which Flash makes as the file is loaded
+    constexpr std::uint16_t MAIN_CHARACTER = 0;
+
     /**
      * Reads the values of a tag in the order they are stored: whole bytes with the low one first, and bits
      * from the high one of a byte. A read past the end gives 0 and marks the reader as failed.
@@ -353,6 +356,16 @@ namespace mods_config::mcm
         }
         picture->pixels->name = className;
         return model::Image{ .pixels = std::move(picture->pixels), .width = picture->width, .height = picture->height };
+    }
+
+    /**
+     * The name of the class of the file itself, which Flash makes when another file loads it, as a mod's code
+     * loads its logo. Empty for a file that has none.
+     */
+    std::string SwfFile::mainClass() const
+    {
+        const auto found = std::ranges::find(_symbols, MAIN_CHARACTER, &std::pair<std::string, std::uint16_t>::second);
+        return found != _symbols.end() ? found->first : std::string();
     }
 
     /**

@@ -378,7 +378,8 @@ namespace mods_config::model
     }
 
     /**
-     * A text without its tags, on one line: a line break and the end of a paragraph become a space.
+     * A text without its tags, on one line: a line break and the end of a paragraph become a space. The spaces
+     * the text starts with stay, as FallUI sets a row in by them.
      */
     std::string removeMarkup(const std::string_view text)
     {
@@ -392,10 +393,11 @@ namespace mods_config::model
             if (first == std::string::npos) {
                 continue;
             }
+            const auto start = plain.empty() ? 0 : first;
             if (!plain.empty()) {
                 plain += ' ';
             }
-            plain += words.substr(first, words.find_last_not_of(' ') + 1 - first);
+            plain += words.substr(start, words.find_last_not_of(' ') + 1 - start);
         }
         return plain;
     }

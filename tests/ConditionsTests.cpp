@@ -147,6 +147,25 @@ TEST_CASE("Conditions: a condition that a value which is not available leaves op
     CHECK_FALSE(model::holds(joined(Kind::Not, { joined(Kind::Any, { on("missing"), on("on") }) }), store));
 }
 
+TEST_CASE("Conditions: the value of a setting no row shows is off where it is not available")
+{
+    const auto mod = someMod();
+    auto globals = someGlobals();
+    mcm::McmStore store;
+    store.open(mod);
+
+    // as MCM's menu reads a hidden switcher
+    auto hidden = on("missing");
+    hidden.offWhenNotAvailable = true;
+    CHECK_FALSE(model::holds(hidden, store));
+    CHECK(model::holds(joined(Kind::Not, { hidden }), store));
+
+    // one whose value is available is read as any other
+    auto shown = on("on");
+    shown.offWhenNotAvailable = true;
+    CHECK(model::holds(shown, store));
+}
+
 TEST_CASE("Conditions: the settings of an id are those of the mod whose session it is")
 {
     const auto mod = someMod();

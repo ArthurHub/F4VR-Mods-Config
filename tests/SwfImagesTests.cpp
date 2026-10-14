@@ -145,6 +145,17 @@ TEST_CASE("SwfImages: a class of code has its bitmap in a class that is named af
     CHECK(errorOf(swf, "M8r.View.Images") == "No such class in the file");
 }
 
+TEST_CASE("SwfImages: the class of the file itself is its main class")
+{
+    SwfBuilder swf;
+    swf.bitmap(1, 1, 1, { RED });
+    swf.symbol(1, "Intro_bitmap");
+    CHECK(readFile(swf.build()).mainClass().empty());
+
+    swf.symbol(0, "Intro");
+    CHECK(readFile(swf.build()).mainClass() == "Intro");
+}
+
 TEST_CASE("SwfImages: an image that is not a stored bitmap says what it is")
 {
     SwfBuilder swf;

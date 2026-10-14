@@ -84,7 +84,7 @@ So a `live` setting is never saved by being previewed. And an MCM change that is
 A value has a state, and a row whose value is not ready says why:
 
 - **Ready.**
-- **Not available**, with the reason. The value cannot be read or written: the form of a global is not found, a ModSetting is in neither of MCM's files, or a property is on no script of its form. The row is disabled.
+- **Not available**, with the reason. The value cannot be read or written: the form of a global is not found, the text of a ModSetting is no number, or a property is on no script of its form. The row is disabled.
 - **Invalid.** The text in a file is not a value of the setting, or the player typed one that is not. The row shows the text as it is, and an invalid value that the player made blocks Save.
 
 ## Conditions
@@ -94,6 +94,7 @@ A condition compares the value of one setting, named by its id, or joins other c
 - The MCM loader turns `groupControl` and `groupCondition` into `visibleWhen`: a group is on when the row that controls it is on. A group's number belongs to its page: the test set uses the same numbers again on other pages. Each of its 23 groups has one controlling row, a switcher, on the group's own page.
 - A `groupCondition` is a number, a list of numbers, or `AND`, `OR` or `ONLY` with a list, as MCM's menu reads it. A list is `OR`. `ONLY` holds with all of its groups while no other group of the page is on. A group that no row controls is never on.
 - A condition that a value which is not available leaves open holds, so its row is shown: nothing is hidden for a reason the player cannot change. A value that is available still settles it: a row that needs two groups is hidden while one of them is off.
+- The value of a setting that no row shows, as MCM's hidden switcher, is off while it is not available, as MCM's menu reads it. A script sets it to show a row while something of the game holds, so its rows stay hidden while it cannot be read.
 - A package has `visibleWhen` and `enabledWhen`, as in [Declarative schema](schema.md#conditions). A section's condition covers its rows there. The package loader gives it to each of those rows, joined with the row's own, so in the model a condition is always a row's. An MCM section's condition stays on its header row alone, as in MCM.
 
 ## A group with a role
@@ -185,7 +186,7 @@ Setting          Value   Default   State
 main/2           on                ready
 fStrength:Main   1.3     1.0       ready           the default is the one of the mod's settings.ini
 page1/1          off               ready           held by the store, off when the mod is selected
-iMode:Main                         not available   the ModSetting is in neither of MCM's files
+iMode:Main       none              ready           in neither of MCM's files: MCM reads -1, and the store holds what it is set to
 ```
 
 The front page, drawn from the two, with the ray on "Enable the feature". Its help is in the help line, at the bottom:

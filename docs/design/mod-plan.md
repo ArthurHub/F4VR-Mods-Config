@@ -256,7 +256,7 @@ M29 reads a ModSetting from MCM's two files, the mod's defaults and the player's
 - A ModSetting is named by the `id` of its row as the config has it, its key and its section: `fStrength:Main` is `fStrength` of `[Main]`, in the letter case of the file, as MCM finds it.
 - The files are read as the mod is selected, and not in every frame as a global is. A value a script sets while the mod is shown is read by M42.
 - The text of a key is read as the `sourceType` of its row says, as MCM reads it: a bool is off at `0` and on at any other text, and a number is read up to what is no part of one.
-- A ModSetting that is in neither file is not available, and neither is one whose text is no number. The row is disabled, and the help line says why.
+- A ModSetting whose text is no number is not available. The row is disabled, and the help line says why. One that is in neither file is what MCM reads for it (M37).
 - A row shows the value of its ModSetting, and a press on it changes nothing until M30.
 - A group that a ModSetting controls is now shown while that ModSetting is on.
 
@@ -264,7 +264,7 @@ M30 writes a ModSetting through `MCM.SetModSetting*`, so MCM's memory and its fi
 
 - The function is the one of the row's `sourceType`, as in MCM's menu: `SetModSettingBool`, `Int`, `Float` or `String`. A slider of a whole number is written as the nearest one, and a choice as the place of its option.
 - The call is queued to Papyrus and gives no result, so the store keeps the text MCM writes to its file for the value. The row shows the change at once, and the files are read again as the mod is selected again.
-- A ModSetting that is in neither file is not written: MCM has only those of its files, and its row is disabled.
+- A ModSetting that is in neither file is not written: MCM has only those of its files. The store holds it while its mod is selected, as MCM's menu does (M37).
 - A unit test has no game, so MCM is not called there (`REL::NO_GAME`): it checks the value and the text the store keeps.
 - The switchers, sliders, steppers and dropdowns of the MCM showcase that are ModSettings work now.
 
@@ -303,7 +303,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M38 | mod  | A hidden switcher controls its group, and is not shown               | done      |
 | M39 | mod  | A `dropdownFiles` lists the files of a folder                        | done      |
 | M40 | mod  | The actions beside `CallFunction`                                    | done      |
-| M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | todo      |
+| M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | done      |
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo      |
 | M42 | mod  | A page that is shown reads its values again                          | todo      |
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo      |
@@ -404,6 +404,18 @@ M37 tries in the game what M38 and M40 make and the test set does not have, with
 - Game Configuration Menu, which M32 installed, has the parameters that are JSON numbers.
 - The MCM showcase has a `CallGlobalFunction` of `Debug.Notification` on a switcher, which M40 adds to it, with the value in its text.
 - No mod of the author's lists has the rest, so it is not tried with a real script: a `PropertyValueString`, a property with a `scriptName`, an `OR` condition and one inside another, and the `dropdownFiles` of M39. The unit tests cover it, and the MCM showcase has a row of what needs no script.
+
+JOURNEY's rows run its script, with their typed parameters. The trial, and a load of the 67 MCM configs of the author's four lists with the menu's own loader, find what the test set does not have. Each is read as MCM's menu reads it, or as the mod's own Flash code shows it:
+
+- A FallUI language file can name the `libName` of its row: JOURNEY's is `../MCM/Config/{libName}/Translation/MCM_{libName}_${LANGUAGE_CODE}.txt`. M8r's intros put the row's `libName` in its place, and so does the loader.
+- An image row of `M8r.View.McmIntros.M8rIntro` or `M8rIntroLight` shows no picture of its own: its code loads the file of the row's `m8rIntro`, or `logo.swf`, from the mod's config folder. The image is the class of that file itself, at 2/3 of its bitmap's size, as M8r's `EmbeddedImage` shows it. Global Stash, JOURNEY and NAC X have one. MCM Settings Manager's loads a menu of its own, written in Flash, and stays a row that says an image is there.
+- A flag can be a text, as REPUTATION's `"html": "true"`. Flash has any text but an empty one as on, also `"false"`.
+- MCM's menu sets the text of every row as html, whatever its `html` says, so a section, a setting, a button and a hotkey show it without its tags, on one line, as a help is. A newer Sim Settlements 2 has 18 switchers with `<font>` and `<u>` in their text, and Safe Travels has a game's token inside the tags of its sections, which is translated once they are removed. The spaces a text starts with stay, as FallUI sets a row in by them.
+- A stepper and a dropdown can take their options from a list of the config: `sharedOptions` names a list of its `sharedLists`, in place of the row's own `options`. NAC X has 5. MCM's menu can also take them from a form or a property (`listFromForm`, `listFromProperty`), which no mod of the lists has, and the loader does not read.
+- A ModSetting that is in neither of MCM's files is read as MCM reads it: off, -1 for a number, and an empty text. A row of it is set as any other, and the store holds the value while the mod is selected, as MCM's menu holds it: MCM sets no such ModSetting, and has none the next time. Its action runs, and its event is sent. The newer Sim Settlements 2 has no `settings.ini`, and its switchers that show the groups of its Gameplay page are such ModSettings.
+- A hidden switcher whose value is not available is off, as MCM's menu reads it, so the rows of its group are hidden. A condition on any other setting whose value is not available still holds. Global Stash shows a button while a property of its script is on, which the script it names does not have: MCM's menu hides the button.
+- Three are left as they are. FallUI Inventory's 5 images are shown at 0.66 of their size in MCM's menu, and here at their size: the scale is an argument of the code of each class, which the menu does not read, and FallUI Workbench's and NPCs Travel's are shown at their size. Global Stash's `${$SKKGSIsBusy}` is no token FallUI's code reads either. REPUTATION's `align` of a text row is the same as the `<p align>` of its text.
+- The MCM showcase has a stepper and a dropdown of a shared list, a switcher with tags in its text, and a text row whose `html` is `"true"`.
 
 M41 shows a mod that is [not available](ui-and-vr-interaction.md#notices): one whose required plugins are missing, and one whose config does not parse, which until then is in the log alone. It adds the notices to the menu's front page.
 

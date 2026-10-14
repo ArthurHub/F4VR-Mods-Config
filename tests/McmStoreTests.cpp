@@ -300,13 +300,14 @@ TEST_CASE("McmStore: a ModSetting is read as MCM reads its files")
     // a number is read up to what is no part of it
     CHECK(store.value(modSetting(SettingType::Stepper, "iPart:Main", Type::Int)).value == model::Value(7));
 
-    // a comment, a key before the first section, and a name in another letter case
-    CHECK_FALSE(store.value(modSetting(SettingType::Switcher, "bOff:Main", Type::Bool)).available);
-    CHECK_FALSE(store.value(modSetting(SettingType::Switcher, "bBefore:Main", Type::Bool)).available);
-    CHECK_FALSE(store.value(modSetting(SettingType::Switcher, "bon:main", Type::Bool)).available);
+    // a comment, a key before the first section, and a name in another letter case are not read: off, as
+    // MCM has a ModSetting that is in no file
+    CHECK(store.value(modSetting(SettingType::Switcher, "bOff:Main", Type::Bool)).value == model::Value(false));
+    CHECK(store.value(modSetting(SettingType::Switcher, "bBefore:Main", Type::Bool)).value == model::Value(false));
+    CHECK(store.value(modSetting(SettingType::Switcher, "bon:main", Type::Bool)).value == model::Value(false));
 }
 
-TEST_CASE("McmStore: a ModSetting that is in neither file is not available, and neither is one that is no number")
+TEST_CASE("McmStore: a ModSetting that is in neither file is what MCM reads for it, and one that is no number is not available")
 {
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nfStrength=strong\nsName=Sanctuary Hills\n");
@@ -314,10 +315,13 @@ TEST_CASE("McmStore: a ModSetting that is in neither file is not available, and 
     McmStore store(mcm.path);
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
+    // off, -1 for a number, which is no option of a choice, and an empty text
     const auto missing = store.value(modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool));
-    CHECK_FALSE(missing.available);
+    CHECK(missing.available);
     CHECK(missing.value == model::Value(false));
-    CHECK(missing.reason == "Not available: the ModSetting bMissing:Main is in neither of MCM's files.");
+    CHECK(store.value(modSetting(SettingType::Dropdown, "iMissing:Main", Type::Int)).value == model::Value(-1));
+    CHECK(store.value(modSetting(SettingType::Slider, "fMissing:Main", Type::Float)).value == model::Value(-1.0f));
+    CHECK(store.value(modSetting(SettingType::TextInput, "sMissing:Main", Type::String)).value == model::Value(""s));
 
     const auto noNumber = store.value(modSetting(SettingType::Slider, "fStrength:Main", Type::Float));
     CHECK_FALSE(noNumber.available);
@@ -328,10 +332,10 @@ TEST_CASE("McmStore: a ModSetting that is in neither file is not available, and 
 
     // a mod with no files, and a store with no folder of MCM
     store.open({ .name = "Another", .displayName = {}, .frontPage = {}, .pages = {} });
-    CHECK_FALSE(store.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).available);
+    CHECK(store.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).value == model::Value(""s));
     McmStore noFolder;
     noFolder.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
-    CHECK_FALSE(noFolder.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).available);
+    CHECK(noFolder.value(modSetting(SettingType::TextInput, "sName:Main", Type::String)).value == model::Value(""s));
 }
 
 TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and not again until it is selected again")
@@ -388,7 +392,7 @@ TEST_CASE("McmStore: a ModSetting that is set has the value at once, as the type
     CHECK(store.value(name).value == model::Value("Diamond City"s));
 }
 
-TEST_CASE("McmStore: a ModSetting MCM does not have is not set, and neither is a value of another kind")
+TEST_CASE("McmStore: a ModSetting MCM does not have is held while its mod is selected, and a value of another kind is not set")
 {
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nfStrength=1.0\nsName=Sanctuary Hills\n");
@@ -396,10 +400,13 @@ TEST_CASE("McmStore: a ModSetting MCM does not have is not set, and neither is a
     McmStore store(mcm.path);
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
-    // MCM has the ModSettings of its files alone
+    // MCM has the ModSettings of its files alone, and its menu holds another, as Sim Settlements 2 has a
+    // switcher that shows a group. It is off again as the mod is selected again
     const auto missing = modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool);
-    CHECK_FALSE(store.set(missing, true));
-    CHECK_FALSE(store.value(missing).available);
+    CHECK(store.set(missing, true));
+    CHECK(store.value(missing).value == model::Value(true));
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    CHECK(store.value(missing).value == model::Value(false));
 
     // a text for a number, and a number for a text
     CHECK_FALSE(store.set(modSetting(SettingType::TextInput, "fStrength:Main", Type::Float), "strong"s));
@@ -689,7 +696,7 @@ TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its 
     CHECK(store.valueById("iDropdown:Main").value == model::Value(1));
     CHECK(store.valueById("fTenth:Sliders").value == model::Value(1.3f));
     CHECK(store.valueById("iCount:Sliders").value == model::Value(5.0f));
-    CHECK_FALSE(store.valueById("bMissing:Switchers").available);
+    CHECK(store.valueById("bMissing:Switchers").value == model::Value(false));
 }
 
 TEST_CASE("McmStore: a mod that is shown and left sends MCM's events of it")

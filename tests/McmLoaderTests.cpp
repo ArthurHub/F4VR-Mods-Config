@@ -327,15 +327,18 @@ TEST_CASE("McmLoader: a text row with html has its tags read, and one without sh
         { "type": "text", "text": "One line\nand the next" },
         { "type": "text", "text": "A <b>plain</b> text", "html": false },
         { "type": "text", "text": "A <b>plain</b> text", "html": "true" },
+        { "type": "text", "text": "A <b>plain</b> text", "html": "false" },
         { "type": "text", "html": true },
         { "type": "text", "text": "<font color='#AAAAAA' size='16'>A note</font>", "html": 1 },
         { "type": "text", "text": "A <b>plain</b> text", "html": 0 }
     )");
 
+    // a flag that is a text is set by any text, as Flash has it, also `"false"`
     CHECK(describe(page) == Lines{ "text: My Mod / What it does. / And how.",
                                 "text: One line / and the next",
                                 "text: A <b>plain</b> text",
-                                "text: A <b>plain</b> text",
+                                "text: A plain text",
+                                "text: A plain text",
                                 "text: ",
                                 "text: A note",
                                 "text: A <b>plain</b> text" });
@@ -623,11 +626,17 @@ TEST_CASE("McmLoader: a hidden switcher is a switcher that is never shown, and c
         { "type": "text", "text": "A row of its group", "groupCondition": 1 },
         { "type": "switcher", "text": "Unfold", "id": "bUnfold:Main", "groupControl": 2 },
         { "type": "hiddenSwitcher", "id": "bBusy:Main", "groupControl": 3, "groupCondition": 2, "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "text", "text": "A row of the group of one with a condition", "groupCondition": 3 }
+        { "type": "text", "text": "A row of the group of one with a condition", "groupCondition": 3 },
+        { "type": "text", "text": "A row of the group of a switcher", "groupCondition": 2 }
     )");
 
     // any() never holds: its own condition does not show it
-    CHECK(conditionsOf(page.items) == Lines{ "any()", "main/1", "always", "any()", "bBusy:Main" });
+    CHECK(conditionsOf(page.items) == Lines{ "any()", "main/1", "always", "any()", "bBusy:Main", "bUnfold:Main" });
+
+    // the group of a hidden switcher is off while its value is not available, and the one of a switcher open
+    CHECK(std::get<model::Text>(page.items[1]).visibleWhen->offWhenNotAvailable);
+    CHECK(std::get<model::Text>(page.items[4]).visibleWhen->offWhenNotAvailable);
+    CHECK_FALSE(std::get<model::Text>(page.items[5]).visibleWhen->offWhenNotAvailable);
 
     const auto& first = std::get<model::Setting>(page.items[0]);
     CHECK(first.type == model::SettingType::Switcher);
@@ -922,6 +931,87 @@ TEST_CASE("McmLoader: an image is read from the lib.swf of the mod its row names
     const auto& logo = std::get<model::Image>(mods[0].frontPage.items[0]);
     CHECK(logo.pixels->name == "Logo");
     CHECK(logo.pixels->rgba == std::vector<std::uint8_t>{ 255, 0, 0, 255, 255, 0, 0, 255 });
+}
+
+TEST_CASE("McmLoader: an M8r intro is the image of the class of the file its code loads")
+{
+    constexpr test_swf::Pixel RED{ 255, 0, 0, 255 };
+    // a logo as M8r's EmbeddedImage has it: the class of the file is code, with its bitmap beside it
+    const auto logoOf = [](const int width) {
+        test_swf::SwfBuilder swf;
+        swf.bitmap(1, width, 3, std::vector(static_cast<std::size_t>(width) * 3, RED));
+        swf.symbol(1, "M8r.View.McmIntros.MyMod_bitmap");
+        swf.symbol(0, "M8r.View.McmIntros.MyMod");
+        const auto bytes = swf.build();
+        return std::string(bytes.begin(), bytes.end());
+    };
+
+    const test_files::TempFolder folder;
+    folder.write("MyMod/logo.swf", logoOf(6));
+    folder.write("MyMod/other.swf", logoOf(9));
+    folder.write("MyMod/config.json", R"({ "modName": "MyMod", "content": [
+        { "type": "image", "libName": "MyMod", "className": "M8r.View.McmIntros.M8rIntro" },
+        { "type": "image", "libName": "MyMod", "className": "M8r.View.McmIntros.M8rIntroLight" },
+        { "type": "image", "libName": "MyMod", "className": "M8r.View.McmIntros.M8rIntroLight", "m8rIntro": { "file": "other.swf" } },
+        { "type": "image", "libName": "MyMod", "className": "M8r.View.McmIntros.M8rIntroLight", "m8rIntro": { "mouseEnabled": true } },
+        { "type": "image", "libName": "NoSuchMod", "className": "M8r.View.McmIntros.M8rIntro" }
+    ] })");
+
+    const auto mods = mcm::loadConfigs(folder.path);
+
+    REQUIRE(mods.size() == 1);
+    // at 2/3 of the bitmap's size, as EmbeddedImage shows it. An intro whose row names no file shows none
+    CHECK(describe(mods[0].frontPage) == Lines{ "image of 4 by 2", "image of 4 by 2", "image of 6 by 2", "image", "image" });
+}
+
+TEST_CASE("McmLoader: a row with sharedOptions has the options of that list of the config")
+{
+    const auto mod = loaded(R"({ "modName": "MyMod",
+        "sharedLists": { "weather": ["$Clear", "Rain"], "empty": [] },
+        "content": [
+            { "type": "dropdown", "text": "Weather", "valueOptions": { "sharedOptions": "weather", "options": ["Own"] } }
+        ],
+        "pages": [{ "pageDisplayName": "Page", "content": [
+            { "type": "stepper", "text": "Weather", "valueOptions": { "sharedOptions": "weather" } },
+            { "type": "dropdown", "text": "No such list", "valueOptions": { "sharedOptions": "noSuchList", "options": ["Own"] } },
+            { "type": "dropdown", "text": "Own", "valueOptions": { "options": ["Own"] } }
+        ] }]
+    })");
+
+    const auto optionsOf = [](const model::Item& item) {
+        Lines texts;
+        for (const auto& option : std::get<model::Setting>(item).valueOptions.options) {
+            texts.push_back(option.text);
+        }
+        return texts;
+    };
+    // in place of the row's own, and none for a list that is not there, as in MCM's menu
+    CHECK(optionsOf(mod.frontPage.items[0]) == Lines{ "$Clear", "Rain" });
+    CHECK(optionsOf(mod.pages[0].items[0]) == Lines{ "$Clear", "Rain" });
+    CHECK(optionsOf(mod.pages[0].items[1]).empty());
+    CHECK(optionsOf(mod.pages[0].items[2]) == Lines{ "Own" });
+}
+
+TEST_CASE("McmLoader: the text of a row that is not a text row is shown without its tags, as MCM sets it as html")
+{
+    model::Translations translations;
+    translations.add("$Settings", "Settings");
+    const auto mod = mcm::loadConfig(R"({ "modName": "MyMod", "content": [
+        { "type": "section", "text": "<font size='20'><b>$Settings</b></font>" },
+        { "type": "switcher", "text": "<font size='15' face='$DebugTextFont'><u>Show Advanced</u></font>", "html": true },
+        { "type": "button", "text": "Ammo &amp; guns" },
+        { "type": "switcher", "text": "    - Indented" }
+    ] })",
+        translations);
+    REQUIRE(mod);
+
+    const auto& section = std::get<model::Group>(mod->frontPage.items[0]);
+    // a token of the game's inside the tags is translated
+    CHECK(section.text == "Settings");
+    CHECK(std::get<model::Setting>(section.items[0]).text == "Show Advanced");
+    CHECK(std::get<model::Button>(section.items[1]).text == "Ammo & guns");
+    // the spaces a row is set in by stay
+    CHECK(std::get<model::Setting>(section.items[2]).text == "    - Indented");
 }
 
 TEST_CASE("McmLoader: the configs of a folder are translated")

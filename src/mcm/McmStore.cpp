@@ -107,28 +107,41 @@ namespace
     }
 
     /**
-     * The value of a setting that is a ModSetting, from the text MCM's files have for it. A setting whose
-     * value is a text has the text as it is written. One that is in neither file is not available, and
-     * neither is one whose text is no number for a setting that keeps one, with the reason.
+     * The text of a ModSetting that is in neither of MCM's files, as what MCM reads for it: off, -1 for a
+     * number, and an empty text. A setting of a choice then shows no option.
      */
-    model::StoredValue modSettingValue(const model::Setting& setting, const model::ModSettingStorage& modSetting, const std::string* text)
+    std::string unknownModSettingText(const model::StoredType type)
     {
-        if (!text) {
-            return { .value = valueWithNone(setting),
-                .available = false,
-                .reason = std::format("Not available: the ModSetting {} is in neither of MCM's files.", modSetting.name) };
+        switch (type) {
+        case model::StoredType::Bool:
+            return "0";
+        case model::StoredType::Int:
+        case model::StoredType::Float:
+            return "-1";
+        case model::StoredType::String:
+            break;
         }
+        return {};
+    }
+
+    /**
+     * The value of a setting that is a ModSetting, from the text MCM's files have for it. A setting whose
+     * value is a text has the text as it is written. One whose text is no number for a setting that keeps one
+     * is not available, with the reason.
+     */
+    model::StoredValue modSettingValue(const model::Setting& setting, const model::ModSettingStorage& modSetting, const std::string& text)
+    {
         if (keepsText(setting)) {
-            return { .value = *text, .available = true, .reason = {} };
+            return { .value = text, .available = true, .reason = {} };
         }
-        if (const auto number = modSettingNumber(modSetting.type, *text)) {
+        if (const auto number = modSettingNumber(modSetting.type, text)) {
             if (auto value = fromNumber(setting, *number)) {
                 return { .value = std::move(*value), .available = true, .reason = {} };
             }
         }
         return { .value = valueWithNone(setting),
             .available = false,
-            .reason = std::format("Not available: the ModSetting {} is '{}' in MCM's files, which is no number.", modSetting.name, *text) };
+            .reason = std::format("Not available: the ModSetting {} is '{}' in MCM's files, which is no number.", modSetting.name, text) };
     }
 
     /**
@@ -319,8 +332,9 @@ namespace mods_config::mcm
      * any time. A ModSetting is the one of the mod that is selected, as its files had it then or as it was
      * set since.
      * A property of a script is read from the script now too.
-     * A global that is not in the game is not available, with the reason, and neither is a ModSetting that
-     * is in no file, a property that is not in the game, and a value of a storage the store does not read.
+     * A ModSetting that is in neither of MCM's files is what MCM reads for it, until it is set and held.
+     * A global that is not in the game is not available, with the reason, and neither is a property that is
+     * not in the game, and a value of a storage the store does not read.
      */
     model::StoredValue McmStore::value(const model::Setting& setting)
     {
@@ -340,7 +354,14 @@ namespace mods_config::mcm
             }
         }
         if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
-            return modSettingValue(setting, *modSetting, _modSettings.find(modSetting->name));
+            if (const auto* text = _modSettings.find(modSetting->name)) {
+                return modSettingValue(setting, *modSetting, *text);
+            }
+            if (const auto held = _held.find(&setting); held != _held.end()) {
+                return { .value = held->second, .available = true, .reason = {} };
+            }
+            const auto unknown = unknownModSettingText(modSetting->type);
+            return modSettingValue(setting, *modSetting, unknown);
         }
         if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
             return propertyValue(setting, *property, getProperty(*property));
@@ -395,7 +416,7 @@ namespace mods_config::mcm
         if (!text) {
             return std::nullopt;
         }
-        auto stored = modSettingValue(setting, *modSetting, text);
+        auto stored = modSettingValue(setting, *modSetting, *text);
         return stored.available ? std::optional(std::move(stored.value)) : std::nullopt;
     }
 
@@ -430,8 +451,9 @@ namespace mods_config::mcm
 
     /**
      * Writes a value where the setting's storage says. Returns false for a value that is not written: one of
-     * a storage the store does not write, of a global or a property that is not in the game, or of a
-     * ModSetting that is in neither of MCM's files, which MCM does not have.
+     * a storage the store does not write, or of a global or a property that is not in the game.
+     * A ModSetting that is in neither of MCM's files is held here while its mod is selected, as MCM's menu
+     * holds it: MCM has only those of its files, and sets no other.
      */
     bool McmStore::write(const model::Setting& setting, const model::Value& value)
     {
@@ -447,6 +469,12 @@ namespace mods_config::mcm
             }
         }
         if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
+            if (!_modSettings.find(modSetting->name)) {
+                // MCM sets no such ModSetting, and its menu keeps the value while it is open
+                _held.insert_or_assign(&setting, value);
+                logger::debug("Held the ModSetting {} of '{}', which is in neither of MCM's files ('{}')", modSetting->name, _modName, setting.text);
+                return true;
+            }
             const auto typed = typedValue(modSetting->type, value);
             return typed && _modSettings.set(modSetting->name, *typed);
         }

@@ -238,3 +238,25 @@ TEST_CASE("McmLoader: a FallUI mod is translated from the language files its con
     REQUIRE(other.frontPage.items.size() == 1);
     CHECK(std::get<model::Button>(other.frontPage.items[0]).text == "${Key}");
 }
+
+TEST_CASE("McmLoader: a FallUI language file is named with the libName of its row")
+{
+    const test_files::TempFolder folder;
+    // as JOURNEY names its file, which an M8r intro reads with the row's libName in its place
+    folder.write("MCM/Config/Journey/Translation/MCM_Journey_en.txt", ENGLISH_FILE);
+    folder.write("MCM/Config/Journey/config.json", R"({
+        "modName": "Journey",
+        "displayName": "$FallUI_Inventory",
+        "content": [
+            {
+                "type": "image", "libName": "Journey", "className": "M8r.View.McmIntros.M8rIntroLight",
+                "$fallUILanguageFile": "../MCM/Config/{libName}/Translation/MCM_{libName}_${LANGUAGE_CODE}.txt"
+            }
+        ]
+    })");
+
+    const auto mods = mcm::loadConfigs(folder.path / "MCM" / "Config", {}, folder.path / "Interface");
+
+    REQUIRE(mods.size() == 1);
+    CHECK(mods[0].displayName == "FallUI - Inventory");
+}

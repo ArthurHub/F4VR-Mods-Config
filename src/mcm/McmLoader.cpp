@@ -46,13 +46,18 @@ namespace
     }
 
     /**
-     * Whether a key is set to true, or to a number that is not zero: FallUI writes a flag as `1`.
+     * Whether a key is set, as MCM's menu reads a flag in Flash: true, a number that is not zero, as FallUI
+     * writes `1`, and a text that is not empty, as REPUTATION writes `"true"`.
      */
     bool getFlag(const Json& value, const char* key)
     {
         const auto found = value.find(key);
         if (found == value.end()) {
             return false;
+        }
+        if (found->is_string()) {
+            // Flash has any text but an empty one as true, also `"false"`
+            return !found->get_ref<const std::string&>().empty();
         }
         return found->is_boolean() ? found->get<bool>() : found->is_number() && found->get<double>() != 0;
     }
@@ -97,12 +102,30 @@ namespace
     }
 
     /**
-     * The help of a row, as the help line shows it: in the game's language, and then without its tags, on one
-     * line. A FallUI mod has its tokens inside the tags, so they are removed after the translation.
+     * A text of a row as plain text on one line, as a label and the help line show it: in the game's language,
+     * and then without its tags. A FallUI mod has its tokens inside the tags, so they are removed after the
+     * translation, and a token of the game's that is left alone inside them is translated after.
+     */
+    std::string toPlainText(const std::string& shownText, const ConfigTexts& texts)
+    {
+        return texts.game.translate(model::removeMarkup(shownText));
+    }
+
+    /**
+     * The text of a row that is not a text row, as MCM's menu shows it: it sets every such text as HTML,
+     * whatever the row's `html` says, so its tags make no text of it.
+     */
+    std::string getLabel(const Json& row, const ConfigTexts& texts)
+    {
+        return toPlainText(getShownText(row, "text", texts), texts);
+    }
+
+    /**
+     * The help of a row, as the help line shows it, on one line.
      */
     std::string getHelp(const Json& row, const ConfigTexts& texts)
     {
-        return model::removeMarkup(getShownText(row, "help", texts));
+        return toPlainText(getShownText(row, "help", texts), texts);
     }
 
     /**
@@ -457,8 +480,47 @@ namespace
         return options;
     }
 
+    // what the name of a FallUI language file can have, for the `libName` of its row
+    constexpr std::string_view LIB_NAME_TOKEN = "{libName}";
+
     /**
-     * The language file a FallUI mod names in a row of its front page or of a page. Empty for any other mod.
+     * Gives each row with a `sharedOptions` the options of the list of that name in the config's `sharedLists`,
+     * as MCM's menu does as it reads a page: in place of the row's own, and none for a name of no list.
+     */
+    void useSharedLists(Json& config)
+    {
+        const auto found = config.find("sharedLists");
+        const Json* lists = found != config.end() && found->is_object() ? &*found : nullptr;
+        const auto inRows = [lists](Json& page) {
+            const auto content = page.find("content");
+            if (content == page.end() || !content->is_array()) {
+                return;
+            }
+            for (auto& row : *content) {
+                const auto valueOptions = row.find("valueOptions");
+                if (valueOptions == row.end() || !valueOptions->is_object()) {
+                    continue;
+                }
+                const auto name = getText(*valueOptions, "sharedOptions");
+                if (name.empty()) {
+                    continue;
+                }
+                const auto list = lists ? lists->find(name) : Json::const_iterator();
+                (*valueOptions)["options"] = lists && list != lists->end() ? *list : Json::array();
+            }
+        };
+
+        inRows(config);
+        if (const auto pages = config.find("pages"); pages != config.end() && pages->is_array()) {
+            for (auto& page : *pages) {
+                inRows(page);
+            }
+        }
+    }
+
+    /**
+     * The language file a FallUI mod names in a row of its front page or of a page, with the `libName` of the
+     * row for its `{libName}`. Empty for any other mod.
      */
     std::string findFallUILanguageFile(const Json& config)
     {
@@ -466,6 +528,11 @@ namespace
             if (const auto content = page.find("content"); content != page.end() && content->is_array()) {
                 for (const auto& row : *content) {
                     if (auto file = getText(row, FALLUI_LANGUAGE_FILE); !file.empty()) {
+                        // M8r's intros put the `libName` of their row in its place, as JOURNEY's file has it
+                        const auto libName = getText(row, "libName");
+                        for (auto at = file.find(LIB_NAME_TOKEN); at != std::string::npos; at = file.find(LIB_NAME_TOKEN, at + libName.size())) {
+                            file.replace(at, LIB_NAME_TOKEN.size(), libName);
+                        }
                         return file;
                     }
                 }
@@ -506,7 +573,8 @@ namespace
     };
 
     // the groups of a page that a row controls, by their numbers: the id of the setting each is on with
-    using Groups = std::map<int, std::string>;
+    // the condition a group is on by, which is that the setting that controls it is on
+    using Groups = std::map<int, model::Condition>;
 
     /**
      * A page as its rows have to be known before they are read: the ids of its settings, and its groups.
@@ -532,7 +600,8 @@ namespace
      * A setting has the `id` of its row. One with none, or with an id another setting of the mod has, gets
      * one from its place: the page's name for an id and the place of its row, from 1, as `main/2`.
      * A group that two rows control is on with the later one, as it is when MCM's menu opens the page.
-     * A hidden switcher is a setting too: it has a value and controls a group, and only is not shown.
+     * A hidden switcher is a setting too: it has a value and controls a group, and only is not shown. Its
+     * group is off while its value is not available, as MCM's menu reads it.
      */
     PageRows readPageRows(const Json& content, const std::string& pageId, std::unordered_set<std::string>& takenIds)
     {
@@ -549,7 +618,8 @@ namespace
                 takenIds.insert(id);
             }
             if (const auto control = row.find("groupControl"); control != row.end() && getGroup(*control) != 0) {
-                rows.groups.insert_or_assign(getGroup(*control), id);
+                rows.groups.insert_or_assign(getGroup(*control),
+                    model::Condition{ .kind = model::Condition::Kind::On, .setting = id, .conditions = {}, .offWhenNotAvailable = getText(row, "type") == HIDDEN_SWITCHER });
             }
         }
         return rows;
@@ -591,12 +661,12 @@ namespace
             if (const auto only = value.find("ONLY"); only != value.end()) {
                 auto joined = joinConditions(Kind::All, *only, groups);
                 model::Condition others{ .kind = Kind::Any, .setting = {}, .conditions = {} };
-                for (const auto& [group, id] : groups) {
+                for (const auto& [group, on] : groups) {
                     const auto isGroup = [group](const Json& listed) {
                         return getGroup(listed) == group;
                     };
                     if (!only->is_array() || std::ranges::none_of(*only, isGroup)) {
-                        others.conditions.push_back({ .kind = Kind::On, .setting = id, .conditions = {} });
+                        others.conditions.push_back(on);
                     }
                 }
                 joined.conditions.push_back({ .kind = Kind::Not, .setting = {}, .conditions = { std::move(others) } });
@@ -612,8 +682,7 @@ namespace
             return { .kind = Kind::All, .setting = {}, .conditions = {} };
         }
         const auto control = groups.find(group);
-        return control != groups.end() ? model::Condition{ .kind = Kind::On, .setting = control->second, .conditions = {} }
-                                       : model::Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} };
+        return control != groups.end() ? control->second : model::Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} };
     }
 
     /**
@@ -636,14 +705,51 @@ namespace
         return condition;
     }
 
+    // the classes of M8r's code that show the picture of another file of the mod's config folder: they load it
+    constexpr std::string_view M8R_INTRO = "M8r.View.McmIntros.M8rIntro";
+    constexpr std::string_view M8R_INTRO_LIGHT = "M8r.View.McmIntros.M8rIntroLight";
+
+    // the file an M8r intro loads, where its row names none
+    constexpr auto M8R_INTRO_FILE = "logo.swf";
+
+    /**
+     * The image of a row: the class it names of the mod's `lib.swf`. An M8r intro shows no picture of its own:
+     * its code loads the file of its row's `m8rIntro`, or `logo.swf`, from the mod's config folder, and the
+     * image is the class of that file itself. `M8rIntro` always loads `logo.swf`.
+     */
+    model::Image loadImage(const Json& row, mcm::McmConfigImages& images)
+    {
+        const auto libName = getText(row, "libName");
+        const auto className = getText(row, "className");
+        if (className == M8R_INTRO) {
+            return images.loadMain(libName, M8R_INTRO_FILE);
+        }
+        if (className == M8R_INTRO_LIGHT) {
+            const auto intro = row.find("m8rIntro");
+            return images.loadMain(libName, intro != row.end() && intro->is_object() ? getText(*intro, "file") : M8R_INTRO_FILE);
+        }
+        return images.load(libName, className);
+    }
+
     /**
      * A row of a config, by its type. A type the menu does not support is a placeholder, and so is a row
      * with no type. A setting has the given id. A `dropdownFiles` lists its files from the game's folder.
      */
     model::Item loadRow(const std::string& type, const Json& row, std::string id, const ConfigTexts& texts, mcm::McmConfigImages& images, const std::filesystem::path& gameFolder)
     {
-        auto text = getShownText(row, "text", texts);
+        if (type == "text") {
+            // the tags are read after the translation: a FallUI mod has its tokens inside them
+            const auto text = getShownText(row, "text", texts);
+            return model::Text{ .lines = getFlag(row, "html") ? model::parseMarkup(text) : model::plainLines(text), .visibleWhen = {} };
+        }
+        if (type == "image") {
+            return loadImage(row, images);
+        }
+        if (type == "spacer") {
+            return model::Spacer{ .lines = getSpacerLines(row), .visibleWhen = {} };
+        }
 
+        auto text = getLabel(row, texts);
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
             auto storage = loadStorage(row);
             auto action = loadAction(row, &storage);
@@ -666,16 +772,6 @@ namespace
         }
         if (type == "hotkey") {
             return model::Hotkey{ .id = getText(row, "id"), .text = std::move(text), .help = getHelp(row, texts), .visibleWhen = {} };
-        }
-        if (type == "text") {
-            // the tags are read after the translation: a FallUI mod has its tokens inside them
-            return model::Text{ .lines = getFlag(row, "html") ? model::parseMarkup(text) : model::plainLines(text), .visibleWhen = {} };
-        }
-        if (type == "image") {
-            return images.load(getText(row, "libName"), getText(row, "className"));
-        }
-        if (type == "spacer") {
-            return model::Spacer{ .lines = getSpacerLines(row), .visibleWhen = {} };
         }
         return model::Placeholder{ .text = std::move(text), .help = getHelp(row, texts), .type = type, .visibleWhen = {} };
     }
@@ -702,7 +798,7 @@ namespace
             const auto type = getText(row, "type");
             auto visibleWhen = loadVisibleWhen(row, rows.groups);
             if (type == "section") {
-                items.emplace_back(model::Group{ .text = getShownText(row, "text", texts), .items = {}, .visibleWhen = std::move(visibleWhen) });
+                items.emplace_back(model::Group{ .text = getLabel(row, texts), .items = {}, .visibleWhen = std::move(visibleWhen) });
                 inGroup = true;
                 continue;
             }
@@ -755,6 +851,7 @@ namespace mods_config::mcm
         if (!config.is_object()) {
             return std::unexpected("Not a JSON object"s);
         }
+        useSharedLists(config);
 
         model::Mod mod;
         mod.name = getText(config, "modName");

@@ -5,6 +5,8 @@
   "modName": "ModsConfigVR_McmShowcase",
   "displayName": "Mods Config: MCM Showcase",
   "minMcmVersion": 2,
+  // lists of options that a stepper and a dropdown name in their sharedOptions
+  "sharedLists": { "weather": ["Clear", "Cloudy", "Rain", "Storm"] },
   "content": [
     { "type": "text", "text": "<p align='center'><font size='30'>MCM Showcase</font></p>", "html": true },
     { "type": "text", "text": "<p align='center'><font color='#AAAAAA' size='16'>Every kind of row an MCM config has, to see how each looks in Mods Config VR. Each page is one kind.</font></p>", "html": true },
@@ -122,7 +124,8 @@
         { "type": "text", "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>", "html": 1 },
         { "type": "text", "text": "<p align='center'><font size='24'>Sim Settlements 2</font></p>", "html": true },
         { "type": "text", "text": "<font size=\"40\"><p align = \"center\">Unlimited Survival Mode</p></font>", "html": true },
-        { "type": "text", "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>", "html": true }
+        { "type": "text", "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>", "html": true },
+        { "type": "text", "text": "<p align = \"center\"><font size='25'><b>by an author</b></font></p>", "align": "center", "html": "true" }
       ]
     },
     {
@@ -160,9 +163,10 @@
         { "type": "switcher", "text": "On by default", "help": "A ModSetting that is on.", "id": "bOn:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "Off by default", "help": "A ModSetting that is off.", "id": "bOff:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "With no help", "id": "bNoHelp:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "switcher", "text": "<font size='15'><u>With tags in its text</u></font>", "help": "MCM's menu reads the text of any row as html. It is kept nowhere.", "html": true },
         { "type": "switcher", "text": "A switcher with a name that is much too long for the room a row has before its control and ends in an ellipsis", "help": "The help line shows the name in full.", "id": "bLongName:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "With a long help", "help": "<p>When ON, settlers will attempt to automatically assign to available items in your settlements. </p><p>When OFF, they wait to be assigned. It is recommended to turn off Auto-Assignment from Workshop Framework. <font color='#aaaaaa'>(Default: ON)</font></p>", "id": "bLongHelp:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "A setting that is in no file", "help": "Its ModSetting is in neither of MCM's files.", "id": "bMissing:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "switcher", "text": "A setting that is in no file", "help": "Its ModSetting is in neither of MCM's files. It is set while the mod is shown, and is off again when the mod is selected again.", "id": "bMissing:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "switcher", "text": "With no storage", "help": "A switcher with no valueOptions. It is kept nowhere, and is off again when the mod is selected again." },
         { "type": "switcher", "text": "A global that is not in the game", "help": "A GlobalValue of a plugin that is not installed.", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800" } },
         { "type": "switcher", "text": "A property that is not in the game", "help": "A PropertyValueBool of a script of a plugin that is not installed.", "valueOptions": { "sourceType": "PropertyValueBool", "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800", "propertyName": "bOn" } },
@@ -208,6 +212,8 @@
         { "type": "dropdown", "text": "One option", "id": "iOne:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["The only one"] } },
         { "type": "dropdown", "text": "A value that is no option", "help": "The file has 7, and there are three options.", "id": "iOutside:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Zero", "One", "Two"] } },
         { "type": "dropdown", "text": "With no options", "id": "iNone:Choices", "valueOptions": { "sourceType": "ModSettingInt" } },
+        { "type": "dropdown", "text": "Shared options", "help": "Its options are the config's shared list 'weather'. It is kept nowhere.", "valueOptions": { "sharedOptions": "weather" } },
+        { "type": "stepper", "text": "Shared options", "help": "The same list, in a stepper. It is kept nowhere.", "valueOptions": { "sharedOptions": "weather" } },
         { "type": "text", "text": "A row under the dropdowns, which an open list covers." },
         { "type": "switcher", "text": "A row under the dropdowns", "id": "bUnder:Choices", "valueOptions": { "sourceType": "ModSettingBool" } },
         { "type": "section", "text": "Dropdowns of files" },
