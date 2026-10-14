@@ -210,11 +210,16 @@
         { "type": "dropdown", "text": "With no options", "id": "iNone:Choices", "valueOptions": { "sourceType": "ModSettingInt" } },
         { "type": "text", "text": "A row under the dropdowns, which an open list covers." },
         { "type": "switcher", "text": "A row under the dropdowns", "id": "bUnder:Choices", "valueOptions": { "sourceType": "ModSettingBool" } },
+        { "type": "section", "text": "Dropdowns of files" },
+        { "type": "dropdownFiles", "text": "The JSON files of this config", "help": "A dropdownFiles of the showcase's own folder, with the mask *.json. It keeps the name of the file.", "id": "sFile:Choices", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config/ModsConfigVR_McmShowcase", "mask": "*.json" } },
+        { "type": "dropdownFiles", "text": "Every file of this config", "help": "With no mask.", "id": "sAnyFile:Choices", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config/ModsConfigVR_McmShowcase" } },
+        { "type": "dropdownFiles", "text": "A mask that matches no file", "help": "None is its only option.", "id": "sNoFile:Choices", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config/ModsConfigVR_McmShowcase", "mask": "*.nothing" } },
         { "type": "section", "text": "With no storage" },
         { "type": "stepper", "text": "Five options", "help": "A stepper with no sourceType. It is kept nowhere, and is at its first option again when the mod is selected again.", "valueOptions": { "options": ["Very low", "Low", "Medium", "High", "Very high"] } },
         { "type": "dropdown", "text": "Three options", "help": "A dropdown with no sourceType. It is kept nowhere.", "valueOptions": { "options": ["Head", "Offhand", "Primary hand"] } },
         { "type": "dropdown", "text": "Twenty options", "help": "More than the list has room for, so it scrolls. It is kept nowhere.", "valueOptions": { "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13", "Option 14", "Option 15", "Option 16", "Option 17", "Option 18", "Option 19", "Option 20"] } },
-        { "type": "dropdown", "text": "Long options", "help": "It is kept nowhere.", "valueOptions": { "options": ["An option with a long name", "Another option with a name that is much longer than the control is wide", "Short"] } }
+        { "type": "dropdown", "text": "Long options", "help": "It is kept nowhere.", "valueOptions": { "options": ["An option with a long name", "Another option with a name that is much longer than the control is wide", "Short"] } },
+        { "type": "dropdownFiles", "text": "The JSON files of this config", "help": "A dropdownFiles with no sourceType. It is kept nowhere.", "valueOptions": { "path": "Data/MCM/Config/ModsConfigVR_McmShowcase", "mask": "*.json" } }
       ]
     },
     {
@@ -243,7 +248,6 @@
         { "type": "text", "text": "A text row of the group of a hidden switcher that is on. The switcher itself is not shown.", "groupCondition": 1 },
         { "type": "text", "text": "A text row of the group of a hidden switcher that is off, which is not shown.", "groupCondition": 2 },
         { "type": "section", "text": "Other controls" },
-        { "type": "dropdownFiles", "text": "dropdownFiles", "id": "sFile:Inputs", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config", "extensions": ["json"] } },
         { "type": "color", "text": "color", "id": "iColor:Inputs", "valueOptions": { "sourceType": "ModSettingInt" } },
         { "type": "noSuchControl", "text": "A type that no menu knows" },
         { "text": "A row with no type" }

@@ -369,6 +369,59 @@ namespace
     }
 
     /**
+     * The names of the files of a folder that match a mask, in the order of their names. The mask is the
+     * system's, as F4SE lists a folder for MCM's menu: `*` and `?`, in the folder alone. A folder in it is no
+     * file. None for a folder that is not there.
+     */
+    std::vector<std::string> listFiles(const std::filesystem::path& folder, const std::string& mask)
+    {
+        std::vector<std::string> files;
+        WIN32_FIND_DATAW found{};
+        const auto pattern = folder / std::filesystem::path(std::u8string(mask.begin(), mask.end()));
+        const auto search = FindFirstFileW(pattern.c_str(), &found);
+        if (search == INVALID_HANDLE_VALUE) {
+            return files;
+        }
+        do {
+            if ((found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+                const auto name = std::filesystem::path(found.cFileName).u8string();
+                files.emplace_back(name.begin(), name.end());
+            }
+        } while (FindNextFileW(search, &found));
+        FindClose(search);
+        std::ranges::sort(files, {}, common::str_tolower);
+        return files;
+    }
+
+    // the option of a `dropdownFiles` that is no file, which MCM's menu has first
+    constexpr auto NO_FILE = "None";
+
+    /**
+     * The options of a `dropdownFiles`, as MCM's menu lists them: `None`, and the files of the folder its
+     * `path` names from the game's folder that match its `mask`, or all of them with none. They are listed
+     * as the config is loaded. A storage that keeps a text keeps the name of the file, and an empty text for
+     * `None`. Any other keeps the place of the option, as a dropdown does.
+     */
+    std::vector<model::Option> loadFileOptions(const Json& row, const model::Storage& storage, const std::filesystem::path& gameFolder)
+    {
+        const auto valueOptions = row.find("valueOptions");
+        const auto path = valueOptions != row.end() ? getText(*valueOptions, "path") : std::string();
+        const auto mask = valueOptions != row.end() ? getText(*valueOptions, "mask") : std::string();
+        const bool keepsName = storedTypeOf(storage) == model::StoredType::String;
+
+        std::vector<model::Option> options{ { .value = keepsName ? model::Value(std::string()) : model::Value(0), .text = NO_FILE } };
+        if (path.empty()) {
+            return options;
+        }
+        const auto folder = gameFolder / std::filesystem::path(std::u8string(path.begin(), path.end()));
+        for (const auto& file : listFiles(folder, mask.empty() ? "*" : mask)) {
+            const auto place = static_cast<int>(options.size());
+            options.push_back({ .value = keepsName ? model::Value(file) : model::Value(place), .text = file });
+        }
+        return options;
+    }
+
+    /**
      * The language file a FallUI mod names in a row of its front page or of a page. Empty for any other mod.
      */
     std::string findFallUILanguageFile(const Json& config)
@@ -400,6 +453,9 @@ namespace
     // a switcher MCM's menu never shows: a script sets its value, and it controls a group as a switcher does
     constexpr std::string_view HIDDEN_SWITCHER = "hiddenSwitcher";
 
+    // a dropdown whose options are the files of a folder
+    constexpr std::string_view DROPDOWN_FILES = "dropdownFiles";
+
     // the rows that edit a value, by the type MCM's own menu knows each by
     constexpr std::array SETTING_TYPES{
         SettingTypeName{ "switcher", model::SettingType::Switcher },
@@ -407,6 +463,7 @@ namespace
         SettingTypeName{ "slider", model::SettingType::Slider },
         SettingTypeName{ "stepper", model::SettingType::Stepper },
         SettingTypeName{ "dropdown", model::SettingType::Dropdown },
+        SettingTypeName{ DROPDOWN_FILES, model::SettingType::Dropdown },
         SettingTypeName{ "textinput", model::SettingType::TextInput },
         SettingTypeName{ "textinputInt", model::SettingType::TextInput },
         SettingTypeName{ "textinputFloat", model::SettingType::TextInput },
@@ -545,21 +602,25 @@ namespace
 
     /**
      * A row of a config, by its type. A type the menu does not support is a placeholder, and so is a row
-     * with no type. A setting has the given id.
+     * with no type. A setting has the given id. A `dropdownFiles` lists its files from the game's folder.
      */
-    model::Item loadRow(const std::string& type, const Json& row, std::string id, const ConfigTexts& texts, mcm::McmConfigImages& images)
+    model::Item loadRow(const std::string& type, const Json& row, std::string id, const ConfigTexts& texts, mcm::McmConfigImages& images, const std::filesystem::path& gameFolder)
     {
         auto text = getShownText(row, "text", texts);
 
         if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
             auto storage = loadStorage(row);
             auto action = loadAction(row, &storage);
+            auto valueOptions = loadValueOptions(row, texts);
+            if (type == DROPDOWN_FILES) {
+                valueOptions.options = loadFileOptions(row, storage, gameFolder);
+            }
             return model::Setting{ .id = std::move(id),
                 .sourceId = getText(row, "id"),
                 .type = setting->second,
                 .text = std::move(text),
                 .help = getHelp(row, texts),
-                .valueOptions = loadValueOptions(row, texts),
+                .valueOptions = std::move(valueOptions),
                 .storage = std::move(storage),
                 .action = std::move(action),
                 .visibleWhen = {} };
@@ -589,7 +650,7 @@ namespace
      * A row with a `groupCondition` is shown by the groups of its own page, and a section's is of its heading
      * alone, as in MCM's menu. The page's name for an id is in the ids the loader makes for its settings.
      */
-    std::vector<model::Item> loadItems(const Json& page, const std::string& pageId, const ConfigTexts& texts, mcm::McmConfigImages& images,
+    std::vector<model::Item> loadItems(const Json& page, const std::string& pageId, const ConfigTexts& texts, mcm::McmConfigImages& images, const std::filesystem::path& gameFolder,
         std::unordered_set<std::string>& takenIds)
     {
         std::vector<model::Item> items;
@@ -609,7 +670,7 @@ namespace
                 inGroup = true;
                 continue;
             }
-            auto item = loadRow(type, row, std::move(rows.ids[place]), texts, images);
+            auto item = loadRow(type, row, std::move(rows.ids[place]), texts, images, gameFolder);
             std::visit(
                 [&visibleWhen](auto& loaded) {
                     loaded.visibleWhen = std::move(visibleWhen);
@@ -642,6 +703,8 @@ namespace mods_config::mcm
      * A text that is a `$` token is looked up in the translations.
      * A FallUI mod is translated from its own language files, which it names from the interface folder.
      * An image is read from the `lib.swf` of the mod its row names, in that mod's folder of the config folder.
+     * The files of a `dropdownFiles` are listed from the game's folder, which has the config folder in
+     * `Data\MCM\Config`: the game's own folder is the one it runs in.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
      */
     std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations, const std::filesystem::path& interfaceFolder,
@@ -673,13 +736,14 @@ namespace mods_config::mcm
             mod.displayName = mod.name;
         }
         McmConfigImages images(configFolder);
+        const auto gameFolder = configFolder.parent_path().parent_path().parent_path();
         std::unordered_set<std::string> takenIds;
-        mod.frontPage.items = loadItems(config, "main", texts, images, takenIds);
+        mod.frontPage.items = loadItems(config, "main", texts, images, gameFolder, takenIds);
 
         if (const auto pages = config.find("pages"); pages != config.end() && pages->is_array()) {
             for (const auto& page : *pages) {
                 const auto pageId = std::format("page{}", mod.pages.size() + 1);
-                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, pageId, texts, images, takenIds) });
+                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, pageId, texts, images, gameFolder, takenIds) });
             }
         }
         return mod;

@@ -33,6 +33,16 @@ namespace
     }
 
     /**
+     * Whether the value of a setting is a text: the one of a text input, and of a choice whose options are
+     * texts, as the files of a `dropdownFiles` are for a storage that keeps a text.
+     */
+    bool keepsText(const model::Setting& setting)
+    {
+        const auto& options = setting.valueOptions.options;
+        return setting.type == model::SettingType::TextInput || (!options.empty() && std::holds_alternative<std::string>(options.front().value));
+    }
+
+    /**
      * The number of a global as the value of a setting, as MCM's menu reads it: a switcher is on at 1 and
      * off at any other number, and a stepper and a dropdown have the option whose place is the number.
      * None for a setting that keeps no number.
@@ -97,9 +107,9 @@ namespace
     }
 
     /**
-     * The value of a setting that is a ModSetting, from the text MCM's files have for it. A text input has
-     * the text as it is written. One that is in neither file is not available, and neither is one whose
-     * text is no number for a setting that keeps one, with the reason.
+     * The value of a setting that is a ModSetting, from the text MCM's files have for it. A setting whose
+     * value is a text has the text as it is written. One that is in neither file is not available, and
+     * neither is one whose text is no number for a setting that keeps one, with the reason.
      */
     model::StoredValue modSettingValue(const model::Setting& setting, const model::ModSettingStorage& modSetting, const std::string* text)
     {
@@ -108,7 +118,7 @@ namespace
                 .available = false,
                 .reason = std::format("Not available: the ModSetting {} is in neither of MCM's files.", modSetting.name) };
         }
-        if (setting.type == model::SettingType::TextInput) {
+        if (keepsText(setting)) {
             return { .value = *text, .available = true, .reason = {} };
         }
         if (const auto number = modSettingNumber(modSetting.type, *text)) {
@@ -148,8 +158,9 @@ namespace
 
     /**
      * The value of a setting that is a property of a script, from the value the script has for it. A bool is
-     * on at any number but 0, as MCM's menu reads it, and a text input has a number as its text. One that is
-     * not in the game is not available, and neither is a text for a setting that keeps a number, with the reason.
+     * on at any number but 0, as MCM's menu reads it, and a setting whose value is a text has a number as its
+     * text. One that is not in the game is not available, and neither is a text for a setting that keeps a
+     * number, with the reason.
      */
     model::StoredValue propertyValue(const model::Setting& setting, const model::PropertyStorage& property, const std::optional<model::Value>& stored)
     {
@@ -159,7 +170,7 @@ namespace
                 .reason = std::format("Not available: the property {} of the form {:X} of {} is not in the game.", property.name, property.formId, property.plugin) };
         }
         const auto number = toNumber(*stored);
-        if (setting.type == model::SettingType::TextInput) {
+        if (keepsText(setting)) {
             const auto* text = std::get_if<std::string>(&*stored);
             return { .value = text ? *text : std::format("{}", *number), .available = true, .reason = {} };
         }

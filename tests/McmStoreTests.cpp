@@ -407,6 +407,46 @@ TEST_CASE("McmStore: a ModSetting MCM does not have is not set, and neither is a
     CHECK(store.value(modSetting(SettingType::Slider, "fStrength:Main", Type::Float)).value == model::Value(1.0f));
 }
 
+TEST_CASE("McmStore: a choice of files keeps the name of its file, and an empty text for None")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nsPreset=b.xml\n");
+    auto properties = someProperties();
+    TestActions actions;
+    McmStore store(mcm.path);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    const model::ValueOptions files{ .options = { { .value = ""s, .text = "None" }, { .value = "A.xml"s, .text = "A.xml" }, { .value = "b.xml"s, .text = "b.xml" } } };
+
+    // a ModSetting, which has its default from the mod's file
+    auto preset = settingOf(SettingType::Dropdown, model::ModSettingStorage{ .name = "sPreset:Main", .type = Type::String }, files);
+    preset.action = model::CallFunction{ .plugin = PLUGIN,
+        .formId = 0x800,
+        .script = {},
+        .function = "Load",
+        .arguments = { ""s, ""s },
+        .valueArguments = { { .place = 0, .text = "{value}", .type = Type::String }, { .place = 1, .text = "Loading {value}!", .type = Type::String } } };
+    CHECK(store.value(preset).available);
+    CHECK(store.value(preset).value == model::Value("b.xml"s));
+    CHECK(store.defaultValue(preset) == model::Value("b.xml"s));
+    CHECK(store.set(preset, "A.xml"s));
+    CHECK(store.value(preset).value == model::Value("A.xml"s));
+    CHECK(store.set(preset, ""s));
+    CHECK(store.value(preset).value == model::Value(""s));
+
+    // the action of the row has the name of the file in its arguments
+    REQUIRE(actions.called.size() == 2);
+    CHECK(actions.called[0].arguments == std::vector<model::Value>{ "A.xml"s, "Loading A.xml!"s });
+
+    // a property of a script, whose name is no file: no option is chosen
+    const auto name = settingOf(SettingType::Dropdown, model::PropertyStorage{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .name = "sName", .type = Type::String }, files);
+    CHECK(store.value(name).value == model::Value("Sanctuary Hills"s));
+    CHECK(store.set(name, "b.xml"s));
+    CHECK(properties.values.at({ PLUGIN, 0x800, "", "sName" }) == model::Value("b.xml"s));
+
+    // one that is kept nowhere is at None
+    CHECK(store.value(settingOf(SettingType::Dropdown, model::NoStorage{}, files)).value == model::Value(""s));
+}
+
 TEST_CASE("McmModSettings: a ModSetting that is set has the text MCM writes to its file")
 {
     const test_files::TempFolder mcm;

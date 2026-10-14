@@ -301,7 +301,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M36 | mod  | Text rows are shown read-only, and unknown controls as placeholders  | done      |
 | M102 | mod | A ModSetting is reset to the default of its mod                      | done      |
 | M38 | mod  | A hidden switcher controls its group, and is not shown               | done      |
-| M39 | mod  | `dropdownFiles`                                                      | todo      |
+| M39 | mod  | A `dropdownFiles` lists the files of a folder                        | done      |
 | M40 | mod  | The actions beside `CallFunction`                                    | todo      |
 | M37 | mod  | A trial with Global Stash and JOURNEY, and what it finds             | todo      |
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | todo      |
@@ -377,6 +377,15 @@ M38 reads a `hiddenSwitcher`, as MCM's menu (`mcm/MCM_Menu.as`) has it:
 - One with no `sourceType` is off, so its group is never on, as in MCM's menu.
 - The other controls of DearModdingUI's inventory are not MCM's: `hidden`, `menu`, `enum`, `color`, `switch`, `input`, `header`, `empty` and `keymap` are no type of MCM's menu, so no MCM config has them, and each stays a placeholder with its type. So do `positioner` and `keyinput`, which MCM's menu has and the inventory does not: no mod of the author's lists has one.
 - The author's lists have 7 `hiddenSwitcher`: 4 in Global Stash, 2 in JOURNEY and 1 in NAC X. The MCM showcase has two, one on and one off, with a text row of the group of each.
+
+M39 reads a `dropdownFiles`, as MCM's menu (`mcm/MCM_Menu.as`) has it:
+
+- It is a dropdown whose options are `None` and the files of a folder: the one its `path` names from the game's folder, as `Data/Interface/Presets`, with the names that match its `mask`, as `*.xml`, or all of them with none. MCM's menu lists the folder with F4SE's `GetDirectoryListing`, which takes the mask of the system. This menu lists it the same way, so MO2's files are in it.
+- A folder in the folder is no option: MCM's menu has it, and `.` and `..` with it, which no player picks. The files are in the order of their names.
+- The folder is listed as the configs are loaded, as the game starts. A file that is added while the game runs is in the list the next time it starts: MCM's menu lists it as the page is opened. A folder that is not there has `None` alone.
+- A storage that keeps a text keeps the name of the file, as `Preset.xml`, and an empty text for `None`: a `ModSettingString`, a `PropertyValueString`, and a row with no `sourceType`. `{value}` in its action is the name. A name that is no file of the list shows no option. Any other storage keeps the place of the option, as a dropdown does.
+- One thing differs from MCM's menu. Its pick writes no name: the name of the file is lost on the way to the write, so MCM writes nothing useful and reads `None` the next time. Its own example (`KNOW ISSUES.txt`) keeps the name in a `ModSettingString` and loads it with `"Loading {value}!"`, which is what its author meant.
+- No mod of the author's lists has one. The MCM showcase has three on its "Steppers and dropdowns" page, of its own folder, and one with no storage.
 
 M40 supports each action, or marks it unsupported with the reason.
 

@@ -484,12 +484,15 @@ TEST_CASE("FullPanel render: pages that are set in under another by spaces", "[.
 
 TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
 {
-    const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
+    // the showcase is a Data folder, installed in a game's folder, which its dropdownFiles list files from
+    const test_files::TempFolder game;
+    std::filesystem::copy(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path().parent_path(), game.path / "Data", std::filesystem::copy_options::recursive);
+    const auto mods = mcm::loadConfigs(game.path / "Data" / "MCM" / "Config");
     REQUIRE(mods.size() == 1);
 
     // the showcase has no game plugin, so none of its globals is in the game. Its ModSettings are its defaults
     test_globals::TestGlobals globals;
-    mcm::McmStore store(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path());
+    mcm::McmStore store(game.path / "Data" / "MCM");
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
     const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
@@ -539,6 +542,34 @@ TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the 
         };
         WARN("Saved " << renderToFile(panel, on ? "mcm-showcase-group-on" : "mcm-showcase-group-off", POINTER_AWAY, false, scrollToEnd));
     }
+}
+
+TEST_CASE("FullPanel render: the dropdowns of files of the MCM showcase", "[.render]")
+{
+    // installed in a game's folder, which they list files from
+    const test_files::TempFolder game;
+    std::filesystem::copy(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path().parent_path(), game.path / "Data", std::filesystem::copy_options::recursive);
+    const auto mods = mcm::loadConfigs(game.path / "Data" / "MCM" / "Config");
+    REQUIRE(mods.size() == 1);
+    test_globals::TestGlobals globals;
+    mcm::McmStore store(game.path / "Data" / "MCM");
+
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods(mods);
+    const auto& pages = panel.mods()[0].pages;
+    const auto page = std::ranges::find(pages, "Steppers and dropdowns", &model::Page::name);
+    REQUIRE(page != pages.end());
+    panel.select({ .mod = 0, .page = static_cast<std::size_t>(page - pages.begin()) });
+
+    // they are at the end of the page: the thumbstick scrolls the page the ray is on
+    const auto scrollToEnd = [&panel] {
+        test_panel::drawFrame(panel, pageRow(3));
+        test_panel::drawFrame(panel, pageRow(3));
+        ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+        test_panel::drawFrame(panel, pageRow(3));
+    };
+    WARN("Saved " << renderToFile(panel, "mcm-showcase-dropdown-files", POINTER_AWAY, false, scrollToEnd));
 }
 
 TEST_CASE("FullPanel render: the values of a page's settings, and the status of the mod", "[.render]")

@@ -278,6 +278,7 @@ TEST_CASE("McmLoader: every control the menu knows becomes its item")
         { "type": "slider", "text": "A slider" },
         { "type": "stepper", "text": "A stepper" },
         { "type": "dropdown", "text": "A dropdown" },
+        { "type": "dropdownFiles", "text": "A dropdown of files" },
         { "type": "textinput", "text": "A text" },
         { "type": "textinputInt", "text": "A whole number" },
         { "type": "textinputFloat", "text": "A number" },
@@ -292,6 +293,7 @@ TEST_CASE("McmLoader: every control the menu knows becomes its item")
                                 "slider: A slider",
                                 "stepper: A stepper",
                                 "dropdown: A dropdown",
+                                "dropdown: A dropdown of files",
                                 "textinput: A text",
                                 "textinput: A whole number",
                                 "textinput: A number",
@@ -391,6 +393,39 @@ TEST_CASE("McmLoader: the options of a choice have their place in the list as th
     CHECK(optionsOf(1) == Options{ { 0, "Off" }, { 1, "On" } });
     CHECK(optionsOf(2).empty());
     CHECK(optionsOf(3).empty());
+}
+
+TEST_CASE("McmLoader: a dropdownFiles has None and the files of its folder that match its mask, in the order of their names")
+{
+    const test_files::TempFolder folder;
+    folder.write("Data/Interface/Presets/b.xml", "");
+    folder.write("Data/Interface/Presets/A.xml", "");
+    folder.write("Data/Interface/Presets/c.txt", "");
+    folder.write("Data/Interface/Presets/Sub/d.xml", "");
+    folder.write("Data/MCM/Config/MyMod/config.json", R"({ "modName": "MyMod", "content": [
+        { "type": "dropdownFiles", "text": "Masked", "id": "sPreset:Main", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/Interface/Presets", "mask": "*.xml" } },
+        { "type": "dropdownFiles", "text": "No mask", "valueOptions": { "path": "Data\\Interface\\Presets" } },
+        { "type": "dropdownFiles", "text": "In a global", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp|800", "path": "Data/Interface/Presets", "mask": "*.xml" } },
+        { "type": "dropdownFiles", "text": "No such folder", "valueOptions": { "path": "Data/Interface/NoSuchFolder" } },
+        { "type": "dropdownFiles", "text": "No path" }
+    ] })");
+
+    const auto mods = mcm::loadConfigs(folder.path / "Data" / "MCM" / "Config");
+    REQUIRE(mods.size() == 1);
+    const auto& items = mods[0].frontPage.items;
+    const auto optionsOf = [&items](const std::size_t row) {
+        return std::get<model::Setting>(items[row]).valueOptions.options;
+    };
+    using Options = std::vector<model::Option>;
+
+    CHECK(std::get<model::Setting>(items[0]).type == model::SettingType::Dropdown);
+    // a storage that keeps a text keeps the name of the file, and a folder in the folder is no file
+    CHECK(optionsOf(0) == Options{ { ""s, "None" }, { "A.xml"s, "A.xml" }, { "b.xml"s, "b.xml" } });
+    CHECK(optionsOf(1) == Options{ { ""s, "None" }, { "A.xml"s, "A.xml" }, { "b.xml"s, "b.xml" }, { "c.txt"s, "c.txt" } });
+    // any other keeps the place of the option, as a dropdown does
+    CHECK(optionsOf(2) == Options{ { 0, "None" }, { 1, "A.xml" }, { 2, "b.xml" } });
+    CHECK(optionsOf(3) == Options{ { ""s, "None" } });
+    CHECK(optionsOf(4) == Options{ { ""s, "None" } });
 }
 
 TEST_CASE("McmLoader: a setting is kept in the global its row names, or nowhere")
@@ -629,7 +664,6 @@ TEST_CASE("McmLoader: a control the menu does not support is a placeholder with 
 {
     const auto page = frontPageOf(R"(
         { "type": "color", "text": "Tint", "id": "iTint:Main" },
-        { "type": "dropdownFiles", "text": "Preset" },
         { "type": "positioner", "text": "Place of the widget" },
         { "type": "keyinput", "text": "Keys" },
         { "type": "switch", "text": "A name MCM's menu does not have" },
@@ -641,7 +675,6 @@ TEST_CASE("McmLoader: a control the menu does not support is a placeholder with 
 
     CHECK(describe(page) == Lines{
                                 "placeholder color: Tint",
-                                "placeholder dropdownFiles: Preset",
                                 "placeholder positioner: Place of the widget",
                                 "placeholder keyinput: Keys",
                                 "placeholder switch: A name MCM's menu does not have",
@@ -824,6 +857,35 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
         }
     }
     CHECK(images == Lines{ "image of 256 by 64", "image of 690 by 43.125", "image of 64 by 64", "image of 256 by 64", "image" });
+}
+
+TEST_CASE("McmLoader: the dropdownFiles of the MCM showcase list the files of its own config folder, in the game it is installed in")
+{
+    // the showcase is a Data folder: a game has it in its own folder, which a path of a config is from
+    const test_files::TempFolder game;
+    std::filesystem::copy(std::filesystem::path(MODS_CONFIG_MCM_SHOWCASE_DIR).parent_path().parent_path(), game.path / "Data", std::filesystem::copy_options::recursive);
+    const auto mods = mcm::loadConfigs(game.path / "Data" / "MCM" / "Config");
+    REQUIRE(mods.size() == 1);
+
+    const auto page = std::ranges::find(mods[0].pages, "Steppers and dropdowns", &model::Page::name);
+    REQUIRE(page != mods[0].pages.end());
+    const auto section = std::ranges::find_if(page->items, [](const model::Item& item) {
+        const auto* group = std::get_if<model::Group>(&item);
+        return group && group->text == "Dropdowns of files";
+    });
+    REQUIRE(section != page->items.end());
+    const auto& rows = std::get<model::Group>(*section).items;
+    REQUIRE(rows.size() == 3);
+    const auto textsOf = [&rows](const std::size_t row) {
+        Lines texts;
+        for (const auto& option : std::get<model::Setting>(rows[row]).valueOptions.options) {
+            texts.push_back(option.text);
+        }
+        return texts;
+    };
+    CHECK(textsOf(0) == Lines{ "None", "config.json", "keybinds.json" });
+    CHECK(textsOf(1) == Lines{ "None", "config.json", "keybinds.json", "lib.swf", "settings.ini" });
+    CHECK(textsOf(2) == Lines{ "None" });
 }
 
 TEST_CASE("McmLoader: an image is read from the lib.swf of the mod its row names")
