@@ -307,7 +307,8 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M104 | mod | The text of a row has the size and the color of its font tags        | done      |
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | done      |
 | M42 | mod  | A page that is shown reads its values again                          | done      |
-| M43 | mod  | docs: the table of MCM features and how the menu handles each        | todo      |
+| M43 | mod  | docs: the table of MCM features and how the menu handles each        | done      |
+| M105 | mod | A DLL that reads MCM's file as the pause menu closes reads it as the menu closes | todo |
 
 M33 makes a button run its `CallFunction`, as `mcm_vr.dll` does for MCM's menu:
 
@@ -438,7 +439,20 @@ M42 reads the player's file of a ModSetting again as another page of its mod is 
 - Hotkeys are not read again: MCM writes their file as its own menu closes, which is not open while this one is.
 - No mod of the test set sets a ModSetting while its page is shown. The trial sets one of the MCM showcase from the console, and shows another page and back: `cgf "MCM.SetModSettingBool" "ModsConfigVR_McmShowcase" "bOn:Switchers" false`.
 
-M43 answers the MCM items of [Open questions](open-questions.md). Its table also lists the names of DearModdingUI's inventory that are no type of MCM's menu, as `menu` and `switch`, and that each is a placeholder: M38 has why.
+M43 is [MCM support](mcm.md): a table of every feature of an MCM config and of MCM VR, and how the menu handles each, checked against the MCM wiki and MCM VR's menu:
+
+- It answers the MCM items of [Open questions](open-questions.md). Any `mcm_vr.dll` serves, as the menu calls nothing of it but `MCM.SetModSetting*`. MCM's hotkeys stay MCM's, for a key of the keyboard, the mouse or a gamepad.
+- It also lists the names of DearModdingUI's inventory that are no type of MCM's menu, as `menu` and `switch`, and that each is a placeholder: M38 has why.
+- MCM's menu reads more than the wiki has, and no mod of the author's lists has it: the pages of a config under another mod (`ownerModName`), the requirements of a page, a text from a form or a property, options from a form or a property, and a spacer's `height` in pixels. The table has each as not read.
+- Three DLLs of the author's lists read MCM's file as the pause menu closes, which this menu does not open: M105.
+
+M105 makes a DLL that reads MCM's settings file as the pause menu closes see a change made here, as it sees one of MCM's menu:
+
+- MCM's menu is in the pause menu, so such a DLL reads its file as the player leaves MCM. This menu does not open the pause menu, so without M105 the DLL reads the change the next time the player closes the pause menu.
+- As the menu closes, after it wrote a ModSetting of any mod while it was open, it sends the game's `MenuOpenCloseEvent` of `PauseMenu`, opening and then closing, to the listeners of that event. The pause menu itself is not opened. Both are sent, so a mod that counts the menus that are open stays right.
+- A global and a property of a script are kept in the game, which a DLL reads at any time, so a change of one sends nothing.
+- Three DLLs of the author's lists do it: MCM Controls says in its log that it checks MCM's file as the pause menu closes, and VR HUD Config and VR Shadow Boost watch the pause menu and read their MCM file too. None is in the test set: the trial installs MCM Controls beside it, changes a setting of it here, and closes the menu.
+- The trial also checks that FRIK and the other mods of the test set do nothing the player sees for the two events.
 
 ### 4. VR keyboard
 

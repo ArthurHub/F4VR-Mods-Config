@@ -68,20 +68,6 @@ The form is settled: a package's text is plain, a `$` token as in MCM, or a toke
 - How key presses reach a focused ImGui text field
 - Whether a physical keyboard is supported
 
-## MCM compatibility
-
-The bridge model is settled. MCM stays installed and owns its settings, and Mods Config VR shows MCM menus only when MCM is present. MCM keeps user values in `Data/MCM/Settings/<ModName>.ini` and defaults in `Data/MCM/Config/<ModName>/settings.ini`; the bridge writes neither.
-
-Still open:
-
-- Inventory the complete Fallout 4 MCM schema and control behavior. DearModdingUI's MCM bridge for flat Fallout 4 has made this inventory and is the place to start
-- Which MCM builds for Fallout 4 VR the bridge supports, and how it detects them
-- Map MCM immediate-change, event, and Papyrus behavior precisely
-- Whether MCM hotkeys, which are keyboard and gamepad codes, can be made useful in VR
-- Whether any DLL reads MCM's settings file again when MCM's own menu closes. It would not see a change made here. No DLL of the test set shows it
-
-Compatibility should preserve how existing MCM mods work rather than silently changing their application lifecycle.
-
 ## Native API details
 
 - Final C ABI types, ownership rules, string encoding, and API-version negotiation

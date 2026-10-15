@@ -9,6 +9,7 @@ These documents capture the current product and architecture decisions. The orde
 - [Architecture and lifecycle](architecture.md) — goals, integration model, persistence, Save semantics, APIs, and MCM compatibility.
 - [The settings model](model.md) — what the UI draws and the store it asks for every value, checked against an MCM global, a value of a package, and an activation sphere.
 - [Declarative schema](schema.md) — package discovery, files, pages, settings, storage, conditions, buttons, localization, and validation.
+- [MCM support](mcm.md) — every feature of an MCM config and of MCM VR, and how the menu handles each.
 - [Controls](controls.md) — core controls, their value semantics, and specialized CommonFramework controls reserved for later design.
 - [UI and VR interaction](ui-and-vr-interaction.md) — opening the menu; full, focused, and minimized modes; world placement; pointing; editing; and low-fidelity wireframes.
 - [Design system](design-system/README.md) — the look: colors, type, sizes, the Dear ImGui style, and mocks of every component and panel. It is the source of the Design System artifact.

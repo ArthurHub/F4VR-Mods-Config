@@ -385,6 +385,8 @@ MCM pages remain a compatibility source rather than being rewritten into the new
 - Runs the supported MCM button actions.
 - Shows hotkeys read-only. MCM keeps dispatching them.
 
+How it handles each MCM feature is in [MCM support](mcm.md).
+
 `MCM.RefreshMenu()` stays MCM's own function and refreshes MCM's own menu. The bridge cannot observe the call, so it reads MCM's settings file again as another page of the mod is shown.
 
 MCM settings are saved as they are changed, as existing mods expect. They do not acquire staged Save/Discard behavior. MCM mods are not marked or grouped apart in the UI. It shows a “Changes are saved as they are made” status instead of the normal Save bar.
