@@ -65,28 +65,25 @@ namespace
     };
 
     /**
-     * ImGui's font texture, one byte of opacity for a pixel, read between its pixels.
+     * ImGui's font texture, the opacity of its pixels read between them. The font's glyphs are white, with
+     * their opacity in the last byte of a pixel.
      */
     struct FontTexture
     {
-        unsigned char* alpha = nullptr;
-        int width = 0;
-        int height = 0;
-
-        FontTexture()
-        {
-            ImGui::GetIO().Fonts->GetTexDataAsAlpha8(&alpha, &width, &height);
-        }
+        const ImTextureData* texture = nullptr;
 
         float at(const int x, const int y) const
         {
-            return alpha[std::clamp(y, 0, height - 1) * width + std::clamp(x, 0, width - 1)] / 255.0f;
+            const int width = texture->Width;
+            const int height = texture->Height;
+            const auto* pixel = texture->Pixels + (std::clamp(y, 0, height - 1) * width + std::clamp(x, 0, width - 1)) * texture->BytesPerPixel;
+            return pixel[texture->BytesPerPixel - 1] / 255.0f;
         }
 
         float sample(const float u, const float v) const
         {
-            const float x = u * width - 0.5f;
-            const float y = v * height - 0.5f;
+            const float x = u * texture->Width - 0.5f;
+            const float y = v * texture->Height - 0.5f;
             const int left = static_cast<int>(std::floor(x));
             const int top = static_cast<int>(std::floor(y));
             const float fx = x - left;
@@ -193,11 +190,12 @@ namespace
 
     /**
      * Draws a frame of ImGui's into an image, as a renderer does: every triangle of every draw command,
-     * inside the command's clip rectangle. A command with a texture that is not the font's is an image of a
-     * mod's page, whose texture is its pixels.
+     * inside the command's clip rectangle, at the frame's framebuffer scale. A command names the font's texture
+     * by the texture, and an image of a mod's page by its pixels.
      */
-    Image rasterize(const ImDrawData& drawData, const FontTexture& font, const float scale)
+    Image rasterize(const ImDrawData& drawData)
     {
+        const float scale = drawData.FramebufferScale.x;
         Image image(static_cast<int>(std::lround(drawData.DisplaySize.x * scale)), static_cast<int>(std::lround(drawData.DisplaySize.y * scale)));
         for (const auto* commandList : drawData.CmdLists) {
             for (const auto& command : commandList->CmdBuffer) {
@@ -207,7 +205,8 @@ namespace
                 const ImVec4 clip(command.ClipRect.x * scale, command.ClipRect.y * scale, command.ClipRect.z * scale, command.ClipRect.w * scale);
                 const auto* indexes = commandList->IdxBuffer.Data + command.IdxOffset;
                 const auto* vertexes = commandList->VtxBuffer.Data + command.VtxOffset;
-                const auto* pixels = command.TextureId == ImGui::GetIO().Fonts->TexID ? nullptr : static_cast<const model::ImagePixels*>(command.TextureId);
+                const FontTexture font{ .texture = command.TexRef._TexData };
+                const auto* pixels = font.texture ? nullptr : reinterpret_cast<const model::ImagePixels*>(static_cast<std::uintptr_t>(command.TexRef.GetTexID()));
                 for (unsigned int i = 0; i + 2 < command.ElemCount; i += 3) {
                     fillTriangle(image, font, pixels, Corner(vertexes[indexes[i]], scale), Corner(vertexes[indexes[i + 1]], scale), Corner(vertexes[indexes[i + 2]], scale), clip);
                 }
@@ -265,7 +264,7 @@ namespace
         const test_panel::PanelContext context;
         // an image is drawn with its pixels as its texture, which the rasterizer reads
         panel.setImageDrawer([](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
-            ImGui::GetWindowDrawList()->AddImage(const_cast<model::ImagePixels*>(&pixels), min, max);
+            ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(&pixels)), min, max);
         });
         if (before) {
             before();
@@ -277,7 +276,7 @@ namespace
         const std::filesystem::path folder = MODS_CONFIG_TEST_OUTPUT_DIR;
         std::filesystem::create_directories(folder);
         const auto file = folder / (name + ".bmp");
-        saveBmp(file, rasterize(*ImGui::GetDrawData(), FontTexture(), test_panel::SUPERSAMPLE));
+        saveBmp(file, rasterize(*ImGui::GetDrawData()));
         return file.string();
     }
 

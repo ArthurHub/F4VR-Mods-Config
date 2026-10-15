@@ -190,9 +190,9 @@ namespace
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->PathArcTo(at(12.1f, 12.1f), RADIUS, ARC_START, ARC_END);
         drawList->PathLineTo(at(4.0f, 10.0f));
-        drawList->PathStroke(color, ImDrawFlags_None, ICON_THICKNESS);
+        drawList->PathStroke(color, ICON_THICKNESS);
         const std::array head{ at(4.0f, 5.0f), at(4.0f, 10.0f), at(9.0f, 10.0f) };
-        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ImDrawFlags_None, ICON_THICKNESS);
+        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ICON_THICKNESS);
     }
 
     /**

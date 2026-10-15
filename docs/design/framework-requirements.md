@@ -260,7 +260,7 @@ This item depends on the native API of Mods Config VR, described in [Architectur
 
 Each of these is made only if a milestone of the [Mod work plan](mod-plan.md) finds that it needs it.
 
-- **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads one font at one size with ImGui's default glyph ranges, and the embedded font is Roboto. Text outside Latin-1 does not render, so a package translated into such a language needs wider glyph coverage and fallback fonts. One size is enough for the menu: a heading is a scaled copy of the body size and reads well. ImGui is at 1.90.2, fixed by the pinned vcpkg baseline.
+- **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads the embedded Roboto, and ImGui rasterizes each glyph at each size as it is first drawn, so Latin, Greek, Cyrillic and Vietnamese text renders at any size. A package or MCM config translated into Chinese, Japanese, Korean or Arabic needs a fallback font with those glyphs, merged into the canvas font.
 - **Touch as a second pointer source.** A fingertip crossing the canvas plane, taken from the same fingertip that vrui buttons use. For the hand-anchored Focused view, if a ray does not suit a panel on the own hand.
 - **Ray press for vrui buttons.** Needed if the on-screen keyboard of item 12 is made of vrui buttons beside the panel, or if vrui buttons end up in the Full panel's layout, out of reach of a finger.
 

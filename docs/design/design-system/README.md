@@ -21,7 +21,7 @@ The artifact also holds files its type writes when it is published: `api/`, `man
 `tools/` writes the generated files and checks a change before it is published. They need Python 3.11 or later; `render.py` and `measure.py` also need Playwright: `pip install playwright`, then `python -m playwright install chromium`.
 
 - `gen_previews.py`: writes every `preview.html` but the cover's.
-- `gen_theme.py`: writes [src/Theme.h](../../../src/Theme.h): every token as a C++ constant, the font scales, and `applyStyle`, which sets the `ImGuiStyle` fields and `ImGuiCol_` colors from the tables of the ImGui style section of `project/README.md`. A value in those tables that differs from its token, or an unknown token, stops it. `--check` only reports whether the header is out of date.
+- `gen_theme.py`: writes [src/Theme.h](../../../src/Theme.h): every token as a C++ constant, the font sizes, and `applyStyle`, which sets the `ImGuiStyle` fields and `ImGuiCol_` colors from the tables of the ImGui style section of `project/README.md`. A value in those tables that differs from its token, or an unknown token, stops it. `--check` only reports whether the header is out of date.
 - `render.py [Name ...]`: compiles the tokens as the artifact does and saves a screenshot of each preview to `out/`, which git ignores.
 - `measure.py [Name ...]`: the tree's height, whether its rows overflow, and any name cut short, from the pages `render.py` saved.
 - `check_contrast.py`: the contrast table in the Color section of `project/README.md`, computed from `tokens.json` with a white world behind the glass.

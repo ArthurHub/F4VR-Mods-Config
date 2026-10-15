@@ -78,7 +78,7 @@ namespace
     {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2);
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
-        ImGui::PushTextWrapPos(ImGui::GetContentRegionMax().x - theme::SPACE_2);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
         ImGui::PopTextWrapPos();
         ImGui::PopStyleColor();
@@ -319,7 +319,7 @@ namespace mods_config::ui
         const float width = ImGui::GetContentRegionAvail().x;
         std::optional<Selection> pressed;
 
-        ImGui::SetWindowFontScale(theme::FONT_SCALE_TITLE);
+        ImGui::PushFont(nullptr, theme::FONT_SIZE_TITLE);
         // on whole pixels, so a crumb is exactly as wide as the text it was measured for
         ImVec2 at(std::floor(pos.x + theme::SPACE_2), std::floor(pos.y + (theme::TITLEBAR_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f));
         const float right = pos.x + width - theme::SPACE_2;
@@ -358,7 +358,7 @@ namespace mods_config::ui
                 crumb("page", pageName, at, (std::min)(crumbWidth(pageName), right - at.x), CrumbLook::Current);
             }
         }
-        ImGui::SetWindowFontScale(theme::FONT_SCALE_BODY);
+        ImGui::PopFont();
 
         const float lineTop = pos.y + theme::TITLEBAR_HEIGHT - theme::BORDER_FRAME;
         ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(pos.x, lineTop), ImVec2(pos.x + width, lineTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));

@@ -154,7 +154,7 @@ namespace
             if (look.underline) {
                 // to where the next word starts before it is set on a whole pixel, so the lines of two words meet
                 const float end = x + (&word == &words.back() ? word.inkWidth : word.width);
-                const float top = at.y + look.font->Ascent * (look.fontSize / look.font->FontSize) + look.fontSize * UNDERLINE_OFFSET;
+                const float top = at.y + look.font->GetFontBaked(look.fontSize)->Ascent + look.fontSize * UNDERLINE_OFFSET;
                 drawList->AddRectFilled(ImVec2(at.x, top), ImVec2(end, top + (std::max)(look.fontSize * UNDERLINE_THICKNESS, 1.0f)), look.color);
             }
             x += word.width;
@@ -169,7 +169,7 @@ namespace
     void drawCutLine(const std::span<const Word> words, const ImVec2& pos, const float width)
     {
         const auto& first = words.front().look;
-        const float room = width - first.font->EllipsisWidth * (first.fontSize / first.font->FontSize);
+        const float room = width - first.font->GetFontBaked(first.fontSize)->GetCharAdvance(first.font->EllipsisChar);
         std::size_t last = 0;
         float lineWidth = words.front().width;
         while (last + 1 < words.size() && lineWidth + words[last + 1].inkWidth <= room) {
@@ -180,12 +180,8 @@ namespace
 
         const auto& end = words[last];
         const auto& look = end.look;
-        const float scale = look.fontSize / look.font->FontSize;
-        ImVec2 at(std::floor(pos.x + lineWidth - end.width + end.inkWidth), std::floor(pos.y + height - look.fontSize));
-        for (int i = 0; i < look.font->EllipsisCharCount; ++i) {
-            look.font->RenderChar(ImGui::GetWindowDrawList(), look.fontSize, at, look.color, look.font->EllipsisChar);
-            at.x += look.font->EllipsisCharStep * scale;
-        }
+        const ImVec2 at(std::floor(pos.x + lineWidth - end.width + end.inkWidth), std::floor(pos.y + height - look.fontSize));
+        look.font->RenderChar(ImGui::GetWindowDrawList(), look.fontSize, at, look.color, look.font->EllipsisChar);
     }
 }
 
@@ -210,14 +206,7 @@ namespace mods_config::ui
         }
         const float y = top + (height - ImGui::GetFontSize()) * 0.5f;
         ImGui::PushStyleColor(ImGuiCol_Text, color);
-        ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(),
-            ImVec2(left, y),
-            ImVec2(right, y + ImGui::GetFontSize()),
-            right,
-            right,
-            text.data(),
-            text.data() + text.size(),
-            nullptr);
+        ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), ImVec2(left, y), ImVec2(right, y + ImGui::GetFontSize()), right, text.data(), text.data() + text.size(), nullptr);
         ImGui::PopStyleColor();
     }
 
@@ -342,7 +331,6 @@ namespace mods_config::ui
             ImVec2(max.x - inset, max.y - inset),
             ImGui::GetColorU32(color),
             theme::RADIUS_FRAME,
-            ImDrawFlags_None,
             theme::BORDER_FRAME);
     }
 

@@ -58,13 +58,16 @@ namespace mods_config::ui
         if (lines == 0) {
             return;
         }
-        if (lines > BODY_LINES) {
-            ImGui::SetWindowFontScale(theme::FONT_SCALE_DETAIL);
+        const bool detail = lines > BODY_LINES;
+        if (detail) {
+            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
             lines = (std::min)(countTextLines(pieces, width), DETAIL_LINES);
         }
         const float height = static_cast<float>(lines) * ImGui::GetFontSize();
         drawTextPieces(pieces, ImVec2(pos.x, pos.y + (theme::FOOTER_HEIGHT - height) * 0.5f), width, lines);
-        ImGui::SetWindowFontScale(theme::FONT_SCALE_BODY);
+        if (detail) {
+            ImGui::PopFont();
+        }
     }
 
     /**

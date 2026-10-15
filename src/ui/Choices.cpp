@@ -67,7 +67,7 @@ namespace
         const std::array points{ ImVec2(min.x + 4.0f * SCALE, min.y + 12.5f * SCALE),
             ImVec2(min.x + 9.5f * SCALE, min.y + 18.0f * SCALE),
             ImVec2(min.x + 20.0f * SCALE, min.y + 6.5f * SCALE) };
-        ImGui::GetWindowDrawList()->AddPolyline(points.data(), static_cast<int>(points.size()), ImGui::GetColorU32(color), ImDrawFlags_None, CHECK_THICKNESS);
+        ImGui::GetWindowDrawList()->AddPolyline(points.data(), static_cast<int>(points.size()), ImGui::GetColorU32(color), CHECK_THICKNESS);
     }
 
     /**

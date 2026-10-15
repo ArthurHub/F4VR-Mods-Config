@@ -38,10 +38,10 @@ Every text color below is checked with a white world behind the glass, the worst
 ## Type
 
 - Draw the panel's own text in one face: Roboto Medium, the font the framework embeds (`render::TextFont`). Hierarchy comes from size, color and case. A mod's text is bold or italic where its tags say, in the canvas font's bold and italic faces (`imgui::canvasFont`), and underlined where they say.
-- Use three sizes, made with `ImGui::SetWindowFontScale` around the call and reset to 1.0 after it: `t-title` (26.25 px, scale 1.25), `t-body` (21 px), `t-detail` (17.5 px, scale 0.8333). Nothing smaller than `t-detail`.
+- Use three sizes, pushed with `ImGui::PushFont(nullptr, size)` around the call and popped after it: `t-title` (26 px), `t-body` (21 px), `t-detail` (18 px). ImGui rasterizes each size it draws, so each is as sharp as the body, and rounds a size to a whole pixel, so each is a whole number. Nothing smaller than `t-detail`.
 - ImGui sizes a font by its ascent minus descent (`stbtt_ScaleForPixelHeight`), and Roboto's is 2400 of 2048 units, so ImGui's 21 px is a 17.92 px em in CSS. The type tokens carry the CSS em so previews match the headset.
 - ImGui's line advance is the font size. Wrapped text has no extra leading. Help gets two `t-body` lines, or three `t-detail` lines when it needs them, and an ellipsis past that.
-- Only U+0020 to U+00FF render, because the framework loads ImGui's default glyph ranges. `°`, `×` and `±` are safe; arrows, bullets, check marks and `›` are not. Draw those (see Iconography).
+- A character renders when the font has it: ImGui loads each glyph as it is first drawn. Roboto has Latin with its extensions, Greek, Cyrillic and Vietnamese, and `°`, `×`, `±`, `•`, `›` and `…`. It has no arrows, check marks or triangles, and no Chinese, Japanese, Korean or Arabic: a character it does not have is drawn as `?`. Draw the icons (see Iconography).
 - Write `MODS CONFIG VR` and the wrist button labels in capitals. Write everything else in sentence case, and setting names exactly as the mod gives them.
 
 ## States
@@ -97,7 +97,7 @@ Set these once, before the first canvas draws. In the mod, `mods_config::theme::
 | `FrameBgActive`, `ButtonActive`, `HeaderActive`, `TextSelectedBg` | `pressed` |
 | `Header` | `green` (selected; push `Text` = `on-green`) |
 | `CheckMark` | `on-green` |
-| `SliderGrab`, `ScrollbarGrabHovered`, `NavHighlight` | `green` |
+| `SliderGrab`, `ScrollbarGrabHovered`, `NavCursor` | `green` |
 | `SliderGrabActive`, `ScrollbarGrabActive` | `glow` |
 | `ScrollbarGrab` | `frame-border` |
 | `Separator` | `rule` |
@@ -118,7 +118,7 @@ Set these once, before the first canvas draws. In the mod, `mods_config::theme::
 
 ## Iconography
 
-There is no icon font, and ImGui renders nothing past U+00FF, so every icon is drawn:
+There is no icon font, and Roboto has no arrows or check marks, so every icon is drawn:
 
 - Tree and dropdown arrows: `ImGui::RenderArrow` or a filled triangle, 14 px.
 - The current option's check: `ImGui::RenderCheckMark`.

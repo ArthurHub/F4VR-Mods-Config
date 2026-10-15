@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <imgui.h>
 
 #include "Theme.h"
@@ -40,11 +42,11 @@ namespace test_panel
             io.LogFilename = nullptr;
             io.ConfigInputTrickleEventQueue = false;
             io.DisplaySize = ImVec2(PANEL_WIDTH, PANEL_HEIGHT);
-            io.FontGlobalScale = 1.0f / SUPERSAMPLE;
+            // ImGui rasterizes the glyphs at the supersample, and takes the textures a renderer makes of them
+            io.DisplayFramebufferScale = ImVec2(SUPERSAMPLE, SUPERSAMPLE);
+            io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
             ImGui::StyleColorsDark();
-            f4cf::imgui::internal::loadCanvasFont(FONT_SIZE, SUPERSAMPLE);
-            // a renderer builds the font's texture, and a frame does not start without it
-            io.Fonts->Build();
+            f4cf::imgui::internal::loadCanvasFont(FONT_SIZE);
         }
 
         PanelContext(const PanelContext&) = delete;
@@ -55,6 +57,23 @@ namespace test_panel
             ImGui::DestroyContext();
         }
     };
+
+    /**
+     * What a renderer does with ImGui's texture requests, here with no renderer: a texture stays its pixels,
+     * which the render tests read, so a request is only marked done.
+     */
+    inline void answerTextureRequests()
+    {
+        for (ImTextureData* tex : ImGui::GetPlatformIO().Textures) {
+            if (tex->Status == ImTextureStatus_WantCreate || tex->Status == ImTextureStatus_WantUpdates) {
+                tex->SetTexID(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(tex)));
+                tex->SetStatus(ImTextureStatus_OK);
+            } else if (tex->Status == ImTextureStatus_WantDestroy && tex->UnusedFrames > 0) {
+                tex->SetTexID(ImTextureID_Invalid);
+                tex->SetStatus(ImTextureStatus_Destroyed);
+            }
+        }
+    }
 
     /**
      * One frame of the panel, in a window as the framework's canvas makes it: the panel's background and its
@@ -88,7 +107,7 @@ namespace test_panel
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->_FringeScale = FRINGE_SCALE;
         drawList->AddRectFilled(windowMin, windowMax, PANEL_BACKGROUND, PANEL_RADIUS - HALF_BORDER);
-        drawList->AddRect(windowMin, windowMax, theme::color::GREEN, PANEL_RADIUS - HALF_BORDER, ImDrawFlags_None, PANEL_BORDER);
+        drawList->AddRect(windowMin, windowMax, theme::color::GREEN, PANEL_RADIUS - HALF_BORDER, PANEL_BORDER);
 
         ImGui::SetCursorPos(ImVec2(PANEL_PADDING + HALF_BORDER, PANEL_PADDING + HALF_BORDER));
         const ImVec2 contentSize(PANEL_WIDTH - (PANEL_PADDING + PANEL_BORDER) * 2.0f, PANEL_HEIGHT - (PANEL_PADDING + PANEL_BORDER) * 2.0f);
@@ -102,5 +121,6 @@ namespace test_panel
         ImGui::End();
         ImGui::PopStyleColor();
         ImGui::Render();
+        answerTextureRequests();
     }
 }

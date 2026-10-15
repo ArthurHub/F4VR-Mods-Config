@@ -150,11 +150,11 @@ namespace mods_config::ui
         if (shown) {
             const auto pos = ImGui::GetCursorScreenPos();
             const auto count = std::to_string(mods.size());
-            ImGui::SetWindowFontScale(theme::FONT_SCALE_DETAIL);
+            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
             const float countLeft = pos.x + rowWidth - theme::SPACE_2 - textWidth(count);
             drawText(pos.x + theme::SPACE_2, countLeft, pos.y, HEADER_HEIGHT, theme::color::GREEN_MUTED, "Mods");
             drawText(countLeft, pos.x + rowWidth, pos.y, HEADER_HEIGHT, theme::color::GREEN_MUTED, count);
-            ImGui::SetWindowFontScale(theme::FONT_SCALE_BODY);
+            ImGui::PopFont();
             ImGui::Dummy(ImVec2(rowWidth, HEADER_HEIGHT));
 
             if (_showTop) {

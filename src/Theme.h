@@ -80,10 +80,10 @@ namespace mods_config::theme
     // The size the canvas font is loaded at, for imgui::setFontSizePixels: t-body.
     constexpr float FONT_SIZE         = 21.0f;      // 21 px
 
-    // Font scales for ImGui::SetWindowFontScale, from the 21 px font. Reset to 1 after the call.
-    constexpr float FONT_SCALE_TITLE  = 1.25f;      // 26.25 px
-    constexpr float FONT_SCALE_BODY   = 1.0f;       // 21 px
-    constexpr float FONT_SCALE_DETAIL = 0.8333333f; // 17.5 px
+    // Font sizes for ImGui::PushFont(nullptr, size) around the call, and PopFont after it.
+    constexpr float FONT_SIZE_TITLE   = 26.0f;      // 26 px
+    constexpr float FONT_SIZE_BODY    = 21.0f;      // 21 px
+    constexpr float FONT_SIZE_DETAIL  = 18.0f;      // 18 px
 
     /**
      * Sets the menu's sizes and colors on an ImGui style. Call it once, before the first canvas draws.
@@ -135,7 +135,7 @@ namespace mods_config::theme
         style.Colors[ImGuiCol_CheckMark] = ImGui::ColorConvertU32ToFloat4(color::ON_GREEN);
         style.Colors[ImGuiCol_SliderGrab] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
         style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
-        style.Colors[ImGuiCol_NavHighlight] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
+        style.Colors[ImGuiCol_NavCursor] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
         style.Colors[ImGuiCol_SliderGrabActive] = ImGui::ColorConvertU32ToFloat4(color::GLOW);
         style.Colors[ImGuiCol_ScrollbarGrabActive] = ImGui::ColorConvertU32ToFloat4(color::GLOW);
         style.Colors[ImGuiCol_ScrollbarGrab] = ImGui::ColorConvertU32ToFloat4(color::FRAME_BORDER);

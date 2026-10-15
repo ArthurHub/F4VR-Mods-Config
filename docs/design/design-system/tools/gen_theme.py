@@ -1,4 +1,4 @@
-"""Writes src/Theme.h: the menu's colors, sizes, font scales and ImGui style, from the design system.
+"""Writes src/Theme.h: the menu's colors, sizes, font sizes and ImGui style, from the design system.
 
 The values come from project/tokens.json. Which ImGuiStyle field and which ImGuiCol_ takes which token is read
 from the tables in the "ImGui style" section of project/README.md, so the document and the code cannot disagree:
@@ -169,11 +169,11 @@ w('')
 w('    // The size the canvas font is loaded at, for imgui::setFontSizePixels: t-body.')
 w(f'    constexpr float FONT_SIZE         = {flt(base) + ";":<11} // {base:g} px')
 w('')
-w(f'    // Font scales for ImGui::SetWindowFontScale, from the {base:g} px font. Reset to 1 after the call.')
+w('    // Font sizes for ImGui::PushFont(nullptr, size) around the call, and PopFont after it.')
 for s in styles:
-    n = 'FONT_SCALE_' + s['name'].removeprefix('t-').upper().replace('-', '_')
+    n = 'FONT_SIZE_' + s['name'].removeprefix('t-').upper().replace('-', '_')
     px = float(s['lineHeight'].removesuffix('px'))
-    w(f'    constexpr float {n:<17} = {flt(px / base) + ";":<11} // {px:g} px')
+    w(f'    constexpr float {n:<17} = {flt(px) + ";":<11} // {px:g} px')
 w('')
 w('    /**')
 w('     * Sets the menu\'s sizes and colors on an ImGui style. Call it once, before the first canvas draws.')

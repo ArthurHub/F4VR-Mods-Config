@@ -402,8 +402,8 @@ namespace
      */
     float crumbWidth(const char* text)
     {
-        const auto* font = ImGui::GetIO().Fonts->Fonts[0];
-        return std::ceil(font->CalcTextSizeA(test_panel::FONT_SIZE * theme::FONT_SCALE_TITLE, FLT_MAX, 0.0f, text).x) + theme::SPACE_2 * 2.0f;
+        auto* font = ImGui::GetIO().Fonts->Fonts[0];
+        return std::ceil(font->CalcTextSizeA(theme::FONT_SIZE_TITLE, FLT_MAX, 0.0f, text).x) + theme::SPACE_2 * 2.0f;
     }
 
     /**
