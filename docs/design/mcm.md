@@ -32,7 +32,7 @@ The menu shows MCM mods while `mcm_vr.dll` is loaded, and finds it by that name.
 | --- | --- | --- |
 | `section` | As in MCM: its text without tags, as a heading | M19 |
 | `spacer` | As in MCM, with its `numLines`. A `height` in pixels is not read: the spacer is one line | M19 |
-| `text` | As in MCM, with `<br>`, `<p align>`, `<font size color>` and entities when its `html` is on. `<b>`, `<i>` and `<u>` are dropped. Its `align` is not read: the one config that has it says the same in a `<p align>` | M19, M37 |
+| `text` | As in MCM, with `<br>`, `<p align>`, `<font size color>`, `<b>`, `<i>`, `<u>` and entities when its `html` is on. A text that is both bold and italic is bold. Its `align` is not read: the one config that has it says the same in a `<p align>` | M19, M37, M106 |
 | `image` | Its bitmap, read from the mod's `lib.swf`, at the size MCM's menu shows it. One drawn as vectors, a JPEG or one that is animated is a row that says an image is there. `width` and `height` are not used, as in MCM's menu | M22 |
 | `switcher` | As in MCM | M25 |
 | `hiddenSwitcher` | As in MCM: never shown, and controls its group | M38 |
@@ -49,7 +49,7 @@ What a row has beside its type:
 
 | Feature | How the menu handles it | |
 | --- | --- | --- |
-| `text` | As in MCM, translated, with its tags as MCM's menu sets every row's text as html | M17, M104 |
+| `text` | As in MCM, translated, with its tags as MCM's menu sets every row's text as html | M17, M104, M106 |
 | `help` | As in MCM, in the help line | M21 |
 | `id` | As in MCM: the name of a ModSetting and of a hotkey, and what `OnMCMSettingChange` gives | M29, M31 |
 | `groupControl`, `groupCondition` | As in MCM: a number, a list, `AND`, `OR` and `ONLY`. A condition inside another is read too, which MCM's menu does not | M28 |

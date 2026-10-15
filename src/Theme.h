@@ -38,7 +38,7 @@ namespace mods_config::theme
     // Spacing, in the panel's layout px: 48 px is one vrui unit.
     constexpr float SPACE_1            = 4.0f;     // TouchExtraPadding on each side: widens hit boxes into the item gap without moving anything
     constexpr float SPACE_2            = 8.0f;     // ItemSpacing.y and ItemInnerSpacing: between rows, between a control's parts
-    constexpr float SPACE_3            = 12.0f;    // FramePadding.y (a 24 px line + 2 x 12 = a 48 px control) and ItemSpacing.x
+    constexpr float SPACE_3            = 12.0f;    // FramePadding.y and ItemSpacing.x
     constexpr float SPACE_4            = 16.0f;    // FramePadding.x, WindowPadding of the content pane and of popups, the gap between the navigation and content panes
     constexpr float SPACE_6            = 24.0f;    // The row gutter that holds the pending dot or the warning mark; space above a section heading
     constexpr float SPACE_8            = 32.0f;    // IndentSpacing: a page row under its mod in the tree
@@ -57,14 +57,14 @@ namespace mods_config::theme
     constexpr float PANEL_PADDING      = 14.4f;    // UIPadding::all(0.3) in ConfigMenu.cpp: the canvas inset inside the Full panel's border
     constexpr float FOCUSED_WIDTH      = 576.0f;   // Focused panel canvas, 12 units
     constexpr float FOCUSED_HEIGHT     = 432.0f;   // Focused panel canvas, 9 units
-    constexpr float CONTROL_HEIGHT     = 48.0f;    // Every pressable control and row: ImGui frame height with FramePadding.y 12 and a 24 px line
+    constexpr float CONTROL_HEIGHT     = 48.0f;    // Every pressable control and row, drawn at this height: not ImGui's frame height
     constexpr float ROW_PITCH          = 56.0f;    // Control height plus ItemSpacing.y: the distance from one setting row to the next
     constexpr float TITLEBAR_HEIGHT    = 64.0f;    // The Full panel's title bar
     constexpr float FOOTER_HEIGHT      = 72.0f;    // The footer: Discard and Save on the right; on the left the help line (two t-body lines or three t-detail lines) or the session status
     constexpr float NAV_WIDTH          = 336.0f;   // The navigation tree (7 units): the same place and width with or without a selected mod
-    constexpr float DESCRIPTION_HEIGHT = 64.0f;    // The Focused panel's help area: two 24 px lines and space-2 above and below
+    constexpr float DESCRIPTION_HEIGHT = 64.0f;    // The Focused panel's help area: two t-body lines and space-2 above and below
     constexpr float CONTROL_WIDTH      = 448.0f;   // The right-hand control column of a setting row
-    constexpr float VALUE_WIDTH        = 104.0f;   // The value box of a slider or stepper: room for -1000.00 at 24 px
+    constexpr float VALUE_WIDTH        = 104.0f;   // The value box of a slider or stepper: room for -1000.00 in t-body
     constexpr float GRAB_WIDTH         = 20.0f;    // GrabMinSize: the slider grab, 20 x 40
     constexpr float SCROLLBAR_SIZE     = 16.0f;    // ScrollbarSize
 
@@ -77,10 +77,13 @@ namespace mods_config::theme
     constexpr float OPACITY_DISABLED   = 0.4f;     // ImGuiStyle.DisabledAlpha, applied by BeginDisabled to a whole row
     constexpr float OPACITY_OTHER_RAY  = 0.3f;     // The ray of the hand that does not own the pointer, drawn by the framework with no mark
 
-    // Font scales for ImGui::SetWindowFontScale, from the 24 px font the framework loads. Reset to 1 after the call.
-    constexpr float FONT_SCALE_TITLE  = 1.25f;      // 30 px
-    constexpr float FONT_SCALE_BODY   = 1.0f;       // 24 px
-    constexpr float FONT_SCALE_DETAIL = 0.8333333f; // 20 px
+    // The size the canvas font is loaded at, for imgui::setFontSizePixels: t-body.
+    constexpr float FONT_SIZE         = 21.0f;      // 21 px
+
+    // Font scales for ImGui::SetWindowFontScale, from the 21 px font. Reset to 1 after the call.
+    constexpr float FONT_SCALE_TITLE  = 1.25f;      // 26.25 px
+    constexpr float FONT_SCALE_BODY   = 1.0f;       // 21 px
+    constexpr float FONT_SCALE_DETAIL = 0.8333333f; // 17.5 px
 
     /**
      * Sets the menu's sizes and colors on an ImGui style. Call it once, before the first canvas draws.

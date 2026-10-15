@@ -248,7 +248,7 @@ namespace mods_config::model
     using Action = std::variant<NoAction, CallFunction, UnknownAction>;
 
     /**
-     * A piece of a line that is drawn in one size and one color.
+     * A piece of a line that is drawn in one size, one color and one face.
      */
     struct TextRun
     {
@@ -260,6 +260,11 @@ namespace mods_config::model
 
         // as 0xRRGGBB. A run without one is in the color of the text it is in
         std::optional<std::uint32_t> color;
+
+        // inside a <b>, an <i> and a <u> of its text
+        bool bold = false;
+        bool italic = false;
+        bool underline = false;
 
         bool operator==(const TextRun&) const = default;
     };
@@ -279,8 +284,8 @@ namespace mods_config::model
         // as plain text on one line, as the help line shows it
         std::string text;
 
-        // the text's pieces, with the size and the color its tags give them, on one line. Empty for a text
-        // whose tags give it neither, which is drawn as its plain text
+        // the text's pieces, with the size, the color and the face its tags give them, on one line. Empty for a
+        // text whose tags give it none of them, which is drawn as its plain text
         std::vector<TextRun> textRuns;
 
         // what the help line says of the row while the ray is on it: plain text on one line, and empty for none

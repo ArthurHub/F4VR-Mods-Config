@@ -18,7 +18,7 @@ namespace test_panel
     constexpr float PANEL_RADIUS = theme::RADIUS_PANEL;
     constexpr float PANEL_PADDING = theme::PANEL_PADDING;
     constexpr ImU32 PANEL_BACKGROUND = IM_COL32(15, 15, 15, 217);
-    constexpr float FONT_SIZE = 24.0f;
+    constexpr float FONT_SIZE = theme::FONT_SIZE;
     constexpr float SUPERSAMPLE = 1.5f;
 
     // where the panel's content starts, from the panel's left and from its top

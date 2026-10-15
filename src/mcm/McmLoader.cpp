@@ -121,14 +121,14 @@ namespace
     }
 
     /**
-     * The pieces of the text of a row that is not a text row, with the size and the color its font tags give
-     * them, each in the game's language. Empty where its tags give none, as the text is then drawn plain.
+     * The pieces of the text of a row that is not a text row, with the size, the color and the face its tags
+     * give them, each in the game's language. Empty where its tags give none, as the text is then drawn plain.
      */
     std::vector<model::TextRun> getLabelRuns(const Json& row, const ConfigTexts& texts)
     {
         auto runs = model::markupRuns(getShownText(row, "text", texts));
         if (std::ranges::none_of(runs, [](const model::TextRun& run) {
-                return run.size || run.color;
+                return run.size || run.color || run.bold || run.italic || run.underline;
             })) {
             return {};
         }

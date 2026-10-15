@@ -1050,7 +1050,7 @@ TEST_CASE("McmLoader: the text of a row that is not a text row is shown without 
     CHECK(std::get<model::Setting>(section.items[2]).text == "    - Indented");
 }
 
-TEST_CASE("McmLoader: the text of a row that is not a text row has the size and the color of its font tags in its pieces")
+TEST_CASE("McmLoader: the text of a row that is not a text row has the size, the color and the face of its tags in its pieces")
 {
     model::Translations translations;
     translations.add("$Modes", "Show modes");
@@ -1058,7 +1058,8 @@ TEST_CASE("McmLoader: the text of a row that is not a text row has the size and 
         { "type": "switcher", "text": "<font size='16' color='#AAAAAA'>$Modes</font>" },
         { "type": "button", "text": "Spawn <font color='#FF0000'>now</font><br>please" },
         { "type": "hotkey", "text": "<b>Bold</b> &amp; <u>underlined</u>" },
-        { "type": "colorPicker", "text": "<font size='15'>Tint</font>" }
+        { "type": "colorPicker", "text": "<font size='15'>Tint</font>" },
+        { "type": "switcher", "text": "<p>Plain</p>" }
     ] })",
         translations);
     REQUIRE(mod);
@@ -1075,9 +1076,13 @@ TEST_CASE("McmLoader: the text of a row that is not a text row has the size and 
                                                             { .text = " ", .size = {}, .color = {} },
                                                             { .text = "please", .size = {}, .color = {} } });
 
-    // tags that give no size and no color leave the text plain
-    CHECK(std::get<model::Hotkey>(items[2]).textRuns.empty());
+    CHECK(std::get<model::Hotkey>(items[2]).textRuns == std::vector<model::TextRun>{ { .text = "Bold", .size = {}, .color = {}, .bold = true },
+                                                            { .text = " & ", .size = {}, .color = {} },
+                                                            { .text = "underlined", .size = {}, .color = {}, .underline = true } });
     CHECK(std::get<model::Placeholder>(items[3]).textRuns == std::vector<model::TextRun>{ { .text = "Tint", .size = 15, .color = {} } });
+
+    // tags that give no size, no color and no face leave the text plain
+    CHECK(std::get<model::Setting>(items[4]).textRuns.empty());
 }
 
 TEST_CASE("McmLoader: the configs of a folder are translated")

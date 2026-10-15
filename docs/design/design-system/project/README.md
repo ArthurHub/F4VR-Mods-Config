@@ -11,8 +11,8 @@ Mods Config VR is one settings panel for every Fallout 4 VR mod, drawn with Dear
 ## Scale
 
 - Lay out in ImGui pixels. A `UIImGuiPanel` gets 48 px per vrui unit, so the Full panel at 24 x 15 units is `panel-width` x `panel-height`: 1152 x 720 px.
-- At the defaults in `ConfigMenu.cpp` (scale 6, 120 game units in front of the HMD, curve radius 25), one layout pixel is about 0.06 degrees at the panel's middle, about 17 px a degree. A `t-body` line is about 1.4 degrees tall, and a 48 px target about 2.9 degrees.
-- Keep `setFontSizePixels` at 24 and `setSupersample` at 1.5. The panel texture is then 1728 x 1080, about 25 texels a degree. Raise the factor only if text looks soft in the headset: memory grows with its square.
+- At the defaults in `ConfigMenu.cpp` (scale 6, 120 game units in front of the HMD, curve radius 25), one layout pixel is about 0.06 degrees at the panel's middle, about 17 px a degree. A `t-body` line is about 1.2 degrees tall, and a 48 px target about 2.9 degrees.
+- Set `setFontSizePixels` to the `t-body` size, 21 (`theme::FONT_SIZE`), and keep `setSupersample` at 1.5. The panel texture is then 1728 x 1080, about 25 texels a degree. Raise the factor only if text looks soft in the headset: memory grows with its square.
 - Set `TouchExtraPadding` to `space-1` on each side. It widens every hit box into the 8 px gap between items without moving anything, which absorbs hand jitter.
 
 ## Color
@@ -37,9 +37,9 @@ Every text color below is checked with a white world behind the glass, the worst
 
 ## Type
 
-- Use one face: Roboto Medium, the font the framework embeds (`render::TextFont`). Bold and italic do not exist. Hierarchy comes from size, color and case.
-- Use three sizes, made with `ImGui::SetWindowFontScale` around the call and reset to 1.0 after it: `t-title` (30 px, scale 1.25), `t-body` (24 px), `t-detail` (20 px, scale 0.8333). Nothing smaller than `t-detail`.
-- ImGui sizes a font by its ascent minus descent (`stbtt_ScaleForPixelHeight`), and Roboto's is 2701 of 2048 units, so ImGui's 24 px is an 18.2 px em in CSS. The type tokens carry the CSS em so previews match the headset.
+- Draw the panel's own text in one face: Roboto Medium, the font the framework embeds (`render::TextFont`). Hierarchy comes from size, color and case. A mod's text is bold or italic where its tags say, in the canvas font's bold and italic faces (`imgui::canvasFont`), and underlined where they say.
+- Use three sizes, made with `ImGui::SetWindowFontScale` around the call and reset to 1.0 after it: `t-title` (26.25 px, scale 1.25), `t-body` (21 px), `t-detail` (17.5 px, scale 0.8333). Nothing smaller than `t-detail`.
+- ImGui sizes a font by its ascent minus descent (`stbtt_ScaleForPixelHeight`), and Roboto's is 2400 of 2048 units, so ImGui's 21 px is a 17.92 px em in CSS. The type tokens carry the CSS em so previews match the headset.
 - ImGui's line advance is the font size. Wrapped text has no extra leading. Help gets two `t-body` lines, or three `t-detail` lines when it needs them, and an ellipsis past that.
 - Only U+0020 to U+00FF render, because the framework loads ImGui's default glyph ranges. `°`, `×` and `±` are safe; arrows, bullets, check marks and `›` are not. Draw those (see Iconography).
 - Write `MODS CONFIG VR` and the wrist button labels in capitals. Write everything else in sentence case, and setting names exactly as the mod gives them.

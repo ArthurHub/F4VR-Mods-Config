@@ -166,11 +166,14 @@ for name, (v, usage, fam) in sizes.items():
         fam_prev = fam
     w(f'    constexpr float {const_name(name):<{width}} = {flt(v) + ";":<9} // {summary(usage)}')
 w('')
-w(f'    // Font scales for ImGui::SetWindowFontScale, from the {int(base)} px font the framework loads. Reset to 1 after the call.')
+w('    // The size the canvas font is loaded at, for imgui::setFontSizePixels: t-body.')
+w(f'    constexpr float FONT_SIZE         = {flt(base) + ";":<11} // {base:g} px')
+w('')
+w(f'    // Font scales for ImGui::SetWindowFontScale, from the {base:g} px font. Reset to 1 after the call.')
 for s in styles:
     n = 'FONT_SCALE_' + s['name'].removeprefix('t-').upper().replace('-', '_')
     px = float(s['lineHeight'].removesuffix('px'))
-    w(f'    constexpr float {n:<17} = {flt(px / base) + ";":<11} // {int(px)} px')
+    w(f'    constexpr float {n:<17} = {flt(px / base) + ";":<11} // {px:g} px')
 w('')
 w('    /**')
 w('     * Sets the menu\'s sizes and colors on an ImGui style. Call it once, before the first canvas draws.')

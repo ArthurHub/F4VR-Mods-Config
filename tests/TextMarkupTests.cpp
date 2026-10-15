@@ -11,8 +11,8 @@ namespace
     using Lines = std::vector<std::string>;
 
     /**
-     * The lines as texts, so that a whole text is compared in one check. A run that has a size
-     * or a color says so before its text, as "[30 #FFFFFF]", and so does a line that is not at the left.
+     * The lines as texts, so that a whole text is compared in one check. A run that has a size, a color
+     * or a face says so before its text, as "[30 #FFFFFF b i u]", and so does a line that is not at the left.
      */
     Lines describe(const std::vector<model::TextLine>& lines)
     {
@@ -20,9 +20,21 @@ namespace
         for (const auto& line : lines) {
             std::string text = line.align == model::TextAlign::Center ? "center: " : line.align == model::TextAlign::Right ? "right: " : "";
             for (const auto& run : line.runs) {
-                std::string look = run.size ? std::to_string(*run.size) : "";
+                std::vector<std::string> parts;
+                if (run.size) {
+                    parts.push_back(std::to_string(*run.size));
+                }
                 if (run.color) {
-                    look += std::format("{}#{:06X}", look.empty() ? "" : " ", *run.color);
+                    parts.push_back(std::format("#{:06X}", *run.color));
+                }
+                for (const auto& [on, name] : { std::pair(run.bold, "b"), std::pair(run.italic, "i"), std::pair(run.underline, "u") }) {
+                    if (on) {
+                        parts.emplace_back(name);
+                    }
+                }
+                std::string look;
+                for (const auto& part : parts) {
+                    look += (look.empty() ? "" : " ") + part;
                 }
                 text += look.empty() ? run.text : "[" + look + "]" + run.text;
             }
@@ -135,9 +147,50 @@ TEST_CASE("TextMarkup: the titles of the test set's mods")
     CHECK(parsed("<font color='#AAAAAA' size='16'>One \"EXTRAS>+++\"<br />Two</font>") == Lines{ "[16 #AAAAAA]One \"EXTRAS>+++\"", "[16 #AAAAAA]Two" });
 }
 
+TEST_CASE("TextMarkup: b, i and u make their text bold, italic and underlined")
+{
+    const auto lines = model::parseMarkup("A <b>bold</b>, <i>slanted</i> and <U>underlined</U> word");
+
+    REQUIRE(lines.size() == 1);
+    CHECK(lines[0].runs == std::vector<model::TextRun>{
+                               { .text = "A ", .size = {}, .color = {} },
+                               { .text = "bold", .size = {}, .color = {}, .bold = true },
+                               { .text = ", ", .size = {}, .color = {} },
+                               { .text = "slanted", .size = {}, .color = {}, .italic = true },
+                               { .text = " and ", .size = {}, .color = {} },
+                               { .text = "underlined", .size = {}, .color = {}, .underline = true },
+                               { .text = " word", .size = {}, .color = {} },
+                           });
+    CHECK(parsed("<b><i><u>All</u></i></b>") == Lines{ "[b i u]All" });
+    // each holds until it closes, also across a line
+    CHECK(parsed("<u>One<br>Two</u>") == Lines{ "[u]One", "[u]Two" });
+}
+
+TEST_CASE("TextMarkup: a b, an i and a u hold inside a font tag and around one")
+{
+    const auto lines = model::parseMarkup("<b>A<font size='30'>B</b>C</font><font color='#AAAAAA'>D<u>E</font>F</u>G");
+
+    REQUIRE(lines.size() == 1);
+    CHECK(lines[0].runs == std::vector<model::TextRun>{
+                               { .text = "A", .size = {}, .color = {}, .bold = true },
+                               { .text = "B", .size = 30, .color = {}, .bold = true },
+                               { .text = "C", .size = 30, .color = {} },
+                               { .text = "D", .size = {}, .color = 0xAAAAAA },
+                               { .text = "E", .size = {}, .color = 0xAAAAAA, .underline = true },
+                               { .text = "F", .size = {}, .color = {}, .underline = true },
+                               { .text = "G", .size = {}, .color = {} },
+                           });
+}
+
+TEST_CASE("TextMarkup: a b inside another holds until the outer one closes")
+{
+    CHECK(parsed("<b>A<b>B</b>C</b>") == Lines{ "[b]ABC" });
+    // a closing tag with none open does nothing
+    CHECK(parsed("</b>A<b>B") == Lines{ "A[b]B" });
+}
+
 TEST_CASE("TextMarkup: any other tag is dropped and its text is kept")
 {
-    CHECK(parsed("A <b>bold</b>, <i>slanted</i> and <u>underlined</u> word") == Lines{ "A bold, slanted and underlined word" });
     CHECK(parsed("<a href='https://example.com'>A link</a><img src='x'/>") == Lines{ "A link" });
     CHECK(parsed("</font>A closing tag with none open") == Lines{ "A closing tag with none open" });
 }
@@ -176,6 +229,7 @@ TEST_CASE("TextMarkup: a text without its tags is on one line")
 {
     CHECK(model::removeMarkup("Turns the feature on.") == "Turns the feature on.");
     CHECK(model::removeMarkup("Icons scale in percent. <font color='#aaaaaa'>(Default: 100%)</font>") == "Icons scale in percent. (Default: 100%)");
+    CHECK(model::removeMarkup("<b>Note:</b> <u>restart</u> the <i>game</i>") == "Note: restart the game");
     CHECK(model::removeMarkup("<p>When ON, settlers assign themselves.</p>") == "When ON, settlers assign themselves.");
     // a line break and the end of a paragraph become one space
     CHECK(model::removeMarkup("Restock every 48 hours. </p><p>When OFF, by the economy.") == "Restock every 48 hours. When OFF, by the economy.");
@@ -194,4 +248,6 @@ TEST_CASE("TextMarkup: the runs of a text are on one line, with a space between 
     // an empty line leaves no space
     CHECK(line("One<br><br><p> </p>Two") == Lines{ "One Two" });
     CHECK(model::markupRuns("<br>").empty());
+    // a run keeps its face
+    CHECK(line("<u><font size='16'>Hide</font> it</u><br><b>now</b>") == Lines{ "[16 u]Hide[u] it [b]now" });
 }

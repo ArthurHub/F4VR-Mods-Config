@@ -7,6 +7,7 @@
 #include <imgui_internal.h>
 
 #include "Theme.h"
+#include "imgui/ImGuiFonts.h"
 
 namespace
 {
@@ -15,6 +16,22 @@ namespace
     // The size of a font tag that is drawn as the panel's body text. A config's sizes are those of MCM's menu,
     // where the ordinary text is about this size, so a text is as much larger or smaller than the rows as there.
     constexpr float MARKUP_BODY_SIZE = 20.0f;
+
+    // The line under an underlined text, in its font size: its top is below the baseline by Roboto's underline
+    // position, and it is as thick as its underline, which are 150 and 100 of the 2400 units ImGui sizes the font by.
+    constexpr float UNDERLINE_OFFSET = 0.0625f;
+    constexpr float UNDERLINE_THICKNESS = 0.042f;
+
+    /**
+     * How a piece of text looks: its font size, its color, and its face.
+     */
+    struct Look
+    {
+        float fontSize = 0.0f;
+        ImU32 color = 0;
+        ImFont* font = nullptr;
+        bool underline = false;
+    };
 
     /**
      * A word of a line of text with the spaces after it, which a line is wrapped between.
@@ -26,31 +43,55 @@ namespace
         // with its spaces, and without them
         float width = 0.0f;
         float inkWidth = 0.0f;
-
-        float fontSize = 0.0f;
-        ImU32 color = 0;
+        Look look;
     };
 
-    float widthOf(const std::string_view text, const float fontSize)
+    /**
+     * The face of the canvas font a run is drawn in: bold for a `<b>`, italic for an `<i>`, and bold for a text
+     * that is both, as the panel has no face for both. The current font where the face is not loaded.
+     */
+    ImFont* fontOf(const model::TextRun& run)
     {
-        return text.empty() ? 0.0f : ImGui::GetFont()->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, text.data(), text.data() + text.size()).x;
+        ImFont* face = nullptr;
+        if (run.bold) {
+            face = f4cf::imgui::canvasFont(f4cf::imgui::FontStyle::Bold);
+        } else if (run.italic) {
+            face = f4cf::imgui::canvasFont(f4cf::imgui::FontStyle::Italic);
+        }
+        return face ? face : ImGui::GetFont();
+    }
+
+    float widthOf(const std::string_view text, const Look& look)
+    {
+        return text.empty() ? 0.0f : look.font->CalcTextSizeA(look.fontSize, FLT_MAX, 0.0f, text.data(), text.data() + text.size()).x;
     }
 
     /**
-     * Adds the words of a text in one size and one color to those of its line.
+     * Adds the words of a text in one look to those of its line.
      */
-    void addWords(const std::string_view text, const float fontSize, const ImU32 color, std::vector<Word>& words)
+    void addWords(const std::string_view text, const Look& look, std::vector<Word>& words)
     {
         for (std::size_t start = 0; start < text.size();) {
             const auto inkEnd = (std::min)(text.find(' ', start), text.size());
             const auto end = (std::min)(text.find_first_not_of(' ', inkEnd), text.size());
             words.push_back({ .text = text.substr(start, end - start),
-                .width = widthOf(text.substr(start, end - start), fontSize),
-                .inkWidth = widthOf(text.substr(start, inkEnd - start), fontSize),
-                .fontSize = fontSize,
-                .color = color });
+                .width = widthOf(text.substr(start, end - start), look),
+                .inkWidth = widthOf(text.substr(start, inkEnd - start), look),
+                .look = look });
             start = end;
         }
+    }
+
+    /**
+     * The look of a run of a config's text, in a font size: in its own color, or else in the given one, and in
+     * its face.
+     */
+    Look lookOf(const model::TextRun& run, const float fontSize, const ImU32 color)
+    {
+        return { .fontSize = fontSize,
+            .color = run.color ? IM_COL32(*run.color >> 16, (*run.color >> 8) & 0xFF, *run.color & 0xFF, 255) : color,
+            .font = fontOf(run),
+            .underline = run.underline };
     }
 
     /**
@@ -78,21 +119,22 @@ namespace
     {
         std::vector<Word> words;
         for (const auto& piece : pieces) {
-            addWords(piece.text, ImGui::GetFontSize(), piece.color, words);
+            addWords(piece.text, { .fontSize = ImGui::GetFontSize(), .color = piece.color, .font = ImGui::GetFont(), .underline = false }, words);
         }
         return words;
     }
 
     /**
      * Draws words on one line, set in its room by the line's align. Words of a smaller size stand on the
-     * bottom of the line. Returns the height of the line.
+     * bottom of the line. An underlined word has its line under it and under the spaces after it, but not
+     * under the spaces that end the line. Returns the height of the line.
      */
     float drawWords(const std::span<const Word> words, const model::TextAlign align, const ImVec2& pos, const float width)
     {
         float height = 0.0f;
         float lineWidth = 0.0f;
         for (const auto& word : words) {
-            height = (std::max)(height, word.fontSize);
+            height = (std::max)(height, word.look.fontSize);
             lineWidth += &word == &words.back() ? word.inkWidth : word.width;
         }
         if (!ImGui::IsRectVisible(pos, ImVec2(pos.x + width, pos.y + height))) {
@@ -104,13 +146,17 @@ namespace
         if (align != model::TextAlign::Left) {
             x += align == model::TextAlign::Center ? room * 0.5f : room;
         }
+        auto* drawList = ImGui::GetWindowDrawList();
         for (const auto& word : words) {
-            ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(),
-                word.fontSize,
-                ImVec2(std::floor(x), std::floor(pos.y + height - word.fontSize)),
-                word.color,
-                word.text.data(),
-                word.text.data() + word.text.size());
+            const auto& look = word.look;
+            const ImVec2 at(std::floor(x), std::floor(pos.y + height - look.fontSize));
+            drawList->AddText(look.font, look.fontSize, at, look.color, word.text.data(), word.text.data() + word.text.size());
+            if (look.underline) {
+                // to where the next word starts before it is set on a whole pixel, so the lines of two words meet
+                const float end = x + (&word == &words.back() ? word.inkWidth : word.width);
+                const float top = at.y + look.font->Ascent * (look.fontSize / look.font->FontSize) + look.fontSize * UNDERLINE_OFFSET;
+                drawList->AddRectFilled(ImVec2(at.x, top), ImVec2(end, top + (std::max)(look.fontSize * UNDERLINE_THICKNESS, 1.0f)), look.color);
+            }
             x += word.width;
         }
         return height;
@@ -122,8 +168,8 @@ namespace
      */
     void drawCutLine(const std::span<const Word> words, const ImVec2& pos, const float width)
     {
-        const auto* font = ImGui::GetFont();
-        const float room = width - font->EllipsisWidth * (words.front().fontSize / font->FontSize);
+        const auto& first = words.front().look;
+        const float room = width - first.font->EllipsisWidth * (first.fontSize / first.font->FontSize);
         std::size_t last = 0;
         float lineWidth = words.front().width;
         while (last + 1 < words.size() && lineWidth + words[last + 1].inkWidth <= room) {
@@ -133,11 +179,12 @@ namespace
         const float height = drawWords(drawn, model::TextAlign::Left, pos, width);
 
         const auto& end = words[last];
-        const float scale = end.fontSize / font->FontSize;
-        ImVec2 at(std::floor(pos.x + lineWidth - end.width + end.inkWidth), std::floor(pos.y + height - end.fontSize));
-        for (int i = 0; i < font->EllipsisCharCount; ++i) {
-            font->RenderChar(ImGui::GetWindowDrawList(), end.fontSize, at, end.color, font->EllipsisChar);
-            at.x += font->EllipsisCharStep * scale;
+        const auto& look = end.look;
+        const float scale = look.fontSize / look.font->FontSize;
+        ImVec2 at(std::floor(pos.x + lineWidth - end.width + end.inkWidth), std::floor(pos.y + height - look.fontSize));
+        for (int i = 0; i < look.font->EllipsisCharCount; ++i) {
+            look.font->RenderChar(ImGui::GetWindowDrawList(), look.fontSize, at, look.color, look.font->EllipsisChar);
+            at.x += look.font->EllipsisCharStep * scale;
         }
     }
 }
@@ -185,7 +232,7 @@ namespace mods_config::ui
 
     /**
      * Lines of text in a width, each wrapped between its words where it is wider. A run is in its own size and
-     * color, or else in the given color, and an empty line is as high as a line of body text.
+     * color, or else in the given color, and in its face. An empty line is as high as a line of body text.
      * Returns the height of them all.
      */
     float drawTextLines(const std::span<const model::TextLine> lines, const ImVec2& pos, const float width, const ImU32 color)
@@ -196,7 +243,7 @@ namespace mods_config::ui
             words.clear();
             for (const auto& run : line.runs) {
                 const float fontSize = run.size ? static_cast<float>(*run.size) * mcmScale() : ImGui::GetFontSize();
-                addWords(run.text, fontSize, run.color ? IM_COL32(*run.color >> 16, (*run.color >> 8) & 0xFF, *run.color & 0xFF, 255) : color, words);
+                addWords(run.text, lookOf(run, fontSize, color), words);
             }
             if (words.empty()) {
                 y += ImGui::GetFontSize();
@@ -242,8 +289,8 @@ namespace mods_config::ui
     }
 
     /**
-     * One line of text in pieces of a size and a color each, centered in a height, as `drawText` draws a
-     * line. A piece is never larger than the current font size, so it stays in its row, and one with no color
+     * One line of text in pieces of a size, a color and a face each, centered in a height, as `drawText` draws
+     * a line. A piece is never larger than the current font size, so it stays in its row, and one with no color
      * is in the given color. It ends in an ellipsis where it does not fit before the right edge.
      */
     void drawTextRuns(const float left, const float right, const float top, const float height, const ImU32 color, const std::span<const model::TextRun> runs)
@@ -251,8 +298,10 @@ namespace mods_config::ui
         std::vector<Word> words;
         for (const auto& run : runs) {
             const float fontSize = run.size ? (std::min)(static_cast<float>(*run.size) * mcmScale(), ImGui::GetFontSize()) : ImGui::GetFontSize();
-            const auto runColor = run.color ? IM_COL32(*run.color >> 16, (*run.color >> 8) & 0xFF, *run.color & 0xFF, 255) : color;
-            addWords(run.text, fontSize, ImGui::GetColorU32(runColor), words);
+            auto look = lookOf(run, fontSize, color);
+            // in the alpha of a disabled row
+            look.color = ImGui::GetColorU32(look.color);
+            addWords(run.text, look, words);
         }
         if (words.empty()) {
             return;
@@ -261,7 +310,7 @@ namespace mods_config::ui
         float lineHeight = 0.0f;
         float lineWidth = 0.0f;
         for (const auto& word : words) {
-            lineHeight = (std::max)(lineHeight, word.fontSize);
+            lineHeight = (std::max)(lineHeight, word.look.fontSize);
             lineWidth += &word == &words.back() ? word.inkWidth : word.width;
         }
         const ImVec2 pos(left, top + (height - lineHeight) * 0.5f);

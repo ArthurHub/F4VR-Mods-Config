@@ -308,6 +308,8 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | done      |
 | M42 | mod  | A page that is shown reads its values again                          | done      |
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | done      |
+| F34 | framework | imgui: bold and italic faces of the canvas font                 | in review |
+| M106 | mod | `<b>`, `<i>` and `<u>` in the text of a row, and the panel's font size | done    |
 | M105 | mod | A DLL that reads MCM's file as the pause menu closes reads it as the menu closes | todo |
 
 M33 makes a button run its `CallFunction`, as `mcm_vr.dll` does for MCM's menu:
@@ -445,6 +447,20 @@ M43 is [MCM support](mcm.md): a table of every feature of an MCM config and of M
 - It also lists the names of DearModdingUI's inventory that are no type of MCM's menu, as `menu` and `switch`, and that each is a placeholder: M38 has why.
 - MCM's menu reads more than the wiki has, and no mod of the author's lists has it: the pages of a config under another mod (`ownerModName`), the requirements of a page, a text from a form or a property, options from a form or a property, and a spacer's `height` in pixels. The table has each as not read.
 - Three DLLs of the author's lists read MCM's file as the pause menu closes, which this menu does not open: M105.
+
+F34 gives the canvas font a bold and an italic face, for a run of text in the content (`imgui::canvasFont`):
+
+- They are Roboto Black and Roboto Medium Italic, embedded beside the Roboto Medium. The bold face is Black, as Roboto Bold is too close to Medium to tell apart. A mod's own are `<ModName>-Bold.ttf` and `<ModName>-Italic.ttf`, beside its `<ModName>.ttf`.
+- All three are Roboto 2.137 as Google Fonts ships it. ImGui sizes a font by its line, which is shorter in this build, so ImGui's text is 12.5% larger at the same size. The text of vrui is sized by its capitals, and keeps its size.
+
+M106 draws `<b>`, `<i>` and `<u>` as MCM's menu does, in a text row and in the text of a setting, a button, a hotkey and a placeholder:
+
+- `<b>` is the bold face, `<i>` the italic face, and `<u>` a line under the words, with the spaces between them. A text that is both bold and italic is bold: the panel has no face for both.
+- A tag holds from where it opens to where it closes, inside a `<font>` and around one.
+- A section is its text without its tags, in the look of a heading. The help line and the log have the text without its tags.
+- The panel's font is set to 21 px, as the framework's default of 24 px is 12.5% larger with F34: 21.3 px is the size the rows' text has now. The title and the detail text are sized from it, as they are. The design system's type tokens take ImGui's px as 2048/2400 of an em.
+- Eight mods of the author's lists have `<b>`, in 35 texts. The newer Sim Settlements 2 has `<u>` on 18 switchers, and Game Configuration Menu on one text. No mod of the lists has `<i>`. The MCM showcase has a text row with all three, and a switcher with `<u>`.
+- The design system's rule of one face becomes: the panel's own text is in one face, and a mod's text is bold or italic where its tags say.
 
 M105 makes a DLL that reads MCM's settings file as the pause menu closes see a change made here, as it sees one of MCM's menu:
 

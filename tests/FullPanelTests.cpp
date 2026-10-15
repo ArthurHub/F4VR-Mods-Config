@@ -663,7 +663,7 @@ TEST_CASE("FullPanel: a press that opens a quick launch entry acts")
 
     bool acted = false;
     for (const bool pressed : { false, false, true, false, false }) {
-        test_panel::drawFrame(panel, ImVec2(640.0f, 250.0f), pressed);
+        test_panel::drawFrame(panel, ImVec2(640.0f, 215.0f), pressed);
         acted = acted || panel.pressActed();
     }
     CHECK(opened == 1);
@@ -792,8 +792,8 @@ TEST_CASE("FullPanel: the help line has the help of the quick launch entry the r
                             } } });
     drawFrames(panel, 2);
 
-    // the entry's row is under the page's three lines of text and the heading of its section
-    point(panel, ImVec2(640.0f, 250.0f));
+    // the entry's row is under the page's two lines of text and the heading of its section
+    point(panel, ImVec2(640.0f, 215.0f));
     CHECK(panel.helpLine().text() == "FRIK: Opens FRIK's own configuration.");
     point(panel, treeRow(0));
     CHECK(panel.helpLine().text().empty());

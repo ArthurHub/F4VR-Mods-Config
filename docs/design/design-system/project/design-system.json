@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-12T15:25:00Z",
+    "at": "2026-10-15T16:30:00Z",
     "via": "Claude Code",
-    "note": "The tree's arrow points down only at a mod that has pages: a selected mod with none keeps it right."
+    "note": "The font is loaded at 21 px, Roboto 2.137's size of the old 24 px text, and a mod's text is bold, italic or underlined where its tags say."
   },
   "layout": "files",
   "libraries": [],

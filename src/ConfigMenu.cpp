@@ -1,11 +1,13 @@
 #include "ConfigMenu.h"
 
 #include "Config.h"
+#include "Theme.h"
 #include "api/FRIKApi.h"
 #include "common/MatrixUtils.h"
 #include "f4sevr/PapyrusUtils.h"
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
+#include "imgui/ImGuiSettings.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
 #include "vrui/UIManager.h"
@@ -200,6 +202,8 @@ namespace mods_config
 
     void ConfigMenu::createPanel()
     {
+        // the size of the design system's body text: it is read as the first canvas draws, and later calls do nothing
+        imgui::setFontSizePixels(theme::FONT_SIZE);
         _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigVR_Panel", g_config.panelWidth, g_config.panelHeight);
         applyPanelConfig();
         // the menu's one ImGui panel: at this size it needs a texture of its own, and a dropdown's list or a dialog opens inside it

@@ -438,7 +438,7 @@ TEST_CASE("FullPanel render: the menu's front page", "[.render]")
 TEST_CASE("FullPanel render: the ray on a quick launch row", "[.render]")
 {
     auto panel = testSetPanel();
-    WARN("Saved " << renderToFile(panel, "front-page-quick-launch-hover", ImVec2(640.0f, 250.0f)));
+    WARN("Saved " << renderToFile(panel, "front-page-quick-launch-hover", ImVec2(640.0f, 215.0f)));
 }
 
 TEST_CASE("FullPanel render: no mods and no quick launch", "[.render]")

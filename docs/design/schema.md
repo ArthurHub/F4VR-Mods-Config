@@ -452,7 +452,7 @@ Optional confirmation is declarative:
 
 These rows hold no value. `text` and `spacer` are as in an MCM config.
 
-A `text` is a paragraph in the panel's muted color, wrapped to the width of the rows. With `html`, its text takes the three tags that MCM configs use:
+A `text` is a paragraph in the panel's muted color, wrapped to the width of the rows. With `html`, its text takes the tags that MCM configs use:
 
 ```json
 { "type": "text", "text": "<p align='center'><font size='24'>Calibration</font></p>Stand straight and look ahead.<br><font color='#FFFFFF'>Do not move</font> until it is done.", "html": true }
@@ -464,10 +464,13 @@ A `text` is a paragraph in the panel's muted color, wrapped to the width of the 
 | `<p>`          | A paragraph on lines of its own. Its `align` is `left`, `center` or `right`                           |
 | `<font size>`  | The size of its text, on the scale of MCM's menu: 20 is the size of the rows' text                    |
 | `<font color>` | The color of its text, as `#RRGGBB`                                                                   |
+| `<b>`          | Its text is bold                                                                                      |
+| `<i>`          | Its text is italic. A text that is both bold and italic is bold: the panel has no face for both       |
+| `<u>`          | Its text is underlined, with the spaces between its words                                             |
 
-A size is a size of MCM's menu, where the ordinary text is about 20, so a text copied from an MCM config looks here as it does there: a 40 is twice the rows' text and a 10 is half of it. The panel's own text is larger than MCM's, and draws a size at 1.2 times its number. A size is not limited: a small one is hard to read in the headset, and it is the author's to choose.
+A size is a size of MCM's menu, where the ordinary text is about 20, so a text copied from an MCM config looks here as it does there: a 40 is twice the rows' text and a 10 is half of it. The panel draws a size at 1.05 times its number, as its rows' text is 21 px. A size is not limited: a small one is hard to read in the headset, and it is the author's to choose.
 
-Any other tag is dropped and its text is kept. That includes `<b>`, `<i>` and `<u>`; see [Open questions](open-questions.md#ui-work). Entities, as `&amp;`, are decoded.
+Any other tag is dropped and its text is kept. Entities, as `&amp;`, are decoded.
 
 A `help` is plain text. The tags that an MCM config has in a help are removed; see [Help line](ui-and-vr-interaction.md#help-line).
 

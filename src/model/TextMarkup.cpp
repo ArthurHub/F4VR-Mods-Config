@@ -233,7 +233,7 @@ namespace
 
     /**
      * The lines of a text as they are read: what is added goes to the line that is open, in the style of the
-     * innermost font tag.
+     * innermost font tag, and in the faces of the `<b>`, `<i>` and `<u>` that are open.
      */
     class Lines
     {
@@ -244,10 +244,11 @@ namespace
                 return;
             }
             const auto& style = _styles.empty() ? Style() : _styles.back();
-            if (!_line.runs.empty() && _line.runs.back().size == style.size && _line.runs.back().color == style.color) {
-                _line.runs.back().text += text;
+            model::TextRun run{ .text = std::string(text), .size = style.size, .color = style.color, .bold = _bold > 0, .italic = _italic > 0, .underline = _underline > 0 };
+            if (!_line.runs.empty() && sameLook(_line.runs.back(), run)) {
+                _line.runs.back().text += run.text;
             } else {
-                _line.runs.push_back({ .text = std::string(text), .size = style.size, .color = style.color });
+                _line.runs.push_back(std::move(run));
             }
         }
 
@@ -293,6 +294,16 @@ namespace
         }
 
         /**
+         * Opens or closes a `<b>`, an `<i>` or a `<u>`. Each holds until it closes, whatever font tags open and
+         * close in between. A closing tag with none open does nothing.
+         */
+        void setFace(const std::string_view name, const bool closing)
+        {
+            auto& open = name == "b" ? _bold : name == "i" ? _italic : _underline;
+            open = closing ? (std::max)(open - 1, 0) : open + 1;
+        }
+
+        /**
          * The lines that were read, without the empty ones at their end.
          */
         std::vector<model::TextLine> take()
@@ -309,6 +320,16 @@ namespace
         model::TextLine _line;
         model::TextAlign _align = model::TextAlign::Left;
         std::vector<Style> _styles;
+
+        // how many of each are open
+        int _bold = 0;
+        int _italic = 0;
+        int _underline = 0;
+
+        static bool sameLook(const model::TextRun& a, const model::TextRun& b)
+        {
+            return a.size == b.size && a.color == b.color && a.bold == b.bold && a.italic == b.italic && a.underline == b.underline;
+        }
     };
 
     /**
@@ -341,6 +362,8 @@ namespace
                     lines.popStyle();
                 } else if (tag->name == "font") {
                     lines.pushStyle(tag->attributes);
+                } else if (tag->name == "b" || tag->name == "i" || tag->name == "u") {
+                    lines.setFace(tag->name, tag->closing);
                 }
             } else if (const auto entity = tags && c == '&' ? readEntity(text.substr(at)) : std::nullopt) {
                 addTextTo(at);
@@ -361,8 +384,9 @@ namespace
 namespace mods_config::model
 {
     /**
-     * The lines of a text with tags: `<br>` starts a line, `<p>` is a paragraph with its `align`, and `<font>`
-     * gives its text a `size` and a `color`. Any other tag is dropped and its text is kept.
+     * The lines of a text with tags: `<br>` starts a line, `<p>` is a paragraph with its `align`, `<font>`
+     * gives its text a `size` and a `color`, and `<b>`, `<i>` and `<u>` make it bold, italic and underlined.
+     * Any other tag is dropped and its text is kept.
      * Entities, as `&amp;`, are decoded.
      */
     std::vector<TextLine> parseMarkup(const std::string_view text)
@@ -380,7 +404,7 @@ namespace mods_config::model
 
     /**
      * The runs of a text with tags, on one line: a line break and the end of a paragraph become a space, and
-     * an empty line is dropped. A run keeps the size and the color of its font tag.
+     * an empty line is dropped. A run keeps the size and the color of its font tag, and its faces.
      */
     std::vector<TextRun> markupRuns(const std::string_view text)
     {
