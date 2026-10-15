@@ -764,6 +764,41 @@ TEST_CASE("McmStore: a setting that is set sends MCM's event, with its mod and t
     CHECK(events.sent.empty());
 }
 
+TEST_CASE("McmStore: the menu closes as the pause menu does after a ModSetting was written, and only then")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\n");
+    auto globals = someGlobals();
+    TestEvents events;
+    McmStore store(mcm.path);
+    const model::Mod mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} };
+
+    // a global, and a ModSetting MCM does not have, which is held here: no file is written
+    store.menuOpened();
+    store.open(mod);
+    CHECK(store.set(globalSetting(SettingType::Switcher, 0x801), true));
+    CHECK(store.set(modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool), true));
+    store.close();
+    events.sent.clear();
+    store.menuClosed();
+    CHECK(events.sent == Events{ "OnMCMClose" });
+
+    // a ModSetting, of a mod that was left before the menu closed
+    store.menuOpened();
+    store.open(mod);
+    CHECK(store.set(modSetting(SettingType::Switcher, "bOn:Main", Type::Bool), true));
+    store.close();
+    events.sent.clear();
+    store.menuClosed();
+    CHECK(events.sent == Events{ "OnMCMClose", "PauseMenu(opening)", "PauseMenu(closing)" });
+
+    // the menu opened again, with nothing written
+    store.menuOpened();
+    events.sent.clear();
+    store.menuClosed();
+    CHECK(events.sent == Events{ "OnMCMClose" });
+}
+
 TEST_CASE("McmStore: the action of a button calls its function, and no other action is run")
 {
     TestActions actions;

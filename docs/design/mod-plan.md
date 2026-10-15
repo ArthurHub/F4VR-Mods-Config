@@ -310,7 +310,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | done      |
 | F34 | framework | imgui: bold and italic faces of the canvas font                 | in review |
 | M106 | mod | `<b>`, `<i>` and `<u>` in the text of a row, and the panel's font size | done    |
-| M105 | mod | A DLL that reads MCM's file as the pause menu closes reads it as the menu closes | todo |
+| M105 | mod | A DLL that reads MCM's file as the pause menu closes reads it as the menu closes | done |
 
 M33 makes a button run its `CallFunction`, as `mcm_vr.dll` does for MCM's menu:
 

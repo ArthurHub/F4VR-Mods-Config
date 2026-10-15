@@ -61,4 +61,22 @@ namespace mods_config::mcm
         papyrus->GetExternalEventRegistrations(event, &sent, callScript);
         logger::debug("Sent the event {} to {} scripts", event, sent.scripts);
     }
+
+    /**
+     * Sends the game's `MenuOpenCloseEvent` of `PauseMenu`, opening and then closing, to every listener of the
+     * UI's event, as the game sends it: the pause menu itself is not opened. Both are sent, so a listener that
+     * counts the menus that are open stays right. It is called on the game's thread, as the game sends it.
+     */
+    void sendPauseMenuEvents()
+    {
+        auto* ui = RE::UI::GetSingleton();
+        if (!ui) {
+            logger::warn("The pause menu's events are not sent: the game's UI is not running");
+            return;
+        }
+        auto* source = ui->GetEventSource<RE::MenuOpenCloseEvent>();
+        source->Notify(RE::MenuOpenCloseEvent{ .menuName = "PauseMenu", .opening = true });
+        source->Notify(RE::MenuOpenCloseEvent{ .menuName = "PauseMenu", .opening = false });
+        logger::info("Sent the pause menu as opened and closed, for a DLL that reads its MCM file then");
+    }
 }

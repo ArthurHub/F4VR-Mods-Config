@@ -282,11 +282,16 @@ namespace mods_config::mcm
 
     /**
      * Tells the scripts that the menu is closed, as MCM's menu does with `OnMCMClose`. The menu ends the
-     * session of its mod before it.
+     * session of its mod before it. After a ModSetting was written, a DLL that reads its MCM file as the pause
+     * menu closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left.
      */
     void McmStore::menuClosed()
     {
         sendEvent("OnMCMClose");
+        if (_modSettingWritten) {
+            _modSettingWritten = false;
+            sendPauseMenuEvents();
+        }
     }
 
     /**
@@ -492,7 +497,11 @@ namespace mods_config::mcm
                 return true;
             }
             const auto typed = typedValue(modSetting->type, value);
-            return typed && _modSettings.set(modSetting->name, *typed);
+            if (typed && _modSettings.set(modSetting->name, *typed)) {
+                _modSettingWritten = true;
+                return true;
+            }
+            return false;
         }
         if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
             const auto typed = typedValue(property->type, value);

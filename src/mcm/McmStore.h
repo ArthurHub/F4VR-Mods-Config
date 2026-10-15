@@ -36,6 +36,11 @@ namespace mods_config::mcm
     // tests/TestEvents.cpp, which keeps what is sent.
     void sendEvent(const std::string& event, const std::vector<std::string>& arguments = {});
 
+    // Tells the game's listeners of its menus that the pause menu opened and then closed, which it did not: a
+    // DLL reads its MCM file as the pause menu closes, which MCM's menu is in. The mod's is in McmEvents.cpp,
+    // and the tests' in tests/TestEvents.cpp, which keeps the two events as sent.
+    void sendPauseMenuEvents();
+
     // Calls a function of a script of a form, or a global function of a script, with its arguments. Returns
     // false for one whose form or script is not in the game. The mod's is in McmActions.cpp, which queues the call to Papyrus, and the tests' in
     // tests/TestActions.cpp, which keeps what is called.
@@ -52,7 +57,8 @@ namespace mods_config::mcm
      * A global is read and written with `getGlobal` and `setGlobal`, and a property of a script with
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
-     * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`.
+     * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`. As the menu closes
+     * after a ModSetting was written, the pause menu is told as opened and closed, with `sendPauseMenuEvents`.
      * The `CallFunction` and the `CallGlobalFunction` of a button are run with `callFunction`, and so are
      * the ones of a value row, after its value is written, with the value in their arguments.
      */
@@ -95,5 +101,8 @@ namespace mods_config::mcm
 
         // the values of the settings with no storage that were set, of the mod that is selected
         std::unordered_map<const model::Setting*, model::Value> _held;
+
+        // a ModSetting of any mod was written through MCM since the menu opened
+        bool _modSettingWritten = false;
     };
 }

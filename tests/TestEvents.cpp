@@ -36,4 +36,13 @@ namespace mods_config::mcm
         }
         sentEvents().push_back(arguments.empty() ? text : text + ")");
     }
+
+    /**
+     * Keeps the two events of the pause menu in place of sending them to the game's listeners.
+     */
+    void sendPauseMenuEvents()
+    {
+        sentEvents().emplace_back("PauseMenu(opening)");
+        sentEvents().emplace_back("PauseMenu(closing)");
+    }
 }
