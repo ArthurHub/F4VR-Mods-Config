@@ -28,10 +28,10 @@ enable it. Launch the game through F4SEVR (`f4sevr_loader.exe`).
 
 ## Configuration
 
-Settings live in an INI created on first run at:
+Settings live in a TOML file created on first run at:
 
 ```
-%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.ini
+%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.toml
 ```
 
 Edits apply **live** while the game is running — no restart needed.

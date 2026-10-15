@@ -9,6 +9,7 @@
     "xbyak",
     "nlohmann-json",
     "simpleini",
+    "tomlplusplus",
     "thomasmonkman-filewatch",
     "cpptrace",
     "catch2",
@@ -25,6 +26,10 @@
     {
       "name": "cpptrace",
       "version": "1.0.0"
+    },
+    {
+      "name": "imgui",
+      "version": "1.92.9"
     }
   ]
 }

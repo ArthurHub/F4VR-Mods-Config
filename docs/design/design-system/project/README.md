@@ -32,7 +32,7 @@ Every text color below is checked with a white world behind the glass, the worst
 - Tint with green, never with gray: `plate` (6%) for fixed regions, `track` (10%) for the empty part of a control, `hover` (12%) under the ray, `pressed` (20%) while the trigger is held.
 - Outline controls in `frame-border` (3.7:1). Draw section rules in `rule`, which is decorative.
 - Draw a pressed outline and a dragged grab in `glow`, close to the pointer's `mark`, so feedback seems to come from the ray.
-- Keep the pointer as the INI sets it: `ray`, `mark`, `mark-border`. They are `[Pointer]` defaults, not panel colors.
+- Keep the pointer as the config sets it: `ray`, `mark`, `mark-border`. They are `[Pointer]` defaults, not panel colors.
 - Do not add white text, gray UI, or a second accent. The one exception is a color that a mod gives the text of its own `text` row, which is drawn as given.
 
 ## Type

@@ -30,7 +30,7 @@ namespace mods_config::theme
         constexpr ImU32 RED          = IM_COL32(255, 149, 133, 255); // Invalid: the value text, the inline message and the gutter mark of a setting that cannot be saved, and the error in the help line
         constexpr ImU32 ON_RED       = IM_COL32( 36,   8,   5, 255); // The "!" inside the drawn warning triangle, which is filled red
         constexpr ImU32 DISABLED     = IM_COL32( 10, 250, 120, 102); // Text and outlines of a disabled row or control, which is ImGui's DisabledAlpha 0.4 applied to green
-        constexpr ImU32 RAY          = IM_COL32(190, 255, 190, 200); // The pointer ray: sRayColor = 190,255,190,200 in [Pointer] of ModsConfigVR.ini
+        constexpr ImU32 RAY          = IM_COL32(190, 255, 190, 200); // The pointer ray: sRayColor = 190,255,190,200 in [Pointer] of ModsConfigVR.toml
         constexpr ImU32 MARK         = IM_COL32(215, 255, 215, 180); // The mark where the ray meets the panel: sMarkColor = 215,255,215,180
         constexpr ImU32 MARK_BORDER  = IM_COL32(215, 255, 215, 100); // The border of the mark: sMarkBorderColor = 215,255,215,100
     }

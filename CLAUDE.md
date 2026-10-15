@@ -79,7 +79,7 @@ The entry point is [src/ModsConfigVR.h](src/ModsConfigVR.h) / [src/ModsConfigVR.
 | Component  | Files                                                 | Responsibility                                                                    |
 | ---------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
 | **ModsConfigVR**  | [src/ModsConfigVR.h](src/ModsConfigVR.h) / [.cpp](src/ModsConfigVR.cpp)    | The mod class and the F4SE entry points: the opening gesture, taking it from FRIK |
-| **Config** | [src/Config.h](src/Config.h) / [.cpp](src/Config.cpp) | INI load via `ConfigBase` (global `g_config`), live hot-reload via a file watcher |
+| **Config** | [src/Config.h](src/Config.h) / [.cpp](src/Config.cpp) | TOML config load via `ConfigBase` (global `g_config`), live hot-reload via a file watcher |
 | **ConfigMenu** | [src/ConfigMenu.h](src/ConfigMenu.h) / [.cpp](src/ConfigMenu.cpp) | The menu: the ImGui panel in the world, which the player can move, and the vrui buttons on the offhand. What the panel shows is the Full panel's, and the values it shows are the MCM store's, with the game's globals. It sees the Back button, which goes a step back in the panel and closes the menu from its front page, and gives the hand that points a pulse as its press does something in the panel, and as its thumbstick steps a slider or a stepper. It tells the panel how far the thumbstick of that hand is pushed to a side, which steps them. It draws the images of a mod's page for the panel, with a texture made from the pixels of each when it is first drawn (`imgui::addImage`) |
 | **FullPanel** | [src/ui/FullPanel.h](src/ui/FullPanel.h) / [.cpp](src/ui/FullPanel.cpp) | What the panel shows, drawn with ImGui as the design system has it: the title bar with its breadcrumbs, the tree of the mods, the menu's front page or a page of the selected mod, and the footer with the help line. It holds what is selected ([src/ui/Selection.h](src/ui/Selection.h)), starts a mod's editing session in the store the menu gives it as the mod is selected, and sets the design system's style on ImGui's (`theme::applyStyle`). Nothing in `src/ui/` knows of the game, so a test draws it |
 | **ModTree** | [src/ui/ModTree.h](src/ui/ModTree.h) / [.cpp](src/ui/ModTree.cpp) | The tree of the mods on the left of the Full panel: its plate, its header with the number of the mods, and their rows. The selected mod is open, with a row for each of its pages, and the selected row is scrolled into view |
@@ -111,15 +111,15 @@ TODO: add a row for each component as the mod grows.
 
 ### Config
 
-[data/config/ModsConfigVR.ini](data/config/ModsConfigVR.ini) is the shipped default config. It is embedded in the DLL (resource `IDR_CONFIG_INI`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.ini`.
+[data/config/ModsConfigVR.toml](data/config/ModsConfigVR.toml) is the shipped default config, in TOML. It is embedded in the DLL (resource `IDR_CONFIG`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.toml`. A player's `ModsConfigVR.ini` from an older version is moved into it by the framework, with its values, on the first load that finds no TOML.
 
-- The main section is `[ModsConfigVR]`; it must match `NAME` in `CMakeLists.txt`, which the config reads back as both the INI file name and the default section. It holds the binding that opens the menu, and the Back button: a short press of a button of the hand that points at the panel, and not a binding. As shipped it is the grip, which also moves the panel: the panel then moves only when the grip is held longer (`UIManager::setWorldMoveHoldDelay`).
+- The main section is `[ModsConfigVR]`; it must match `NAME` in `CMakeLists.txt`, which the config reads back as both the file name and the default section. It holds the binding that opens the menu, and the Back button: a short press of a button of the hand that points at the panel, and not a binding. As shipped it is the grip, which also moves the panel: the panel then moves only when the grip is held longer (`UIManager::setWorldMoveHoldDelay`).
 - `[Panel]` holds the menu's panel in the world: its scale, which is the size of its text and rows, its distance, height and tilt, the opacity of its background, the button that moves it and how smoothly it follows the hand, the gesture that puts it in front of the player again, and the distance at which that happens by itself.
 - `[Pointer]` holds the menu's pointer: where the ray is on the hand, how the ray and the mark on the panel look, and how fast the thumbstick scrolls. It is read into an `imgui::PointerStyle` and given to the framework's pointer every frame. It also holds the pulse the hand that points gets as its press does something in the panel.
 - `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw).
-- To add a value: a member in `Config.h`, a read in `Config::loadIniConfigInternal()`, and the key in the shipped INI.
+- To add a value: a member in `Config.h`, a read in `Config::loadConfigInternal()` (`config[SECTION]["key"].value_or(default)`, which gives the default for a key that is missing or of another type), and the key in the shipped file. Write a float with a decimal point (`1.0`) and a string in quotes.
 - `ConfigBase` watches the file and reloads it on change, so edits apply while the game runs. The reload runs on the watcher's thread: apply anything that calls into the engine from `onFrameUpdate()`.
-- Bump `iVersion` in `[Debug]` when the shipped INI changes, so existing users' files are migrated.
+- Bump `iVersion` in `[Debug]` when the shipped file changes, so existing users' files are migrated. A value whose type or name changes is moved in `updateConfigToLatestVersionCustom`.
 
 ### Mod Data
 
@@ -142,7 +142,7 @@ The framework's own [CLAUDE.md](external/F4VR-CommonFramework/CLAUDE.md) maps it
 | Dear ImGui content on world-space quads                     | `src/imgui/README.md`              |
 | Game state: nodes, skeleton, weapon and menu state, HUD     | `src/f4vr/README.md`               |
 | Papyrus native functions                                    | `src/f4sevr/README.md`             |
-| Debug draw overlay, the `[Debug]` INI keys                  | `src/debug/README.md`, `docs/debug-config.md` |
+| Debug draw overlay, the `[Debug]` config keys               | `src/debug/README.md`, `docs/debug-config.md` |
 | Timing a hot path (`F4CF_PERF_SCOPE`), Tracy                | `src/perf/README.md`               |
 | The mod's devbench tool (drive and inspect the running game) | `src/devbench/README.md`           |
 
@@ -151,6 +151,6 @@ The framework's own [CLAUDE.md](external/F4VR-CommonFramework/CLAUDE.md) maps it
 Pulled via vcpkg (`vcpkg.json`) with a **pinned baseline** required for CommonLibF4 compatibility:
 
 - `F4VR-CommonFramework` (git submodule at `external/`) — re-exports CommonLibF4 and the framework base classes
-- `spdlog`, `nlohmann-json`, `simpleini`, `thomasmonkman-filewatch`, `args`, `rapidcsv`, `rsm-mmio`, `xbyak`, `cpptrace`, `imgui` (with `dx11-binding`, for the framework's Dear ImGui UI layer), `catch2` (for the unit tests), `zlib` (an MCM mod's `lib.swf` is compressed with it)
+- `spdlog`, `nlohmann-json`, `simpleini` (MCM's ModSettings files are INI), `tomlplusplus` (the framework's config), `thomasmonkman-filewatch`, `args`, `rapidcsv`, `rsm-mmio`, `xbyak`, `cpptrace`, `imgui` (with `dx11-binding`, for the framework's Dear ImGui UI layer, at 1.92.9 by an `overrides` entry), `catch2` (for the unit tests), `zlib` (an MCM mod's `lib.swf` is compressed with it)
 
 The vcpkg baseline **must not be changed** without verifying CommonLibF4 still builds; it was specifically pinned to `b4a3d89125e45bc8f80fb94bef9761d4f4e14fb9`.

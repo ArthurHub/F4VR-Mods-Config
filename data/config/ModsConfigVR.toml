@@ -8,19 +8,19 @@
 #
 # -------------------------------------
 # Input Binding and Activation Spheres:
-# Controller bindings are a single, case-insensitive line: "<hand> <type> <button> [duration] [+modifier]".
+# Controller bindings are a case-insensitive string in quotes: "<hand> <type> <button> [duration] [+modifier]".
 # Examples: "none"; "offhand tap grip"; "primary longpress A"; "primary press trigger +grip".
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/input-binding.md
 
 
 # Opens and closes the config menu. The default is to press in both thumbsticks and hold them.
 # With FRIK installed, FRIK's own config no longer opens with this gesture.
-sOpenMenuBinding = primary longpress thumbstick 1.5 +offhand:thumbstick
+sOpenMenuBinding = "primary longpress thumbstick 1.5 +offhand:thumbstick"
 
 # Back: a short press of this button on the hand that points at the menu. It goes one step back, and
 # closes the menu from its front page. Holding the button moves the menu, see sMoveButton in [Panel].
-# It is a button and not a binding: grip, a, b or thumbstick. none turns Back off.
-sBackButton = grip
+# It is a button and not a binding: "grip", "a", "b" or "thumbstick". "none" turns Back off.
+sBackButton = "grip"
 
 
 [Panel]
@@ -29,25 +29,25 @@ sBackButton = grip
 
 # How large the menu is, with its text and its rows. Higher is larger: 7 is a sixth larger than 6.
 # To read the menu better make it larger, or bring it nearer with fDistance.
-fScale = 6
+fScale = 6.0
 
 # How much room the menu has for its rows: its width and its height, in its own units, which fScale makes
 # larger. A larger menu shows more of a page, with its text at the same size. At least 16 by 10.
-fPanelWidth = 30
-fPanelHeight = 15
+fPanelWidth = 30.0
+fPanelHeight = 15.0
 
 # How wide the list of the mods on the left of the menu is, in the same units: the page beside it has the
 # rest of the width. Widen it if the names of your mods are cut short. 4 at least, and up to 9 less than
 # fPanelWidth.
-fTreeWidth = 8
+fTreeWidth = 8.0
 
 # Where the menu is put in front of you: how far from your eyes, and how much above them, in game units,
 # about 1.4 cm each. A negative height is below the eyes.
-fDistance = 120
-fHeight = -20
+fDistance = 120.0
+fHeight = -20.0
 
 # How far the top of the menu is tilted back, in degrees.
-fTilt = 5
+fTilt = 5.0
 
 # How much the menu's background hides the world behind it, 0 to 255: 0 is a clear menu, and 255 one you
 # do not see through. Raise it if the text is hard to read against a bright sky.
@@ -55,9 +55,9 @@ iBackgroundOpacity = 217
 
 # Moves the menu: point at it and hold this button on the hand that points. The menu follows that hand
 # until you let go, and stays where you leave it.
-# It is a button and not a binding: grip, a, b or thumbstick. none turns moving off.
+# It is a button and not a binding: "grip", "a", "b" or "thumbstick". "none" turns moving off.
 # While it is also sBackButton, the menu moves only when the button is held: a short press is Back.
-sMoveButton = grip
+sMoveButton = "grip"
 
 # How smoothly the menu follows the hand that moves it: the time it takes to catch up, in seconds. It
 # steadies the shake of the hand. Higher is steadier, and the menu trails the hand more. 0 is no smoothing.
@@ -65,12 +65,12 @@ fMoveSmoothing = 0.05
 
 # Puts the menu in front of you again, where you look now, also after you moved it. The default is to
 # press in the offhand thumbstick and hold it.
-sRecenterBinding = offhand longpress thumbstick
+sRecenterBinding = "offhand longpress thumbstick"
 
 # The menu is also put in front of you again by itself when you are further than this from it, in game
 # units, about 1.4 cm each. 0 leaves it where it is at any distance.
 # A change applies the next time the menu opens.
-fRecenterDistance = 350
+fRecenterDistance = 350.0
 
 
 [Pointer]
@@ -81,31 +81,31 @@ fRecenterDistance = 350
 # Where the ray is on the hand, as "x,y,z;pitch,roll,yaw;1". It starts x to the right, y forward and z up
 # of the hand, and is turned by the degrees: a negative pitch turns it up, a negative yaw turns it inward.
 # It is given for the right hand and mirrored for the left.
-# To tune it in the headset set sAdjustTarget = Pointer::tRayOffset in [Debug].
-tRayOffset = -2,3,-1;-18,0,-5;1
+# To tune it in the headset set sAdjustTarget = "Pointer::tRayOffset" in [Debug].
+tRayOffset = "-2,3,-1;-18,0,-5;1"
 
 # The ray is no longer than fRayMaxLength: it ends there, or at the mark when the menu is nearer.
 # It fades in and out over fRayFade at its two ends.
-sRayColor = 190,255,190,200
+sRayColor = "190,255,190,200"
 fRayWidth = 0.2
-fRayMaxLength = 25
-fRayFade = 4
+fRayMaxLength = 25.0
+fRayFade = 4.0
 
 # fMarkSize is the mark's radius. It is the same at any distance, so the mark keeps its size on the menu.
 # The border is the outer part of that radius, fMarkBorderWidth wide. 0 is no border.
-sMarkColor = 215,255,215,180
+sMarkColor = "215,255,215,180"
 fMarkSize = 0.45
-sMarkBorderColor = 215,255,215,100
+sMarkBorderColor = "215,255,215,100"
 fMarkBorderWidth = 0.08
 
 # The thumbstick of the hand that points scrolls the menu. This is how fast, in lines of text a second
 # with the thumbstick pushed all the way. 0 is no scrolling.
-fScrollSpeed = 30
+fScrollSpeed = 30.0
 
 # The pulse the hand that points gets when its press does something in the menu, as showing a mod's page.
-# The name of a pattern: Tick is the lightest, Click is stronger. none is no pulse.
+# The name of a pattern: "Tick" is the lightest, "Click" is stronger. "none" is no pulse.
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/input-binding.md#haptics
-sPressHaptic = Tick
+sPressHaptic = "Tick"
 
 
 [Debug]
@@ -116,45 +116,45 @@ iLogLevel = 2
 # Sets the spdlog output pattern for each normal log message.
 # Examples: "%H:%M:%S.%e %l: %v"; "%H:%M:%S %L [%s:%#]: %v"
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md
-sLogPattern = %H:%M:%S.%e %l [%-20!k] %v
+sLogPattern = "%H:%M:%S.%e %l [%-20!k] %v"
 
-# Mod-defined numeric scratch values for runtime experiments; blank values load as 0.
-fFlowFlag1 =
-fFlowFlag2 =
-fFlowFlag3 =
+# Mod-defined numeric scratch values for runtime experiments.
+fFlowFlag1 = 0.0
+fFlowFlag2 = 0.0
+fFlowFlag3 = 0.0
 
 # Mod-defined text scratch values; sFlowText1 also supplies haptictest sequences.
-sFlowText1 =
-sFlowText2 =
+sFlowText1 = ""
+sFlowText2 = ""
 
-# Selects an in-game live-tuning target; none or blank disables it and restores controller input.
-# Examples: flag123; haptictest; ModsConfigVR::tSomeTransform
+# Selects an in-game live-tuning target; "none" or "" disables it and restores controller input.
+# Examples: "flag123"; "haptictest"; "ModsConfigVR::tSomeTransform"
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md
-sAdjustTarget =
+sAdjustTarget = ""
 
 # Writes named game-state dumps to the mod log and removes each name after it runs.
-# Examples: ui_tree; skelly, fp_skelly; geometry, pipboy, all_nodes
+# Examples: "ui_tree"; "skelly, fp_skelly"; "geometry, pipboy, all_nodes"
 # Timing: perf_reset starts a perf window, then perf logs what each part of the frame cost since
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md
-sDumpDataOnceNames =
+sDumpDataOnceNames = ""
 
 # Runs a one-shot inventory add or dry run from an operation plus category filters.
-# Examples: get, weapons, throwables; print, weapons:laser; print-all, armor:slot=torso|class=heavy
+# Examples: "get, weapons, throwables"; "print, weapons:laser"; "print-all, armor:slot=torso|class=heavy"
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md
-sAddItemsOnceNames =
+sAddItemsOnceNames = ""
 
 # In-world debug draw overlay: master switch, comma-separated channel names to skip (e.g. npc-detection),
 # and a controller binding to enable/disable the overlay in-headset.
 # HUD placement: center, center-left, center-right, center-top, center-top-left, center-top-right.
 bDebugDrawEnabled = true
-sDebugDrawToggleBinding = offhand longpress A
-sDebugDrawDisabledChannels =
-sDebugDrawHudPlacement = center-top-left
+sDebugDrawToggleBinding = "offhand longpress A"
+sDebugDrawDisabledChannels = ""
+sDebugDrawHudPlacement = "center-top-left"
 
 # Which implementation resolves the world depth that hides overlays behind the world.
 # auto (shipped) | depthpass (count only depth-testing passes) | direct (never resample; wrong under
 # an upscaler) | off (no occlusion at all - overlays draw on top). A support switch: leave on auto.
-sSceneDepthStrategy = auto
+sSceneDepthStrategy = "auto"
 
 # Investigate the scene-depth capture that hides overlays behind the world: adds its rows to the debug
 # draw overlay, and re-runs the side-by-side comparison of the shipped policy against its alternative.
