@@ -8,14 +8,15 @@
 #
 # -------------------------------------
 # Input Binding and Activation Spheres:
-# Controller bindings are a case-insensitive string in quotes: "<hand> <type> <button> [duration] [+modifier]".
-# Examples: "none"; "offhand tap grip"; "primary longpress A"; "primary press trigger +grip".
+# A controller binding is a 'k' key: { hand = "offhand", type = "tap", button = "grip" }, with an optional
+# duration (seconds), suppress (true/false) and modifier = { hand = "offhand", button = "grip" }.
+# A thumbstick push is { hand = "primary", type = "axis", direction = "up" }; { type = "none" } turns it off.
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/input-binding.md
 
 
 # Opens and closes the config menu. The default is to press in both thumbsticks and hold them.
 # With FRIK installed, FRIK's own config no longer opens with this gesture.
-sOpenMenuBinding = "primary longpress thumbstick 1.5 +offhand:thumbstick"
+kOpenMenuBinding = { hand = "primary", type = "longpress", button = "thumbstick", duration = 1.5, modifier = { hand = "offhand", button = "thumbstick" } }
 
 # Back: a short press of this button on the hand that points at the menu. It goes one step back, and
 # closes the menu from its front page. Holding the button moves the menu, see sMoveButton in [Panel].
@@ -65,7 +66,7 @@ fMoveSmoothing = 0.05
 
 # Puts the menu in front of you again, where you look now, also after you moved it. The default is to
 # press in the offhand thumbstick and hold it.
-sRecenterBinding = "offhand longpress thumbstick"
+kRecenterBinding = { hand = "offhand", type = "longpress", button = "thumbstick" }
 
 # The menu is also put in front of you again by itself when you are further than this from it, in game
 # units, about 1.4 cm each. 0 leaves it where it is at any distance.
@@ -76,26 +77,27 @@ fRecenterDistance = 350.0
 [Pointer]
 
 # The pointer of the menu: the ray from the hand, and the mark where it points on the menu.
-# A color is "red,green,blue,opacity", each 0 to 255. Lengths are in game units, about 1.4 cm each.
+# A color is { rgb = [red, green, blue], alpha = opacity }, each 0 to 255. Lengths are in game units, about
+# 1.4 cm each.
 
-# Where the ray is on the hand, as "x,y,z;pitch,roll,yaw;1". It starts x to the right, y forward and z up
-# of the hand, and is turned by the degrees: a negative pitch turns it up, a negative yaw turns it inward.
-# It is given for the right hand and mirrored for the left.
+# Where the ray is on the hand, as { pos = [x, y, z], rot = [pitch, roll, yaw] }. It starts x to the right,
+# y forward and z up of the hand, and is turned by the degrees: a negative pitch turns it up, a negative yaw
+# turns it inward. It is given for the right hand and mirrored for the left.
 # To tune it in the headset set sAdjustTarget = "Pointer::tRayOffset" in [Debug].
-tRayOffset = "-2,3,-1;-18,0,-5;1"
+tRayOffset = { pos = [-2.0, 3.0, -1.0], rot = [-18.0, 0.0, -5.0] }
 
 # The ray is no longer than fRayMaxLength: it ends there, or at the mark when the menu is nearer.
 # It fades in and out over fRayFade at its two ends.
-sRayColor = "190,255,190,200"
+cRayColor = { rgb = [190, 255, 190], alpha = 200 }
 fRayWidth = 0.2
 fRayMaxLength = 25.0
 fRayFade = 4.0
 
 # fMarkSize is the mark's radius. It is the same at any distance, so the mark keeps its size on the menu.
 # The border is the outer part of that radius, fMarkBorderWidth wide. 0 is no border.
-sMarkColor = "215,255,215,180"
+cMarkColor = { rgb = [215, 255, 215], alpha = 180 }
 fMarkSize = 0.45
-sMarkBorderColor = "215,255,215,100"
+cMarkBorderColor = { rgb = [215, 255, 215], alpha = 100 }
 fMarkBorderWidth = 0.08
 
 # The thumbstick of the hand that points scrolls the menu. This is how fast, in lines of text a second
@@ -133,22 +135,17 @@ sFlowText2 = ""
 sAdjustTarget = ""
 
 # Writes named game-state dumps to the mod log and removes each name after it runs.
-# Examples: "ui_tree"; "skelly, fp_skelly"; "geometry, pipboy, all_nodes"
-# Timing: perf_reset starts a perf window, then perf logs what each part of the frame cost since
+# Examples: ["ui_tree"]; ["skelly", "fp_skelly"]; ["geometry", "pipboy", "all_nodes"]
+# Timing: "perf_reset" starts a perf window, then "perf" logs what each part of the frame cost since
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md
-sDumpDataOnceNames = ""
+aDumpDataOnce = []
 
-# Runs a one-shot inventory add or dry run from an operation plus category filters.
-# Examples: "get, weapons, throwables"; "print, weapons:laser"; "print-all, armor:slot=torso|class=heavy"
-# Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md
-sAddItemsOnceNames = ""
-
-# In-world debug draw overlay: master switch, comma-separated channel names to skip (e.g. npc-detection),
+# In-world debug draw overlay: master switch, names of the channels to skip (e.g. ["npc-detection"]),
 # and a controller binding to enable/disable the overlay in-headset.
 # HUD placement: center, center-left, center-right, center-top, center-top-left, center-top-right.
 bDebugDrawEnabled = true
-sDebugDrawToggleBinding = "offhand longpress A"
-sDebugDrawDisabledChannels = ""
+kDebugDrawToggleBinding = { hand = "offhand", type = "longpress", button = "a" }
+aDebugDrawDisabledChannels = []
 sDebugDrawHudPlacement = "center-top-left"
 
 # Which implementation resolves the world depth that hides overlays behind the world.

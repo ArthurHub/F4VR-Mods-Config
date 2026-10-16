@@ -151,6 +151,6 @@ The framework's own [CLAUDE.md](external/F4VR-CommonFramework/CLAUDE.md) maps it
 Pulled via vcpkg (`vcpkg.json`) with a **pinned baseline** required for CommonLibF4 compatibility:
 
 - `F4VR-CommonFramework` (git submodule at `external/`) — re-exports CommonLibF4 and the framework base classes
-- `spdlog`, `nlohmann-json`, `simpleini` (MCM's ModSettings files are INI), `tomlplusplus` (the framework's config), `thomasmonkman-filewatch`, `args`, `rapidcsv`, `rsm-mmio`, `xbyak`, `cpptrace`, `imgui` (with `dx11-binding`, for the framework's Dear ImGui UI layer, at 1.92.9 from the pinned baseline), `catch2` (for the unit tests), `zlib` (an MCM mod's `lib.swf` is compressed with it)
+- `spdlog`, `nlohmann-json`, `simpleini` (MCM's ModSettings files are INI), `tomlplusplus` (the framework's config), `thomasmonkman-filewatch`, `args`, `rapidcsv`, `rsm-mmio`, `xbyak`, `cpptrace`, `imgui` (with `dx11-binding` and `win32-binding`, for the framework's Dear ImGui UI layer, at 1.92.9 from the pinned baseline), `catch2` (for the unit tests), `zlib` (an MCM mod's `lib.swf` is compressed with it)
 
 The vcpkg baseline **must not be changed** without verifying CommonLibF4 still builds; it is pinned to `5cd4931b18d49c77074703cf293a7837ac7506fa`, the framework's own baseline.

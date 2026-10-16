@@ -19,7 +19,7 @@ namespace mods_config
         // both thumbsticks pressed in and held, the gesture FRIK uses for its own config
         openMenuBinding = getInputBindingValue(config,
             DEFAULT_SECTION,
-            "sOpenMenuBinding",
+            "kOpenMenuBinding",
             vrcf::InputBinding{
                 .hand = vrcf::Hand::Primary,
                 .type = vrcf::ActivationType::LongPress,
@@ -51,7 +51,7 @@ namespace mods_config
         // the offhand thumbstick pressed in and held
         recenterBinding = getInputBindingValue(config,
             PANEL_SECTION,
-            "sRecenterBinding",
+            "kRecenterBinding",
             vrcf::InputBinding{
                 .hand = vrcf::Hand::Offhand,
                 .type = vrcf::ActivationType::LongPress,
@@ -64,13 +64,13 @@ namespace mods_config
         const imgui::PointerStyle defaults;
         const auto pointer = config[POINTER_SECTION];
         pointerStyle.rayOffset = getTransformValue(config, POINTER_SECTION, "tRayOffset", defaults.rayOffset);
-        pointerStyle.rayColor = getColorValue(config, POINTER_SECTION, "sRayColor", defaults.rayColor);
+        pointerStyle.rayColor = getColorValue(config, POINTER_SECTION, "cRayColor", defaults.rayColor);
         pointerStyle.rayWidth = pointer["fRayWidth"].value_or(defaults.rayWidth);
         pointerStyle.rayMaxLength = pointer["fRayMaxLength"].value_or(defaults.rayMaxLength);
         pointerStyle.rayFade = pointer["fRayFade"].value_or(defaults.rayFade);
-        pointerStyle.markColor = getColorValue(config, POINTER_SECTION, "sMarkColor", defaults.markColor);
+        pointerStyle.markColor = getColorValue(config, POINTER_SECTION, "cMarkColor", defaults.markColor);
         pointerStyle.markSize = pointer["fMarkSize"].value_or(defaults.markSize);
-        pointerStyle.markBorderColor = getColorValue(config, POINTER_SECTION, "sMarkBorderColor", defaults.markBorderColor);
+        pointerStyle.markBorderColor = getColorValue(config, POINTER_SECTION, "cMarkBorderColor", defaults.markBorderColor);
         pointerStyle.markBorderWidth = pointer["fMarkBorderWidth"].value_or(defaults.markBorderWidth);
         pointerStyle.scrollSpeed = pointer["fScrollSpeed"].value_or(defaults.scrollSpeed);
 
