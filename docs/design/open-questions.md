@@ -60,14 +60,6 @@ The settled baseline remains: on Save, re-read each affected file, write only di
 
 The form is settled: a package's text is plain, a `$` token as in MCM, or a token with a fallback, and the translations are the game's translation files. See [Localization](schema.md#localization).
 
-## Text input
-
-- How a VR on-screen keyboard works: its layout, where it appears relative to the panel, and how it is pointed at
-- A numeric keypad for value entry
-- Keyboard layout per locale
-- How key presses reach a focused ImGui text field
-- Whether a physical keyboard is supported
-
 ## Native API details
 
 - Final C ABI types, ownership rules, string encoding, and API-version negotiation

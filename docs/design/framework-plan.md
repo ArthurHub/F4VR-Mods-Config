@@ -276,5 +276,5 @@ F21 is not an item of the requirements. It takes code out of `ConfigBase`, which
 Items 11 to 13 are made with the mod's own milestones. Their commits are in the [Mod work plan](mod-plan.md).
 
 - **Item 11, images in canvases.** The menu needs them first for MCM's images.
-- **Item 12, text entry and the on-screen keyboard.** It starts with the keyboard's design.
+- **Item 12, text entry and the on-screen keyboard.** The keyboard is SteamVR's, as the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md) has it.
 - **Item 13, the Mods Config VR client in `ModBase`.** It needs the host's native API, which does not exist yet.

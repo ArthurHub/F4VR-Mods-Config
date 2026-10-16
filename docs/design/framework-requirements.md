@@ -219,14 +219,13 @@ Mods Config VR has a case of its own. It takes the opening gesture from FRIK by 
 
 **Today.** No characters or keys are fed to ImGui (`src/imgui/ImGuiLayer.cpp`), so an `ImGui::InputText` shows its text and cannot be edited. A focused `InputText` keeps its own copy of the text and ignores outside changes to its buffer, so typing has to reach it as ImGui's character and key events.
 
-**Work.**
+**Work.** The design is the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md).
 
-- Characters and keys reach ImGui through `io.AddInputCharacter` and `io.AddKeyEvent`.
-- An on-screen keyboard is shown while ImGui edits a text field, and is operated with the pointer. The content calls `ImGui::InputText` as on a screen, and the mod has nothing to call.
+- The keys of the game's window reach ImGui as its character and key events. A physical keyboard types into a field, and so does a keyboard overlay that types into the window.
+- SteamVR's keyboard is shown while ImGui edits a text field, as the game shows it for its own names, and its text reaches the field as the same events. The content calls `ImGui::InputText` as on a screen, and the mod has nothing to call.
+- A runtime with no keyboard, as OpenComposite, has the keys of the window only. The framework draws no keyboard of its own, and a number is typed on the same keyboard.
 
-The keyboard's design is open: its layout, a pad for numbers, and where it is drawn. A dedicated panel is ImGui's only display, so the keyboard is either drawn inside that panel by ImGui, or beside it from vrui buttons, which then need the ray press of [Later work](#later-work).
-
-**Done when.** A text field in a dedicated panel is typed into with the ray and accepted, and a field that is cancelled keeps the text it had.
+**Done when.** A text field in a dedicated panel is typed into with SteamVR's keyboard and accepted, a field that is cancelled keeps the text it had, and a physical keyboard types into it too.
 
 ## The client of Mods Config VR
 
@@ -262,7 +261,7 @@ Each of these is made only if a milestone of the [Mod work plan](mod-plan.md) fi
 
 - **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads the embedded Roboto, and ImGui rasterizes each glyph at each size as it is first drawn, so Latin, Greek, Cyrillic and Vietnamese text renders at any size. A package or MCM config translated into Chinese, Japanese, Korean or Arabic needs a fallback font with those glyphs, merged into the canvas font.
 - **Touch as a second pointer source.** A fingertip crossing the canvas plane, taken from the same fingertip that vrui buttons use. For the hand-anchored Focused view, if a ray does not suit a panel on the own hand.
-- **Ray press for vrui buttons.** Needed if the on-screen keyboard of item 12 is made of vrui buttons beside the panel, or if vrui buttons end up in the Full panel's layout, out of reach of a finger.
+- **Ray press for vrui buttons.** Needed if vrui buttons end up in the Full panel's layout, out of reach of a finger.
 
 ## Not framework work
 

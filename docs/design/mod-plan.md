@@ -472,18 +472,23 @@ M105 makes a DLL that reads MCM's settings file as the pause menu closes see a c
 
 ### 4. VR keyboard
 
-| #   | Repo      | Commit                                                      | Status |
-| --- | --------- | ----------------------------------------------------------- | ------ |
-| M44 | mod       | docs: the keyboard's design, as item 12 of the requirements | todo   |
-| F25 | framework | imgui: characters and keys reach a text field               | todo   |
-| F26 | framework | imgui: an on-screen keyboard while a text field is edited   | todo   |
-| F27 | framework | imgui: a number pad for a field that takes a number         | todo   |
-| M45 | mod       | MCM text rows are edited                                    | todo   |
-| M46 | mod       | A slider's value is typed                                   | todo   |
+| #   | Repo      | Commit                                                      | Status    |
+| --- | --------- | ----------------------------------------------------------- | --------- |
+| F25 | framework | docs: the VR keyboard's design                              | done      |
+| M44 | mod       | docs: the keyboard's design, as item 12 of the requirements | done      |
+| F26 | framework | imgui: the keys of the game's window reach a text field     | todo      |
+| F27 | framework | imgui: SteamVR's keyboard while a text field is edited      | todo      |
+| M45 | mod       | MCM text rows are edited                                    | todo      |
+| M46 | mod       | A slider's value is typed                                   | todo      |
 
-M44 decides where the keyboard is. The menu's panel is dedicated, so it is ImGui's only display. The keyboard is either drawn inside that panel by ImGui, or beside it from vrui buttons, which then need to be pressed by the ray.
+F25 is the design, the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md). The keyboard is SteamVR's, which the game types its own names with, so the framework draws none of its own:
 
-F26 makes the keyboard the framework's. It is shown by itself while ImGui edits a text field, so the content calls `ImGui::InputText` as on a screen.
+- F26 hands the keys of the game's window to ImGui. A physical keyboard types into a field, and so does a keyboard overlay that types into the window. On a runtime with no keyboard, as OpenComposite, that is the only way to type.
+- F27 shows SteamVR's keyboard by itself while ImGui edits a text field, so the content calls `ImGui::InputText` as on a screen.
+
+M44 brings the design to it: item 12 of the [requirements](framework-requirements.md#12-text-entry-and-an-on-screen-keyboard), the text input of [Controls](controls.md#text-input), and the questions of [Open questions](open-questions.md) it answers. It moves the submodule to F25.
+
+M45 and M46 type a number on the same keyboard: there is no number pad.
 
 ### 5. Packages with Save
 

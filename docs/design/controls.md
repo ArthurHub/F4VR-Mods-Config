@@ -55,7 +55,7 @@ Suggested row:
 - Back during a drag restores the value from the beginning of that drag.
 - Thumbstick left/right changes the slider the ray is on by the declared step, once the ray is on its row for a short time. A slider is not selected first.
 - Holding the thumbstick may accelerate after an initial repeat delay.
-- The value field opens the numeric keyboard for precise entry.
+- The value field opens the keyboard for precise entry.
 - Units and an appropriate number of decimal places remain visible.
 - Initial schema support is linear. Logarithmic or curved mappings can be considered later.
 - Haptics should mark meaningful interaction boundaries, not fire on every tiny value change.
@@ -86,16 +86,13 @@ Choice behavior:
 
 ### Text input
 
-Primary use: short strings, and numbers that are typed. A `textinput` whose `valueType` is int or float takes a number and opens the number pad, as MCM's `textinputInt` and `textinputFloat` do. Its limits are the `min` and `max` of its `valueOptions`.
+Primary use: short strings, and numbers that are typed. A `textinput` whose `valueType` is int or float takes a number, as MCM's `textinputInt` and `textinputFloat` do, and is typed on the same keyboard. Its limits are the `min` and `max` of its `valueOptions`.
 
-Dear ImGui supplies text-editing widgets and accepts character/key events, but it does not supply a VR on-screen keyboard. How that keyboard works is not designed yet; see [Open questions](open-questions.md#text-input). What is settled:
+The keyboard is SteamVR's, which the game types its own names with, and it is shown while the field is edited. A physical keyboard types into the field too, and so does a keyboard overlay that types into the game's window. A runtime with no keyboard, as OpenComposite, has those only. The design is the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md).
 
 - `Done` validates and commits the edit to the pending setting value.
-- `Cancel` restores the value from before text editing began.
+- `Cancel`, the keyboard's close button, restores the value from before text editing began.
 - Invalid temporary text is not sent as a preview; the last valid preview remains active.
-- Physical keyboard input, when available, takes the same path as the on-screen keyboard.
-
-One constraint is known. A focused ImGui `InputText` keeps its own copy of the text and ignores outside changes to its buffer, so key presses from an on-screen keyboard have to reach it as ImGui character and key events.
 
 Multiline text, password fields, text selection tools, and speech input are not part of the initial design.
 
