@@ -54,7 +54,7 @@ Two mods of the author's other mod lists have some of these, and are installed b
 | --- | ------------------------ | ------------------------------------------------------------------------------------------------------------- | ------ |
 | 1   | Browse MCM mods          | Every MCM mod of the test set is browsed in the Full panel: its pages, rows and images, with translated names | done   |
 | 2   | Edit MCM values          | A global, a ModSetting and a script property are changed from the panel, and the mod reacts as it does to MCM | done   |
-| 3   | MCM complete             | Every MCM feature is supported, shown read-only, or shown as unsupported with the reason                      | todo   |
+| 3   | MCM complete             | Every MCM feature is supported, shown read-only, or shown as unsupported with the reason                      | done   |
 | 4   | VR keyboard              | An MCM text row and a slider's value are typed in the headset                                                 | todo   |
 | 5   | Packages with Save       | This mod's own INI and FRIK's are edited from packages and saved, and each mod reloads its file               | todo   |
 | 6   | Actions and handoff      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | todo   |
@@ -308,7 +308,7 @@ F24 has no commit: the calls `f4sevr` has for script properties work in the game
 | M41 | mod  | A mod that is not available: its disabled row, and the notices       | done      |
 | M42 | mod  | A page that is shown reads its values again                          | done      |
 | M43 | mod  | docs: the table of MCM features and how the menu handles each        | done      |
-| F34 | framework | imgui: bold and italic faces of the canvas font                 | in review |
+| F34 | framework | imgui: bold and italic faces of the canvas font                 | done      |
 | M106 | mod | `<b>`, `<i>` and `<u>` in the text of a row, and the panel's font size | done    |
 | M105 | mod | A DLL that reads MCM's file as the pause menu closes reads it as the menu closes | done |
 
