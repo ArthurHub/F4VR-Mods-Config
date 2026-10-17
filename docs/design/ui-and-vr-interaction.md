@@ -15,7 +15,7 @@ Most of the UI is one Dear ImGui panel placed in a CommonFramework vrui layout (
 
 ## Opening the menu
 
-The menu opens by pressing in both thumbsticks and holding them, the gesture FRIK uses today for its own configuration (`primary longpress thumbstick 1.5 +offhand:thumbstick`). It is an ordinary CommonFramework input binding in `ModsConfigVR.ini`, so the player can change it.
+The menu opens by pressing in both thumbsticks and holding them, the gesture FRIK uses today for its own configuration (`primary longpress thumbstick 1.5 +offhand:thumbstick`). It is an ordinary CommonFramework input binding in `ModsConfigVR.toml`, so the player can change it.
 
 When FRIK is installed, Mods Config VR takes the gesture over. It turns off FRIK's `sOpenConfigButton` binding for the session through FRIK's config override API, and FRIK's configuration is then opened from the quick launch section of the menu's front page. FRIK can integrate more closely later.
 
@@ -308,7 +308,7 @@ The player can give a mod another category, to arrange the list as they like. Mo
 - The dropdown has the names Mods Config VR ships and the names that are in use. `No category` is one of them, and takes a mod out of the category its author gave it. The last entry, `Type a new name`, opens the keyboard to type a name that is not in the list.
 - A row is an ordinary setting of Mods Config VR's own package. It is saved with Save, Discard takes it back, and Reset gives the mod the category it has without the player's choice.
 - The tree is grouped again after Save.
-- The choices are kept in `Categories.ini` beside `ModsConfigVR.ini`, one key for each mod, named by its `modName`. A key with no value is `No category`. `ModsConfigVR.ini` holds only the keys the mod ships.
+- The choices are kept in `Categories.toml` beside `ModsConfigVR.toml`, one key for each mod, named by its `modName`. A key whose text is empty is `No category`. `ModsConfigVR.toml` holds only the keys the mod ships.
 - Only a choice that differs from the category the mod has without it is kept, and Save removes the key of any other. So a mod that the player did not move, or that was reset, follows its own category and the table when they change.
 - The page is there while the list is flat too, so a list can be arranged before it is grouped.
 

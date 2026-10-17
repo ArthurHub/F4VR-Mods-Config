@@ -15,7 +15,10 @@ These documents capture the current product and architecture decisions. The orde
 - [Design system](design-system/README.md) — the look: colors, type, sizes, the Dear ImGui style, and mocks of every component and panel. It is the source of the Design System artifact.
 - [CommonFramework work required](framework-requirements.md) — what F4VR-CommonFramework has to gain before this mod can be built on it. This work comes first.
 - [Framework work plan](framework-plan.md) — the commits that deliver that work, and their status.
-- [Mod work plan](mod-plan.md) — the milestones that build the mod, from MCM support to the first release and after, with the commits of each.
+- [Mod work plan](mod-plan.md) — the milestones that build the mod, from MCM support to the first release and after, in three phases. The commits of each milestone are in the file of its phase:
+  - [Phase 1: MCM support](mod-plan-phase-1.md) — milestones 1 to 4, done.
+  - [Phase 2: First release](mod-plan-phase-2.md) — milestones 5 to 11.
+  - [Phase 3: After the first release](mod-plan-phase-3.md) — milestones 12 to 15.
 - [Open questions](open-questions.md) — deliberately deferred design topics without assigning them to a release.
 
 ## Names
