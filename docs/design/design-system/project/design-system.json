@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-17T13:44:00Z",
+    "at": "2026-10-17T14:16:00Z",
     "via": "Claude (Cowork)",
-    "note": "Haptic: a pattern of the framework's library picked from a dropdown that draws each pattern's shape, with Play to feel it on the hand; Play's icon added to Iconography."
+    "note": "Color: alpha is optional; valueOptions.alpha false makes a color RGB only, with an opaque swatch, no Alpha slider, and only rgb written."
   },
   "layout": "files",
   "libraries": [],

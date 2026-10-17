@@ -96,12 +96,18 @@ Multiline text, password fields, text selection tools, and speech input are not 
 
 ### Color
 
-Primary use: RGB or RGBA colors.
+Primary use: a CommonFramework color, `{ rgb = [r, g, b], alpha = a }`, as a light's or a pointer's. MCM's menu has no color control.
 
-- Show a large swatch and readable numeric representation.
-- Support precise numeric entry as well as an appropriate VR-friendly picker.
-- A CommonFramework color is stored as the framework stores it: see [CommonFramework-specific controls](#commonframework-specific-controls).
-- Exact picker geometry remains to be designed.
+- The row shows the color as a swatch, with its alpha over a checkerboard, and as its numbers: "190, 255, 190, alpha 200". A press on the row opens the editor.
+- The editor is a popup in the content pane: a picker for the hue, saturation and brightness, dragged with the trigger, and a slider for each of red, green, blue and alpha. The thumbstick steps the slider the ray is on by 1, which is how a color is set exactly.
+- It shows the color it had when it opened beside the color as it is, and a press on the first goes back to it.
+- Each change sets the pending value as it is made, and a `live` color is previewed as it is dragged. Done, or a press beside the editor, keeps it. Cancel and Back give back the color it had when it opened.
+- The value shown is the one the framework reads: the keys the value has, over the default's channels. A changed value is written as whole numbers, with the keys it had and the key of the part that changed, so `{ alpha = 60 }` with a new hue is `{ rgb = [255, 190, 120], alpha = 60 }`.
+- A value the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
+- A color whose opacity means nothing, as a light's, is RGB only: `"valueOptions": { "alpha": false }`. Its swatch is opaque, its numbers have no alpha, its editor has no Alpha slider, and only `rgb` is written. An `alpha` the file has is kept as it is.
+- In the Focused panel the editor has no picker: its sliders fill the panel.
+
+The look is the design system's [Color](design-system/project/components/Color/README.md).
 
 ### Button
 
@@ -146,7 +152,7 @@ The framework's TOML config already fixes how each is stored, and the type prefi
 
 A table is one value in one key. In the settings model its value is a string, the TOML text of the table (`{ rgb = [255, 51, 51], alpha = 40 }`), which its control reads and writes, and which the store writes into the file as the inline table, not as a quoted string. So its setting is dirty, previewed and saved as a whole, as any other. The framework checks every key and word of a table and names the one that is wrong, and a table it cannot read is an invalid value with that reason.
 
-The Haptic control is designed below. The schemas, storage mappings, live-preview semantics, and VR manipulation experiences of the others will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what is left.
+The Haptic control is designed below, and Color above. The schemas, storage mappings, live-preview semantics, and VR manipulation experiences of the others will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what is left.
 
 These should not be flattened into `vec2` or `vec3`, because their meaning, validation, and editing affordances are richer than a tuple of numbers.
 

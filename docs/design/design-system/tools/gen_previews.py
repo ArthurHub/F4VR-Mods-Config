@@ -561,3 +561,111 @@ h_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:aut
 </div>"""
 write('Haptic', page('<!-- @dsCard group="Settings" height=1260 width=1520 subtitle="A pattern with its shape and Play: the states, the list, the Focused stepper, and every option" -->', 'Haptic', h_body))
 print('ok haptic')
+
+# ---------------- Color: a swatch and the numbers, and an editor with a picker and a slider for each channel ----------------
+import colorsys
+
+def swatch(c, big=False):
+    """The left half opaque, the right half at its alpha over the checkerboard. An RGB-only color (3 values) is opaque."""
+    r, g, b = c[:3]
+    if len(c) == 3:
+        return f'<span class="mc-swatch{" is-big" if big else ""}"><i style="background:rgb({r},{g},{b})"></i></span>'
+    a = c[3]
+    return (f'<span class="mc-swatch{" is-big" if big else ""}"><i style="background:rgb({r},{g},{b})"></i>'
+            f'<i class="alpha mc-checker" style="--c:rgba({r},{g},{b},{a / 255:.3f})"></i></span>')
+
+def nums(c):
+    return f'{c[0]}, {c[1]}, {c[2]}' + (f', alpha {c[3]}' if len(c) == 4 else '')
+
+def color_ctl(c, state='', show_reset=False, text=None, open_=False):
+    cls = 'mc-combo is-color' + (f' {state}' if state else '') + (' is-open' if open_ else '')
+    sw = '' if state == 'is-invalid' else swatch(c)
+    return f'<span class="{cls}">{sw}<span class="nums">{text if text is not None else nums(c)}</span>{ARROW_D}</span>{reset_btn(show_reset)}'
+
+def toml_text(c):
+    return f'{{ rgb = [{c[0]}, {c[1]}, {c[2]}]' + (f', alpha = {c[3]}' if len(c) == 4 else '') + ' }'
+
+def chan(name, c, i, hover=False, active=False, mark=None):
+    """A channel's line: its name, a gradient track of it from 0 to 255 with the others as they are, its value."""
+    r, g, b = c[:3]
+    if i < 3:
+        lo, hi = list(c[:3]), list(c[:3])
+        lo[i], hi[i] = 0, 255
+        fill = f'<i class="fillc" style="background:linear-gradient(to right, rgb({lo[0]},{lo[1]},{lo[2]}), rgb({hi[0]},{hi[1]},{hi[2]}))"></i>'
+        bg = ''
+    else:
+        fill = f'<i class="fillc" style="background:linear-gradient(to right, rgba({r},{g},{b},0), rgb({r},{g},{b}))"></i>'
+        bg = ' mc-checker'
+    v = c[i]
+    x = f'calc(10px + {v / 255:.4f} * (100% - 20px))'
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-chan{" is-hover" if hover else ""}"><span class="lbl t-detail">{name}</span>'
+            f'<span class="ctrack{bg}{" is-active" if active else ""}">{fill}<i class="grab" style="left:{x}"></i>{mk}</span>'
+            f'<span class="mc-value t-body">{v}</span></div>')
+
+def channels(c, hover=None, mark=None):
+    return ''.join(chan(n, c, i, hover == i, False, mark if hover == i else None) for i, n in enumerate(('Red', 'Green', 'Blue', 'Alpha')[:len(c)]))
+
+def picker(c):
+    h, s_, v = colorsys.rgb_to_hsv(c[0] / 255, c[1] / 255, c[2] / 255)
+    hue = colorsys.hsv_to_rgb(h, 1, 1)
+    return (f'<div class="mc-picker"><div class="sv" style="--hue:rgb({hue[0]*255:.0f},{hue[1]*255:.0f},{hue[2]*255:.0f})">'
+            f'<i class="cur" style="left:{s_ * 240:.0f}px;top:{(1 - v) * 240:.0f}px"></i></div>'
+            f'<div class="hue"><i class="bar" style="top:{h * 240:.0f}px"></i></div></div>')
+
+def color_editor(name, before, now, hover=None, mark=None, focused=False, style=''):
+    head = (f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">Before</span>{swatch(before, True)}'
+            f'<span class="t-detail mc-muted" style="margin-left:8px">Now</span>{swatch(now, True)}</div>')
+    side = (f'<div class="mc-channels"{" style=width:100%" if focused else ""}>{channels(now, hover, mark)}'
+            f'<span class="t-detail mc-muted" style="padding-left:64px">{toml_text(now)}</span></div>')
+    body = f'<div class="body">{"" if focused else picker(now)}{side}</div>'
+    foot = '<div class="foot"><span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>'
+    short = '' if len(now) == 4 or focused else ' is-rgb'
+    return f'<div class="mc-coloredit{short}"{style}>{head}{body}{foot}</div>'
+
+RAY, RAY_NEW = (190, 255, 190, 200), (255, 190, 120, 200)
+LIGHT, LIGHT_NEW = (255, 214, 170), (255, 236, 210)   # RGB only: "valueOptions": { "alpha": false }
+MARK, BORDER = (215, 255, 215, 180), (215, 255, 215, 100)
+
+c_states = h_sheet([
+    ('Idle', row('Ray color', color_ctl(RAY))),
+    ('Hover', row('Mark color', color_ctl(MARK), 'is-hover', mark=(326, 22))),
+    ('Pending', row('Ray color', color_ctl(RAY_NEW, 'is-pending', True), gutter=DOT)),
+    ('Low alpha', row('Mark border color', color_ctl((215, 255, 215, 40), 'is-pending', True), gutter=DOT)),
+    ('RGB only', row('Light color', color_ctl(LIGHT))),
+    ('Invalid', row('Ray color', color_ctl(RAY, 'is-invalid', True, text='{ rgb = [300, 0, 0] }'), 'is-invalid', gutter=WARN, message='Not a color')),
+    ('Disabled', row('Icon color', color_ctl((255, 255, 255, 255)), 'is-disabled')),
+])
+c_page_rows = ''.join([
+    row('Ray color', color_ctl(RAY_NEW, 'is-pending', True, open_=True), 'is-active', gutter=DOT),
+    row('Ray width', slider('0.20', 20)),
+    row('Ray max length', slider('25.0', 50)),
+    row('Ray fade', slider('4.0', 30)),
+    row('Mark color', color_ctl(MARK)),
+    row('Mark size', slider('0.45', 45)),
+    row('Mark border color', color_ctl(BORDER)),
+    row('Mark border width', slider('0.08', 16)),
+])
+c_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:531px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+{c_page_rows}
+{color_editor('Ray color', RAY, RAY_NEW, hover=1, mark=(96, 20), style=' style="left:27px;top:58px"')}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Green', 'The green of the color, 0 to 255. The thumbstick steps it by 1.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+</div>"""
+c_focused = f"""<div class="mc-focused">{color_editor('Light color', LIGHT, LIGHT_NEW, focused=True)}</div>"""
+c_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 576px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The states, in the menu's own page: Pointer, and a light's RGB-only color</span>
+{c_states}
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The Focused panel: the channels only, here of an RGB-only color</span>
+{c_focused}
+</div>
+<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
+<span class="t-detail mc-caption">The editor open under its row, the ray on Green, its help in the footer</span>
+{c_list}
+</div>
+</div>"""
+write('Color', page('<!-- @dsCard group="Settings" height=1290 width=1560 subtitle="A swatch and the numbers; the editor with a picker and a slider per channel; RGB only; the Focused editor" -->', 'Color', c_body))
+print('ok color')

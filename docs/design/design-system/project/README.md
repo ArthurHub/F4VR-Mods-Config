@@ -33,7 +33,7 @@ Every text color below is checked with a white world behind the glass, the worst
 - Outline controls in `frame-border` (3.7:1). Draw section rules in `rule`, which is decorative.
 - Draw a pressed outline and a dragged grab in `glow`, close to the pointer's `mark`, so feedback seems to come from the ray.
 - Keep the pointer as the config sets it: `ray`, `mark`, `mark-border`. They are `[Pointer]` defaults, not panel colors.
-- Do not add white text, gray UI, or a second accent. The one exception is a color that a mod gives the text of its own `text` row, which is drawn as given.
+- Do not add white text, gray UI, or a second accent. The exceptions are a color that a mod gives the text of its own `text` row, which is drawn as given, and the swatches, tracks and picker of a color setting (`Color`), which show the color they edit.
 
 ## Type
 

@@ -37,7 +37,7 @@ A setting has:
 | valueType    | What the value is: bool, int, float or string. A CommonFramework table is a string, its TOML text     |
 | text         | What the row says                                                                                     |
 | help         | Its help text, shown in the help line while the ray is on the row                                     |
-| valueOptions | The least, the most and the step of a number, the length limits of a text, or the options of a choice |
+| valueOptions | The least, the most and the step of a number, the length limits of a text, the options of a choice, or whether a color has an alpha |
 | visibleWhen  | A condition on the values of other settings. The row is shown while it holds                          |
 | enabledWhen  | A condition of the same kind. The row can be edited while it holds                                    |
 | storage      | Where the value is kept. Only the store reads it                                                      |

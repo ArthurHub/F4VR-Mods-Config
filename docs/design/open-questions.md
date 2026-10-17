@@ -8,12 +8,11 @@ Work that F4VR-CommonFramework needs is tracked in [CommonFramework work require
 
 Design the exact schema, storage, widgets, preview behavior, and validation for:
 
-- `Color`
 - `InputBinding`
 - `Transform`
 - `ActivationSphere`
 
-`Haptic` is designed: see [Controls](controls.md#haptic).
+`Haptic` and `Color` are designed: see [Haptic](controls.md#haptic) and [Color](controls.md#color) in Controls.
 
 These likely need VR manipulation experiences in addition to ordinary form controls. In particular, determine whether editing occurs inside the panel, in the world, or through a controlled handoff between both.
 
@@ -100,7 +99,6 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - What happens to an open editing session on a save load, a loading screen, or the player's death
 - Search and filtering
 - Direct-touch interaction
-- Color picker design
 - Image/preview assets
 - Progress, cancellation, and error handling for long-running actions
 - Accessibility options beyond the three main UI sizes
