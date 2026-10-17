@@ -8,22 +8,24 @@ Work that F4VR-CommonFramework needs is tracked in [CommonFramework work require
 
 Design the exact schema, storage, widgets, preview behavior, and validation for:
 
-- `ActivationSphere`
+- `Color`
 - `InputBinding`
-- `Haptic`
 - `Transform`
+- `ActivationSphere`
+
+`Haptic` is designed: see [Controls](controls.md#haptic).
 
 These likely need VR manipulation experiences in addition to ordinary form controls. In particular, determine whether editing occurs inside the panel, in the world, or through a controlled handoff between both.
 
-The framework already defines how each is stored in an INI, which is the starting point:
+The framework already defines how each is stored in its TOML config, which is the starting point; see [Controls](controls.md#commonframework-specific-controls) for the full forms:
 
-- A transform is one value: `x,y,z;heading,roll,attitude;scale`.
-- An input binding is one line: `<hand> <type> <button> [duration] [suppress] [+modifier]`.
-- A haptic is the name of a pattern, or `none`.
-- A color is `r,g,b` or `r,g,b,a`, each from 0 to 255.
-- An activation sphere is a whole INI section: a zone transform with an optional power-armor variant, two bindings, three haptics, and the keys for its icon and sphere.
+- A haptic is a string, the name of a pattern, or `"none"`.
+- A color is an inline table, `{ rgb = [r, g, b], alpha = a }`, each from 0 to 255, either key optional.
+- An input binding is an inline table, `{ hand = "offhand", type = "tap", button = "grip" }`, with `duration`, `suppress` and `modifier` optional, an axis form, and `{ type = "none" }`.
+- A transform is an inline table, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, each key optional.
+- An activation sphere is a whole section: a zone transform with an optional power-armor variant, two bindings, three haptics, and the keys for its icon and sphere.
 
-A setting is stored in one key. An activation sphere spans a section, so it is a group of per-key settings with a role; see [The settings model](model.md#a-group-with-a-role). How a package names such a section is still to be designed.
+A setting is stored in one key, and a table is one value of it: a string setting whose value is the TOML text of the table. An activation sphere spans a section, so it is a group of per-key settings with a role; see [The settings model](model.md#a-group-with-a-role). How a package names such a section is still to be designed.
 
 ## Schema evolution
 
@@ -39,7 +41,7 @@ A setting is stored in one key. An activation sphere spans a section, so it is a
 - Whether a package can forbid creating a missing file, for a mod that cannot load a file that holds only some of its settings
 - Duplicate INI sections or keys and which occurrence is authoritative
 - How values are spelled in each INI: `true`/`false` or `1`/`0` for a boolean, and the precision a float is written with
-- JSON/TOML representation choices for colors and complex values
+- JSON representation choices for colors and complex values. In a TOML file they are the framework's tables
 - Format-preserving TOML editing, including comments and layout
 - Whether the game's own INI files under `My Games/Fallout4VR` are valid targets
 - What to do when an external edit changes a value currently being previewed but not yet saved

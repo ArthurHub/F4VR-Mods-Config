@@ -445,3 +445,119 @@ fpc_body = f'''<div class="mc-world">
 </div>'''
 write('FullPanelCategories', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The Categories page, with the tree grouped and a category list open" -->', 'Full panel, categories', fpc_body))
 print('ok categories')
+
+# ---------------- Haptic: a pattern of the framework's library, with its shape and Play ----------------
+# The keyframes of vrcf/VRControllersHaptic.cpp, (seconds, start, end): the C++ draws them from getPattern().
+HAPTICS = {
+    'none': ('None', []),
+    'Tick': ('Tick', [(0.02, .25, .25)]),
+    'Click': ('Click', [(0.03, .7, .7)]),
+    'DoubleClick': ('Double click', [(0.03, .5, .5), (0.05, 0, 0), (0.03, .5, .5)]),
+    'TripleClick': ('Triple click', [(0.03, .5, .5), (0.05, 0, 0), (0.03, .5, .5), (0.08, 0, 0), (0.03, .5, .5)]),
+    'Success': ('Success', [(0.05, .3, .3), (0.05, 0, 0), (0.08, .8, .8)]),
+    'Warning': ('Warning', [(0.06, .9, .9), (0.05, 0, 0), (0.2, .3, .3)]),
+    'Error': ('Error', [(0.05, .6, .6), (0.06, 0, 0), (0.05, .6, .6), (0.06, 0, 0), (0.16, 1, 1)]),
+    'Notification': ('Notification', [(0.1, .7, .7), (0.12, 0, 0), (0.03, .4, .4), (0.12, 0, 0), (0.03, .3, .3)]),
+    'Start': ('Start', [(0.5, 0, 1), (0.1, 1, 1)]),
+    'Stop': ('Stop', [(0.1, 1, .8), (0.5, .8, 0)]),
+    'RampUp': ('Ramp up', [(0.6, 0, 1)]),
+    'RampDown': ('Ramp down', [(0.6, 1, 0)]),
+    'Heartbeat1': ('Heartbeat 1', [(0.08, .8, .8), (0.1, 0, 0), (0.06, .45, .45)]),
+    'Heartbeat2': ('Heartbeat 2', [(0.08, .8, .8), (0.1, 0, 0), (0.06, .45, .45), (0.4, 0, 0)] * 1 + [(0.08, .8, .8), (0.1, 0, 0), (0.06, .45, .45)]),
+    'Heartbeat3': ('Heartbeat 3', ([(0.08, .8, .8), (0.1, 0, 0), (0.06, .45, .45), (0.4, 0, 0)] * 2) + [(0.08, .8, .8), (0.1, 0, 0), (0.06, .45, .45)]),
+    'Buzz': ('Buzz', [(0.25, .5, .5)]),
+    'MidBuzz': ('Mid buzz', [(0.5, .5, .5)]),
+    'LongBuzz': ('Long buzz', [(0.7, .6, .6)]),
+}
+ENV_W, ENV_H, ENV_BASE, ENV_PX_S = 96, 24, 22, 200   # an intensity of 1 is 22 px over the 2 px base
+
+def env_scale(name):
+    """200 px a second, or less, so a pattern longer than 0.48 s fits the 96 px: a tap stays narrow, a rumble fills."""
+    total = sum(d for d, _, _ in HAPTICS[name][1])
+    return min(ENV_PX_S, ENV_W / total) if total else ENV_PX_S
+
+def env(name):
+    """The shape of a pattern: a quad over the base for each keyframe of intensity, at least 2 px wide."""
+    quads, t, k = [], 0.0, env_scale(name)
+    for dur, a, b in HAPTICS[name][1]:
+        x0, x1 = t * k, (t + dur) * k
+        t += dur
+        if a == 0 and b == 0:
+            continue
+        x1 = max(x1, x0 + 2)
+        quads.append(f'M{x0:.1f} {ENV_BASE} L{x0:.1f} {ENV_BASE - a * ENV_BASE:.1f} L{x1:.1f} {ENV_BASE - b * ENV_BASE:.1f} L{x1:.1f} {ENV_BASE} Z')
+    wave = f'<path class="wave" d="{" ".join(quads)}"/>' if quads else ''
+    return f'<svg class="mc-env" viewBox="0 0 {ENV_W} {ENV_H}"><rect class="base" x="0" y="{ENV_BASE}" width="{ENV_W}" height="2"/>{wave}</svg>'
+
+PLAY = ('<svg class="mc-ico" viewBox="0 0 24 24"><circle class="dot" cx="12" cy="12" r="2.5"/>'
+        '<path d="M8.5 8.5 A5 5 0 0 0 8.5 15.5 M15.5 8.5 A5 5 0 0 1 15.5 15.5 M5.6 5.6 A9 9 0 0 0 5.6 18.4 M18.4 5.6 A9 9 0 0 1 18.4 18.4"/></svg>')
+
+def play_btn(state=''):
+    return f'<span class="mc-btn is-icon{" " + state if state else ""}" title="Play">{PLAY}</span>'
+
+def haptic(name, state='', play='', show_reset=False, text=None, open_=False):
+    """The frame (label, shape, arrow), Play and the Reset slot. An invalid value is its text, with no shape."""
+    cls = 'mc-combo is-haptic' + (f' {state}' if state else '') + (' is-open' if open_ else '')
+    label = text if text is not None else HAPTICS[name][0]
+    shape = '' if state == 'is-invalid' else env(name)
+    return f'<div class="main"><span class="{cls}"><span>{label}</span>{shape}{ARROW_D}</span>{play_btn(play)}</div>{reset_btn(show_reset)}'
+
+def h_option(name, state='', mark=None):
+    check = CHECK if state == 'is-current' else '<span class="check"></span>'
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-option{" " + state if state else ""}" style="position:relative">{check}'
+            f'<span class="text">{HAPTICS[name][0]}</span>{env(name)}{mk}</div>')
+
+def h_sheet(rows):
+    """labeled() without its world, so several parts share one."""
+    out = ['<div class="mc-sheet" style="display:grid;grid-template-columns:120px 740px;column-gap:16px;align-items:start;width:908px;padding-bottom:8px">']
+    for label, html in rows:
+        out.append(f'<span class="t-detail mc-muted" style="height:56px;display:flex;align-items:center">{label}</span><div>{html}</div>')
+    out.append('</div>')
+    return '\n'.join(out)
+
+h_states = h_sheet([
+    ('Idle', row('Press haptic', haptic('Tick'))),
+    ('Ray on Play', row('Press haptic', haptic('Tick', play='is-hover'), 'is-hover', mark=(656, 20))),
+    ('Pending', row('Press haptic', haptic('DoubleClick', 'is-pending', show_reset=True), gutter=DOT)),
+    ('None', row('Press haptic', haptic('none', play='is-disabled', show_reset=True), gutter=DOT)),
+    ('Invalid', row('Press haptic', haptic('none', 'is-invalid', 'is-disabled', True, text='Tik'), 'is-invalid', gutter=WARN, message='Not a haptic pattern')),
+    ('Disabled', row('Entry haptic', haptic('Heartbeat2'), 'is-disabled')),
+])
+h_popup = (f'<div class="mc-popup has-scroll t-body" style="position:absolute;right:128px;top:68px;width:336px;z-index:2">'
+           + h_option('none') + h_option('Tick', 'is-current') + h_option('Click')
+           + h_option('DoubleClick', 'is-hover', mark=(150, 20)) + h_option('TripleClick')
+           + '<div class="mc-scrollbar"><i style="top:0;height:26%"></i></div></div>')
+h_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;position:relative;border-radius:8px 8px 0 0">
+{row('Press haptic', haptic('Tick', open_=True), 'is-active')}
+{row('Scroll speed', slider('30', 30))}
+{row('Mark size', slider('0.45', 45))}
+{row('Mark border width', slider('0.08', 16))}
+{row('Ray length', slider('64', 50))}
+{row('Show the ray', toggle(True))}
+{h_popup}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Double click', 'Two quick taps. For turning something on, or a change of mode. 0.11 s.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div></div>
+</div>"""
+h_focused = f"""<div class="mc-focused" style="height:auto">
+<div class="mc-desc t-body"><span class="name">Entry haptic:</span> Plays once when a hand enters the zone. Default Tick.</div>
+<div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px">{DOT}<span>Entry haptic</span></div>
+<div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label is-haptic is-pending" style="flex:1;width:auto"><span>Success</span>{env('Success')}</span><span class="mc-btn is-icon">{TRI_R}</span></span>{play_btn()}<span class="mc-btn is-icon">{RESET}</span></div></div>
+</div>"""
+h_library = '<div class="mc-sheet mc-popup t-body" style="width:336px;border-color:var(--frame-border)">' + ''.join(h_option(n) for n in HAPTICS) + '</div>'
+h_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:auto 336px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The states, in the menu's own page: Pointer</span>
+{h_states}
+<span class="t-detail mc-caption">The list open: the ray on Double click, its help in the footer</span>
+{h_list}
+<span class="t-detail mc-caption">The Focused panel: a choice stepper, each step plays</span>
+{h_focused}
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">Every option, as the list draws it</span>
+{h_library}
+</div>
+</div>"""
+write('Haptic', page('<!-- @dsCard group="Settings" height=1260 width=1520 subtitle="A pattern with its shape and Play: the states, the list, the Focused stepper, and every option" -->', 'Haptic', h_body))
+print('ok haptic')

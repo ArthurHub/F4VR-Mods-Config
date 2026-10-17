@@ -125,6 +125,8 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - Pending: `AddCircleFilled`, 10 px across, `amber`.
 - Invalid: a filled `red` triangle 20 x 18 with `!` in `on-red`.
 - Close, Minimize, Reset, minus and plus: 2.5 px strokes in a 24 px box centered in a 48 px button. Reset is a three-quarter arc with an arrowhead, drawn with `PathArcTo`.
+- Play, which plays a haptic: a 5 px dot with two arcs on each side, in the same 24 px box.
+- A haptic pattern's shape: a quad for each keyframe over a 2 px base, 96 x 24 (see `Haptic`).
 - The selected row's tip: `AddTriangleFilled`, 20 px deep, the row's height.
 - Help is the text `?`.
 

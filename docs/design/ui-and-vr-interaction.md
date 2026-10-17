@@ -239,7 +239,7 @@ Haptic feedback should be restrained and meaningful:
 
 The light pulse is given to the hand that points, in the frame its press does something: another page is shown, a quick launch entry is opened, a value is changed, the list of a dropdown is opened, Back goes a step back or closes the menu. A press that changes nothing gives none, as one on the row that is selected already. It is a pattern of the framework by its name, `Tick`, which can be changed and turned off.
 
-Exact haptic profiles can use the future CommonFramework `Haptic` control/configuration design.
+The pattern is `sPressHaptic` in `[Pointer]` of `ModsConfigVR.toml`, which the menu's own page edits with the [Haptic control](controls.md#haptic).
 
 ## Help line
 

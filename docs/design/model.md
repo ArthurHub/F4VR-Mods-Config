@@ -34,7 +34,7 @@ A setting has:
 | id           | Its identity, unique in its mod: its author's, or one the loader makes                                |
 | sourceId     | The id its source has for it, which MCM's events name an MCM row by. Empty for a row with none        |
 | type         | How it is edited, by MCM's names: switcher, slider, stepper, dropdown, textinput                      |
-| valueType    | What the value is: bool, int, float or string. Color comes with its control                           |
+| valueType    | What the value is: bool, int, float or string. A CommonFramework table is a string, its TOML text     |
 | text         | What the row says                                                                                     |
 | help         | Its help text, shown in the help line while the ray is on the row                                     |
 | valueOptions | The least, the most and the step of a number, the length limits of a text, or the options of a choice |
@@ -99,7 +99,7 @@ A condition compares the value of one setting, named by its id, or joins other c
 
 ## A group with a role
 
-A value that the framework writes as one text in an INI is a string setting with a control of its own: a transform, an input binding, a haptic.
+A value that the framework writes as an inline table in its TOML is a string setting of one key, whose value is the TOML text of the table, with a control of its own that reads and writes that text: a color, an input binding, a transform. The store writes it into the file as the inline table, not as a quoted string. A haptic is a string setting too, the name of a pattern, with a control of its own. See [Controls](controls.md#commonframework-specific-controls).
 
 A control over several keys is a group with a role. Its settings are ordinary ones, one for each key, and the role says how the group is drawn. Two roles are known: an activation sphere, and a color in three keys.
 
@@ -293,22 +293,22 @@ Save writes the dirty keys alone: `fPlayerHeight`, and no `bEnableHolsters`.
 
 ### An activation sphere
 
-A section of Immersive Flashlight's INI, shortened:
+A section of Immersive Flashlight's TOML, shortened:
 
-```ini
+```toml
 [ImFl_BodyActivationSphere]
-tZone = 3.91,7.11,0.67;0.00,0.00,0.00;20.00
-sPrimaryBinding = offhand tap trigger suppress
-sEntryHaptic = Tick
-fIconSize = 2
+tZone = { pos = [3.91, 7.11, 0.67], rot = [0.0, 0.0, 0.0], scale = 20.0 }
+kPrimaryBinding = { hand = "offhand", type = "tap", button = "trigger", suppress = true }
+sEntryHaptic = "Tick"
+fIconSize = 2.0
 ```
 
 The package names the section once, and the loader makes a group of it, with a setting for each key:
 
 ```text
 Group "Body grab"                                         role: activation sphere
-├─ Setting tZone:ImFl_BodyActivationSphere                string, transform control
-├─ Setting sPrimaryBinding:ImFl_BodyActivationSphere      string, binding control
+├─ Setting tZone:ImFl_BodyActivationSphere                string (table), transform control
+├─ Setting kPrimaryBinding:ImFl_BodyActivationSphere      string (table), binding control
 ├─ Setting sEntryHaptic:ImFl_BodyActivationSphere         string, haptic control
 └─ Setting fIconSize:ImFl_BodyActivationSphere            float, slider
 ```

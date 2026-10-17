@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-15T22:40:00Z",
-    "via": "Claude Code",
-    "note": "On ImGui 1.92 each text size is rasterized at its own whole-pixel size (title 26 px, detail 18 px) and pushed with PushFont, a character renders when Roboto has it, and the pointer's colors are in ModsConfigVR.toml."
+    "at": "2026-10-17T13:44:00Z",
+    "via": "Claude (Cowork)",
+    "note": "Haptic: a pattern of the framework's library picked from a dropdown that draws each pattern's shape, with Play to feel it on the hand; Play's icon added to Iconography."
   },
   "layout": "files",
   "libraries": [],

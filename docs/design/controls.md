@@ -100,7 +100,8 @@ Primary use: RGB or RGBA colors.
 
 - Show a large swatch and readable numeric representation.
 - Support precise numeric entry as well as an appropriate VR-friendly picker.
-- Exact picker geometry and storage encodings remain to be designed.
+- A CommonFramework color is stored as the framework stores it: see [CommonFramework-specific controls](#commonframework-specific-controls).
+- Exact picker geometry remains to be designed.
 
 ### Button
 
@@ -127,14 +128,42 @@ Advanced content should be collapsible and visually secondary so detailed config
 
 The following exact CommonFramework concepts are reserved as first-class controls:
 
-- `ActivationSphere`
-- `InputBinding`
 - `Haptic`
+- `Color`
+- `InputBinding`
 - `Transform`
+- `ActivationSphere`
 
-Their schemas, storage mappings, live-preview semantics, and VR manipulation experiences will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what the framework already defines for each.
+The framework's TOML config already fixes how each is stored, and the type prefix of a key says which it is:
+
+| Control            | Key prefix | Stored as                                                                                                                                                                                                                                       |
+| ------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Haptic`           | `s`        | A string: the name of a pattern of the framework's library, or `"none"`. `sEntryHaptic = "Tick"`                                                                                                                                               |
+| `Color`            | `c`        | An inline table, `{ rgb = [r, g, b], alpha = a }`, each a whole number in 0..255. Either key can be left out and keeps the default's channels, so `{ alpha = 60 }` changes only the opacity                                                   |
+| `InputBinding`     | `k`        | An inline table, `{ hand = "offhand", type = "tap", button = "grip" }`, with `duration`, `suppress` and `modifier = { button, hand }` optional. `{ hand, type = "axis", direction, axis, threshold }` for a thumbstick or an axis, and `{ type = "none" }` for none |
+| `Transform`        | `t`        | An inline table, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, the rotation in degrees, each key optional                                                                                                                 |
+| `ActivationSphere` |            | A whole section: the zone `tZone` and an optional power-armor zone `tZonePA`, `kPrimaryBinding` and `kSecondaryBinding`, `sEntryHaptic`, `sPrimaryHaptic` and `sSecondaryHaptic`, and the keys of its sphere and its icon                  |
+
+A table is one value in one key. In the settings model its value is a string, the TOML text of the table (`{ rgb = [255, 51, 51], alpha = 40 }`), which its control reads and writes, and which the store writes into the file as the inline table, not as a quoted string. So its setting is dirty, previewed and saved as a whole, as any other. The framework checks every key and word of a table and names the one that is wrong, and a table it cannot read is an invalid value with that reason.
+
+The Haptic control is designed below. The schemas, storage mappings, live-preview semantics, and VR manipulation experiences of the others will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what is left.
 
 These should not be flattened into `vec2` or `vec3`, because their meaning, validation, and editing affordances are richer than a tuple of numbers.
+
+### Haptic
+
+Primary use: the pattern a mod plays on a controller when something happens, as an activation sphere's `sEntryHaptic`, or the menu's own `sPressHaptic`.
+
+- The value is one of None and the 18 patterns of the framework's library (`vrcf::HapticPattern`), in the library's order. The menu knows the list, with a text and a help for each; a package names only the setting's key and its default.
+- It is a dropdown in the Full panel, and a choice stepper in the Focused panel, as any choice. Each option shows its pattern's shape, drawn from the framework's keyframes (`VRControllersHaptic::getPattern`), so patterns can be told apart before one is felt.
+- A pattern is felt and not seen, so the control plays it on the hand that points: once when an option is picked, at each step of the stepper, and when the Play button beside the control is pressed. A press that plays a pattern gets no press pulse of the menu: the pattern is its feedback.
+- Pointing at an option plays nothing, as hover has no haptic. The help line shows the option's help: how it feels, its length, and what it is for.
+- Reset sets the default and does not play it. Play plays it.
+- A text in the file is matched as the framework reads it: case-insensitive, with spaces, underscores and hyphens ignored, so `double click` is Double click, and `off` and an empty text are None. A changed value is written as the library names it, `DoubleClick`, or `none`.
+- A name the library does not have is invalid, shown as the file has it. The framework plays nothing for it, and the help says so.
+- A `live` haptic is previewed as any setting: the mod plays the pending pattern when its event happens.
+
+The look is the design system's [Haptic](design-system/project/components/Haptic/README.md).
 
 ## Help and validation feedback
 

@@ -185,3 +185,20 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-wristbtn { width: 144px; height: 105.6px; background: var(--glass-widget); border: var(--border-widget) solid var(--green); border-radius: var(--radius-widget); padding: 7.2px 9.6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; }
 .mc-wristbtn .top { color: var(--green); }
 .mc-caption { align-self: flex-start; background: var(--glass); color: var(--green-muted); padding: 2px var(--space-2); border-radius: var(--radius-frame); }
+
+/* ---------- haptic: a dropdown that draws each pattern's shape, and Play ---------- */
+.mc-combo.is-haptic { width: 336px; gap: var(--space-3); }
+.mc-combo.is-haptic > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-combo.is-invalid { border-color: var(--red); }
+.mc-combo.is-invalid > span:first-child { color: var(--red); }
+/* the shape: 96 x 24, 60 px a second, an intensity of 1 is 22 px over a 2 px base */
+svg.mc-env, .mc-combo svg.mc-env { display: block; flex: none; width: 96px; height: 24px; }
+svg.mc-env .base { fill: var(--rule); }
+svg.mc-env .wave { fill: var(--green); }
+.is-pending svg.mc-env .wave { fill: var(--amber); }
+.mc-option.is-current svg.mc-env .wave { fill: var(--on-green); }
+.mc-option.is-current svg.mc-env .base { fill: var(--on-green); opacity: 0.4; }
+.mc-option .text { flex: 1; min-width: 0; white-space: nowrap; }
+.mc-stepper .label.is-haptic { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-4); }
+.mc-stepper .label.is-haptic.is-pending svg.mc-env .wave { fill: var(--amber); }
+svg.mc-ico .dot { fill: currentColor; stroke: none; }
