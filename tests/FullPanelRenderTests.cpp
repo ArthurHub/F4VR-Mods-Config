@@ -22,6 +22,7 @@
 #include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
 #include "model/TextMarkup.h"
+#include "package/PackageLoader.h"
 #include "ui/FullPanel.h"
 
 // The Full panel drawn without the game and saved as an image, to look at a change of the UI before it is tried
@@ -528,6 +529,57 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
         render(page, std::format("mcm-showcase-page-{}", page + 1));
     }
+}
+
+TEST_CASE("FullPanel render: the pages of the mod's own package, with the ray on the row of a page with a help", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);
+    REQUIRE(mods.size() == 1);
+
+    // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
+    const auto render = [&mods](const std::optional<std::size_t> page, const std::string& name, const ImVec2& pointer) {
+        FullPanel panel;
+        panel.setMods(mods);
+        panel.select({ .mod = 0, .page = page });
+        WARN("Saved " << renderToFile(panel, name, pointer));
+    };
+    // the second row of the tree, which is the package's first page
+    const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
+    const ImVec2 onPage(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, rowsTop + theme::CONTROL_HEIGHT + theme::SPACE_1 + theme::CONTROL_HEIGHT * 0.5f);
+    render(std::nullopt, "package-front-page", onPage);
+    for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
+        render(page, std::format("package-page-{}", page + 1), POINTER_AWAY);
+    }
+}
+
+TEST_CASE("FullPanel render: a package's section in a section, with rows before and after it", "[.render]")
+{
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "switcher", "text": "Enable", "storage": { "path": ["Main", "bEnable"] } },
+            { "type": "section", "text": "Holsters", "content": [
+                { "type": "switcher", "text": "Enable holsters", "storage": { "path": ["Holsters", "bEnabled"] } },
+                { "type": "section", "text": "Advanced", "content": [
+                    { "type": "slider", "text": "Reach", "storage": { "path": ["Holsters", "fReach"] } },
+                    { "type": "section", "text": "Even more", "content": [
+                        { "type": "slider", "text": "Angle", "storage": { "path": ["Holsters", "fAngle"] } }
+                    ] }
+                ] },
+                { "type": "slider", "text": "Size", "storage": { "path": ["Holsters", "fSize"] } }
+            ] },
+            { "type": "section", "text": "Body", "content": [
+                { "type": "slider", "text": "Height", "storage": { "path": ["Body", "fHeight"] } }
+            ] }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = std::nullopt });
+    WARN("Saved " << renderToFile(panel, "package-nested-sections", POINTER_AWAY));
 }
 
 TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the switcher that controls it is on", "[.render]")

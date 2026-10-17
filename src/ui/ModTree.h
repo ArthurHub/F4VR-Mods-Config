@@ -18,8 +18,8 @@ namespace mods_config::ui
         // what a pressed row selects
         std::optional<Selection> pressed;
 
-        // the row the ray is on, for the help line: a mod that is not available, which says why. None on any
-        // other row, which has no help
+        // the row the ray is on, for the help line: a mod that is not available, which says why, or a mod or a
+        // page with a help. None on any other row, which has no help
         std::optional<PointedRow> pointed;
     };
 

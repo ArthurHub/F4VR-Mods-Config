@@ -70,13 +70,15 @@ namespace
     /**
      * A row of the tree, a mod's or a page's under its mod, at the cursor, in the width of every row. The selected
      * row is a solid bar, and any other has the look of a row under the ray. With `show`, a selected row that is
-     * not whole in the shown rows is scrolled to. Returns whether the row was pressed.
+     * not whole in the shown rows is scrolled to. Returns whether the row was pressed, and tells whether the ray
+     * is on it.
      */
-    bool treeRow(const std::string_view name, const RowKind kind, const bool selected, const bool show, const float width)
+    bool treeRow(const std::string_view name, const RowKind kind, const bool selected, const bool show, const float width, bool& pointed)
     {
         const auto min = ImGui::GetCursorScreenPos();
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
         const bool pressed = ImGui::InvisibleButton("row", ImVec2(width, theme::CONTROL_HEIGHT));
+        pointed = ImGui::IsItemHovered();
 
         const float shownTop = ImGui::GetWindowPos().y;
         if (selected && show && (min.y < shownTop || max.y > shownTop + ImGui::GetWindowHeight())) {
@@ -131,7 +133,8 @@ namespace mods_config::ui
      * and the rows scroll under it.
      * The selected mod's own row is its front page, and it is open when it has pages: they are the rows under it.
      * A mod that is not available is a disabled row, in its place, which says why while the ray is on it.
-     * Returns what a pressed row selects, and the row of a mod that is not available the ray is on.
+     * Returns what a pressed row selects, and the row the ray is on where it has something to say: the reason
+     * of a mod that is not available, or the help of a mod or a page, which a package gives them.
      */
     TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height)
     {
@@ -175,13 +178,21 @@ namespace mods_config::ui
                         ImGui::PopID();
                         continue;
                     }
-                    if (treeRow(mod.displayName, open ? RowKind::OpenMod : RowKind::ClosedMod, selected && !selection.page, _showSelection, rowWidth)) {
+                    bool pointed = false;
+                    if (treeRow(mod.displayName, open ? RowKind::OpenMod : RowKind::ClosedMod, selected && !selection.page, _showSelection, rowWidth, pointed)) {
                         drawn.pressed = Selection{ .mod = modIndex, .page = std::nullopt };
                     }
+                    if (pointed && !mod.help.empty()) {
+                        drawn.pointed = PointedRow{ .text = mod.displayName, .help = mod.help };
+                    }
                     for (std::size_t pageIndex = 0; open && pageIndex < mod.pages.size(); ++pageIndex) {
+                        const auto& page = mod.pages[pageIndex];
                         ImGui::PushID(static_cast<int>(pageIndex));
-                        if (treeRow(mod.pages[pageIndex].name, RowKind::Page, selection.page == pageIndex, _showSelection, rowWidth)) {
+                        if (treeRow(page.name, RowKind::Page, selection.page == pageIndex, _showSelection, rowWidth, pointed)) {
                             drawn.pressed = Selection{ .mod = modIndex, .page = pageIndex };
+                        }
+                        if (pointed && !page.help.empty()) {
+                            drawn.pointed = PointedRow{ .text = page.name, .help = page.help };
                         }
                         ImGui::PopID();
                     }

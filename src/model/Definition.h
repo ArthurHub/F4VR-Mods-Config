@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -127,6 +128,21 @@ namespace mods_config::model
     };
 
     /**
+     * A value in a file of a package's mod: a key of an INI file, or a value of a TOML or a JSON file.
+     */
+    struct FileStorage
+    {
+        // the name its package gives the file, which is a file of its mod
+        std::string file;
+
+        // the names that lead to the value: its section and its key in an INI file, and in a TOML or a JSON
+        // file the tables it is in and its key
+        std::vector<std::string> path;
+
+        bool operator==(const FileStorage&) const = default;
+    };
+
+    /**
      * A storage the menu does not read: the value of its setting is not available.
      */
     struct UnknownStorage
@@ -140,7 +156,20 @@ namespace mods_config::model
     /**
      * Where the value of a setting is kept. Only the store reads it.
      */
-    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, UnknownStorage>;
+    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, UnknownStorage>;
+
+    /**
+     * When a change of a package's setting takes effect in the running mod.
+     */
+    enum class Applies : std::uint8_t
+    {
+        // as it is made
+        Live,
+        // after Save
+        Save,
+        // after the game is restarted
+        Restart,
+    };
 
     /**
      * What a row is shown by: the value of one setting, or other conditions that are joined. It is asked of
@@ -293,8 +322,8 @@ namespace mods_config::model
         ValueOptions valueOptions;
         Storage storage;
 
-        // what a text input takes: a text, a whole number or a number. The value of every other setting is
-        // of its type of control
+        // what its value is kept as. An MCM row has it for a text input alone, which takes a text, a whole
+        // number or a number: the value of every other is of its type of control
         StoredType valueType = StoredType::String;
 
         // what runs after its value is set, with the value. Most have none
@@ -302,6 +331,14 @@ namespace mods_config::model
 
         // the row is shown while it holds. A row with none is always shown
         std::optional<Condition> visibleWhen;
+
+        // when its change takes effect: its own, or else the nearest its package gives above it. None for an
+        // MCM row
+        std::optional<Applies> applies;
+
+        // the value Reset gives it, in its value's type: a package's setting has it. None for an MCM row,
+        // whose default is its store's to answer
+        std::optional<Value> defaultValue;
     };
 
     /**
@@ -412,7 +449,8 @@ namespace mods_config::model
     using Item = std::variant<Setting, Group, Button, Hotkey, Text, Image, Spacer, Placeholder>;
 
     /**
-     * A section: its heading and the items under it.
+     * A section: its heading and the items under it. A package's sections nest: a group can be an item of a
+     * group.
      */
     struct Group
     {
@@ -427,7 +465,57 @@ namespace mods_config::model
     {
         // empty for a mod's front page
         std::string name;
+
+        // what the help line says of its row in the tree: empty for none, as an MCM page has
+        std::string help;
         std::vector<Item> items;
+
+        // the pages under it, which a package's page can have
+        std::vector<Page> pages;
+    };
+
+    /**
+     * What a file of a package is written in.
+     */
+    enum class FileFormat : std::uint8_t
+    {
+        Ini,
+        Json,
+        Toml,
+    };
+
+    /**
+     * The folder a path of a package's file is from.
+     */
+    enum class FileRoot : std::uint8_t
+    {
+        // the game's Data folder
+        Data,
+        // `Documents\My Games\Fallout4VR`
+        MyGames,
+    };
+
+    /**
+     * A file a package's settings are kept in.
+     */
+    struct File
+    {
+        FileFormat format = FileFormat::Toml;
+        FileRoot root = FileRoot::MyGames;
+
+        // from its root, with `/` between its folders, as its package writes it
+        std::string path;
+
+        bool operator==(const File&) const = default;
+    };
+
+    /**
+     * Where the menu of a mod comes from: the store of its values is of the same source.
+     */
+    enum class Source : std::uint8_t
+    {
+        Mcm,
+        Package,
     };
 
     struct Mod
@@ -441,5 +529,12 @@ namespace mods_config::model
         // why the mod is not available, as `its plugin SS2.esm is not loaded`: empty for one that is. A mod
         // that is not available has its names and this, and no pages
         std::string notAvailable;
+
+        // what the help line says of its row in the tree: empty for none, as an MCM mod has
+        std::string help;
+        Source source = Source::Mcm;
+
+        // a package's files, by the names it gives them. None for an MCM mod
+        std::map<std::string, File> files;
     };
 }

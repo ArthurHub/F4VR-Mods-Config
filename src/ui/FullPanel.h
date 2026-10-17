@@ -75,6 +75,7 @@ namespace mods_config::ui
         }
 
     private:
+        model::Store* storeOf(const model::Mod& mod) const;
         std::optional<Selection> drawTitleBar() const;
         std::optional<PointedRow> drawFrontPage();
         void drawFooter(const ImVec2& pos) const;
@@ -86,7 +87,7 @@ namespace mods_config::ui
         // the mod and the page that are shown: none is the menu's front page
         Selection _selection;
 
-        // the values of the selected mod: not the panel's own, and none in a test that has no values
+        // the values of a selected MCM mod: not the panel's own, and none in a test that has no values
         model::Store* _store = nullptr;
 
         ModTree _modTree;

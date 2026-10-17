@@ -41,3 +41,15 @@ TEST_CASE("Translations: the first text of a token is kept")
     CHECK(translations.size() == 1);
     CHECK(translations.translate("$Name") == "First");
 }
+
+TEST_CASE("Translations: a token the language has no text for is its fallback, where it has one")
+{
+    model::Translations translations;
+    translations.add("$Height", "Hauteur");
+
+    CHECK(translations.translate("$Height", "Height") == "Hauteur");
+    CHECK(translations.translate("$Width", "Width") == "Width");
+    CHECK(translations.translate("$Width", "") == "$Width");
+    // a text that is no token is never its fallback
+    CHECK(translations.translate("Depth", "Fallback") == "Depth");
+}

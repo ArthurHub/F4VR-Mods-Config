@@ -300,7 +300,7 @@ A `textinput` whose `valueType` is `int` or `float` takes a number, as MCM's `te
 A setting's `id` is optional. A setting without one gets its id from its storage, as a name and where it is, joined by a colon:
 
 - An INI key: the key and its section, as `fPlayerHeight:MyMod`, which is how MCM names a ModSetting.
-- A JSON or TOML value: the last name of its path, and the names before it joined with dots, as `fScale:Panel` for `["Panel", "fScale"]`. A path of two is named as an INI key is, so a mod that moves its config from INI to TOML keeps its ids.
+- A JSON or TOML value: the last name of its path, and the names before it joined with dots, as `fScale:Panel` for `["Panel", "fScale"]`. A path of two is named as an INI key is, so a mod that moves its config from INI to TOML keeps its ids. A path of one is its name alone.
 - A global: its form, as `MyMod.esp|1234`.
 - A property of a script: its name and its form, as `fStrength:MyMod.esp|800`.
 

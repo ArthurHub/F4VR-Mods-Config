@@ -137,12 +137,21 @@ namespace mods_config::ui
     }
 
     /**
-     * The store the panel asks for the values of the selected mod, and sets them in. It is not the panel's
+     * The store the panel asks for the values of a selected MCM mod, and sets them in. It is not the panel's
      * own, and has to outlive it. With none, as in a test of the tree, no value is available.
      */
     void FullPanel::setStore(model::Store* store)
     {
         _store = store;
+    }
+
+    /**
+     * The store of the values of a mod: the MCM store for an MCM mod. A package's mod has none, so no value
+     * of it is available.
+     */
+    model::Store* FullPanel::storeOf(const model::Mod& mod) const
+    {
+        return mod.source == model::Source::Mcm ? _store : nullptr;
     }
 
     /**
@@ -168,8 +177,9 @@ namespace mods_config::ui
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod,
      * and for a mod that is not available.
-     * Another mod than before starts its editing session in the store, and no mod ends the one there is.
-     * Another page of the same mod is told to the store, which reads the values it keeps in files again.
+     * Another mod than before starts its editing session in its store, which ends the session it had. A mod
+     * that is left for no mod, or for a mod of another store, ends its session in its store. Another page of
+     * the same mod is told to its store, which reads the values it keeps in files again.
      * Returns whether it shows another page than before.
      */
     bool FullPanel::select(const Selection& selection)
@@ -184,20 +194,23 @@ namespace mods_config::ui
         if (shown == _selection) {
             return false;
         }
-        if (_store && shown.mod != _selection.mod) {
-            if (shown.mod) {
-                _store->open(_mods[*shown.mod]);
-            } else {
-                _store->close();
+        auto* const storeBefore = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        auto* const store = shown.mod ? storeOf(_mods[*shown.mod]) : nullptr;
+        if (shown.mod != _selection.mod) {
+            if (storeBefore && storeBefore != store) {
+                storeBefore->close();
             }
-        } else if (_store && shown.mod) {
-            _store->pageShown();
+            if (store) {
+                store->open(_mods[*shown.mod]);
+            }
+        } else if (store) {
+            store->pageShown();
         }
         _selection = shown;
         _pageChanged = true;
         _modPage.reset();
         _helpLine.clear();
-        _helpLine.setStatus(_store && shown.mod ? SAVED_AS_MADE : "");
+        _helpLine.setStatus(store ? SAVED_AS_MADE : "");
         _modTree.showSelection();
         return true;
     }
@@ -222,12 +235,12 @@ namespace mods_config::ui
 
     /**
      * The panel as the menu opens: on the menu's front page, with the tree at its top. A menu that was closed
-     * does not keep its place. The editing session of a mod that was shown ends in the store.
+     * does not keep its place. The editing session of a mod that was shown ends in its store.
      */
     void FullPanel::reset()
     {
-        if (_store && _selection.mod) {
-            _store->close();
+        if (auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr) {
+            store->close();
         }
         _selection = {};
         _pageChanged = true;
@@ -242,8 +255,8 @@ namespace mods_config::ui
     /**
      * Draws the panel into the current ImGui window: the title bar, under it the tree of the mods with the
      * menu's front page or the selected mod's page beside it, and the footer at the bottom.
-     * The help line has the row of the page the ray is on, or the row of the tree of a mod that is not
-     * available, until the ray is on another or leaves the page:
+     * The help line has the row of the page the ray is on, or the row of the tree with a help, until the ray
+     * is on another or leaves the page:
      * in the gap between two rows it keeps the row it has, so it does not flicker as the ray sweeps the rows.
      * With no row it says that the changes of the selected mod are saved as they are made.
      * A press selects once all of the panel is drawn, so a frame is drawn with one selection.
@@ -282,7 +295,7 @@ namespace mods_config::ui
             onPage = ImGui::IsWindowHovered();
             if (_selection.mod) {
                 const auto& mod = _mods[*_selection.mod];
-                auto drawn = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage, _store, _thumbstickSideValue);
+                auto drawn = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage, storeOf(mod), _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
             } else {

@@ -19,7 +19,7 @@ namespace mods_config::model
             return _texts.size();
         }
 
-        [[nodiscard]] std::string translate(std::string text) const;
+        [[nodiscard]] std::string translate(std::string text, std::string fallback = {}) const;
 
     private:
         // a token is kept as it is written in a config, with its `$`

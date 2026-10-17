@@ -12,7 +12,7 @@ The UI reads the definition to know what to draw, and asks the store for every v
 ## The definition
 
 ```text
-Mod      a name, a help, its front page, its pages, and a category if it has one
+Mod      a name, a help, its front page, its pages, a category if it has one, and a package's files
 Page     a name, an id if it has one, a help, its items, and its pages. The front page is the mod's own, and has no name
 Item     one of:
            Setting
@@ -44,13 +44,14 @@ A setting has:
 | visibleWhen  | A condition on the values of other settings. The row is shown while it holds                          |
 | enabledWhen  | A condition of the same kind. The row can be edited while it holds                                    |
 | storage      | Where the value is kept. Only the store reads it                                                      |
+| default      | The value Reset gives it. A package's only: an MCM row's is its store's to answer                     |
 | applies      | When a change takes effect in the running mod: live, save or restart. A package's only                |
 | action       | What runs after the value is written: at once for an MCM row, and by Save for a package's setting     |
 
 Three things are as they are because of MCM:
 
 - **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so a setting keeps that text too, as its `sourceId`. A package's setting has its author's id, or one made from its storage, as the key and the section: see [Declarative schema](schema.md#settings).
-- **The default is the store's to answer, and not a field.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package. A read-only setting is the one that needs none, as it has no Reset.
+- **The default is the store's to answer.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package. The package loader reads it into the setting, and the package store answers it from there. A read-only setting is the one that needs none, as it has no Reset.
 - **The storage has several forms.** A global, a script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage: a key of a file, a global or a script property.
 
 `applies` is a package's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else the nearest group's it is in, the nearest page's, its mod's. An MCM mod has none: an MCM config has no field for it.

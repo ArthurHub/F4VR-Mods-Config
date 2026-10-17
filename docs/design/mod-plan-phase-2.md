@@ -9,7 +9,7 @@ A package's features match MCM's, but its lifecycle is new. The milestone define
 | #   | Repo | Commit                                                                                    | Status |
 | --- | ---- | ----------------------------------------------------------------------------------------- | ------ |
 | M103 | mod | docs: what a package has beyond MCM                                                      | done   |
-| M47 | mod  | The package loader: files, pages, sections and settings, and Mods Config VR's own package | todo   |
+| M47 | mod  | The package loader: files, pages, sections and settings, and Mods Config VR's own package | in review |
 | M48 | mod  | Choices, shared lists and conditions in a package                                         | todo   |
 | M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | todo   |
 | M51 | mod  | The editing session: values from the file, pending values, dirty state                    | todo   |

@@ -12,14 +12,17 @@ namespace mods_config::model
 
     /**
      * The text to show for a text of a config. A text that starts with `$` is a token: it becomes the text of
-     * the language, and stays as it is written when there is none, as in MCM.
+     * the language. With none it is the fallback a package can give the token, and else stays as it is
+     * written, as in MCM.
      */
-    std::string Translations::translate(std::string text) const
+    std::string Translations::translate(std::string text, std::string fallback) const
     {
         if (!text.starts_with('$')) {
             return text;
         }
-        const auto found = _texts.find(text);
-        return found != _texts.end() ? found->second : text;
+        if (const auto found = _texts.find(text); found != _texts.end()) {
+            return found->second;
+        }
+        return fallback.empty() ? text : fallback;
     }
 }

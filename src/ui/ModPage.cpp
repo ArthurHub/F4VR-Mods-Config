@@ -26,11 +26,13 @@ namespace
     using namespace mods_config;
 
     /**
-     * The width of a row: the same whether or not the page's scroll bar shows.
+     * The width of a row at the cursor: the same whether or not the page's scroll bar shows. A row of a section
+     * in a section is set in, and ends where the other rows do.
      */
     float rowWidth()
     {
-        return ImGui::GetWindowWidth() - theme::SCROLLBAR_SIZE - theme::SPACE_2;
+        const float indent = ImGui::GetCursorPosX() - ImGui::GetCursorStartPos().x;
+        return ImGui::GetWindowWidth() - theme::SCROLLBAR_SIZE - theme::SPACE_2 - indent;
     }
 
     /**
@@ -490,7 +492,26 @@ namespace
         return help.empty() ? std::string(READ_ONLY) : std::format("{} {}", READ_ONLY, help);
     }
 
-    void drawItems(const std::vector<model::Item>& items, const PageDrawing& page);
+    void drawItems(const std::vector<model::Item>& items, const PageDrawing& page, int depth = 0);
+
+    /**
+     * A section at the cursor: its heading, where it is shown, and the rows of its items under it. A section in a
+     * section is set in with its rows, by the step a page is set in under its mod in the tree, so its rows are
+     * seen to be its and not the outer section's. The depth is how many sections it is in.
+     */
+    void drawGroup(const model::Group& group, const PageDrawing& page, const int depth, const bool headingShown)
+    {
+        if (depth > 0) {
+            ImGui::Indent();
+        }
+        if (headingShown) {
+            ui::sectionHeading(group.text);
+        }
+        drawItems(group.items, page, depth + 1);
+        if (depth > 0) {
+            ImGui::Unindent();
+        }
+    }
 
     /**
      * Draws an item as its row. A section is its heading, with the rows of its items under it, and a spacer
@@ -505,6 +526,9 @@ namespace
     {
         const PageDrawing& page;
 
+        // how many sections the item is in
+        int depth = 0;
+
         void operator()(const model::Setting& setting) const
         {
             std::string reason;
@@ -515,8 +539,7 @@ namespace
 
         void operator()(const model::Group& group) const
         {
-            ui::sectionHeading(group.text);
-            drawItems(group.items, page);
+            drawGroup(group, page, depth, true);
         }
 
         void operator()(const model::Button& button) const
@@ -581,16 +604,17 @@ namespace
     /**
      * Draws the items that are shown, each as its row. An item that is not shown has no row and no room.
      * A section that is not shown is without its heading alone: its items are shown by their own conditions.
+     * The depth is how many sections the items are in.
      */
-    void drawItems(const std::vector<model::Item>& items, const PageDrawing& page)
+    void drawItems(const std::vector<model::Item>& items, const PageDrawing& page, const int depth)
     {
         for (const auto& item : items) {
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
             if (isShown(item, page.store)) {
-                std::visit(ItemDrawer{ page }, item);
+                std::visit(ItemDrawer{ .page = page, .depth = depth }, item);
             } else if (const auto* group = std::get_if<model::Group>(&item)) {
-                drawItems(group->items, page);
+                drawGroup(*group, page, depth, false);
             }
             ImGui::PopID();
         }

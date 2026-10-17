@@ -576,6 +576,29 @@ TEST_CASE("FullPanel: a mod that is not available is a row of the tree, which a 
     CHECK(panel.selection() == Selection{});
 }
 
+TEST_CASE("FullPanel: the help line has the help of a mod and of a page whose row the ray is on in the tree")
+{
+    const test_panel::PanelContext context;
+    auto mod = modOf("Alpha", { "First", "Second" });
+    mod.help = "What Alpha is.";
+    mod.pages[0].help = "What its first page is.";
+    FullPanel panel;
+    panel.setMods({ std::move(mod), modOf("Beta") });
+    drawFrames(panel, 2);
+
+    point(panel, treeRow(0));
+    CHECK(panel.helpLine().text() == "Alpha: What Alpha is.");
+    // a mod with no help has none, as an MCM mod
+    point(panel, treeRow(1));
+    CHECK(panel.helpLine().text().empty());
+
+    panel.select(selectionOf(0));
+    point(panel, treeRow(1));
+    CHECK(panel.helpLine().text() == "First: What its first page is.");
+    point(panel, treeRow(2));
+    CHECK(panel.helpLine().text().empty());
+}
+
 TEST_CASE("FullPanel: a breadcrumb before the last is pressed to go there")
 {
     const test_panel::PanelContext context;
@@ -1706,6 +1729,39 @@ TEST_CASE("FullPanel: a mod's editing session ends as the mod is left, and as th
     CHECK(events.sent == Names{ "OnMCMMenuClose|Alpha" });
     panel.reset();
     CHECK(events.sent.size() == 1);
+}
+
+TEST_CASE("FullPanel: a package's mod has no store, so none of its values is available, and the MCM store's session ends for it")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    test_events::TestEvents events;
+    mcm::McmStore store;
+    auto package = modOf("Package");
+    package.source = model::Source::Package;
+    package.frontPage.items.push_back(model::Setting{ .type = model::SettingType::Switcher, .text = "Holsters", .help = "Draw at the body.", .valueOptions = {} });
+    auto panel = modWithValues(store);
+    auto mods = panel.mods();
+    mods.push_back(std::move(package));
+    panel.setMods(std::move(mods));
+    panel.select(selectionOf(0));
+    events.sent.clear();
+
+    // Alpha, Beta, Package
+    panel.select(selectionOf(2));
+    CHECK(events.sent == Names{ "OnMCMMenuClose|Alpha" });
+    CHECK(panel.helpLine().status().empty());
+    drawFrames(panel, 2);
+    // a press on its switcher sets nothing
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+    CHECK(panel.helpLine().text() == "Holsters: Draw at the body.");
+
+    // its page and the reset of the panel tell no store
+    panel.reset();
+    CHECK(events.sent.size() == 1);
+    panel.select(selectionOf(2));
+    panel.select(selectionOf(1));
+    CHECK(events.sent == Names{ "OnMCMMenuClose|Alpha", "OnMCMMenuOpen", "OnMCMMenuOpen|Beta" });
 }
 
 TEST_CASE("FullPanel: a press on the Reset of a row sets the default of its setting in its store, and acts")
