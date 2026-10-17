@@ -215,7 +215,7 @@ Mods Config VR has a case of its own. It takes the opening gesture from FRIK by 
 
 ### 12. Text entry and an on-screen keyboard
 
-**Need.** A text field in a canvas is typed into: an MCM text row, the exact value of a slider, a search. VR has no keyboard, so one is shown.
+**Need.** A text field in a canvas is typed into: an MCM text row, a search. VR has no keyboard, so one is shown.
 
 **Today.** No characters or keys are fed to ImGui (`src/imgui/ImGuiLayer.cpp`), so an `ImGui::InputText` shows its text and cannot be edited. A focused `InputText` keeps its own copy of the text and ignores outside changes to its buffer, so typing has to reach it as ImGui's character and key events.
 

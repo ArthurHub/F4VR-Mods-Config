@@ -55,7 +55,7 @@ Two mods of the author's other mod lists have some of these, and are installed b
 | 1   | Browse MCM mods          | Every MCM mod of the test set is browsed in the Full panel: its pages, rows and images, with translated names | done   |
 | 2   | Edit MCM values          | A global, a ModSetting and a script property are changed from the panel, and the mod reacts as it does to MCM | done   |
 | 3   | MCM complete             | Every MCM feature is supported, shown read-only, or shown as unsupported with the reason                      | done   |
-| 4   | VR keyboard              | An MCM text row and a slider's value are typed in the headset                                                 | todo   |
+| 4   | VR keyboard              | An MCM text row is typed in the headset                                                                       | done   |
 | 5   | Packages with Save       | This mod's own INI and FRIK's are edited from packages and saved, and each mod reloads its file               | todo   |
 | 6   | Actions and handoff      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | todo   |
 | 7   | Live preview             | A CommonFramework mod with a package previews a slider live, with no code of its own                          | todo   |
@@ -226,7 +226,7 @@ M26 makes the slider work, as in [Controls](controls.md#slider):
 - The thumbstick steps the slider whose row the ray is on, once the ray is there for 0.3 seconds, so a ray that crosses a row steps nothing. A push to a side is one step. A push that is held steps again after 0.4 seconds, and faster after 1.5. A push that began off that row steps nothing until the thumbstick is let go. A push that is more up or down scrolls the page, and steps nothing. A slider is not selected, and has no focused state.
 - The hand gets its pulse as it takes hold of a slider, and none for the steps of the drag. It gets one for each step of the thumbstick that changes the value.
 - A slider whose `max` is not over its `min` is disabled.
-- The box of the value is not pressed until M46.
+- The box of the value only shows it: it is not typed (M46).
 - The MCM showcase has two sliders with no `sourceType`, which work now. Its others are ModSettings, which M29 reads.
 
 M27 makes the stepper and the dropdown work, as in [Controls](controls.md#dropdown-and-stepper):
@@ -478,7 +478,7 @@ M105 makes a DLL that reads MCM's settings file as the pause menu closes see a c
 | F26 | framework | imgui: the keys of the game's window reach a text field     | done      |
 | F27 | framework | imgui: SteamVR's keyboard while a text field is edited      | done      |
 | M45 | mod       | MCM text rows are edited                                    | done      |
-| M46 | mod       | A slider's value is typed                                   | todo      |
+| M46 | mod       | A slider's value is typed                                   | rejected  |
 
 F25 is the design, the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md). The keyboard is SteamVR's, which the game types its own names with, so the framework draws none of its own:
 
@@ -487,7 +487,7 @@ F25 is the design, the framework's [VR keyboard](../../external/F4VR-CommonFrame
 
 M44 brings the design to it: item 12 of the [requirements](framework-requirements.md#12-text-entry-and-an-on-screen-keyboard), the text input of [Controls](controls.md#text-input), and the questions of [Open questions](open-questions.md) it answers. It moves the submodule to F25.
 
-M45 and M46 type a number on the same keyboard: there is no number pad.
+M45 types a number on the same keyboard: there is no number pad.
 
 M45 edits a text input, as MCM's field (`mcm/Option_TextInput.as`) is edited:
 
@@ -501,6 +501,8 @@ M45 edits a text input, as MCM's field (`mcm/Option_TextInput.as`) is edited:
 - The edit ends with nothing written as another page is shown.
 - A number text input of a global is read and written as a number. No mod has one.
 - The four mod lists have 83 text inputs, all ModSettings: 73 texts, as FallUI's keys and regular expressions, 9 numbers, as XDI's place of the subtitles, and one whole number. The MCM showcase has a text, an empty one, a long one, a whole number and a number.
+
+M46 is rejected: a slider's value is not typed. The drag and the thumbstick set it on its steps, and MCM's menu has no such entry either.
 
 ### 5. Packages with Save
 

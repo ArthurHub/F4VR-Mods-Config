@@ -12,4 +12,4 @@ One setting: a gutter mark, the name, and its control with a Reset slot, all one
 
 - A package setting whose change takes effect only after the game is restarted (`applies: restart`) has a `t-detail` **Restart** mark after its name, outlined in `frame-border`. Its help says so too.
 
-Don't clamp an out-of-range typed value: show it as invalid.
+Don't clamp an out-of-range value: show it as invalid.

@@ -282,11 +282,11 @@ bEnableHolsters:MyMod   no key        on        no      ready     the default, a
 playerHeight            1.1           1.25      yes     ready     previewed to the mod's client
 ```
 
-And after the player typed 2.0, which is past the most:
+And with `fPlayerHeight = 2.0` in the file, which is past the most:
 
 ```text
 Setting                 In the file   Pending   Dirty   State
-playerHeight            1.1           2.0       yes     invalid   not previewed, and Save is blocked
+playerHeight            2.0           2.0       no      invalid   shown as it is, and not previewed
 ```
 
 Save writes the dirty keys alone: `fPlayerHeight`, and no `bEnableHolsters`.

@@ -55,12 +55,10 @@ Suggested row:
 - Back during a drag restores the value from the beginning of that drag.
 - Thumbstick left/right changes the slider the ray is on by the declared step, once the ray is on its row for a short time. A slider is not selected first.
 - Holding the thumbstick may accelerate after an initial repeat delay.
-- The value field opens the keyboard for precise entry.
+- The value box only shows the value: it is not typed.
 - Units and an appropriate number of decimal places remain visible.
 - Initial schema support is linear. Logarithmic or curved mappings can be considered later.
 - Haptics should mark meaningful interaction boundaries, not fire on every tiny value change.
-
-Out-of-range typed input is a validation error. It should not be silently clamped because silent correction hides configuration mistakes.
 
 ### Dropdown and stepper
 
