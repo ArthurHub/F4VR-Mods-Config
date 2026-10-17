@@ -710,7 +710,8 @@ TEST_CASE("FullPanel render: the texts of a mod's text inputs, and the controls 
             .text = std::move(text),
             .help = "What the text is.",
             .valueOptions = {},
-            .storage = model::ModSettingStorage{ .name = std::move(id), .type = type } };
+            .storage = model::ModSettingStorage{ .name = std::move(id), .type = type },
+            .valueType = type };
     };
     const test_files::TempFolder files;
     files.write("Config/Texts/settings.ini", "[Main]\nsName=Sanctuary Hills\nsEmpty=\nsLong=A text that is much longer than the box it is shown in is wide\nfNumber=3.14\n");
@@ -733,6 +734,20 @@ TEST_CASE("FullPanel render: the texts of a mod's text inputs, and the controls 
         panel.select({ .mod = 0, .page = std::nullopt });
         WARN("Saved " << renderToFile(panel, onText ? "text-inputs" : "controls-not-supported", pageRow(onText ? 0 : 5)));
     }
+
+    // the long text is edited, after a press on its row, with more typed at its end, while SteamVR's keyboard
+    // holds the ray
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods({ mod });
+    panel.select({ .mod = 0, .page = std::nullopt });
+    const auto edit = [&panel] {
+        for (const bool held : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, pageRow(2), held);
+        }
+        ImGui::GetIO().AddInputCharactersUTF8(", and more");
+    };
+    WARN("Saved " << renderToFile(panel, "text-input-edited", POINTER_AWAY, false, edit));
 }
 
 TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")

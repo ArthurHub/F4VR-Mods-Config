@@ -4,6 +4,8 @@
 #include <charconv>
 #include <cmath>
 #include <format>
+#include <optional>
+#include <string>
 #include <variant>
 
 #include "common/CommonUtils.h"
@@ -12,9 +14,61 @@ using namespace mods_config;
 
 namespace
 {
+    // the least and the most a whole number of Papyrus is
+    constexpr double MIN_WHOLE = -2147483648.0;
+    constexpr double MAX_WHOLE = 2147483647.0;
+
+    // the decimals a number of a text input has at most, as MCM's menu shows it
+    constexpr double NUMBER_DECIMALS = 1e6;
+
+    /**
+     * Whether a setting is a text input that takes a number: a `textinputInt` or a `textinputFloat`.
+     */
+    bool isNumberField(const model::Setting& setting)
+    {
+        return setting.type == model::SettingType::TextInput && setting.valueType != model::StoredType::String;
+    }
+
+    /**
+     * A number as the text of a text input that takes one, as MCM's menu shows it: a whole number is cut at
+     * its point, and a number has 6 decimals at most, written as short as it can be.
+     */
+    std::string numberText(const model::Setting& setting, const double number)
+    {
+        if (setting.valueType == model::StoredType::Int) {
+            return std::format("{}", static_cast<int>(std::clamp(number, MIN_WHOLE, MAX_WHOLE)));
+        }
+        return std::format("{}", static_cast<float>(std::round(number * NUMBER_DECIMALS) / NUMBER_DECIMALS));
+    }
+
+    /**
+     * The number a text is, all of it: none for a text with anything else in it, and for an empty one.
+     */
+    std::optional<double> textNumber(const std::string& text)
+    {
+        double number = 0.0;
+        const auto* end = text.data() + text.size();
+        const auto [read, error] = std::from_chars(text.data(), end, number);
+        return error == std::errc() && read == end && std::isfinite(number) ? std::optional(number) : std::nullopt;
+    }
+
+    /**
+     * The text a text input that takes a number is set to: the number that is typed, as MCM's menu shows it.
+     * None for a text that is no number of the field's type: a whole number has no point.
+     */
+    std::optional<std::string> typedNumberText(const model::Setting& setting, const model::Value& value)
+    {
+        const auto* text = std::get_if<std::string>(&value);
+        const auto number = text ? textNumber(*text) : std::nullopt;
+        if (!number || (setting.valueType == model::StoredType::Int && text->find_first_not_of("-0123456789") != std::string::npos)) {
+            return std::nullopt;
+        }
+        return numberText(setting, *number);
+    }
+
     /**
      * The value a setting has with none: a switcher is off, a slider is at its least, and a stepper and a
-     * dropdown are at their first option.
+     * dropdown are at their first option. A text input that takes a number is 0.
      */
     model::Value valueWithNone(const model::Setting& setting)
     {
@@ -29,23 +83,24 @@ namespace
         case model::SettingType::TextInput:
             break;
         }
-        return std::string();
+        return isNumberField(setting) ? std::string("0") : std::string();
     }
 
     /**
-     * Whether the value of a setting is a text: the one of a text input, and of a choice whose options are
-     * texts, as the files of a `dropdownFiles` are for a storage that keeps a text.
+     * Whether the value of a setting is a text as its storage has it: the one of a text input that takes a
+     * text, and of a choice whose options are texts, as the files of a `dropdownFiles` are for a storage that
+     * keeps a text. A text input that takes a number has the text of the number its storage keeps.
      */
     bool keepsText(const model::Setting& setting)
     {
         const auto& options = setting.valueOptions.options;
-        return setting.type == model::SettingType::TextInput || (!options.empty() && std::holds_alternative<std::string>(options.front().value));
+        return (setting.type == model::SettingType::TextInput && !isNumberField(setting)) || (!options.empty() && std::holds_alternative<std::string>(options.front().value));
     }
 
     /**
      * The number of a global as the value of a setting, as MCM's menu reads it: a switcher is on at 1 and
      * off at any other number, and a stepper and a dropdown have the option whose place is the number.
-     * None for a setting that keeps no number.
+     * A text input that takes a number has its text. None for a setting that keeps no number.
      */
     std::optional<model::Value> fromNumber(const model::Setting& setting, const float number)
     {
@@ -58,6 +113,9 @@ namespace
         case model::SettingType::Dropdown:
             return static_cast<int>(std::lround(number));
         case model::SettingType::TextInput:
+            if (isNumberField(setting)) {
+                return numberText(setting, number);
+            }
             break;
         }
         return std::nullopt;
@@ -146,8 +204,8 @@ namespace
 
     /**
      * A value as the type its storage keeps it in, which MCM's function and a script's property take: a bool
-     * is on at any number but 0, and a whole number is the nearest one. None for a number as a text, and a
-     * text as a number.
+     * is on at any number but 0, and a whole number is the nearest one. A text is read as a number, as a text
+     * input that takes one gives it. None for a number as a text, and a text that is no number as a number.
      */
     std::optional<model::Value> typedValue(const model::StoredType type, const model::Value& value)
     {
@@ -155,7 +213,12 @@ namespace
         if (type == Type::String) {
             return std::holds_alternative<std::string>(value) ? std::optional(value) : std::nullopt;
         }
-        const auto number = toNumber(value);
+        auto number = toNumber(value);
+        if (const auto* text = std::get_if<std::string>(&value); text && !number) {
+            if (const auto read = textNumber(*text)) {
+                number = static_cast<float>(*read);
+            }
+        }
         if (!number) {
             return std::nullopt;
         }
@@ -217,10 +280,6 @@ namespace
     }
 
     constexpr std::string_view VALUE_TOKEN = "{value}";
-
-    // the least and the most a whole number of Papyrus is
-    constexpr double MIN_WHOLE = -2147483648.0;
-    constexpr double MAX_WHOLE = 2147483647.0;
 
     /**
      * An argument of a call with the value its row is set to: the value is put in the argument's text, in
@@ -403,10 +462,21 @@ namespace mods_config::mcm
      * Sets a value, at once, then runs the action of its row with the value, and then tells the scripts
      * that the setting changed, in the order of MCM's menu: with the name of the mod and the id of the row,
      * for a row that has one in its config.
+     * A text input that takes a number is set to the text of the number that is typed, as MCM's menu shows it.
      * Returns false for a value that is not written: no action is run for it, and no script is told of it.
+     * A text that is no number, for a text input that takes one, is not written.
      */
-    bool McmStore::set(const model::Setting& setting, const model::Value& value)
+    bool McmStore::set(const model::Setting& setting, const model::Value& typed)
     {
+        auto value = typed;
+        if (isNumberField(setting)) {
+            auto text = typedNumberText(setting, typed);
+            if (!text) {
+                logger::debug("A text that is no number is not written to '{}'", setting.text);
+                return false;
+            }
+            value = std::move(*text);
+        }
         if (!write(setting, value)) {
             return false;
         }
@@ -483,9 +553,9 @@ namespace mods_config::mcm
             return true;
         }
         if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
-            const auto number = toNumber(value);
-            if (number && setGlobal(*global, *number)) {
-                logger::debug("Set the global {:X} of {} to {} ('{}')", global->formId, global->plugin, *number, setting.text);
+            const auto number = typedValue(model::StoredType::Float, value);
+            if (number && setGlobal(*global, std::get<float>(*number))) {
+                logger::debug("Set the global {:X} of {} to {} ('{}')", global->formId, global->plugin, std::get<float>(*number), setting.text);
                 return true;
             }
         }

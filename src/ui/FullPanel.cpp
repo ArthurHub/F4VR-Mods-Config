@@ -203,14 +203,14 @@ namespace mods_config::ui
     }
 
     /**
-     * Goes one step back: a slider that is dragged has the value it had before the drag, and the list of a
-     * dropdown that is open is closed. With neither, from a page of a mod to the mod's front page, and from
+     * Goes one step back: a slider that is dragged has the value it had before the drag, the list of a
+     * dropdown that is open is closed, and a text input that is edited keeps its value. With none of them, from a page of a mod to the mod's front page, and from
      * there to the menu's front page.
      * Returns false on the menu's front page, which has nothing before it: Back closes the menu there.
      */
     bool FullPanel::back()
     {
-        if (_modPage.cancelDrag() || _modPage.closeList()) {
+        if (_modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit()) {
             return true;
         }
         if (!_selection.mod) {

@@ -293,6 +293,10 @@ namespace mods_config::model
         ValueOptions valueOptions;
         Storage storage;
 
+        // what a text input takes: a text, a whole number or a number. The value of every other setting is
+        // of its type of control
+        StoredType valueType = StoredType::String;
+
         // what runs after its value is set, with the value. Most have none
         Action action;
 

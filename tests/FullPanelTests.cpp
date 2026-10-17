@@ -887,36 +887,224 @@ TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press
     CHECK_FALSE(pressActs(panel, pageRow(0)));
 }
 
-TEST_CASE("FullPanel: the help line says that a text input is read-only, and a press on its row does nothing")
+namespace
 {
-    using Type = model::StoredType;
-    const auto textInput = [](std::string text, std::string help, model::Storage storage) {
-        return model::Setting{ .type = model::SettingType::TextInput, .text = std::move(text), .help = std::move(help), .valueOptions = {}, .storage = std::move(storage) };
-    };
+    /**
+     * A panel with one mod, shown on its front page, with text inputs: a text that is a ModSetting with a
+     * default and another value in the player's file, one that is kept nowhere, one of a global that is not
+     * in the game, a number and a whole number that are ModSettings. The mod has a page with none.
+     */
+    FullPanel modWithTextInputs(model::Store& store, const test_files::TempFolder& mcm)
+    {
+        using Type = model::StoredType;
+        const auto textInput = [](std::string text, std::string help, model::Storage storage, const Type valueType = Type::String) {
+            // MCM's event names it by its id
+            return model::Setting{ .sourceId = text,
+                .type = model::SettingType::TextInput,
+                .text = std::move(text),
+                .help = std::move(help),
+                .valueOptions = {},
+                .storage = std::move(storage),
+                .valueType = valueType };
+        };
+        mcm.write("Config/Alpha/settings.ini", "[Main]\nsName=Sanctuary Hills\nfStrength=1.0\niCount=5\n");
+        mcm.write("Settings/Alpha.ini", "[Main]\nsName=Diamond City\nfStrength=3.1400\n");
+        auto mod = modOf("Alpha", { "Other" });
+        mod.frontPage.items.push_back(textInput("Name", "The name of the settlement.", model::ModSettingStorage{ .name = "sName:Main", .type = Type::String }));
+        mod.frontPage.items.push_back(textInput("Note", {}, model::NoStorage{}));
+        mod.frontPage.items.push_back(textInput("Missing", "Is not in the game.", model::GlobalStorage{ .plugin = PLUGIN, .formId = 0x1234 }));
+        mod.frontPage.items.push_back(textInput("Strength", {}, model::ModSettingStorage{ .name = "fStrength:Main", .type = Type::Float }, Type::Float));
+        mod.frontPage.items.push_back(textInput("Count", {}, model::ModSettingStorage{ .name = "iCount:Main", .type = Type::Int }, Type::Int));
+
+        FullPanel panel;
+        panel.setStore(&store);
+        panel.setMods({ std::move(mod) });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    /**
+     * Characters typed into the field that is edited, with the ray on no row, as the keys of the window and
+     * SteamVR's keyboard type them.
+     */
+    void typeText(FullPanel& panel, const char* text)
+    {
+        ImGui::GetIO().AddInputCharactersUTF8(text);
+        test_panel::drawFrame(panel, test_panel::POINTER_AWAY);
+    }
+
+    /**
+     * A key pressed in one frame and let go of in the next, as the framework sends one.
+     */
+    void pressKey(FullPanel& panel, const ImGuiKey key)
+    {
+        for (const bool down : { true, false }) {
+            ImGui::GetIO().AddKeyEvent(key, down);
+            test_panel::drawFrame(panel, test_panel::POINTER_AWAY);
+        }
+    }
+
+    /**
+     * The text of a text input of the mod with text inputs, as the store has it.
+     */
+    model::Value textOf(model::Store& store, const FullPanel& panel, const std::size_t row)
+    {
+        return store.value(std::get<model::Setting>(panel.mods()[0].frontPage.items[row])).value;
+    }
+}
+
+TEST_CASE("FullPanel: a press on the row of a text input edits it, and Enter writes its text, and acts")
+{
     const test_panel::PanelContext context;
     test_events::TestEvents events;
     const test_globals::TestGlobals globals;
-    const test_files::TempFolder files;
-    files.write("Config/Alpha/settings.ini", "[Main]\nsName=Sanctuary Hills\n");
-    mcm::McmStore store(files.path);
-    auto mod = modOf("Alpha");
-    mod.frontPage.items.push_back(textInput("Name", "The name of the settlement.", model::ModSettingStorage{ .name = "sName:Main", .type = Type::String }));
-    mod.frontPage.items.push_back(textInput("Note", {}, model::NoStorage{}));
-    mod.frontPage.items.push_back(textInput("Missing", "Is not in the game.", model::GlobalStorage{ .plugin = PLUGIN, .formId = 0x1234 }));
-    FullPanel panel;
-    panel.setStore(&store);
-    panel.setMods({ std::move(mod) });
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithTextInputs(store, mcm);
+    drawFrames(panel, 2);
+    events.sent.clear();
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(ImGui::GetActiveID() != 0);
+
+    // the caret is at the end of the text, and nothing is written while it is typed
+    typeText(panel, " East");
+    CHECK(textOf(store, panel, 0) == model::Value("Diamond City"s));
+    pressKey(panel, ImGuiKey_Enter);
+    CHECK(ImGui::GetActiveID() == 0);
+    CHECK(textOf(store, panel, 0) == model::Value("Diamond City East"s));
+    CHECK(events.sent.size() == 2);
+}
+
+TEST_CASE("FullPanel: a text input that is left by the keyboard's Done writes its text, and one that is cancelled writes nothing")
+{
+    const test_panel::PanelContext context;
+    const test_globals::TestGlobals globals;
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithTextInputs(store, mcm);
+    drawFrames(panel, 2);
+
+    // the framework leaves the field before the frame, as SteamVR's keyboard is done
+    pressActs(panel, pageRow(0));
+    typeText(panel, "!");
+    ImGui::ClearActiveID();
+    drawFrames(panel, 2);
+    CHECK(textOf(store, panel, 0) == model::Value("Diamond City!"s));
+
+    // the keyboard's close button is Escape
+    pressActs(panel, pageRow(0));
+    typeText(panel, "?");
+    pressKey(panel, ImGuiKey_Escape);
+    CHECK(ImGui::GetActiveID() == 0);
+    CHECK(textOf(store, panel, 0) == model::Value("Diamond City!"s));
+
+    // a text that is the one it started with is not written again
+    test_events::TestEvents events;
+    pressActs(panel, pageRow(0));
+    pressKey(panel, ImGuiKey_Enter);
+    CHECK(events.sent.empty());
+}
+
+TEST_CASE("FullPanel: Back ends the edit of a text input with nothing written, and a press beside it writes its text")
+{
+    const test_panel::PanelContext context;
+    const test_globals::TestGlobals globals;
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithTextInputs(store, mcm);
+    drawFrames(panel, 2);
+
+    pressActs(panel, pageRow(0));
+    typeText(panel, "!");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK(ImGui::GetActiveID() == 0);
+    CHECK(textOf(store, panel, 0) == model::Value("Diamond City"s));
+    // the step after it is the one of the pages
+    CHECK(panel.back());
+    CHECK_FALSE(panel.back());
+
     panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    pressActs(panel, pageRow(1));
+    typeText(panel, "A note");
+    press(panel, pageRow(NO_PAGE_ROW));
+    CHECK(textOf(store, panel, 1) == model::Value("A note"s));
+}
+
+TEST_CASE("FullPanel: the edit of a text input ends with nothing written as another page is shown")
+{
+    const test_panel::PanelContext context;
+    const test_globals::TestGlobals globals;
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithTextInputs(store, mcm);
+    drawFrames(panel, 2);
+
+    pressActs(panel, pageRow(0));
+    typeText(panel, "!");
+    panel.select(selectionOf(0, 0));
+    drawFrames(panel, 2);
+    CHECK(ImGui::GetActiveID() == 0);
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    CHECK(textOf(store, panel, 0) == model::Value("Diamond City"s));
+}
+
+TEST_CASE("FullPanel: a text input that takes a number keeps only the characters of one, and writes only a number")
+{
+    const test_panel::PanelContext context;
+    const test_globals::TestGlobals globals;
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithTextInputs(store, mcm);
+    drawFrames(panel, 2);
+    CHECK(textOf(store, panel, 3) == model::Value("3.14"s));
+
+    pressActs(panel, pageRow(3));
+    typeText(panel, "x5");
+    pressKey(panel, ImGuiKey_Enter);
+    CHECK(textOf(store, panel, 3) == model::Value("3.145"s));
+
+    // a whole number has no point, and a minus in its middle is no number
+    pressActs(panel, pageRow(4));
+    typeText(panel, ".2");
+    pressKey(panel, ImGuiKey_Enter);
+    CHECK(textOf(store, panel, 4) == model::Value("52"s));
+    pressActs(panel, pageRow(4));
+    typeText(panel, "-1");
+    pressKey(panel, ImGuiKey_Enter);
+    CHECK(textOf(store, panel, 4) == model::Value("52"s));
+}
+
+TEST_CASE("FullPanel: a text input has its Reset, and the help line names its default in quotes")
+{
+    const test_panel::PanelContext context;
+    const test_globals::TestGlobals globals;
+    const test_files::TempFolder mcm;
+    mcm::McmStore store(mcm.path);
+    auto panel = modWithTextInputs(store, mcm);
     drawFrames(panel, 2);
 
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Name: (Read-only) The name of the settlement.");
+    CHECK(panel.helpLine().text() == "Name: The name of the settlement. (Default: \"Sanctuary Hills\")");
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Name: Reset to \"Sanctuary Hills\"");
     point(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Note: (Read-only)");
+    CHECK(panel.helpLine().text() == "Note");
     point(panel, pageRow(2));
     CHECK(panel.helpLine().text() == "Missing: Not available: the global 1234 of MyMod.esp is not in the game.");
+    point(panel, pageRow(3));
+    CHECK(panel.helpLine().text() == "Strength: (Default: 1)");
 
-    CHECK_FALSE(pressActs(panel, pageRow(0)));
+    // the field is not edited by it
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK(ImGui::GetActiveID() == 0);
+    CHECK(textOf(store, panel, 0) == model::Value("Sanctuary Hills"s));
+
+    // a text input whose value is not available is not edited
+    CHECK_FALSE(pressActs(panel, pageRow(2)));
 }
 
 TEST_CASE("FullPanel: the help line says that the menu does not have a control, and a press on its row does nothing")

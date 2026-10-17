@@ -370,7 +370,6 @@ M102 gives a row whose setting has a default its Reset, which MCM's menu does no
 - A press on it sets the default as any other value is set: it is written through MCM at once, the action of the row is run, and MCM's event is sent. The hand gets its pulse. There is no Save, so nothing takes a Reset back.
 - A press on it does nothing else in the row: a switcher is not turned, a stepper is not stepped, and the list of a dropdown is not opened.
 - The help line names the default after the help of the row, in brackets, as `(Default: 1.30)`: on and off for a switcher, the text of the option for a stepper and a dropdown, and the number of a slider as its box has it. While the ray is on a Reset that is not disabled, it says what Reset gives, with no period after it: `Reset to 1.30`
-- A text input has no Reset until it is edited, in milestone 4.
 - The test set has 151 ModSettings. The ModSettings of the MCM showcase all have a default, so each of its rows has a Reset, which is disabled until the row is changed.
 
 M38 reads a `hiddenSwitcher`, as MCM's menu (`mcm/MCM_Menu.as`) has it:
@@ -476,9 +475,9 @@ M105 makes a DLL that reads MCM's settings file as the pause menu closes see a c
 | --- | --------- | ----------------------------------------------------------- | --------- |
 | F25 | framework | docs: the VR keyboard's design                              | done      |
 | M44 | mod       | docs: the keyboard's design, as item 12 of the requirements | done      |
-| F26 | framework | imgui: the keys of the game's window reach a text field     | todo      |
-| F27 | framework | imgui: SteamVR's keyboard while a text field is edited      | todo      |
-| M45 | mod       | MCM text rows are edited                                    | todo      |
+| F26 | framework | imgui: the keys of the game's window reach a text field     | done      |
+| F27 | framework | imgui: SteamVR's keyboard while a text field is edited      | done      |
+| M45 | mod       | MCM text rows are edited                                    | done      |
 | M46 | mod       | A slider's value is typed                                   | todo      |
 
 F25 is the design, the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md). The keyboard is SteamVR's, which the game types its own names with, so the framework draws none of its own:
@@ -489,6 +488,19 @@ F25 is the design, the framework's [VR keyboard](../../external/F4VR-CommonFrame
 M44 brings the design to it: item 12 of the [requirements](framework-requirements.md#12-text-entry-and-an-on-screen-keyboard), the text input of [Controls](controls.md#text-input), and the questions of [Open questions](open-questions.md) it answers. It moves the submodule to F25.
 
 M45 and M46 type a number on the same keyboard: there is no number pad.
+
+M45 edits a text input, as MCM's field (`mcm/Option_TextInput.as`) is edited:
+
+- A press anywhere on its row starts the edit: the field in its box is ImGui's, with the caret at the end of the text. The framework shows SteamVR's keyboard for it, and a physical keyboard types into it too. The hand gets its pulse.
+- While it is edited, its box has its outline in `green`, as an open dropdown has. The row is not pressed meanwhile, so a press on the field is the field's.
+- Done writes the text, as the field is left, when it differs from the one it started with. The keyboard's close button gives the field back the text it had, and writes nothing. Back, on a runtime with no keyboard, where the keyboard holds no controllers, does the same: it is Back's step after a drag and a list, before the pages.
+- A press beside the field, with the keys of the window, leaves it with its text and writes it, as Done does, and as a field on a screen does.
+- A `textinputInt` takes digits and a minus, and a `textinputFloat` digits, a point and a minus, as MCM's field. A text that is no number is not written, and the row keeps its value. A number is shown as MCM's menu shows it: a whole number, and a number with 6 decimals at most, so `3.1400` in a file is `3.14`. The model has what a text input takes as its `valueType`.
+- It is written as any other value: through MCM at once for a ModSetting, then the action of the row with the text as `{value}`, then MCM's event.
+- It has its Reset, as the rows of M102: a ModSetting with a default in the mod's `settings.ini`. The help line names a text default in quotes, so an empty one shows: `(Default: "Sanctuary Hills")` and `Reset to ""`. A number has none: `(Default: 3.14)`.
+- The edit ends with nothing written as another page is shown.
+- A number text input of a global is read and written as a number. No mod has one.
+- The four mod lists have 83 text inputs, all ModSettings: 73 texts, as FallUI's keys and regular expressions, 9 numbers, as XDI's place of the subtitles, and one whole number. The MCM showcase has a text, an empty one, a long one, a whole number and a number.
 
 ### 5. Packages with Save
 

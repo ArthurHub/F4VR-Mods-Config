@@ -426,6 +426,86 @@ TEST_CASE("McmStore: a ModSetting MCM does not have is held while its mod is sel
     CHECK(store.value(modSetting(SettingType::Slider, "fStrength:Main", Type::Float)).value == model::Value(1.0f));
 }
 
+TEST_CASE("McmStore: a text input that takes a number has the text of its number, as MCM's menu shows it")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nfStrength=3.1400\nfTiny=0.0000004\niCount=42\nsWord=strong\n");
+    auto globals = someGlobals();
+    auto properties = someProperties();
+    McmStore store(mcm.path);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    const auto field = [](model::Storage storage, const Type valueType) {
+        auto setting = settingOf(SettingType::TextInput, std::move(storage));
+        setting.valueType = valueType;
+        return setting;
+    };
+
+    // a number has 6 decimals at most
+    CHECK(store.value(field(model::ModSettingStorage{ .name = "fStrength:Main", .type = Type::Float }, Type::Float)).value == model::Value("3.14"s));
+    CHECK(store.value(field(model::ModSettingStorage{ .name = "fTiny:Main", .type = Type::Float }, Type::Float)).value == model::Value("0"s));
+    CHECK(store.value(field(model::ModSettingStorage{ .name = "iCount:Main", .type = Type::Int }, Type::Int)).value == model::Value("42"s));
+    CHECK_FALSE(store.value(field(model::ModSettingStorage{ .name = "sWord:Main", .type = Type::Float }, Type::Float)).available);
+    CHECK(store.defaultValue(field(model::ModSettingStorage{ .name = "fStrength:Main", .type = Type::Float }, Type::Float)) == model::Value("3.14"s));
+
+    // a global, a property of a script, and one kept nowhere, which is 0 until it is set
+    CHECK(store.value(field(model::GlobalStorage{ .plugin = PLUGIN, .formId = 0x802 }, Type::Float)).value == model::Value("2.5"s));
+    CHECK(store.value(field(model::GlobalStorage{ .plugin = PLUGIN, .formId = 0x802 }, Type::Int)).value == model::Value("2"s));
+    CHECK(store.value(field(model::PropertyStorage{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .name = "fStrength", .type = Type::Float }, Type::Float)).value ==
+          model::Value("1.3"s));
+    CHECK(store.value(field(model::NoStorage{}, Type::Int)).value == model::Value("0"s));
+}
+
+TEST_CASE("McmStore: a text input that takes a number is written as the number that is typed, and a text that is no number is not")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\nfStrength=1.0\niCount=5\n");
+    auto globals = someGlobals();
+    TestEvents events;
+    TestActions actions;
+    McmStore store(mcm.path);
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    const auto field = [](model::Storage storage, const Type valueType) {
+        auto setting = settingOf(SettingType::TextInput, std::move(storage));
+        setting.valueType = valueType;
+        setting.sourceId = "field";
+        return setting;
+    };
+    auto strength = field(model::ModSettingStorage{ .name = "fStrength:Main", .type = Type::Float }, Type::Float);
+    strength.action = model::CallFunction{ .plugin = PLUGIN,
+        .formId = 0x800,
+        .script = {},
+        .function = "SetStrength",
+        .arguments = { 0.0f },
+        .valueArguments = { { .place = 0, .text = "{value}", .type = Type::Float } } };
+    const auto count = field(model::ModSettingStorage{ .name = "iCount:Main", .type = Type::Int }, Type::Int);
+    events.sent.clear();
+
+    // as MCM's menu shows it, and its action gets the number
+    CHECK(store.set(strength, "12.50"s));
+    CHECK(store.value(strength).value == model::Value("12.5"s));
+    REQUIRE(actions.called.size() == 1);
+    CHECK(actions.called[0].arguments == std::vector<model::Value>{ 12.5f });
+    CHECK(store.set(count, "-7"s));
+    CHECK(store.value(count).value == model::Value("-7"s));
+
+    // nothing is written, run or sent for a text that is no number of the field's type
+    events.sent.clear();
+    for (const auto* text : { "", "-", "1-2", "abc", "1e" }) {
+        CHECK_FALSE(store.set(strength, std::string(text)));
+    }
+    CHECK_FALSE(store.set(count, "1.5"s));
+    CHECK(store.value(strength).value == model::Value("12.5"s));
+    CHECK(store.value(count).value == model::Value("-7"s));
+    CHECK(actions.called.size() == 1);
+    CHECK(events.sent.empty());
+
+    // a global keeps it as a number
+    const auto global = field(model::GlobalStorage{ .plugin = PLUGIN, .formId = 0x801 }, Type::Float);
+    CHECK(store.set(global, "0.25"s));
+    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.25f);
+    CHECK(store.value(global).value == model::Value("0.25"s));
+}
+
 TEST_CASE("McmStore: a choice of files keeps the name of its file, and an empty text for None")
 {
     const test_files::TempFolder mcm;

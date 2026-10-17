@@ -590,6 +590,18 @@ namespace
         SettingTypeName{ "textinputFloat", model::SettingType::TextInput },
     };
 
+    /**
+     * What a text input of a type takes, as MCM's menu has it: a whole number for a `textinputInt`, a number
+     * for a `textinputFloat`, and a text for a `textinput`, and for every other row.
+     */
+    model::StoredType textInputType(const std::string_view type)
+    {
+        if (type == "textinputInt") {
+            return model::StoredType::Int;
+        }
+        return type == "textinputFloat" ? model::StoredType::Float : model::StoredType::String;
+    }
+
     // the groups of a page that a row controls, by their numbers: the id of the setting each is on with
     // the condition a group is on by, which is that the setting that controls it is on
     using Groups = std::map<int, model::Condition>;
@@ -784,6 +796,7 @@ namespace
                 .help = getHelp(row, texts),
                 .valueOptions = std::move(valueOptions),
                 .storage = std::move(storage),
+                .valueType = textInputType(type),
                 .action = std::move(action),
                 .visibleWhen = {} };
         }

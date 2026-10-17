@@ -41,7 +41,7 @@ The menu shows MCM mods while `mcm_vr.dll` is loaded, and finds it by that name.
 | `dropdownFiles` | As in MCM, with its `path` and `mask`, but its pick writes the name of the file, which MCM's menu loses | M39 |
 | `button` | As in MCM: runs its action | M33 |
 | `hotkey` | Read-only: its key, as MCM's files have it | M35 |
-| `textinput`, `textinputInt`, `textinputFloat` | Read-only until the keyboard of milestone 4 | M36 |
+| `textinput`, `textinputInt`, `textinputFloat` | As in MCM, typed on SteamVR's keyboard or with the keys of the game's window. A text that is no number is not written for a `textinputInt` and a `textinputFloat` | M36, M45 |
 | `positioner`, `keyinput`, `customClipLoader` | Not run: the help line says the menu has no such control | M36 |
 | A type MCM's menu does not have, or no type | Not run, as a `positioner` is. MCM's menu shows an empty line. DearModdingUI's inventory has names that are no type of MCM's: `switch`, `hidden`, `menu`, `enum`, `color`, `input`, `header`, `empty` and `keymap`. They are such a type | M36, M38 |
 
@@ -69,7 +69,8 @@ What a row has beside its type:
 | A value that is not available | The row is disabled, and the help line says why | M25 |
 | The default of a ModSetting | Its Reset, which MCM's menu does not have | M102 |
 | `listFromForm`, `listFromProperty` | Not read: the stepper or the dropdown has no options, and is disabled | M37 |
-| `allowModifierKeys` of a hotkey, `precision` of a text input | Not read: both are of an edit the menu does not make | |
+| `allowModifierKeys` of a hotkey | Not read: it is of an edit the menu does not make | |
+| `precision` of a text input | Not read: a number has 6 decimals at most, MCM's default | M45 |
 
 ## Actions
 

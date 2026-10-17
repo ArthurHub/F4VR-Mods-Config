@@ -338,6 +338,16 @@ TEST_CASE("McmLoader: every control the menu knows becomes its item")
                                 "image",
                                 "spacer of 2 lines",
                             });
+
+    // what a text input takes, which no other setting has
+    using Type = model::StoredType;
+    const auto valueTypeOf = [&page](const std::size_t place) {
+        return std::get<model::Setting>(page.items[place]).valueType;
+    };
+    CHECK(valueTypeOf(0) == Type::String);
+    CHECK(valueTypeOf(5) == Type::String);
+    CHECK(valueTypeOf(6) == Type::Int);
+    CHECK(valueTypeOf(7) == Type::Float);
 }
 
 TEST_CASE("McmLoader: a spacer is as high as its numLines, and one line without it")

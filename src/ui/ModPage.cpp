@@ -208,8 +208,8 @@ namespace
 
     /**
      * The default the store has for a setting, where its control can show it: a switcher that is on or off,
-     * a number of a slider with a range, and an option of a stepper and a dropdown. None for a setting with
-     * no default, and for a text input, which is only shown.
+     * a number of a slider with a range, an option of a stepper and a dropdown, and a text of a text input.
+     * None for a setting with no default.
      */
     std::optional<model::Value> defaultOf(const model::Setting& setting, model::Store& store)
     {
@@ -230,6 +230,7 @@ namespace
             shown = ui::chosenOption(setting, { .value = *value, .available = true, .reason = {} }).has_value();
             break;
         case model::SettingType::TextInput:
+            shown = std::holds_alternative<std::string>(*value);
             break;
         }
         return shown ? value : std::nullopt;
@@ -237,10 +238,15 @@ namespace
 
     /**
      * A default of a setting as the help line names it: on and off for a switcher, the number of a slider
-     * as the box of its value has it, and the text of the option of a stepper and a dropdown.
+     * as the box of its value has it, and the text of the option of a stepper and a dropdown. The text of a
+     * text input is in quotes, so an empty one shows, and a number is as its field has it.
      */
     std::string defaultName(const model::Setting& setting, const model::Value& value)
     {
+        if (setting.type == model::SettingType::TextInput) {
+            const auto& text = std::get<std::string>(value);
+            return setting.valueType == model::StoredType::String ? std::format("\"{}\"", text) : text;
+        }
         if (const auto* on = std::get_if<bool>(&value)) {
             return *on ? "on" : "off";
         }
@@ -260,6 +266,7 @@ namespace
         model::Store* store;
         ui::Sliders& sliders;
         ui::Choices& choices;
+        ui::TextInputs& textInputs;
         ui::PageDrawn& drawn;
     };
 
@@ -269,13 +276,14 @@ namespace
      * The control shows the value the store has for the setting. A press anywhere on the row of a switcher
      * turns it on or off, and a slider is dragged by its track, which is written as the trigger is let go,
      * and stepped by the thumbstick. A stepper
-     * goes to the option before and after, and a dropdown opens its list. A control whose value is not
+     * goes to the option before and after, and a dropdown opens its list. A text input starts its edit, and
+     * is written as its field is left with another text: its row is not pressed while it is edited, so a
+     * press on the field is the field's. A control whose value is not
      * available is disabled, and so is a slider with no range and a stepper and a dropdown with no options.
      * The row itself has the look of a row under the ray, as it has a help.
      * A setting with a default has its Reset in the room after the control, disabled while its value is the
      * default: a press on it sets the default in the store. A press in that room does nothing else in the
      * row, also while Reset is disabled, so a second press on it changes nothing.
-     * A text input is not drawn here: it is only shown, by `drawTextInput`.
      * Returns whether the ray is on the row or on its open list, and tells the help of the row: why a value
      * is not available, what Reset gives while the ray is on it, and else the row's own, with its default.
      */
@@ -283,7 +291,7 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        const auto row = addRow(true);
+        const auto row = addRow(!page.textInputs.isEdited(setting));
         const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
 
         auto stored = page.store ? page.store->value(setting) : model::StoredValue{};
@@ -309,6 +317,7 @@ namespace
         const bool isSwitcher = stored.available && setting.type == model::SettingType::Switcher && on;
         const bool isSlider = stored.available && setting.type == model::SettingType::Slider && number && options.max > options.min;
         const bool isChoice = stored.available && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !options.options.empty();
+        const bool isText = stored.available && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(stored.value);
 
         // before the row is known to be shown: a slider that is dragged out of the page is still held
         float value = number ? *number : options.min;
@@ -337,6 +346,16 @@ namespace
             }
             page.drawn.pressActed = page.drawn.pressActed || pulse;
         }
+        // before the row is known to be shown too: the edit lasts while the row is scrolled out of the page
+        if (isText) {
+            bool pulse = false;
+            const auto typed = page.textInputs.edit(setting, right, pos.y, rowPressed, std::get<std::string>(stored.value), pulse);
+            if (typed && page.store->set(setting, *typed)) {
+                stored = page.store->value(setting);
+                resets = defaultValue && !isSameValue(stored.value, *defaultValue);
+            }
+            page.drawn.pressActed = page.drawn.pressActed || pulse;
+        }
         // the ray is on the list then, and the help line keeps the row of its dropdown
         const bool listOpen = page.choices.isListOpen(setting);
         if (row.pointed || listOpen) {
@@ -355,7 +374,7 @@ namespace
         }
 
         float left = right;
-        ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice);
+        ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice && !isText);
         switch (setting.type) {
         case model::SettingType::Switcher:
             left = drawSwitcher(right, pos.y, on && *on);
@@ -368,6 +387,8 @@ namespace
             left = page.choices.draw(setting, right, pos.y, choiceRow, chosen);
             break;
         case model::SettingType::TextInput:
+            // one whose value is not available has an empty box
+            left = page.textInputs.draw(setting, right, pos.y, isText ? std::get<std::string>(stored.value) : std::string());
             break;
         }
         drawLabel(pos, left - theme::SPACE_3, setting.text, setting.textRuns);
@@ -454,40 +475,6 @@ namespace
         return row.pointed;
     }
 
-    // the box of a text input's text, in the panel's pixels: as wide as a slider with the box of its value
-    constexpr float TEXT_FIELD_WIDTH = ui::TRACK_WIDTH + theme::SPACE_2 + theme::VALUE_WIDTH;
-
-    /**
-     * The row of a text input at the cursor: its text after the gutter, and the text the store has for it
-     * at the left of a box, where a control ends, before the room of a Reset. A longer one ends in an ellipsis.
-     * The text is only shown, so the whole row is always disabled, as a hotkey's is: it has the look of a
-     * row under the ray, for its help, but none of a press, which does nothing.
-     * One whose value is not available has an empty box, and the reason tells it from the others.
-     * Returns whether the ray is on the row.
-     */
-    bool drawTextInput(const model::Setting& setting, const PageDrawing& page, std::string& reason)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        const float width = rowWidth();
-        const auto row = addRow(false);
-
-        auto stored = page.store ? page.store->value(setting) : model::StoredValue{};
-        reason = std::move(stored.reason);
-        if (!row.shown) {
-            return false;
-        }
-        ui::drawRowState();
-        const auto* text = std::get_if<std::string>(&stored.value);
-        const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - TEXT_FIELD_WIDTH, pos.y, TEXT_FIELD_WIDTH);
-
-        ImGui::BeginDisabled();
-        drawLabel(pos, box.Min.x - theme::SPACE_3, setting.text, setting.textRuns);
-        ui::drawFrame(box);
-        ui::drawTextIn(box, text ? std::string_view(*text) : std::string_view(), theme::color::GREEN, 0.0f, theme::SPACE_4);
-        ImGui::EndDisabled();
-        return row.pointed;
-    }
-
     // what the help line says of every row that is only shown, before its own help: it cannot be changed in the menu
     constexpr std::string_view READ_ONLY = "(Read-only)";
 
@@ -512,7 +499,7 @@ namespace
      * A row with a text that the ray is on is told as the pointed one. A setting whose value is not
      * available has the reason as its help, where the store gives one, and so has a button whose action the
      * menu does not run, and a hotkey that is not available. Any other hotkey has that it is read-only
-     * before its help, and so has a text input. A control the menu does not have says so as its help.
+     * before its help. A control the menu does not have says so as its help.
      */
     struct ItemDrawer
     {
@@ -521,11 +508,7 @@ namespace
         void operator()(const model::Setting& setting) const
         {
             std::string reason;
-            if (setting.type == model::SettingType::TextInput) {
-                if (drawTextInput(setting, page, reason)) {
-                    page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = readOnlyHelp(std::move(reason), setting.help) };
-                }
-            } else if (drawSetting(setting, page, reason)) {
+            if (drawSetting(setting, page, reason)) {
                 page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = std::move(reason) };
             }
         }
@@ -636,7 +619,7 @@ namespace mods_config::ui
         PageDrawn drawn;
         _sliders.startFrame(thumbstickSideValue);
         _choices.startFrame(thumbstickSideValue);
-        drawItems(page.items, PageDrawing{ .imageDrawer = _imageDrawer, .store = store, .sliders = _sliders, .choices = _choices, .drawn = drawn });
+        drawItems(page.items, PageDrawing{ .imageDrawer = _imageDrawer, .store = store, .sliders = _sliders, .choices = _choices, .textInputs = _textInputs, .drawn = drawn });
         _sliders.endFrame();
         _choices.endFrame();
         return drawn;
@@ -661,11 +644,21 @@ namespace mods_config::ui
     }
 
     /**
+     * Ends the edit of a text input with nothing written, for Back.
+     * Returns false while none is edited.
+     */
+    bool ModPage::cancelEdit()
+    {
+        return _textInputs.cancelEdit();
+    }
+
+    /**
      * Forgets what is edited in the page, as another page is shown.
      */
     void ModPage::reset()
     {
         _sliders.reset();
         _choices.reset();
+        _textInputs.reset();
     }
 }
