@@ -50,12 +50,12 @@ The primary browsing and editing state.
 
 - Navigation is on the left and selected mod content is on the right.
 - The navigation is a tree of the mods. [The menu's front page](#the-menus-front-page), which is what the menu opens on, has no row in it: no mod is selected. The first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
-- Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page.
+- Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page. A package's page can have pages of its own, which it shows under it the same way when it is selected.
 - The mod's front page has no row of its own in the tree: the mod's row is its row.
 - The tree keeps its place and its width, with or without a selected mod.
 - The player can select another mod at any time, without going to the front page first.
 - The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package. A long list is grouped by category; see [Mod categories](#mod-categories).
-- The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page. When the crumbs do not fit, the mod's name is shortened with an ellipsis.
+- The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the mod's name is shortened with an ellipsis.
 - The content pane has no heading of its own, so its height goes to settings.
 - The footer has Save and Discard on the right and the help line on the left; see [Help line](#help-line).
 - Save and Discard remain in stable locations.
@@ -222,7 +222,7 @@ Back resolves the most local temporary interaction first:
 
 1. Cancel an active drag or text edit.
 2. Close a popup, dropdown, keyboard, or confirmation.
-3. From a page of a mod, go to the mod's front page.
+3. From a page of a mod, go to the page it is under, or to the mod's front page.
 4. From a mod's front page, go to the menu's front page.
 5. From the menu's front page, close the menu.
 
@@ -248,7 +248,7 @@ The help of what the ray is on is shown on the left of the footer, in the help l
 The help line shows, in priority order:
 
 1. Active validation error
-2. The help of the row, option or control the ray is on, as `Name: help`: the row's text, a colon, and its help. The name is not repeated on a line of its own.
+2. The help of the row, option or control the ray is on, as `Name: help`: the row's text, a colon, and its help. The name is not repeated on a line of its own. A row whose [warning](schema.md#warnings) holds has the warning before its help.
 3. The status of the editing session when the ray is not on a row: the unsaved changes, or that changes are saved as they are made.
 
 The help is kept while the ray moves from row to row, through the gaps between them, and the status comes back when the ray leaves the rows or the open popup. Without that, the line would flicker as the ray sweeps the list.
@@ -259,7 +259,7 @@ Help is one size and one color. An MCM config can have the tags of a [text row](
 
 The help of a package's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
 
-A page or a mod has no help of its own in the help line. The one exception is a mod that is [not available](#notices): the help line says why while the ray is on its row. A page that explains itself does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
+A package's mod and its pages can have a help of their own, which the help line shows while the ray is on their row in the tree. An MCM mod and its pages have none. A mod that is [not available](#notices) has the reason there instead: the help line says why while the ray is on its row. A page that explains itself at length does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
 
 Keeping the help in one place avoids layout movement and makes it discoverable without pop-up tooltips floating at uncomfortable depths. The Focused panel's footer is too narrow for it, so there the help is a two-line area at the top.
 
@@ -268,6 +268,7 @@ Keeping the help in one place avoids layout movement and makes it discoverable w
 - Mods are listed alphabetically by display name; page and setting order follow their JSON arrays.
 - A mod that is not available is in the list too, as a disabled row; see [Notices](#notices).
 - The mods are the top level of a tree, unless the list is grouped by category, and only the selected mod is expanded. Its pages are the rows under it, without the front page.
+- A package's page that has pages of its own is expanded while it or one of its pages is selected, and its pages are the rows under it, a step further in. Each level is set in by the same small step, so a deep tree still fits the tree's width.
 - A mod's front page is its root `content`, in an MCM config and in a package alike, and its `pages` are the rows under it. A mod with no pages has no rows under it.
 - A list longer than its area scrolls with the thumbstick while the ray is on it, and shows a scroll bar: the tree, a page's rows, and the list of a dropdown. About nine rows fit in the Full panel's tree, so most lists of mods scroll.
 - The tree always keeps room for its scroll bar, so its rows do not narrow when the bar appears, as when a category or a mod is opened near the bottom.

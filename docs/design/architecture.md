@@ -28,7 +28,7 @@ MCM config ───────────┘
 ## Ownership
 
 - Mods Config VR owns menu discovery, rendering, input, validation, and safe persistence.
-- A package definition describes the UI and binds controls to the mod's real settings files.
+- A package definition describes the UI and binds controls to the mod's real settings: keys of its files, and globals and properties of its scripts.
 - A mod owns runtime interpretation and side effects.
 - F4VR-CommonFramework is linked statically into each client mod, so every mod has its own copy. Its config base keeps session overrides: values applied over the INI in memory and never written to disk. A generic adapter in the framework drives them for live preview; see [CommonFramework adapter](#commonframework-adapter).
 - Per-setting callbacks are already scoped to a registered package/client and therefore do not carry the `modName`.
@@ -39,7 +39,7 @@ Every declarative package has a stable identity, its `modName`. The host uses it
 
 A native client registers under a name, and the host matches it to the package whose `modName` is that name. A client that matches no package gets no setting events. If the mod registered a config UI of its own, it still has its entry in the quick launch section.
 
-A package remains usable without a native client. In that case it can read, validate, and save supported file-backed settings, but it gets no live preview. Saved values reach the running mod only if the mod reads them again. CommonFramework mods do: the framework watches the INI and reloads it when it changes. A script mod reads them through the [Papyrus API](#papyrus-api).
+A package remains usable without a native client. In that case it can read, validate, and save its settings, and gets live preview only for a setting kept in a global or a script property, which the host writes into the game itself. Saved values reach the running mod only if the mod reads them again. CommonFramework mods do: the framework watches the INI and reloads it when it changes. A script mod reads them through the [Papyrus API](#papyrus-api), or keeps them in globals and properties, which it reads itself, and applies a change in the action of its setting.
 
 The host cannot tell when a change takes effect in the running mod: a mod with a client can still read one of its values only when the game starts. So the package says it, with `applies`: `live`, `save` or `restart`. It is set for the mod, and a page, a section or a setting can have its own; see [When a change takes effect](schema.md#when-a-change-takes-effect).
 
@@ -63,6 +63,8 @@ Files are written in place. The new content is serialized and verified in memory
 
 A declared file does not have to exist. The host creates it, with any missing folders in its path, on the first Save that changes one of its settings, and the new file holds only those settings.
 
+A package can also keep a setting in a global or a property of a script, which the host reads and writes in the game, as MCM does. Its value is in the save game, not in a file; see [Global and script property](schema.md#global-and-script-property).
+
 ## External changes
 
 The host does not need a watcher or background conflict detector.
@@ -77,9 +79,9 @@ Immediately before Save, it reads the latest content of every affected file and 
 
 Only one mod has an active editing session.
 
-1. Selecting a mod reads its files and captures the values as the session baseline.
+1. Selecting a mod reads its files, globals and properties, and captures the values as the session baseline.
 2. Player edits update a pending model.
-3. A valid edit of a `live` setting is sent to the mod's native client as a preview, when the mod has one.
+3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host.
 4. Focused and minimized modes retain the same session.
 5. Save establishes a new baseline.
 6. Discard restores the baseline and rolls back live previews.
@@ -88,13 +90,13 @@ A setting is dirty when its pending value differs from its baseline value. Chang
 
 Opening a different mod, or going to the menu's front page, while the current mod is dirty prompts **Save / Discard / Cancel**. Closing the menu follows the same rule.
 
-A pending value that returns to its baseline is sent to the preview adapter as `Discard`, whether the player discarded it or changed it back. A client therefore holds a preview only for a dirty setting. A session with a dirty setting ends through Save or Discard, so no preview outlives its session.
+A pending value that returns to its baseline is sent to the preview adapter as `Discard`, whether the player discarded it or changed it back, and a global or a property that was previewed gets its baseline written back. A client therefore holds a preview only for a dirty setting. A session with a dirty setting ends through Save or Discard, so no preview outlives its session.
 
 Reset-to-default is an ordinary pending edit. It is not persisted until Save.
 
 ### Values at session start
 
-The file is the source of the baseline, whatever state it is in:
+For a global or a property the baseline is the game's value, and one that is not in the game is not available, with the reason, as an MCM row is. For a key of a file, the file is the source of the baseline, whatever state it is in:
 
 - **Key present and valid.** The value is the baseline.
 - **Key missing.** The setting shows its declared default and is clean. Save does not add the key unless the player changes the setting.
@@ -116,12 +118,14 @@ Save proceeds as follows:
 5. Serialize each file to a memory buffer.
 6. Parse each buffer and check that every dirty setting reads back with its intended value.
 7. Write each buffer over its file, creating a file that does not exist.
-8. If a write fails, write the content read in step 2 back to the files already written, delete the files this Save created, and report the failure.
-9. Call the scoped native `OnSettingsSaved` callback with one batch.
-10. Send one final native notification and one equivalent Papyrus notification.
-11. Tell the player that the game has to be restarted, when a `restart` setting was written.
+8. If a write fails, write the content read in step 2 back to the files already written, delete the files this Save created, and report the failure. The Save stops there.
+9. Write the dirty globals and properties into the game.
+10. Run the action of each setting that was written, in the order of the package, with its saved value.
+11. Call the scoped native `OnSettingsSaved` callback with one batch.
+12. Send one final native notification and one equivalent Papyrus notification.
+13. Tell the player that the game has to be restarted, when a `restart` setting was written.
 
-Nothing is written before step 7, so a validation, parsing, or serialization problem leaves every file untouched.
+Nothing is written before step 7, so a validation, parsing, or serialization problem leaves every file untouched. The game's values are written after the files, so a Save that fails changes none of them either.
 
 A crash during step 7 can leave the file being written incomplete. Each file is a few kilobytes written in one call, so the window is small and is accepted. Whether to keep a last-good copy is an open question.
 
@@ -133,7 +137,7 @@ It does not contain every changed setting. Native clients that need exact change
 
 ## Live preview API
 
-Declarative-only integrations do not receive live preview. A registered native client receives a complete typed setting view, so it can update its in-memory representation without parsing `config.json`.
+A package with no native client gets live preview only for a setting kept in a global or a script property, which the host writes into the game. A registered native client receives a complete typed setting view, so it can update its in-memory representation without parsing `config.json`.
 
 Conceptual types, as the client header presents them. The wire ABI underneath is C-compatible; see [Final notifications](#final-notifications).
 
@@ -177,10 +181,13 @@ struct FileView
 
 struct StorageView
 {
-    const FileView& file;
+    const FileView* file;                   // none for a global or a script property
     std::string_view section;               // INI
     std::string_view key;                   // INI
     std::span<const std::string_view> path; // JSON and TOML
+    std::string_view form;                  // a global, or the form of a script property
+    std::string_view scriptName;            // a script property
+    std::string_view propertyName;          // a script property
 };
 
 struct ValueOptionsView
@@ -245,6 +252,28 @@ Preview events occur only when a valid value of a `live` setting changes. Slider
 
 Special gameplay side effects can use an optional binding API later.
 
+### Page events
+
+A client is told when a page of its package that has an `id` is shown, and when it is left, so it can show in the world what the page sets while the player is on it: Immersive Flashlight draws its activation spheres while the page of its spheres is shown. A page is left when another page or another mod is shown, and when the menu closes.
+
+```cpp
+enum class PagePhase
+{
+    Shown,
+    Left
+};
+
+struct PageEvent
+{
+    std::string_view pageId; // the page's `id` in the package
+    PagePhase phase;
+};
+```
+
+### A client that fails
+
+The host calls a client inside a guard that catches a C++ exception and a fault, as an access violation. A client whose call fails is cut off until the game is restarted, and its mod is handled as a mod with no native client: its `live` settings are handled as `save`, and its native buttons are disabled, with the reason in the help line. The rest of its package, and every other mod, keep working. The log names the client and the call that failed.
+
 ### CommonFramework adapter
 
 A CommonFramework mod does not need client code of its own. The framework registers a generic adapter that maps the API onto the config base's session overrides, which are keyed by INI section and key:
@@ -280,6 +309,8 @@ Papyrus scripts cannot read INI, JSON, or TOML files on their own, so the Papyru
 
 A script-only mod, a game plugin and scripts with no DLL, ships a package like any other mod, and its scripts read the saved values through functions that Mods Config VR provides. It needs neither MCM nor a DLL of its own.
 
+The functions are for a setting kept in a file. A script-only mod can instead keep a setting in a global or a property of its script, as an MCM mod does, which it reads itself; see [Global and script property](schema.md#global-and-script-property).
+
 ```papyrus
 Scriptname ModsConfigVR Native Hidden
 
@@ -310,7 +341,7 @@ A choice is read with the getter for its `valueType`. Papyrus `int` and `float` 
 
 A getter never returns a pending value. A script mod therefore has no live preview: it sees a change after Save.
 
-The file remains the only store. The host may keep parsed files in memory to answer quickly; how soon it notices a file that was changed outside the menu is an open question.
+For a setting kept in a file, the file remains the only store. The host may keep parsed files in memory to answer quickly; how soon it notices a file that was changed outside the menu is an open question.
 
 Getters have to work from the first script that runs, so packages are loaded when the game's data is ready, before a save is loaded. They cannot wait for the menu to be opened.
 
@@ -343,7 +374,9 @@ A script-only mod has no code that creates its settings file. The host creates i
 
 A button is not a setting. It has no storage, default, dirty state, or persisted value.
 
-A button's action is written as in an MCM config, and a package can use every action the menu supports for MCM, such as calling a function of a script. A script-only mod therefore has buttons in its package, as it has in MCM.
+A button's action is written as in an MCM config, and a package can use every action the menu supports for MCM, such as calling a function of a script. A script-only mod therefore has buttons in its package, as it has in MCM. A button can also run a console command, which needs no script.
+
+A setting can have an action too, which Save runs after it writes the setting's value; see [A setting's action](schema.md#a-settings-action).
 
 A package has one action of its own, which runs a function that the package's native client registered, by its name. The function receives typed JSON parameters and read-only access to current pending settings. In a package with no registered native client, such a button is shown disabled with an explanation.
 

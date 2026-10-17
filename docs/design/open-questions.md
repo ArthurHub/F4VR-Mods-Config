@@ -26,14 +26,7 @@ The framework already defines how each is stored in its TOML config, which is th
 
 A setting is stored in one key, and a table is one value of it: a string setting whose value is the TOML text of the table. An activation sphere spans a section, so it is a group of per-key settings with a role; see [The settings model](model.md#a-group-with-a-role). How a package names such a section is still to be designed.
 
-## Schema evolution
-
-- Package dependency and optional-capability syntax
-- Reusable fragments without making package resolution difficult to understand
-- Dynamic pages, options, visibility, and values supplied by native code
-- A condition that a game plugin is loaded, as `{ "plugin": "Other.esp", "loaded": true }`, for a row that needs another mod: what an MCM config does with a `hiddenSwitcher` on a property its script sets. It is static, and the check of `pluginRequirements` answers it. A condition on a value of the game that changes, as MCM's `hiddenSwitcher` on a global, stays with the native API
-- Whether and how declarative packages can extend an existing package owned by another component
-- A button that runs a console command, as `{ "type": "RunConsoleCommand", "command": "..." }`: MCM runs one for a hotkey, but not for a row of its menu. It needs no script, so a mod with no plugin of its own has buttons too
+Whether InputBinding warns of two bindings that collide, of one mod or of two: FRIK, Immersive Flashlight and this mod all use the thumbsticks.
 
 ## Storage edge cases
 
@@ -65,7 +58,6 @@ The form is settled: a package's text is plain, a `$` token as in MCM, or a toke
 
 - Final C ABI types, ownership rules, string encoding, and API-version negotiation
 - Threading and callback restrictions
-- What the host does when a client callback throws or crashes
 - Preview coalescing timing
 - Save-batch and error-reporting structures
 - Native final-save notification payload
@@ -74,6 +66,7 @@ The form is settled: a package's text is plain, a `$` token as in MCM, or a toke
 - Registration and lifecycle for bespoke external UIs
 - Timeout, crash, or abandonment recovery during external UI handoff
 - Whether a safe host-owned custom-panel extension is needed later
+- Pages, options, visibility, and values supplied by native code, as a row that is shown while something of the game holds, which an MCM config does with a `hiddenSwitcher` that its script sets
 
 Raw ImGui ownership by client mods is deliberately deferred because it weakens input, layout, lifecycle, and compatibility guarantees.
 
@@ -100,6 +93,7 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - Search and filtering
 - Direct-touch interaction
 - Image/preview assets
+- A control for a list, an array of values, as Immersive Flashlight's lists of texts
 - Progress, cancellation, and error handling for long-running actions
 - Accessibility options beyond the three main UI sizes
 
@@ -113,3 +107,5 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - Conflict policy when restoring over newer external changes
 
 Profiles are considered advanced; a global model is preferred initially if they are pursued.
+
+An author's presets are profiles too: a file the author ships beside the package, as `Presets/<name>.json`, in the same form as a player's profile. A profile maps setting ids to values, so it covers a package whose settings are in several files, globals and properties. Applying one sets pending values, which Save writes, and a setting it does not name stays as it is.

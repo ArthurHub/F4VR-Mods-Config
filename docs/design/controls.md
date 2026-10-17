@@ -56,7 +56,7 @@ Suggested row:
 - Thumbstick left/right changes the slider the ray is on by the declared step, once the ray is on its row for a short time. A slider is not selected first.
 - Holding the thumbstick may accelerate after an initial repeat delay.
 - The value box only shows the value: it is not typed.
-- Units and an appropriate number of decimal places remain visible.
+- The value has the decimals, the unit or the percentage of its `display`, and stays visible.
 - Initial schema support is linear. Logarithmic or curved mappings can be considered later.
 - Haptics should mark meaningful interaction boundaries, not fire on every tiny value change.
 
@@ -69,11 +69,11 @@ They are two types, as in MCM:
 - `dropdown`: a popup list
 - `stepper`: previous and next
 
-A radio-style list for a small number of choices can be a third type later. The host can choose a more compact presentation in Focused mode.
+The host can choose a more compact presentation in Focused mode, where a stepper shows an option's short text when it has one.
 
 Choice behavior:
 
-- Each option has a typed stored value, a text, and an optional help.
+- Each option has a typed stored value, a text, and an optional short text and help.
 - The current option has a strong visual marker.
 - Popup rows use large VR targets.
 - Trigger selects; thumbstick scrolls; Back closes without changing the selection. So does a press beside the list, which does nothing else.
@@ -113,22 +113,31 @@ The look is the design system's [Color](design-system/project/components/Color/R
 
 Primary use: an operation that does not directly edit a stored value.
 
-- A button runs what an MCM button runs, such as a function of a script, or a function that the mod's native client registered, by its name and with typed parameters if needed.
+- A button runs what an MCM button runs, such as a function of a script, a console command, or a function that the mod's native client registered, by its name and with typed parameters if needed.
+- Its button says `Run`, or the button text its package gives it.
 - Potentially destructive actions require explicit confirmation.
 - Long-running progress and cancellation behavior remain open design work.
+
+### Read-only
+
+Primary use: a value the mod writes for the player to read, as a measured height.
+
+- A setting that is read-only shows its value in its control, and its whole row is disabled, as an MCM hotkey's is: a press does nothing, and the row has no look of one.
+- The help line says first that it is read-only: `(Read-only)`.
+- It has no Reset.
 
 ## Layout and informational elements
 
 These elements do not directly store values:
 
-- Section heading
-- Collapsible section
-- Advanced section
+- Section heading, with the rows of its section
 - Explanatory text
 - Spacer
 - Image or preview asset
 
-Advanced content should be collapsible and visually secondary so detailed configuration does not overwhelm ordinary players.
+A package's section can hold sections, and can fold. A press on the heading of a section that folds hides its rows and shows them again, and its heading has a mark of which it is. A folded section with an invalid value or an unsaved change inside it marks its heading too. See [Sections](schema.md#sections).
+
+Detailed settings are a folded section right after the settings they belong to, so they do not overwhelm ordinary players.
 
 ## CommonFramework-specific controls
 
@@ -178,6 +187,7 @@ The full and focused layouts reserve a stable place for the help of the item the
 Additional feedback:
 
 - Invalid rows receive a clear marker and concise inline message.
+- A row whose warning holds has a warning mark, and the help line shows the warning before its help. A warning does not block Save. See [Warnings](schema.md#warnings).
 - Save is blocked while a dirty setting is invalid. An invalid value that was already in the file does not block it.
 - Attempting Save shows a summary and moves focus to the first invalid setting that is visible.
 - The summary names every invalid setting, including one that a condition currently hides or disables. Such a setting can be reset from the summary.
@@ -185,7 +195,7 @@ Additional feedback:
 
 ## Defaults and reset
 
-Every editable declarative setting must declare its default beside the setting definition.
+Every editable declarative setting must declare its default beside the setting definition. A read-only setting has no Reset, and needs none.
 
 - Each setting can be reset independently.
 - A page or section may expose Reset All when unambiguous.

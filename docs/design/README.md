@@ -8,7 +8,7 @@ These documents capture the current product and architecture decisions. The orde
 
 - [Architecture and lifecycle](architecture.md) — goals, integration model, persistence, Save semantics, APIs, and MCM compatibility.
 - [The settings model](model.md) — what the UI draws and the store it asks for every value, checked against an MCM global, a value of a package, and an activation sphere.
-- [Declarative schema](schema.md) — package discovery, files, pages, settings, storage, conditions, buttons, localization, and validation.
+- [Declarative schema](schema.md) — package discovery, files, pages, settings, storage, conditions, buttons, localization, validation, and what a package has beyond MCM.
 - [MCM support](mcm.md) — every feature of an MCM config and of MCM VR, and how the menu handles each.
 - [Controls](controls.md) — core controls, their value semantics, and specialized CommonFramework controls reserved for later design.
 - [UI and VR interaction](ui-and-vr-interaction.md) — opening the menu; full, focused, and minimized modes; world placement; pointing; editing; and low-fidelity wireframes.
@@ -42,7 +42,7 @@ The F4SE plugin name, the Papyrus script name, and the data root are public: oth
 - Mods own their settings and their real configuration files. Mods Config VR does not create a second settings store.
 - A declarative JSON package should be sufficient for ordinary settings menus.
 - A restricted C++ API adds live preview, functions that buttons run, and the handoff to a mod's own UI.
-- A script-only mod needs only a package: its scripts read the saved values through Papyrus functions that Mods Config VR provides.
+- A script-only mod needs only a package: its scripts read the saved values through Papyrus functions that Mods Config VR provides, or keep them in globals and properties, as an MCM mod does.
 - Existing MCM menus retain their established storage and event behavior through a bridge to the installed MCM.
 - The game keeps running while the menu is open, so a change that the mod acts on at once is seen as it is made.
 - The architecture should leave room for advanced features without requiring them in the initial implementation.

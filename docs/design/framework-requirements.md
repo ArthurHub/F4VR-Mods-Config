@@ -242,6 +242,7 @@ The client and its functions:
 - When Mods Config VR is installed, `ModBase` registers the mod as a native client through a vendored client header, the way it registers the devbench tool. It registers every mod, under `Settings.name`, and does not look for a package. The host matches the client to the package whose `modName` is that name. A `Settings` flag opts a mod out, like `devbenchTool`.
 - A mod adds functions to its client, each under a name, which the buttons of its package run.
 - A mod that has a config UI of its own gives the client how to open it, and tells the client when it has closed. The host opens it through the handoff.
+- A mod can be told when a page of its package is shown and left, to show in the world what the page sets; see [Page events](architecture.md#page-events).
 
 The preview. The client maps the host's calls onto the overrides, under an owner name of its own that no API caller uses (item 10):
 

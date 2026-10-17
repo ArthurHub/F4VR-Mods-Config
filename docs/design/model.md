@@ -12,11 +12,11 @@ The UI reads the definition to know what to draw, and asks the store for every v
 ## The definition
 
 ```text
-Mod      a name, its front page, its pages, and a category if it has one
-Page     a name and its items. The front page is the mod's own, and has no name
+Mod      a name, a help, its front page, its pages, and a category if it has one
+Page     a name, an id if it has one, a help, its items, and its pages. The front page is the mod's own, and has no name
 Item     one of:
            Setting
-           Group         a section: its text, its items, and sometimes a role
+           Group         a section: its text, its items, whether it folds, and sometimes a role
            Button        a row that runs an action
            Hotkey        a row that shows the key a hotkey of the mod is bound to
            Text, Image, Spacer
@@ -37,20 +37,25 @@ A setting has:
 | valueType    | What the value is: bool, int, float or string. A CommonFramework table is a string, its TOML text     |
 | text         | What the row says                                                                                     |
 | help         | Its help text, shown in the help line while the ray is on the row                                     |
-| valueOptions | The least, the most and the step of a number, the length limits of a text, the options of a choice, or whether a color has an alpha |
+| valueOptions | The least, the most and the step of a number, the length limits of a text, the options of a choice or where it reads them in the game, or whether a color has an alpha |
+| display      | How a number is shown: its decimals, a unit, or a percentage of its range. A package's only           |
+| readOnly     | The value is shown and not edited. A package's only                                                   |
+| warnings     | Texts with a condition each: while one holds, the row is marked and the help line shows it. A package's only |
 | visibleWhen  | A condition on the values of other settings. The row is shown while it holds                          |
 | enabledWhen  | A condition of the same kind. The row can be edited while it holds                                    |
 | storage      | Where the value is kept. Only the store reads it                                                      |
 | applies      | When a change takes effect in the running mod: live, save or restart. A package's only                |
-| action       | What runs after the value is written, for an MCM row that has one                                     |
+| action       | What runs after the value is written: at once for an MCM row, and by Save for a package's setting     |
 
 Three things are as they are because of MCM:
 
-- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so a setting keeps that text too, as its `sourceId`. A package's setting has its author's id, or one made from its storage, the key and the section: see [Declarative schema](schema.md#settings).
-- **The default is the store's to answer, and not a field.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package.
-- **The storage has several forms.** An MCM global, an MCM script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage.
+- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so a setting keeps that text too, as its `sourceId`. A package's setting has its author's id, or one made from its storage, as the key and the section: see [Declarative schema](schema.md#settings).
+- **The default is the store's to answer, and not a field.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package. A read-only setting is the one that needs none, as it has no Reset.
+- **The storage has several forms.** A global, a script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage: a key of a file, a global or a script property.
 
-`applies` is a package's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else its group's, its page's, its mod's. An MCM mod has none: an MCM config has no field for it.
+`applies` is a package's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else the nearest group's it is in, the nearest page's, its mod's. An MCM mod has none: an MCM config has no field for it.
+
+Pages and groups nest in a package: a page can have pages, and a group can hold groups. An MCM mod has one level of pages, and its groups do not nest.
 
 ## The store
 
@@ -60,6 +65,7 @@ What the UI asks of the store:
 - The key of a hotkey, which is only shown.
 - To set a value.
 - The default of a setting, where it has one. Reset sets it, as any other value is set.
+- The options of a choice: the definition's, or the ones it reads in the game as the page is shown, for a choice that takes them from a FormList or a property of a script.
 - Whether a change is saved at once or waits for Save.
 - With Save: whether a setting is dirty, and to Save and Discard.
 - To run an action.
@@ -68,7 +74,7 @@ What the UI asks of the store:
 There are two stores, and what happens around a change is theirs:
 
 - **The MCM store** writes a value where its storage says, at once. It then runs the row's action and sends MCM's event. It has no Save.
-- **The package store** reads the files when the mod is selected. A set changes the pending value, and that of a `live` setting is previewed to the mod's client. Save and Discard are as in [Architecture and lifecycle](architecture.md#editing-session).
+- **The package store** reads the files, and the globals and properties, when the mod is selected. A set changes the pending value, and that of a `live` setting is previewed: to the mod's client for a key of a file, and into the game by the store itself for a global or a property. Save writes the values and then runs the actions of the settings it wrote. Save and Discard are as in [Architecture and lifecycle](architecture.md#editing-session).
 
 Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's. The second is the mod's, and a package says it with `applies`:
 
@@ -95,7 +101,8 @@ A condition compares the value of one setting, named by its id, or joins other c
 - A `groupCondition` is a number, a list of numbers, or `AND`, `OR` or `ONLY` with a list, as MCM's menu reads it. A list is `OR`. `ONLY` holds with all of its groups while no other group of the page is on. A group that no row controls is never on.
 - A condition that a value which is not available leaves open holds, so its row is shown: nothing is hidden for a reason the player cannot change. A value that is available still settles it: a row that needs two groups is hidden while one of them is off.
 - The value of a setting that no row shows, as MCM's hidden switcher, is off while it is not available, as MCM's menu reads it. A script sets it to show a row while something of the game holds, so its rows stay hidden while it cannot be read.
-- A package has `visibleWhen` and `enabledWhen`, as in [Declarative schema](schema.md#conditions). A section's condition covers its rows there. The package loader gives it to each of those rows, joined with the row's own, so in the model a condition is always a row's. An MCM section's condition stays on its header row alone, as in MCM.
+- A package has `visibleWhen` and `enabledWhen`, as in [Declarative schema](schema.md#conditions). A section's conditions cover everything in it there, at every level. The package loader gives each row the conditions of the sections it is in, joined with the row's own, so in the model a condition is always a row's. An MCM section's condition stays on its header row alone, as in MCM.
+- A package's condition can ask whether a plugin is loaded. That does not change while the game runs, so the package loader answers it as it reads the package, and the condition holds or does not.
 
 ## A group with a role
 
