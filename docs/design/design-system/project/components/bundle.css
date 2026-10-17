@@ -238,3 +238,29 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .mc-chan.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); border-radius: var(--radius-frame); }
 .mc-focused .mc-coloredit { position: static; width: auto; height: 100%; border: 0; background: transparent; padding: 0; }
 .mc-coloredit.is-rgb { height: 358px; }
+
+/* ---------- input binding: the framework's icon and a sentence, and an editor of its parts ---------- */
+/* the icon: the framework's white texture, tinted with the text's color (a mask stands in for ImGui's tint) */
+.mc-bicon { display: inline-block; flex: none; background: currentColor; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+.mc-bplus { flex: none; }
+.mc-combo.is-binding { width: calc(var(--control-width) - var(--control-height) - var(--space-2)); justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4) 0 var(--space-3); }
+.mc-combo.is-binding > .sent { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: var(--space-1); }
+.mc-combo.is-binding.is-pending { color: var(--amber); }
+.mc-combo.is-binding.is-pending > svg { color: var(--green); }
+.mc-combo.is-binding.is-invalid > .sent { color: var(--red); }
+.mc-bindedit { position: absolute; width: 717px; height: 458px; background: var(--popup); border: var(--border-frame) solid var(--green); border-radius: var(--radius-popup); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); z-index: 2; }
+.mc-bindedit .head { height: var(--control-height); flex: none; display: flex; align-items: center; gap: var(--space-2); }
+.mc-bindedit .head .grow { flex: 1; }
+.mc-bindedit .strip { height: 64px; flex: none; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--plate); border-radius: var(--radius-popup); }
+.mc-bindedit .strip .sent { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.mc-bindedit .parts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2) var(--space-6); }
+.mc-part { height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-frame); }
+.mc-part .lbl { width: 96px; flex: none; color: var(--green-muted); }
+.mc-part .mc-combo { width: 226px; }
+.mc-part .mc-track { width: 114px; }
+.mc-part .mc-stepper .label { width: 114px; }
+.mc-part.is-disabled { opacity: var(--opacity-disabled); }
+.mc-part.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-bindedit .foot { margin-top: auto; padding-top: var(--space-3); border-top: var(--border-frame) solid var(--rule); display: flex; align-items: center; gap: var(--space-2); }
+.mc-bindedit .foot .toml { flex: 1; min-width: 0; color: var(--green-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-bindedit .foot .mc-btn { min-width: 160px; }

@@ -161,7 +161,7 @@ The framework's TOML config already fixes how each is stored, and the type prefi
 
 A table is one value in one key. In the settings model its value is a string, the TOML text of the table (`{ rgb = [255, 51, 51], alpha = 40 }`), which its control reads and writes, and which the store writes into the file as the inline table, not as a quoted string. So its setting is dirty, previewed and saved as a whole, as any other. The framework checks every key and word of a table and names the one that is wrong, and a table it cannot read is an invalid value with that reason.
 
-The Haptic control is designed below, and Color above. The schemas, storage mappings, live-preview semantics, and VR manipulation experiences of the others will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what is left.
+The Haptic and InputBinding controls are designed below, and Color above. The schemas, storage mappings, live-preview semantics, and VR manipulation experiences of the others will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what is left.
 
 These should not be flattened into `vec2` or `vec3`, because their meaning, validation, and editing affordances are richer than a tuple of numbers.
 
@@ -179,6 +179,21 @@ Primary use: the pattern a mod plays on a controller when something happens, as 
 - A `live` haptic is previewed as any setting: the mod plays the pending pattern when its event happens.
 
 The look is the design system's [Haptic](design-system/project/components/Haptic/README.md).
+
+### InputBinding
+
+Primary use: a controller binding of a mod, as an activation sphere's `kPrimaryBinding`, or the menu's own `kOpenMenuBinding`.
+
+- A binding is shown as an icon of its button and as one sentence, "Long press the X button on the off hand", with the hand as the config names it and the button as the controller prints it. Every binding has the framework's icon of the button and how it is pressed: the button alone for a tap or a press, with a mark for the rest (a clock for a long press, an arrow down onto a bar for a hold, 2× for a double press, an arrow up off a bar for a release, ripples for a touch), and the thumbstick with its direction's arrow for a push. A chord shows both buttons' icons, and only the system button has none.
+- A press on the row opens the editor, a popup in the content pane. It builds the binding from its parts: Hand, How (the type), Button, Direction, Duration or Threshold, While holding (the modifier), and Suppress from the game (`suppress`) where the setting offers it. A part the chosen type does not have is disabled and keeps its place, so nothing moves as the type changes.
+- `suppress` is offered only by a setting with `"valueOptions": { "suppress": true }`, as an activation sphere's two bindings: suppression means something only where a consumer applies it. Elsewhere the part is not there, and a `suppress` the file has is kept as it is.
+- Each change sets the pending value as it is made, and a `live` binding is previewed. Done, or a press beside the editor, keeps it. Cancel and Back give back the binding it had when it opened.
+- A key the type does not have is not written, and a Duration or Threshold at the type's default is left out, so the table stays as short as the framework's own examples.
+- A table the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
+- Another binding setting of the same mod that is the same press is named in the help line. It does not block Save.
+- In the Focused panel a binding is shown and not edited, as a hotkey is: it is changed in the Full panel.
+
+The look is the design system's [InputBinding](design-system/project/components/InputBinding/README.md).
 
 ## Help and validation feedback
 

@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-17T14:16:00Z",
+    "at": "2026-10-17T22:20:00Z",
     "via": "Claude (Cowork)",
-    "note": "Color: alpha is optional; valueOptions.alpha false makes a color RGB only, with an opaque swatch, no Alpha slider, and only rgb written."
+    "note": "InputBinding: the binding icons say how a button is worked with solid marks in place of words, the thumbstick is a ring with a rim and a shadowed knob, a push its arrow mark; 80 px tall, drawn at 44 px in a row."
   },
   "layout": "files",
   "libraries": [],

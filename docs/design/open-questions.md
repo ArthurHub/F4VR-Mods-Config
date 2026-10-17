@@ -8,11 +8,10 @@ Work that F4VR-CommonFramework needs is tracked in [CommonFramework work require
 
 Design the exact schema, storage, widgets, preview behavior, and validation for:
 
-- `InputBinding`
 - `Transform`
 - `ActivationSphere`
 
-`Haptic` and `Color` are designed: see [Haptic](controls.md#haptic) and [Color](controls.md#color) in Controls.
+`Haptic`, `Color` and `InputBinding` are designed: see [Haptic](controls.md#haptic), [Color](controls.md#color) and [InputBinding](controls.md#inputbinding) in Controls.
 
 These likely need VR manipulation experiences in addition to ordinary form controls. In particular, determine whether editing occurs inside the panel, in the world, or through a controlled handoff between both.
 

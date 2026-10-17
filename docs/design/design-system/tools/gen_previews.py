@@ -669,3 +669,220 @@ c_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908
 </div>"""
 write('Color', page('<!-- @dsCard group="Settings" height=1290 width=1560 subtitle="A swatch and the numbers; the editor with a picker and a slider per channel; RGB only; the Focused editor" -->', 'Color', c_body))
 print('ok color')
+
+# ---------------- InputBinding: the framework's icon and a sentence, an editor of its parts, and Record ----------------
+import json as _json
+BICONS = _json.loads((Path(__file__).resolve().parent / 'binding_icons.json').read_text(encoding='utf-8'))
+BICON_SCALE = 0.55        # in a row: 44 px, inside the 48 px line
+BICON_SCALE_STRIP = 0.7   # in the editor's strip: 56 px
+LEFT_HANDED = False   # the previews are of a right-handed player: primary is the right controller
+
+def is_right(hand):
+    return {'right': True, 'left': False, 'offhand': LEFT_HANDED}.get(hand, not LEFT_HANDED)
+
+def printed(button, right):
+    """A button as the controller prints it, as vrui::bindingLabel resolves it."""
+    return {'a': 'A' if right else 'X', 'b': 'B' if right else 'Y'}.get(button, button)
+
+HAND_WORDS = {'primary': 'the primary hand', 'offhand': 'the off hand', 'right': 'the right hand', 'left': 'the left hand'}
+VERBS = {'tap': 'Tap', 'press': 'Press', 'release': 'Release', 'longpress': 'Long press', 'double': 'Double press', 'hold': 'Hold', 'touch': 'Touch'}
+
+def button_words(button, right):
+    p_ = printed(button, right)
+    return f'the {p_} button' if len(p_) == 1 else ('the system button' if p_ == 'system' else f'the {p_}')
+
+def sentence(b):
+    t = b.get('type')
+    if t == 'none':
+        return 'None'
+    hand = b['hand']
+    right = is_right(hand)
+    if t == 'axis':
+        axis = b.get('axis', 'thumbstick')
+        out = f'Push the {axis} {b["direction"]} on {HAND_WORDS[hand]}'
+        if 'threshold' in b:
+            out += f', past {b["threshold"]:.2f}'
+    else:
+        out = f'{VERBS[t]} {button_words(b["button"], right)} on {HAND_WORDS[hand]}'
+        if 'duration' in b:
+            d = b['duration']
+            out += {'longpress': f' for {d:g} s', 'hold': f', from {d:g} s', 'double': f', presses within {d:g} s', 'release': f', held no longer than {d:g} s'}.get(t, '')
+    m = b.get('modifier')
+    if m:
+        mh = m.get('hand')
+        out += f', holding {button_words(m["button"], is_right(mh or hand))}' + (f' on {HAND_WORDS[mh]}' if mh else '')
+    return out
+
+def icon_name(hand, t, button, axis=None, direction='up'):
+    """The icon of a binding: the button as the controller prints it, and how it is pressed, as the framework's
+    vrui::bindingIconPath names it in f4cf/bindings."""
+    right = is_right(hand)
+    side = 'right' if right else 'left'
+    if t == 'axis':
+        axis = axis or 'thumbstick'
+        return f'{side}-thumbstick-{direction}' if axis == 'thumbstick' else f'{side}-{axis}'
+    name = printed(button, right).lower()
+    if name == 'system':
+        return None
+    if t in ('tap', 'press'):
+        return name if len(name) == 1 else f'{side}-{name}'
+    kind = {'longpress': 'longpress', 'hold': 'hold', 'double': 'double', 'release': 'release', 'touch': 'touch'}[t]
+    return f'{side}-{kind}-{name}'
+
+def bicon(name, scale=BICON_SCALE):
+    i = BICONS[name]
+    w, h = i['w'] * scale, i['h'] * scale
+    url = f'url(data:image/png;base64,{i["png"]})'
+    return f'<i class="mc-bicon" style="width:{w:.1f}px;height:{h:.1f}px;-webkit-mask-image:{url};mask-image:{url}"></i>'
+
+def icons(b, scale=BICON_SCALE):
+    """The binding's icon; for a chord, its icon, a + and the modifier's, each as a press of its button."""
+    if b.get('type') == 'none':
+        return ''
+    m = b.get('modifier')
+    if not m:
+        n = icon_name(b['hand'], b['type'], b.get('button'), b.get('axis'), b.get('direction'))
+        return bicon(n, scale) if n else ''
+    first = icon_name(b['hand'], b['type'], b.get('button'), b.get('axis'), b.get('direction'))
+    second = icon_name(m.get('hand', b['hand']), 'press', m['button'])
+    return bicon(first, scale) + '<span class="mc-bplus t-body">+</span>' + bicon(second, scale) if first and second else ''
+
+def toml_binding(b):
+    parts = []
+    for k in ('hand', 'type', 'button', 'axis', 'direction', 'duration', 'threshold', 'suppress', 'modifier'):
+        if k not in b:
+            continue
+        v = b[k]
+        if k == 'modifier':
+            inner = ', '.join(f'{mk} = "{mv}"' for mk, mv in v.items())
+            parts.append(f'modifier = {{ {inner} }}')
+        elif isinstance(v, bool):
+            parts.append(f'{k} = {"true" if v else "false"}')
+        elif isinstance(v, (int, float)):
+            parts.append(f'{k} = {v}')
+        else:
+            parts.append(f'{k} = "{v}"')
+    return '{ ' + ', '.join(parts) + ' }'
+
+def binding_ctl(b, state='', show_reset=False, text=None, open_=False):
+    cls = 'mc-combo is-binding' + (f' {state}' if state else '') + (' is-open' if open_ else '')
+    ic = '' if state == 'is-invalid' else icons(b)
+    return f'<span class="{cls}">{ic}<span class="sent">{text if text is not None else sentence(b)}</span>{ARROW_D}</span>{reset_btn(show_reset)}'
+
+def part(label, ctl, disabled=False, hover=False, mark=None):
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    cls = 'mc-part' + (' is-disabled' if disabled else '') + (' is-hover' if hover else '')
+    return f'<div class="{cls}" style="position:relative"><span class="lbl t-detail">{label}</span>{ctl}{mk}</div>'
+
+def pcombo(label):
+    return f'<span class="mc-combo"><span>{label}</span>{ARROW_D}</span>'
+
+def pslider(value, pct):
+    return (f'<span class="mc-track"><i class="fill" style="width:{pct * 0.94:.0f}px"></i><i class="grab" style="left:{10 + pct * 0.94:.0f}px"></i></span>'
+            f'<span class="mc-value">{value}</span>')
+
+HAND_LABELS = {'primary': 'Primary hand', 'offhand': 'Off hand', 'right': 'Right hand', 'left': 'Left hand'}
+HOW_LABELS = dict(VERBS, axis='Push', none='None')
+
+def binding_editor(name, b, hover=None, mark=None, offers_suppress=False, style=''):
+    t = b.get('type')
+    head = f'<div class="head"><span class="grow t-body">{name}</span></div>'
+    strip = f'<div class="strip t-body">{icons(b, BICON_SCALE_STRIP)}<span class="sent">{sentence(b)}</span></div>'
+    if True:
+        none = t == 'none'
+        right = is_right(b.get('hand', 'primary'))
+        btn = printed(b.get('axis', 'thumbstick') if t == 'axis' else b.get('button', 'trigger'), right)
+        btn = btn if len(btn) == 1 else btn.capitalize()
+        has_dur = t in ('longpress', 'double', 'hold', 'release', 'axis')
+        dur_label = 'Threshold' if t == 'axis' else 'Duration'
+        if t == 'axis':
+            dval, dpct = f'{b.get("threshold", 0.85):.2f}', b.get('threshold', 0.85) * 100
+        else:
+            d = b.get('duration', {'longpress': 0.6, 'double': 0.4, 'hold': 0.0, 'release': 3.0}.get(t, 0.6))
+            dval, dpct = f'{d:.2f} s', (d - 0.1) / 2.9 * 100
+        m = b.get('modifier')
+        if m:
+            mb = printed(m['button'], is_right(m.get('hand', b.get('hand'))))
+            mb = mb if len(mb) == 1 else mb.capitalize()
+            hold = f'{mb}, ' + ('same hand' if 'hand' not in m else HAND_LABELS[m['hand']].lower())
+        else:
+            hold = 'Nothing'
+        sup = b.get('suppress', False)
+        tog = f'<span class="mc-toggle"><span{"" if sup else " class=is-off"}>Off</span><span{" class=is-on" if sup else ""}>On</span></span>'
+        dirs = f'<span class="mc-stepper"><span class="mc-btn is-icon">{TRI_L}</span><span class="label">{b.get("direction", "up").capitalize()}</span><span class="mc-btn is-icon">{TRI_R}</span></span>'
+        cells = [
+            part('Hand', pcombo(HAND_LABELS.get(b.get('hand', 'primary'))), none, hover == 'hand', mark if hover == 'hand' else None),
+            part(dur_label, pslider(dval, dpct), none or not has_dur, hover == 'dur', mark if hover == 'dur' else None),
+            part('How', pcombo(HOW_LABELS[t]), False, hover == 'how', mark if hover == 'how' else None),
+            part('While holding', pcombo(hold), none, hover == 'hold', mark if hover == 'hold' else None),
+            part('Button', pcombo(btn), none, hover == 'button', mark if hover == 'button' else None),
+            part('Suppress from the game', tog, none, hover == 'sup', mark if hover == 'sup' else None) if offers_suppress else '<div></div>',
+            part('Direction', dirs, t != 'axis', hover == 'dir', mark if hover == 'dir' else None),
+            '<div></div>',
+        ]
+        parts_html = '<div class="parts t-body">' + ''.join(cells) + '</div>'
+    foot = (f'<div class="foot"><span class="toml t-detail">{toml_binding(b)}</span>'
+            '<span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>')
+    return f'<div class="mc-bindedit"{style}>{head}{strip}{parts_html}{foot}</div>'
+
+GRAB = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress': True}
+DEBUG = {'hand': 'offhand', 'type': 'longpress', 'button': 'a'}
+GRAB_NEW = {'hand': 'offhand', 'type': 'double', 'button': 'grip', 'suppress': True}
+OPEN = {'hand': 'primary', 'type': 'longpress', 'button': 'thumbstick', 'duration': 1.5, 'modifier': {'hand': 'offhand', 'button': 'thumbstick'}}
+SCROLL = {'hand': 'primary', 'type': 'axis', 'direction': 'up'}
+NONE_B = {'type': 'none'}
+
+b_states = h_sheet([
+    ('Idle', row('Grab binding', binding_ctl(GRAB))),
+    ('Hover', row('Debug draw toggle', binding_ctl(DEBUG), 'is-hover', mark=(560, 22))),
+    ('Pending', row('Grab binding', binding_ctl(GRAB_NEW, 'is-pending', True), gutter=DOT)),
+    ('Chord', row('Open the menu', binding_ctl(OPEN))),
+    ('Push', row('Scroll up', binding_ctl(SCROLL))),
+    ('Push, off hand', row('Previous page', binding_ctl({'hand': 'offhand', 'type': 'axis', 'direction': 'left'}))),
+    ('None', row('Secondary binding', binding_ctl(NONE_B, show_reset=True), gutter=DOT)),
+    ('Invalid', row('Grab binding', binding_ctl(GRAB, 'is-invalid', True, text='{ hand = "offhand", type = "tap", button = "thumbstik" }'), 'is-invalid', gutter=WARN, message='Not a binding')),
+    ('Disabled', row('Recenter binding', binding_ctl({'hand': 'offhand', 'type': 'longpress', 'button': 'thumbstick'}), 'is-disabled')),
+])
+b_page_rows = ''.join([
+    row('Open the menu', binding_ctl(OPEN, open_=True), 'is-active'),
+    row('Back button', choice_stepper('Grip')),
+    section('Panel'),
+    row('Recenter binding', binding_ctl({'hand': 'offhand', 'type': 'longpress', 'button': 'thumbstick'})),
+    row('Recenter distance', slider('60', 40)),
+    row('Panel scale', slider('6.0', 50)),
+    row('Follow speed', slider('0.40', 40)),
+    row('Background opacity', slider('0.85', 85)),
+])
+b_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:531px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+{b_page_rows}
+{binding_editor('Open the menu', OPEN, hover='hold', mark=(200, 20), style=' style="left:27px;top:58px"')}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('While holding', 'A button held down while the binding is pressed, on the same hand or the other. Now the thumbstick of the off hand.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div></div>
+</div>"""
+b_focused = f"""<div class="mc-focused" style="height:auto">
+<div class="mc-desc t-body"><span class="name">Grab binding:</span> Tap the trigger on the off hand. Change it in the Full panel.</div>
+<div class="item mc-row is-disabled" style="display:block;height:auto;margin:0"><div class="t-body">Grab binding</div>
+<div class="ctl t-body" style="margin-top:4px;display:flex"><span class="mc-combo is-binding" style="flex:1;width:auto">{icons(GRAB)}<span class="sent">{sentence(GRAB)}</span></span></div></div>
+</div>"""
+b_grab = f"""<div class="mc-sheet" style="width:772px;height:556px;position:relative">
+{row('Grab binding', binding_ctl(GRAB_NEW, 'is-pending', True, open_=True), 'is-active', gutter=DOT)}
+{binding_editor('Grab binding', GRAB_NEW, offers_suppress=True, style=' style="left:27px;top:74px"')}
+</div>"""
+b_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 772px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The states: the icon and the sentence, a right-handed player</span>
+{b_states}
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The Focused panel: shown, not edited</span>
+{b_focused}
+<span class="t-detail mc-caption">An activation sphere's binding: it offers Suppress from the game</span>
+{b_grab}
+</div>
+<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
+<span class="t-detail mc-caption">The editor open under its row, the ray on While holding, its help in the footer</span>
+{b_list}
+</div>
+</div>"""
+write('InputBinding', page('<!-- @dsCard group="Settings" height=1600 width=1760 subtitle="The icon and a sentence; the editor of its parts, with and without Suppress; the Focused panel" -->', 'Input binding', b_body))
+print('ok binding')
