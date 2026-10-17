@@ -129,6 +129,30 @@ namespace
         text << std::ifstream(path, std::ios::binary).rdbuf();
         return text.str();
     }
+
+    /**
+     * Checks that a setting is kept in a value a TOML file has, and that its default is that value: a file
+     * a mod ships has the values the mod has without their keys.
+     */
+    void checkShippedDefault(const model::Setting& setting, const toml::table& shipped)
+    {
+        INFO(setting.id);
+        toml::node_view<const toml::node> value(shipped);
+        for (const auto& name : std::get<model::FileStorage>(setting.storage).path) {
+            value = value[name];
+        }
+        REQUIRE(value);
+        REQUIRE(setting.defaultValue);
+        if (const auto* on = std::get_if<bool>(&*setting.defaultValue)) {
+            CHECK(value.value<bool>() == *on);
+        } else if (const auto* whole = std::get_if<int>(&*setting.defaultValue)) {
+            CHECK(value.value<int>() == *whole);
+        } else if (const auto* number = std::get_if<float>(&*setting.defaultValue)) {
+            CHECK(common::fEqual(value.value<float>().value_or(NAN), *number));
+        } else {
+            CHECK(value.value<std::string>() == std::get<std::string>(*setting.defaultValue));
+        }
+    }
 }
 
 TEST_CASE("PackageLoader: a package is its mod, its front page and its pages, which nest, with their help")
@@ -578,17 +602,52 @@ TEST_CASE("PackageLoader: the mod's own package edits keys of its shipped TOML, 
         CHECK_FALSE(setting.help.empty());
         const auto& storage = std::get<model::FileStorage>(setting.storage);
         CHECK(storage.file == "config");
-        REQUIRE(storage.path.size() == 2);
-        const auto shippedValue = shipped[storage.path[0]][storage.path[1]];
-        REQUIRE(shippedValue);
-
-        // the default is the value of the shipped file, which the mod has without its key
-        REQUIRE(setting.defaultValue);
-        if (const auto* number = std::get_if<int>(&*setting.defaultValue)) {
-            CHECK(shippedValue.value<int>() == *number);
-        } else {
-            CHECK(common::fEqual(shippedValue.value<float>().value_or(NAN), std::get<float>(*setting.defaultValue)));
-        }
+        CHECK(storage.path.size() == 2);
+        checkShippedDefault(setting, shipped);
     }
     CHECK(ids.size() >= 10);
+}
+
+TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file has the default of each of its settings")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const auto& mod = mods[0];
+    CHECK(mod.notAvailable.empty());
+    CHECK(mod.name == "ModsConfigVR_Showcase");
+    CHECK(mod.displayName == "Mods Config VR: Showcase");
+    CHECK_FALSE(mod.help.empty());
+    CHECK_FALSE(mod.frontPage.items.empty());
+    CHECK(mod.pages.size() == 9);
+
+    // the file whose path goes up out of its root is left out
+    Lines files;
+    for (const auto& [name, file] : mod.files) {
+        files.push_back(name);
+    }
+    CHECK(files == Lines{ "ini", "player", "showcase" });
+
+    // a page has pages under it, two levels deep
+    const auto pages = std::ranges::find(mod.pages, "Pages", &model::Page::name);
+    REQUIRE(pages != mod.pages.end());
+    REQUIRE(pages->pages.size() == 1);
+    CHECK(pages->pages[0].pages.size() == 1);
+
+    // the settings of the shipped file, but for those that show a mistake of their default
+    const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR) / "ModsConfigVR_Showcase" / "showcase.toml"));
+    Lines withNoDefault;
+    std::size_t checked = 0;
+    for (const auto& setting : settingsOf(mod)) {
+        if (!setting.defaultValue) {
+            withNoDefault.push_back(setting.text);
+            continue;
+        }
+        const auto* storage = std::get_if<model::FileStorage>(&setting.storage);
+        if (storage && storage->file == "showcase") {
+            checkShippedDefault(setting, shipped);
+            ++checked;
+        }
+    }
+    CHECK(withNoDefault == Lines{ "No default", "A default of another type" });
+    CHECK(checked >= 30);
 }

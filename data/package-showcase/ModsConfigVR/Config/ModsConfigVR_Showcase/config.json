@@ -1,0 +1,446 @@
+{
+  // The showcase of Mods Config VR's packages: what a package has, each kind on a page of its own, and what a
+  // package can get wrong. It grows with the menu: a commit that reads or draws something of a package adds
+  // it here.
+  // It is an optional file of the mod, for developers. Its values are in showcase.toml and showcase.ini beside it.
+  "minSchemaVersion": 1,
+  "modName": "ModsConfigVR_Showcase",
+  "displayName": "Mods Config VR: Showcase",
+  "help": "Every kind of row and setting a package has, to see how each looks and works. Each page is one kind.",
+  "packageVersion": 1,
+  "files": {
+    // shipped beside this config, with a value for each of its settings
+    "showcase": { "format": "toml", "root": "data", "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/showcase.toml" },
+    // not shipped: its settings have their defaults, and the first Save that changes one creates it
+    "player": { "format": "toml", "root": "myGames", "path": "Mods_Config/ModsConfigVR_Showcase/player.toml" },
+    "ini": { "format": "ini", "root": "data", "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/showcase.ini" },
+    // left out, with the reason in the log: its path goes up out of its root
+    "outside": { "format": "toml", "root": "data", "path": "../showcase.toml" }
+  },
+  "defaultFile": "showcase",
+  "applies": "live",
+  // the front page has one row of every kind, also those the menu does not draw yet, which are placeholders
+  // until the commit that draws them
+  "content": [
+    { "type": "text", "text": "Every kind of row a package has, to see how each looks and works in Mods Config VR. Each page is one kind." },
+    { "type": "spacer" },
+    {
+      "type": "section", "text": "A bit of everything",
+      "content": [
+        { "type": "text", "text": "A plain text row above the controls." },
+        {
+          "type": "switcher", "valueType": "bool", "text": "Switcher", "help": "A switcher that is on by default.",
+          "default": true, "storage": { "path": ["Main", "bSwitcher"] }
+        },
+        {
+          "type": "slider", "valueType": "float", "text": "Slider", "help": "A slider from 0 to 100 by 5.",
+          "default": 50.0, "valueOptions": { "min": 0, "max": 100, "step": 5 },
+          "storage": { "path": ["Main", "fSlider"] }
+        },
+        {
+          "type": "slider", "valueType": "int", "text": "Whole number slider", "help": "A slider of whole numbers from 0 to 255.",
+          "default": 217, "valueOptions": { "min": 0, "max": 255, "step": 1 },
+          "storage": { "path": ["Main", "iSlider"] }
+        },
+        {
+          "type": "stepper", "valueType": "int", "text": "Stepper", "help": "A stepper of three options, which stores the place of the chosen one.",
+          "default": 1, "valueOptions": { "options": ["Low", "Medium", "High"] },
+          "storage": { "path": ["Main", "iStepper"] }
+        },
+        {
+          "type": "dropdown", "valueType": "string", "text": "Dropdown", "help": "A dropdown of four options, each with the value it stores.",
+          "default": "offhand",
+          "valueOptions": {
+            "options": [
+              { "value": "head", "text": "Head", "help": "On the head." },
+              { "value": "offhand", "text": "Offhand", "help": "On the hand that does not point." },
+              { "value": "primary", "text": "Primary hand", "help": "On the hand that points." },
+              { "value": "chest", "text": "Chest", "help": "On the chest." }
+            ]
+          },
+          "storage": { "path": ["Main", "sDropdown"] }
+        },
+        {
+          "type": "textinput", "valueType": "string", "text": "Text input", "help": "A text that is typed.",
+          "default": "Hello", "storage": { "path": ["Main", "sText"] }
+        },
+        {
+          "type": "textinput", "valueType": "float", "text": "Number input", "help": "A text input that takes a number.",
+          "default": 1.5, "storage": { "path": ["Main", "fNumber"] }
+        },
+        {
+          "type": "button", "text": "Button", "help": "Shows a notification.", "buttonText": "Show",
+          "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: the button ran"] }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "pageDisplayName": "Switchers",
+      "help": "Switchers, on and off by default.",
+      "content": [
+        {
+          "type": "section", "text": "Switchers",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "On by default", "help": "A switcher that is on by default.",
+              "default": true, "storage": { "path": ["Switchers", "bOn"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Off by default", "help": "A switcher that is off by default.",
+              "default": false, "storage": { "path": ["Switchers", "bOff"] }
+            },
+            {
+              "type": "switcher", "text": "No valueType", "help": "A switcher with no valueType, which is a bool as its control is.",
+              "default": true, "storage": { "path": ["Switchers", "bNoValueType"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "No help",
+              "default": false, "storage": { "path": ["Switchers", "bNoHelp"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool",
+              "text": "A switcher with a name that is much too long for the room a row has before its control",
+              "help": "Its name ends in an ellipsis, and the help line has all of it.",
+              "default": false, "storage": { "path": ["Switchers", "bLongName"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Sliders",
+      "help": "Sliders of numbers and of whole numbers, in ranges and steps of each size.",
+      "content": [
+        {
+          "type": "section", "text": "Numbers",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "From 0 to 1 by 0.05", "help": "A number with two decimals.",
+              "default": 0.5, "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+              "storage": { "path": ["Sliders", "fFraction"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "From 0 to 1 by 0.001", "help": "A fine step: the slider has a thousand steps.",
+              "default": 0.125, "valueOptions": { "min": 0, "max": 1, "step": 0.001 },
+              "storage": { "path": ["Sliders", "fFine"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "From -100 to 100 by 5", "help": "A range below and above zero.",
+              "default": -20.0, "valueOptions": { "min": -100, "max": 100, "step": 5 },
+              "storage": { "path": ["Sliders", "fNegative"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "From 0 to 10000 by 100", "help": "A large range.",
+              "default": 2500.0, "valueOptions": { "min": 0, "max": 10000, "step": 100 },
+              "storage": { "path": ["Sliders", "fLarge"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Whole numbers",
+          "content": [
+            {
+              "type": "slider", "valueType": "int", "text": "From 0 to 255 by 1", "help": "A whole number, as an opacity is.",
+              "default": 217, "valueOptions": { "min": 0, "max": 255, "step": 1 },
+              "storage": { "path": ["Sliders", "iOpacity"] }
+            },
+            {
+              "type": "slider", "valueType": "int", "text": "From 1 to 10 by 1", "help": "A short range of whole numbers.",
+              "default": 3, "valueOptions": { "min": 1, "max": 10, "step": 1 },
+              "storage": { "path": ["Sliders", "iCount"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Text inputs",
+      "help": "Text inputs of a text, a whole number and a number.",
+      "content": [
+        {
+          "type": "section", "text": "Text inputs",
+          "content": [
+            {
+              "type": "textinput", "valueType": "string", "text": "Text", "help": "A text that is typed.",
+              "default": "Hello", "storage": { "path": ["TextInputs", "sText"] }
+            },
+            {
+              "type": "textinput", "valueType": "string", "text": "Empty text", "help": "A text that is empty by default.",
+              "default": "", "storage": { "path": ["TextInputs", "sEmpty"] }
+            },
+            {
+              "type": "textinput", "valueType": "int", "text": "Whole number", "help": "A text input that takes a whole number.",
+              "default": 42, "storage": { "path": ["TextInputs", "iNumber"] }
+            },
+            {
+              "type": "textinput", "valueType": "float", "text": "Number", "help": "A text input that takes a number.",
+              "default": 1.5, "storage": { "path": ["TextInputs", "fNumber"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Sections",
+      "help": "Sections in sections, each set in under the one it is in.",
+      "content": [
+        {
+          "type": "switcher", "valueType": "bool", "text": "Before any section", "help": "A row of the page itself.",
+          "default": true, "storage": { "path": ["Sections", "bBefore"] }
+        },
+        {
+          "type": "section", "text": "Holsters",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "Enable holsters", "help": "A row of the outer section.",
+              "default": true, "storage": { "path": ["Sections", "bHolsters"] }
+            },
+            {
+              "type": "section", "text": "Advanced",
+              "content": [
+                {
+                  "type": "slider", "valueType": "float", "text": "Reach", "help": "A row of a section in a section.",
+                  "default": 10.0, "valueOptions": { "min": 0, "max": 50, "step": 1 },
+                  "storage": { "path": ["Sections", "fReach"] }
+                },
+                {
+                  "type": "section", "text": "Even more",
+                  "content": [
+                    {
+                      "type": "slider", "valueType": "float", "text": "Angle", "help": "A row three sections in.",
+                      "default": 45.0, "valueOptions": { "min": 0, "max": 90, "step": 5 },
+                      "storage": { "path": ["Sections", "fAngle"] }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "Size", "help": "A row of the outer section, after the sections in it.",
+              "default": 1.0, "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 },
+              "storage": { "path": ["Sections", "fSize"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Only a section in it",
+          "content": [
+            {
+              "type": "section", "text": "Inside",
+              "content": [
+                {
+                  "type": "switcher", "valueType": "bool", "text": "In the inner section", "help": "The outer section has no rows of its own.",
+                  "default": false, "storage": { "path": ["Sections", "bInside"] }
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "section", "text": "An empty section", "content": [] },
+        {
+          "type": "switcher", "valueType": "bool", "text": "After the sections", "help": "A row of the last section.",
+          "default": false, "storage": { "path": ["Sections", "bAfter"] }
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Pages",
+      "help": "A page with pages under it, two levels deep.",
+      "content": [
+        {
+          "type": "switcher", "valueType": "bool", "text": "On the page", "help": "A row of the page that has pages under it.",
+          "default": true, "storage": { "path": ["Pages", "bTop"] }
+        }
+      ],
+      "pages": [
+        {
+          "pageDisplayName": "Under a page",
+          "help": "A page under the Pages page.",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "One level down", "help": "A row of a page under a page.",
+              "default": false, "storage": { "path": ["Pages", "bUnder"] }
+            }
+          ],
+          "pages": [
+            {
+              "pageDisplayName": "Two levels down",
+              "content": [
+                {
+                  "type": "switcher", "valueType": "bool", "text": "Two levels down", "help": "A row of a page with no help.",
+                  "default": false, "storage": { "path": ["Pages", "bDeeper"] }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Files",
+      "help": "Settings of three files: the package's default, the page's, and a section's.",
+      "defaultFile": "player",
+      "content": [
+        {
+          "type": "section", "text": "The page's file: a TOML file that is not there yet",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "Player's switcher", "help": "Its file is not there until a Save writes it, so it has its default.",
+              "default": true, "storage": { "path": ["Player", "bSwitcher"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "Player's slider", "help": "Its file is not there until a Save writes it, so it has its default.",
+              "default": 0.75, "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+              "storage": { "path": ["Player", "fSlider"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "A section's file: an INI file", "defaultFile": "ini",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "INI switcher", "help": "A key of an INI file, by its section and its key.",
+              "default": true, "storage": { "section": "Ini", "key": "bSwitcher" }
+            },
+            {
+              "type": "slider", "valueType": "int", "text": "INI slider", "help": "A key of an INI file, by its section and its key.",
+              "default": 5, "valueOptions": { "min": 0, "max": 10, "step": 1 },
+              "storage": { "section": "Ini", "key": "iSlider" }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Its own file: the package's default",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "Shipped switcher", "help": "A setting that names its file, which is not the page's.",
+              "default": false, "storage": { "file": "showcase", "path": ["Files", "bOwn"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A value in a table in a table", "help": "A path of three names: its id is bDeep:Files.Tables.",
+              "default": true, "storage": { "file": "showcase", "path": ["Files", "Tables", "bDeep"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "When a change takes effect",
+      "help": "Settings that take effect as they are changed, after Save, and after a restart: their own, a section's and the page's.",
+      "applies": "save",
+      "content": [
+        {
+          "type": "section", "text": "The page's: after Save",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "After Save", "help": "It has the page's applies.",
+              "default": true, "storage": { "path": ["Applies", "bPage"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "As it is changed", "help": "It has its own applies, live.",
+              "applies": "live", "default": true, "storage": { "path": ["Applies", "bLive"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "A section's: after a restart", "applies": "restart",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "After a restart", "help": "It has its section's applies.",
+              "default": false, "storage": { "path": ["Applies", "bRestart"] }
+            },
+            {
+              "type": "section", "text": "A section in it",
+              "content": [
+                {
+                  "type": "switcher", "valueType": "bool", "text": "Also after a restart", "help": "It has the applies of the section its section is in.",
+                  "default": false, "storage": { "path": ["Applies", "bInner"] }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": { "token": "$ModsConfigVR_Showcase_Texts", "fallback": "Texts" },
+      "help": { "token": "$ModsConfigVR_Showcase_TextsHelp", "fallback": "Plain texts, tokens with a fallback, and a token with none." },
+      "content": [
+        {
+          "type": "section", "text": { "token": "$ModsConfigVR_Showcase_Forms", "fallback": "The three forms of a text" },
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "Plain text", "help": "A text as it is written.",
+              "default": true, "storage": { "path": ["Texts", "bPlain"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool",
+              "text": { "token": "$ModsConfigVR_Showcase_Fallback", "fallback": "A token with a fallback" },
+              "help": { "token": "$ModsConfigVR_Showcase_FallbackHelp", "fallback": "No translation file has its token, so it is its fallback." },
+              "default": true, "storage": { "path": ["Texts", "bFallback"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "$ModsConfigVR_Showcase_NoFallback",
+              "help": "A token with no fallback, which no translation file has, is shown as it is written.",
+              "default": true, "storage": { "path": ["Texts", "bToken"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Mistakes",
+      "help": "What a package can get wrong: each row says what, and the log has the error.",
+      "content": [
+        {
+          "type": "section", "text": "Storage",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "No such file", "help": "Its storage names a file the package does not have.",
+              "default": true, "storage": { "file": "missing", "path": ["Mistakes", "bNoFile"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A file that is left out", "help": "Its file goes up out of its root.",
+              "default": true, "storage": { "file": "outside", "path": ["Mistakes", "bOutside"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "No storage", "help": "It does not say where its value is kept.",
+              "default": true
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Settings",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "No default", "help": "It has no default, so it has no Reset.",
+              "valueOptions": { "min": 0, "max": 10, "step": 1 }, "storage": { "path": ["Mistakes", "fNoDefault"] }
+            },
+            {
+              "type": "slider", "valueType": "int", "text": "A default of another type", "help": "Its default is not a whole number.",
+              "default": 2.5, "valueOptions": { "min": 0, "max": 10, "step": 1 }, "storage": { "path": ["Mistakes", "iWrongDefault"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "An applies that is not one", "help": "Its applies is not live, save or restart, so it has the package's.",
+              "applies": "never", "default": true, "storage": { "path": ["Mistakes", "bApplies"] }
+            },
+            {
+              "id": "bSwitcher:Main", "type": "switcher", "valueType": "bool", "text": "An id another setting has",
+              "help": "Its id is the one the front page's switcher has from its path.",
+              "default": true, "storage": { "path": ["Mistakes", "bSameId"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Rows",
+          "content": [
+            { "type": "colour", "text": "A type no menu knows", "help": "A row of a type that is not one." },
+            { "text": "A row with no type", "help": "A row that does not say what it is." }
+          ]
+        }
+      ]
+    }
+  ]
+}

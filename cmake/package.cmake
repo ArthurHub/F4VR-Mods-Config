@@ -48,3 +48,17 @@ execute_process(
 if(NOT MCM_SHOWCASE_RESULT EQUAL 0)
   message(FATAL_ERROR "Failed to package the MCM showcase into '${MCM_SHOWCASE_ZIP}' (exit code: ${MCM_SHOWCASE_RESULT})")
 endif()
+
+# The package showcase is an optional file of its own too: a package with what a package has, each kind on
+# a page, which shows what a package does in the mod.
+set(PACKAGE_SHOWCASE_ZIP "${PACKAGE_DIR}/${PROJECT_FRIENDLY_NAME} - Showcase - v${PROJECT_VERSION} - ${PACKAGE_DATE}.7z")
+message("Packaging the package showcase into '${PACKAGE_SHOWCASE_ZIP}'")
+file(REMOVE "${PACKAGE_SHOWCASE_ZIP}")
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar cf "${PACKAGE_SHOWCASE_ZIP}" --format=7zip -- .
+  WORKING_DIRECTORY "${ROOT_DIR}/data/package-showcase"
+  RESULT_VARIABLE PACKAGE_SHOWCASE_RESULT
+)
+if(NOT PACKAGE_SHOWCASE_RESULT EQUAL 0)
+  message(FATAL_ERROR "Failed to package the package showcase into '${PACKAGE_SHOWCASE_ZIP}' (exit code: ${PACKAGE_SHOWCASE_RESULT})")
+endif()

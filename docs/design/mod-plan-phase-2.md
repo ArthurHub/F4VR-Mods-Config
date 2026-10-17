@@ -10,6 +10,7 @@ A package's features match MCM's, but its lifecycle is new. The milestone define
 | --- | ---- | ----------------------------------------------------------------------------------------- | ------ |
 | M103 | mod | docs: what a package has beyond MCM                                                      | done   |
 | M47 | mod  | The package loader: files, pages, sections and settings, and Mods Config VR's own package | in review |
+| M114 | mod | The package showcase, an optional file for developers                                    | in review |
 | M48 | mod  | Choices, shared lists and conditions in a package                                         | todo   |
 | M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | todo   |
 | M51 | mod  | The editing session: values from the file, pending values, dirty state                    | todo   |
@@ -21,6 +22,8 @@ M103 decides what a package should support beyond MCM, and what it has in place 
 - M47 reads the package's pages and sections, which nest, and the help of the mod and of its pages. A section in a section is drawn with a heading of its own. The tree shows a page's pages from M109.
 - M48 has every operator of a condition, `enabledWhen`, the conditions on a loaded plugin, and shared lists.
 - Milestone 6 has the rest: sections that fold, pages under pages, read-only settings and how a number is shown, a button's console command and its text, globals and properties with the action of a setting, and options from the game.
+
+M114 adds a package of our own, `data/package-showcase/`, as the MCM showcase is for MCM: what a package has, each kind on a page, and what a package can get wrong, with a TOML file and an INI file of its values beside it. Its front page has a row of every kind, so a row the menu does not draw yet is a placeholder there until the commit that draws it. It is tried in the headset as each commit reads or draws something of a package, and grows with them. It is packaged by itself and published as an optional file, to show a mod's author what a package does in the mod.
 
 M47 ships the first package, which is this mod's own, for `ModsConfigVR.toml`. The mod reloads its TOML when it changes, so a Save shows at once with no other mod involved. A package's text takes the three forms of [Localization](schema.md#localization): plain, a `$` token, and a token with a fallback. The lookup of a token is [M17](mod-plan-phase-1.md#1-browse-mcm-mods)'s.
 

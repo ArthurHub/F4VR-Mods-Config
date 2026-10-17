@@ -552,6 +552,24 @@ TEST_CASE("FullPanel render: the pages of the mod's own package, with the ray on
     }
 }
 
+TEST_CASE("FullPanel render: the pages of the package showcase", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+
+    // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
+    const auto render = [&mods](const std::optional<std::size_t> page, const std::string& name) {
+        FullPanel panel;
+        panel.setMods(mods);
+        panel.select({ .mod = 0, .page = page });
+        WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
+    };
+    render(std::nullopt, "package-showcase-front-page");
+    for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
+        render(page, std::format("package-showcase-page-{}", page + 1));
+    }
+}
+
 TEST_CASE("FullPanel render: a package's section in a section, with rows before and after it", "[.render]")
 {
     auto mod = package::loadPackage(R"({

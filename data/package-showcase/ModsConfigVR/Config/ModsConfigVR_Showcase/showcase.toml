@@ -1,0 +1,69 @@
+# The values of the Mods Config VR showcase package, which config.json beside this file edits.
+# Each is the default of its setting.
+
+[Main]
+bSwitcher = true
+fSlider = 50.0
+iSlider = 217
+iStepper = 1
+sDropdown = "offhand"
+sText = "Hello"
+fNumber = 1.5
+
+[Switchers]
+bOn = true
+bOff = false
+bNoValueType = true
+bNoHelp = false
+bLongName = false
+
+[Sliders]
+fFraction = 0.5
+fFine = 0.125
+fNegative = -20.0
+fLarge = 2500.0
+iOpacity = 217
+iCount = 3
+
+[TextInputs]
+sText = "Hello"
+sEmpty = ""
+iNumber = 42
+fNumber = 1.5
+
+[Sections]
+bBefore = true
+bHolsters = true
+fReach = 10.0
+fAngle = 45.0
+fSize = 1.0
+bInside = false
+bAfter = false
+
+[Pages]
+bTop = true
+bUnder = false
+bDeeper = false
+
+[Files]
+bOwn = false
+
+[Files.Tables]
+bDeep = true
+
+[Applies]
+bPage = true
+bLive = true
+bRestart = false
+bInner = false
+
+[Texts]
+bPlain = true
+bFallback = true
+bToken = true
+
+[Mistakes]
+fNoDefault = 5.0
+iWrongDefault = 2
+bApplies = true
+bSameId = true
