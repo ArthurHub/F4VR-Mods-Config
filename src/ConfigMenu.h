@@ -39,6 +39,12 @@ namespace mods_config
         void select(const ui::Selection& selection);
         const ui::Selection& selection() const;
 
+        // what the panel shows, for the devbench tool, which reads and drives it as the player's presses do
+        ui::FullPanel& fullPanel()
+        {
+            return _fullPanel;
+        }
+
     private:
         void createPanel();
         void applyPanelConfig();

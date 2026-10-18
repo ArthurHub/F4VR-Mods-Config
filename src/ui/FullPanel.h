@@ -57,9 +57,11 @@ namespace mods_config::ui
         void setThumbstickSideValue(float value);
         void setTreeWidth(float width);
         bool select(const Selection& selection);
+        bool showHelp(bool shown);
         bool back();
         void reset();
         void draw();
+        model::Store* selectedStore() const;
 
         const std::vector<model::Mod>& mods() const
         {
@@ -120,7 +122,6 @@ namespace mods_config::ui
         model::Store* storeOf(const model::Mod& mod) const;
         void updateStatus();
         void pageShown();
-        bool showHelp(bool shown);
         bool pressButton(TitleButton button);
         TitleBar drawTitleBar() const;
         std::optional<PointedRow> drawFrontPage();

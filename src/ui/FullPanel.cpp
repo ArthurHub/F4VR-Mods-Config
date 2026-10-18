@@ -239,6 +239,14 @@ namespace mods_config::ui
     }
 
     /**
+     * The store of the selected mod's values, which its editing session is in. None on the menu's front page.
+     */
+    model::Store* FullPanel::selectedStore() const
+    {
+        return _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+    }
+
+    /**
      * Gives the help line the status of the selected mod's editing session: that its changes are saved as
      * they are made, or how many wait for a Save. Nothing with no mod, and with no store.
      */
