@@ -2,6 +2,8 @@
 
 #include <filesystem>
 #include <format>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
@@ -48,6 +50,16 @@ namespace
         "sName = \"You\"\r\n"
         "iCount = 5\r\n"
         "fSpeed = 2.5\r\n";
+
+    /**
+     * The whole text of a file.
+     */
+    std::string readFile(const std::filesystem::path& path)
+    {
+        std::ostringstream text;
+        text << std::ifstream(path, std::ios::binary).rdbuf();
+        return text.str();
+    }
 
     /**
      * A package with the given content as its front page, a TOML file `main` in My Games that is its default,
@@ -295,6 +307,97 @@ TEST_CASE("PackageStore: a session that ends forgets its pending values, and the
     session.store.pageShown();
     CHECK(session.value(0).value == model::Value(true));
     CHECK(session.store.isDirty(session.setting(1)));
+}
+
+TEST_CASE("PackageStore: Save writes the dirty settings in the types of the file, with its layout kept, and they are clean with the value written")
+{
+    Session session;
+    session.open(MOD_TOML);
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.set(session.setting(1), 0.75f));
+    CHECK(session.store.set(session.setting(2), 200.0f));
+    CHECK(session.store.set(session.setting(4), "hip"s));
+    CHECK(session.store.set(session.setting(6), "7"s));
+    CHECK(session.store.set(session.setting(7), "3"s));
+    CHECK(session.store.save());
+
+    // a slider of a whole number is a whole number, and the text of a number its number
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "# My Mod\r\n"
+          "[Main]\r\n"
+          "bEnable = true\r\n"
+          "fScale = 0.75\r\n"
+          "iOpacity = 200\r\n"
+          "iHand = 1\r\n"
+          "sPlace = \"hip\"\r\n"
+          "sName = \"You\"\r\n"
+          "iCount = 7\r\n"
+          "fSpeed = 3.0\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(1).value == model::Value(0.75f));
+    CHECK(session.value(6).value == model::Value("7"s));
+
+    // the value written is the baseline: a change back to the file's value is clean
+    CHECK(session.store.set(session.setting(0), false));
+    CHECK(session.store.isDirty(session.setting(0)));
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.dirtyCount() == 0);
+}
+
+TEST_CASE("PackageStore: Save keeps a value that changed in the file since the session started, but for one the player changed, and adds a key the file does not have")
+{
+    Session session;
+    session.open("[Main]\r\nbEnable = false\r\nfScale = 1.25\r\n");
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.set(session.setting(5), "Them"s));
+    session.myGames.write(MOD_FILE, "[Main]\r\nbEnable = false\r\nfScale = 1.0\r\niHand = 1\r\n");
+    CHECK(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) == "[Main]\r\nbEnable = true\r\nfScale = 1.0\r\niHand = 1\r\nsName = \"Them\"\r\n");
+
+    // an invalid value of the file that is written is valid
+    Session invalid;
+    invalid.open("[Main]\r\nfScale = 2.0\r\n");
+    CHECK(invalid.value(1).invalid);
+    CHECK(invalid.store.set(invalid.setting(1), 1.5f));
+    CHECK(invalid.store.save());
+    CHECK_FALSE(invalid.value(1).invalid);
+    CHECK(invalid.value(1).reason.empty());
+}
+
+TEST_CASE("PackageStore: a file that cannot be written keeps its settings dirty, and Save says so")
+{
+    Session session;
+    session.open(MOD_TOML);
+    CHECK(session.store.set(session.setting(0), true));
+    session.myGames.write(MOD_FILE, "[Main\r\nbEnable = false\r\n");
+    CHECK_FALSE(session.store.save());
+    CHECK(session.store.isDirty(session.setting(0)));
+    CHECK(readFile(session.myGames.path / MOD_FILE) == "[Main\r\nbEnable = false\r\n");
+
+    // and is written by a Save once it can be
+    session.myGames.write(MOD_FILE, MOD_TOML);
+    CHECK(session.store.save());
+    CHECK(session.store.dirtyCount() == 0);
+}
+
+TEST_CASE("PackageStore: Discard takes back every pending value, and writes nothing")
+{
+    Session session;
+    session.open("[Main]\r\nbEnable = false\r\nfScale = 2.0\r\n");
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.set(session.setting(1), 1.0f));
+    CHECK(session.store.dirtyCount() == 2);
+    session.store.discard();
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(0).value == model::Value(false));
+
+    // an invalid value of the file is invalid again
+    CHECK(session.value(1).invalid);
+    CHECK(session.value(1).value == model::Value(2.0f));
+
+    // a Save then has nothing to write
+    CHECK(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) == "[Main]\r\nbEnable = false\r\nfScale = 2.0\r\n");
 }
 
 TEST_CASE("PackageStore: the default of a setting is its package's, in the type of its control")

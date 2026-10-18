@@ -14,7 +14,7 @@ A package's features match MCM's, but its lifecycle is new. The milestone define
 | M48 | mod  | Choices, shared lists and conditions in a package                                         | in review |
 | M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | in review |
 | M51 | mod  | The editing session: values from the file, pending values, dirty state                    | in review |
-| M52 | mod  | Save writes the dirty settings, and Discard                                               | todo   |
+| M52 | mod  | Save writes the dirty settings, and Discard                                               | in review |
 | M56 | mod  | Reset to the default                                                                      | todo   |
 
 M103 decides what a package should support beyond MCM, and what it has in place of what MCM's authors work around: [A package and MCM](schema.md#a-package-and-mcm). The milestones build it:
@@ -31,7 +31,7 @@ The milestone is TOML only. A CommonFramework mod keeps its config in a TOML fil
 
 M51 is the package store: the [editing session](architecture.md#editing-session) and the [values at session start](architecture.md#values-at-session-start) of a TOML file. A pending value has the design system's pending look, and the footer counts the unsaved changes. An invalid value of the file has its mark, its color and its reason in the help line: the message under the row's name is M55's, with the values the player types. Until M55 a value the player sets outside its limits is not set.
 
-M52 follows the Save steps of [Architecture and lifecycle](architecture.md#save-lifecycle), for the Save that goes well.
+M52 follows the Save steps of [Architecture and lifecycle](architecture.md#save-lifecycle), for the Save that goes well. Save and Discard are in the footer, as in the design system's `SaveBar`: enabled while a change waits, disabled on the menu's front page, and not there for an MCM mod. Each file is written in one write, and its settings are then clean with the values written as their baseline. Until M53 a file that cannot be written keeps its settings dirty, and the other files are still written.
 
 M56 is the Reset of a package's setting. The button of a row and the default in the help line are [M102](mod-plan-phase-1.md#3-mcm-complete)'s. The package store answers the `default` of the setting, and a Reset is a pending value as any other: Save writes it, and Discard takes it back.
 

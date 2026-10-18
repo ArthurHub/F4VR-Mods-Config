@@ -93,6 +93,17 @@ namespace mods_config::model
         virtual std::size_t dirtyCount() const = 0;
 
         /**
+         * Writes the dirty settings, which are then clean: the values written are their new baseline. Returns
+         * whether every one is written. Nothing for a store that saves a change as it is made.
+         */
+        virtual bool save() = 0;
+
+        /**
+         * Takes back every pending value, so each setting has its baseline again and is clean.
+         */
+        virtual void discard() = 0;
+
+        /**
          * The key a hotkey is bound to, as a text: its name, with the keys that are held with it. It is not
          * available for a hotkey its source does not have.
          */

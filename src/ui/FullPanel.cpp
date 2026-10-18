@@ -110,6 +110,29 @@ namespace
         ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
         return pressed;
     }
+
+    /**
+     * A button of the footer, in its box. Save is the primary button: a solid green, with its text in the color
+     * on green, a lighter green under the ray, and an outline while it is pressed. Discard is an outline.
+     * Inside `BeginDisabled` it is faded and is not pressed. Returns whether it was pressed.
+     */
+    bool footerButton(const char* label, const ImRect& box, const bool primary)
+    {
+        ImGui::SetCursorScreenPos(box.Min);
+        const bool pressed = ImGui::InvisibleButton(label, box.GetSize());
+        const bool pointed = ImGui::IsItemHovered();
+        const bool held = ImGui::IsItemActive();
+        if (primary) {
+            ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed && !held ? theme::color::GLOW : theme::color::GREEN), theme::RADIUS_FRAME);
+            if (held) {
+                ui::drawOutline(box.Min, box.Max, theme::color::GLOW);
+            }
+        } else {
+            ui::drawButtonFrame(box, pointed, held);
+        }
+        ui::drawTextIn(box, label, primary ? theme::color::ON_GREEN : theme::color::GREEN, 0.5f);
+        return pressed;
+    }
 }
 
 namespace mods_config::ui
@@ -444,15 +467,38 @@ namespace mods_config::ui
     }
 
     /**
-     * The footer, from its top left: a line over it, and the help line. The help line has all of its width,
-     * in from its edges as the mock has it: an MCM mod has no Discard and Save beside it, and its status is
-     * the help line's.
+     * The footer, from its top left: a line over it, the help line on its left, and Discard and Save on its
+     * right, which keep their places. They are enabled while the selected mod has changes that wait for a
+     * Save, and are disabled on the menu's front page, which has no session. A press on Save writes the
+     * changes, and one on Discard takes them back. An MCM mod saves its changes as they are made, so it has
+     * no Discard and Save, and its help line has all of the footer's width.
      */
-    void FullPanel::drawFooter(const ImVec2& pos) const
+    void FullPanel::drawFooter(const ImVec2& pos)
     {
         const float width = ImGui::GetContentRegionAvail().x;
         ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
-        _helpLine.draw(ImVec2(pos.x + theme::SPACE_4, pos.y), width - theme::SPACE_4 - theme::SPACE_2);
+
+        float helpRight = pos.x + width - theme::SPACE_2;
+        auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        if (!store || !store->savesAtOnce()) {
+            const float top = pos.y + (theme::FOOTER_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
+            const auto save = controlBox(helpRight - BUTTON_WIDTH, top, BUTTON_WIDTH);
+            const auto discard = controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
+            ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
+            if (footerButton("Discard", discard, false)) {
+                store->discard();
+                _pressActed = true;
+            }
+            if (footerButton("Save", save, true)) {
+                store->save();
+                _pressActed = true;
+            }
+            ImGui::EndDisabled();
+            updateStatus();
+            helpRight = discard.Min.x - theme::SPACE_3;
+        }
+
+        _helpLine.draw(ImVec2(pos.x + theme::SPACE_4, pos.y), helpRight - pos.x - theme::SPACE_4);
         ImGui::SetCursorScreenPos(pos);
         ImGui::Dummy(ImVec2(width, theme::FOOTER_HEIGHT));
     }

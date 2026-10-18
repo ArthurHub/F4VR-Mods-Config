@@ -6,6 +6,8 @@
 #include <cmath>
 #include <cstring>
 #include <format>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -397,6 +399,21 @@ namespace
         for (int i = 0; i < 3; ++i) {
             test_panel::drawFrame(panel, at);
         }
+    }
+
+    /**
+     * The middle of Save, at the right of the footer, and of Discard before it.
+     */
+    ImVec2 saveButton()
+    {
+        constexpr float BUTTON_WIDTH = 160.0f;
+        return { test_panel::PANEL_WIDTH - CONTENT_START - theme::SPACE_2 - BUTTON_WIDTH * 0.5f, test_panel::PANEL_HEIGHT - CONTENT_START - theme::FOOTER_HEIGHT * 0.5f };
+    }
+
+    ImVec2 discardButton()
+    {
+        constexpr float BUTTON_WIDTH = 160.0f;
+        return { saveButton().x - BUTTON_WIDTH - theme::SPACE_3, saveButton().y };
     }
 
     /**
@@ -1823,6 +1840,49 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     panel.select({});
     CHECK(panel.helpLine().status().empty());
     CHECK_FALSE(panel.helpLine().isStatusPending());
+}
+
+TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them back, and both are disabled while none waits")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } } ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& setting = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    CHECK_FALSE(pressActs(panel, saveButton()));
+    CHECK_FALSE(pressActs(panel, discardButton()));
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(pressActs(panel, discardButton()));
+    CHECK(store.dirtyCount() == 0);
+    CHECK(store.value(setting).value == model::Value(false));
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(pressActs(panel, saveButton()));
+    CHECK(store.dirtyCount() == 0);
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+    std::ostringstream text;
+    text << std::ifstream(file, std::ios::binary).rdbuf();
+    CHECK(text.str() == "[Main]\r\nbEnable = true\r\n");
+
+    // the menu's front page has no session to save
+    panel.select({});
+    drawFrames(panel, 2);
+    CHECK_FALSE(pressActs(panel, saveButton()));
 }
 
 TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, and its Reset sets the default")

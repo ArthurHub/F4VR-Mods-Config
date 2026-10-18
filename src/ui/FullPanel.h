@@ -19,7 +19,7 @@ namespace mods_config::ui
     /**
      * The content of the Full panel, drawn with ImGui as the design system has it: the title bar with its
      * breadcrumbs, the tree of the mods, beside it the menu's front page or a page of the selected mod, and
-     * the footer with the help line.
+     * the footer with the help line, and Discard and Save.
      * It knows nothing of the game, so a test draws it too.
      */
     class FullPanel
@@ -65,9 +65,10 @@ namespace mods_config::ui
 
         /**
          * Whether a press did something in the frame that was drawn last: it showed another page, opened a
-         * quick launch entry, changed a value, took hold of a slider, or opened the list of a dropdown. It is
-         * the frame the hand that points gets its pulse in. So is a step of a slider or a stepper by the thumbstick. A press that changes nothing, as one
-         * on the row that is selected, is not told, and neither are the steps of a slider that is dragged.
+         * quick launch entry, changed a value, took hold of a slider, opened the list of a dropdown, or saved or
+         * discarded the changes. It is the frame the hand that points gets its pulse in. So is a step of a slider
+         * or a stepper by the thumbstick. A press that changes nothing, as one on the row that is selected, is
+         * not told, and neither are the steps of a slider that is dragged.
          */
         bool pressActed() const
         {
@@ -79,7 +80,7 @@ namespace mods_config::ui
         void updateStatus();
         std::optional<Selection> drawTitleBar() const;
         std::optional<PointedRow> drawFrontPage();
-        void drawFooter(const ImVec2& pos) const;
+        void drawFooter(const ImVec2& pos);
 
         // the mods the menu lists, in order of their display names
         std::vector<model::Mod> _mods;

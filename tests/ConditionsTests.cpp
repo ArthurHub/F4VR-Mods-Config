@@ -110,6 +110,14 @@ namespace
             return 0;
         }
 
+        bool save() override
+        {
+            return true;
+        }
+
+        void discard() override
+        {}
+
         model::StoredValue hotkey(const model::Hotkey&) override
         {
             return {};

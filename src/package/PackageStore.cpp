@@ -243,6 +243,30 @@ namespace
     }
 
     /**
+     * A value as its file keeps it, in the type of its setting, from the value its control has: the number of
+     * a slider of a whole number is the whole number, and the text of a text input that takes a number is
+     * that number. The value is one of the setting, as a pending value is.
+     */
+    model::Value storedValue(const model::Setting& setting, const model::Value& value)
+    {
+        if (setting.type == model::SettingType::Slider && setting.valueType == model::StoredType::Int) {
+            return static_cast<int>(std::round(std::get<float>(value)));
+        }
+        if (!isNumberField(setting)) {
+            return value;
+        }
+        const auto& text = std::get<std::string>(value);
+        if (setting.valueType == model::StoredType::Int) {
+            int whole = 0;
+            std::from_chars(text.data(), text.data() + text.size(), whole);
+            return whole;
+        }
+        float number = 0.0f;
+        std::from_chars(text.data(), text.data() + text.size(), number);
+        return number;
+    }
+
+    /**
      * Why a value in a file, as its control has it, is not one of its setting: a number outside the limits,
      * or no option of a choice. Empty for a value that is one. It names the value by its path and its file,
      * as a reason of a TOML file does.
@@ -329,6 +353,7 @@ namespace mods_config::package
     void PackageStore::open(const model::Mod& mod)
     {
         close();
+        _modName = mod.name;
 
         std::map<std::string, FileOfSession, std::less<>> files;
         for (const auto& [name, file] : mod.files) {
@@ -339,6 +364,7 @@ namespace mods_config::package
             }
             const auto& root = file.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder;
             const auto path = root / filePath(file);
+            _tomlFiles.emplace(name, path);
             if (!std::filesystem::exists(path)) {
                 logger::debug("The file '{}' of '{}' is not there: its settings have their defaults", path.string(), mod.name);
                 continue;
@@ -351,10 +377,9 @@ namespace mods_config::package
             }
         }
 
-        std::vector<const model::Setting*> settings;
-        addSettings(mod.frontPage.items, settings);
-        addSettings(mod.pages, settings);
-        for (const auto* setting : settings) {
+        addSettings(mod.frontPage.items, _settingList);
+        addSettings(mod.pages, _settingList);
+        for (const auto* setting : _settingList) {
             _settings.try_emplace(setting->id, setting);
             auto& entry = _entries[setting];
             if (!controlValue(*setting, zeroOf(setting->valueType))) {
@@ -388,7 +413,7 @@ namespace mods_config::package
             entry.baseline = controlValue(*setting, *stored);
             entry.invalid = invalidReason(*setting, *entry.baseline, pathText(storage.path), fileName(mod.files.at(storage.file)));
         }
-        logger::debug("Read {} settings of '{}' from {} files", settings.size(), mod.name, files.size());
+        logger::debug("Read {} settings of '{}' from {} files", _settingList.size(), mod.name, files.size());
     }
 
     /**
@@ -397,6 +422,9 @@ namespace mods_config::package
      */
     void PackageStore::close()
     {
+        _modName.clear();
+        _tomlFiles.clear();
+        _settingList.clear();
         _settings.clear();
         _entries.clear();
     }
@@ -482,6 +510,57 @@ namespace mods_config::package
         return static_cast<std::size_t>(std::ranges::count_if(_entries, [](const auto& entry) {
             return entry.second.pending.has_value();
         }));
+    }
+
+    /**
+     * Writes the dirty settings into their files, each file in one write, in the order of the package, and a
+     * setting then has the value written as its baseline. A file is read again as it is written, so a value
+     * that changed in it since the session started stays, but for one the player changed too.
+     * A file that cannot be written keeps its settings dirty, with the reason in the log, and the other files
+     * are still written. Returns whether every dirty setting is written.
+     */
+    bool PackageStore::save()
+    {
+        bool saved = true;
+        std::size_t written = 0;
+        for (const auto& [name, path] : _tomlFiles) {
+            std::vector<TomlFile::Change> changes;
+            std::vector<Entry*> entries;
+            for (const auto* setting : _settingList) {
+                auto& entry = _entries.at(setting);
+                const auto* storage = std::get_if<model::FileStorage>(&setting->storage);
+                if (entry.pending && storage && storage->file == name) {
+                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending) });
+                    entries.push_back(&entry);
+                }
+            }
+            if (changes.empty()) {
+                continue;
+            }
+            if (const auto result = TomlFile(path).write(changes); !result) {
+                logger::warn("The changes of '{}' to '{}' are not saved: {}", _modName, path.string(), result.error());
+                saved = false;
+                continue;
+            }
+            for (auto* entry : entries) {
+                entry->baseline = std::move(entry->pending);
+                entry->pending.reset();
+                entry->invalid.clear();
+            }
+            written += changes.size();
+        }
+        logger::info("Saved {} changes of '{}'", written, _modName);
+        return saved;
+    }
+
+    /**
+     * Takes back the pending values: each setting has its baseline again, also an invalid one of its file.
+     */
+    void PackageStore::discard()
+    {
+        for (auto& entry : _entries | std::views::values) {
+            entry.pending.reset();
+        }
     }
 
     /**

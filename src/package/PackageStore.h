@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include "model/Definition.h"
 #include "model/Store.h"
@@ -17,8 +18,8 @@ namespace mods_config::package
     /**
      * The store of a package's mod: its editing session. As the mod is selected its files are read, and the
      * value of each setting then is its baseline. A change is a pending value, and a setting whose pending
-     * value is not its baseline is dirty: it waits for a Save, which writes it. A change back to the baseline
-     * leaves the setting clean.
+     * value is not its baseline is dirty: it waits for a Save, which writes it and makes it the baseline, or a
+     * Discard, which takes it back. A change back to the baseline leaves the setting clean.
      * A value the file does not have, as in a file that is not there, is the setting's default, and is clean.
      * One that is not of its setting's type, outside its limits or no option of its choice is invalid: it is
      * shown and edited, and is clean until the player changes it.
@@ -45,6 +46,8 @@ namespace mods_config::package
 
         bool isDirty(const model::Setting& setting) const override;
         std::size_t dirtyCount() const override;
+        bool save() override;
+        void discard() override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         bool run(const model::Action& action) override;
 
@@ -73,7 +76,17 @@ namespace mods_config::package
         std::filesystem::path _dataFolder;
         std::filesystem::path _myGamesFolder;
 
-        // the settings of the mod that is selected, by their ids
+        // the name of the mod that is selected, for the log
+        std::string _modName;
+
+        // the TOML files of the mod that is selected, absolute, by their names in its package. A file that is
+        // not there is one too
+        std::map<std::string, std::filesystem::path, std::less<>> _tomlFiles;
+
+        // the settings of the mod that is selected, in the order of its package
+        std::vector<const model::Setting*> _settingList;
+
+        // and by their ids
         std::map<std::string, const model::Setting*, std::less<>> _settings;
 
         // what the session has of each setting of the mod that is selected

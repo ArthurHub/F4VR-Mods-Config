@@ -93,6 +93,14 @@ namespace mods_config::mcm
             return 0;
         }
 
+        bool save() override
+        {
+            return true;
+        }
+
+        void discard() override
+        {}
+
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         bool run(const model::Action& action) override;
 
