@@ -1323,6 +1323,51 @@ ro_body = f"""<div class="mc-world mc-stack" style="gap:16px">
 write('ReadOnly', page('<!-- @dsCard group="Settings" height=560 width=1170 subtitle="A value the mod writes: shown in its control, the row disabled, (Read-only) first in its help, no Reset" -->', 'Read-only', ro_body))
 print('ok warning, read-only')
 
+# ---------------- Hotkey: an MCM hotkey's key, shown and not edited ----------------
+def keybox(name):
+    """The key in a box as wide as its name, and at least 96 px, where a control ends, before the empty Reset slot."""
+    return f'<div class="main"><span class="mc-keybox t-body">{name}</span></div>{reset_btn(False)}'
+
+hk_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The key MCM has bound to the hotkey, in a box: the row is always disabled, as MCM binds the key and runs the hotkey</span>
+{h_sheet([
+    ('A key', row('Toggle the flashlight', keybox('F'))),
+    ('Modifiers', row('Cycle the beam', keybox('Ctrl-Shift-F5'))),
+    ('No key', row('Quick light', keybox('None'))),
+    ('Under the ray', row('Toggle the flashlight', keybox('F'), 'is-hover', mark=(560, 22))),
+    ('Not available', row('Strobe', keybox('None'))),
+])}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+<div class="mc-footer">{helpline('Toggle the flashlight', '(Read-only) Turns the flashlight on and off. Bind a key to it in MCM&#39;s menu.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+<div class="mc-footer">{helpline('Strobe', 'Not available: the hotkey strobe is not in the keybinds.json of the mod.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+</div>
+</div>"""
+hk_body = hk_body.replace('class="mc-row ', 'class="mc-row is-readonly ').replace('class="mc-row is-readonly "', 'class="mc-row is-readonly"')
+write('Hotkey', page('<!-- @dsCard group="Settings" height=620 width=1170 subtitle="An MCM hotkey: its key in a box at least 96 px wide, the row disabled with the hover look under the ray, (Read-only) first in its help" -->', 'Hotkey', hk_body))
+
+# ---------------- UnsupportedControl: a row of a control the menu does not have ----------------
+def ctl_type(name):
+    """What the row is, where its control would be: the type as its config writes it, in the muted color."""
+    return f'<div class="main"><span class="mc-type t-body">{name}</span></div>{reset_btn(False)}'
+
+uc_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A control the menu does not have: its text, and its type where the control would be. The row is always disabled</span>
+{h_sheet([
+    ('positioner', row('Holster position', ctl_type('positioner'))),
+    ('keyinput', row('Melee key', ctl_type('keyinput'))),
+    ('customClipLoader', row('Hand animations', ctl_type('customClipLoader'))),
+    ('No type', row('Advanced options', ctl_type('unknown'))),
+    ('Under the ray', row('Holster position', ctl_type('positioner'), 'is-hover', mark=(560, 22))),
+])}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+<div class="mc-footer">{helpline('Holster position', 'Not available: the menu has no positioner control.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+<div class="mc-footer">{helpline('Advanced options', 'Not available: the row has no type of control.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+</div>
+</div>"""
+uc_body = uc_body.replace('class="mc-row ', 'class="mc-row is-readonly ').replace('class="mc-row is-readonly "', 'class="mc-row is-readonly"')
+write('UnsupportedControl', page('<!-- @dsCard group="Settings" height=620 width=1170 subtitle="A control the menu does not have: its type in muted text, the row disabled with the hover look under the ray; its help says the menu has no such control" -->', 'Control the menu does not have', uc_body))
+print('ok hotkey, unsupported control')
+
 # ---------------- NumberDisplay: decimals, a unit, a percentage, and a value too wide for its box ----------------
 def slider_v(value, pct, cls=''):
     return (f'<div class="main"><span class="mc-track"><i class="fill" style="width:{pct*2.6:.0f}px"></i>'

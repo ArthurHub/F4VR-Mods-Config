@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-18T02:30:00Z",
+    "at": "2026-10-18T16:00:00Z",
     "via": "Claude (Cowork)",
-    "note": "In review: text input, text, spacer and image rows, a choice of files, Transform and ActivationSphere (TextInput, TextRows, FileChoice, Transform, ActivationSphere); before them the warning, read-only, number display, button row, save summary and restart notice."
+    "note": "In review: an MCM hotkey's row (Hotkey) and the row of a control the menu does not have (UnsupportedControl), as the code draws them."
   },
   "layout": "files",
   "libraries": [],
