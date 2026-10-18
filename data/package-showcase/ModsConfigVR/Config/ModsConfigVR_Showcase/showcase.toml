@@ -25,6 +25,17 @@ fLarge = 2500.0
 iOpacity = 217
 iCount = 3
 
+[Choices]
+iStepper = 1
+sStepper = "normal"
+iHand = 0
+iDropdown = 0
+fScale = 1.0
+sPlace = "hip"
+iOtherHand = 1
+iMany = 0
+iLong = 1
+
 [TextInputs]
 sText = "Hello"
 sEmpty = ""
@@ -57,6 +68,29 @@ bLive = true
 bRestart = false
 bInner = false
 
+[Conditions]
+bShow = true
+bEnable = false
+sMode = "physical"
+iLevel = 5
+bInSection = false
+bHybrid = false
+fEnabled = 0.5
+iNotButtons = 0
+bLessThan = false
+bLessThanOrEqual = false
+bGreaterThan = false
+bGreaterThanOrEqual = false
+bOneOf = false
+bNotOneOf = false
+bAny = false
+bAllNot = false
+bGamePlugin = false
+bNoGamePlugin = false
+bMissingGamePlugin = false
+bF4sePlugin = false
+bNoF4sePlugin = false
+
 [Texts]
 bPlain = true
 bFallback = true
@@ -67,3 +101,11 @@ fNoDefault = 5.0
 iWrongDefault = 2
 bApplies = true
 bSameId = true
+iNoOptions = 0
+iNoList = 0
+sWrongOptions = "b"
+bNoSetting = true
+bWrongType = true
+bTextOrder = true
+bBadPart = true
+bNoOperator = true

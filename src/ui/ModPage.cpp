@@ -282,7 +282,8 @@ namespace
      * is written as its field is left with another text: its row is not pressed while it is edited, so a
      * press on the field is the field's. A control whose value is not
      * available is disabled, and so is a slider with no range and a stepper and a dropdown with no options.
-     * The row itself has the look of a row under the ray, as it has a help.
+     * A setting whose enabledWhen does not hold is disabled as a whole, with its Reset, and a press does
+     * nothing in its row. The row itself has the look of a row under the ray, as it has a help.
      * A setting with a default has its Reset in the room after the control, disabled while its value is the
      * default: a press on it sets the default in the store. A press in that room does nothing else in the
      * row, also while Reset is disabled, so a second press on it changes nothing.
@@ -293,10 +294,15 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        const auto row = addRow(!page.textInputs.isEdited(setting));
+        const bool enabled = !setting.enabledWhen || model::holds(*setting.enabledWhen, page.store);
+        const auto row = addRow(enabled && !page.textInputs.isEdited(setting));
+        if (!enabled && row.shown) {
+            ui::drawRowState();
+        }
         const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
 
         auto stored = page.store ? page.store->value(setting) : model::StoredValue{};
+        const bool editable = stored.available && enabled;
 
         // Reset is pressed a little beside it too, as a button of a stepper is. A press is its own when it
         // began there: a slider that is dragged and let go on it is not reset
@@ -305,7 +311,7 @@ namespace
         const auto defaultValue = stored.available ? defaultOf(setting, *page.store) : std::nullopt;
         const bool onReset = defaultValue && row.pointed && io.MousePos.x >= resetBox.Min.x - theme::SPACE_1;
         const bool resetHeld = onReset && io.MouseClickedPos[ImGuiMouseButton_Left].x >= resetBox.Min.x - theme::SPACE_1;
-        bool resets = defaultValue && !isSameValue(stored.value, *defaultValue);
+        bool resets = editable && defaultValue && !isSameValue(stored.value, *defaultValue);
         if (resets && resetHeld && row.pressed && page.store->set(setting, *defaultValue)) {
             stored = page.store->value(setting);
             resets = false;
@@ -316,10 +322,10 @@ namespace
         const auto& options = setting.valueOptions;
         const auto* on = std::get_if<bool>(&stored.value);
         const auto* number = std::get_if<float>(&stored.value);
-        const bool isSwitcher = stored.available && setting.type == model::SettingType::Switcher && on;
-        const bool isSlider = stored.available && setting.type == model::SettingType::Slider && number && options.max > options.min;
-        const bool isChoice = stored.available && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !options.options.empty();
-        const bool isText = stored.available && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(stored.value);
+        const bool isSwitcher = editable && setting.type == model::SettingType::Switcher && on;
+        const bool isSlider = editable && setting.type == model::SettingType::Slider && number && options.max > options.min;
+        const bool isChoice = editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !options.options.empty();
+        const bool isText = editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(stored.value);
 
         // before the row is known to be shown: a slider that is dragged out of the page is still held
         float value = number ? *number : options.min;
@@ -354,7 +360,7 @@ namespace
             const auto typed = page.textInputs.edit(setting, right, pos.y, rowPressed, std::get<std::string>(stored.value), pulse);
             if (typed && page.store->set(setting, *typed)) {
                 stored = page.store->value(setting);
-                resets = defaultValue && !isSameValue(stored.value, *defaultValue);
+                resets = editable && defaultValue && !isSameValue(stored.value, *defaultValue);
             }
             page.drawn.pressActed = page.drawn.pressActed || pulse;
         }
@@ -589,7 +595,8 @@ namespace
 
     /**
      * Whether an item is shown: one with a condition is, while it holds on the values of the store. With no
-     * store every item is shown.
+     * store no value is available, so a condition on a value holds, and one that is settled without a value,
+     * as a package's condition on a plugin, is asked as any other.
      */
     bool isShown(const model::Item& item, model::Store* store)
     {
@@ -598,7 +605,7 @@ namespace
                 return row.visibleWhen;
             },
             item);
-        return !visibleWhen || !store || model::holds(*visibleWhen, *store);
+        return !visibleWhen || model::holds(*visibleWhen, store);
     }
 
     /**

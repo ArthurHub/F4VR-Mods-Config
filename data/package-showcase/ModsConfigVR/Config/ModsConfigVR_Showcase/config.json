@@ -19,6 +19,15 @@
   },
   "defaultFile": "showcase",
   "applies": "live",
+  // lists of options that several choices use, each named by its own
+  "sharedLists": {
+    "hands": ["Left", "Right"],
+    "places": [
+      { "value": "head", "text": "Head" },
+      { "value": "chest", "text": "Chest" },
+      { "value": "hip", "text": "Hip" }
+    ]
+  },
   // the front page has one row of every kind, also those the menu does not draw yet, which are placeholders
   // until the commit that draws them
   "content": [
@@ -150,6 +159,83 @@
               "type": "slider", "valueType": "int", "text": "From 1 to 10 by 1", "help": "A short range of whole numbers.",
               "default": 3, "valueOptions": { "min": 1, "max": 10, "step": 1 },
               "storage": { "path": ["Sliders", "iCount"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Choices",
+      "help": "Steppers and dropdowns, of their own options and of a shared list, that store a place, a text or a number.",
+      "content": [
+        {
+          "type": "section", "text": "Steppers",
+          "content": [
+            {
+              "type": "stepper", "valueType": "int", "text": "Texts", "help": "Options that are texts: it stores the place of the chosen one.",
+              "default": 1, "valueOptions": { "options": ["Low", "Medium", "High"] },
+              "storage": { "path": ["Choices", "iStepper"] }
+            },
+            {
+              "type": "stepper", "valueType": "string", "text": "Values", "help": "Options with the text each stores.",
+              "default": "normal",
+              "valueOptions": {
+                "options": [
+                  { "value": "slow", "text": "Slow" },
+                  { "value": "normal", "text": "Normal" },
+                  { "value": "fast", "text": "Fast" }
+                ]
+              },
+              "storage": { "path": ["Choices", "sStepper"] }
+            },
+            {
+              "type": "stepper", "text": "A shared list", "help": "The options of the package's shared list hands. With no valueType it stores a place.",
+              "default": 0, "valueOptions": { "sharedOptions": "hands" },
+              "storage": { "path": ["Choices", "iHand"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Dropdowns",
+          "content": [
+            {
+              "type": "dropdown", "valueType": "int", "text": "Texts", "help": "Options that are texts: it stores the place of the chosen one.",
+              "default": 0, "valueOptions": { "options": ["Head", "Offhand", "Primary hand"] },
+              "storage": { "path": ["Choices", "iDropdown"] }
+            },
+            {
+              "type": "dropdown", "valueType": "float", "text": "Numbers", "help": "Options with the number each stores.",
+              "default": 1.0,
+              "valueOptions": {
+                "options": [
+                  { "value": 0.5, "text": "Half" },
+                  { "value": 1.0, "text": "Normal" },
+                  { "value": 2.0, "text": "Double" }
+                ]
+              },
+              "storage": { "path": ["Choices", "fScale"] }
+            },
+            {
+              "type": "dropdown", "valueType": "string", "text": "A shared list", "help": "The options of the package's shared list places, with the text each stores.",
+              "default": "hip", "valueOptions": { "sharedOptions": "places" },
+              "storage": { "path": ["Choices", "sPlace"] }
+            },
+            {
+              "type": "dropdown", "text": "The same shared list", "help": "Another choice of the shared list hands, named in another case.",
+              "default": 1, "valueOptions": { "sharedOptions": "Hands" },
+              "storage": { "path": ["Choices", "iOtherHand"] }
+            },
+            {
+              "type": "dropdown", "valueType": "int", "text": "Many options", "help": "A list longer than the room under it.",
+              "default": 0,
+              "valueOptions": { "options": ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"] },
+              "storage": { "path": ["Choices", "iMany"] }
+            },
+            {
+              "type": "dropdown", "valueType": "int", "text": "A long option", "help": "An option whose text is much too long for the room of its box.",
+              "default": 1,
+              "valueOptions": { "options": ["Short", "An option with a text that is much too long for the room its box has"] },
+              "storage": { "path": ["Choices", "iLong"] }
             }
           ]
         }
@@ -365,6 +451,147 @@
       ]
     },
     {
+      "pageDisplayName": "Conditions",
+      "help": "Rows that are shown and enabled by the values of settings, and by the plugins that are loaded.",
+      "content": [
+        {
+          "type": "section", "text": "The settings they ask of",
+          "content": [
+            {
+              "id": "showRows", "type": "switcher", "valueType": "bool", "text": "Show rows", "help": "The rows of the next section are shown while it is on.",
+              "default": true, "storage": { "path": ["Conditions", "bShow"] }
+            },
+            {
+              "id": "enableRows", "type": "switcher", "valueType": "bool", "text": "Enable rows", "help": "The rows of the section after are enabled while it is on.",
+              "default": false, "storage": { "path": ["Conditions", "bEnable"] }
+            },
+            {
+              "id": "mode", "type": "dropdown", "valueType": "string", "text": "Mode", "help": "Some rows are shown for some modes.",
+              "default": "physical",
+              "valueOptions": {
+                "options": [
+                  { "value": "physical", "text": "Physical" },
+                  { "value": "hybrid", "text": "Hybrid" },
+                  { "value": "buttons", "text": "Buttons" }
+                ]
+              },
+              "storage": { "path": ["Conditions", "sMode"] }
+            },
+            {
+              "id": "level", "type": "slider", "valueType": "int", "text": "Level", "help": "Some rows are shown above or below a level.",
+              "default": 5, "valueOptions": { "min": 0, "max": 10, "step": 1 },
+              "storage": { "path": ["Conditions", "iLevel"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Shown by a switcher", "visibleWhen": { "setting": "showRows", "equals": true },
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "In the section", "help": "Shown while Show rows is on: the section's condition.",
+              "default": false, "storage": { "path": ["Conditions", "bInSection"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Also in Hybrid", "help": "Shown while Show rows is on and Mode is Hybrid: its own condition and the section's.",
+              "default": false, "storage": { "path": ["Conditions", "bHybrid"] },
+              "visibleWhen": { "setting": "mode", "equals": "hybrid" }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Enabled by a switcher", "enabledWhen": { "setting": "enableRows", "equals": true },
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Enabled with the section", "help": "Edited while Enable rows is on.",
+              "default": 0.5, "valueOptions": { "min": 0, "max": 1, "step": 0.1 },
+              "storage": { "path": ["Conditions", "fEnabled"] }
+            },
+            {
+              "type": "stepper", "valueType": "int", "text": "Also not in Buttons", "help": "Edited while Enable rows is on and Mode is not Buttons.",
+              "default": 0, "valueOptions": { "sharedOptions": "hands" },
+              "storage": { "path": ["Conditions", "iNotButtons"] },
+              "enabledWhen": { "setting": "mode", "notEquals": "buttons" }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Every operator",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "Level below 3", "help": "Shown while Level is less than 3.",
+              "default": false, "storage": { "path": ["Conditions", "bLessThan"] },
+              "visibleWhen": { "setting": "level", "lessThan": 3 }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Level 5 or below", "help": "Shown while Level is less than or equal to 5.",
+              "default": false, "storage": { "path": ["Conditions", "bLessThanOrEqual"] },
+              "visibleWhen": { "setting": "level", "lessThanOrEqual": 5 }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Level above 7", "help": "Shown while Level is greater than 7.",
+              "default": false, "storage": { "path": ["Conditions", "bGreaterThan"] },
+              "visibleWhen": { "setting": "level", "greaterThan": 7 }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Level 5 or above", "help": "Shown while Level is greater than or equal to 5.",
+              "default": false, "storage": { "path": ["Conditions", "bGreaterThanOrEqual"] },
+              "visibleWhen": { "setting": "level", "greaterThanOrEqual": 5 }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Physical or Hybrid", "help": "Shown while Mode is one of Physical and Hybrid.",
+              "default": false, "storage": { "path": ["Conditions", "bOneOf"] },
+              "visibleWhen": { "setting": "mode", "oneOf": ["physical", "hybrid"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Not Physical", "help": "Shown while Mode is none of Physical.",
+              "default": false, "storage": { "path": ["Conditions", "bNotOneOf"] },
+              "visibleWhen": { "setting": "mode", "notOneOf": ["physical"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Any of two", "help": "Shown while Show rows is off or Level is 10.",
+              "default": false, "storage": { "path": ["Conditions", "bAny"] },
+              "visibleWhen": { "any": [ { "setting": "showRows", "equals": false }, { "setting": "level", "equals": 10 } ] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "All but one", "help": "Shown while Show rows is on and Mode is not Hybrid.",
+              "default": false, "storage": { "path": ["Conditions", "bAllNot"] },
+              "visibleWhen": { "all": [ { "setting": "showRows", "equals": true }, { "not": { "setting": "mode", "equals": "hybrid" } } ] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Plugins",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "With Fallout4.esm", "help": "Shown while the game plugin Fallout4.esm is loaded, which it always is.",
+              "default": false, "storage": { "path": ["Conditions", "bGamePlugin"] },
+              "visibleWhen": { "plugin": "Fallout4.esm" }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Without a missing plugin", "help": "Shown while the game plugin NoSuchPlugin.esp is not loaded.",
+              "default": false, "storage": { "path": ["Conditions", "bNoGamePlugin"] },
+              "visibleWhen": { "not": { "plugin": "NoSuchPlugin.esp" } }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Never: a missing plugin", "help": "Shown while the game plugin NoSuchPlugin.esp is loaded, so it is not.",
+              "default": false, "storage": { "path": ["Conditions", "bMissingGamePlugin"] },
+              "visibleWhen": { "plugin": "NoSuchPlugin.esp" }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "With FRIK", "help": "Shown while the F4SE plugin F4VRBody, which is FRIK, is loaded.",
+              "default": false, "storage": { "path": ["Conditions", "bF4sePlugin"] },
+              "visibleWhen": { "f4sePlugin": "F4VRBody" }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Enabled without a missing F4SE plugin", "help": "Edited while the F4SE plugin NoSuchPlugin is not loaded.",
+              "default": false, "storage": { "path": ["Conditions", "bNoF4sePlugin"] },
+              "enabledWhen": { "not": { "f4sePlugin": "NoSuchPlugin" } }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "pageDisplayName": { "token": "$ModsConfigVR_Showcase_Texts", "fallback": "Texts" },
       "help": { "token": "$ModsConfigVR_Showcase_TextsHelp", "fallback": "Plain texts, tokens with a fallback, and a token with none." },
       "content": [
@@ -430,6 +657,55 @@
               "id": "bSwitcher:Main", "type": "switcher", "valueType": "bool", "text": "An id another setting has",
               "help": "Its id is the one the front page's switcher has from its path.",
               "default": true, "storage": { "path": ["Mistakes", "bSameId"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Choices",
+          "content": [
+            {
+              "type": "dropdown", "valueType": "int", "text": "No options", "help": "It has no options, so it is disabled.",
+              "default": 0, "storage": { "path": ["Mistakes", "iNoOptions"] }
+            },
+            {
+              "type": "stepper", "valueType": "int", "text": "No such shared list", "help": "It names a shared list the package does not have, so it has no options.",
+              "default": 0, "valueOptions": { "sharedOptions": "feet" }, "storage": { "path": ["Mistakes", "iNoList"] }
+            },
+            {
+              "type": "dropdown", "valueType": "string", "text": "Options of another type", "help": "Of its four options, a text and a number are left out: they are not texts it stores.",
+              "default": "b",
+              "valueOptions": { "options": ["A place", { "value": 1, "text": "A number" }, { "value": "b", "text": "B" }, { "value": "c", "text": "C" }] },
+              "storage": { "path": ["Mistakes", "sWrongOptions"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Conditions",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "No such setting", "help": "Its condition names a setting the package does not have, so it is shown.",
+              "default": true, "storage": { "path": ["Mistakes", "bNoSetting"] },
+              "visibleWhen": { "setting": "missing", "equals": true }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A value of another type", "help": "Its condition compares a switcher with a number, so it is shown.",
+              "default": true, "storage": { "path": ["Mistakes", "bWrongType"] },
+              "visibleWhen": { "setting": "showRows", "equals": 1 }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "An order of a text", "help": "Its condition asks whether a text is above a number, so it is enabled.",
+              "default": true, "storage": { "path": ["Mistakes", "bTextOrder"] },
+              "enabledWhen": { "setting": "mode", "greaterThan": 1 }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A part that is not one", "help": "One part of its condition names no setting, so all of it is left out, and it is shown.",
+              "default": true, "storage": { "path": ["Mistakes", "bBadPart"] },
+              "visibleWhen": { "all": [ { "setting": "showRows", "equals": false }, { "setting": "missing", "equals": true } ] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "No operator", "help": "Its condition names a setting and does not say how it is compared, so it is shown.",
+              "default": true, "storage": { "path": ["Mistakes", "bNoOperator"] },
+              "visibleWhen": { "setting": "showRows", "is": false }
             }
           ]
         },

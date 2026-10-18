@@ -172,8 +172,8 @@ namespace mods_config::model
     };
 
     /**
-     * What a row is shown by: the value of one setting, or other conditions that are joined. It is asked of
-     * the store's values, so a row shows and hides as the player edits.
+     * What a row is shown or enabled by: the value of one setting, or other conditions that are joined. It is
+     * asked of the store's values, so a row shows and hides as the player edits.
      */
     struct Condition
     {
@@ -181,6 +181,18 @@ namespace mods_config::model
         {
             // its setting is on: a switcher that is on, and any other value that is the number 1
             On,
+            // its setting's value is its value, or is not. A number is its value when they are as near as a
+            // number and the text of it in a file
+            Equals,
+            NotEquals,
+            // its setting's value is a number below or above its value
+            LessThan,
+            LessThanOrEqual,
+            GreaterThan,
+            GreaterThanOrEqual,
+            // its setting's value is one of its values, or is none of them
+            OneOf,
+            NotOneOf,
             // every one of its conditions holds. With none it holds
             All,
             // one of its conditions holds. With none it does not
@@ -191,7 +203,7 @@ namespace mods_config::model
 
         Kind kind = Kind::All;
 
-        // the id of the setting of an On
+        // the id of the setting of an On and of a comparison
         std::string setting;
 
         // what an All, an Any and a Not join
@@ -200,6 +212,9 @@ namespace mods_config::model
         // an On whose setting no row shows, as MCM's hidden switcher: its value that is not available is
         // off, as MCM's menu reads it, where any other leaves the condition open
         bool offWhenNotAvailable = false;
+
+        // what a comparison compares its setting's value with: one value, or the list of a OneOf and a NotOneOf
+        std::vector<Value> values;
 
         bool operator==(const Condition&) const = default;
     };
@@ -331,6 +346,9 @@ namespace mods_config::model
 
         // the row is shown while it holds. A row with none is always shown
         std::optional<Condition> visibleWhen;
+
+        // the row is edited while it holds, and is disabled while it does not. A row with none is always edited
+        std::optional<Condition> enabledWhen;
 
         // when its change takes effect: its own, or else the nearest its package gives above it. None for an
         // MCM row

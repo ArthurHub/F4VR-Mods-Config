@@ -769,10 +769,10 @@ TEST_CASE("McmStore: a hidden switcher of the MCM showcase that is on shows the 
     // the two hidden switchers, and the text row of the group of each
     const auto& rows = std::get<model::Group>(*section).items;
     REQUIRE(rows.size() == 4);
-    CHECK_FALSE(model::holds(*std::get<model::Setting>(rows[0]).visibleWhen, store));
-    CHECK_FALSE(model::holds(*std::get<model::Setting>(rows[1]).visibleWhen, store));
-    CHECK(model::holds(*std::get<model::Text>(rows[2]).visibleWhen, store));
-    CHECK_FALSE(model::holds(*std::get<model::Text>(rows[3]).visibleWhen, store));
+    CHECK_FALSE(model::holds(*std::get<model::Setting>(rows[0]).visibleWhen, &store));
+    CHECK_FALSE(model::holds(*std::get<model::Setting>(rows[1]).visibleWhen, &store));
+    CHECK(model::holds(*std::get<model::Text>(rows[2]).visibleWhen, &store));
+    CHECK_FALSE(model::holds(*std::get<model::Text>(rows[3]).visibleWhen, &store));
 }
 
 TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its settings file")

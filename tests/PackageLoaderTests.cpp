@@ -220,18 +220,20 @@ TEST_CASE("PackageLoader: a section has the rows of its own content, and a secti
                                      });
 }
 
-TEST_CASE("PackageLoader: a switcher, a slider and a text input are settings, and any other row is a placeholder with its type")
+TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are settings, and any other row is a placeholder with its type")
 {
     const auto mod = loaded(packageOf(R"(
         { "type": "switcher", "text": "Enable", "help": "Turns it on.", "valueType": "bool", "storage": { "path": ["Main", "bEnable"] } },
         { "type": "slider", "text": "Opacity", "valueType": "int", "valueOptions": { "min": 0, "max": 255, "step": 5 }, "storage": { "path": ["Main", "iOpacity"] } },
         { "type": "textinput", "text": "Name", "storage": { "path": ["Main", "sName"] } },
         { "type": "textinput", "text": "Scale", "valueType": "float", "storage": { "path": ["Main", "fScale"] } },
-        { "type": "dropdown", "text": "Mode", "help": "Low or high." },
-        { "type": "spacer" }
+        { "type": "button", "text": "Mode", "help": "Low or high." },
+        { "type": "spacer" },
+        { "type": "stepper", "text": "Hand", "valueOptions": { "options": ["Left", "Right"] }, "storage": { "path": ["Main", "iHand"] } },
+        { "type": "dropdown", "text": "Where", "valueOptions": { "options": ["Head", "Hand"] }, "storage": { "path": ["Main", "iWhere"] } }
     )"));
     const auto& items = mod.frontPage.items;
-    REQUIRE(items.size() == 6);
+    REQUIRE(items.size() == 8);
 
     const auto& enable = std::get<model::Setting>(items[0]);
     CHECK(enable.type == model::SettingType::Switcher);
@@ -251,10 +253,243 @@ TEST_CASE("PackageLoader: a switcher, a slider and a text input are settings, an
     CHECK(std::get<model::Setting>(items[3]).valueType == model::StoredType::Float);
 
     const auto& mode = std::get<model::Placeholder>(items[4]);
-    CHECK(mode.type == "dropdown");
+    CHECK(mode.type == "button");
     CHECK(mode.text == "Mode");
     CHECK(mode.help == "Low or high.");
     CHECK(std::get<model::Placeholder>(items[5]).type == "spacer");
+
+    // a choice with no valueType stores the place of its option
+    CHECK(std::get<model::Setting>(items[6]).type == model::SettingType::Stepper);
+    CHECK(std::get<model::Setting>(items[6]).valueType == model::StoredType::Int);
+    CHECK(std::get<model::Setting>(items[7]).type == model::SettingType::Dropdown);
+    CHECK(std::get<model::Setting>(items[7]).valueType == model::StoredType::Int);
+}
+
+TEST_CASE("PackageLoader: a choice's options are texts that store their place, or objects with the value each stores")
+{
+    model::Translations translations;
+    translations.add("$MyMod_Offhand", "Offhand");
+    const auto mod = loaded(packageOf(R"(
+        { "type": "dropdown", "valueType": "int", "text": "Location", "default": 1, "valueOptions": { "options": ["Head", "$MyMod_Offhand", "Primary hand"] },
+          "storage": { "path": ["Main", "iLocation"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Mode", "default": "hybrid",
+          "valueOptions": { "options": [
+              { "value": "physical", "text": "Physical", "help": "Use direct VR interaction." },
+              { "value": "hybrid", "text": { "token": "$MyMod_Hybrid", "fallback": "Hybrid" } }
+          ] },
+          "storage": { "path": ["Main", "sMode"] } },
+        { "type": "stepper", "valueType": "float", "text": "Scale", "default": 1.0,
+          "valueOptions": { "options": [ { "value": 0.5, "text": "Small" }, { "value": 1, "text": "Normal" } ] },
+          "storage": { "path": ["Main", "fScale"] } }
+    )"),
+        translations);
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 3);
+    using Options = std::vector<model::Option>;
+    CHECK(settings[0].valueOptions.options == Options{ { 0, "Head" }, { 1, "Offhand" }, { 2, "Primary hand" } });
+    CHECK(settings[0].defaultValue == model::Value(1));
+    CHECK(settings[1].valueOptions.options == Options{ { std::string("physical"), "Physical" }, { std::string("hybrid"), "Hybrid" } });
+    CHECK(settings[1].defaultValue == model::Value(std::string("hybrid")));
+
+    // a whole number is a value of a float
+    CHECK(settings[2].valueOptions.options == Options{ { 0.5f, "Small" }, { 1.0f, "Normal" } });
+}
+
+TEST_CASE("PackageLoader: an option that is not one of its choice's type is left out")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "dropdown", "valueType": "string", "text": "Mode", "default": "a",
+          "valueOptions": { "options": [ "Short", { "value": 1, "text": "A number" }, { "text": "No value" }, 7, { "value": "a", "text": "A" } ] },
+          "storage": { "path": ["Main", "sMode"] } },
+        { "type": "stepper", "valueType": "int", "text": "Count", "default": 0,
+          "valueOptions": { "options": [ "One", { "value": 1.5, "text": "Half" }, "Two" ] },
+          "storage": { "path": ["Main", "iCount"] } }
+    )"));
+    const auto settings = settingsOf(mod);
+    using Options = std::vector<model::Option>;
+    CHECK(settings[0].valueOptions.options == Options{ { std::string("a"), "A" } });
+
+    // a text keeps its place in the list
+    CHECK(settings[1].valueOptions.options == Options{ { 0, "One" }, { 2, "Two" } });
+}
+
+TEST_CASE("PackageLoader: a choice has the options of the shared list it names, in any case")
+{
+    const auto mod = loaded(R"({
+        "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "sharedLists": {
+            "hands": ["Left", "Right"],
+            "Modes": [ { "value": "physical", "text": "Physical" }, { "value": "hybrid", "text": "Hybrid" } ]
+        },
+        "content": [
+            { "type": "stepper", "text": "Flashlight hand", "default": 0, "valueOptions": { "sharedOptions": "hands" }, "storage": { "path": ["Flashlight", "iHand"] } },
+            { "type": "dropdown", "text": "Pip-Boy hand", "default": 1, "valueOptions": { "sharedOptions": "Hands" }, "storage": { "path": ["PipBoy", "iHand"] } },
+            { "type": "dropdown", "valueType": "string", "text": "Mode", "default": "hybrid", "valueOptions": { "sharedOptions": "modes" }, "storage": { "path": ["Main", "sMode"] } },
+            { "type": "dropdown", "text": "No such list", "default": 0, "valueOptions": { "sharedOptions": "feet" }, "storage": { "path": ["Main", "iFoot"] } },
+            { "type": "dropdown", "text": "No options", "default": 0, "storage": { "path": ["Main", "iNone"] } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 5);
+    using Options = std::vector<model::Option>;
+    const Options hands{ { 0, "Left" }, { 1, "Right" } };
+    CHECK(settings[0].valueOptions.options == hands);
+    CHECK(settings[1].valueOptions.options == hands);
+    CHECK(settings[2].valueOptions.options == Options{ { std::string("physical"), "Physical" }, { std::string("hybrid"), "Hybrid" } });
+    CHECK(settings[3].valueOptions.options.empty());
+    CHECK(settings[4].valueOptions.options.empty());
+}
+
+TEST_CASE("PackageLoader: a row is shown by its visibleWhen and a setting enabled by its enabledWhen, with every operator")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "id": "enable", "type": "switcher", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
+        { "type": "slider", "text": "Height", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.1 }, "storage": { "path": ["Main", "fHeight"] },
+          "visibleWhen": { "setting": "Enable", "equals": true }, "enabledWhen": { "setting": "mode", "notEquals": "off" } },
+        { "type": "slider", "text": "A", "default": 1.0, "storage": { "path": ["Main", "fA"] }, "visibleWhen": { "setting": "fHeight:Main", "lessThan": 1.4 } },
+        { "type": "slider", "text": "B", "default": 1.0, "storage": { "path": ["Main", "fB"] }, "visibleWhen": { "setting": "fHeight:Main", "lessThanOrEqual": 1 } },
+        { "type": "slider", "text": "C", "default": 1.0, "storage": { "path": ["Main", "fC"] }, "visibleWhen": { "setting": "fHeight:Main", "greaterThan": 1 } },
+        { "type": "slider", "text": "D", "default": 1.0, "storage": { "path": ["Main", "fD"] }, "visibleWhen": { "setting": "fHeight:Main", "greaterThanOrEqual": 1.5 } },
+        { "type": "switcher", "text": "E", "default": true, "storage": { "path": ["Main", "bE"] }, "visibleWhen": { "setting": "mode", "oneOf": ["physical", "hybrid"] } },
+        { "type": "switcher", "text": "F", "default": true, "storage": { "path": ["Main", "bF"] }, "visibleWhen": { "setting": "iHand:Main", "notOneOf": [1] } },
+        { "type": "text", "text": "A text", "visibleWhen": { "all": [ { "setting": "enable", "equals": true }, { "not": { "any": [] } } ] } },
+        { "id": "mode", "type": "dropdown", "valueType": "string", "text": "Mode", "default": "physical",
+          "valueOptions": { "options": [ { "value": "physical", "text": "Physical" }, { "value": "off", "text": "Off" } ] }, "storage": { "path": ["Main", "sMode"] } },
+        { "type": "stepper", "text": "Hand", "default": 0, "valueOptions": { "options": ["Left", "Right"] }, "storage": { "path": ["Main", "iHand"] } }
+    )"));
+    const auto& items = mod.frontPage.items;
+    using Condition = model::Condition;
+    using Kind = Condition::Kind;
+    const auto compared = [](const Kind kind, std::string id, std::vector<model::Value> values) {
+        return Condition{ .kind = kind, .setting = std::move(id), .conditions = {}, .offWhenNotAvailable = false, .values = std::move(values) };
+    };
+
+    // a setting is named by its id in any case, also one after the row, and has its id as the package gives it
+    const auto& height = std::get<model::Setting>(items[1]);
+    CHECK(height.visibleWhen == compared(Kind::Equals, "enable", { true }));
+    CHECK(height.enabledWhen == compared(Kind::NotEquals, "mode", { std::string("off") }));
+    CHECK_FALSE(std::get<model::Setting>(items[0]).visibleWhen);
+    CHECK_FALSE(std::get<model::Setting>(items[0]).enabledWhen);
+
+    CHECK(std::get<model::Setting>(items[2]).visibleWhen == compared(Kind::LessThan, "fHeight:Main", { 1.4f }));
+    CHECK(std::get<model::Setting>(items[3]).visibleWhen == compared(Kind::LessThanOrEqual, "fHeight:Main", { 1 }));
+    CHECK(std::get<model::Setting>(items[4]).visibleWhen == compared(Kind::GreaterThan, "fHeight:Main", { 1 }));
+    CHECK(std::get<model::Setting>(items[5]).visibleWhen == compared(Kind::GreaterThanOrEqual, "fHeight:Main", { 1.5f }));
+    CHECK(std::get<model::Setting>(items[6]).visibleWhen == compared(Kind::OneOf, "mode", { std::string("physical"), std::string("hybrid") }));
+    CHECK(std::get<model::Setting>(items[7]).visibleWhen == compared(Kind::NotOneOf, "iHand:Main", { 1 }));
+
+    const Condition joined{ .kind = Kind::All,
+        .setting = {},
+        .conditions = { compared(Kind::Equals, "enable", { true }),
+            Condition{ .kind = Kind::Not, .setting = {}, .conditions = { Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} } } } } };
+    CHECK(std::get<model::Placeholder>(items[8]).visibleWhen == joined);
+}
+
+TEST_CASE("PackageLoader: a section's conditions are joined with those of every row in it, at every level")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "id": "a", "type": "switcher", "text": "A", "default": true, "storage": { "path": ["Main", "bA"] } },
+        { "id": "b", "type": "switcher", "text": "B", "default": true, "storage": { "path": ["Main", "bB"] } },
+        {
+            "type": "section", "text": "Outer", "visibleWhen": { "setting": "a", "equals": true }, "enabledWhen": { "setting": "b", "equals": true },
+            "content": [
+                { "type": "switcher", "text": "In the outer", "default": true, "storage": { "path": ["Main", "bOuter"] } },
+                {
+                    "type": "section", "text": "Inner", "visibleWhen": { "setting": "b", "equals": false },
+                    "content": [
+                        { "type": "switcher", "text": "In the inner", "default": true, "storage": { "path": ["Main", "bInner"] },
+                          "enabledWhen": { "setting": "a", "equals": false } }
+                    ]
+                }
+            ]
+        }
+    )"));
+    using Condition = model::Condition;
+    using Kind = Condition::Kind;
+    const auto equals = [](std::string id, const bool on) {
+        return Condition{ .kind = Kind::Equals, .setting = std::move(id), .conditions = {}, .offWhenNotAvailable = false, .values = { on } };
+    };
+    const auto all = [](Condition first, Condition second) {
+        return Condition{ .kind = Kind::All, .setting = {}, .conditions = { std::move(first), std::move(second) } };
+    };
+
+    const auto& outer = std::get<model::Group>(mod.frontPage.items[2]);
+    CHECK(outer.visibleWhen == equals("a", true));
+    const auto& inOuter = std::get<model::Setting>(outer.items[0]);
+    CHECK(inOuter.visibleWhen == equals("a", true));
+    CHECK(inOuter.enabledWhen == equals("b", true));
+
+    const auto& inner = std::get<model::Group>(outer.items[1]);
+    CHECK(inner.visibleWhen == all(equals("a", true), equals("b", false)));
+    const auto& inInner = std::get<model::Setting>(inner.items[0]);
+    CHECK(inInner.visibleWhen == all(equals("a", true), equals("b", false)));
+    CHECK(inInner.enabledWhen == all(equals("b", true), equals("a", false)));
+}
+
+TEST_CASE("PackageLoader: a condition that is not one is left out as a whole, so its row is shown and enabled")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "id": "on", "type": "switcher", "text": "On", "default": true, "storage": { "path": ["Main", "bOn"] } },
+        { "id": "name", "type": "textinput", "text": "Name", "default": "", "storage": { "path": ["Main", "sName"] } },
+        { "type": "text", "text": "No such setting", "visibleWhen": { "setting": "missing", "equals": true } },
+        { "type": "text", "text": "Another type", "visibleWhen": { "setting": "on", "equals": 1 } },
+        { "type": "text", "text": "A text in order", "visibleWhen": { "setting": "name", "lessThan": 3 } },
+        { "type": "text", "text": "A oneOf of a bool", "visibleWhen": { "setting": "on", "oneOf": [true] } },
+        { "type": "text", "text": "A oneOf of no list", "visibleWhen": { "setting": "name", "oneOf": "a" } },
+        { "type": "text", "text": "Two operators", "visibleWhen": { "setting": "on", "equals": true, "notEquals": false } },
+        { "type": "text", "text": "No operator", "visibleWhen": { "setting": "on" } },
+        { "type": "text", "text": "An unknown key", "visibleWhen": { "setting": "on", "is": true } },
+        { "type": "text", "text": "No condition", "visibleWhen": { "when": true } },
+        { "type": "text", "text": "Not an object", "visibleWhen": true },
+        { "type": "text", "text": "A part that is not one", "visibleWhen": { "any": [ { "setting": "on", "equals": true }, { "setting": "missing", "equals": true } ] } },
+        { "type": "switcher", "text": "Not enabled by it", "default": true, "storage": { "path": ["Main", "bOther"] }, "enabledWhen": { "not": { "plugin": "" } } }
+    )"));
+    const auto& items = mod.frontPage.items;
+    REQUIRE(items.size() == 14);
+    for (std::size_t place = 2; place < 13; ++place) {
+        // a package's text row is a placeholder until the menu draws it
+        const auto& text = std::get<model::Placeholder>(items[place]);
+        INFO(text.text);
+        CHECK_FALSE(text.visibleWhen);
+    }
+    CHECK_FALSE(std::get<model::Setting>(items[13]).enabledWhen);
+}
+
+TEST_CASE("PackageLoader: a condition on a plugin is answered as the package is read, and holds while the plugin is loaded")
+{
+    const auto text = packageOf(R"(
+        { "type": "text", "text": "Game plugin", "visibleWhen": { "plugin": "MyMod - ENB Patch.esp" } },
+        { "type": "text", "text": "No game plugin", "visibleWhen": { "not": { "plugin": "Missing.esp" } } },
+        { "type": "text", "text": "F4SE plugin", "visibleWhen": { "f4sePlugin": "F4VRBody" } },
+        { "type": "text", "text": "No F4SE plugin", "visibleWhen": { "f4sePlugin": "Missing" } }
+    )");
+    const package::PluginChecks plugins{ .isGamePluginLoaded =
+                                             [](const std::string_view plugin) {
+                                                 return plugin == "MyMod - ENB Patch.esp";
+                                             },
+        .isF4sePluginLoaded =
+            [](const std::string_view plugin) {
+                return plugin == "F4VRBody";
+            } };
+    auto mod = package::loadPackage(text, {}, plugins);
+    REQUIRE(mod);
+
+    // an All of none holds, and an Any of none does not
+    using Condition = model::Condition;
+    using Kind = Condition::Kind;
+    const Condition holds{ .kind = Kind::All, .setting = {}, .conditions = {} };
+    const Condition fails{ .kind = Kind::Any, .setting = {}, .conditions = {} };
+    const auto& items = mod->frontPage.items;
+    CHECK(std::get<model::Placeholder>(items[0]).visibleWhen == holds);
+    CHECK(std::get<model::Placeholder>(items[1]).visibleWhen == Condition{ .kind = Kind::Not, .setting = {}, .conditions = { fails } });
+    CHECK(std::get<model::Placeholder>(items[2]).visibleWhen == holds);
+    CHECK(std::get<model::Placeholder>(items[3]).visibleWhen == fails);
+
+    // with no checks every plugin is loaded
+    const auto unchecked = loaded(text);
+    CHECK(std::get<model::Placeholder>(unchecked.frontPage.items[3]).visibleWhen == holds);
 }
 
 TEST_CASE("PackageLoader: a slider and a switcher with no valueType have the type of their control")
@@ -618,7 +853,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    CHECK(mod.pages.size() == 9);
+    CHECK(mod.pages.size() == 11);
 
     // the file whose path goes up out of its root is left out
     Lines files;

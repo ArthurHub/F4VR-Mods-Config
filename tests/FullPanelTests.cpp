@@ -1252,6 +1252,55 @@ TEST_CASE("FullPanel: a row of a group is shown while the switcher that controls
     CHECK(panel.helpLine().text() == "After: What it does.");
 }
 
+TEST_CASE("FullPanel: a row is edited while its enabledWhen holds, and is disabled while it does not")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store;
+
+    // a switcher that is kept nowhere, and a row that is enabled while it is on
+    auto mod = modOf("Alpha");
+    mod.frontPage.items.push_back(model::Setting{ .id = "enable", .type = model::SettingType::Switcher, .text = "Enable", .help = {}, .valueOptions = {}, .storage = {} });
+    mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Enabled by it", 0x800));
+    std::get<model::Setting>(mod.frontPage.items.back()).enabledWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "enable", .conditions = {} };
+    FullPanel panel;
+    panel.setStore(&store);
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // it is shown, and its help is in the help line, but a press on it does nothing
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Enabled by it: What it does.");
+    CHECK_FALSE(pressActs(panel, pageRow(1)));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+}
+
+TEST_CASE("FullPanel: a package's row whose condition on a plugin does not hold is hidden, with no store")
+{
+    const test_panel::PanelContext context;
+
+    // a condition on a plugin that is not loaded is an Any of none, which does not hold
+    auto mod = modOf("Alpha");
+    mod.source = model::Source::Package;
+    mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Needs a plugin", 0x800));
+    std::get<model::Setting>(mod.frontPage.items.back()).visibleWhen = model::Condition{ .kind = model::Condition::Kind::Any, .setting = {}, .conditions = {} };
+    mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "After", 0x801));
+    std::get<model::Setting>(mod.frontPage.items.back()).visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "missing", .conditions = {} };
+    FullPanel panel;
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // a condition on a value is open with no value, so its row is shown
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "After: What it does.");
+}
+
 TEST_CASE("FullPanel: the help line says that changes are saved as they are made, while a mod is shown")
 {
     const test_panel::PanelContext context;

@@ -5,5 +5,5 @@
 
 namespace mods_config::model
 {
-    bool holds(const Condition& condition, Store& store);
+    bool holds(const Condition& condition, Store* store);
 }
