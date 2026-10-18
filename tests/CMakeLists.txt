@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME}_tests
   PackageLoaderTests.cpp
   SwfImagesTests.cpp
   TextMarkupTests.cpp
+  TomlFileTests.cpp
   TranslationsTests.cpp
   Setup.cpp
   TestActions.cpp
@@ -42,6 +43,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/package/PackageLoader.cpp
+  ${SOURCE_DIR}/package/TomlFile.cpp
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp

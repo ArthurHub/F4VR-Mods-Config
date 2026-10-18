@@ -53,7 +53,7 @@ Supported storage formats are:
 - JSON
 - TOML
 
-TOML comments and exact formatting are best-effort initially. This limitation is documented for package authors and logged in developer diagnostics; it is not shown as a routine player warning.
+A TOML file is changed with the framework's `TomlEditor`, as a CommonFramework mod saves its own: a value is replaced where it is written, and a key the file does not have is added after the last value of its table. Comments, blank lines, key order, and how every other value is written are preserved.
 
 INI files follow the conventions CommonFramework mods use: `;` or `#` starts a comment only at the beginning of a line, so a value may contain either character. Comments, key order, and untouched lines are preserved. How each value is spelled in a given file, for example `true`/`false` or `1`/`0` for a boolean, is not settled; see [Open questions](open-questions.md).
 

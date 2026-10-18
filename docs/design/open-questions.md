@@ -33,7 +33,6 @@ Whether InputBinding warns of two bindings that collide, of one mod or of two: F
 - Duplicate INI sections or keys and which occurrence is authoritative
 - How values are spelled in each INI: `true`/`false` or `1`/`0` for a boolean, and the precision a float is written with
 - JSON representation choices for colors and complex values. In a TOML file they are the framework's tables
-- Format-preserving TOML editing, including comments and layout
 - Whether the game's own INI files under `My Games/Fallout4VR` are valid targets
 - What to do when an external edit changes a value currently being previewed but not yet saved
 - File-change detection and optional refresh while the menu is open

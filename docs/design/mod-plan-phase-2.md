@@ -12,7 +12,7 @@ A package's features match MCM's, but its lifecycle is new. The milestone define
 | M47 | mod  | The package loader: files, pages, sections and settings, and Mods Config VR's own package | in review |
 | M114 | mod | The package showcase, an optional file for developers                                    | in review |
 | M48 | mod  | Choices, shared lists and conditions in a package                                         | in review |
-| M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | todo   |
+| M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | in review |
 | M51 | mod  | The editing session: values from the file, pending values, dirty state                    | todo   |
 | M52 | mod  | Save writes the dirty settings, and Discard                                               | todo   |
 | M56 | mod  | Reset to the default                                                                      | todo   |
