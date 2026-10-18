@@ -1918,6 +1918,65 @@ TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, 
     CHECK(store.value(setting).value == model::Value(true));
 }
 
+TEST_CASE("FullPanel: a package's Reset is a change as any other, which Save writes and Discard takes back")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfScale = 1.5\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 2.0, "step": 0.1 }, "storage": { "path": ["Main", "fScale"] } },
+            { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& items = panel.mods()[0].frontPage.items;
+    const auto& scale = std::get<model::Setting>(items[0]);
+    const auto& enable = std::get<model::Setting>(items[1]);
+    const auto fileText = [&file] {
+        std::ostringstream text;
+        text << std::ifstream(file, std::ios::binary).rdbuf();
+        return text.str();
+    };
+
+    // it waits for a Save, and Discard takes it back
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK(store.value(scale).value == model::Value(1.0f));
+    CHECK(store.isDirty(scale));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "1 unsaved change");
+    CHECK(pressActs(panel, discardButton()));
+    CHECK(store.value(scale).value == model::Value(1.5f));
+    CHECK_FALSE(store.isDirty(scale));
+
+    // Save writes it, and its Reset is then disabled
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK(pressActs(panel, saveButton()));
+    CHECK(fileText() == "[Main]\r\nfScale = 1.0\r\nbEnable = false\r\n");
+    CHECK(store.dirtyCount() == 0);
+    CHECK_FALSE(pressActs(panel, resetButton(0)));
+
+    // a change of a setting whose file has its default is taken back by its Reset, which leaves it clean
+    CHECK_FALSE(pressActs(panel, resetButton(1)));
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(store.isDirty(enable));
+    CHECK(pressActs(panel, resetButton(1)));
+    CHECK(store.value(enable).value == model::Value(false));
+    CHECK(store.dirtyCount() == 0);
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+}
+
 TEST_CASE("FullPanel: with no package store none of a package's values is available, and the MCM store's session ends for it")
 {
     const test_panel::PanelContext context;

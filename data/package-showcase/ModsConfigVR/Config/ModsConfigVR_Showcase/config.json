@@ -672,6 +672,10 @@
               "default": 2.5, "valueOptions": { "min": 0, "max": 10, "step": 1 }, "storage": { "path": ["Mistakes", "iWrongDefault"] }
             },
             {
+              "type": "slider", "valueType": "float", "text": "A default outside its range", "help": "Its default is not from 0 to 10, so it has no Reset.",
+              "default": 20.0, "valueOptions": { "min": 0, "max": 10, "step": 1 }, "storage": { "path": ["Mistakes", "fOutsideDefault"] }
+            },
+            {
               "type": "switcher", "valueType": "bool", "text": "An applies that is not one", "help": "Its applies is not live, save or restart, so it has the package's.",
               "applies": "never", "default": true, "storage": { "path": ["Mistakes", "bApplies"] }
             },
@@ -698,6 +702,11 @@
               "default": "b",
               "valueOptions": { "options": ["A place", { "value": 1, "text": "A number" }, { "value": "b", "text": "B" }, { "value": "c", "text": "C" }] },
               "storage": { "path": ["Mistakes", "sWrongOptions"] }
+            },
+            {
+              "type": "dropdown", "valueType": "string", "text": "A default that is no option", "help": "Its default is none of its options, so it has no Reset.",
+              "default": "d", "valueOptions": { "options": [ { "value": "a", "text": "A" }, { "value": "b", "text": "B" } ] },
+              "storage": { "path": ["Mistakes", "sNoOptionDefault"] }
             }
           ]
         },

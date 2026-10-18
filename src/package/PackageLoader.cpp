@@ -414,14 +414,49 @@ namespace
     }
 
     /**
-     * The `default` of a setting, in its value's type. None for a setting with no default of its type, which
-     * is an error of the package that the log has.
+     * Whether two values of a setting are the same one: two numbers are when they are as near as a number and
+     * the text of it in a file.
      */
-    std::optional<model::Value> loadDefault(const Json& row, const model::StoredType type)
+    bool isSameValue(const model::Value& value, const model::Value& other)
     {
-        auto value = getValue(row, "default", type);
+        const auto* number = std::get_if<float>(&value);
+        const auto* otherNumber = std::get_if<float>(&other);
+        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
+    }
+
+    /**
+     * Whether a value of a setting's type is one of its values: an option of a choice, and a number inside
+     * the limits of a setting that has them, its least and its most among them.
+     */
+    bool isValueOf(const model::Value& value, const model::SettingType type, const model::ValueOptions& options)
+    {
+        if (isChoice(type)) {
+            return std::ranges::any_of(options.options, [&value](const model::Option& option) {
+                return isSameValue(option.value, value);
+            });
+        }
+        const auto* whole = std::get_if<int>(&value);
+        const auto* point = std::get_if<float>(&value);
+        if ((!whole && !point) || !(options.max > options.min)) {
+            return true;
+        }
+        const float number = whole ? static_cast<float>(*whole) : *point;
+        return (number > options.min || common::fEqual(number, options.min)) && (number < options.max || common::fEqual(number, options.max));
+    }
+
+    /**
+     * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
+     * with one that is not one of its values: outside its limits, or none of its options. Both are errors
+     * of the package that the log has, and the setting then has no Reset.
+     */
+    std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& options)
+    {
+        auto value = getValue(row, "default", valueType);
         if (!value) {
             logger::warn("The setting '{}' has no default of the type of its value", getText(row, "text"));
+        } else if (!isValueOf(*value, type, options)) {
+            logger::warn("The default of the setting '{}' is not one of its values: it is outside its limits, or none of its options", getText(row, "text"));
+            value.reset();
         }
         return value;
     }
@@ -444,20 +479,22 @@ namespace
         if (!id.empty() && !reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType }).second) {
             logger::warn("Two settings have the id '{}': give one of them an id of its own", id);
         }
+        auto valueOptions = loadValueOptions(row, type, valueType, reading);
+        auto defaultValue = loadDefault(row, type, valueType, valueOptions);
         return model::Setting{ .id = std::move(id),
             .sourceId = {},
             .type = type,
             .text = getShownText(row, "text", reading.translations),
             .textRuns = {},
             .help = getShownText(row, "help", reading.translations),
-            .valueOptions = loadValueOptions(row, type, valueType, reading),
+            .valueOptions = std::move(valueOptions),
             .storage = std::move(storage),
             .valueType = valueType,
             .action = {},
             .visibleWhen = {},
             .enabledWhen = {},
             .applies = own.applies,
-            .defaultValue = loadDefault(row, valueType) };
+            .defaultValue = std::move(defaultValue) };
     }
 
     /**

@@ -99,11 +99,13 @@ bToken = true
 [Mistakes]
 fNoDefault = 5.0
 iWrongDefault = 2
+fOutsideDefault = 5.0
 bApplies = true
 bSameId = true
 iNoOptions = 0
 iNoList = 0
 sWrongOptions = "b"
+sNoOptionDefault = "a"
 bNoSetting = true
 bWrongType = true
 bTextOrder = true

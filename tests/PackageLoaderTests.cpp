@@ -645,6 +645,29 @@ TEST_CASE("PackageLoader: a setting has its default in the type of its value, an
     }
 }
 
+TEST_CASE("PackageLoader: a default that is not one of its setting's values is none, so the setting has no Reset")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "slider", "text": "At the least", "default": 0.5, "valueOptions": { "min": 0.5, "max": 1.5 }, "storage": { "path": ["Main", "a"] } },
+        { "type": "slider", "valueType": "int", "text": "At the most", "default": 255, "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "b"] } },
+        { "type": "slider", "text": "No range", "default": 7.0, "storage": { "path": ["Main", "c"] } },
+        { "type": "stepper", "valueType": "float", "text": "An option", "default": 1,
+          "valueOptions": { "options": [ { "value": 0.5, "text": "Small" }, { "value": 1.0, "text": "Normal" } ] }, "storage": { "path": ["Main", "d"] } },
+        { "type": "slider", "text": "Below the least", "default": 0.4, "valueOptions": { "min": 0.5, "max": 1.5 }, "storage": { "path": ["Main", "e"] } },
+        { "type": "textinput", "valueType": "int", "text": "Above the most", "default": 10, "valueOptions": { "min": 1, "max": 9 }, "storage": { "path": ["Main", "f"] } },
+        { "type": "dropdown", "valueType": "string", "text": "No option", "default": "d",
+          "valueOptions": { "options": [ { "value": "a", "text": "A" } ] }, "storage": { "path": ["Main", "g"] } },
+        { "type": "stepper", "text": "Past the last", "default": 2, "valueOptions": { "options": ["Left", "Right"] }, "storage": { "path": ["Main", "h"] } },
+        { "type": "dropdown", "text": "No options", "default": 0, "storage": { "path": ["Main", "i"] } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 9);
+    for (std::size_t i = 0; i < settings.size(); ++i) {
+        INFO(settings[i].text);
+        CHECK(settings[i].defaultValue.has_value() == (i < 4));
+    }
+}
+
 TEST_CASE("PackageLoader: a setting has its author's id, or one from where its value is kept")
 {
     const auto mod = loaded(packageOf(R"(
@@ -868,7 +891,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     REQUIRE(pages->pages.size() == 1);
     CHECK(pages->pages[0].pages.size() == 1);
 
-    // the settings of the shipped file, but for those that show a mistake of their default
+    // the settings of the shipped file, but for those with no default: a choice with no options has none either
     const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR) / "ModsConfigVR_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
@@ -883,6 +906,6 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
             ++checked;
         }
     }
-    CHECK(withNoDefault == Lines{ "No default", "A default of another type" });
+    CHECK(withNoDefault == Lines{ "No default", "A default of another type", "A default outside its range", "No options", "No such shared list", "A default that is no option" });
     CHECK(checked >= 30);
 }
