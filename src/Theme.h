@@ -41,7 +41,7 @@ namespace mods_config::theme
     constexpr float SPACE_3            = 12.0f;    // FramePadding.y and ItemSpacing.x
     constexpr float SPACE_4            = 16.0f;    // FramePadding.x, WindowPadding of the content pane and of popups, the gap between the navigation and content panes
     constexpr float SPACE_6            = 24.0f;    // The row gutter that holds the pending dot or the warning mark; space above a section heading
-    constexpr float SPACE_8            = 32.0f;    // IndentSpacing: a page row under its mod in the tree
+    constexpr float SPACE_8            = 32.0f;    // IndentSpacing: a level of the tree, as a page under its mod, and of the content, as a section in a section
     constexpr float SPACE_12           = 48.0f;    // One vrui unit
 
     // Corner radii, in layout px.

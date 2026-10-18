@@ -12,4 +12,6 @@ One setting: a gutter mark, the name, and its control with a Reset slot, all one
 
 - A package setting whose change takes effect only after the game is restarted (`applies: restart`) has a `t-detail` **Restart** mark after its name, outlined in `frame-border`. Its help says so too.
 
+- A setting with a warning that holds has a hollow `amber` mark after its name; see [RowWarning](../RowWarning/README.md). A read-only setting is a disabled row with no Reset; see [ReadOnly](../ReadOnly/README.md).
+
 Don't clamp an out-of-range value: show it as invalid.

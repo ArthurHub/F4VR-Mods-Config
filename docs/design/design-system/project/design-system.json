@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-17T22:20:00Z",
+    "at": "2026-10-18T02:30:00Z",
     "via": "Claude (Cowork)",
-    "note": "InputBinding: the binding icons say how a button is worked with solid marks in place of words, the thumbstick is a ring with a rim and a shadowed knob, a push its arrow mark; 80 px tall, drawn at 44 px in a row."
+    "note": "In review: text input, text, spacer and image rows, a choice of files, Transform and ActivationSphere (TextInput, TextRows, FileChoice, Transform, ActivationSphere); before them the warning, read-only, number display, button row, save summary and restart notice."
   },
   "layout": "files",
   "libraries": [],

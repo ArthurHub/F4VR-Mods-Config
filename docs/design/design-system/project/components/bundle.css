@@ -31,6 +31,8 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-crumb.is-selected { background: var(--green); color: var(--on-green); }
 .mc-crumb.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
 .mc-crumb-sep { flex: none; color: var(--green-muted); }
+/* the pages between the mod and the page, when the crumbs do not fit: not pressed */
+.mc-crumb.is-more { flex: none; padding: 0 var(--space-1); }
 .mc-body { flex: 1; min-height: 0; display: flex; gap: var(--space-4); padding: var(--space-3) 0; }
 .mc-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .mc-scroll { flex: 1; min-height: 0; display: flex; gap: var(--space-2); overflow: hidden; }
@@ -50,7 +52,10 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-tree-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .mc-tree-row .arrow { width: 16px; flex: none; display: grid; place-items: center; }
 .mc-tree-row .arrow svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
-.mc-tree-row.is-page { padding-left: calc(var(--space-2) + var(--space-8)); }
+/* a level of the tree is set in by IndentSpacing, up to the third; the arrow's column is kept on every row */
+.mc-tree-row.d1 { padding-left: calc(var(--space-2) + var(--space-8)); }
+.mc-tree-row.d2 { padding-left: calc(var(--space-2) + 2 * var(--space-8)); }
+.mc-tree-row.d3 { padding-left: calc(var(--space-2) + 3 * var(--space-8)); }
 .mc-tree-row.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
 .mc-tree-row.is-selected { background: var(--green); color: var(--on-green); border-radius: var(--radius-frame) 0 0 var(--radius-frame); }
 /* the Pip-Boy tip: the selected bar points at the content it opened */
@@ -62,8 +67,6 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-cat .arrow svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
 .mc-cat .line { flex: 1; min-width: var(--space-4); height: var(--border-frame); background: var(--rule); }
 .mc-cat.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
-.mc-tree-row.in-cat { padding-left: calc(var(--space-2) + var(--space-8)); }
-.mc-tree-row.is-page.in-cat { padding-left: calc(var(--space-2) + var(--space-8) + var(--space-8)); }
 
 /* ---------- help: "Name: help", in the footer of the Full panel and atop the Focused panel ---------- */
 .mc-desc { height: var(--description-height); flex: none; background: var(--plate); border-radius: var(--radius-popup); padding: var(--space-2) var(--space-3); color: var(--green-muted); overflow: hidden; }
@@ -80,6 +83,23 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-collapse { height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding-left: var(--space-2); color: var(--green-muted); border-radius: var(--radius-frame); }
 .mc-collapse svg { width: 14px; height: 14px; fill: currentColor; }
 .mc-collapse.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
+.mc-collapse { position: relative; }
+/* a rule from its label to the right edge of the rows, as a heading's, or to what a folded section hides */
+.mc-collapse .line { margin-left: var(--space-1); flex: 1; min-width: var(--space-4); height: var(--border-frame); background: var(--rule); }
+/* what a folded section hides: the warning mark and its count, then the pending dot and its count */
+.mc-collapse .marks { display: flex; align-items: center; gap: var(--space-2); padding-right: var(--space-3); }
+.mc-collapse .marks .mc-dot { margin-left: var(--space-2); }
+/* a section in a section is set in with its rows by IndentSpacing a level, up to the third, and ends where the rows do */
+.mc-in { margin-left: var(--space-8); }
+/* its rows: a rule line from under the start of its heading's text down to the bottom of its last row, turning there
+   toward the rows; their gutter is space-8 and its mark sits space-2 right of its middle, clear of the line */
+.mc-sub { position: relative; }
+.mc-sub::before { content: ""; position: absolute; left: var(--space-2); top: 0; bottom: 0; width: 14px; border-left: var(--border-frame) solid var(--rule); border-bottom: var(--border-frame) solid var(--rule); border-bottom-left-radius: var(--radius-frame); pointer-events: none; }
+.mc-sub .mc-row { grid-template-columns: var(--space-8) minmax(0, 1fr) var(--control-width); }
+.mc-sub .mc-row .gutter { transform: translateX(var(--space-2)); }
+.mc-in-1 { margin-left: var(--space-8); }
+.mc-in-2 { margin-left: calc(2 * var(--space-8)); }
+.mc-in-3 { margin-left: calc(3 * var(--space-8)); }
 
 /* ---------- setting row ---------- */
 .mc-row { position: relative; height: var(--control-height); display: grid; grid-template-columns: var(--space-6) minmax(0, 1fr) var(--control-width); align-items: center; column-gap: var(--space-3); border-radius: var(--radius-frame); margin-bottom: var(--space-2); }
@@ -264,3 +284,179 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .mc-bindedit .foot { margin-top: auto; padding-top: var(--space-3); border-top: var(--border-frame) solid var(--rule); display: flex; align-items: center; gap: var(--space-2); }
 .mc-bindedit .foot .toml { flex: 1; min-width: 0; color: var(--green-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mc-bindedit .foot .mc-btn { min-width: 160px; }
+
+/* ---------- list: a list of texts, an `a` key, and its editor of entries ---------- */
+.mc-combo.is-list { justify-content: flex-start; gap: var(--space-3); }
+.mc-combo.is-list > .items { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-combo.is-list > .count { flex: none; color: var(--green-muted); }
+.mc-combo.is-list.is-empty > .items { color: var(--green-muted); }
+.mc-editor { position: absolute; width: 717px; background: var(--popup); border: var(--border-frame) solid var(--green); border-radius: var(--radius-popup); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); z-index: 2; }
+.mc-editor .head { height: var(--control-height); flex: none; display: flex; align-items: center; gap: var(--space-2); }
+.mc-editor .head .grow { flex: 1; }
+.mc-editor .foot { padding-top: var(--space-3); border-top: var(--border-frame) solid var(--rule); display: flex; align-items: center; gap: var(--space-2); }
+.mc-editor .foot .grow { flex: 1; }
+.mc-editor .foot .mc-btn { min-width: 160px; }
+.mc-entries { position: relative; display: flex; gap: var(--space-2); }
+.mc-entries .list { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); overflow: hidden; }
+.mc-entry { flex: none; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-frame); }
+.mc-entry .num { width: var(--space-6); flex: none; text-align: right; color: var(--green-muted); }
+.mc-entry .text { flex: 1; min-width: 0; height: var(--control-height); display: flex; align-items: center; padding: 0 var(--space-3); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-entry .text > span { overflow: hidden; text-overflow: ellipsis; }
+.mc-entry.is-pending .text { color: var(--amber); }
+.mc-entry.is-editing .text { border-color: var(--green); }
+.mc-entry.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-entry .mc-btn.is-disabled { opacity: var(--opacity-disabled); }
+
+/* ---------- hand pose: an `h` key, how each finger bends, and its editor of joints ---------- */
+/* the glyph: a bar a finger, thumb to pinky, as tall as the finger is straight */
+.mc-pose { flex: none; width: 104px; height: 32px; display: flex; align-items: flex-end; gap: 6px; padding: 4px 8px; background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-grab); }
+.mc-pose > i { flex: 1; min-height: 2px; background: var(--green); border-radius: 1px; }
+.mc-pose.is-big { width: 120px; height: 40px; }
+.mc-combo.is-pose { justify-content: flex-start; gap: var(--space-3); padding-left: var(--space-2); }
+.mc-combo.is-pose > .nums { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-combo.is-pose.is-pending > .nums { color: var(--amber); }
+.mc-combo.is-pose.is-pending .mc-pose > i { background: var(--amber); }
+.mc-combo.is-pose.is-invalid > .nums { color: var(--red); }
+.mc-poseedit .body { display: flex; gap: var(--space-6); align-items: flex-start; }
+.mc-fingers { width: 216px; flex: none; display: flex; flex-direction: column; gap: var(--space-1); }
+.mc-finger { height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); border-radius: var(--radius-frame); }
+.mc-finger .grow { flex: 1; }
+.mc-finger .bend { width: 56px; height: 8px; background: var(--track); border-radius: var(--radius-grab); overflow: hidden; }
+.mc-finger .bend > i { display: block; height: 100%; background: currentColor; }
+.mc-finger.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-finger.is-selected { background: var(--green); color: var(--on-green); }
+.mc-finger.is-selected .bend { background: rgba(0, 0, 0, 0.25); }
+.mc-finger.is-pending .bend > i { background: var(--amber); }
+.mc-finger.is-pending:not(.is-selected) { color: var(--amber); }
+.mc-joints { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.mc-joint { height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-frame); }
+.mc-joint .lbl { width: 64px; flex: none; }
+.mc-joint .mc-track { flex: 1; width: auto; }
+.mc-joint .mc-track .zero { position: absolute; top: 6px; bottom: 6px; width: 2px; margin-left: -1px; background: var(--rule); }
+.mc-joint .mc-value { flex: none; }
+.mc-joint.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-joints .scale { height: 18px; padding: 0 calc(var(--value-width) + var(--space-2)) 0 calc(64px + var(--space-2)); color: var(--green-muted); }
+.mc-joints .scale .in { position: relative; height: 100%; }
+.mc-joints .scale .in > span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+
+/* ---------- search: the tree's header is the field, and the results are a page ---------- */
+.mc-search { height: 40px; display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) 0 var(--space-2); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); color: var(--green-muted); }
+.mc-search svg.mc-ico { width: 20px; height: 20px; flex: none; }
+.mc-search .q { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-search .count { flex: none; padding-right: var(--space-2); }
+.mc-search .clear { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--radius-frame); color: var(--green); }
+.mc-search .clear svg.mc-ico { width: 18px; height: 18px; }
+.mc-search .clear.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-search.is-hover { background: var(--hover); color: var(--green); }
+.mc-search.is-typing { border-color: var(--green); }
+.mc-search.is-typing .q, .mc-search.has-query .q { color: var(--green); }
+.mc-search.is-typing .q::after { content: ""; display: inline-block; width: 2px; height: 18px; margin-left: 1px; vertical-align: -3px; background: var(--green); }
+.mc-nav-head.is-search { height: auto; padding: 0; display: block; }
+.mc-hit { background: linear-gradient(currentColor, currentColor) left bottom / 100% 2px no-repeat; }
+.mc-tree-row .count { flex: none; color: var(--green-muted); }
+.mc-tree-row.is-selected .count { color: var(--on-green); }
+.mc-nav-empty { padding: var(--space-2); color: var(--green-muted); }
+.mc-keyboard { height: 96px; display: flex; align-items: center; justify-content: center; gap: var(--space-2); border: var(--border-frame) dashed var(--frame-border); border-radius: var(--radius-popup); color: var(--green-muted); }
+
+/* ---------- a row's warning: a value that works and has a cost; it blocks nothing ---------- */
+.mc-caution { display: inline-block; width: 20px; height: 18px; margin-left: var(--space-2); vertical-align: -2px; }
+.mc-caution .tri { fill: none; stroke: var(--amber); stroke-width: 2; stroke-linejoin: round; }
+.mc-caution .bang { fill: var(--amber); }
+.help .mc-caution { margin: 0 var(--space-2) 0 0; }
+.help .caution { color: var(--amber); }
+/* ---------- read-only: the value the mod writes, shown in its control, the row disabled ---------- */
+.mc-row.is-readonly > .gutter, .mc-row.is-readonly > .name, .mc-row.is-readonly > .ctl { opacity: var(--opacity-disabled); }
+.mc-track.is-empty .fill, .mc-track.is-empty .grab { display: none; }
+.mc-textbox { width: calc(var(--control-width) - var(--control-height) - var(--space-2)); height: var(--control-height); display: flex; align-items: center; padding: 0 var(--space-3); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); white-space: nowrap; overflow: hidden; }
+.mc-textbox > span { overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- number display: a value too wide for its box drops to t-detail ---------- */
+.mc-value.is-small { font-size: 15.36px; }
+
+/* ---------- a button row: the button in the control column; running, its result; a confirmation ---------- */
+.mc-row .ctl .mc-btn.is-run { min-width: 160px; }
+.mc-btn.is-danger { background: var(--red); border-color: var(--red); color: var(--on-red); }
+.mc-btn.is-danger.is-hover { box-shadow: 0 0 0 var(--border-frame) var(--red); }
+.mc-btn.is-running { background: var(--pressed); border-color: var(--glow); }
+svg.mc-ico.spin { width: 20px; height: 20px; }
+.mc-row .name small.ok { color: var(--green-muted); }
+.mc-dialog.is-danger { border-color: var(--red); }
+
+/* ---------- the save summary: what blocks Save, over the content pane above Save ---------- */
+.mc-summary { position: absolute; width: 640px; background: var(--popup); border: var(--border-frame) solid var(--red); border-radius: var(--radius-popup); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); z-index: 2; }
+.mc-summary .head { display: flex; align-items: center; gap: var(--space-2); min-height: 40px; }
+.mc-summary .head .grow { flex: 1; }
+.mc-issue { position: relative; min-height: 56px; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3); border-radius: var(--radius-frame); }
+.mc-issue .what { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mc-issue .what .where { color: var(--green-muted); }
+.mc-issue .what .msg { color: var(--red); }
+.mc-issue.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-issue.is-hidden .what > .t-body { color: var(--green-muted); }
+.mc-summary .foot { display: flex; justify-content: flex-end; gap: var(--space-2); padding-top: var(--space-2); border-top: var(--border-frame) solid var(--rule); }
+
+/* ---------- restart: the notice of a saved change that needs one ---------- */
+.mc-footer .status .mc-tag { margin-left: 0; }
+.mc-notice { display: flex; align-items: baseline; gap: var(--space-2); padding: var(--space-1) var(--space-2) var(--space-2); color: var(--green); }
+.mc-notice .mc-tag { margin-left: 0; flex: none; }
+
+/* ---------- text input: a field that shows the text; a press types it on the keyboard ---------- */
+.mc-field { width: calc(var(--control-width) - var(--control-height) - var(--space-2)); height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-4); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); white-space: nowrap; }
+.mc-field .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mc-field.is-num .txt { text-align: right; font-variant-numeric: tabular-nums; }
+.mc-field .pen { flex: none; width: 18px; height: 18px; color: var(--green-muted); }
+.mc-field .len { flex: none; color: var(--green-muted); }
+.mc-field.is-empty .txt { color: var(--green-muted); }
+.mc-field.is-pending .txt { color: var(--amber); }
+.mc-field.is-invalid { border-color: var(--red); }
+.mc-field.is-invalid .txt { color: var(--red); }
+.mc-field.is-editing { border-color: var(--green); }
+.mc-field.is-editing .txt::after { content: ""; display: inline-block; width: 2px; height: 20px; margin-left: 1px; vertical-align: -4px; background: var(--green); }
+
+/* ---------- text, spacer and image rows: no value, not pressed ---------- */
+.mc-text { color: var(--green-muted); padding: var(--space-1) var(--space-2); }
+.mc-text p { margin: 0 0 var(--space-2); }
+.mc-text p:last-child { margin-bottom: 0; }
+.mc-spacer { position: relative; }
+.mc-spacer.is-shown { outline: 1px dashed var(--frame-border); outline-offset: -1px; }
+.mc-spacer.is-shown::after { content: attr(data-l); position: absolute; right: var(--space-2); top: 50%; transform: translateY(-50%); color: var(--green-muted); font-size: 15.36px; }
+.mc-image { display: flex; justify-content: center; padding: var(--space-1) 0; }
+.mc-image .missing { display: grid; place-items: center; border: var(--border-frame) dashed var(--frame-border); border-radius: var(--radius-frame); color: var(--green-muted); }
+
+/* ---------- a choice of files: the file's name, a thumbnail for a texture, and the folder's list ---------- */
+.mc-combo.is-file { justify-content: flex-start; gap: var(--space-3); padding-left: var(--space-2); }
+.mc-combo.is-file > .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-combo.is-file .ext, .mc-option .ext { color: var(--green-muted); }
+.mc-combo.is-file.is-pending > .nm { color: var(--amber); }
+.mc-combo.is-file.is-invalid > .nm, .mc-combo.is-file.is-invalid .ext { color: var(--red); }
+.mc-thumb { flex: none; width: 32px; height: 32px; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-grab); overflow: hidden; background: #000; }
+.mc-thumb svg { display: block; width: 100%; height: 100%; }
+.mc-thumb.is-big { width: 40px; height: 40px; }
+.mc-popup .folder { display: flex; justify-content: space-between; padding: var(--space-1) var(--space-2) var(--space-2); color: var(--green-muted); border-bottom: var(--border-frame) solid var(--rule); margin-bottom: var(--space-1); }
+.mc-option.is-file { gap: var(--space-3); }
+.mc-option.is-current .ext { color: var(--on-green); opacity: 0.6; }
+
+/* ---------- transform: position, rotation and scale; an editor of steppers and a step size ---------- */
+.mc-combo.is-xform { justify-content: flex-start; gap: var(--space-3); }
+.mc-combo.is-xform > .lines { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 18px; }
+.mc-combo.is-xform > .lines > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mc-combo.is-xform .k { display: inline-block; width: 30px; color: var(--green-muted); }
+.mc-combo.is-xform.is-pending > .lines { color: var(--amber); }
+.mc-combo.is-xform.is-invalid > .lines { color: var(--red); }
+.mc-xformedit .body { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2) var(--space-6); }
+.mc-xformedit .grp { color: var(--green-muted); padding: 0 0 var(--space-1); border-bottom: var(--border-frame) solid var(--rule); }
+.mc-axis { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-frame); }
+.mc-axis .lbl { width: 72px; flex: none; }
+.mc-axis .mc-value { flex: 1; width: auto; justify-content: center; }
+.mc-axis .mc-value.is-unset { color: var(--green-muted); }
+.mc-axis.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); }
+.mc-seg { display: inline-flex; height: 40px; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); overflow: hidden; }
+.mc-seg > span { display: grid; place-items: center; padding: 0 var(--space-3); color: var(--green-muted); }
+.mc-seg > span + span { border-left: var(--border-frame) solid var(--frame-border); }
+.mc-seg > span.is-on { background: var(--green); color: var(--on-green); }
+
+/* ---------- activation sphere: a section of the mod's TOML drawn as one group ---------- */
+.mc-section .sphere { width: 20px; height: 20px; flex: none; margin-right: calc(var(--space-1) - var(--space-3)); }
+.mc-section .live { order: 3; flex: none; color: var(--green-muted); }
+.mc-section.is-sphere::after { order: 2; }
+.mc-section.is-lit .sphere circle.halo { opacity: 1; }
+.mc-combo.is-xform .same { color: var(--green-muted); }

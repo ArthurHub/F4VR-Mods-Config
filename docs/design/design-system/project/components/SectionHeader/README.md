@@ -1,11 +1,37 @@
 # SectionHeader
 
-A heading that groups rows, drawn as `ImGui::SeparatorText`, and the collapsible Advanced section.
+A heading that groups rows, drawn as `ImGui::SeparatorText`, a section in a section, and a section that folds, as the Advanced section.
 
-**Provides:** the heading text; for Advanced, the open state.
+**Provides:** the heading text and its help; how many sections it is in (its depth); whether it folds and is open; and, for a folded section, how many of the settings inside it are invalid and how many have unsaved changes.
 
-- Heading: `t-body` `green` text, then a 2 px `rule` line to the right edge. `space-2` above it.
-- Advanced: a `t-body` `green-muted` label with a drawn arrow, a `TreeNode`. Rows inside are indented `space-8`. Closed by default.
-- Hover on Advanced: `hover` with a `frame-border` outline, text to `green`.
+## A heading
+
+- `t-body` `green` text, then a 2 px `rule` line to the right edge of the rows. `space-2` above it.
+- It is not pressed and has no hover look. While the ray is on it, the help line shows the section's help, when it has one.
+
+## A section in a section
+
+- A section in a section is set in with its rows by `IndentSpacing` (`space-8`) a level: its heading, its rows and the sections in it. The rows still end where the other rows do, so the controls stay in one column and only the name narrows. `ImGui::Indent()`, with the width of a row taken from the cursor.
+- While it is open and has rows, a 2 px `rule` line runs from under the start of its heading's text (`space-2` in) down to the bottom of its last row, and turns there toward the rows in a 14 px foot with a `radius-frame` corner. It shows what the section covers, so a row after it is seen to be the outer section's. One `AddLine` down and one along, or a path with `PathArcTo` at the corner.
+- Its rows' gutter is `space-8` instead of `space-6`, and its mark sits `space-2` right of the gutter's middle, so the pending dot and the warning mark clear the line. Their names are `space-2` further in; the controls do not move.
+- A folded section has no line: it has no rows showing. A section in it has its own line, inside the outer one.
+- A level past the third is set in as the third, so a name keeps its room.
+- A section of an MCM config does not nest: its rows are the ones after it, up to the next section.
+
+## A section that folds
+
+- Its heading is a row, a `TreeNode` as high as a row (`control-height`): a drawn arrow, a `t-body` `green-muted` label, and a 2 px `rule` line as a heading has, `space-3` after the label at the height of `SeparatorText`'s. The rule is how a heading is known, so the rows above are seen to end there. Hover: `hover` with a `frame-border` outline over the whole row, rule too, text to `green`. The arrow is what tells it from a heading that does not fold, as in the tree's category row.
+- The rule runs to the right edge of the rows, as a heading's does. Folded with something to say, it stops `space-2` before what it hides. One `AddLine` from the end of the label.
+- The arrow points right while it is folded and down while it is open. A press folds or opens it, as many times as the player likes. It starts as `collapsed` says each time its page is shown, closed for Advanced.
+- Its rows are set in as any section's are, by the sections it is in. Advanced is in the section it belongs to, so its heading and its rows are a level in.
+- Folded, it says what it hides at the right of its heading, after the rule, in `t-detail`: the warning mark and `1 invalid` in `red` first, then the pending dot and `2 unsaved` in `amber`, each only when there is one. They are the rows' own marks, so the state is not told by color alone. Open, it says nothing: its rows show their own.
+- While the ray is on it, the help line has the section's help and then what it hides: "Advanced: Fine-tuning of the left hip holster. Folded: 1 invalid value, 2 unsaved changes."
+- Detailed settings are a folded section, Advanced, right after the settings they belong to.
+
+## Focused panel
+
+The same: a section in a section is set in, and a folded one says what it hides.
 
 Don't style headings in capitals or a larger size: the line already marks them.
+
+The behavior is in [Sections](../../../../schema.md#sections).

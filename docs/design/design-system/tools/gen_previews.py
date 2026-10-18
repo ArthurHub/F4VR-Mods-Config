@@ -66,18 +66,47 @@ def row(name, ctl, state='', gutter='', message='', mark=None):
     return (f'<div class="mc-row {state}"><span class="gutter">{gutter}</span>'
             f'<span class="name t-body">{name}{msg}</span><div class="ctl t-body">{ctl}</div>{mk}</div>')
 
-def section(title):
-    return f'<div class="mc-section t-body">{title}</div>'
+def setin(depth):
+    """A section in a section is set in with its rows by IndentSpacing (space-8) a level, up to the third."""
+    return f' mc-in-{min(depth, 3)}' if depth else ''
 
-def collapse(title, open_=False, hover=False):
-    return f'<div class="mc-collapse t-body{" is-hover" if hover else ""}">{ARROW_D if open_ else ARROW_R}<span>{title}</span></div>'
+def section(title, depth=0):
+    return f'<div class="mc-section t-body{setin(depth)}">{title}</div>'
 
-def tree_row(name, kind='mod', state='', arrow=None, mark=None, cat=False):
+def collapse(title, open_=False, hover=False, depth=0, invalid=0, unsaved=0, mark=None):
+    """A section that folds: its heading is a row that is pressed, with a rule from its label as a heading has.
+    Folded, it says what it hides at the end of the rule: the invalid values first, by the warning mark, then the
+    unsaved changes, by the pending dot, each with its count."""
+    marks = ''
+    if not open_ and (invalid or unsaved):
+        marks = '<span class="marks t-detail">'
+        if invalid:
+            marks += f'{WARN}<span class="mc-red">{invalid} invalid</span>'
+        if unsaved:
+            marks += f'{DOT}<span class="mc-amber">{unsaved} unsaved</span>'
+        marks += '</span>'
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-collapse t-body{" is-hover" if hover else ""}{setin(depth)}">{ARROW_D if open_ else ARROW_R}'
+            f'<span>{title}</span><span class="line"></span>{marks}{mk}</div>')
+
+def sub(heading, rows=''):
+    """A section in a section: its heading and its rows set in a level, ending where the other rows do. While it is
+    open and has rows, a rule line runs from under the start of its heading's text down to the bottom of its last
+    row, and turns there toward the rows; its rows' marks move a little right to clear it."""
+    inner = f'<div class="mc-sub">{rows}</div>' if rows else ''
+    return f'<div class="mc-in">{heading}{inner}</div>'
+
+def tree_row(name, kind='mod', state='', arrow=None, mark=None, cat=False, depth=None):
+    """A row of the tree. Each level is set in by IndentSpacing (space-8), up to the third: a mod's pages are a level
+    in, a page's pages a level further, and in a grouped tree the category is the top. Every row keeps the arrow's
+    column, so the names of a level line up: a mod always has its arrow, and a page has one only when it has pages
+    of its own."""
+    if depth is None:
+        depth = (1 if kind == 'page' else 0) + (1 if cat else 0)
     a = {'r': ARROW_R, 'd': ARROW_D, None: ''}[arrow]
-    cls = 'mc-tree-row t-body' + (' is-page' if kind == 'page' else '') + (' in-cat' if cat else '') + (f' {state}' if state else '')
-    arrow_html = f'<span class="arrow">{a}</span>' if kind in ('mod', 'root') else ''
+    cls = 'mc-tree-row t-body' + (f' d{min(depth, 3)}' if depth else '') + (f' {state}' if state else '')
     mk = f'<span class="mc-mark" style="right:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    return f'<div class="{cls}">{arrow_html}<span class="name">{name}</span>{mk}</div>'
+    return f'<div class="{cls}"><span class="arrow">{a}</span><span class="name">{name}</span>{mk}</div>'
 
 def cat_row(name, count, open_=False, state='', mark=None):
     """A category: opened and closed by pressing it, never selected. Its rule and count set it apart from a mod."""
@@ -116,10 +145,11 @@ def flat_mods(open_mod=None, pages=(), selected=None, hover=None):
         out.append(tree_row(m, arrow='d' if m == open_mod else 'r', state=st, mark=mk))
         if m == open_mod:
             for pg in pages:
-                pst = 'is-selected' if pg == selected else ''
-                if hover and pg == hover[0]: pst, pmk = 'is-hover', hover[1]
+                name, depth, arrow = (pg, 1, None) if isinstance(pg, str) else pg
+                pst = 'is-selected' if name == selected else ''
+                if hover and name == hover[0]: pst, pmk = 'is-hover', hover[1]
                 else: pmk = None
-                out.append(tree_row(pg, kind='page', state=pst, mark=pmk))
+                out.append(tree_row(name, kind='page', state=pst, mark=pmk, depth=depth, arrow=arrow))
     return ''.join(out)
 
 def page(marker, title, body):
@@ -200,18 +230,6 @@ dd_body = f'''<div class="mc-world mc-stack" style="gap:0"><div class="mc-sheet"
 </div>'''
 write('Dropdown', page('<!-- @dsCard group="Settings" height=460 width=1170 subtitle="Closed and open; help for the pointed option shows in the footer" -->', 'Dropdown', dd_body))
 
-# ---------------- SectionHeader ----------------
-sh_body = f'''<div class="mc-world"><div class="mc-sheet" style="width:772px">
-{section('General')}
-{row('Enabled', toggle(True))}
-{section('Battery')}
-{row('Drain battery', toggle(False))}
-{collapse('Advanced')}
-{collapse('Advanced', open_=True, hover=True)}
-<div style="padding-left:32px">{row('Shadow distance', slider('2048', 50))}</div>
-</div></div>'''
-write('SectionHeader', page('<!-- @dsCard group="Settings" height=520 width=820 subtitle="SeparatorText headings and the collapsible Advanced section" -->', 'Section header', sh_body))
-
 # ---------------- DescriptionArea: the help line, left of the footer ----------------
 def fbar(left, dirty=True):
     b = ('<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span>' if dirty
@@ -228,6 +246,41 @@ da_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 <div class="mc-footer"><div class="status t-body"><span class="mc-dot"></span><span class="mc-amber">1 unsaved change</span></div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
 </div></div>'''
 write('DescriptionArea', page('<!-- @dsCard group="Settings" height=520 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->', 'Help line', da_body))
+
+# ---------------- SectionHeader ----------------
+sh_states = ''.join(f'<span class="t-detail mc-muted" style="height:56px;display:flex;align-items:center">{label}</span><div>{html}</div>' for label, html in [
+    ('Heading', section('Holsters')),
+    ('In a section', section('Left hip', 1)),
+    ('Folds, folded', collapse('Advanced', depth=1)),
+    ('Hides changes', collapse('Advanced', depth=1, invalid=1, unsaved=2)),
+    ('Under the ray', collapse('Advanced', depth=1, unsaved=2, hover=True, mark=(150, 22))),
+    ('Open', collapse('Advanced', open_=True, depth=1)),
+])
+sh_states = f'<div class="mc-sheet" style="display:grid;grid-template-columns:120px 740px;column-gap:16px;align-items:start;width:908px">{sh_states}</div>'
+sh_page = ''.join([
+    section('Holsters'),
+    row('Enable holsters', toggle(True)),
+    row('Holster size', slider('1.00', 50)),
+    sub(section('Left hip'), ''.join([
+        row('Forward', slider('4.0', 40)),
+        row('Down', slider('12.0', 60, 'is-pending', 'is-pending', True), gutter=DOT),
+        sub(collapse('Advanced', invalid=1, unsaved=2, hover=True, mark=(150, 22))),
+    ])),
+    section('Weapons'),
+    row('Draw with the grip', toggle(True)),
+    sub(collapse('Advanced', open_=True), ''.join([
+        row('Draw angle', slider('35°', 35)),
+        row('Snap distance', slider('2.50', 95, '', 'is-invalid', True), 'is-invalid', gutter=WARN, message='Must be 0.05 to 1.00'),
+    ])),
+])
+sh_body = f'''<div class="mc-world" style="display:flex;gap:24px;align-items:flex-start">
+<div class="mc-stack"><span class="t-detail mc-caption">The headings: a section in a section is set in a level, a section that folds is a row</span>{sh_states}</div>
+<div class="mc-stack"><span class="t-detail mc-caption">A page: a section in a section is set in, with a line down to its last row, and its rows end where the others do</span>
+<div class="mc-sheet" style="width:772px">{sh_page}</div>
+<div class="mc-sheet" style="width:772px;padding:0">{fbar(helpline('Advanced', 'Fine-tuning of the left hip holster. Folded: 1 invalid value, 2 unsaved changes.'))}</div></div>
+</div>'''
+write('SectionHeader', page('<!-- @dsCard group="Settings" height=1010 width=1880 subtitle="Headings; a section in a section set in with a line to its last row; a section that folds and says what it hides" -->', 'Section header', sh_body))
+
 
 # ---------------- Button ----------------
 def btn(label, kind='', state=''):
@@ -275,6 +328,10 @@ home_tree = ''.join([
     tree_row('Virtual Holsters', arrow='r'),
 ])
 page_tree = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Beam')
+# a package's page with pages of its own: open while one of them is selected, a level further in; another that has
+# pages is closed, its arrow pointing right
+NESTED_PAGES = (('Beam', 1, 'r'), ('Hand mount', 1, 'd'), ('Primary hand', 2, None), ('Off hand', 2, None), ('Battery', 1, None))
+nested_tree = flat_mods('Immersive Flashlight VR', NESTED_PAGES, selected='Off hand')
 grouped_tree = ''.join([
     cat_row('Audio', 2), cat_row('Characters', 3), cat_row('Combat', 6, state='is-hover', mark=(150, 20)),
     cat_row('Gameplay', 5), cat_row('Interface', 3), cat_row('Settlements', 4), cat_row('Utilities', 2),
@@ -287,8 +344,10 @@ mt_body = f'''<div class="mc-world" style="display:flex;gap:24px;align-items:fle
 <div class="mc-sheet" style="width:336px;padding:0">{nav(home_tree, '', 7, height=TREE_H)}</div></div>
 <div class="mc-stack"><span class="t-detail mc-caption">11 mods, a page of a mod selected</span>
 <div class="mc-sheet" style="width:336px;padding:0">{nav(page_tree, '', 11, height=TREE_H)}</div></div>
+<div class="mc-stack"><span class="t-detail mc-caption">A page of a page: its page open, a level in</span>
+<div class="mc-sheet" style="width:336px;padding:0">{nav(nested_tree, '', 11, offset=4 * (ROW_H + ROW_GAP), height=TREE_H)}</div></div>
 </div>'''
-write('ModTree', page('<!-- @dsCard group="Navigation" height=660 width=1110 subtitle="Flat under 30 mods, grouped by category from 30; a bar while the list scrolls" -->', 'Mod tree', mt_body))
+write('ModTree', page('<!-- @dsCard group="Navigation" height=660 width=1470 subtitle="Flat under 30 mods, grouped by category from 30; the pages of a page a level in; a bar while the list scrolls" -->', 'Mod tree', mt_body))
 
 # ---------------- FullPanel ----------------
 fp_nav = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Immersive Flashlight VR')
@@ -373,6 +432,63 @@ fpp_body = f'''<div class="mc-world">
 </div>'''
 write('FullPanelPage', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="A page selected: the crumbs in the title bar, the page row carries the tip" -->', 'Full panel, page selected', fpp_body))
 print('ok page')
+
+# ---------------- Breadcrumbs: where the player is, in the title bar ----------------
+def crumbs(parts, buttons=True, alone=True):
+    """parts: (text, kind) from the first: kind is '' (pressable), 'mod' (shortens), 'more' (the pages that do not fit),
+    'current' (the last), 'selected' (the menu's front page), or 'hover'."""
+    out = []
+    for i, (text, kind) in enumerate(parts):
+        if i:
+            out.append('<span class="mc-crumb-sep">»</span>')
+        cls = {'': '', 'mod': ' is-mod', 'more': ' is-more', 'current': ' is-current', 'selected': ' is-selected',
+               'hover': ' is-hover', 'mod-hover': ' is-mod is-hover', 'mod-current': ' is-mod is-current'}[kind]
+        out.append(f'<span class="mc-crumb{cls}">{text}</span>')
+    btns = f'<span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span>' if buttons else ''
+    width = ' style="width:calc(var(--panel-width) - 2 * var(--panel-padding))"' if alone else ''
+    return f'<div class="mc-titlebar"{width}><div class="mc-crumbs t-title">{"".join(out)}</div>{btns}</div>'
+
+R = ('MODS CONFIG VR', '')
+bc_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:1184px">
+<span class="t-detail mc-muted">The menu's front page: the first crumb alone, selected</span>
+{crumbs([('MODS CONFIG VR', 'selected')])}
+<span class="t-detail mc-muted">A page of a page: a crumb for every level, each before the last pressed to go there</span>
+{crumbs([R, ('Immersive Flashlight VR', 'mod'), ('Hand mount', 'hover'), ('Off hand', 'current')])}
+<span class="t-detail mc-muted">Too long: the pages between the mod and the page become one "…", which is not pressed</span>
+{crumbs([R, ('Immersive Flashlight VR', 'mod'), ('…', 'more'), ('Fine adjustments for power armor gloves', 'current')])}
+<span class="t-detail mc-muted">Still too long: then the mod's name shortens</span>
+{crumbs([R, ('Sim Settlements 2 Chapter 3: City Plans and Settlement Management', 'mod'), ('…', 'more'), ('Upkeep of the workshop plots', 'current')])}
+</div></div>'''
+write('Breadcrumbs', page('<!-- @dsCard group="Navigation" height=520 width=1240 subtitle="A crumb for every level of pages; past the width the pages between become one ellipsis, then the mod shortens" -->', 'Breadcrumbs', bc_body))
+
+# ---------------- FullPanelSubpage: a page of a page selected, with a section in a section ----------------
+fps_nav = flat_mods('Immersive Flashlight VR', NESTED_PAGES, selected='Off hand', hover=('Hand mount', (64, 20)))
+fps_rows = ''.join([
+    pagehelp('Where the light sits when it is mounted on the off hand.'),
+    section('Position'),
+    row('Forward', slider('2.0', 45)),
+    row('Up', slider('-1.5', 35)),
+    row('Out from the wrist', slider('3.0', 55, 'is-pending', 'is-pending', True), gutter=DOT),
+    sub(section('With power armor'), ''.join([
+        row('Forward', slider('4.5', 60)),
+        row('Up', slider('0.0', 50)),
+    ])),
+    sub(collapse('Advanced', unsaved=1)),
+])
+fps_body = f'''<div class="mc-world">
+<div class="mc-panel">
+{crumbs([R, ('Immersive Flashlight VR', 'mod'), ('Hand mount', ''), ('Off hand', 'current')], alone=False)}
+<div class="mc-body">
+{nav(fps_nav, '', 11, offset=4 * (ROW_H + ROW_GAP))}
+<div class="mc-content">
+<div class="mc-scroll"><div class="rows">{fps_rows}</div><div class="mc-scrollbar"><i style="top:0;height:86%"></i></div></div>
+</div>
+</div>
+<div class="mc-footer">{helpline('Hand mount', 'Where the light sits when it is mounted on a hand.')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+</div>
+</div>'''
+write('FullPanelSubpage', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="A page of a page: its page open in the tree, a crumb for each level, a section in a section" -->', 'Full panel, page of a page', fps_body))
+
 
 # ---------------- FullPanelHome: the menu's front page ----------------
 def launch_row(name, state='', mark=None):
@@ -886,3 +1002,692 @@ b_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908
 </div>"""
 write('InputBinding', page('<!-- @dsCard group="Settings" height=1600 width=1760 subtitle="The icon and a sentence; the editor of its parts, with and without Suppress; the Focused panel" -->', 'Input binding', b_body))
 print('ok binding')
+
+# ---------------- List: a list of texts, an `a` key; the row says its entries, the editor has one line each ----------------
+UP = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 15 L12 9 L18 15"/></svg>'
+DOWN = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 9 L12 15 L18 9"/></svg>'
+
+KEYWORDS = ['ArmorBodyPartHead', 'ObjectTypeArmor', 'ArmorTypePower', 'PowerArmorHelmetLightOverride']
+ALLOW = ['0F6D86|Fallout4.esm', '0CEAC4|Fallout4.esm', '115AEB|Fallout4.esm', '04FA89|DLCCoast.esm', '0540FC|DLCCoast.esm',
+         '0296B8|DLCNukaWorld.esm', '029C0D|DLCNukaWorld.esm', '02770C|DLCNukaWorld.esm', '02770D|DLCNukaWorld.esm',
+         '02770E|DLCNukaWorld.esm', '027419|DLCNukaWorld.esm', '02740F|DLCNukaWorld.esm', '03B557|DLCNukaWorld.esm',
+         '026BB0|DLCNukaWorld.esm', '026BB5|DLCNukaWorld.esm', '026BB6|DLCNukaWorld.esm', '026BB7|DLCNukaWorld.esm']
+NODES = ['AddOnNode', 'FlashlightNode', 'LightAttachNode']
+
+def list_ctl(items, state='', show_reset=False, text=None, open_=False):
+    """The row: its entries, as many as fit and then an ellipsis, and how many there are. None when it is empty."""
+    cls = 'mc-combo is-list' + (f' {state}' if state else '') + (' is-open' if open_ else '') + ('' if items or text else ' is-empty')
+    shown = text if text is not None else (', '.join(items) if items else 'None')
+    count = f'<span class="count t-detail">{len(items)}</span>' if items and text is None else ''
+    return f'<div class="main"><span class="{cls}"><span class="items">{shown}</span>{count}{ARROW_D}</span></div>{reset_btn(show_reset)}'
+
+def entry(i, text, ordered=False, n=0, state='', mark=None):
+    """An entry: its text in a frame, pressed to type it again; Up and Down where the order means something; Remove."""
+    num = f'<span class="num t-detail">{i + 1}</span>' if ordered else ''
+    order = (f'<span class="mc-btn is-icon{" is-disabled" if i == 0 else ""}">{UP}</span>'
+             f'<span class="mc-btn is-icon{" is-disabled" if i == n - 1 else ""}">{DOWN}</span>') if ordered else ''
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-entry t-body{" " + state if state else ""}" style="position:relative">{num}<span class="text"><span>{text}</span></span>'
+            f'{order}<span class="mc-btn is-icon">{X}</span>{mk}</div>')
+
+def list_editor(name, items, ordered=False, pending=(), hover=None, mark=None, visible=6, offset=0, style=''):
+    n = len(items)
+    rows = ''.join(entry(i, t, ordered, n, ' '.join(s for s in ('is-pending' if i in pending else '', 'is-hover' if i == hover else '') if s),
+                         mark if i == hover else None) for i, t in enumerate(items))
+    h = visible * 48 + (visible - 1) * 4
+    bar = ''
+    if n > visible:
+        total = n * 48 + (n - 1) * 4
+        bar = f'<div class="mc-scrollbar"><i style="top:{offset / total * 100:.1f}%;height:{h / total * 100:.1f}%"></i></div>'
+    lst = f' style="height:{min(h, n * 48 + (n - 1) * 4)}px"'
+    inner = f' style="margin-top:-{offset}px;display:flex;flex-direction:column;gap:4px"' if offset else ' style="display:flex;flex-direction:column;gap:4px"'
+    head = f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">{n} entries{", in order" if ordered else ""}</span></div>'
+    foot = (f'<div class="foot"><span class="mc-btn t-body">{PLUS}Add</span><span class="grow"></span>'
+            f'<span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>')
+    return f'<div class="mc-editor mc-listedit"{style}>{head}<div class="mc-entries"><div class="list"{lst}><div{inner}>{rows}</div></div>{bar}</div>{foot}</div>'
+
+l_states = h_sheet([
+    ('Idle', row('Head light keywords', list_ctl(KEYWORDS))),
+    ('Hover', row('Allow list', list_ctl(ALLOW), 'is-hover', mark=(520, 22))),
+    ('Pending', row('Deny list', list_ctl(['0316D4|Fallout4.esm', '0A506D|SS2.esm'], 'is-pending', True), gutter=DOT)),
+    ('Empty', row('Debug draw channels to skip', list_ctl([]))),
+    ('Invalid', row('Mesh nodes', list_ctl([], 'is-invalid', True, text='"AddOnNode"'), 'is-invalid', gutter=WARN, message='Not a list')),
+    ('Disabled', row('Auto-detect plugins', list_ctl(['VRCP_DOOMMerged.esp', 'TacticalMods.esp']), 'is-disabled')),
+])
+l_ordered = list_editor('Mesh nodes', NODES, ordered=True, pending=(2,), hover=0, mark=(470, 20), style=' style="position:static"')
+l_rows = ''.join([
+    row('Headgear requirement', combo('Immersive')),
+    row('Head light keywords', list_ctl(KEYWORDS)),
+    row('Allow list', list_ctl(ALLOW + ['0026D8|SS2Extended.esp'], 'is-pending', True, open_=True), 'is-active', gutter=DOT),
+    row('Deny list', list_ctl(['0316D4|Fallout4.esm'])),
+    row('Show the light only with headgear', toggle(True)),
+    row('Light offset on the helmet', slider('2.0', 40)),
+    row('Light angle on the helmet', slider('8°', 20)),
+    row('Allow hats', toggle(False)),
+    row('Allow hoods', toggle(False)),
+])
+l_page = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:531px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+{l_rows}
+{list_editor('Allow list', ALLOW + ['0026D8|SS2Extended.esp'], pending=(17,), hover=17, mark=(300, 22), offset=12 * 52, style=' style="left:27px;top:26px"')}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('0026D8|SS2Extended.esp', 'Press it to type it again, or Remove it. Added: it is saved with Save.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+</div>"""
+l_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 717px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The states: the entries as many as fit, and how many</span>
+{l_states}
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A list whose order means something: numbered, with Up and Down</span>
+{l_ordered}
+</div>
+<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
+<span class="t-detail mc-caption">The editor over its row, where the pane has no room under it, scrolled to an entry just added</span>
+{l_page}
+</div>
+</div>"""
+write('List', page('<!-- @dsCard group="Settings" height=1180 width=1720 subtitle="A list of texts: its entries in the row; an editor with a line an entry, Add and Remove, and Up and Down where order matters" -->', 'List', l_body))
+print('ok list')
+
+# ---------------- HandPose: an `h` key; a bar a finger in the row, an editor of each finger's joints ----------------
+FINGERS = ('Thumb', 'Index', 'Middle', 'Ring', 'Pinky')
+POSE = {'thumb': [0.48, 1.14, 0.97, 0.06], 'index': [0.75, 0.56, 0.29, 0.23], 'middle': [0.17, 0.55, 0.62, 0.03],
+        'ring': [-0.38, 0.87, 0.53, 0.03], 'pinky': [-0.8, 0.96, 1.14, 0.16], 'palm': [15.0, 0.0]}
+POSE_OVER = {'thumb': [0.99, 0.41, 0.56, 0.04], 'index': [0.29, 0.41, 0.4, 0.1], 'middle': [0.2, 0.43, 0.31, 0.12],
+             'ring': [0.41, 0.42, 0.36, 0.15], 'pinky': [0.76, 0.23, 0.72, 0.11], 'palm': [0.0, 0.0]}
+POSE_NEW = dict(POSE, index=[0.92, 0.80, 0.29, 0.23])
+J_MIN, J_MAX = -1.0, 2.0      # a joint: 0 bent, 1 straight; the shipped poses go past both
+S_MIN, S_MAX = -1.0, 1.0      # spread
+P_MIN, P_MAX = -90.0, 90.0    # the palm, in degrees
+
+def straight(f):
+    """How straight a finger is, 0 to 1, for its bar: the mean of its three joints, 0 bent and 1 straight."""
+    return max(0.0, min(1.0, sum(f[:3]) / 3))
+
+def pose_glyph(p, big=False):
+    bars = ''.join(f'<i style="height:{max(8, straight(p[k.lower()]) * 100):.0f}%"></i>' for k in FINGERS)
+    return f'<span class="mc-pose{" is-big" if big else ""}">{bars}</span>'
+
+def palm_text(p):
+    return f'palm {p["palm"][0]:g}°, {p["palm"][1]:g}°'
+
+def pose_ctl(p, state='', show_reset=False, text=None, open_=False):
+    cls = 'mc-combo is-pose' + (f' {state}' if state else '') + (' is-open' if open_ else '')
+    g = '' if state == 'is-invalid' else pose_glyph(p)
+    return f'<div class="main"><span class="{cls}">{g}<span class="nums">{text if text is not None else palm_text(p)}</span>{ARROW_D}</span></div>{reset_btn(show_reset)}'
+
+def finger(name, f, state='', mark=None):
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    bend = '' if name == 'Palm' else f'<span class="bend"><i style="width:{straight(f) * 100:.0f}%"></i></span>'
+    return f'<div class="mc-finger t-body{" " + state if state else ""}" style="position:relative"><span class="grow">{name}</span>{bend}{mk}</div>'
+
+def joint(label, v, lo, hi, fmt='{:.2f}', state='', hover=False, mark=None):
+    w = 100 * (min(max(v, lo), hi) - lo) / (hi - lo)
+    z = 100 * (0 - lo) / (hi - lo)
+    fill_l, fill_w = (z, w - z) if w >= z else (w, z - w)
+    span = 'calc(100% - 20px)'
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-joint{" is-hover" if hover else ""}" style="position:relative"><span class="lbl t-detail">{label}</span>'
+            f'<span class="mc-track{" " + state if state else ""}"><i class="zero" style="left:calc(10px + {z / 100:.4f} * {span})"></i>'
+            f'<i class="fill" style="left:calc(10px + {fill_l / 100:.4f} * {span});width:calc({fill_w / 100:.4f} * {span})"></i>'
+            f'<i class="grab" style="left:calc(10px + {w / 100:.4f} * {span})"></i></span>'
+            f'<span class="mc-value t-body{" " + state if state else ""}">{fmt.format(v)}</span>{mk}</div>')
+
+def scale_marks(marks, lo, hi):
+    """Labels under the tracks, each centred on its value."""
+    out = ''.join(f'<span style="left:calc(10px + {(v - lo) / (hi - lo):.4f} * (100% - 20px))">{t}</span>' for v, t in marks)
+    return f'<div class="scale t-detail"><div class="in">{out}</div></div>'
+
+def pose_editor(name, before, now, sel='Index', changed=(), hover=None, mark=None, style=''):
+    head = (f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">Before</span>{pose_glyph(before, True)}'
+            f'<span class="t-detail mc-muted" style="margin-left:8px">Now</span>{pose_glyph(now, True)}</div>')
+    fl = ''.join(finger(n, now.get(n.lower(), [0, 0]), ' '.join(s for s in ('is-selected' if n == sel else '',
+                 'is-pending' if n in changed else '', 'is-hover' if n == hover else '') if s), mark if n == hover else None)
+                 for n in FINGERS + ('Palm',))
+    if sel == 'Palm':
+        js = ''.join(joint(l, now['palm'][i], P_MIN, P_MAX, '{:g}°', 'is-pending' if before['palm'][i] != now['palm'][i] else '')
+                     for i, l in enumerate(('Pitch', 'Yaw')))
+        scale = scale_marks(((P_MIN, '−90°'), (0, '0°'), (P_MAX, '90°')), P_MIN, P_MAX)
+    else:
+        f, b = now[sel.lower()], before[sel.lower()]
+        js = ''.join(joint(l, f[i], lo, hi, state='is-pending' if f[i] != b[i] else '', hover=(hover == l), mark=mark if hover == l else None)
+                     for i, (l, lo, hi) in enumerate((('Base', J_MIN, J_MAX), ('Middle', J_MIN, J_MAX), ('Tip', J_MIN, J_MAX), ('Spread', S_MIN, S_MAX))))
+        scale = scale_marks(((0, '0 bent'), (1, '1 straight')), J_MIN, J_MAX)
+    body = f'<div class="body"><div class="mc-fingers">{fl}</div><div class="mc-joints">{js}{scale}</div></div>'
+    foot = '<div class="foot"><span class="grow"></span><span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>'
+    return f'<div class="mc-editor mc-poseedit"{style}>{head}{body}{foot}</div>'
+
+hp_states = h_sheet([
+    ('Idle', row('Forward grip pose', pose_ctl(POSE))),
+    ('Hover', row('Overhand grip pose', pose_ctl(POSE_OVER), 'is-hover', mark=(560, 22))),
+    ('Pending', row('Forward grip pose', pose_ctl(POSE_NEW, 'is-pending', True), gutter=DOT)),
+    ('Invalid', row('Forward grip pose', pose_ctl(POSE, 'is-invalid', True, text='{ thumb = [0.48, 1.14], index = …'), 'is-invalid', gutter=WARN, message='Not a hand pose')),
+    ('Disabled', row('Power armor grip pose', pose_ctl(POSE), 'is-disabled')),
+])
+hp_palm = pose_editor('Overhand grip pose', POSE_OVER, dict(POSE_OVER, palm=[10.0, 0.0]), sel='Palm', changed=('Palm',), style=' style="position:static"')
+hp_rows = ''.join([
+    section('Hand mount'),
+    row('Mount on the off hand', toggle(True)),
+    row('Forward grip pose', pose_ctl(POSE_NEW, 'is-pending', True, open_=True), 'is-active', gutter=DOT),
+    row('Overhand grip pose', pose_ctl(POSE_OVER)),
+    row('Power armor forward grip pose', pose_ctl(POSE)),
+    row('Power armor overhand grip pose', pose_ctl(POSE_OVER)),
+    row('Switch grip with', combo('Grip, double press')),
+    row('Mount height', slider('4.0', 40)),
+])
+hp_page = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:531px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+{hp_rows}
+{pose_editor('Forward grip pose', POSE, POSE_NEW, sel='Index', changed=('Index',), hover='Base', mark=(300, 22), style=' style="left:27px;top:20px"')}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Base', 'How the base joint of the index finger bends: 0 is bent, 1 is straight. Your off hand shows the pose.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+</div>"""
+hp_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 717px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The states: a bar a finger, thumb to pinky, as tall as it is straight, and the palm</span>
+{hp_states}
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The palm selected: its pitch and yaw in degrees</span>
+{hp_palm}
+</div>
+<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
+<span class="t-detail mc-caption">The editor over its row, where the pane has no room under it: Index selected and changed, the ray on its base joint</span>
+{hp_page}
+</div>
+</div>"""
+write('HandPose', page('<!-- @dsCard group="Settings" height=1240 width=1720 subtitle="A hand pose: a bar a finger and the palm in the row; an editor of each finger&#39;s joints, shown on the player&#39;s own hand" -->', 'Hand pose', hp_body))
+print('ok hand pose')
+
+# ---------------- Search: the tree's header is the field; a query filters the tree and shows the results as a page ----------------
+SEARCH = '<svg class="mc-ico" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15 L20 20"/></svg>'
+
+def hit(text, q):
+    """Underline where each word of the query starts a word of the name."""
+    import re as _re
+    for w in q.split():
+        text = _re.sub(r'(?i)\b(' + _re.escape(w) + ')', r'<span class="mc-hit">\1</span>', text, count=1)
+    return text
+
+def search_field(state='', query='', count=None, clear_state='', mark=None, mods=11):
+    """Idle it says what it searches; typing, the query and a caret; with a query, the count of results and Clear."""
+    q = query or f'Search {mods} mods'
+    cnt = f'<span class="count t-detail">{count}</span>' if count is not None else ''
+    clr = f'<span class="clear{" " + clear_state if clear_state else ""}">{X}</span>' if query else ''
+    cls = 'mc-search' + (f' {state}' if state else '') + (' has-query' if query else '')
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return f'<div class="{cls} {"t-body" if query else "t-detail"}" style="position:relative">{SEARCH}<span class="q">{q}</span>{cnt}{clr}{mk}</div>'
+
+def s_row(name, q, kind='mod', count=None, state='', depth=None, arrow=None, mark=None):
+    if depth is None:
+        depth = 1 if kind == 'page' else 0
+    a = {'r': ARROW_R, 'd': ARROW_D, None: ''}[arrow]
+    cls = 'mc-tree-row t-body' + (f' d{depth}' if depth else '') + (f' {state}' if state else '')
+    c = f'<span class="count t-detail">{count}</span>' if count else ''
+    mk = f'<span class="mc-mark" style="right:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return f'<div class="{cls}"><span class="arrow">{a}</span><span class="name">{hit(name, q)}</span>{c}{mk}</div>'
+
+def nav_search(field, rows, height=None):
+    st = f' style="height:{height}px"' if height else ''
+    return (f'<div class="mc-nav"{st}><div class="mc-nav-head is-search">{field}</div>'
+            f'<div class="mc-nav-rows"><div class="list">{rows}</div></div></div>')
+
+Q = 'hol'
+s_tree = ''.join([
+    s_row('FRIK', Q, arrow='d'),
+    s_row('Weapons', Q, 'page', 1),
+    s_row('Immersive Flashlight VR', Q, arrow='d'),
+    s_row('Body stow', Q, 'page', 2, state='is-hover', mark=(40, 20)),
+    s_row('Virtual Holsters', Q, count=4, arrow='r'),
+])
+s_results = ''.join([
+    pagehelp(f'7 settings match “{Q}”. Change them here, or go to their page in the tree.'),
+    section('FRIK » Weapons'),
+    row(hit('Two-handed hold', Q), toggle(True)),
+    section('Immersive Flashlight VR » Body stow'),
+    row(hit('Holster the light on the hip', Q), toggle(False)),
+    row(hit('Hip holster offset', Q), slider('6.0', 30)),
+    section('Virtual Holsters'),
+    row(hit('Enable holsters', Q), toggle(True)),
+    row(hit('Holster size', Q), slider('1.00', 50)),
+    row(hit('Left hip holster', Q), toggle(True)),
+    row(hit('Holster haptic', Q), combo('Tick')),
+])
+fs_body = f'''<div class="mc-world mc-stack" style="gap:16px">
+<div class="mc-panel">
+{crumbs([R, ('Search', 'current')], alone=False)}
+<div class="mc-body">
+{nav_search(search_field('is-typing', Q, 7), s_tree)}
+<div class="mc-content">
+<div class="mc-scroll"><div class="rows">{s_results}</div><div class="mc-scrollbar"><i style="top:0;height:84%"></i></div></div>
+</div>
+</div>
+<div class="mc-footer">{helpline('Body stow', '2 settings of Immersive Flashlight VR match. Press it to go to the page.')}{btn('Discard', '', 'is-disabled')}{btn('Save', 'is-primary', 'is-disabled')}</div>
+</div>
+<div class="mc-keyboard t-body" style="width:1152px">SteamVR's keyboard, shown while the field is typed in: each key filters the results</div>
+</div>'''
+write('FullPanelSearch', page('<!-- @dsCard group="Panels" height=900 width=1200 subtitle="Searching: the tree has the mods and pages that match, the content has the settings that match, each editable where it is" -->', 'Full panel, search', fs_body))
+
+s_none = ''.join([pagehelp('Nothing matches “holz”. Search finds the names of mods, pages, sections and settings.')])
+sc_body = f'''<div class="mc-world"><div class="mc-sheet" style="display:grid;grid-template-columns:336px 336px 336px;gap:8px 24px;align-items:start;width:1104px">
+<span class="t-detail mc-muted">Idle: it says what it searches</span>
+<span class="t-detail mc-muted">Under the ray</span>
+<span class="t-detail mc-muted">Typing: the query, and Clear</span>
+{nav_search(search_field(), flat_mods()[:0] + ''.join(tree_row(m, arrow='r') for m in ('Baka Fullscreen Pip-Boy', 'Better Locational Damage', 'Companion Command')), 236)}
+{nav_search(search_field('is-hover', mark=(150, 18)), ''.join(tree_row(m, arrow='r') for m in ('Baka Fullscreen Pip-Boy', 'Better Locational Damage', 'Companion Command')), 236)}
+{nav_search(search_field('is-typing', 'hol', 7), ''.join([s_row('FRIK', Q, arrow='d'), s_row('Weapons', Q, 'page', 1), s_row('Immersive Flashlight VR', Q, arrow='d')]), 236)}
+<span class="t-detail mc-muted">Keyboard closed, a result&#39;s page selected</span>
+<span class="t-detail mc-muted">The ray on Clear</span>
+<span class="t-detail mc-muted">Nothing matches</span>
+{nav_search(search_field('', 'hol', 7), ''.join([s_row('FRIK', Q, arrow='r'), s_row('Immersive Flashlight VR', Q, arrow='d'), s_row('Body stow', Q, 'page', 2, state='is-selected')]), 236)}
+{nav_search(search_field('', 'hol', 7, clear_state='is-hover', mark=(262, 18)), ''.join([s_row('FRIK', Q, arrow='d'), s_row('Weapons', Q, 'page', 1), s_row('Immersive Flashlight VR', Q, arrow='d')]), 236)}
+{nav_search(search_field('is-typing', 'holz', 0), '<div class="mc-nav-empty t-body">No mod matches</div>', 236)}
+</div></div>'''
+write('Search', page('<!-- @dsCard group="Navigation" height=640 width=1160 subtitle="The tree&#39;s header is the field: idle, under the ray, typing, a result selected, Clear, nothing found" -->', 'Search', sc_body))
+print('ok search')
+
+# ---------------- RowWarning: a setting's or a button's warning, which blocks nothing ----------------
+CAUTION = ('<svg class="mc-caution" viewBox="0 0 20 18"><path class="tri" d="M10 1.5 L18.5 16.5 H1.5 Z"/>'
+           '<rect class="bang" x="9" y="6" width="2" height="6"/><rect class="bang" x="9" y="13" width="2" height="2"/></svg>')
+
+def warnline(name, warning, help_):
+    return f'<div class="help t-body"><span class="name">{name}:</span> {CAUTION}<span class="caution">{warning}</span> {help_}</div>'
+
+rw_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The mark after the name: a hollow amber triangle. The gutter keeps the pending dot and the invalid mark</span>
+{h_sheet([
+    ('No warning', row('Player height', slider('1.30 m', 60))),
+    ('Warning', row(f'Player height{CAUTION}', slider('1.45 m', 76, 'is-pending', 'is-pending', True), gutter=DOT)),
+    ('Under the ray', row(f'Player height{CAUTION}', slider('1.45 m', 76, 'is-pending', 'is-pending', True), 'is-hover', gutter=DOT, mark=(560, 22))),
+    ('With Restart', row(f'Shadow size<span class="mc-tag t-detail">Restart</span>{CAUTION}', choice_stepper('4096', True, True), gutter=DOT)),
+    ('A button', row(f'Rebuild the holsters{CAUTION}', '<div class="main"><span class="mc-btn t-body">Run</span></div>' + reset_btn(False))),
+    ('Invalid wins', row('Player height', slider('1.60 m', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN, message='Must be 0.50 to 1.50')),
+])}
+<div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{warnline('Player height', 'Above 1.4 m your view can be in the ceiling.', 'Adjusts the estimated player height.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+</div>"""
+write('RowWarning', page('<!-- @dsCard group="Settings" height=620 width=1170 subtitle="A warning while its condition holds: a hollow amber mark after the name, its text first in the help line; Save is not blocked" -->', 'Row warning', rw_body))
+
+def ro_slider(value, pct):
+    return slider(value, pct)
+
+ro_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A value the mod writes for the player to read: its control as it is, the row disabled, no Reset</span>
+{h_sheet([
+    ('A number', row('Measured height', slider('1.78 m', 64), 'is-readonly')),
+    ('A switch', row('Calibrated', toggle(True), 'is-readonly')),
+    ('A text', row('Last calibration', '<div class="main"><span class="mc-textbox t-body"><span>Sanctuary Hills, day 12</span></span></div>' + reset_btn(False), 'is-readonly')),
+    ('No value yet', row('Arm length', '<div class="main"><span class="mc-track is-empty"><i class="fill"></i><i class="grab"></i></span><span class="mc-value"></span></div>' + reset_btn(False), 'is-readonly')),
+    ('Under the ray', row('Measured height', slider('1.78 m', 64), 'is-readonly is-hover', mark=(560, 22))),
+])}
+<div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{helpline('Measured height', '(Read-only) The height FRIK measured at the last calibration. Calibrate to measure it again.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div></div>
+</div>"""
+write('ReadOnly', page('<!-- @dsCard group="Settings" height=560 width=1170 subtitle="A value the mod writes: shown in its control, the row disabled, (Read-only) first in its help, no Reset" -->', 'Read-only', ro_body))
+print('ok warning, read-only')
+
+# ---------------- NumberDisplay: decimals, a unit, a percentage, and a value too wide for its box ----------------
+def slider_v(value, pct, cls=''):
+    return (f'<div class="main"><span class="mc-track"><i class="fill" style="width:{pct*2.6:.0f}px"></i>'
+            f'<i class="grab" style="left:{10+pct*2.6:.0f}px"></i></span>'
+            f'<span class="mc-value {cls}">{value}</span></div>{reset_btn(False)}')
+
+nd_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The value box shows the number as display says: its decimals, its unit, or a percentage</span>
+{h_sheet([
+    ('Decimals of step', row('Brightness', slider_v('1.25', 50))),
+    ('Whole number', row('Hours per battery', num_stepper('8'))),
+    ('decimals: 1', row('Reach', slider_v('12.0', 40))),
+    ('unit: m', row('Player height', slider_v('1.78 m', 64))),
+    ('unit: °', row('Beam angle', slider_v('40°', 30))),
+    ('percent', row('Ray opacity', slider_v('85%', 85))),
+    ('Negative', row('Hip offset', slider_v('-0.50', 40))),
+    ('Too wide: t-detail', row('Fade time', slider_v('12000 ms', 60, 'is-small'))),
+    ('Still too wide: no unit', row('Draw distance', slider_v('250000', 70, 'is-small'))),
+    ('Stepper with unit', row('Battery life', num_stepper('8 h'))),
+])}
+<div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{helpline('Ray opacity', 'How solid the ray is. 85% (217 of 255). (Default: 100%)')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div></div>
+</div>"""
+write('NumberDisplay', page('<!-- @dsCard group="Settings" height=800 width=1170 subtitle="A number as display says: decimals, a unit, a percentage of its range; a value too wide for its box" -->', 'Number display', nd_body))
+print('ok number display')
+
+# ---------------- ButtonRow: a button in a row, running and its result; a confirmation, dangerous or not ----------------
+SPIN = '<svg class="mc-ico spin" viewBox="0 0 24 24"><path d="M12 3 A9 9 0 1 1 3 12"/></svg>'
+
+def run_btn(label='Run', state=''):
+    return f'<div class="main"><span class="mc-btn t-body is-run{" " + state if state else ""}">{label}</span></div>{reset_btn(False)}'
+
+def result_row(name, label, text, ok=True, state=''):
+    cls = 'ok' if ok else 'mc-red'
+    return (f'<div class="mc-row {state}"><span class="gutter">{"" if ok else WARN}</span>'
+            f'<span class="name t-body" style="line-height:22px">{name}<small class="t-detail {cls}">{text}</small></span>'
+            f'<div class="ctl t-body">{run_btn(label)}</div></div>')
+
+br_states = h_sheet([
+    ('Run', row('Hide the HUD', run_btn())),
+    ('buttonText', row('Calibrate height', run_btn('Calibrate'))),
+    ('Under the ray', row('Calibrate height', run_btn('Calibrate'), 'is-hover', mark=(620, 22))),
+    ('Running', row('Calibrate height', run_btn(f'{SPIN}Running', 'is-running'))),
+    ('Done', result_row('Calibrate height', 'Calibrate', 'Done: 1.78 m')),
+    ('Failed', result_row('Calibrate height', 'Calibrate', 'Stand still, then try again', ok=False)),
+    ('No client', row('Rebuild the holsters', run_btn('Rebuild'), 'is-disabled')),
+])
+dlg = lambda title, msg, ok, danger: (f'<div class="mc-sheet mc-scrim" style="width:820px;height:300px;padding:0">'
+    f'<div class="mc-dialog{" is-danger" if danger else ""}"><div class="t-title">{title}</div><div class="t-body">{msg}</div>'
+    f'<div class="actions">{btn("Cancel", "is-quiet")}{btn(ok, "is-danger" if danger else "is-primary")}</div></div></div>')
+br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 820px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The row: Run, or the button's text, in the control column; running; the result under the name</span>
+{br_states}
+<div class="mc-sheet" style="width:908px;padding:0"><div class="mc-footer">{helpline('Calibrate height', 'Measures your height and updates the calibration. Stand straight first.')}</div></div>
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A confirmation, as the package writes it</span>
+{dlg('Reset the calibration?', 'This discards the current body calibration. FRIK measures you again the next time you calibrate.', 'Reset', False)}
+<span class="t-detail mc-caption">dangerous: the confirming button and the frame in red</span>
+{dlg('Delete every holster?', 'Every holster you placed is removed, with the weapons in them returned to your inventory. This cannot be undone.', 'Delete', True)}
+</div>
+</div>"""
+write('ButtonRow', page('<!-- @dsCard group="Actions" height=760 width=1800 subtitle="A row that runs an action: Run or its text, running, its result under the name; a confirmation, and a dangerous one" -->', 'Button row', br_body))
+print('ok button row')
+
+# ---------------- SaveSummary: Save pressed while a value is invalid ----------------
+def issue(name, where, msg, state='', mark=None, reset=True):
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-issue{" " + state if state else ""}">{WARN}<div class="what"><span class="t-body">{name}</span>'
+            f'<span class="where t-detail">{where}</span><span class="msg t-detail">{msg}</span></div>{reset_btn(reset)}{mk}</div>')
+
+ss_rows = ''.join([
+    section('Holsters'),
+    row('Enable holsters', toggle(True)),
+    row('Holster size', slider('2.40', 100, 'is-invalid', 'is-invalid', True), 'is-invalid is-focus', gutter=WARN, message='Must be 0.50 to 2.00'),
+    row('Draw with the grip', toggle(True)),
+    section('Left hip'),
+    row('Forward', slider('4.0', 40)),
+    row('Down', slider('12.0', 60, 'is-pending', 'is-pending', True), gutter=DOT),
+])
+ss_pop = f"""<div class="mc-summary" style="right:24px;bottom:12px">
+<div class="head">{WARN}<span class="grow t-body mc-red">3 values are not valid. Save is blocked until they are.</span></div>
+{issue('Holster size', 'Holsters', 'Must be 0.50 to 2.00')}
+{issue('Snap distance', 'Weapons » Advanced, folded', 'Must be 0.05 to 1.00', 'is-hover', (380, 26))}
+{issue('Sling offset', 'Weapons, hidden while Sling is off', 'Must be -20.0 to 20.0', 'is-hidden')}
+<div class="foot">{btn('Close', 'is-quiet')}</div>
+</div>"""
+ss_body = f"""<div class="mc-world mc-stack" style="gap:0">
+<div class="mc-sheet" style="width:1120px;height:540px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+<div style="width:772px">{ss_rows}</div>
+{ss_pop}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 0 8px 8px">{footer(WARN + '<span class="mc-red">3 invalid values</span>', btn('Discard') + btn('Save', '', 'is-active'))}</div>
+</div>"""
+write('SaveSummary', page('<!-- @dsCard group="Actions" height=680 width=1170 subtitle="Save pressed while values are invalid: every one named, the first that shows focused, each reset from here" -->', 'Save summary', ss_body))
+print('ok save summary')
+
+# ---------------- RestartNotice: a setting that needs a restart, and the Save that wrote one ----------------
+RTAG = '<span class="mc-tag t-detail">Restart</span>'
+rn_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The row: the Restart mark after its name, and its help says when it takes effect</span>
+<div class="mc-sheet mc-stack" style="width:1120px;gap:12px">
+<div style="width:772px">{row('Shadow size' + RTAG, choice_stepper('4096', True, True), 'is-hover', gutter=DOT, mark=(560, 22))}{row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=DOT)}</div>
+{footer(DOT + '<span class="mc-amber">2 unsaved changes, 1 takes effect after a restart</span>', btn('Discard') + btn('Save', 'is-primary'))}
+<span class="t-detail mc-muted">The ray on it</span>
+<div class="mc-footer">{helpline('Shadow size', 'How sharp the beam&#39;s shadows are. Larger costs frame time. Takes effect after the game is restarted. (Default: 2048)')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+<span class="t-detail mc-muted">After the Save: the status says it until the next change of the mod</span>
+{footer(RTAG + '<span>Saved. 1 change takes effect after the game is restarted.</span>', btn('Discard', '', 'is-disabled') + btn('Save', 'is-primary', 'is-disabled'))}
+<span class="t-detail mc-muted">A Save with no restart</span>
+{footer('<span class="mc-muted">Saved</span>', btn('Discard', '', 'is-disabled') + btn('Save', 'is-primary', 'is-disabled'))}
+</div>
+<span class="t-detail mc-caption">The menu's front page keeps it under Notices until the game is restarted</span>
+<div class="mc-sheet" style="width:772px">{section('Notices')}<div class="mc-notice t-body">{RTAG}<span>Restart the game: Immersive Flashlight VR has 1 saved change that takes effect then.</span></div>{pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.')}</div>
+</div>"""
+write('RestartNotice', page('<!-- @dsCard group="Actions" height=910 width=1170 subtitle="A setting that takes effect after a restart: its mark, its help, the status after the Save that wrote it, and the front page notice" -->', 'Restart notice', rn_body))
+print('ok restart')
+
+# ---------------- TextInput: a field that shows the text, typed on SteamVR's keyboard ----------------
+PEN = '<svg class="mc-ico pen" viewBox="0 0 24 24"><path d="M4 20 L5 15 L15.5 4.5 L19.5 8.5 L9 19 Z"/><path d="M13.5 6.5 L17.5 10.5"/></svg>'
+
+def field(text, state='', num=False, length=None, show_reset=False):
+    cls = 'mc-field' + (' is-num' if num else '') + (f' {state}' if state else '') + ('' if text else ' is-empty')
+    shown = text if text else 'Empty'
+    tail = f'<span class="len t-detail">{length}</span>' if length else ('' if 'is-editing' in state else PEN)
+    return f'<div class="main"><span class="{cls}"><span class="txt t-body">{shown}</span>{tail}</span></div>{reset_btn(show_reset)}'
+
+ti_states = h_sheet([
+    ('Idle', row('Settlement name', field('Sanctuary Hills'))),
+    ('Under the ray', row('Settlement name', field('Sanctuary Hills'), 'is-hover', mark=(560, 22))),
+    ('Typing', row('Settlement name', field('Sanctuary Hil', 'is-editing', length='12 / 32'), 'is-active')),
+    ('Pending', row('Settlement name', field('Red Rocket', 'is-pending', show_reset=True), gutter=DOT)),
+    ('Empty', row('Greeting', field(''))),
+    ('Too long', row('Settlement name', field('The Commonwealth Minutemen headquarters', 'is-invalid', show_reset=True), 'is-invalid', gutter=WARN, message='At most 32 characters')),
+    ('A number', row('Max settlers', field('20', num=True))),
+    ('Number, out of range', row('Max settlers', field('250', 'is-invalid', num=True, show_reset=True), 'is-invalid', gutter=WARN, message='Must be 1 to 100')),
+    ('Disabled', row('Settlement name', field('Sanctuary Hills'), 'is-disabled')),
+])
+ti_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The field shows the text and a pencil; a press shows SteamVR's keyboard, and the text changes in the field as it is typed</span>
+{ti_states}
+<div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{helpline('Settlement name', 'Typing: Done keeps it, Cancel puts back “Sanctuary Hills”. Up to 32 characters.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+<div class="mc-keyboard t-body" style="width:1120px">SteamVR's keyboard, while the field is typed in: Done and Cancel are its own</div>
+</div>"""
+write('TextInput', page('<!-- @dsCard group="Settings" height=860 width=1170 subtitle="A text or a typed number: the field, typing on SteamVR&#39;s keyboard with the count of characters, pending, empty, invalid" -->', 'Text input', ti_body))
+print('ok text input')
+
+# ---------------- TextRows: a text, html or plain; a spacer; an image ----------------
+LOGO = ('<svg width="512" height="128" viewBox="0 0 512 128"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#1b3a2a"/>'
+        '<stop offset="1" stop-color="#0a1f15"/></linearGradient></defs><rect width="512" height="128" rx="6" fill="url(#lg)"/>'
+        '<circle cx="64" cy="64" r="34" fill="none" stroke="#e8d27a" stroke-width="6"/><path d="M64 38 V64 L82 76" stroke="#e8d27a" stroke-width="6" fill="none"/>'
+        '<text x="118" y="76" font-family="Roboto" font-size="31" fill="#e8d27a">IMMERSIVE FLASHLIGHT</text></svg>')
+tr_page = ''.join([
+    f'<div class="mc-text t-body">{"A text is a paragraph in the muted color, wrapped to the width of the rows. It holds no value, and the ray does nothing on it."}</div>',
+    section('Calibration'),
+    f'<div class="mc-text t-body"><p style="text-align:center;font-size:25.2px;line-height:30px">Calibration</p>'
+    f'<p>Stand straight and look ahead. <span style="color:#FFFFFF">Do not move</span> until it is done. <b>Bold</b>, <i>italic</i> and <u>underlined</u> as MCM writes them.</p></div>',
+    '<div class="mc-spacer is-shown" style="height:21px" data-l="spacer, 1 line"></div>',
+    row('Calibrate height', run_btn('Calibrate')),
+    '<div class="mc-spacer is-shown" style="height:42px" data-l="spacer, numLines 2"></div>',
+    f'<div class="mc-image">{LOGO}</div>',
+    f'<div class="mc-image"><div class="missing t-detail" style="width:384px;height:96px">Missing: MyMod/config/banner.dds</div></div>',
+])
+tr_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A text, plain and with tags; spacers (outlined here only); an image, and a missing one</span>
+<div class="mc-sheet" style="width:772px">{tr_page}</div>
+</div>"""
+write('TextRows', page('<!-- @dsCard group="Settings" height=800 width=830 subtitle="Rows with no value: a text, plain or with MCM&#39;s tags; a spacer of one line or more; an image, and a missing one" -->', 'Text, spacer and image', tr_body))
+print('ok text rows')
+
+# ---------------- FileChoice: a choice of the files in a folder, with a texture's thumbnail ----------------
+def gobo(kind):
+    """A stand-in for a gobo texture: how the light falls through it, white on black."""
+    g = {'round': '<circle cx="20" cy="20" r="15" fill="url(#gr)"/>',
+         'incandescent': '<circle cx="20" cy="20" r="16" fill="url(#gr)"/><circle cx="20" cy="20" r="7" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/>',
+         'pa': '<circle cx="20" cy="20" r="18" fill="url(#gr)"/><circle cx="20" cy="20" r="11" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>',
+         'led': ''.join(f'<circle cx="{x}" cy="{y}" r="4" fill="url(#gr)"/>' for x in (12, 20, 28) for y in (12, 20, 28)),
+         'dirty': '<circle cx="20" cy="20" r="15" fill="url(#gr)"/><path d="M8 26 Q18 20 32 28 L32 34 L8 34Z" fill="#000" fill-opacity=".45"/>',
+         'small': '<circle cx="20" cy="20" r="9" fill="url(#gr)"/>'}[kind]
+    return (f'<span class="mc-thumb"><svg viewBox="0 0 40 40"><defs><radialGradient id="gr"><stop offset="0" stop-color="#fff"/>'
+            f'<stop offset=".7" stop-color="#d8d8c8"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>'
+            f'<rect width="40" height="40" fill="#000"/>{g}</svg></span>')
+
+GOBOS = [('1_Clean', 'round'), ('2_LED_Array', 'led'), ('3_Dirty_Lens', 'dirty'), ('4_Spot', 'small'), ('5_F4_PA_Bright', 'pa'),
+         ('6_Incandescent', 'incandescent'), ('7_Round_Small', 'small')]
+def file_ctl(name, kind, state='', show_reset=False, open_=False, ext='.DDS'):
+    cls = 'mc-combo is-file' + (f' {state}' if state else '') + (' is-open' if open_ else '')
+    th = '' if state == 'is-invalid' or kind is None else gobo(kind)
+    return f'<div class="main"><span class="{cls}">{th}<span class="nm">{name}<span class="ext">{ext}</span></span>{ARROW_D}</span></div>{reset_btn(show_reset)}'
+
+def f_option(name, kind, current=False, hover=False, mark=None):
+    mk = f'<span class="mc-mark" style="position:relative;margin-left:60px"></span>' if mark else ''
+    ck = CHECK if current else '<span class="check"></span>'
+    return f'<div class="mc-option is-file{" is-current" if current else ""}{" is-hover" if hover else ""}">{ck}{gobo(kind)}<span>{name}<span class="ext">.DDS</span></span>{mk}</div>'
+
+fc_states = h_sheet([
+    ('A texture', row('Gobo on the head', file_ctl('6_Incandescent', 'incandescent'))),
+    ('Under the ray', row('Gobo in the hand', file_ctl('6_Incandescent', 'incandescent'), 'is-hover', mark=(560, 22))),
+    ('Pending', row('Gobo on the head', file_ctl('2_LED_Array', 'led', 'is-pending', True), gutter=DOT)),
+    ('Not a texture', row('Voice pack', file_ctl('Codsworth', None, ext='.json'))),
+    ('Not in the folder', row('Gobo on a weapon', file_ctl('9_Laser', None, 'is-invalid', True), 'is-invalid', gutter=WARN, message='Not in Gobos')),
+    ('Empty folder', row('Gobo in power armor', file_ctl('No files', None, ext=''), 'is-disabled')),
+])
+fc_pop = (f'<div class="mc-popup has-scroll t-body" style="position:absolute;left:390px;top:112px;width:392px;z-index:2">'
+          f'<div class="folder t-detail"><span>Textures\\ImmersiveFlashlightVR\\Gobos</span><span>7 files</span></div>'
+          + ''.join(f_option(n, k, current=(n == '6_Incandescent'), hover=(n == '2_LED_Array'), mark=(n == '2_LED_Array')) for n, k in GOBOS[:5])
+          + '<div class="mc-scrollbar"><i style="top:0;height:82%"></i></div></div>')
+fc_rows = ''.join([
+    section('On the head'),
+    row('Gobo on the head', file_ctl('2_LED_Array', 'led', 'is-pending', True, open_=True), 'is-active', gutter=DOT),
+    row('Brightness', slider('1.10', 45)),
+    row('Reach', slider('2000', 30)),
+    row('Beam angle', slider('90°', 60)),
+    row('Light color', color_ctl((235, 224, 190))),
+    section('In the hand'),
+    row('Gobo in the hand', file_ctl('6_Incandescent', 'incandescent')),
+    row('Brightness', slider('1.40', 60)),
+])
+fc_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px;gap:16px">
+<span class="t-detail mc-caption">The row: the file's name, its extension muted, and for a texture its thumbnail</span>
+{fc_states}
+<span class="t-detail mc-caption">The list: the folder and how many files, each with its thumbnail; a pick is shown on the light at once</span>
+<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:520px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">{fc_rows}{fc_pop}</div>
+<div class="mc-sheet" style="width:908px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('2_LED_Array.DDS', 'Textures\\ImmersiveFlashlightVR\\Gobos. Pick it, and the light on your head shows it.')}</div></div></div>
+</div>"""
+write('FileChoice', page('<!-- @dsCard group="Settings" height=1100 width=960 subtitle="A choice of the files in a folder: the name, a texture&#39;s thumbnail, the folder&#39;s list; not in the folder; an empty folder" -->', 'Choice of files', fc_body))
+print('ok file choice')
+
+# ---------------- Transform: pos, rot and scale; steppers with a step size, and tuning in the world ----------------
+def fnum(v, deg=False):
+    t = f'{v:.2f}'.rstrip('0').rstrip('.') if v != int(v) else f'{int(v)}'
+    return t + ('°' if deg else '')
+
+def xform_ctl(t, state='', show_reset=False, text=None, open_=False):
+    cls = 'mc-combo is-xform' + (f' {state}' if state else '') + (' is-open' if open_ else '')
+    if text is not None:
+        lines = f'<span class="t-body">{text}</span>'
+    else:
+        p, r, s_ = t.get('pos', [0, 0, 0]), t.get('rot', [0, 0, 0]), t.get('scale', 1)
+        m = lambda k, txt: txt if k in t else f'<span class="mc-muted">{txt}</span>'
+        lines = (f'<span class="t-detail"><span class="k">pos</span>{m("pos", ", ".join(fnum(v) for v in p))}{"" if s_ == 1 else f"   ×{fnum(s_)}"}</span>'
+                 f'<span class="t-detail"><span class="k">rot</span>{m("rot", ", ".join(fnum(v, True) for v in r))}</span>')
+    return f'<div class="main"><span class="{cls}"><span class="lines">{lines}</span>{ARROW_D}</span></div>{reset_btn(show_reset)}'
+
+def axis(label, v, state='', hover=False, mark=None, deg=False, unset=False):
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    vs = ' is-unset' if unset else (f' {state}' if state else '')
+    return (f'<div class="mc-axis{" is-hover" if hover else ""}"><span class="lbl t-detail">{label}</span>'
+            f'<span class="mc-btn is-icon">{MINUS}</span><span class="mc-value t-body{vs}">{fnum(v, deg)}</span>'
+            f'<span class="mc-btn is-icon">{PLUS}</span>{mk}</div>')
+
+def xform_editor(name, t, changed=(), hover=None, mark=None, unset=(), style=''):
+    p, r, s_ = t.get('pos', [0, 0, 0]), t.get('rot', [0, 0, 0]), t.get('scale', 1)
+    st = lambda k: 'is-pending' if k in changed else ''
+    head = (f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">Step</span>'
+            f'<span class="mc-seg t-detail"><span>Fine</span><span class="is-on">Normal</span><span>Coarse</span></span></div>')
+    left = (f'<div class="mc-stack"><span class="grp t-detail">Position</span>'
+            + ''.join(axis(l, p[i], st(l), hover == l, mark if hover == l else None, unset=l in unset) for i, l in enumerate(('X', 'Y', 'Z')))
+            + axis('Scale', s_, st('Scale'), hover == 'Scale', unset='Scale' in unset) + '</div>')
+    right = (f'<div class="mc-stack"><span class="grp t-detail">Rotation</span>'
+             + ''.join(axis(l, r[i], st(l), hover == l, mark if hover == l else None, True, l in unset) for i, l in enumerate(('Heading', 'Roll', 'Attitude')))
+             + '</div>')
+    foot = (f'<div class="foot"><span class="mc-btn t-body">In the world</span><span class="grow"></span>'
+            f'<span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>')
+    return f'<div class="mc-editor mc-xformedit"{style}>{head}<div class="body">{left}{right}</div>{foot}</div>'
+
+MESH = {'pos': [9.37, -5.86, -5.13], 'rot': [20.72, 0.0, 90.0], 'scale': 1.5}
+MESH_NEW = {'pos': [9.37, -4.86, -5.13], 'rot': [20.72, 0.0, 90.0], 'scale': 1.5}
+TILT = {'rot': [0.0, -5.0, 0.0], 'scale': 1.0}
+xf_states = h_sheet([
+    ('Idle', row('Flashlight mesh', xform_ctl(MESH))),
+    ('Keys left out', row('Head light tilt', xform_ctl({'rot': [0.0, -5.0, 0.0]}))),
+    ('Under the ray', row('Flashlight mesh', xform_ctl(MESH), 'is-hover', mark=(560, 22))),
+    ('Pending', row('Flashlight mesh', xform_ctl(MESH_NEW, 'is-pending', True), gutter=DOT)),
+    ('Invalid', row('Weapon mount', xform_ctl({}, 'is-invalid', True, text='{ pos = [0, 0], scale = 1 }'), 'is-invalid', gutter=WARN, message='Not a transform')),
+])
+xf_rows = ''.join([
+    section('Hand mount'),
+    row('Flashlight mesh', xform_ctl(MESH_NEW, 'is-pending', True, open_=True), 'is-active', gutter=DOT),
+    row('Overhand mesh', xform_ctl({'pos': [6.57, -5.47, 0.56], 'rot': [-90.0, 0.0, 0.0], 'scale': 1.5})),
+    row('Light offset', xform_ctl({'pos': [0, 0, 2.0]})),
+    row('Mount on the off hand', toggle(True)),
+    row('Forward grip pose', pose_ctl(POSE)),
+    row('Overhand grip pose', pose_ctl(POSE_OVER)),
+    row('Switch grip with', combo('Grip, double press')),
+    row('Mount height', slider('4.0', 40)),
+])
+xf_page = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:531px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+{xf_rows}
+{xform_editor('Flashlight mesh', MESH_NEW, changed=('Y',), hover='Y', mark=(140, 22), style=' style="left:27px;top:20px"')}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Y', 'Moves the flashlight mesh along Y by 0.1 a step. The thumbstick steps it. Your flashlight shows it.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+</div>"""
+xf_left_out = xform_editor('Head light tilt', {'pos': [0, 0, 0], 'rot': [0.0, -5.0, 0.0], 'scale': 1}, unset=('X', 'Y', 'Z', 'Scale'), style=' style="position:static"')
+xf_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 717px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">The row: position and scale on one line, rotation on the next</span>
+{xf_states}
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">Keys the value leaves out, in muted: no move, a scale of 1</span>
+{xf_left_out}
+</div>
+<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
+<span class="t-detail mc-caption">The editor over its row, where the pane has no room under it: a stepper for each axis, a step size, and In the world</span>
+{xf_page}
+</div>
+</div>"""
+write('Transform', page('<!-- @dsCard group="Settings" height=1180 width=1720 subtitle="A transform: position, rotation and scale in the row; an editor of steppers with a step size, and In the world" -->', 'Transform', xf_body))
+print('ok transform')
+
+# ---------------- ActivationSphere: a section of the TOML drawn as one group, its sphere lit in the world ----------------
+SPHERE = ('<svg class="sphere" viewBox="0 0 20 20"><defs><radialGradient id="sg"><stop offset="0" stop-color="#0afa78" stop-opacity=".9"/>'
+          '<stop offset="1" stop-color="#0afa78" stop-opacity=".15"/></radialGradient></defs>'
+          '<circle class="halo" cx="10" cy="10" r="9.5" fill="none" stroke="#0afa78" stroke-opacity=".5" opacity="0"/>'
+          '<circle cx="10" cy="10" r="7" fill="url(#sg)" stroke="#0afa78" stroke-width="1.5"/></svg>')
+
+def sphere_head(name, lit=False):
+    live = '<span class="live t-detail">Lit in the world</span>' if lit else ''
+    return f'<div class="mc-section t-body is-sphere{" is-lit" if lit else ""}">{SPHERE}<span>{name}</span>{live}</div>'
+
+def same_as_zone():
+    return (f'<div class="main"><span class="mc-combo is-xform"><span class="lines"><span class="t-body same">As Zone</span></span>{ARROW_D}</span></div>{reset_btn(False)}')
+
+BODY_ZONE = {'pos': [3.91, 7.11, 0.67], 'scale': 20.0}
+BODY_PRIMARY = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress': True}
+BODY_SECONDARY = {'hand': 'primary', 'type': 'tap', 'button': 'trigger', 'suppress': True}
+HEAD_PRIMARY = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress': True}
+HEAD_SECONDARY = {'hand': 'offhand', 'type': 'longpress', 'button': 'trigger', 'suppress': True}
+as_rows = ''.join([
+    pagehelp('Where your hand reaches to take the light, and what a press there does. A sphere is lit in the world while the ray is on its rows.'),
+    sphere_head('Body grab', lit=True),
+    row('Zone', xform_ctl(BODY_ZONE), 'is-hover', mark=(560, 22)),
+    row('Zone in power armor', xform_ctl({'pos': [4.01, 10.21, -4.6], 'scale': 24.0})),
+    sub(section('Actions'), ''.join([
+        row('Off hand', binding_ctl(BODY_PRIMARY)),
+        row('Primary hand', binding_ctl(BODY_SECONDARY)),
+        row('Haptic on entering', haptic('Tick')),
+        row('Haptic on an action', haptic('DoubleClick')),
+    ])),
+    sub(collapse('Icon and sphere', unsaved=0)),
+    sphere_head('Head'),
+    row('Zone', xform_ctl({'pos': [0.28, 6.74, 4.15], 'rot': [-1.09, -0.07, 3.86], 'scale': 18.0})),
+    row('Zone in power armor', same_as_zone()),
+])
+icon_rows = ''.join([
+    sub(collapse('Icon and sphere', open_=True), ''.join([
+        row('Show the icon', combo('When inside')),
+        row('Icon', file_ctl('activation-icon-flashlight', None, ext='.dds')),
+        row('Icon color', color_ctl((255, 255, 255, 200))),
+        row('Icon size', slider('2.0', 40)),
+        row('Show the sphere', combo('Never')),
+        row('Sphere style', combo('Cyan, subtle'), 'is-disabled'),
+        row('Sphere size', slider('1.00', 50), 'is-disabled'),
+    ])),
+])
+as_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:772px 772px;gap:16px 24px;align-items:start">
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A page of spheres: each a section with the sphere&#39;s mark; the ray on its rows lights it in the world</span>
+<div class="mc-sheet" style="width:772px">{as_rows}</div>
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">Its look, folded by default: the icon and the sphere, each with when it shows</span>
+<div class="mc-sheet" style="width:772px">{icon_rows}</div>
+<div class="mc-sheet" style="width:772px;padding:0"><div class="mc-footer">{helpline('Zone', 'Where the off hand reaches to take the light from your chest. Its sphere is lit in the world while the ray is here.')}</div></div>
+</div>
+</div>"""
+write('ActivationSphere', page('<!-- @dsCard group="Settings" height=830 width=1620 subtitle="An activation sphere: a section of the mod&#39;s TOML as one group, its zone, actions and haptics, its look folded; lit in the world while the ray is on it" -->', 'Activation sphere', as_body))
+print('ok sphere')

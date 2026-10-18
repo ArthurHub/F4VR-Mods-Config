@@ -56,7 +56,7 @@ Suggested row:
 - Thumbstick left/right changes the slider the ray is on by the declared step, once the ray is on its row for a short time. A slider is not selected first.
 - Holding the thumbstick may accelerate after an initial repeat delay.
 - The value box only shows the value: it is not typed.
-- The value has the decimals, the unit or the percentage of its `display`, and stays visible.
+- The value has the decimals, the unit or the percentage of its `display`, and stays visible. A value too wide for its box is drawn smaller, and then without its unit, never shortened; see the design system's [NumberDisplay](design-system/project/components/NumberDisplay/README.md).
 - Initial schema support is linear. Logarithmic or curved mappings can be considered later.
 - Haptics should mark meaningful interaction boundaries, not fire on every tiny value change.
 
@@ -82,6 +82,16 @@ Choice behavior:
 - Thumbstick left/right steps the stepper the ray is on, one option for a push.
 - The help line may show the pointed option's help before it is selected.
 
+### Choice of files
+
+Primary use: a file of a folder, MCM's `dropdownFiles`, as Immersive Flashlight's gobo textures.
+
+- A dropdown whose options are the files of a folder under `Data` that match a mask, alphabetical, read when the page is shown. A texture has its thumbnail in the row and in the list.
+- The pick is written in the form the value had: a path keeps its folder and its separators, and a bare name stays a bare name.
+- A value that names a file the folder does not have is invalid. A folder with no file that matches disables the row, and the help line says where it looked.
+
+The look is the design system's [FileChoice](design-system/project/components/FileChoice/README.md).
+
 ### Text input
 
 Primary use: short strings, and numbers that are typed. A `textinput` whose `valueType` is int or float takes a number, as MCM's `textinputInt` and `textinputFloat` do, and is typed on the same keyboard. Its limits are the `min` and `max` of its `valueOptions`.
@@ -93,6 +103,8 @@ The keyboard is SteamVR's, which the game types its own names with, and it is sh
 - Invalid temporary text is not sent as a preview; the last valid preview remains active.
 
 Multiline text, password fields, text selection tools, and speech input are not part of the initial design.
+
+The look is the design system's [TextInput](design-system/project/components/TextInput/README.md): the field shows the text and a pencil, and while it is typed a caret and the count of characters.
 
 ### Color
 
@@ -115,8 +127,11 @@ Primary use: an operation that does not directly edit a stored value.
 
 - A button runs what an MCM button runs, such as a function of a script, a console command, or a function that the mod's native client registered, by its name and with typed parameters if needed.
 - Its button says `Run`, or the button text its package gives it.
-- Potentially destructive actions require explicit confirmation.
-- Long-running progress and cancellation behavior remain open design work.
+- Potentially destructive actions require explicit confirmation. A package's `confirmation` opens a dialog first, and a `dangerous` one is red.
+- While its action runs, the button says `Running` and is not pressed again. Its result, when the action gives one, is a line under the row's name: muted when it worked, red when it failed.
+- Cancelling an action that runs, and its progress, remain open design work.
+
+The look is the design system's [ButtonRow](design-system/project/components/ButtonRow/README.md).
 
 ### Read-only
 
@@ -125,6 +140,8 @@ Primary use: a value the mod writes for the player to read, as a measured height
 - A setting that is read-only shows its value in its control, and its whole row is disabled, as an MCM hotkey's is: a press does nothing, and the row has no look of one.
 - The help line says first that it is read-only: `(Read-only)`.
 - It has no Reset.
+
+The look is the design system's [ReadOnly](design-system/project/components/ReadOnly/README.md).
 
 ## Layout and informational elements
 
@@ -135,9 +152,11 @@ These elements do not directly store values:
 - Spacer
 - Image or preview asset
 
-A package's section can hold sections, and can fold. A press on the heading of a section that folds hides its rows and shows them again, and its heading has a mark of which it is. A folded section with an invalid value or an unsaved change inside it marks its heading too. See [Sections](schema.md#sections).
+A package's section can hold sections, and can fold. A press on the heading of a section that folds hides its rows and shows them again, and its heading has a mark of which it is. A folded section with an invalid value or an unsaved change inside it marks its heading too, with how many of each. A section in a section is set in with its rows, with a line from under its heading down to its last row. See [Sections](schema.md#sections), and the design system's [SectionHeader](design-system/project/components/SectionHeader/README.md) for the look.
 
 Detailed settings are a folded section right after the settings they belong to, so they do not overwhelm ordinary players.
+
+A text, a spacer and an image are drawn as the design system's [TextRows](design-system/project/components/TextRows/README.md): a text in the muted color with MCM's tags, a spacer of one row or more, and an image at its size, scaled down to the rows' width when wider.
 
 ## CommonFramework-specific controls
 
@@ -146,6 +165,8 @@ The following exact CommonFramework concepts are reserved as first-class control
 - `Haptic`
 - `Color`
 - `InputBinding`
+- `List`
+- `HandPose`
 - `Transform`
 - `ActivationSphere`
 
@@ -156,12 +177,14 @@ The framework's TOML config already fixes how each is stored, and the type prefi
 | `Haptic`           | `s`        | A string: the name of a pattern of the framework's library, or `"none"`. `sEntryHaptic = "Tick"`                                                                                                                                               |
 | `Color`            | `c`        | An inline table, `{ rgb = [r, g, b], alpha = a }`, each a whole number in 0..255. Either key can be left out and keeps the default's channels, so `{ alpha = 60 }` changes only the opacity                                                   |
 | `InputBinding`     | `k`        | An inline table, `{ hand = "offhand", type = "tap", button = "grip" }`, with `duration`, `suppress` and `modifier = { button, hand }` optional. `{ hand, type = "axis", direction, axis, threshold }` for a thumbstick or an axis, and `{ type = "none" }` for none |
+| `List`             | `a`        | An array of strings, `["AddOnNode", "LightAttachNode"]`. `aHeadLightDenyList = ["0316D4\|Fallout4.esm"]`                                                                                                                                      |
+| `HandPose`         | `h`        | An inline table, `{ thumb = [prox, mid, dist, splay], index, middle, ring, pinky, palm = [pitch, yaw] }`, each key optional and a finger or the palm left out being zeros                                                                    |
 | `Transform`        | `t`        | An inline table, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, the rotation in degrees, each key optional                                                                                                                 |
 | `ActivationSphere` |            | A whole section: the zone `tZone` and an optional power-armor zone `tZonePA`, `kPrimaryBinding` and `kSecondaryBinding`, `sEntryHaptic`, `sPrimaryHaptic` and `sSecondaryHaptic`, and the keys of its sphere and its icon                  |
 
 A table is one value in one key. In the settings model its value is a string, the TOML text of the table (`{ rgb = [255, 51, 51], alpha = 40 }`), which its control reads and writes, and which the store writes into the file as the inline table, not as a quoted string. So its setting is dirty, previewed and saved as a whole, as any other. The framework checks every key and word of a table and names the one that is wrong, and a table it cannot read is an invalid value with that reason.
 
-The Haptic and InputBinding controls are designed below, and Color above. The schemas, storage mappings, live-preview semantics, and VR manipulation experiences of the others will be designed separately; [Open questions](open-questions.md#commonframework-specific-controls) lists what is left.
+The Haptic, InputBinding, List, HandPose, Transform and ActivationSphere controls are designed below, and Color above. [Open questions](open-questions.md#commonframework-specific-controls) lists what is left of them.
 
 These should not be flattened into `vec2` or `vec3`, because their meaning, validation, and editing affordances are richer than a tuple of numbers.
 
@@ -195,6 +218,58 @@ Primary use: a controller binding of a mod, as an activation sphere's `kPrimaryB
 
 The look is the design system's [InputBinding](design-system/project/components/InputBinding/README.md).
 
+### List
+
+Primary use: a list of texts a mod reads, as Immersive Flashlight's keywords, its allow and deny lists of headgear, and the names of the nodes it looks for.
+
+- The row shows the entries, as many as fit, and how many there are: "ArmorBodyPartHead, ObjectTypeAr… 4". An empty list says `None`.
+- A press on the row opens the editor, a popup in the content pane, with a line for each entry. A press on an entry opens the keyboard with its text, as a text input does, and an entry typed empty is removed. Remove takes an entry out at once. Add puts an empty entry at the end and opens the keyboard on it. A list longer than six entries scrolls inside the editor.
+- A list whose order means something, as nodes searched in priority order, has `"valueOptions": { "ordered": true }`: its entries are numbered and have Up and Down. Otherwise the entries keep the order the file has.
+- An entry that is new or changed is marked pending. Each change sets the pending value as it is made. Done, or a press beside the editor, keeps it. Cancel and Back give back the list it had when it opened.
+- The list is written as one line, `["AddOnNode", "LightAttachNode"]`. A text that is in the list twice is named in the help line, and does not block Save.
+- A value the framework cannot read as an array of strings is invalid, shown as the file has it, with the framework's reason in the help line.
+- In the Focused panel a list is shown and not edited.
+
+The look is the design system's [List](design-system/project/components/List/README.md).
+
+### Hand pose
+
+Primary use: how a hand holds something, as Immersive Flashlight's four grip poses, given to FRIK through its API.
+
+- The row shows a bar for each finger, thumb to pinky, as tall as the finger is straight, and the palm's pitch and yaw: "palm 15°, 0°".
+- A press on the row opens the editor, a popup in the content pane: the fingers and the palm on the left, and the joints of the one selected on the right, as sliders with their numbers. A finger has Base, Middle, Tip and Spread, from −1 to 2 (Spread −1 to 1), 0 bent and 1 straight. The palm has Pitch and Yaw, from −90° to 90°. The thumbstick steps the joint the ray is on by 0.01 or 1°.
+- While the editor is open, the player's hand that the setting names takes the pose as it changes, through FRIK, so the pose is set by looking at it. It is `"valueOptions": { "hand": "offhand" }` when left out, or `"primary"`. Without FRIK the editor sets the numbers only.
+- It shows the pose it had when it opened beside the pose as it is, and a press on the first goes back to it. Done, or a press beside the editor, keeps it. Cancel and Back give back the pose it had when it opened.
+- A changed pose is written as the framework writes one, every finger and the palm.
+- A value the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
+- In the Focused panel a hand pose is shown and not edited: the panel is on the hand that would take the pose.
+
+The look is the design system's [HandPose](design-system/project/components/HandPose/README.md).
+
+### Transform
+
+Primary use: where a mesh, a light or a zone sits on its node, as Immersive Flashlight's 13 transforms.
+
+- The row shows the position and the scale on one line and the rotation on the next. A key the value leaves out is shown as what it means, muted: no move, no rotation, a scale of 1.
+- A press on the row opens the editor, a popup in the content pane: a stepper for X, Y, Z and Scale, and for Heading, Roll and Attitude, and a step size of Fine, Normal or Coarse for all of them. The thumbstick steps the line the ray is on.
+- A `live` transform moves as it is stepped. Done, or a press beside the editor, keeps it. Cancel and Back give back the value it had when it opened.
+- In the world hands it to the framework's live tuning, with the menu minimized and Done and Cancel on the wrist, and brings the tuned value back as the pending value. It needs the framework to tune another mod's key, and is not shown until it can.
+- A changed value is written with the keys the file had and the key that changed.
+- In the Focused panel the editor fills the panel, so a transform is tuned while looking at it.
+
+The look is the design system's [Transform](design-system/project/components/Transform/README.md).
+
+### ActivationSphere
+
+Primary use: a zone the hand reaches into and what a press there does, a whole section of a CommonFramework mod's TOML.
+
+- The section is drawn as one group under a heading with the sphere's mark: its zone and its power-armor zone as transforms, its two bindings and three haptics under Actions, and its icon and sphere in a section that folds, folded by default.
+- Each key is its own setting, with the control of its kind, and is dirty, previewed and saved alone.
+- A power-armor zone that the file does not have says `As Zone`, and a change writes it.
+- While the ray is on the group, its sphere is lit in the world, so the player sees which one the rows are of. It needs the client to be told which group the ray is in, beside the page events.
+
+The look is the design system's [ActivationSphere](design-system/project/components/ActivationSphere/README.md).
+
 ## Help and validation feedback
 
 The full and focused layouts reserve a stable place for the help of the item the ray is on: the help line on the left of the Full panel's footer, and a two-line area at the top of the Focused panel. See [Help line](ui-and-vr-interaction.md#help-line). The same place presents validation errors so content does not jump around.
@@ -202,10 +277,10 @@ The full and focused layouts reserve a stable place for the help of the item the
 Additional feedback:
 
 - Invalid rows receive a clear marker and concise inline message.
-- A row whose warning holds has a warning mark, and the help line shows the warning before its help. A warning does not block Save. See [Warnings](schema.md#warnings).
+- A row whose warning holds has a warning mark, and the help line shows the warning before its help. A warning does not block Save. Its mark is a hollow amber triangle after the name, apart from the invalid mark in the gutter. See [Warnings](schema.md#warnings), and the design system's [RowWarning](design-system/project/components/RowWarning/README.md).
 - Save is blocked while a dirty setting is invalid. An invalid value that was already in the file does not block it.
 - Attempting Save shows a summary and moves focus to the first invalid setting that is visible.
-- The summary names every invalid setting, including one that a condition currently hides or disables. Such a setting can be reset from the summary.
+- The summary names every invalid setting, including one that a condition currently hides or disables. Such a setting can be reset from the summary. The look is the design system's [SaveSummary](design-system/project/components/SaveSummary/README.md).
 - Validation must not rely on color alone.
 
 ## Defaults and reset

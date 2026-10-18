@@ -797,6 +797,6 @@ What an MCM config has that a package does not, and what the package has in its 
 | `textinputInt`, `textinputFloat`                       | A `textinput` whose `valueType` is `int` or `float`                                                |
 | ModSetting storage                                     | A key of the package's file, which scripts read through the Papyrus API                            |
 | `hotkey`, `keyinput`                                   | The [InputBinding](controls.md#commonframework-specific-controls) control, for a CommonFramework mod |
-| `dropdownFiles`                                        | A choice of the files of a folder, which is still to be designed                                   |
+| `dropdownFiles`                                        | A choice of the files of a folder; see [Choice of files](controls.md#choice-of-files)              |
 | `positioner`, `CallExternalFunction`                   | None: they are of MCM's own Flash menu                                                             |
 | `ownerModName`, pages under another mod                | None: a package's pages are its mod's alone                                                        |

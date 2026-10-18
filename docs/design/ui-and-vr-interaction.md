@@ -55,7 +55,7 @@ The primary browsing and editing state.
 - The tree keeps its place and its width, with or without a selected mod.
 - The player can select another mod at any time, without going to the front page first.
 - The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package. A long list is grouped by category; see [Mod categories](#mod-categories).
-- The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the mod's name is shortened with an ellipsis.
+- The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the pages between the mod and the page become one `…`, which is not pressed, and then the mod's name is shortened with an ellipsis. The first crumb and the last are not shortened.
 - The content pane has no heading of its own, so its height goes to settings.
 - The footer has Save and Discard on the right and the help line on the left; see [Help line](#help-line).
 - Save and Discard remain in stable locations.
@@ -160,6 +160,8 @@ The player is told in two places:
 
 The reason is in the log too.
 
+A mod with a saved change that takes effect only after the game is restarted has a line under `Notices` too, from its Save until the game is restarted: `Restart the game: Immersive Flashlight VR has 1 saved change that takes effect then.` These lines come first. See the design system's [RestartNotice](design-system/project/components/RestartNotice/README.md).
+
 ### What differs from MCM's
 
 MCM's menu also opens on a page with no mod selected, and its mods are on the left. What differs:
@@ -222,11 +224,12 @@ Back resolves the most local temporary interaction first:
 
 1. Cancel an active drag or text edit.
 2. Close a popup, dropdown, keyboard, or confirmation.
-3. From a page of a mod, go to the page it is under, or to the mod's front page.
-4. From a mod's front page, go to the menu's front page.
-5. From the menu's front page, close the menu.
+3. While searching: from a page of a result, go to the results; from the results, empty the query and go back to where the player was.
+4. From a page of a mod, go to the page it is under, or to the mod's front page.
+5. From a mod's front page, go to the menu's front page.
+6. From the menu's front page, close the menu.
 
-Step 4 leaves the mod. When the mod has unsaved changes, the player gets the Save, Discard, and Cancel choices first, as when another mod is selected. So the menu's front page has nothing pending, and step 5 closes the menu without asking.
+Step 5 leaves the mod. When the mod has unsaved changes, the player gets the Save, Discard, and Cancel choices first, as when another mod is selected. So the menu's front page has nothing pending, and step 6 closes the menu without asking.
 
 ## Haptics
 
@@ -268,13 +271,28 @@ Keeping the help in one place avoids layout movement and makes it discoverable w
 - Mods are listed alphabetically by display name; page and setting order follow their JSON arrays.
 - A mod that is not available is in the list too, as a disabled row; see [Notices](#notices).
 - The mods are the top level of a tree, unless the list is grouped by category, and only the selected mod is expanded. Its pages are the rows under it, without the front page.
-- A package's page that has pages of its own is expanded while it or one of its pages is selected, and its pages are the rows under it, a step further in. Each level is set in by the same small step, so a deep tree still fits the tree's width.
+- A package's page that has pages of its own is expanded while it or one of its pages is selected, and its pages are the rows under it, a step further in. Each level is set in by the same small step, up to the third, so a deep tree still fits the tree's width. A page that has pages has an arrow, as a mod has, and the names of a level line up whether or not they have one. See the design system's [ModTree](design-system/project/components/ModTree/README.md).
 - A mod's front page is its root `content`, in an MCM config and in a package alike, and its `pages` are the rows under it. A mod with no pages has no rows under it.
 - A list longer than its area scrolls with the thumbstick while the ray is on it, and shows a scroll bar: the tree, a page's rows, and the list of a dropdown. About nine rows fit in the Full panel's tree, so most lists of mods scroll.
 - The tree always keeps room for its scroll bar, so its rows do not narrow when the bar appears, as when a category or a mod is opened near the bottom.
 - A row that is selected from outside the tree, from a breadcrumb, with Back, or when the panel is shown again, is scrolled into view. A category that is opened near the bottom scrolls to show its first mods.
-- Search comes after the first release; see the [Mod work plan](mod-plan.md).
+- Search comes after the first release, with the localization; see [Search](#search).
 - The selected mod and current page survive switches among Full, Focused, and Minimized states.
+
+## Search
+
+The tree's header is a search field, which finds a setting by its name in every mod. It comes after the first release, with the localization ([Mod work plan](mod-plan.md), M91). Until then the header says `Mods` and the count.
+
+- Idle the field says what it searches: "Search 11 mods". A press on it shows the keyboard, as a text input does, and each key filters as it is typed.
+- It finds the names as the player sees them: a mod's display name, a page's, a section's heading and a setting's text, of a package and of an MCM mod alike. Not the help. Each word of the query starts a word of the name, in any order, with case and accents ignored, so "hol siz" finds "Holster size".
+- A setting that a condition hides is not found. One that a condition disables is found, and is disabled in the results.
+- While the query has text, the tree has only the mods with a match, flat, each expanded to its pages that have a setting that matches, with how many. A mod whose name matches is there with its pages closed. The match is underlined in each name.
+- The content is the results, with the crumbs `MODS CONFIG VR » Search`: the settings that match, under a heading for each mod and page. Each is the setting's own row, changed here as on its page, and Save saves it.
+- A press on a row of the tree goes to that page, with the query kept, and the rows that match are underlined there. Back goes back to the results.
+- Clear, in the field, empties the query and gives the tree back. Back from the results empties it too, and goes back to where the player was.
+- In the Focused panel there is no search: it shows the page that is selected.
+
+The look is the design system's [Search](design-system/project/components/Search/README.md).
 
 ## Mod categories
 

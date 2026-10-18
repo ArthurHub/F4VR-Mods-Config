@@ -6,14 +6,11 @@ Work that F4VR-CommonFramework needs is tracked in [CommonFramework work require
 
 ## CommonFramework-specific controls
 
-Design the exact schema, storage, widgets, preview behavior, and validation for:
+Every control is designed: see [Haptic](controls.md#haptic), [Color](controls.md#color), [InputBinding](controls.md#inputbinding), [List](controls.md#list), [Hand pose](controls.md#hand-pose), [Transform](controls.md#transform) and [ActivationSphere](controls.md#activationsphere) in Controls. What is left of them:
 
-- `Transform`
-- `ActivationSphere`
-
-`Haptic`, `Color` and `InputBinding` are designed: see [Haptic](controls.md#haptic), [Color](controls.md#color) and [InputBinding](controls.md#inputbinding) in Controls.
-
-These likely need VR manipulation experiences in addition to ordinary form controls. In particular, determine whether editing occurs inside the panel, in the world, or through a controlled handoff between both.
+- A transform is edited in the panel, and its In the world hands it to the framework's live tuning. The framework tunes only its own mod's keys today: tuning another mod's key, and handing the value back, is framework work.
+- An activation sphere is lit in the world while the ray is on its rows. That needs the client to be told which group the ray is in, an event beside the page events.
+- How a package names a section that is an activation sphere.
 
 The framework already defines how each is stored in its TOML config, which is the starting point; see [Controls](controls.md#commonframework-specific-controls) for the full forms:
 
@@ -88,10 +85,8 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - The width of the navigation tree
 - Whether the help line, at the bottom edge of the Full panel, is comfortable to read in the headset
 - What happens to an open editing session on a save load, a loading screen, or the player's death
-- Search and filtering
 - Direct-touch interaction
 - Image/preview assets
-- A control for a list, an array of values, as Immersive Flashlight's lists of texts
 - Progress, cancellation, and error handling for long-running actions
 - Accessibility options beyond the three main UI sizes
 
