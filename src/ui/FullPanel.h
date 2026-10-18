@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
@@ -8,6 +9,7 @@
 #include <imgui.h>
 
 #include "HelpLine.h"
+#include "MenuControls.h"
 #include "ModPage.h"
 #include "ModTree.h"
 #include "Selection.h"
@@ -18,8 +20,8 @@ namespace mods_config::ui
 {
     /**
      * The content of the Full panel, drawn with ImGui as the design system has it: the title bar with its
-     * breadcrumbs, the tree of the mods, beside it the menu's front page or a page of the selected mod, and
-     * the footer with the help line, and Discard and Save.
+     * breadcrumbs and its Help, Minimize and Close, the tree of the mods, beside it the menu's front page, a
+     * page of the selected mod or the Help page, and the footer with the help line, and Discard and Save.
      * It knows nothing of the game, so a test draws it too.
      */
     class FullPanel
@@ -37,8 +39,19 @@ namespace mods_config::ui
             std::function<void()> open;
         };
 
+        /**
+         * What the title bar's Minimize and Close do, which the menu does: the panel does not know the game.
+         */
+        struct MenuActions
+        {
+            std::function<void()> minimize;
+            std::function<void()> close;
+        };
+
         void setMods(std::vector<model::Mod> mods);
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
+        void setControls(std::vector<ControlHelp> controls);
+        void setMenuActions(MenuActions actions);
         void setImageDrawer(ImageDrawer drawer);
         void setStore(model::Source source, model::Store* store);
         void setThumbstickSideValue(float value);
@@ -63,12 +76,18 @@ namespace mods_config::ui
             return _helpLine;
         }
 
+        // whether the Help page is shown, over the selection, which it keeps
+        bool isHelpShown() const
+        {
+            return _helpShown;
+        }
+
         /**
          * Whether a press did something in the frame that was drawn last: it showed another page, opened a
-         * quick launch entry, changed a value, took hold of a slider, opened the list of a dropdown, or saved or
-         * discarded the changes. It is the frame the hand that points gets its pulse in. So is a step of a slider
-         * or a stepper by the thumbstick. A press that changes nothing, as one on the row that is selected, is
-         * not told, and neither are the steps of a slider that is dragged.
+         * quick launch entry, changed a value, took hold of a slider, opened the list of a dropdown, saved or
+         * discarded the changes, or minimized or closed the menu. It is the frame the hand that points gets its
+         * pulse in. So is a step of a slider or a stepper by the thumbstick. A press that changes nothing, as one
+         * on the row that is selected, is not told, and neither are the steps of a slider that is dragged.
          */
         bool pressActed() const
         {
@@ -76,18 +95,51 @@ namespace mods_config::ui
         }
 
     private:
+        /**
+         * A button of the title bar, at the right of its breadcrumbs.
+         */
+        enum class TitleButton : std::uint8_t
+        {
+            None,
+            Help,
+            Minimize,
+            Close,
+        };
+
+        /**
+         * What a frame of the title bar did: the selection a breadcrumb that was pressed goes to, the button
+         * that was pressed, and the button the ray is on, for the help line.
+         */
+        struct TitleBar
+        {
+            std::optional<Selection> pressed;
+            TitleButton pressedButton = TitleButton::None;
+            std::optional<PointedRow> pointed;
+        };
+
         model::Store* storeOf(const model::Mod& mod) const;
         void updateStatus();
-        std::optional<Selection> drawTitleBar() const;
+        void pageShown();
+        bool showHelp(bool shown);
+        bool pressButton(TitleButton button);
+        TitleBar drawTitleBar() const;
         std::optional<PointedRow> drawFrontPage();
+        void drawHelpPage() const;
         void drawFooter(const ImVec2& pos);
 
         // the mods the menu lists, in order of their display names
         std::vector<model::Mod> _mods;
         std::vector<QuickLaunchEntry> _quickLaunch;
 
+        // the controls of the menu that the Help page tells, and what Minimize and Close do
+        std::vector<ControlHelp> _controls;
+        MenuActions _menuActions;
+
         // the mod and the page that are shown: none is the menu's front page
         Selection _selection;
+
+        // the Help page is shown in place of the selection's page, which Back shows again
+        bool _helpShown = false;
 
         // the values of a selected mod, by the source of its menu: not the panel's own, and none in a test that
         // has no values

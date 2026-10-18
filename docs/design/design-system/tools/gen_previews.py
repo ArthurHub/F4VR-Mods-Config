@@ -518,6 +518,39 @@ fph_body = f'''<div class="mc-world">
 write('FullPanelHome', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The menu front page: what the menu opens on, with quick launch" -->', 'Full panel, menu front page', fph_body))
 print('ok home')
 
+# ---------------- FullPanelHelp: the Help page, over a page of a mod ----------------
+def control(name, text):
+    """A control of the menu on the Help page, as the help line has a row's help: "Name: text"."""
+    return f'<div class="mc-control t-body"><span class="name">{name}:</span> {text}</div>'
+fhp_nav = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Beam')
+fhp_rows = ''.join([
+    pagehelp('How the menu is used, with the buttons your config has.'),
+    section('Controls'),
+    control('Point and press', 'Point at the menu with either hand, and pull the trigger on what the ray is on.'),
+    control('Scroll', 'Push the thumbstick up or down on the hand that points: the list the ray is on scrolls.'),
+    control('Step a value', 'Push the thumbstick left or right on the hand that points: the slider or the choice the ray is on steps.'),
+    control('Back', "Press the grip briefly on the hand that points: one step back, and from the menu's front page the menu closes."),
+    control('Move the menu', 'Point at the menu and hold the grip on the hand that points. The menu follows the hand until you let go.'),
+    control('Recenter', 'Long press the thumbstick on the off hand: the menu is put in front of you again, also after you moved it.'),
+    control('Open and close the menu', 'Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand.'),
+    control('Minimize', 'Minimize, on the title bar or on your offhand wrist, hides the menu as you left it. Resume on the wrist shows it again.'),
+])
+fhp_body = f'''<div class="mc-world">
+<div class="mc-panel">
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Help</span></div>
+<span class="mc-btn is-icon t-body is-hover">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
+<div class="mc-body">
+{nav(fhp_nav, '', 11)}
+<div class="mc-content">
+<div class="mc-scroll"><div class="rows">{fhp_rows}</div></div>
+</div>
+</div>
+<div class="mc-footer">{helpline('Help', 'What each control of the menu does, with the buttons your config has for it.')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+</div>
+</div>'''
+write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The Help page over a page of a mod: each control with the buttons of the config, the ray on Help" -->', 'Full panel, Help page', fhp_body))
+print('ok help')
+
 # ---------------- FullPanelCategories: Mods Config VR's own Categories page, with the tree grouped ----------------
 cat_tree = ''.join([
     cat_row('Audio', 2), cat_row('Characters', 3), cat_row('Combat', 6), cat_row('Gameplay', 5), cat_row('Interface', 3, open_=True),

@@ -51,6 +51,7 @@ namespace mods_config
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
         std::shared_ptr<vrui::UIButtonPanel> _minimizeButton;
+        bool _minimizeRequested = false;
         bool _closeRequested = false;
         bool _openFrikRequested = false;
 

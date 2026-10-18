@@ -5,6 +5,7 @@
 #include "api/FRIKApi.h"
 #include "common/MatrixUtils.h"
 #include "f4sevr/PapyrusUtils.h"
+#include "f4vr/F4VRUtils.h"
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
 #include "imgui/ImGuiSettings.h"
@@ -78,6 +79,7 @@ namespace mods_config
 
     void ConfigMenu::close()
     {
+        _minimizeRequested = false;
         _closeRequested = false;
         _openFrikRequested = false;
         if (!isOpen()) {
@@ -165,7 +167,7 @@ namespace mods_config
     }
 
     /**
-     * Applies what a press asked for: closing the menu, or minimizing it and opening FRIK's config.
+     * Applies what a press asked for: closing the menu, minimizing it, or minimizing it and opening FRIK's config.
      * It is done here, in the mod's frame update, and not where the press is seen: a wrist button's handler
      * runs while the UI manager iterates its elements, and the panel's content while its frame is built.
      * Back is seen here too. It is a short press of a button of the hand that points at the panel, either hand,
@@ -197,6 +199,9 @@ namespace mods_config
             }
         } else if (_closeRequested) {
             close();
+        } else if (_minimizeRequested) {
+            _minimizeRequested = false;
+            setMinimized(true);
         }
     }
 
@@ -217,6 +222,14 @@ namespace mods_config
             }
         });
         _fullPanel.setQuickLaunch(quickLaunchEntries());
+        _fullPanel.setMenuActions({ .minimize =
+                                        [this] {
+                                            _minimizeRequested = true;
+                                        },
+            .close =
+                [this] {
+                    _closeRequested = true;
+                } });
         _fullPanel.setStore(model::Source::Mcm, &_store);
         _fullPanel.setStore(model::Source::Package, &_packageStore);
         _fullPanel.setImageDrawer([this](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
@@ -231,11 +244,17 @@ namespace mods_config
 
     /**
      * Gives the panel what the config has for it: its look, its size and scale, the width of its tree, its place from where it was put in
-     * front of the player, and how it is moved: after a short press, where that is Back. It is called when the menu opens, and when the config is loaded
-     * again while the menu is open, so a change of the file shows at once. The place is from where the panel is now, also after a hand moved it.
+     * front of the player, how it is moved: after a short press, where that is Back, and the controls its Help page tells. It is called when
+     * the menu opens, and when the config is loaded again while the menu is open, so a change of the file shows at once. The place is from
+     * where the panel is now, also after a hand moved it.
      */
     void ConfigMenu::applyPanelConfig()
     {
+        _fullPanel.setControls(ui::menuControls({ .openMenu = g_config.openMenuBinding,
+            .back = g_config.backButton,
+            .move = g_config.moveButton,
+            .recenter = g_config.recenterBinding,
+            .leftHanded = f4vr::isLeftHandedMode() }));
         _panel->setStyle({
             // Opaque, both of them: these are picked to match the widgets beside the panel, and an alpha
             // below 255 blends a colour toward whatever is behind it, which reads as the wrong colour

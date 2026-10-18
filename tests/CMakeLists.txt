@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME}_tests
   FullPanelTests.cpp
   McmLoaderTests.cpp
   McmStoreTests.cpp
+  MenuControlsTests.cpp
   PackageLoaderTests.cpp
   PackageStoreTests.cpp
   SwfImagesTests.cpp
@@ -51,6 +52,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/Drawing.cpp
   ${SOURCE_DIR}/ui/FullPanel.cpp
   ${SOURCE_DIR}/ui/HelpLine.cpp
+  ${SOURCE_DIR}/ui/MenuControls.cpp
   ${SOURCE_DIR}/ui/ModPage.cpp
   ${SOURCE_DIR}/ui/Sliders.cpp
   ${SOURCE_DIR}/ui/TextInputs.cpp

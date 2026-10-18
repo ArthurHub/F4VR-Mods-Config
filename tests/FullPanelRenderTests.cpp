@@ -492,6 +492,32 @@ TEST_CASE("FullPanel render: a page of a mod, with the ray on the mod's breadcru
     WARN("Saved " << renderToFile(panel, "mod-page", ImVec2(360.0f, 50.0f)));
 }
 
+TEST_CASE("FullPanel render: the Help page over a page of a mod, with the ray on Help", "[.render]")
+{
+    auto panel = testSetPanel();
+    select(panel, "Sim Settlements 2", "Gameplay");
+    // the shipped config's buttons and bindings
+    panel.setControls(ui::menuControls({
+        .openMenu = { .hand = vrcf::Hand::Primary,
+            .type = vrcf::ActivationType::LongPress,
+            .button = vr::k_EButton_SteamVR_Touchpad,
+            .modifier = vrcf::InputModifier{ .button = vr::k_EButton_SteamVR_Touchpad, .hand = vrcf::Hand::Offhand },
+            .duration = 1.5f },
+        .back = vr::k_EButton_Grip,
+        .move = vr::k_EButton_Grip,
+        .recenter = { .hand = vrcf::Hand::Offhand, .type = vrcf::ActivationType::LongPress, .button = vr::k_EButton_SteamVR_Touchpad },
+        .leftHanded = false,
+    }));
+    // Help, the third button from the right of the title bar
+    const ImVec2 help(test_panel::PANEL_WIDTH - test_panel::CONTENT_START - theme::SPACE_2 * 3.0f - theme::CONTROL_HEIGHT * 2.5f,
+        test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f);
+    WARN("Saved " << renderToFile(panel, "help-page", help, false, [&panel, help] {
+        for (const bool pressed : { false, false, true, false }) {
+            test_panel::drawFrame(panel, help, pressed);
+        }
+    }));
+}
+
 TEST_CASE("FullPanel render: a page under the tree's last rows is scrolled to", "[.render]")
 {
     auto panel = testSetPanel();

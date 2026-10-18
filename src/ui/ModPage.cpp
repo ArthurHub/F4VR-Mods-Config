@@ -173,9 +173,6 @@ namespace
         return box.Min.x;
     }
 
-    // the strokes of the Reset icon, in the panel's pixels, as the design system draws its icons
-    constexpr float ICON_THICKNESS = 2.5f;
-
     /**
      * The Reset icon around a point: most of a circle, open at its left, with an arrowhead at its upper end.
      */
@@ -195,9 +192,9 @@ namespace
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->PathArcTo(at(12.1f, 12.1f), RADIUS, ARC_START, ARC_END);
         drawList->PathLineTo(at(4.0f, 10.0f));
-        drawList->PathStroke(color, ICON_THICKNESS);
+        drawList->PathStroke(color, ui::ICON_THICKNESS);
         const std::array head{ at(4.0f, 5.0f), at(4.0f, 10.0f), at(9.0f, 10.0f) };
-        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ICON_THICKNESS);
+        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ui::ICON_THICKNESS);
     }
 
     /**

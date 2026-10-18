@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-18T16:00:00Z",
-    "via": "Claude (Cowork)",
-    "note": "In review: an MCM hotkey's row (Hotkey) and the row of a control the menu does not have (UnsupportedControl), as the code draws them."
+    "at": "2026-10-18T17:00:00Z",
+    "via": "Claude Code",
+    "note": "In review: the title bar's Help, Minimize and Close, and the Help page (FullPanelHelp), as the code draws them."
   },
   "layout": "files",
   "libraries": [],

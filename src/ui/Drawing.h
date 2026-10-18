@@ -36,6 +36,9 @@ namespace mods_config::ui
     // design system
     constexpr float TRACK_WIDTH = 280.0f;
 
+    // the strokes of a drawn icon, as the design system draws its icons in a box of 24
+    constexpr float ICON_THICKNESS = 2.5f;
+
     float mcmScale();
     float textWidth(std::string_view text);
     void drawText(float left, float right, float top, float height, ImU32 color, std::string_view text);

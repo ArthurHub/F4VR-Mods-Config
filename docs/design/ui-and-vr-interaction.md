@@ -56,6 +56,7 @@ The primary browsing and editing state.
 - The player can select another mod at any time, without going to the front page first.
 - The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package. A long list is grouped by category; see [Mod categories](#mod-categories).
 - The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the pages between the mod and the page become one `…`, which is not pressed, and then the mod's name is shortened with an ellipsis. The first crumb and the last are not shortened.
+- The title bar has Help, Minimize and Close on its right, and the crumbs end before them. Help shows the [Help page](#the-help-page). Minimize and Close do what the wrist's buttons do: Minimize hides the panel as it is, and `Resume` on the wrist shows it again; Close closes the menu. The help line says what each does while the ray is on it.
 - The content pane has no heading of its own, so its height goes to settings.
 - The footer has Save and Discard on the right and the help line on the left; see [Help line](#help-line).
 - Save and Discard remain in stable locations.
@@ -97,7 +98,7 @@ inner offhand forearm / behind thumb
 └──────────┴─────────┘
 ```
 
-- Only a small offhand control remains. Its two buttons are vrui buttons, pressed by touch.
+- Only a small offhand control remains. Its two buttons are vrui buttons, pressed by touch. The panel is minimized with the first of them, `Minimize` until it is minimized, or with Minimize on the title bar.
 - With FRIK, the control follows the forearm, so the arm never covers it. Without FRIK, it sits beside the offhand controller.
 - `Resume` restores the previous Full or Focused context.
 - `Close` enters the normal unsaved-changes flow when needed.
@@ -173,6 +174,33 @@ MCM's menu also opens on a page with no mod selected, and its mods are on the le
 
 MCM's Cancel closes its menu from the list of mods, as Back does here from the front page.
 
+## The Help page
+
+What the menu's controls do, with the buttons the player's config has for them. Help in the title bar shows it, over where the player is.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│ MODS CONFIG VR » Help                                [?] [Minimize] [X] │
+├───────────────────┬─────────────────────────────────────────────────────┤
+│ Mods              │ How the menu is used, with the buttons your config  │
+│                   │ has.                                                │
+│ ▾ Flashlight      │ Controls ────────────────────────────────────────── │
+│     Beam          │ Point and press: Point at the menu with either      │
+│     Hand mount    │ hand, and pull the trigger on what the ray is on.   │
+│ ▸ FRIK            │ Back: Press the grip briefly on the hand that       │
+│ ▸ Holsters        │ points: one step back, and from the menu's front    │
+│                   │ page the menu closes.                               │
+├───────────────────┴─────────────────────────────────────────────────────┤
+│ • 1 unsaved change                                  [Discard]  [Save]   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+- The crumbs are `MODS CONFIG VR » Help`. The tree keeps the selected mod and page, and so does the editing session: the Help page is shown in place of the page, which is not left.
+- Back goes back to the page it was shown over. A row of the tree or the first crumb goes there, as from any page.
+- It is a text, then each control as `Name: text`, as the help line has a row's help: pointing and the trigger, the thumbstick's scroll and step, Back, moving the panel, Recenter, opening and closing the menu, and Minimize.
+- A button and a binding are said as the config has them, in the sentence of the [InputBinding](design-system/project/components/InputBinding/README.md) control, as the controllers print their buttons: "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand". Back and the move are on the hand that points, either hand, so an A button is "the A or X button". A control the config turns off is left out.
+- Nothing on it is pressed.
+
 ## Full-panel placement
 
 The Full panel appears in front of the player at a comfortable distance and height. The reference for how it should feel is Fallout 4 VR's projected Pip-Boy.
@@ -224,12 +252,13 @@ Back resolves the most local temporary interaction first:
 
 1. Cancel an active drag or text edit.
 2. Close a popup, dropdown, keyboard, or confirmation.
-3. While searching: from a page of a result, go to the results; from the results, empty the query and go back to where the player was.
-4. From a page of a mod, go to the page it is under, or to the mod's front page.
-5. From a mod's front page, go to the menu's front page.
-6. From the menu's front page, close the menu.
+3. From the Help page, go back to the page it was shown over.
+4. While searching: from a page of a result, go to the results; from the results, empty the query and go back to where the player was.
+5. From a page of a mod, go to the page it is under, or to the mod's front page.
+6. From a mod's front page, go to the menu's front page.
+7. From the menu's front page, close the menu.
 
-Step 5 leaves the mod. When the mod has unsaved changes, the player gets the Save, Discard, and Cancel choices first, as when another mod is selected. So the menu's front page has nothing pending, and step 6 closes the menu without asking.
+Step 6 leaves the mod. When the mod has unsaved changes, the player gets the Save, Discard, and Cancel choices first, as when another mod is selected. So the menu's front page has nothing pending, and step 7 closes the menu without asking.
 
 ## Haptics
 
@@ -240,7 +269,7 @@ Haptic feedback should be restrained and meaningful:
 - Distinct error pulse for rejected input
 - No pulse for every rendered frame or every tiny increment of a slider that is dragged. A step of a slider by the thumbstick gets one
 
-The light pulse is given to the hand that points, in the frame its press does something: another page is shown, a quick launch entry is opened, a value is changed, the list of a dropdown is opened, Back goes a step back or closes the menu. A press that changes nothing gives none, as one on the row that is selected already. It is a pattern of the framework by its name, `Tick`, which can be changed and turned off.
+The light pulse is given to the hand that points, in the frame its press does something: another page is shown, the Help page too, the menu is minimized or closed from the title bar, a quick launch entry is opened, a value is changed, the list of a dropdown is opened, Back goes a step back or closes the menu. A press that changes nothing gives none, as one on the row that is selected already. It is a pattern of the framework by its name, `Tick`, which can be changed and turned off.
 
 The pattern is `sPressHaptic` in `[Pointer]` of `ModsConfigVR.toml`, which the menu's own page edits with the [Haptic control](controls.md#haptic).
 

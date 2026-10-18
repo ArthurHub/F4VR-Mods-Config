@@ -76,6 +76,9 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .help.is-error, .help.is-error .name { color: var(--red); }
 .help .mc-warn { display: inline-block; vertical-align: -2px; margin-right: var(--space-2); }
 .mc-pagehelp { color: var(--green-muted); padding: var(--space-1) var(--space-2) var(--space-2); }
+/* a control of the menu on the Help page, as the help line has a row's help */
+.mc-control { color: var(--green-muted); padding: 0 var(--space-2) var(--space-2); }
+.mc-control .name { color: var(--green); }
 
 /* ---------- section heading (ImGui::SeparatorText) ---------- */
 .mc-section { height: var(--control-height); display: flex; align-items: center; gap: var(--space-3); padding-left: var(--space-2); margin-top: var(--space-2); }

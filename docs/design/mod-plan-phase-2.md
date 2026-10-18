@@ -16,6 +16,7 @@ A package's features match MCM's, but its lifecycle is new. The milestone define
 | M51 | mod  | The editing session: values from the file, pending values, dirty state                    | in review |
 | M52 | mod  | Save writes the dirty settings, and Discard                                               | in review |
 | M56 | mod  | Reset to the default                                                                      | in review |
+| M115 | mod | The title bar's Help, Minimize and Close, and the Help page                               | in review |
 
 M103 decides what a package should support beyond MCM, and what it has in place of what MCM's authors work around: [A package and MCM](schema.md#a-package-and-mcm). The milestones build it:
 
@@ -34,6 +35,8 @@ M51 is the package store: the [editing session](architecture.md#editing-session)
 M52 follows the Save steps of [Architecture and lifecycle](architecture.md#save-lifecycle), for the Save that goes well. Save and Discard are in the footer, as in the design system's `SaveBar`: enabled while a change waits, disabled on the menu's front page, and not there for an MCM mod. Each file is written in one write, and its settings are then clean with the values written as their baseline. Until M53 a file that cannot be written keeps its settings dirty, and the other files are still written.
 
 M56 is the Reset of a package's setting. The button of a row and the default in the help line are [M102](mod-plan-phase-1.md#3-mcm-complete)'s. The package store answers the `default` of the setting, and a Reset is a pending value as any other: Save writes it, and Discard takes it back. A `default` that is not one of its setting's values, outside its limits or none of its options, is none, as one of another type is: the loader logs it, and the setting has no Reset.
+
+M115 puts Help, Minimize and Close on the right of the title bar, as the design system has them. Minimize and Close do what the wrist's buttons do. Help shows [the Help page](ui-and-vr-interaction.md#the-help-page) over where the player is: each control of the menu, with the buttons and the bindings of the player's config in the sentence of the InputBinding control, which M78 shows in its row.
 
 ## 6. Packages complete
 

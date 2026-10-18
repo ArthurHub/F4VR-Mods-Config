@@ -1,0 +1,198 @@
+#include "MenuControls.h"
+
+#include <format>
+#include <string_view>
+
+#include "common/CommonUtils.h"
+#include "vrcf/InputBindingParser.h"
+
+namespace
+{
+    // the threshold of a push that a binding has when its table names none, as the framework reads it
+    constexpr float DEFAULT_THRESHOLD = 0.85f;
+
+    /**
+     * Whether a hand is the right controller: the primary hand is, unless the player is left-handed.
+     */
+    bool isRightController(const vrcf::Hand hand, const bool leftHanded)
+    {
+        switch (hand) {
+        case vrcf::Hand::Left:
+            return false;
+        case vrcf::Hand::Right:
+            return true;
+        case vrcf::Hand::Offhand:
+            return leftHanded;
+        case vrcf::Hand::Primary:
+        default:
+            return !leftHanded;
+        }
+    }
+
+    /**
+     * A hand as the config names it.
+     */
+    std::string_view handWords(const vrcf::Hand hand)
+    {
+        switch (hand) {
+        case vrcf::Hand::Offhand:
+            return "the off hand";
+        case vrcf::Hand::Right:
+            return "the right hand";
+        case vrcf::Hand::Left:
+            return "the left hand";
+        case vrcf::Hand::Primary:
+        default:
+            return "the primary hand";
+        }
+    }
+
+    /**
+     * A button as the controller prints it: the A and B buttons of the right controller are X and Y on the left.
+     */
+    std::string buttonWords(const vr::EVRButtonId button, const bool rightController)
+    {
+        switch (button) {
+        case vr::k_EButton_A:
+            return rightController ? "the A button" : "the X button";
+        case vr::k_EButton_ApplicationMenu:
+            return rightController ? "the B button" : "the Y button";
+        case vr::k_EButton_System:
+            return "the system button";
+        default:
+            return "the " + vrcf::buttonName(button);
+        }
+    }
+
+    /**
+     * The verb of a sentence: how the button is worked.
+     */
+    std::string_view verbOf(const vrcf::ActivationType type)
+    {
+        switch (type) {
+        case vrcf::ActivationType::Touch:
+            return "Touch";
+        case vrcf::ActivationType::HoldDown:
+            return "Hold";
+        case vrcf::ActivationType::Release:
+            return "Release";
+        case vrcf::ActivationType::Tap:
+            return "Tap";
+        case vrcf::ActivationType::LongPress:
+            return "Long press";
+        case vrcf::ActivationType::DoublePress:
+            return "Double press";
+        case vrcf::ActivationType::Press:
+        default:
+            return "Press";
+        }
+    }
+
+    /**
+     * What a binding's duration says after the button, for the types that have one: none for a duration of 0,
+     * which is the type's own.
+     */
+    std::string durationWords(const vrcf::InputBinding& binding)
+    {
+        if (binding.duration <= 0.0f) {
+            return {};
+        }
+        switch (binding.type) {
+        case vrcf::ActivationType::LongPress:
+            return std::format(" for {:g} s", binding.duration);
+        case vrcf::ActivationType::HoldDown:
+            return std::format(", from {:g} s", binding.duration);
+        case vrcf::ActivationType::DoublePress:
+            return std::format(", presses within {:g} s", binding.duration);
+        case vrcf::ActivationType::Release:
+            return std::format(", held no longer than {:g} s", binding.duration);
+        default:
+            return {};
+        }
+    }
+}
+
+namespace mods_config::ui
+{
+    /**
+     * The controls of the menu that its Help page tells, with the buttons and the bindings of the config, as
+     * the player's controllers print them. A control the config turns off is left out.
+     */
+    std::vector<ControlHelp> menuControls(const MenuButtons& buttons)
+    {
+        std::vector<ControlHelp> controls{
+            { .name = "Point and press", .text = "Point at the menu with either hand, and pull the trigger on what the ray is on." },
+            { .name = "Scroll", .text = "Push the thumbstick up or down on the hand that points: the list the ray is on scrolls." },
+            { .name = "Step a value", .text = "Push the thumbstick left or right on the hand that points: the slider or the choice the ray is on steps." },
+        };
+        if (buttons.back) {
+            controls.push_back({ .name = "Back",
+                .text =
+                    std::format("Press {} briefly on the hand that points: one step back, and from the menu's front page the menu closes.", eitherHandButtonName(*buttons.back)) });
+        }
+        if (buttons.move) {
+            controls.push_back({ .name = "Move the menu",
+                .text = std::format("Point at the menu and hold {} on the hand that points. The menu follows the hand until you let go.", eitherHandButtonName(*buttons.move)) });
+        }
+        if (buttons.recenter.isEnabled()) {
+            controls.push_back({ .name = "Recenter",
+                .text = std::format("{}: the menu is put in front of you again, also after you moved it.", bindingSentence(buttons.recenter, buttons.leftHanded)) });
+        }
+        if (buttons.openMenu.isEnabled()) {
+            controls.push_back({ .name = "Open and close the menu", .text = bindingSentence(buttons.openMenu, buttons.leftHanded) + "." });
+        }
+        controls.push_back(
+            { .name = "Minimize", .text = "Minimize, on the title bar or on your offhand wrist, hides the menu as you left it. Resume on the wrist shows it again." });
+        return controls;
+    }
+
+    /**
+     * A binding as one sentence, as the design system's InputBinding says it: the verb of its type, the button
+     * as the controller prints it, the hand as the config names it, then its duration or its threshold, and the
+     * button it is held with. "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on
+     * the off hand". A threshold is said when it is not the framework's own. "None" for a binding that is off.
+     */
+    std::string bindingSentence(const vrcf::InputBinding& binding, const bool leftHanded)
+    {
+        if (!binding.isEnabled()) {
+            return "None";
+        }
+        std::string sentence;
+        if (binding.type == vrcf::ActivationType::AxisDirection) {
+            sentence = std::format("Push the {} {} on {}", vrcf::axisName(binding.axis), vrcf::directionName(binding.direction), handWords(binding.hand));
+            if (!common::fEqual(binding.threshold, DEFAULT_THRESHOLD)) {
+                sentence += std::format(", past {:.2f}", binding.threshold);
+            }
+        } else {
+            sentence = std::format("{} {} on {}{}",
+                verbOf(binding.type),
+                buttonWords(binding.button, isRightController(binding.hand, leftHanded)),
+                handWords(binding.hand),
+                durationWords(binding));
+        }
+        if (binding.modifier) {
+            const auto hand = binding.modifier->hand.value_or(binding.hand);
+            sentence += ", holding " + buttonWords(binding.modifier->button, isRightController(hand, leftHanded));
+            if (binding.modifier->hand) {
+                sentence += std::format(" on {}", handWords(*binding.modifier->hand));
+            }
+        }
+        return sentence;
+    }
+
+    /**
+     * A button of the hand that points, which is either hand: the A and B buttons are named with what the left
+     * controller prints, as "the A or X button".
+     */
+    std::string eitherHandButtonName(const vr::EVRButtonId button)
+    {
+        switch (button) {
+        case vr::k_EButton_A:
+            return "the A or X button";
+        case vr::k_EButton_ApplicationMenu:
+            return "the B or Y button";
+        default:
+            return buttonWords(button, true);
+        }
+    }
+}

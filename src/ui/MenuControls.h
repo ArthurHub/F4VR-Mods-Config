@@ -1,0 +1,37 @@
+#pragma once
+
+#include <optional>
+#include <string>
+#include <vector>
+
+#include "vrcf/VRControllersManager.h"
+
+namespace mods_config::ui
+{
+    /**
+     * A control of the menu on the Help page: what it does, and how it is worked with the player's config.
+     */
+    struct ControlHelp
+    {
+        std::string name;
+        std::string text;
+    };
+
+    /**
+     * The buttons and the bindings of the config that work the menu, and the player's handedness, which says
+     * what a button of a hand is printed as. The panel does not know the config or the game, so the menu
+     * tells it.
+     */
+    struct MenuButtons
+    {
+        vrcf::InputBinding openMenu;
+        std::optional<vr::EVRButtonId> back;
+        std::optional<vr::EVRButtonId> move;
+        vrcf::InputBinding recenter;
+        bool leftHanded = false;
+    };
+
+    std::vector<ControlHelp> menuControls(const MenuButtons& buttons);
+    std::string bindingSentence(const vrcf::InputBinding& binding, bool leftHanded);
+    std::string eitherHandButtonName(vr::EVRButtonId button);
+}

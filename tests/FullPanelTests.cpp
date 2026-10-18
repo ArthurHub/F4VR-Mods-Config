@@ -440,6 +440,20 @@ namespace
         return { left + 20.0f, CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f };
     }
 
+    // the buttons of the title bar, by their place from its right
+    constexpr int CLOSE_BUTTON = 0;
+    constexpr int MINIMIZE_BUTTON = 1;
+    constexpr int HELP_BUTTON = 2;
+
+    /**
+     * The middle of a button of the title bar, by its place from the right of the bar.
+     */
+    ImVec2 titleButton(const int place)
+    {
+        const float right = test_panel::PANEL_WIDTH - CONTENT_START - theme::SPACE_2;
+        return { right - theme::CONTROL_HEIGHT * 0.5f - static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_2), CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f };
+    }
+
     /**
      * The window that scrolls the rows of the tree.
      */
@@ -656,6 +670,105 @@ TEST_CASE("FullPanel: Back goes from a page to its mod's front page, and from th
     // the menu's front page has nothing before it: the menu is closed there
     CHECK_FALSE(panel.back());
     CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: Help shows the Help page over the selection, and Back shows the selection's page again")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    panel.select(selectionOf(0, 1));
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, titleButton(HELP_BUTTON)));
+    CHECK(panel.isHelpShown());
+    CHECK(panel.selection() == selectionOf(0, 1));
+
+    // the Help page's crumb is where the player is, and Help is what is shown: neither changes anything
+    CHECK_FALSE(pressActs(panel, modCrumb()));
+    CHECK_FALSE(pressActs(panel, titleButton(HELP_BUTTON)));
+    CHECK(panel.isHelpShown());
+
+    CHECK(panel.back());
+    CHECK_FALSE(panel.isHelpShown());
+    CHECK(panel.selection() == selectionOf(0, 1));
+
+    // over the menu's front page too, where Back closes the menu once the Help page is left
+    panel.select({});
+    press(panel, titleButton(HELP_BUTTON));
+    CHECK(panel.back());
+    CHECK_FALSE(panel.isHelpShown());
+    CHECK_FALSE(panel.back());
+}
+
+TEST_CASE("FullPanel: a row of the tree and the menu's breadcrumb leave the Help page")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    panel.select(selectionOf(0, 1));
+    drawFrames(panel, 2);
+
+    // the row of the page that is selected shows it again
+    press(panel, titleButton(HELP_BUTTON));
+    CHECK(pressActs(panel, treeRow(2)));
+    CHECK_FALSE(panel.isHelpShown());
+    CHECK(panel.selection() == selectionOf(0, 1));
+
+    press(panel, titleButton(HELP_BUTTON));
+    press(panel, treeRow(1));
+    CHECK_FALSE(panel.isHelpShown());
+    CHECK(panel.selection() == selectionOf(0, 0));
+
+    press(panel, titleButton(HELP_BUTTON));
+    press(panel, menuCrumb());
+    CHECK_FALSE(panel.isHelpShown());
+    CHECK(panel.selection() == Selection{});
+
+    // and so does a menu that opens again
+    press(panel, titleButton(HELP_BUTTON));
+    panel.reset();
+    CHECK_FALSE(panel.isHelpShown());
+}
+
+TEST_CASE("FullPanel: Minimize and Close of the title bar do what the menu does, and act")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    int minimized = 0;
+    int closed = 0;
+    panel.setMenuActions({ .minimize =
+                               [&minimized] {
+                                   ++minimized;
+                               },
+        .close =
+            [&closed] {
+                ++closed;
+            } });
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, titleButton(MINIMIZE_BUTTON)));
+    CHECK(minimized == 1);
+    CHECK(closed == 0);
+    CHECK(pressActs(panel, titleButton(CLOSE_BUTTON)));
+    CHECK(minimized == 1);
+    CHECK(closed == 1);
+
+    // with no menu, as here, they do nothing
+    panel.setMenuActions({});
+    CHECK_FALSE(pressActs(panel, titleButton(CLOSE_BUTTON)));
+}
+
+TEST_CASE("FullPanel: the help line has the help of the title bar's button the ray is on")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    drawFrames(panel, 2);
+
+    point(panel, titleButton(HELP_BUTTON));
+    CHECK(panel.helpLine().text() == "Help: What each control of the menu does, with the buttons your config has for it.");
+    point(panel, titleButton(MINIMIZE_BUTTON));
+    CHECK(panel.helpLine().text() == "Minimize: Hides the menu, as you left it. Resume on your offhand wrist shows it again.");
+    point(panel, titleButton(CLOSE_BUTTON));
+    CHECK(panel.helpLine().text() == "Close: Closes the menu.");
 }
 
 TEST_CASE("FullPanel: a press that shows another page acts, and one that changes nothing does not")
