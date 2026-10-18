@@ -27,13 +27,18 @@ namespace mods_config::ui
     public:
         void show(const PointedRow& row);
         void clear();
-        void setStatus(std::string_view status);
+        void setStatus(std::string_view status, bool pending = false);
         void draw(const ImVec2& pos, float width) const;
         std::string text() const;
 
         const std::string& status() const
         {
             return _status;
+        }
+
+        bool isStatusPending() const
+        {
+            return _pending;
         }
 
     private:
@@ -43,5 +48,8 @@ namespace mods_config::ui
 
         // what the line says with no row: empty for nothing
         std::string _status;
+
+        // the status tells of changes that wait for a Save
+        bool _pending = false;
     };
 }

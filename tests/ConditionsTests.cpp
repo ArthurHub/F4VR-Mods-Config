@@ -95,6 +95,21 @@ namespace
             return std::nullopt;
         }
 
+        bool savesAtOnce() const override
+        {
+            return true;
+        }
+
+        bool isDirty(const model::Setting&) const override
+        {
+            return false;
+        }
+
+        std::size_t dirtyCount() const override
+        {
+            return 0;
+        }
+
         model::StoredValue hotkey(const model::Hotkey&) override
         {
             return {};

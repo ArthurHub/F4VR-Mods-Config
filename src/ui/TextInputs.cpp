@@ -118,16 +118,16 @@ namespace mods_config::ui
     }
 
     /**
-     * Draws a text input whose box ends at the right: the text at the left of its box, and a longer one
-     * ends in an ellipsis. The box of one that is edited is drawn with its field, by `edit`.
+     * Draws a text input whose box ends at the right: the text at the left of its box, in the color of its
+     * value's look, and a longer one ends in an ellipsis. The box of one that is edited is drawn with its field, by `edit`.
      * Returns the left edge of the box.
      */
-    float TextInputs::draw(const model::Setting& setting, const float right, const float top, const std::string& text) const
+    float TextInputs::draw(const model::Setting& setting, const float right, const float top, const std::string& text, const ValueLook look) const
     {
         const auto box = fieldBox(right, top);
         if (!isEdited(setting)) {
-            drawFrame(box);
-            drawTextIn(box, text, theme::color::GREEN, 0.0f, theme::SPACE_4);
+            drawFrame(box, look);
+            drawTextIn(box, text, valueColor(look), 0.0f, theme::SPACE_4);
         }
         return box.Min.x;
     }

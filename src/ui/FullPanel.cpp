@@ -25,6 +25,9 @@ namespace
     // what the help line says of a mod whose changes are not kept for a Save, while the ray is on no row
     constexpr auto SAVED_AS_MADE = "Changes are saved as they are made";
 
+    // and of a mod whose changes wait for a Save, while none does
+    constexpr auto NO_UNSAVED = "No unsaved changes";
+
     // The panel's sizes that are not tokens of the design system, in the panel's pixels.
     // A button with a word on it:
     constexpr float BUTTON_WIDTH = 160.0f;
@@ -137,21 +140,38 @@ namespace mods_config::ui
     }
 
     /**
-     * The store the panel asks for the values of a selected MCM mod, and sets them in. It is not the panel's
-     * own, and has to outlive it. With none, as in a test of the tree, no value is available.
+     * The store the panel asks for the values of a selected mod of a source, and sets them in. It is not the
+     * panel's own, and has to outlive it. With none, as in a test of the tree, no value is available.
      */
-    void FullPanel::setStore(model::Store* store)
+    void FullPanel::setStore(const model::Source source, model::Store* store)
     {
-        _store = store;
+        (source == model::Source::Mcm ? _mcmStore : _packageStore) = store;
     }
 
     /**
-     * The store of the values of a mod: the MCM store for an MCM mod. A package's mod has none, so no value
-     * of it is available.
+     * The store of the values of a mod: the one of the source of its menu.
      */
     model::Store* FullPanel::storeOf(const model::Mod& mod) const
     {
-        return mod.source == model::Source::Mcm ? _store : nullptr;
+        return mod.source == model::Source::Mcm ? _mcmStore : _packageStore;
+    }
+
+    /**
+     * Gives the help line the status of the selected mod's editing session: that its changes are saved as
+     * they are made, or how many wait for a Save. Nothing with no mod, and with no store.
+     */
+    void FullPanel::updateStatus()
+    {
+        auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        if (!store) {
+            _helpLine.setStatus({});
+        } else if (store->savesAtOnce()) {
+            _helpLine.setStatus(SAVED_AS_MADE);
+        } else if (const auto dirty = store->dirtyCount(); dirty == 0) {
+            _helpLine.setStatus(NO_UNSAVED);
+        } else {
+            _helpLine.setStatus(std::format("{} unsaved change{}", dirty, dirty == 1 ? "" : "s"), true);
+        }
     }
 
     /**
@@ -210,7 +230,7 @@ namespace mods_config::ui
         _pageChanged = true;
         _modPage.reset();
         _helpLine.clear();
-        _helpLine.setStatus(store ? SAVED_AS_MADE : "");
+        updateStatus();
         _modTree.showSelection();
         return true;
     }
@@ -248,7 +268,7 @@ namespace mods_config::ui
         _thumbstickSideValue = 0.0f;
         _modPage.reset();
         _helpLine.clear();
-        _helpLine.setStatus({});
+        updateStatus();
         _modTree.showTop();
     }
 
@@ -258,7 +278,8 @@ namespace mods_config::ui
      * The help line has the row of the page the ray is on, or the row of the tree with a help, until the ray
      * is on another or leaves the page:
      * in the gap between two rows it keeps the row it has, so it does not flicker as the ray sweeps the rows.
-     * With no row it says that the changes of the selected mod are saved as they are made.
+     * With no row it has the status of the selected mod's editing session: that its changes are saved as they
+     * are made, or how many wait for a Save.
      * A press selects once all of the panel is drawn, so a frame is drawn with one selection.
      * It also tells whether a press did something in this frame, for the pulse of the hand that points.
      */
@@ -312,6 +333,7 @@ namespace mods_config::ui
         } else if (!onPage) {
             _helpLine.clear();
         }
+        updateStatus();
         drawFooter(ImVec2(bodyPos.x, bodyPos.y + bodyHeight + theme::SPACE_3));
 
         // a press on the row or the breadcrumb of what is shown already changes nothing

@@ -19,6 +19,8 @@
 #include "TestPanel.h"
 #include "Theme.h"
 #include "mcm/McmStore.h"
+#include "package/PackageLoader.h"
+#include "package/PackageStore.h"
 #include "ui/FullPanel.h"
 
 using namespace mods_config;
@@ -165,7 +167,7 @@ namespace
         mod.frontPage.items.push_back(model::Setting{ .type = model::SettingType::Switcher, .text = "Unfold", .help = {}, .valueOptions = {}, .storage = {} });
 
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ std::move(mod), modOf("Beta") });
         panel.select(selectionOf(0));
         return panel;
@@ -187,7 +189,7 @@ namespace
             .action = model::UnknownAction{ .type = "CallExternalFunction", .reason = "Not available: the menu has no Flash." } });
 
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
@@ -220,7 +222,7 @@ namespace
         mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Switch", 0x812));
 
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
@@ -300,7 +302,7 @@ namespace
         mod.frontPage.items.push_back(choice(model::SettingType::Stepper, "Outside", 0x823, { "Zero", "One", "Two" }));
 
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
@@ -347,7 +349,7 @@ namespace
         mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Global", 0x800));
 
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
@@ -895,7 +897,7 @@ TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press
     mod.frontPage.items.push_back(model::Hotkey{ .id = "close", .text = "Close the menu" });
     mod.frontPage.items.push_back(model::Hotkey{ .id = "missing", .text = "Not in the file", .help = "Does nothing." });
     FullPanel panel;
-    panel.setStore(&store);
+    panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ std::move(mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -940,7 +942,7 @@ namespace
         mod.frontPage.items.push_back(textInput("Count", {}, model::ModSettingStorage{ .name = "iCount:Main", .type = Type::Int }, Type::Int));
 
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
@@ -1196,7 +1198,7 @@ TEST_CASE("FullPanel: another page of the mod that is shown reads its ModSetting
         .valueOptions = {},
         .storage = model::ModSettingStorage{ .name = "bOn:Main", .type = model::StoredType::Bool } });
     FullPanel panel;
-    panel.setStore(&store);
+    panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ std::move(mod) });
     panel.select(selectionOf(0));
     const auto& on = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
@@ -1226,7 +1228,7 @@ TEST_CASE("FullPanel: a row of a group is shown while the switcher that controls
     std::get<model::Setting>(mod.frontPage.items.back()).visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "unfold", .conditions = {} };
     mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "After", 0x801));
     FullPanel panel;
-    panel.setStore(&store);
+    panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ std::move(mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -1264,7 +1266,7 @@ TEST_CASE("FullPanel: a row is edited while its enabledWhen holds, and is disabl
     mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Enabled by it", 0x800));
     std::get<model::Setting>(mod.frontPage.items.back()).enabledWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "enable", .conditions = {} };
     FullPanel panel;
-    panel.setStore(&store);
+    panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ std::move(mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -1780,7 +1782,83 @@ TEST_CASE("FullPanel: a mod's editing session ends as the mod is left, and as th
     CHECK(events.sent.size() == 1);
 }
 
-TEST_CASE("FullPanel: a package's mod has no store, so none of its values is available, and the MCM store's session ends for it")
+TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line counts while the ray is on no row")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\nbOther = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "switcher", "text": "Enable", "help": "Turns it on.", "default": false, "storage": { "path": ["Main", "bEnable"] } },
+            { "type": "switcher", "text": "Other", "default": false, "storage": { "path": ["Main", "bOther"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+    CHECK_FALSE(panel.helpLine().isStatusPending());
+
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "1 unsaved change");
+    CHECK(panel.helpLine().isStatusPending());
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "2 unsaved changes");
+
+    // a value changed back is not a change
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "1 unsaved change");
+
+    // the menu's front page has no session
+    panel.select({});
+    CHECK(panel.helpLine().status().empty());
+    CHECK_FALSE(panel.helpLine().isStatusPending());
+}
+
+TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, and its Reset sets the default")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = \"yes\"\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "switcher", "text": "Enable", "help": "Turns it on.", "default": true, "storage": { "path": ["Main", "bEnable"] } } ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& setting = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    CHECK(store.value(setting).invalid);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == R"(Enable: Invalid: Main.bEnable is "yes" in MyMod.toml, which is not true or false.)");
+
+    // it shows the default, and its Reset still sets it, which replaces the file's value
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Enable: Reset to on");
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK_FALSE(store.value(setting).invalid);
+    CHECK(store.isDirty(setting));
+    CHECK(store.value(setting).value == model::Value(true));
+}
+
+TEST_CASE("FullPanel: with no package store none of a package's values is available, and the MCM store's session ends for it")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <optional>
 
+#include "Drawing.h"
 #include "model/Definition.h"
 #include "model/Store.h"
 
@@ -34,7 +35,7 @@ namespace mods_config::ui
     public:
         void startFrame(float thumbstickSideValue);
         std::optional<std::size_t> edit(const model::Setting& setting, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen, bool& pulse);
-        float draw(const model::Setting& setting, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen) const;
+        float draw(const model::Setting& setting, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen, ValueLook look) const;
         void endFrame();
         bool isListOpen(const model::Setting& setting) const;
         bool closeList();

@@ -359,12 +359,12 @@ namespace mods_config::ui
     }
 
     /**
-     * The frame of a control: the fill of a track, with an outline.
+     * The frame of a control: the fill of a track, with an outline, which is red around an invalid value.
      */
-    void drawFrame(const ImRect& box)
+    void drawFrame(const ImRect& box, const ValueLook look)
     {
         ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(theme::color::TRACK), theme::RADIUS_FRAME);
-        drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
+        drawOutline(box.Min, box.Max, look == ValueLook::Invalid ? theme::color::RED : theme::color::FRAME_BORDER);
     }
 
     /**
@@ -391,5 +391,48 @@ namespace mods_config::ui
         // on a whole pixel to the left, so a text that just fits its room gets no ellipsis
         const float left = std::floor(box.Min.x + padding + (std::max)(room - textWidth(text), 0.0f) * align);
         drawText(left, box.Max.x - padding, box.Min.y, box.GetHeight(), color, text);
+    }
+
+    /**
+     * The color a value is drawn in, with the fill and the grab of a slider: amber while it waits for a Save,
+     * and red while it is invalid.
+     */
+    ImU32 valueColor(const ValueLook look)
+    {
+        switch (look) {
+        case ValueLook::Pending:
+            return theme::color::AMBER;
+        case ValueLook::Invalid:
+            return theme::color::RED;
+        case ValueLook::Saved:
+            break;
+        }
+        return theme::color::GREEN;
+    }
+
+    /**
+     * The mark of a value that waits for a Save, around a point: an amber dot.
+     */
+    void drawPendingMark(const ImVec2& center)
+    {
+        constexpr float RADIUS = 5.0f;
+        ImGui::GetWindowDrawList()->AddCircleFilled(center, RADIUS, ImGui::GetColorU32(theme::color::AMBER));
+    }
+
+    /**
+     * The mark of an invalid value, around a point: a red triangle with an `!` in it, as the design system
+     * draws it in a box of 20 by 18.
+     */
+    void drawInvalidMark(const ImVec2& center)
+    {
+        const ImVec2 origin(std::floor(center.x - 10.0f), std::floor(center.y - 9.0f));
+        const auto at = [&origin](const float x, const float y) {
+            return ImVec2(origin.x + x, origin.y + y);
+        };
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->AddTriangleFilled(at(10.0f, 1.0f), at(19.0f, 17.0f), at(1.0f, 17.0f), ImGui::GetColorU32(theme::color::RED));
+        const auto bang = ImGui::GetColorU32(theme::color::ON_RED);
+        drawList->AddRectFilled(at(9.0f, 6.0f), at(11.0f, 12.0f), bang);
+        drawList->AddRectFilled(at(9.0f, 13.4f), at(11.0f, 15.4f), bang);
     }
 }

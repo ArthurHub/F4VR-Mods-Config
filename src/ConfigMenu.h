@@ -4,9 +4,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/CommonUtils.h"
 #include "imgui/UIImGuiPanel.h"
 #include "mcm/McmStore.h"
 #include "model/Definition.h"
+#include "package/PackageStore.h"
 #include "render/Texture.h"
 #include "ui/FullPanel.h"
 #include "vrui/UIButtonPanel.h"
@@ -54,6 +56,9 @@ namespace mods_config
 
         // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
         mcm::McmStore _store{ R"(Data\MCM)" };
+
+        // and a package's mod's, in its files, from the game's Data folder and the game's folder of My Games
+        package::PackageStore _packageStore{ "Data", common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
 
         // what the panel shows
         ui::FullPanel _fullPanel;

@@ -283,13 +283,14 @@ namespace mods_config::ui
     }
 
     /**
-     * A stepper or a dropdown that ends at the right, with the text of the option it is at, and none where
-     * it is at no option. Returns its left edge.
+     * A stepper or a dropdown that ends at the right, with the text of the option it is at in the color of
+     * its value's look, and none where it is at no option. Returns its left edge.
      * A stepper is the option in a box, between a button to the option before it and one to the option
      * after. A dropdown is the option at the left of its box, and an arrow at the right. The box has its
      * outline in the full color while its list is open.
      */
-    float Choices::draw(const model::Setting& setting, const float right, const float top, const ChoiceRow& row, const std::optional<std::size_t> chosen) const
+    float Choices::draw(const model::Setting& setting, const float right, const float top, const ChoiceRow& row, const std::optional<std::size_t> chosen,
+        const ValueLook look) const
     {
         const auto& options = setting.valueOptions.options;
         const auto option = chosen ? std::string_view(options[*chosen].text) : std::string_view();
@@ -297,11 +298,11 @@ namespace mods_config::ui
         if (setting.type == model::SettingType::Dropdown) {
             const auto box = dropdownBox(right, top);
             const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
-            drawFrame(box);
+            drawFrame(box, look);
             if (isListOpen(setting)) {
                 drawOutline(box.Min, box.Max, theme::color::GREEN);
             }
-            drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, theme::color::GREEN, option);
+            drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, valueColor(look), option);
             drawArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), Arrow::Down);
             return box.Min.x;
         }
@@ -312,8 +313,8 @@ namespace mods_config::ui
         const bool onNext = boxes.onNext(x);
         const auto after = chosen ? *chosen + 1 : 0;
         drawStepButton(boxes.previous, Arrow::Left, chosen && *chosen > 0, row.pointed && onPrevious, row.held && onPrevious);
-        drawFrame(boxes.option);
-        drawTextIn(boxes.option, option, theme::color::GREEN, 0.5f, theme::SPACE_3);
+        drawFrame(boxes.option, look);
+        drawTextIn(boxes.option, option, valueColor(look), 0.5f, theme::SPACE_3);
         drawStepButton(boxes.next, Arrow::Right, after < options.size(), row.pointed && onNext, row.held && onNext);
         return boxes.previous.Min.x;
     }

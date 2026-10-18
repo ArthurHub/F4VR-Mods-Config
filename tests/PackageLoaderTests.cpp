@@ -860,7 +860,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     for (const auto& [name, file] : mod.files) {
         files.push_back(name);
     }
-    CHECK(files == Lines{ "ini", "player", "showcase" });
+    CHECK(files == Lines{ "ini", "invalid", "player", "showcase" });
 
     // a page has pages under it, two levels deep
     const auto pages = std::ranges::find(mod.pages, "Pages", &model::Page::name);

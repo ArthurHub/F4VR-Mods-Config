@@ -14,6 +14,8 @@
     // not shipped: its settings have their defaults, and the first Save that changes one creates it
     "player": { "format": "toml", "root": "myGames", "path": "Mods_Config/ModsConfigVR_Showcase/player.toml" },
     "ini": { "format": "ini", "root": "data", "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/showcase.ini" },
+    // shipped beside this config, with values that are not the ones of their settings
+    "invalid": { "format": "toml", "root": "data", "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/invalid.toml" },
     // left out, with the reason in the log: its path goes up out of its root
     "outside": { "format": "toml", "root": "data", "path": "../showcase.toml" }
   },
@@ -407,6 +409,26 @@
             {
               "type": "switcher", "valueType": "bool", "text": "A value in a table in a table", "help": "A path of three names: its id is bDeep:Files.Tables.",
               "default": true, "storage": { "file": "showcase", "path": ["Files", "Tables", "bDeep"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "A file whose values are not the settings'", "defaultFile": "invalid",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Past its most", "help": "The file has 2.0, and the slider goes from 0 to 1.",
+              "default": 0.5, "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+              "storage": { "path": ["Invalid", "fPastMost"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A text for a switcher", "help": "The file has the text \"yes\", which is not true or false.",
+              "default": true, "storage": { "path": ["Invalid", "bText"] }
+            },
+            {
+              "type": "dropdown", "valueType": "string", "text": "No option of its choice", "help": "The file has \"elbow\", which is none of its options.",
+              "default": "hip",
+              "valueOptions": { "options": [ { "value": "hip", "text": "Hip" }, { "value": "chest", "text": "Chest" } ] },
+              "storage": { "path": ["Invalid", "sPlace"] }
             }
           ]
         }

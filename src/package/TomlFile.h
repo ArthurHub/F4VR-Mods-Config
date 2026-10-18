@@ -34,10 +34,12 @@ namespace mods_config::package
         {}
 
         std::expected<void, std::string> read();
+        bool contains(std::span<const std::string> path) const;
         std::expected<model::Value, std::string> value(std::span<const std::string> path, model::StoredType type) const;
         std::expected<void, std::string> write(std::span<const Change> changes);
 
     private:
+        toml::node_view<const toml::node> find(std::span<const std::string> path) const;
         std::string name() const;
 
         // the file, absolute

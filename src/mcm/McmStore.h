@@ -77,6 +77,22 @@ namespace mods_config::mcm
         model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;
         std::optional<model::Value> defaultValue(const model::Setting& setting) override;
+
+        bool savesAtOnce() const override
+        {
+            return true;
+        }
+
+        bool isDirty(const model::Setting&) const override
+        {
+            return false;
+        }
+
+        std::size_t dirtyCount() const override
+        {
+            return 0;
+        }
+
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         bool run(const model::Action& action) override;
 

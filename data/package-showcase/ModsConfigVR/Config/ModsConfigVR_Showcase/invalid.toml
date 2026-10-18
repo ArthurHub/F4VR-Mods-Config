@@ -1,0 +1,7 @@
+# Values of the Mods Config VR showcase package that are not the ones of their settings, which the menu shows
+# as invalid. Editing or resetting a setting replaces its value on Save.
+
+[Invalid]
+fPastMost = 2.0
+bText = "yes"
+sPlace = "elbow"

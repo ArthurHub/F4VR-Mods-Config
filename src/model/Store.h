@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -23,7 +24,12 @@ namespace mods_config::model
         // false for a value that cannot be read or written: its row is disabled
         bool available = false;
 
-        // why it is not available, for the player. Empty for a storage the menu does not read yet
+        // the value is shown and edited, but is no value of its setting: one in a file that is not of its type,
+        // outside its limits, or no option of its choice. It is the value as it is read where that is of its
+        // type, and the setting's default where it is not
+        bool invalid = false;
+
+        // why it is not available or is invalid, for the player. Empty for a storage the menu does not read yet
         std::string reason;
     };
 
@@ -69,6 +75,22 @@ namespace mods_config::model
          * None for a setting that has no default.
          */
         virtual std::optional<Value> defaultValue(const Setting& setting) = 0;
+
+        /**
+         * Whether a change is saved as it is made, as an MCM mod's is: nothing waits for a Save then, and no
+         * setting is dirty.
+         */
+        virtual bool savesAtOnce() const = 0;
+
+        /**
+         * Whether a setting is dirty: its value is not the one its session started with, and waits for a Save.
+         */
+        virtual bool isDirty(const Setting& setting) const = 0;
+
+        /**
+         * How many settings of the session are dirty.
+         */
+        virtual std::size_t dirtyCount() const = 0;
 
         /**
          * The key a hotkey is bound to, as a text: its name, with the keys that are held with it. It is not

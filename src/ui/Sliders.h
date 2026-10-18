@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "Drawing.h"
 #include "model/Definition.h"
 
 namespace mods_config::ui
@@ -32,7 +33,7 @@ namespace mods_config::ui
     public:
         void startFrame(float thumbstickSideValue);
         float edit(const model::Setting& setting, float right, float top, const SliderRow& row, float value, bool& write, bool& pulse);
-        float draw(const model::Setting& setting, float right, float top, float value) const;
+        float draw(const model::Setting& setting, float right, float top, float value, ValueLook look) const;
         void endFrame();
         bool cancelDrag();
         void reset();

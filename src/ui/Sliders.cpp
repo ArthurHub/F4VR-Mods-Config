@@ -170,10 +170,10 @@ namespace mods_config::ui
 
     /**
      * A slider that ends at the right: its track, with a fill from the least to the grab, and the box of its
-     * value. While it is dragged the grab and the outline of the track are in the color of the pointer's
-     * mark. Returns its left edge.
+     * value, in the color of its value's look. While it is dragged the grab and the outline of the track are
+     * in the color of the pointer's mark. Returns its left edge.
      */
-    float Sliders::draw(const model::Setting& setting, const float right, const float top, const float value) const
+    float Sliders::draw(const model::Setting& setting, const float right, const float top, const float value, const ValueLook look) const
     {
         const auto& options = setting.valueOptions;
         const Boxes boxes(right, top);
@@ -186,18 +186,18 @@ namespace mods_config::ui
 
         const float grab = boxes.grabAt(options, value);
         const float middle = track.GetCenter().y;
-        const auto green = ImGui::GetColorU32(theme::color::GREEN);
+        const auto color = ImGui::GetColorU32(valueColor(look));
         auto* drawList = ImGui::GetWindowDrawList();
         if (grab > boxes.grabLeast) {
-            drawList->AddRectFilled(ImVec2(boxes.grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), green, theme::RADIUS_GRAB);
+            drawList->AddRectFilled(ImVec2(boxes.grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, theme::RADIUS_GRAB);
         }
         drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
             ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
-            dragged ? ImGui::GetColorU32(theme::color::GLOW) : green,
+            dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
             theme::RADIUS_GRAB);
 
-        drawFrame(boxes.valueBox);
-        drawTextIn(boxes.valueBox, sliderValueText(value, options.step), theme::color::GREEN, 1.0f, theme::SPACE_3);
+        drawFrame(boxes.valueBox, look);
+        drawTextIn(boxes.valueBox, sliderValueText(value, options.step), valueColor(look), 1.0f, theme::SPACE_3);
         return track.Min.x;
     }
 

@@ -13,7 +13,7 @@ A package's features match MCM's, but its lifecycle is new. The milestone define
 | M114 | mod | The package showcase, an optional file for developers                                    | in review |
 | M48 | mod  | Choices, shared lists and conditions in a package                                         | in review |
 | M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | in review |
-| M51 | mod  | The editing session: values from the file, pending values, dirty state                    | todo   |
+| M51 | mod  | The editing session: values from the file, pending values, dirty state                    | in review |
 | M52 | mod  | Save writes the dirty settings, and Discard                                               | todo   |
 | M56 | mod  | Reset to the default                                                                      | todo   |
 
@@ -28,6 +28,8 @@ M114 adds a package of our own, `data/package-showcase/`, as the MCM showcase is
 M47 ships the first package, which is this mod's own, for `ModsConfigVR.toml`. The mod reloads its TOML when it changes, so a Save shows at once with no other mod involved. A package's text takes the three forms of [Localization](schema.md#localization): plain, a `$` token, and a token with a fallback. The lookup of a token is [M17](mod-plan-phase-1.md#1-browse-mcm-mods)'s.
 
 The milestone is TOML only. A CommonFramework mod keeps its config in a TOML file, as this mod does, and reloads it by itself, so it needs no native API.
+
+M51 is the package store: the [editing session](architecture.md#editing-session) and the [values at session start](architecture.md#values-at-session-start) of a TOML file. A pending value has the design system's pending look, and the footer counts the unsaved changes. An invalid value of the file has its mark, its color and its reason in the help line: the message under the row's name is M55's, with the values the player types. Until M55 a value the player sets outside its limits is not set.
 
 M52 follows the Save steps of [Architecture and lifecycle](architecture.md#save-lifecycle), for the Save that goes well.
 

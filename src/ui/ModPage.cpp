@@ -150,23 +150,26 @@ namespace
     constexpr float TOGGLE_CELL_WIDTH = 88.0f;
 
     /**
-     * A switcher that ends at the right: an Off and an On cell, with the one of its value marked. On is a
-     * solid fill, and Off a ring, so a solid fill always says on. Returns its left edge.
+     * A switcher that ends at the right: an Off and an On cell, with the one of its value marked in the color
+     * of its value's look. On is a solid fill, and Off a ring, so a solid fill always says on. Returns its
+     * left edge.
      */
-    float drawSwitcher(const float right, const float top, const bool on)
+    float drawSwitcher(const float right, const float top, const bool on, const ui::ValueLook look)
     {
         const auto box = ui::controlBox(right - TOGGLE_CELL_WIDTH * 2.0f, top, TOGGLE_CELL_WIDTH * 2.0f);
         const auto offCell = ui::controlBox(box.Min.x, top, TOGGLE_CELL_WIDTH);
         const auto onCell = ui::controlBox(offCell.Max.x, top, TOGGLE_CELL_WIDTH);
+        const auto color = ui::valueColor(look);
         ui::drawFrame(box);
         if (on) {
-            ImGui::GetWindowDrawList()->AddRectFilled(onCell.Min, onCell.Max, ImGui::GetColorU32(theme::color::GREEN), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersRight);
+            ImGui::GetWindowDrawList()->AddRectFilled(onCell.Min, onCell.Max, ImGui::GetColorU32(color), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersRight);
         } else {
             ImGui::GetWindowDrawList()->AddRectFilled(offCell.Min, offCell.Max, ImGui::GetColorU32(theme::color::PRESSED), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersLeft);
-            ui::drawOutline(offCell.Min, offCell.Max, theme::color::GREEN);
+            ui::drawOutline(offCell.Min, offCell.Max, color);
         }
-        ui::drawTextIn(offCell, "Off", on ? theme::color::GREEN_MUTED : theme::color::GREEN, 0.5f);
-        ui::drawTextIn(onCell, "On", on ? theme::color::ON_GREEN : theme::color::GREEN_MUTED, 0.5f);
+        const auto onText = look == ui::ValueLook::Pending ? theme::color::ON_AMBER : look == ui::ValueLook::Invalid ? theme::color::ON_RED : theme::color::ON_GREEN;
+        ui::drawTextIn(offCell, "Off", on ? theme::color::GREEN_MUTED : color, 0.5f);
+        ui::drawTextIn(onCell, "On", on ? onText : theme::color::GREEN_MUTED, 0.5f);
         return box.Min.x;
     }
 
@@ -285,10 +288,13 @@ namespace
      * A setting whose enabledWhen does not hold is disabled as a whole, with its Reset, and a press does
      * nothing in its row. The row itself has the look of a row under the ray, as it has a help.
      * A setting with a default has its Reset in the room after the control, disabled while its value is the
-     * default: a press on it sets the default in the store. A press in that room does nothing else in the
-     * row, also while Reset is disabled, so a second press on it changes nothing.
+     * default and valid: a press on it sets the default in the store. A press in that room does nothing else
+     * in the row, also while Reset is disabled, so a second press on it changes nothing.
+     * The gutter has the mark of an invalid value, or else of a dirty one, which waits for a Save, and the
+     * control has its value in their colors.
      * Returns whether the ray is on the row or on its open list, and tells the help of the row: why a value
-     * is not available, what Reset gives while the ray is on it, and else the row's own, with its default.
+     * is not available, what Reset gives while the ray is on it, why a value is invalid, and else the row's
+     * own, with its default.
      */
     bool drawSetting(const model::Setting& setting, const PageDrawing& page, std::string& help)
     {
@@ -311,7 +317,7 @@ namespace
         const auto defaultValue = stored.available ? defaultOf(setting, *page.store) : std::nullopt;
         const bool onReset = defaultValue && row.pointed && io.MousePos.x >= resetBox.Min.x - theme::SPACE_1;
         const bool resetHeld = onReset && io.MouseClickedPos[ImGuiMouseButton_Left].x >= resetBox.Min.x - theme::SPACE_1;
-        bool resets = editable && defaultValue && !isSameValue(stored.value, *defaultValue);
+        bool resets = editable && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
         if (resets && resetHeld && row.pressed && page.store->set(setting, *defaultValue)) {
             stored = page.store->value(setting);
             resets = false;
@@ -360,19 +366,21 @@ namespace
             const auto typed = page.textInputs.edit(setting, right, pos.y, rowPressed, std::get<std::string>(stored.value), pulse);
             if (typed && page.store->set(setting, *typed)) {
                 stored = page.store->value(setting);
-                resets = editable && defaultValue && !isSameValue(stored.value, *defaultValue);
+                resets = editable && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
             }
             page.drawn.pressActed = page.drawn.pressActed || pulse;
         }
         // the ray is on the list then, and the help line keeps the row of its dropdown
         const bool listOpen = page.choices.isListOpen(setting);
         if (row.pointed || listOpen) {
-            if (!stored.reason.empty()) {
+            if (!stored.available && !stored.reason.empty()) {
+                help = std::move(stored.reason);
+            } else if (resets && onReset) {
+                help = std::format("Reset to {}", defaultName(setting, *defaultValue));
+            } else if (!stored.reason.empty()) {
                 help = std::move(stored.reason);
             } else if (!defaultValue) {
                 help = setting.help;
-            } else if (resets && onReset) {
-                help = std::format("Reset to {}", defaultName(setting, *defaultValue));
             } else {
                 help = std::format("{}{}(Default: {})", setting.help, setting.help.empty() ? "" : " ", defaultName(setting, *defaultValue));
             }
@@ -381,22 +389,30 @@ namespace
             return listOpen;
         }
 
+        const bool dirty = stored.available && page.store->isDirty(setting);
+        const auto look = stored.invalid ? ui::ValueLook::Invalid : dirty ? ui::ValueLook::Pending : ui::ValueLook::Saved;
         float left = right;
         ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice && !isText);
+        const ImVec2 gutterMiddle(pos.x + theme::SPACE_6 * 0.5f, pos.y + theme::CONTROL_HEIGHT * 0.5f);
+        if (look == ui::ValueLook::Invalid) {
+            ui::drawInvalidMark(gutterMiddle);
+        } else if (look == ui::ValueLook::Pending) {
+            ui::drawPendingMark(gutterMiddle);
+        }
         switch (setting.type) {
         case model::SettingType::Switcher:
-            left = drawSwitcher(right, pos.y, on && *on);
+            left = drawSwitcher(right, pos.y, on && *on, look);
             break;
         case model::SettingType::Slider:
-            left = page.sliders.draw(setting, right, pos.y, value);
+            left = page.sliders.draw(setting, right, pos.y, value, look);
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
-            left = page.choices.draw(setting, right, pos.y, choiceRow, chosen);
+            left = page.choices.draw(setting, right, pos.y, choiceRow, chosen, look);
             break;
         case model::SettingType::TextInput:
             // one whose value is not available has an empty box
-            left = page.textInputs.draw(setting, right, pos.y, isText ? std::get<std::string>(stored.value) : std::string());
+            left = page.textInputs.draw(setting, right, pos.y, isText ? std::get<std::string>(stored.value) : std::string(), look);
             break;
         }
         drawLabel(pos, left - theme::SPACE_3, setting.text, setting.textRuns);

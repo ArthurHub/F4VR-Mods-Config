@@ -38,21 +38,31 @@ namespace mods_config::ui
 
     /**
      * What the line says while the ray is on no row: the status of the mod's editing session, and nothing
-     * where there is none, as on the menu's front page.
+     * where there is none, as on the menu's front page. A status of changes that wait for a Save is pending.
      */
-    void HelpLine::setStatus(const std::string_view status)
+    void HelpLine::setStatus(const std::string_view status, const bool pending)
     {
         _status = status;
+        _pending = pending;
     }
 
     /**
      * Draws the line from a place at the top of the footer, in the middle of the footer's height.
      * It is two lines of body text at most. A help that needs a third is drawn in the detail size, where
-     * three lines fit, and a longer one ends in an ellipsis. With no row it is the status, in the muted color.
+     * three lines fit, and a longer one ends in an ellipsis. With no row it is the status, in the muted color,
+     * or in amber after the pending mark while changes wait for a Save.
      */
     void HelpLine::draw(const ImVec2& pos, const float width) const
     {
         const bool hasRow = !_name.empty() || !_help.empty();
+        if (!hasRow && _pending) {
+            constexpr float MARK_WIDTH = 10.0f;
+            const float middle = pos.y + theme::FOOTER_HEIGHT * 0.5f;
+            drawPendingMark(ImVec2(pos.x + MARK_WIDTH * 0.5f, middle));
+            const float left = pos.x + MARK_WIDTH + theme::SPACE_2;
+            drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::AMBER, _status);
+            return;
+        }
         const std::array pieces{ TextPiece{ .text = _name, .color = theme::color::GREEN }, TextPiece{ .text = hasRow ? _help : _status, .color = theme::color::GREEN_MUTED } };
         int lines = countTextLines(pieces, width);
         if (lines == 0) {

@@ -121,16 +121,21 @@ namespace mods_config::package
     }
 
     /**
+     * Whether the file has a value at a path of tables and a key, of any type, as it was last read or written.
+     */
+    bool TomlFile::contains(const std::span<const std::string> path) const
+    {
+        return static_cast<bool>(find(path));
+    }
+
+    /**
      * The value at a path of tables and a key, `["Panel", "fScale"]`, in a type, as the file was last read or
      * written. A value the file does not have, or that is not of the type, is not one, and the reason is
      * returned. A whole number is read as a number, and a number with a fraction is not a whole number.
      */
     std::expected<model::Value, std::string> TomlFile::value(const std::span<const std::string> path, const model::StoredType type) const
     {
-        toml::node_view<const toml::node> node(_table);
-        for (const auto& key : path) {
-            node = node[key];
-        }
+        const auto node = find(path);
         if (!node) {
             return std::unexpected(std::format("{} is not in {}", pathText(path), name()));
         }
@@ -177,6 +182,18 @@ namespace mods_config::package
         }
         _table = editor.table();
         return {};
+    }
+
+    /**
+     * The node at a path of tables and a key, which is empty where the file has none.
+     */
+    toml::node_view<const toml::node> TomlFile::find(const std::span<const std::string> path) const
+    {
+        toml::node_view<const toml::node> node(_table);
+        for (const auto& key : path) {
+            node = node[key];
+        }
+        return node;
     }
 
     /**

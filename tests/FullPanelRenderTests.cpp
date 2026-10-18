@@ -23,6 +23,7 @@
 #include "mcm/McmStore.h"
 #include "model/TextMarkup.h"
 #include "package/PackageLoader.h"
+#include "package/PackageStore.h"
 #include "ui/FullPanel.h"
 
 // The Full panel drawn without the game and saved as an image, to look at a change of the UI before it is tried
@@ -520,7 +521,7 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
     const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods(mods);
         panel.select({ .mod = 0, .page = page });
         WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
@@ -535,10 +536,17 @@ TEST_CASE("FullPanel render: the pages of the mod's own package, with the ray on
 {
     const auto mods = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);
     REQUIRE(mods.size() == 1);
+    // its values are the shipped config's, in a My Games folder of its own
+    const test_files::TempFolder myGames;
+    const auto configFolder = myGames.path / "Mods_Config" / "ModsConfigVR";
+    std::filesystem::create_directories(configFolder);
+    std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, configFolder / "ModsConfigVR.toml");
+    package::PackageStore store({}, myGames.path);
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
-    const auto render = [&mods](const std::optional<std::size_t> page, const std::string& name, const ImVec2& pointer) {
+    const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name, const ImVec2& pointer) {
         FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);
         panel.select({ .mod = 0, .page = page });
         WARN("Saved " << renderToFile(panel, name, pointer));
@@ -556,10 +564,14 @@ TEST_CASE("FullPanel render: the pages of the package showcase", "[.render]")
 {
     const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
+    // its files are in the Data folder it is, and its file of My Games is not there
+    const test_files::TempFolder myGames;
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
-    const auto render = [&mods](const std::optional<std::size_t> page, const std::string& name) {
+    const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
         FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);
         panel.select({ .mod = 0, .page = page });
         WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
@@ -568,6 +580,76 @@ TEST_CASE("FullPanel render: the pages of the package showcase", "[.render]")
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
         render(page, std::format("package-showcase-page-{}", page + 1));
     }
+}
+
+TEST_CASE("FullPanel render: the front page of the package showcase with values that wait for a Save", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods(mods);
+    panel.select({ .mod = 0, .page = std::nullopt });
+
+    // a switcher, a slider, a stepper, a dropdown and a text input of its front page, each changed
+    const auto change = [&store](const std::vector<model::Item>& items, const auto& self) -> void {
+        for (const auto& item : items) {
+            if (const auto* group = std::get_if<model::Group>(&item)) {
+                self(group->items, self);
+                continue;
+            }
+            const auto* setting = std::get_if<model::Setting>(&item);
+            if (!setting) {
+                continue;
+            }
+            const auto value = store.value(*setting).value;
+            switch (setting->type) {
+            case model::SettingType::Switcher:
+                store.set(*setting, !std::get<bool>(value));
+                break;
+            case model::SettingType::Slider:
+                store.set(*setting, setting->valueOptions.min);
+                break;
+            case model::SettingType::Stepper:
+            case model::SettingType::Dropdown:
+                store.set(*setting, setting->valueOptions.options.back().value);
+                break;
+            case model::SettingType::TextInput:
+                store.set(*setting, setting->valueType == model::StoredType::String ? model::Value("Changed") : model::Value("7"));
+                break;
+            }
+        }
+    };
+    change(panel.mods()[0].frontPage.items, change);
+    REQUIRE(store.dirtyCount() > 0);
+    WARN("Saved " << renderToFile(panel, "package-showcase-pending", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: the values of the package showcase's file that are not the settings'", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods(mods);
+    const auto& pages = panel.mods()[0].pages;
+    const auto page = std::ranges::find(pages, "Files", &model::Page::name);
+    REQUIRE(page != pages.end());
+    panel.select({ .mod = 0, .page = static_cast<std::size_t>(page - pages.begin()) });
+
+    // they are at the end of the page, and the help line has the reason of the last
+    const auto scrollToEnd = [&panel] {
+        test_panel::drawFrame(panel, pageRow(3));
+        test_panel::drawFrame(panel, pageRow(3));
+        ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+        test_panel::drawFrame(panel, pageRow(3));
+        test_panel::drawFrame(panel, pageRow(7));
+    };
+    WARN("Saved " << renderToFile(panel, "package-showcase-invalid", POINTER_AWAY, false, scrollToEnd));
 }
 
 TEST_CASE("FullPanel render: a package's section in a section, with rows before and after it", "[.render]")
@@ -610,7 +692,7 @@ TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the 
     // off, as the group is when the mod is selected, and on
     for (const bool on : { false, true }) {
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods(mods);
         const auto& pages = panel.mods()[0].pages;
         const auto page = std::ranges::find(pages, "Switchers", &model::Page::name);
@@ -647,7 +729,7 @@ TEST_CASE("FullPanel render: the dropdowns of files of the MCM showcase", "[.ren
     mcm::McmStore store(game.path / "Data" / "MCM");
 
     FullPanel panel;
-    panel.setStore(&store);
+    panel.setStore(model::Source::Mcm, &store);
     panel.setMods(mods);
     const auto& pages = panel.mods()[0].pages;
     const auto page = std::ranges::find(pages, "Steppers and dropdowns", &model::Page::name);
@@ -690,7 +772,7 @@ TEST_CASE("FullPanel render: the values of a page's settings, and the status of 
     // with the ray off the rows, where the status is, and on the row whose value is not available
     for (const bool onRow : { false, true }) {
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
         panel.select({ .mod = 0, .page = std::nullopt });
         WARN("Saved " << renderToFile(panel, onRow ? "values-not-available" : "values", onRow ? pageRow(5) : POINTER_AWAY));
@@ -732,7 +814,7 @@ TEST_CASE("FullPanel render: the Reset of the rows with a default, disabled on t
         std::tuple{ "reset-disabled", reset, 3, true } };
     for (const auto& [name, x, row, pressed] : images) {
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
         panel.select({ .mod = 0, .page = std::nullopt });
         WARN("Saved " << renderToFile(panel, name, ImVec2(x, pageRow(row).y), pressed));
@@ -765,7 +847,7 @@ TEST_CASE("FullPanel render: the keys of a mod's hotkeys", "[.render]")
     // with the ray on a hotkey with a key, and on the one that is not available
     for (const bool available : { true, false }) {
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
         panel.select({ .mod = 0, .page = std::nullopt });
         WARN("Saved " << renderToFile(panel, available ? "hotkeys" : "hotkeys-not-available", pageRow(available ? 0 : 4)));
@@ -799,7 +881,7 @@ TEST_CASE("FullPanel render: the texts of a mod's text inputs, and the controls 
     // with the ray on a text input, and on a control the menu does not have
     for (const bool onText : { true, false }) {
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
         panel.select({ .mod = 0, .page = std::nullopt });
         WARN("Saved " << renderToFile(panel, onText ? "text-inputs" : "controls-not-supported", pageRow(onText ? 0 : 5)));
@@ -808,7 +890,7 @@ TEST_CASE("FullPanel render: the texts of a mod's text inputs, and the controls 
     // the long text is edited, after a press on its row, with more typed at its end, while SteamVR's keyboard
     // holds the ray
     FullPanel panel;
-    panel.setStore(&store);
+    panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ mod });
     panel.select({ .mod = 0, .page = std::nullopt });
     const auto edit = [&panel] {
@@ -840,7 +922,7 @@ TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")
     mod.frontPage.items.push_back(slider("With no range", 0x801, 0.0f, 1.0f));
 
     FullPanel panel;
-    panel.setStore(&store);
+    panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ std::move(mod) });
     panel.select({ .mod = 0, .page = std::nullopt });
     // on the track of the first slider, with the trigger held
@@ -880,7 +962,7 @@ TEST_CASE("FullPanel render: a stepper under the ray, and the open list of a dro
 
     const auto panelOf = [&mod, &store] {
         FullPanel panel;
-        panel.setStore(&store);
+        panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
         panel.select({ .mod = 0, .page = std::nullopt });
         return panel;

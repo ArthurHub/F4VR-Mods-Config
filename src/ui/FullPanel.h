@@ -40,7 +40,7 @@ namespace mods_config::ui
         void setMods(std::vector<model::Mod> mods);
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
         void setImageDrawer(ImageDrawer drawer);
-        void setStore(model::Store* store);
+        void setStore(model::Source source, model::Store* store);
         void setThumbstickSideValue(float value);
         void setTreeWidth(float width);
         bool select(const Selection& selection);
@@ -76,6 +76,7 @@ namespace mods_config::ui
 
     private:
         model::Store* storeOf(const model::Mod& mod) const;
+        void updateStatus();
         std::optional<Selection> drawTitleBar() const;
         std::optional<PointedRow> drawFrontPage();
         void drawFooter(const ImVec2& pos) const;
@@ -87,8 +88,10 @@ namespace mods_config::ui
         // the mod and the page that are shown: none is the menu's front page
         Selection _selection;
 
-        // the values of a selected MCM mod: not the panel's own, and none in a test that has no values
-        model::Store* _store = nullptr;
+        // the values of a selected mod, by the source of its menu: not the panel's own, and none in a test that
+        // has no values
+        model::Store* _mcmStore = nullptr;
+        model::Store* _packageStore = nullptr;
 
         ModTree _modTree;
         ModPage _modPage;
