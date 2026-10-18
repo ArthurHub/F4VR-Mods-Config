@@ -9,14 +9,14 @@ A package's features match MCM's, but its lifecycle is new. The milestone define
 | #   | Repo | Commit                                                                                    | Status |
 | --- | ---- | ----------------------------------------------------------------------------------------- | ------ |
 | M103 | mod | docs: what a package has beyond MCM                                                      | done   |
-| M47 | mod  | The package loader: files, pages, sections and settings, and Mods Config VR's own package | in review |
-| M114 | mod | The package showcase, an optional file for developers                                    | in review |
-| M48 | mod  | Choices, shared lists and conditions in a package                                         | in review |
-| M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | in review |
-| M51 | mod  | The editing session: values from the file, pending values, dirty state                    | in review |
-| M52 | mod  | Save writes the dirty settings, and Discard                                               | in review |
-| M56 | mod  | Reset to the default                                                                      | in review |
-| M115 | mod | The title bar's Help, Minimize and Close, and the Help page                               | in review |
+| M47 | mod  | The package loader: files, pages, sections and settings, and Mods Config VR's own package | done   |
+| M114 | mod | The package showcase, an optional file for developers                                    | done   |
+| M48 | mod  | Choices, shared lists and conditions in a package                                         | done   |
+| M89 | mod  | A TOML file is read, changed and written with its comments and order kept                 | done   |
+| M51 | mod  | The editing session: values from the file, pending values, dirty state                    | done   |
+| M52 | mod  | Save writes the dirty settings, and Discard                                               | done   |
+| M56 | mod  | Reset to the default                                                                      | done   |
+| M115 | mod | The title bar's Help, Minimize and Close, and the Help page                               | done   |
 
 M103 decides what a package should support beyond MCM, and what it has in place of what MCM's authors work around: [A package and MCM](schema.md#a-package-and-mcm). The milestones build it:
 

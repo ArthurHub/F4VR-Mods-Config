@@ -62,7 +62,7 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 2   | Edit MCM values          | A global, a ModSetting and a script property are changed from the panel, and the mod reacts as it does to MCM | done   |
 | 3   | MCM complete             | Every MCM feature is supported, shown read-only, or shown as unsupported with the reason                      | done   |
 | 4   | VR keyboard              | An MCM text row is typed in the headset                                                                       | done   |
-| 5   | Packages with Save       | This mod's own TOML is edited from its package and saved, and the mod reloads its file                        | todo   |
+| 5   | Packages with Save       | This mod's own TOML is edited from its package and saved, and the mod reloads its file                        | done   |
 | 6   | Packages complete        | FRIK's TOML, an INI file and a script mod's globals are edited from packages and saved, and a Save that fails changes no file | todo   |
 | 7   | Actions and handoff      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | todo   |
 | 8   | Live preview             | A CommonFramework mod with a package previews a slider live, with no code of its own                          | todo   |
