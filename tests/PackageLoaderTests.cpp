@@ -932,12 +932,16 @@ TEST_CASE("PackageLoader: a setting that names no file of its package, or no val
 {
     const auto mod = loaded(R"({
         "modName": "MyMod", "applies": "live",
-        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" },
+            "ini": { "format": "ini", "root": "myGames", "path": "MyMod.ini" }
+        },
         "content": [
             { "type": "switcher", "text": "No default file", "storage": { "path": ["Main", "a"] } },
             { "type": "switcher", "text": "No such file", "storage": { "file": "other", "path": ["Main", "b"] } },
             { "type": "switcher", "text": "No path", "storage": { "file": "main" } },
             { "type": "switcher", "text": "Empty name", "storage": { "file": "main", "path": ["Main", ""] } },
+            { "type": "switcher", "text": "Path of three in an INI file", "storage": { "file": "ini", "path": ["Main", "Sub", "c"] } },
             { "type": "switcher", "text": "No storage" },
             { "type": "switcher", "text": "Global by its name", "storage": { "global": "GameHour" } },
             { "type": "switcher", "text": "Global of no text", "storage": { "global": 56 } },
@@ -956,6 +960,7 @@ TEST_CASE("PackageLoader: a setting that names no file of its package, or no val
                           "No such file unknown file",
                           "No path unknown file",
                           "Empty name unknown file",
+                          "Path of three in an INI file unknown file",
                           "No storage unknown ",
                           "Global by its name unknown global",
                           "Global of no text unknown global",

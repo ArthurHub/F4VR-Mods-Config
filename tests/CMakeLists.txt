@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME}_tests
   FallUITranslationsTests.cpp
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
+  IniFileTests.cpp
   McmLoaderTests.cpp
   McmStoreTests.cpp
   MenuControlsTests.cpp
@@ -46,6 +47,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
+  ${SOURCE_DIR}/package/IniFile.cpp
   ${SOURCE_DIR}/package/PackageLoader.cpp
   ${SOURCE_DIR}/package/PackageStore.cpp
   ${SOURCE_DIR}/package/TomlFile.cpp

@@ -4,11 +4,10 @@
 #include <filesystem>
 #include <span>
 #include <string>
-#include <vector>
 
 #include <toml++/toml.hpp>
 
-#include "model/Definition.h"
+#include "ModFile.h"
 
 namespace mods_config::package
 {
@@ -17,26 +16,18 @@ namespace mods_config::package
      * written into the file's text where the old ones are, with the framework's `common::TomlEditor`: its comments,
      * its blank lines, the order of its keys and how its other values are written stay as they are.
      */
-    class TomlFile
+    class TomlFile : public ModFile
     {
     public:
-        /**
-         * A value to write, at the path of its tables and its key.
-         */
-        struct Change
-        {
-            std::vector<std::string> path;
-            model::Value value;
-        };
-
         explicit TomlFile(std::filesystem::path path)
             : _path(std::move(path))
         {}
 
-        std::expected<void, std::string> read();
-        bool contains(std::span<const std::string> path) const;
-        std::expected<model::Value, std::string> value(std::span<const std::string> path, model::StoredType type) const;
-        std::expected<void, std::string> write(std::span<const Change> changes);
+        std::expected<void, std::string> read() override;
+        bool contains(std::span<const std::string> path) const override;
+        std::expected<model::Value, std::string> value(std::span<const std::string> path, model::StoredType type) const override;
+        std::expected<void, std::string> write(std::span<const Change> changes) override;
+        std::string pathName(std::span<const std::string> path) const override;
 
     private:
         toml::node_view<const toml::node> find(std::span<const std::string> path) const;

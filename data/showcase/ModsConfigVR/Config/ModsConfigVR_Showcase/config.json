@@ -1869,7 +1869,7 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": "INI switcher",
-                  "help": "A key of an INI file, by its section and its key.",
+                  "help": "A key of an INI file, by its section and its key. It is written as 1 or 0, as the file has it.",
                   "default": true,
                   "storage": { "section": "Ini", "key": "bSwitcher" }
                 },
@@ -1881,6 +1881,23 @@
                   "default": 5,
                   "valueOptions": { "min": 0, "max": 10, "step": 1 },
                   "storage": { "section": "Ini", "key": "iSlider" }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "INI number",
+                  "help": "A number is written as short as it reads back, with a decimal point.",
+                  "default": 0.5,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "section": "Ini", "key": "fSlider" }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "INI text",
+                  "help": "A ; or a # starts a comment only at the start of a line, so a text can have either.",
+                  "default": "Sanctuary; Red Rocket",
+                  "storage": { "section": "Ini", "key": "sText" }
                 }
               ]
             },

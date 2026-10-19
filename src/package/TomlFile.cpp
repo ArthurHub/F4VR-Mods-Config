@@ -185,6 +185,14 @@ namespace mods_config::package
     }
 
     /**
+     * A path as a reason names it, as TOML writes it as a dotted key: `Panel.fScale`.
+     */
+    std::string TomlFile::pathName(const std::span<const std::string> path) const
+    {
+        return pathText(path);
+    }
+
+    /**
      * The node at a path of tables and a key, which is empty where the file has none.
      */
     toml::node_view<const toml::node> TomlFile::find(const std::span<const std::string> path) const

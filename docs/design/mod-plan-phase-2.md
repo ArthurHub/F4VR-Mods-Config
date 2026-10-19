@@ -52,7 +52,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M49 | mod  | A package's button calls a Papyrus function or runs a console command, with its own text  | in review |
 | M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | in review |
 | M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a package        | in review |
-| M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | todo   |
+| M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | in review |
 | M53 | mod  | A Save that fails leaves every file as it was                                             | todo   |
 | M54 | mod  | Save creates a file that is missing                                                       | todo   |
 | M55 | mod  | Validation                                                                                | todo   |
@@ -76,7 +76,7 @@ M107 lets a script mod keep its package's settings where its scripts and the gam
 
 M110 reads MCM's `listFromForm` and `listFromProperty`, for an MCM config and a package alike. The store answers the options of a choice, which it reads in the game as the mod is selected: the MCM store again as another page is shown, as MCM's menu does, and the package store with the rest of its baseline. A choice whose list is not in the game is not available, with the reason. It comes after M107, which reads a property of a script for a package. No MCM config of the author's lists has either, so the unit tests cover it, and both showcases have choices of the game's FormLists of its settlements and of its companions.
 
-M50 is for the many F4SE mods that keep their config in an INI file, and for a CommonFramework mod on an older framework.
+M50 is for the many F4SE mods that keep their config in an INI file, and for a CommonFramework mod on an older framework. It settles how an INI file is read and how its values are spelled, in [Persistence model](architecture.md#persistence-model): as SimpleIni reads it, with a key's last value and a whole number in hex, and a boolean written in the words the file has. The package showcase's INI section gets a number and a text with a `;` in it.
 
 M53 and M54 are the rest of the Save steps. M53 is the checks before the write, and the rollback of a write that fails.
 

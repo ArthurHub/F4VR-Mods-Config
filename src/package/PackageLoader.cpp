@@ -262,7 +262,8 @@ namespace
      * or a value of the file its `storage` names, or else of the nearest `defaultFile` above it. The value of a
      * file is named by its `path`, or by its `section` and its `key`, as an INI key is. A storage that is not
      * written as one, as a form that is not a plugin and an id in hex, a property with no name, or no file of
-     * the package or no value of it, is one the menu does not read, with the reason in the log.
+     * the package or no value of it, as a path of more than two in an INI file, is one the menu does not read,
+     * with the reason in the log.
      */
     model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, const PackageReading& reading)
     {
@@ -310,7 +311,7 @@ namespace
 
         auto fileName = getText(*storage, "file");
         const auto file = findFile(reading.files, fileName.empty() ? defaultFile : fileName);
-        if (!file || path.empty()) {
+        if (!file || path.empty() || (reading.files.at(*file).format == model::FileFormat::Ini && path.size() > 2)) {
             logger::warn("The setting '{}' names no file of its package, or no value of it", getText(row, "text"));
             return model::UnknownStorage{ .type = "file" };
         }

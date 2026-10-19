@@ -55,7 +55,14 @@ Supported storage formats are:
 
 A TOML file is changed with the framework's `TomlEditor`, as a CommonFramework mod saves its own: a value is replaced where it is written, and a key the file does not have is added after the last value of its table. Comments, blank lines, key order, and how every other value is written are preserved.
 
-INI files follow the conventions CommonFramework mods use: `;` or `#` starts a comment only at the beginning of a line, so a value may contain either character. Comments, key order, and untouched lines are preserved. How each value is spelled in a given file, for example `true`/`false` or `1`/`0` for a boolean, is not settled; see [Open questions](open-questions.md).
+An INI file is read as CommonFramework mods and SimpleIni read one, and changed line by line: a value's text is replaced where it is written, and a key the file does not have is added after the last value of its section, or in a new section at the end of the file. Comments, blank lines, key order, and every other line are preserved.
+
+- `;` or `#` starts a comment only at the beginning of a line, so a value may contain either character. A value is the text after its `=`, with no spaces around it.
+- Section and key names are matched with no regard to case. A key before the first section is named by its key alone.
+- A key that is in the file more than once has the value of its last, as SimpleIni reads it. A write sets each of them, so a reader that takes the first agrees. A section that is in the file more than once is one section.
+- A boolean is read from `1`, `true`, `yes` or `on`, and `0`, `false`, `no` or `off`, in any case. It is written in the words and the case the file has for it, and as `1` or `0` for a new key, which every reader takes.
+- A whole number is read in decimals, or in hex after `0x` as SimpleIni reads it, and is written in hex where the file has it so, with as many digits, as a form ID is.
+- A number is written as short as it reads back as the same number, with a decimal point. A value the file has already keeps its text, as `1.250`.
 
 Target paths are explicit and have no inferred default. Packages may declare multiple files. Supported roots initially are the game `Data` directory and `Documents/My Games/Fallout4VR`. A path is checked as written: absolute paths and `..` segments are rejected, and the file extension must match the declared format. Links are not resolved, so a file that a mod manager deploys as a link is used as the game sees it.
 

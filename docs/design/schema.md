@@ -379,6 +379,8 @@ A setting's `storage` says where its value is kept: a key of one of the package'
 }
 ```
 
+A key before the first section has no `section`. A `path` names a key too, as `["MyMod", "fPlayerHeight"]`, and a path of more than two names no key of an INI file.
+
 The INI conventions the host follows are described under [Persistence model](architecture.md#persistence-model).
 
 ### JSON and TOML

@@ -4,12 +4,14 @@
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
+#include "ModFile.h"
 #include "model/ChoiceOptions.h"
 #include "model/Definition.h"
 #include "model/Store.h"
@@ -25,7 +27,7 @@ namespace mods_config::package
      * One that is not of its setting's type, outside its limits or no option of its choice is invalid: it is
      * shown and edited, and is clean until the player changes it.
      * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
-     * The menu reads a TOML file: a setting of any other file is not available.
+     * The menu reads a TOML and an INI file: a setting of a JSON file is not available.
      * A choice that reads its options in the game, from a FormList or a property of a script, reads them as the
      * mod is selected, with the values they are checked against.
      * A global and a property are read and written with `getGlobal`, `setGlobal`, `getProperty` and
@@ -106,9 +108,9 @@ namespace mods_config::package
         // the name of the mod that is selected, for the log
         std::string _modName;
 
-        // the TOML files of the mod that is selected, absolute, by their names in its package. A file that is
-        // not there is one too
-        std::map<std::string, std::filesystem::path, std::less<>> _tomlFiles;
+        // the files of the mod that is selected that the menu reads, by their names in its package. A file that
+        // is not there is one too
+        std::map<std::string, std::unique_ptr<ModFile>, std::less<>> _files;
 
         // the options of the choices of the mod that is selected
         model::ChoiceOptions _options;

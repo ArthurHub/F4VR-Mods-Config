@@ -27,8 +27,6 @@ Whether InputBinding warns of two bindings that collide, of one mod or of two: F
 ## Storage edge cases
 
 - Whether a package can forbid creating a missing file, for a mod that cannot load a file that holds only some of its settings
-- Duplicate INI sections or keys and which occurrence is authoritative
-- How values are spelled in each INI: `true`/`false` or `1`/`0` for a boolean, and the precision a float is written with
 - JSON representation choices for colors and complex values. In a TOML file they are the framework's tables
 - Whether the game's own INI files under `My Games/Fallout4VR` are valid targets
 - What to do when an external edit changes a value currently being previewed but not yet saved

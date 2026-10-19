@@ -66,7 +66,7 @@ namespace
 
     /**
      * A package with the given content as its front page, a TOML file `main` in My Games that is its default,
-     * and an INI file `ini` in Data.
+     * an INI file `ini` in Data, and a JSON file `json` in Data.
      */
     model::Mod packageOf(const std::string& content)
     {
@@ -74,7 +74,8 @@ namespace
             "modName": "MyMod", "displayName": "My Mod", "applies": "live",
             "files": {{
                 "main": {{ "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" }},
-                "ini": {{ "format": "ini", "root": "data", "path": "MyMod.ini" }}
+                "ini": {{ "format": "ini", "root": "data", "path": "MyMod.ini" }},
+                "json": {{ "format": "json", "root": "data", "path": "MyMod.json" }}
             }},
             "defaultFile": "main",
             "content": [ {} ]
@@ -274,7 +275,7 @@ TEST_CASE("PackageStore: a setting of a file that cannot be read, of a file the 
     const test_globals::TestGlobals globals;
     Session session(R"(
         { "type": "switcher", "valueType": "bool", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
-        { "type": "switcher", "valueType": "bool", "text": "INI", "default": true, "storage": { "file": "ini", "section": "Main", "key": "bIni" } },
+        { "type": "switcher", "valueType": "bool", "text": "JSON", "default": true, "storage": { "file": "json", "path": ["Main", "bJson"] } },
         { "type": "switcher", "valueType": "bool", "text": "Global", "default": true, "storage": { "global": "MyMod.esp|800" } },
         { "type": "switcher", "valueType": "int", "text": "Of a number", "default": 1, "storage": { "path": ["Main", "iOn"] } }
     )");
@@ -283,7 +284,7 @@ TEST_CASE("PackageStore: a setting of a file that cannot be read, of a file the 
     CHECK_FALSE(broken.available);
     CHECK(broken.reason.starts_with("Not available: "));
     CHECK(broken.reason.find("MyMod.toml") != std::string::npos);
-    CHECK(session.value(1).reason == "Not available: the menu does not read INI files yet.");
+    CHECK(session.value(1).reason == "Not available: the menu does not read JSON files yet.");
     CHECK(session.value(2).reason == "Not available: the global MyMod.esp|800 is not in the game.");
     CHECK(session.value(3).reason == "Not available: its control does not show a value of its valueType.");
     for (std::size_t row = 0; row < 4; ++row) {
@@ -383,6 +384,81 @@ TEST_CASE("PackageStore: a file that cannot be written keeps its settings dirty,
     session.myGames.write(MOD_FILE, MOD_TOML);
     CHECK(session.store.save());
     CHECK(session.store.dirtyCount() == 0);
+}
+
+TEST_CASE("PackageStore: a setting of an INI file has the file's value or is invalid, and Save writes it with the file's layout kept")
+{
+    Session session(R"(
+        { "type": "switcher", "valueType": "bool", "text": "On", "default": false, "storage": { "file": "ini", "section": "Main", "key": "bOn" } },
+        { "type": "slider", "valueType": "int", "text": "Count", "default": 3, "valueOptions": { "min": 0, "max": 10, "step": 1 },
+          "storage": { "file": "ini", "section": "Main", "key": "iCount" } },
+        { "type": "slider", "valueType": "float", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "file": "ini", "section": "Main", "key": "fScale" } },
+        { "type": "textinput", "valueType": "string", "text": "Name", "default": "Me", "storage": { "file": "ini", "section": "Main", "key": "sName" } },
+        { "type": "switcher", "valueType": "bool", "text": "New", "default": true, "storage": { "file": "ini", "section": "Main", "key": "bNew" } }
+    )");
+    session.data.write("MyMod.ini", "; My Mod\r\n[Main]\r\nbOn=1\r\niCount = 12\r\nfScale = abc\r\nsName = You ; and me\r\n");
+    session.store.open(session.mod);
+    CHECK(session.value(0).value == model::Value(true));
+    CHECK(session.value(1).value == model::Value(12.0f));
+    CHECK(session.value(1).reason == "Invalid: iCount of [Main] is 12 in MyMod.ini, which is not from 0 to 10.");
+    CHECK(session.value(2).reason == R"(Invalid: fScale of [Main] is "abc" in MyMod.ini, which is not a number.)");
+    CHECK(session.value(3).value == model::Value("You ; and me"s));
+    // a key the file does not have is its default
+    CHECK(session.value(4).value == model::Value(true));
+    CHECK_FALSE(session.value(4).invalid);
+
+    CHECK(session.store.set(session.setting(0), false));
+    CHECK(session.store.set(session.setting(1), 4.0f));
+    CHECK(session.store.set(session.setting(2), 0.75f));
+    CHECK(session.store.set(session.setting(4), false));
+    CHECK(session.store.save());
+    CHECK(readFile(session.data.path / "MyMod.ini") == "; My Mod\r\n[Main]\r\nbOn=0\r\niCount = 4\r\nfScale = 0.75\r\nsName = You ; and me\r\nbNew = 0\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK_FALSE(session.value(1).invalid);
+}
+
+TEST_CASE("PackageStore: every setting of the package showcase's INI file is available, valid and clean with the shipped file")
+{
+    const test_globals::TestGlobals globals;
+    const test_properties::TestProperties properties;
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+
+    // the showcase's game Data folder, which has its INI file
+    const test_files::TempFolder myGames;
+    PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    store.open(mods[0]);
+
+    std::size_t checked = 0;
+    const auto checkItems = [&store, &checked](const std::vector<model::Item>& items, const auto& self) -> void {
+        for (const auto& item : items) {
+            if (const auto* group = std::get_if<model::Group>(&item)) {
+                self(group->items, self);
+            } else if (const auto* setting = std::get_if<model::Setting>(&item)) {
+                const auto* storage = std::get_if<model::FileStorage>(&setting->storage);
+                if (!storage || storage->file != "ini") {
+                    continue;
+                }
+                const auto value = store.value(*setting);
+                INFO(setting->id << ": " << value.reason);
+                CHECK(value.available);
+                CHECK_FALSE(value.invalid);
+                CHECK(value.value == *store.defaultValue(*setting));
+                ++checked;
+            }
+        }
+    };
+    const auto checkPages = [&checkItems](const std::vector<model::Page>& pages, const auto& self) -> void {
+        for (const auto& page : pages) {
+            checkItems(page.items, checkItems);
+            self(page.pages, self);
+        }
+    };
+    checkItems(mods[0].frontPage.items, checkItems);
+    checkPages(mods[0].pages, checkPages);
+    CHECK(checked >= 4);
+    CHECK(store.dirtyCount() == 0);
 }
 
 TEST_CASE("PackageStore: Discard takes back every pending value, and writes nothing")

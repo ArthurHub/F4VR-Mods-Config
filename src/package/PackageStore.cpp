@@ -13,6 +13,7 @@
 
 #include "GameActions.h"
 #include "GameValues.h"
+#include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
 
@@ -90,14 +91,6 @@ namespace
     }
 
     /**
-     * A path as TOML writes it as a dotted key, `Panel.fScale`, for a reason.
-     */
-    std::string pathText(const std::vector<std::string>& path)
-    {
-        return path | std::views::join_with('.') | std::ranges::to<std::string>();
-    }
-
-    /**
      * The path of a package's file from its root, as written in its package.
      */
     std::filesystem::path filePath(const model::File& file)
@@ -106,7 +99,7 @@ namespace
     }
 
     /**
-     * The name of a package's file, which names it in a reason, as a reason of a TOML file does.
+     * The name of a package's file, which names it in a reason, as a reason of its file does.
      */
     std::string fileName(const model::File& file)
     {
@@ -273,7 +266,7 @@ namespace
     /**
      * Why a value in a file, as its control has it, is not one of its setting: a number outside the limits,
      * or none of the options of a choice. Empty for a value that is one. It names the value by its path and its
-     * file, as a reason of a TOML file does.
+     * file, as a reason of its file does.
      */
     std::string invalidReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const std::string& path, const std::string& file)
     {
@@ -426,12 +419,13 @@ namespace
     }
 
     /**
-     * A file of a package as the session read it. A file that is not there has neither a TOML file nor a
+     * A file of a package as the session read it. A file that is not there has neither its values nor a
      * reason: its settings have their defaults.
      */
     struct FileOfSession
     {
-        std::unique_ptr<package::TomlFile> toml;
+        // the file, read. None for a file that is not there or is not available
+        const package::ModFile* file = nullptr;
 
         // why its settings are not available, and empty for a file that is read or is not there
         std::string notAvailable;
@@ -465,8 +459,8 @@ namespace mods_config::package
      * not available, with the reason.
      * A file that is not there has none of its values, and a key the file does not have is its setting's
      * default: both are clean, and the first Save that changes one of them writes it. A file that cannot be
-     * read, or is no TOML, has its settings not available, with the reason, and so has a file the menu does
-     * not read. A value that is not of its setting's type, outside its limits or no option of its choice is
+     * read, or is no TOML, has its settings not available, with the reason, and so has a JSON file, which the
+     * menu does not read. A value that is not of its setting's type, outside its limits or no option of its choice is
      * invalid, with the reason: of the game, one that is no value of the setting's type is not available.
      * A choice that reads its options in the game reads them now, and is not available while its list is not
      * in the game.
@@ -481,23 +475,24 @@ namespace mods_config::package
         std::map<std::string, FileOfSession, std::less<>> files;
         for (const auto& [name, file] : mod.files) {
             auto& read = files[name];
-            if (file.format != model::FileFormat::Toml) {
-                read.notAvailable = std::format("Not available: the menu does not read {} files yet.", file.format == model::FileFormat::Ini ? "INI" : "JSON");
+            if (file.format == model::FileFormat::Json) {
+                read.notAvailable = "Not available: the menu does not read JSON files yet.";
                 continue;
             }
             const auto& root = file.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder;
             const auto path = root / filePath(file);
-            _tomlFiles.emplace(name, path);
+            auto& modFile = _files[name];
+            modFile = file.format == model::FileFormat::Toml ? std::unique_ptr<ModFile>(std::make_unique<TomlFile>(path)) : std::make_unique<IniFile>(path);
             if (!std::filesystem::exists(path)) {
                 logger::debug("The file '{}' of '{}' is not there: its settings have their defaults", path.string(), mod.name);
                 continue;
             }
-            read.toml = std::make_unique<TomlFile>(path);
-            if (const auto result = read.toml->read(); !result) {
+            if (const auto result = modFile->read(); !result) {
                 logger::warn("The file '{}' of '{}' cannot be read: {}", path.string(), mod.name, result.error());
                 read.notAvailable = std::format("Not available: {}", result.error());
-                read.toml.reset();
+                continue;
             }
+            read.file = modFile.get();
         }
 
         _options.read(mod);
@@ -537,8 +532,8 @@ namespace mods_config::package
                 entry.notAvailable = file != files.end() ? file->second.notAvailable : "Not available: the setting names no file of its package.";
                 continue;
             }
-            const auto* toml = file->second.toml.get();
-            if (!toml || !toml->contains(storage.path)) {
+            const auto* modFile = file->second.file;
+            if (!modFile || !modFile->contains(storage.path)) {
                 if (setting->readOnly) {
                     continue;
                 }
@@ -549,7 +544,7 @@ namespace mods_config::package
                 entry.baseline = controlValue(*setting, *setting->defaultValue);
                 continue;
             }
-            auto stored = toml->value(storage.path, setting->valueType);
+            auto stored = modFile->value(storage.path, setting->valueType);
             if (!stored) {
                 if (setting->readOnly) {
                     entry.notAvailable = std::format("Not available: {}.", stored.error());
@@ -560,7 +555,7 @@ namespace mods_config::package
             }
             entry.baseline = controlValue(*setting, *stored);
             if (!setting->readOnly) {
-                entry.invalid = invalidReason(*setting, options, *entry.baseline, pathText(storage.path), fileName(mod.files.at(storage.file)));
+                entry.invalid = invalidReason(*setting, options, *entry.baseline, modFile->pathName(storage.path), fileName(mod.files.at(storage.file)));
             }
         }
         logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
@@ -575,7 +570,7 @@ namespace mods_config::package
     {
         rollBack();
         _modName.clear();
-        _tomlFiles.clear();
+        _files.clear();
         _options.clear();
         _settingList.clear();
         _settings.clear();
@@ -695,8 +690,8 @@ namespace mods_config::package
             entry.invalid.clear();
             written.insert(setting);
         };
-        for (const auto& [name, path] : _tomlFiles) {
-            std::vector<TomlFile::Change> changes;
+        for (const auto& [name, file] : _files) {
+            std::vector<ModFile::Change> changes;
             std::vector<const model::Setting*> settings;
             for (const auto* setting : _settingList) {
                 const auto& entry = _entries.at(setting);
@@ -709,8 +704,8 @@ namespace mods_config::package
             if (changes.empty()) {
                 continue;
             }
-            if (const auto result = TomlFile(path).write(changes); !result) {
-                logger::warn("The changes of '{}' to '{}' are not saved: {}", _modName, path.string(), result.error());
+            if (const auto result = file->write(changes); !result) {
+                logger::warn("The changes of '{}' to its file '{}' are not saved: {}", _modName, name, result.error());
                 saved = false;
                 continue;
             }
