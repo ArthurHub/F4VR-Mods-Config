@@ -17,22 +17,27 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Shows a row's text and its help. A row with no help is its text alone, which a row that ends in an
-     * ellipsis has in full here. A mod sets a row in by spaces before its text: they are the page's.
+     * Shows a row's text, its warning and its help. A row with neither is its text alone, which a row that
+     * ends in an ellipsis has in full here. A mod sets a row in by spaces before its text: they are the page's.
      */
     void HelpLine::show(const PointedRow& row)
     {
         auto name = common::trim(std::string(row.text));
-        if (!name.empty() && !row.help.empty()) {
+        if (!name.empty() && (!row.help.empty() || !row.warning.empty())) {
             name += ": ";
         }
         _name = std::move(name);
+        _warning = row.warning;
+        if (!_warning.empty() && !row.help.empty()) {
+            _warning += ' ';
+        }
         _help = row.help;
     }
 
     void HelpLine::clear()
     {
         _name.clear();
+        _warning.clear();
         _help.clear();
     }
 
@@ -49,12 +54,13 @@ namespace mods_config::ui
     /**
      * Draws the line from a place at the top of the footer, in the middle of the footer's height.
      * It is two lines of body text at most. A help that needs a third is drawn in the detail size, where
-     * three lines fit, and a longer one ends in an ellipsis. With no row it is the status, in the muted color,
-     * or in amber after the pending mark while changes wait for a Save.
+     * three lines fit, and a longer one ends in an ellipsis. A warning is in amber after the warning mark.
+     * With no row it is the status, in the muted color, or in amber after the pending mark while changes
+     * wait for a Save.
      */
     void HelpLine::draw(const ImVec2& pos, const float width) const
     {
-        const bool hasRow = !_name.empty() || !_help.empty();
+        const bool hasRow = !_name.empty() || !_warning.empty() || !_help.empty();
         if (!hasRow && _pending) {
             constexpr float MARK_WIDTH = 10.0f;
             const float middle = pos.y + theme::FOOTER_HEIGHT * 0.5f;
@@ -63,7 +69,10 @@ namespace mods_config::ui
             drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::AMBER, _status);
             return;
         }
-        const std::array pieces{ TextPiece{ .text = _name, .color = theme::color::GREEN }, TextPiece{ .text = hasRow ? _help : _status, .color = theme::color::GREEN_MUTED } };
+        const std::array pieces{ TextPiece{ .text = _name, .color = theme::color::GREEN },
+            TextPiece{ .text = {}, .color = theme::color::AMBER, .warningMark = !_warning.empty() },
+            TextPiece{ .text = _warning, .color = theme::color::AMBER },
+            TextPiece{ .text = hasRow ? _help : _status, .color = theme::color::GREEN_MUTED } };
         int lines = countTextLines(pieces, width);
         if (lines == 0) {
             return;
@@ -81,10 +90,11 @@ namespace mods_config::ui
     }
 
     /**
-     * The text of the line's row, as it is shown before it is wrapped and cut. Empty with no row.
+     * The text of the line's row, as it is shown before it is wrapped and cut, without the warning mark.
+     * Empty with no row.
      */
     std::string HelpLine::text() const
     {
-        return _name + _help;
+        return _name + _warning + _help;
     }
 }

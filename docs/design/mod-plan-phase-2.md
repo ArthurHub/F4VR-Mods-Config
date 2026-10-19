@@ -48,7 +48,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M108 | mod | A section folds, and marks what it hides                                                  | in review |
 | M109 | mod | Pages under pages: the tree's levels, the breadcrumbs and Back                            | in review |
 | M111 | mod | A read-only setting, and how a number is shown                                            | in review |
-| M112 | mod | A row warns while a condition holds                                                       | todo   |
+| M112 | mod | A row warns while a condition holds                                                       | in review |
 | M49 | mod  | A package's button calls a Papyrus function or runs a console command, with its own text  | in review |
 | M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | todo   |
 | M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a package        | todo   |

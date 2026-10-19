@@ -2257,6 +2257,54 @@ TEST_CASE("FullPanel: a package's read-only setting is not changed by a press or
     CHECK(store.dirtyCount() == 0);
 }
 
+TEST_CASE("FullPanel: a package's setting and button tell the first warning that holds on the pending values before their help, and an invalid value tells none")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbShadows = false\r\nbBad = \"yes\"\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "id": "shadows", "type": "switcher", "text": "Shadows", "help": "Draws shadows.", "default": false, "storage": { "path": ["Main", "bShadows"] },
+              "warnings": [ { "when": { "setting": "shadows", "equals": true }, "text": "Costly." },
+                            { "when": { "setting": "shadows", "equals": true }, "text": "Second." } ] },
+            { "type": "button", "text": "Rebuild", "action": { "type": "RunConsoleCommand", "command": "tm" },
+              "warnings": [ { "when": { "setting": "shadows", "equals": true }, "text": "Load the save again." } ] },
+            { "type": "switcher", "text": "Bad", "default": true, "storage": { "path": ["Main", "bBad"] },
+              "warnings": [ { "when": { "setting": "shadows", "equals": true }, "text": "Not told." } ] }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Rebuild");
+
+    // a pending value warns, and blocks nothing
+    CHECK(pressActs(panel, pageRow(0)));
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Shadows: Costly. Draws shadows. (Default: off)");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Rebuild: Load the save again.");
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == R"(Bad: Invalid: Main.bBad is "yes" in MyMod.toml, which is not true or false.)");
+    CHECK(store.dirtyCount() == 1);
+
+    // and is gone with the value
+    CHECK(pressActs(panel, pageRow(0)));
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
+}
+
 TEST_CASE("FullPanel: the help line writes a number as its display does, with a percentage's number, and a unit its box has no room for")
 {
     const test_panel::PanelContext context;

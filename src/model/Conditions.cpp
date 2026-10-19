@@ -138,4 +138,13 @@ namespace mods_config::model
     {
         return evaluate(condition, store).value_or(true);
     }
+
+    /**
+     * Whether a condition holds on the values the store has now, and does not where a value that is not
+     * available leaves it open: a warning is not told of a value the player cannot see.
+     */
+    bool surelyHolds(const Condition& condition, Store* store)
+    {
+        return evaluate(condition, store).value_or(false);
+    }
 }

@@ -339,3 +339,18 @@ TEST_CASE("Conditions: a comparison that a value which is not available leaves o
     CHECK_FALSE(model::holds(joined(Kind::Any, {}), nullptr));
     CHECK(model::holds(joined(Kind::Not, { joined(Kind::Any, {}) }), nullptr));
 }
+
+TEST_CASE("Conditions: a condition surely holds on values that are available, and not where one that is not leaves it open")
+{
+    auto store = someValues();
+    CHECK(model::surelyHolds(compared(Kind::Equals, "bOn", { true }), &store));
+    CHECK_FALSE(model::surelyHolds(compared(Kind::Equals, "bOn", { false }), &store));
+
+    // one that is not available leaves it open, unless another value settles it
+    CHECK_FALSE(model::surelyHolds(compared(Kind::Equals, "missing", { true }), &store));
+    CHECK_FALSE(model::surelyHolds(compared(Kind::NotEquals, "missing", { true }), &store));
+    CHECK_FALSE(model::surelyHolds(joined(Kind::Not, { compared(Kind::Equals, "missing", { true }) }), &store));
+    CHECK(model::surelyHolds(joined(Kind::Any, { compared(Kind::Equals, "missing", { 1 }), compared(Kind::Equals, "bOn", { true }) }), &store));
+    CHECK_FALSE(model::surelyHolds(compared(Kind::Equals, "bOn", { true }), nullptr));
+    CHECK(model::surelyHolds(joined(Kind::All, {}), nullptr));
+}

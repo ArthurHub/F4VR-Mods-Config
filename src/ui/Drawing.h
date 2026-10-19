@@ -14,12 +14,13 @@
 namespace mods_config::ui
 {
     /**
-     * A piece of a text that is drawn in one color.
+     * A piece of a text that is drawn in one color, or the warning mark, which has no text.
      */
     struct TextPiece
     {
         std::string_view text;
         ImU32 color = 0;
+        bool warningMark = false;
     };
 
     /**
@@ -42,10 +43,13 @@ namespace mods_config::ui
     // the box of the arrow of a row that opens and closes, as a mod's row of the tree and a section that folds
     constexpr float FOLD_ARROW_SIZE = 14.0f;
 
+    // the box of the warning mark, as the design system draws it
+    constexpr float WARNING_MARK_WIDTH = 20.0f;
+
     float mcmScale();
     float textWidth(std::string_view text);
     void drawText(float left, float right, float top, float height, ImU32 color, std::string_view text);
-    void drawTextRuns(float left, float right, float top, float height, ImU32 color, std::span<const model::TextRun> runs);
+    float drawTextRuns(float left, float right, float top, float height, ImU32 color, std::span<const model::TextRun> runs);
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
     int countTextLines(std::span<const TextPiece> pieces, float width);
     void drawTextPieces(std::span<const TextPiece> pieces, const ImVec2& pos, float width, int maxLines);
@@ -60,5 +64,6 @@ namespace mods_config::ui
     ImU32 valueColor(ValueLook look);
     void drawPendingMark(const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);
+    void drawWarningMark(const ImVec2& center);
     void drawFoldArrow(const ImVec2& topLeft, bool open, ImU32 color);
 }

@@ -220,6 +220,17 @@ namespace mods_config::model
     };
 
     /**
+     * A warning of a setting or a button: a text the row tells while its condition holds. It blocks nothing.
+     */
+    struct Warning
+    {
+        Condition when;
+
+        // what the help line says before the row's help
+        std::string text;
+    };
+
+    /**
      * A row with no action: nothing runs.
      */
     struct NoAction
@@ -390,6 +401,9 @@ namespace mods_config::model
 
         // its value is shown and not edited, and it has no Reset: a package's setting can be
         bool readOnly = false;
+
+        // the row warns of the first whose condition holds: a package's setting can have them
+        std::vector<Warning> warnings;
     };
 
     /**
@@ -408,6 +422,9 @@ namespace mods_config::model
 
         // it runs while it holds, and is disabled while it does not: a package's button can have it
         std::optional<Condition> enabledWhen;
+
+        // as a setting's: a package's button can have them
+        std::vector<Warning> warnings;
     };
 
     /**

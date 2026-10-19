@@ -789,6 +789,28 @@ TEST_CASE("FullPanel render: the ends of the package showcase's pages of numbers
     }
 }
 
+TEST_CASE("FullPanel render: the package showcase's warnings, as shipped and with Shadows on, with the ray on a row that warns", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    for (const bool shadows : { false, true }) {
+        FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
+        panel.setMods(mods);
+        select(panel, "Mods Config VR: Showcase", "Warnings");
+        // Shadows is set once its session is open, which the page's first frame opens
+        const auto turnOn = [&panel, &store] {
+            test_panel::drawFrame(panel, POINTER_AWAY);
+            const auto& page = *std::ranges::find(panel.mods()[0].pages, "Warnings", &model::Page::name);
+            store.set(std::get<model::Setting>(std::get<model::Group>(page.items[0]).items[1]), true);
+        };
+        const auto name = shadows ? "package-showcase-warnings-shadows" : "package-showcase-warnings";
+        WARN("Saved " << renderToFile(panel, name, pageRow(shadows ? 4 : 1), false, shadows ? std::function<void()>(turnOn) : std::function<void()>()));
+    }
+}
+
 TEST_CASE("FullPanel render: a package's section in a section, with rows before and after it", "[.render]")
 {
     auto mod = package::loadPackage(R"({

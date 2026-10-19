@@ -189,16 +189,36 @@ namespace
 
     /**
      * The text of a row at a place, after the gutter and up to a right edge. A text whose tags give it pieces
-     * is drawn in their sizes and colors, and any other as its plain text.
+     * is drawn in their sizes and colors, and any other as its plain text. A row that warns has the warning
+     * mark after its text, which shortens with an ellipsis before the mark does, so the mark always shows.
      */
-    void drawLabel(const ImVec2& pos, const Gutter& gutter, const float right, const std::string_view text, const std::span<const model::TextRun> runs)
+    void drawLabel(const ImVec2& pos, const Gutter& gutter, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const bool warned = false)
     {
         const float left = pos.x + gutter.width + theme::SPACE_3;
+        const float textRight = warned ? right - theme::SPACE_2 - ui::WARNING_MARK_WIDTH : right;
+        float width = 0.0f;
         if (runs.empty()) {
-            ui::drawText(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+            ui::drawText(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+            width = text.empty() ? 0.0f : (std::min)(ui::textWidth(text), textRight - left);
         } else {
-            ui::drawTextRuns(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, runs);
+            width = ui::drawTextRuns(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, runs);
         }
+        if (warned) {
+            const float markLeft = left + width + (width > 0.0f ? theme::SPACE_2 : 0.0f);
+            ui::drawWarningMark(ImVec2(markLeft + ui::WARNING_MARK_WIDTH * 0.5f, pos.y + theme::CONTROL_HEIGHT * 0.5f));
+        }
+    }
+
+    /**
+     * The text of the first warning that holds on the values the store has now, and none where none does.
+     * A warning that a value which is not available leaves open does not hold.
+     */
+    std::string_view warningOf(const std::vector<model::Warning>& warnings, model::Store* store)
+    {
+        const auto warning = std::ranges::find_if(warnings, [store](const model::Warning& each) {
+            return model::surelyHolds(each.when, store);
+        });
+        return warning != warnings.end() ? std::string_view(warning->text) : std::string_view();
     }
 
     /**
@@ -421,11 +441,14 @@ namespace
      * control has its value in their colors.
      * A read-only setting is drawn as its control with its value, disabled, with the look of a row under the
      * ray and none of a press, and no Reset. One whose storage has no value shows none in its control.
+     * A setting whose warning holds has the warning mark after its text, and one that is invalid has none:
+     * what is wrong comes first.
      * Returns whether the ray is on the row or on its open list, and tells the help of the row: why a value
      * is not available, what Reset gives while the ray is on it, why a value is invalid, and else the row's
-     * own, after `(Read-only)` for a read-only setting, with a percentage's number and its default.
+     * own, after `(Read-only)` for a read-only setting, with a percentage's number and its default. And the
+     * warning of a row that has the mark.
      */
-    bool drawSetting(const model::Setting& setting, const PageDrawing& page, const Gutter& gutter, std::string& help)
+    bool drawSetting(const model::Setting& setting, const PageDrawing& page, const Gutter& gutter, std::string& help, std::string_view& warning)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
@@ -502,9 +525,13 @@ namespace
             }
             page.drawn.pressActed = page.drawn.pressActed || pulse;
         }
+        // on the pending value, as it is after a press in this frame
+        const auto warns = stored.invalid ? std::string_view() : warningOf(setting.warnings, page.store);
+
         // the ray is on the list then, and the help line keeps the row of its dropdown
         const bool listOpen = page.choices.isListOpen(setting);
         if (row.pointed || listOpen) {
+            warning = warns;
             if (!stored.available && !stored.reason.empty()) {
                 help = std::move(stored.reason);
             } else if (resets && onReset) {
@@ -548,7 +575,7 @@ namespace
             break;
         }
         }
-        drawLabel(pos, gutter, left - theme::SPACE_3, setting.text, setting.textRuns);
+        drawLabel(pos, gutter, left - theme::SPACE_3, setting.text, setting.textRuns, !warns.empty());
         ImGui::EndDisabled();
         if (defaultValue) {
             ImGui::BeginDisabled(!resets);
@@ -567,9 +594,10 @@ namespace
      * before the room of a Reset, with its own text or `Run`. The whole row is pressed, so the button is
      * only drawn, and a press runs the action in the store. A button with no action is disabled, and so is
      * one whose action the menu does not run, which the reason says, and one whose enabledWhen does not hold.
-     * Returns whether the ray is on the row.
+     * A button whose warning holds has the warning mark after its text.
+     * Returns whether the ray is on the row, and tells the reason and the warning.
      */
-    bool drawButton(const model::Button& button, const PageDrawing& page, const Gutter& gutter, std::string& reason)
+    bool drawButton(const model::Button& button, const PageDrawing& page, const Gutter& gutter, std::string& reason, std::string_view& warning)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
@@ -590,12 +618,13 @@ namespace
         if (!row.shown) {
             return false;
         }
+        warning = warningOf(button.warnings, page.store);
 
         ImGui::BeginDisabled(!runs);
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
         ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
         ui::drawTextIn(box, button.buttonText.empty() ? std::string_view("Run") : std::string_view(button.buttonText), theme::color::GREEN, 0.5f, theme::SPACE_3);
-        drawLabel(pos, gutter, box.Min.x - theme::SPACE_3, button.text, button.textRuns);
+        drawLabel(pos, gutter, box.Min.x - theme::SPACE_3, button.text, button.textRuns, !warning.empty());
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -720,7 +749,8 @@ namespace
      * A row with a text that the ray is on is told as the pointed one. A setting whose value is not
      * available has the reason as its help, where the store gives one, and so has a button whose action the
      * menu does not run, and a hotkey that is not available. Any other hotkey has that it is read-only
-     * before its help. A control the menu does not have says so as its help.
+     * before its help. A control the menu does not have says so as its help. A setting and a button that
+     * warn have the warning before their help.
      */
     struct ItemDrawer
     {
@@ -732,8 +762,9 @@ namespace
         void operator()(const model::Setting& setting) const
         {
             std::string reason;
-            if (drawSetting(setting, page, gutterAt(depth), reason)) {
-                page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = std::move(reason) };
+            std::string_view warning;
+            if (drawSetting(setting, page, gutterAt(depth), reason, warning)) {
+                page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = std::move(reason), .warning = warning };
             }
         }
 
@@ -745,8 +776,9 @@ namespace
         void operator()(const model::Button& button) const
         {
             std::string reason;
-            if (drawButton(button, page, gutterAt(depth), reason)) {
-                page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason) };
+            std::string_view warning;
+            if (drawButton(button, page, gutterAt(depth), reason, warning)) {
+                page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason), .warning = warning };
             }
         }
 

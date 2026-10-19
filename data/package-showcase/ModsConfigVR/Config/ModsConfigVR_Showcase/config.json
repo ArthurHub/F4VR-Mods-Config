@@ -912,6 +912,69 @@
       ]
     },
     {
+      "pageDisplayName": "Warnings",
+      "help": "Rows that warn while a condition holds: a value that works and has a cost, or a button whose action needs a save to be loaded again. A warning blocks nothing.",
+      "content": [
+        {
+          "type": "section", "text": "A value that has a cost",
+          "content": [
+            {
+              "id": "playerHeight", "type": "slider", "valueType": "float", "text": "Player height",
+              "help": "It warns above 1.4 m, as it is shipped. Move it to 1.4 m or less and its warning goes.",
+              "default": 1.45, "valueOptions": { "min": 0.5, "max": 2, "step": 0.01 }, "display": { "unit": "m" },
+              "storage": { "path": ["Warnings", "fPlayerHeight"] },
+              "warnings": [ { "when": { "setting": "playerHeight", "greaterThan": 1.4 }, "text": "Above 1.4 m your view can be in the ceiling." } ]
+            },
+            {
+              "id": "shadows", "type": "switcher", "valueType": "bool", "text": "Shadows", "help": "It warns while it is on.",
+              "default": false, "storage": { "path": ["Warnings", "bShadows"] },
+              "warnings": [ { "when": { "setting": "shadows", "equals": true }, "text": "Shadows cost frames in VR." } ]
+            },
+            {
+              "id": "shadowSize", "type": "stepper", "valueType": "int", "text": "Shadow size",
+              "help": "It has two warnings, and the first that holds is told: one at 4096, and one at 2048 and above.",
+              "default": 1, "valueOptions": { "options": ["1024", "2048", "4096"] },
+              "storage": { "path": ["Warnings", "iShadowSize"] },
+              "warnings": [
+                { "when": { "setting": "shadowSize", "equals": 2 }, "text": "4096 costs the most frames." },
+                { "when": { "setting": "shadowSize", "greaterThanOrEqual": 1 }, "text": "A larger size costs frames." }
+              ]
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Warned of another setting", "help": "It warns while Shadows is on.",
+              "default": true, "storage": { "path": ["Warnings", "bOther"] },
+              "warnings": [ { "when": { "setting": "shadows", "equals": true }, "text": "Shadows is on." } ]
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "A button",
+          "content": [
+            {
+              "id": "holstersChanged", "type": "switcher", "valueType": "bool", "text": "Holsters changed", "help": "The button under it warns while it is on.",
+              "default": true, "storage": { "path": ["Warnings", "bHolstersChanged"] }
+            },
+            {
+              "type": "button", "text": "Rebuild the holsters", "help": "Shows a notification.", "buttonText": "Rebuild",
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: the holsters are rebuilt"] },
+              "warnings": [ { "when": { "setting": "holstersChanged", "equals": true }, "text": "Load the save again after it." } ]
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Invalid comes first", "defaultFile": "invalid",
+          "content": [
+            {
+              "type": "switcher", "valueType": "bool", "text": "Warned and invalid",
+              "help": "Its warning holds, and the file has the text \"yes\", which is not true or false: it shows what is wrong, and not the warning.",
+              "default": true, "storage": { "path": ["Warnings", "bInvalid"] },
+              "warnings": [ { "when": { "setting": "playerHeight", "greaterThan": 1.4 }, "text": "The player is tall." } ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "pageDisplayName": { "token": "$ModsConfigVR_Showcase_Texts", "fallback": "Texts" },
       "help": { "token": "$ModsConfigVR_Showcase_TextsHelp", "fallback": "Plain texts, tokens with a fallback, and a token with none." },
       "content": [
@@ -1035,6 +1098,16 @@
               "type": "switcher", "valueType": "bool", "text": "No operator", "help": "Its condition names a setting and does not say how it is compared, so it is shown.",
               "default": true, "storage": { "path": ["Mistakes", "bNoOperator"] },
               "visibleWhen": { "setting": "showRows", "is": false }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Warnings that are left out",
+              "help": "Of its three warnings, one has no text and one names no setting, so only the last is told: while it is on.",
+              "default": false, "storage": { "path": ["Mistakes", "bWarnings"] },
+              "warnings": [
+                { "when": { "setting": "showRows", "equals": true } },
+                { "when": { "setting": "missing", "equals": true }, "text": "No such setting." },
+                { "when": { "setting": "bWarnings:Mistakes", "equals": true }, "text": "It is on." }
+              ]
             }
           ]
         },

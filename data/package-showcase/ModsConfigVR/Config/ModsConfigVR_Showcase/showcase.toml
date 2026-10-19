@@ -121,6 +121,13 @@ bMissingGamePlugin = false
 bF4sePlugin = false
 bNoF4sePlugin = false
 
+[Warnings]
+fPlayerHeight = 1.45
+bShadows = false
+iShadowSize = 1
+bOther = true
+bHolstersChanged = true
+
 [Texts]
 bPlain = true
 bFallback = true
@@ -141,3 +148,4 @@ bWrongType = true
 bTextOrder = true
 bBadPart = true
 bNoOperator = true
+bWarnings = false

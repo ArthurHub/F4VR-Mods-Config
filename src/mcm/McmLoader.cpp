@@ -807,7 +807,8 @@ namespace
                 .buttonText = {},
                 .action = loadAction(row),
                 .visibleWhen = {},
-                .enabledWhen = {} };
+                .enabledWhen = {},
+                .warnings = {} };
         }
         if (type == "hotkey") {
             return model::Hotkey{ .id = getText(row, "id"), .text = std::move(text), .textRuns = std::move(textRuns), .help = getHelp(row, texts), .visibleWhen = {} };

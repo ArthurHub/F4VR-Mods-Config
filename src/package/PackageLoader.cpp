@@ -504,8 +504,8 @@ namespace
      * A setting of a package: its author's `id`, or one it gets from where its value is kept, its own
      * `applies` or the nearest above it, its `default`, how its number is shown, and the options of a choice.
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
-     * package, which the log has: an author gives one of them an id of its own. Its conditions are read once
-     * every setting of the package is (`loadConditions`).
+     * package, which the log has: an author gives one of them an id of its own. Its conditions and its
+     * warnings are read once every setting of the package is (`loadConditions`).
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, PackageReading& reading)
     {
@@ -537,7 +537,8 @@ namespace
             .applies = own.applies,
             .defaultValue = std::move(defaultValue),
             .display = loadDisplay(row, reading.translations),
-            .readOnly = readOnly };
+            .readOnly = readOnly,
+            .warnings = {} };
     }
 
     /**
@@ -673,7 +674,7 @@ namespace
 
     /**
      * A button: its text, its action and the text on its button, `buttonText`, which is `Run` without one. Its
-     * conditions are read once every setting of the package is (`loadConditions`).
+     * conditions and its warnings are read once every setting of the package is (`loadConditions`).
      */
     model::Button loadButton(const Json& row, const PackageReading& reading)
     {
@@ -683,7 +684,8 @@ namespace
             .buttonText = getShownText(row, "buttonText", reading.translations),
             .action = loadAction(row),
             .visibleWhen = {},
-            .enabledWhen = {} };
+            .enabledWhen = {},
+            .warnings = {} };
     }
 
     /**
@@ -973,6 +975,38 @@ namespace
     }
 
     /**
+     * The `warnings` of a setting or a button: a text each, which the row tells while its `when` holds. One
+     * with no text, and one whose `when` is not a condition, is left out, with the reason in the log.
+     */
+    std::vector<model::Warning> loadWarnings(const Json& row, const PackageReading& reading)
+    {
+        std::vector<model::Warning> warnings;
+        const auto found = row.find("warnings");
+        if (found == row.end()) {
+            return warnings;
+        }
+        if (!found->is_array()) {
+            logger::warn("The warnings of '{}' are left out: they are not a list", getText(row, "text"));
+            return warnings;
+        }
+        for (const auto& warning : *found) {
+            auto text = warning.is_object() ? getShownText(warning, "text", reading.translations) : std::string();
+            if (text.empty()) {
+                logger::warn("A warning of '{}' is left out: it has no text", getText(row, "text"));
+                continue;
+            }
+            const auto when = warning.find("when");
+            auto condition = when != warning.end() ? loadCondition(*when, reading) : std::unexpected("it has no when"s);
+            if (!condition) {
+                logger::warn("A warning of '{}' is left out: {}", getText(row, "text"), condition.error());
+                continue;
+            }
+            warnings.push_back(model::Warning{ .when = std::move(*condition), .text = std::move(text) });
+        }
+        return warnings;
+    }
+
+    /**
      * A condition that needs both: an All of the two, or the one there is.
      */
     std::optional<model::Condition> join(const std::optional<model::Condition>& above, std::optional<model::Condition> own)
@@ -995,7 +1029,8 @@ namespace
     /**
      * Gives the items of the `content` of a page or a section their conditions: a row's `visibleWhen` and
      * `enabledWhen`, each joined with those of the sections it is in, so a row needs every condition above
-     * it. A section's heading is shown by its `visibleWhen` too. The items are the rows of the content, one
+     * it, and the warnings of a setting and a button. A section's heading is shown by its `visibleWhen` too.
+     * The items are the rows of the content, one
      * for each, in their order, as `loadItems` reads them.
      */
     void loadConditions(const Json& container, std::vector<model::Item>& items, const RowConditions& above, const PackageReading& reading)
@@ -1016,8 +1051,10 @@ namespace
                 item);
             if (auto* setting = std::get_if<model::Setting>(&item)) {
                 setting->enabledWhen = own.enabledWhen;
+                setting->warnings = loadWarnings(row, reading);
             } else if (auto* button = std::get_if<model::Button>(&item)) {
                 button->enabledWhen = own.enabledWhen;
+                button->warnings = loadWarnings(row, reading);
             } else if (auto* group = std::get_if<model::Group>(&item)) {
                 loadConditions(row, group->items, own, reading);
             }

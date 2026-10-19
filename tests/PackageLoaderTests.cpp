@@ -441,6 +441,57 @@ TEST_CASE("PackageLoader: a button is shown by its visibleWhen and enabled by it
     CHECK(button.enabledWhen == Condition{ .kind = Kind::All, .setting = {}, .conditions = { compared(Kind::Equals, true), compared(Kind::NotEquals, false) } });
 }
 
+TEST_CASE("PackageLoader: a setting and a button have their warnings, each a text with its condition, in their order")
+{
+    model::Translations translations;
+    translations.add("$MyMod_TooHigh", "Trop haut");
+    const auto mod = loaded(packageOf(R"(
+        { "id": "height", "type": "slider", "text": "Height", "default": 1.3, "valueOptions": { "min": 0.5, "max": 2.0, "step": 0.01 },
+          "storage": { "path": ["Main", "fHeight"] },
+          "warnings": [
+            { "when": { "setting": "height", "greaterThan": 1.8 }, "text": "$MyMod_TooHigh" },
+            { "when": { "setting": "lowered", "equals": true }, "text": { "token": "$MyMod_Low", "fallback": "Lowered." } }
+          ] },
+        { "id": "lowered", "type": "switcher", "text": "Lowered", "default": false, "storage": { "path": ["Main", "bLowered"] } },
+        { "type": "button", "text": "Rebuild", "action": { "type": "RunConsoleCommand", "command": "tm" },
+          "warnings": [ { "when": { "setting": "lowered", "equals": true }, "text": "Load the save again after it." } ] }
+    )"),
+        translations);
+    using Condition = model::Condition;
+    using Kind = Condition::Kind;
+    const auto& height = std::get<model::Setting>(mod.frontPage.items[0]);
+    REQUIRE(height.warnings.size() == 2);
+    CHECK(height.warnings[0].text == "Trop haut");
+    CHECK(height.warnings[0].when == Condition{ .kind = Kind::GreaterThan, .setting = "height", .conditions = {}, .offWhenNotAvailable = false, .values = { 1.8f } });
+    CHECK(height.warnings[1].text == "Lowered.");
+    CHECK(height.warnings[1].when == Condition{ .kind = Kind::Equals, .setting = "lowered", .conditions = {}, .offWhenNotAvailable = false, .values = { true } });
+    CHECK(std::get<model::Setting>(mod.frontPage.items[1]).warnings.empty());
+    const auto& button = std::get<model::Button>(mod.frontPage.items[2]);
+    REQUIRE(button.warnings.size() == 1);
+    CHECK(button.warnings[0].text == "Load the save again after it.");
+}
+
+TEST_CASE("PackageLoader: a warning with no text, or whose when is not a condition, is left out")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "id": "on", "type": "switcher", "text": "On", "default": true, "storage": { "path": ["Main", "bOn"] },
+          "warnings": [
+            { "when": { "setting": "on", "equals": true } },
+            { "when": { "setting": "on", "equals": true }, "text": "" },
+            { "text": "No when." },
+            { "when": { "setting": "missing", "equals": true }, "text": "No such setting." },
+            { "when": { "setting": "on", "equals": 1 }, "text": "Another type." },
+            "Not an object.",
+            { "when": { "setting": "on", "equals": true }, "text": "Kept." }
+          ] },
+        { "type": "switcher", "text": "Not a list", "default": true, "storage": { "path": ["Main", "bOther"] }, "warnings": { "text": "A warning." } }
+    )"));
+    const auto& on = std::get<model::Setting>(mod.frontPage.items[0]);
+    REQUIRE(on.warnings.size() == 1);
+    CHECK(on.warnings[0].text == "Kept.");
+    CHECK(std::get<model::Setting>(mod.frontPage.items[1]).warnings.empty());
+}
+
 TEST_CASE("PackageLoader: a choice's options are texts that store their place, or objects with the value each stores")
 {
     model::Translations translations;
@@ -1093,7 +1144,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    CHECK(mod.pages.size() == 15);
+    CHECK(mod.pages.size() == 16);
 
     // the file whose path goes up out of its root is left out
     Lines files;

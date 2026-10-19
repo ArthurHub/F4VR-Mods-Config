@@ -45,6 +45,9 @@ namespace
         float width = 0.0f;
         float inkWidth = 0.0f;
         Look look;
+
+        // it is the warning mark, with no text
+        bool warningMark = false;
     };
 
     /**
@@ -114,13 +117,19 @@ namespace
     }
 
     /**
-     * The words of pieces of text that are one text, in the current font size.
+     * The words of pieces of text that are one text, in the current font size. The warning mark is a word
+     * of its own, with the room of a space after it.
      */
     std::vector<Word> wordsOf(const std::span<const ui::TextPiece> pieces)
     {
         std::vector<Word> words;
         for (const auto& piece : pieces) {
-            addWords(piece.text, { .fontSize = ImGui::GetFontSize(), .color = piece.color, .font = ImGui::GetFont(), .underline = false }, words);
+            const Look look{ .fontSize = ImGui::GetFontSize(), .color = piece.color, .font = ImGui::GetFont(), .underline = false };
+            if (piece.warningMark) {
+                words.push_back({ .text = {}, .width = ui::WARNING_MARK_WIDTH + theme::SPACE_2, .inkWidth = ui::WARNING_MARK_WIDTH, .look = look, .warningMark = true });
+            } else {
+                addWords(piece.text, look, words);
+            }
         }
         return words;
     }
@@ -128,7 +137,8 @@ namespace
     /**
      * Draws words on one line, set in its room by the line's align. Words of a smaller size stand on the
      * bottom of the line. An underlined word has its line under it and under the spaces after it, but not
-     * under the spaces that end the line. Returns the height of the line.
+     * under the spaces that end the line. The warning mark is in the middle of the line's height.
+     * Returns the height of the line.
      */
     float drawWords(const std::span<const Word> words, const model::TextAlign align, const ImVec2& pos, const float width)
     {
@@ -150,6 +160,11 @@ namespace
         auto* drawList = ImGui::GetWindowDrawList();
         for (const auto& word : words) {
             const auto& look = word.look;
+            if (word.warningMark) {
+                ui::drawWarningMark(ImVec2(x + ui::WARNING_MARK_WIDTH * 0.5f, pos.y + height * 0.5f));
+                x += word.width;
+                continue;
+            }
             const ImVec2 at(std::floor(x), std::floor(pos.y + height - look.fontSize));
             drawList->AddText(look.font, look.fontSize, at, look.color, word.text.data(), word.text.data() + word.text.size());
             if (look.underline) {
@@ -282,8 +297,9 @@ namespace mods_config::ui
      * One line of text in pieces of a size, a color and a face each, centered in a height, as `drawText` draws
      * a line. A piece is never larger than the current font size, so it stays in its row, and one with no color
      * is in the given color. It ends in an ellipsis where it does not fit before the right edge.
+     * Returns the width it takes, which is not more than its room.
      */
-    void drawTextRuns(const float left, const float right, const float top, const float height, const ImU32 color, const std::span<const model::TextRun> runs)
+    float drawTextRuns(const float left, const float right, const float top, const float height, const ImU32 color, const std::span<const model::TextRun> runs)
     {
         std::vector<Word> words;
         for (const auto& run : runs) {
@@ -294,7 +310,7 @@ namespace mods_config::ui
             addWords(run.text, look, words);
         }
         if (words.empty()) {
-            return;
+            return 0.0f;
         }
 
         float lineHeight = 0.0f;
@@ -311,6 +327,7 @@ namespace mods_config::ui
             drawCutLine(words, pos, right - left);
         }
         ImGui::PopClipRect();
+        return (std::min)(lineWidth, right - left);
     }
 
     /**
@@ -466,6 +483,24 @@ namespace mods_config::ui
         const auto bang = ImGui::GetColorU32(theme::color::ON_RED);
         drawList->AddRectFilled(at(9.0f, 6.0f), at(11.0f, 12.0f), bang);
         drawList->AddRectFilled(at(9.0f, 13.4f), at(11.0f, 15.4f), bang);
+    }
+
+    /**
+     * The mark of a warning, around a point: a hollow amber triangle with an `!` in it, as the design system
+     * draws it in a box of 20 by 18. It is not the invalid mark, which is filled red.
+     */
+    void drawWarningMark(const ImVec2& center)
+    {
+        constexpr float THICKNESS = 2.0f;
+        const ImVec2 origin(std::floor(center.x - 10.0f), std::floor(center.y - 9.0f));
+        const auto at = [&origin](const float x, const float y) {
+            return ImVec2(origin.x + x, origin.y + y);
+        };
+        auto* drawList = ImGui::GetWindowDrawList();
+        const auto color = ImGui::GetColorU32(theme::color::AMBER);
+        drawList->AddTriangle(at(10.0f, 1.5f), at(18.5f, 16.5f), at(1.5f, 16.5f), color, THICKNESS);
+        drawList->AddRectFilled(at(9.0f, 6.0f), at(11.0f, 12.0f), color);
+        drawList->AddRectFilled(at(9.0f, 13.0f), at(11.0f, 15.0f), color);
     }
 
     /**
