@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
-#include <filesystem>
 #include <span>
 #include <string>
 #include <string_view>
@@ -24,15 +23,15 @@ namespace mods_config::package
     class IniFile : public ModFile
     {
     public:
-        explicit IniFile(std::filesystem::path path)
-            : _path(std::move(path))
-        {}
+        using ModFile::ModFile;
 
-        std::expected<void, std::string> read() override;
         bool contains(std::span<const std::string> path) const override;
         std::expected<model::Value, std::string> value(std::span<const std::string> path, model::StoredType type) const override;
-        std::expected<void, std::string> write(std::span<const Change> changes) override;
         std::string pathName(std::span<const std::string> path) const override;
+
+    protected:
+        std::expected<void, std::string> load(const std::string& text) override;
+        std::expected<std::string, std::string> edit(const std::string& text, std::span<const Change> changes) const override;
 
     private:
         /**
@@ -74,10 +73,6 @@ namespace mods_config::package
         static const Line* find(const std::vector<Line>& lines, std::span<const std::string> path);
         static void set(std::string& text, std::span<const std::string> path, const model::Value& value);
         std::expected<model::Value, std::string> valueIn(std::string_view text, const std::vector<Line>& lines, std::span<const std::string> path, model::StoredType type) const;
-        std::string name() const;
-
-        // the file, absolute
-        std::filesystem::path _path;
 
         // the text of the file as it was last read or written, and its lines. Empty before a read, and after
         // one that failed

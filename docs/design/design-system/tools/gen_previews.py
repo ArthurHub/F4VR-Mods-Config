@@ -303,10 +303,12 @@ sb_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 {footer(DOT + '<span class="mc-amber">1 unsaved change</span>', btn('Discard') + btn('Save', 'is-primary'))}
 <span class="t-detail mc-muted">Blocked by an invalid value</span>
 {footer(WARN + '<span class="mc-red">Brightness is invalid. Save shows what to fix.</span>', btn('Discard') + btn('Save'))}
+<span class="t-detail mc-muted">Not saved: a Save that failed</span>
+{footer(WARN + '<span class="mc-red">Not saved: showcase.toml cannot be written.</span>', btn('Discard') + btn('Save', 'is-primary'))}
 <span class="t-detail mc-muted">An MCM mod: no Save bar</span>
 {footer('<span class="mc-muted">Changes are saved as they are made</span>', '')}
 </div></div>'''
-write('SaveBar', page('<!-- @dsCard group="Actions" height=540 width=1180 subtitle="Clean, pending, blocked, and the status line of an MCM mod" -->', 'Save bar', sb_body))
+write('SaveBar', page('<!-- @dsCard group="Actions" height=640 width=1180 subtitle="Clean, pending, blocked, not saved, and the status line of an MCM mod" -->', 'Save bar', sb_body))
 
 # ---------------- ConfirmDialog ----------------
 cd_body = f'''<div class="mc-world"><div class="mc-sheet mc-scrim" style="width:820px;height:400px;padding:0">

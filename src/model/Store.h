@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -101,9 +102,16 @@ namespace mods_config::model
 
         /**
          * Writes the dirty settings, which are then clean: the values written are their new baseline. Returns
-         * whether every one is written. Nothing for a store that saves a change as it is made.
+         * why, for a Save that does not write every one, as `showcase.toml cannot be written`. Nothing for a
+         * store that saves a change as it is made.
          */
-        virtual bool save() = 0;
+        virtual std::expected<void, std::string> save() = 0;
+
+        /**
+         * Why the last Save did not write every dirty setting, until the next change, Save or Discard, or the
+         * end of the session. Empty while there is none.
+         */
+        virtual std::string_view saveFailure() const = 0;
 
         /**
          * Takes back every pending value, so each setting has its baseline again and is clean.

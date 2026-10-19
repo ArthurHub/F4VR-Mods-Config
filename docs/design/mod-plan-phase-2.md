@@ -53,8 +53,8 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | in review |
 | M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a package        | in review |
 | M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | in review |
-| M53 | mod  | A Save that fails leaves every file as it was                                             | todo   |
-| M54 | mod  | Save creates a file that is missing                                                       | todo   |
+| M53 | mod  | A Save that fails leaves every file as it was                                             | in review |
+| M54 | mod  | Save creates a file that is missing                                                       | in review |
 | M55 | mod  | Validation                                                                                | todo   |
 | M57 | mod  | The unsaved-changes prompt                                                                | todo   |
 | M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | todo   |
@@ -78,7 +78,7 @@ M110 reads MCM's `listFromForm` and `listFromProperty`, for an MCM config and a 
 
 M50 is for the many F4SE mods that keep their config in an INI file, and for a CommonFramework mod on an older framework. It settles how an INI file is read and how its values are spelled, in [Persistence model](architecture.md#persistence-model): as SimpleIni reads it, with a key's last value and a whole number in hex, and a boolean written in the words the file has. The package showcase's INI section gets a number and a text with a `;` in it.
 
-M53 and M54 are the rest of the Save steps. M53 is the checks before the write, and the rollback of a write that fails.
+M53 and M54 are the rest of the Save steps, and are made in one commit. M53 is the checks before the write, and the rollback of a write that fails: every file gets its new text, checked to read back, and every global and property is checked to be in the game, before anything is written, and a write that fails puts back the files written before it. A Save that fails keeps every setting dirty. M54 creates a file that is not there, with the folders on the way to it, as the package showcase's `player.toml` in My Games is, and a Save that fails after it removes the file. The footer's status says why a Save failed, in red after the invalid mark, until the next change, and Save stays enabled. A write that fails is tried in the headset with a file of the package showcase made read-only.
 
 M58 shows a package's `applies`. The help line says when the change of the pointed row takes effect, a row that needs a restart is marked, and a Save that wrote one says that the game has to be restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 8 there is no client, so a `live` setting is handled as `save`.
 

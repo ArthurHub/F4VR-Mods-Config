@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <expected>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -44,6 +45,17 @@ namespace
     }
 
     /**
+     * Writes values into a file as a Save does: its new text is made, and then written.
+     */
+    std::expected<void, std::string> writeChanges(package::ModFile& file, const std::vector<package::ModFile::Change>& changes)
+    {
+        if (auto prepared = file.prepare(changes); !prepared) {
+            return prepared;
+        }
+        return file.commit();
+    }
+
+    /**
      * An INI file of its own, read, with the given text.
      */
     struct ModFile
@@ -66,7 +78,7 @@ namespace
          */
         std::string write(const std::vector<IniFile::Change>& changes)
         {
-            const auto written = file.write(changes);
+            const auto written = writeChanges(file, changes);
             if (!written) {
                 FAIL(written.error());
             }
@@ -282,10 +294,8 @@ TEST_CASE("IniFile: a file that has every value already is not written")
     };
 
     // a file that cannot be written: the write succeeds only when it does not write
-    std::filesystem::permissions(mod.path, std::filesystem::perms::owner_write, std::filesystem::perm_options::remove);
-    const auto written = mod.file.write(changes);
-    std::filesystem::permissions(mod.path, std::filesystem::perms::owner_write, std::filesystem::perm_options::add);
-    CHECK(written);
+    const test_files::ReadOnly readOnly(mod.path);
+    CHECK(writeChanges(mod.file, changes));
     CHECK(readFile(mod.path) == MOD_INI);
 }
 
@@ -298,13 +308,13 @@ TEST_CASE("IniFile: a write that cannot be made in full writes nothing, with the
             { { "Main", "bEnabled" }, false },
             { { "Main", "sName" }, std::string("two\r\nlines") },
         };
-        const auto written = mod.file.write(changes);
+        const auto written = writeChanges(mod.file, changes);
         REQUIRE_FALSE(written);
         CHECK(written.error() == "sName of [Main] cannot be written as \"two\r\nlines\" in MyMod.ini");
         CHECK(readFile(mod.path) == MOD_INI);
 
         const std::vector<IniFile::Change> spaces{ { { "Main", "sName" }, std::string(" padded ") } };
-        CHECK_FALSE(mod.file.write(spaces));
+        CHECK_FALSE(writeChanges(mod.file, spaces));
         CHECK(readFile(mod.path) == MOD_INI);
     }
 
@@ -312,16 +322,7 @@ TEST_CASE("IniFile: a write that cannot be made in full writes nothing, with the
     {
         ModFile mod;
         const std::vector<IniFile::Change> changes{ { { "Main", "Sub", "iCount" }, 1 } };
-        CHECK(mod.file.write(changes).error() == "Main.Sub.iCount is no key of MyMod.ini, which has a section and a key");
+        CHECK(writeChanges(mod.file, changes).error() == "Main.Sub.iCount is no key of MyMod.ini, which has a section and a key");
         CHECK(readFile(mod.path) == MOD_INI);
-    }
-
-    SECTION("a file that is not there")
-    {
-        ModFile mod;
-        std::filesystem::remove(mod.path);
-        const std::vector<IniFile::Change> changes{ { { "Main", "bEnabled" }, false } };
-        CHECK(mod.file.write(changes).error() == "there is no file MyMod.ini");
-        CHECK_FALSE(std::filesystem::exists(mod.path));
     }
 }

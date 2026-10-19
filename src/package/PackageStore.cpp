@@ -7,6 +7,7 @@
 #include <format>
 #include <memory>
 #include <ranges>
+#include <span>
 #include <unordered_set>
 #include <variant>
 #include <vector>
@@ -336,9 +337,9 @@ namespace
     }
 
     /**
-     * The value a setting keeps in the game now, in the type of its value, or why it is not available: its
-     * global or its property is not in the game, or keeps no value of the setting's type, as a global, which
-     * keeps a number, does not for a setting of a text.
+     * The value a setting keeps in the game now, in the type of its value, or why it is not available, as
+     * `the global MyMod.esp|800 is not in the game`: its global or its property is not in the game, or keeps
+     * no value of the setting's type, as a global, which keeps a number, does not for a setting of a text.
      */
     std::expected<model::Value, std::string> readGame(const model::Setting& setting)
     {
@@ -351,11 +352,11 @@ namespace
             read = getProperty(std::get<model::PropertyStorage>(setting.storage));
         }
         if (!read) {
-            return std::unexpected(std::format("Not available: {} is not in the game.", gameName(setting.storage)));
+            return std::unexpected(std::format("{} is not in the game", gameName(setting.storage)));
         }
         auto typed = asType(*read, setting.valueType);
         if (!typed) {
-            return std::unexpected(std::format("Not available: {} is {}, which is no value of the setting's valueType.", gameName(setting.storage), valueText(*read)));
+            return std::unexpected(std::format("{} is {}, which is no value of the setting's valueType", gameName(setting.storage), valueText(*read)));
         }
         return std::move(*typed);
     }
@@ -517,7 +518,7 @@ namespace mods_config::package
             if (isInGame(setting->storage)) {
                 auto stored = readGame(*setting);
                 if (!stored) {
-                    entry.notAvailable = std::move(stored.error());
+                    entry.notAvailable = std::format("Not available: {}.", stored.error());
                     continue;
                 }
                 entry.baseline = controlValue(*setting, *stored);
@@ -562,8 +563,8 @@ namespace mods_config::package
     }
 
     /**
-     * Ends the session of the mod: its values are forgotten, also the pending ones, and the game has the
-     * baseline of each setting that is previewed again.
+     * Ends the session of the mod: its values are forgotten, also the pending ones and why a Save failed, and
+     * the game has the baseline of each setting that is previewed again.
      * It does not read the mod, which can be gone by now: the menu's mods are replaced before it is called.
      */
     void PackageStore::close()
@@ -575,6 +576,7 @@ namespace mods_config::package
         _settingList.clear();
         _settings.clear();
         _entries.clear();
+        _saveFailure.clear();
     }
 
     /**
@@ -621,7 +623,8 @@ namespace mods_config::package
 
     /**
      * Sets the pending value of a setting. A value that is the baseline leaves the setting clean, so the Save
-     * does not write it. A `live` setting of the game is previewed: the game has its value at once.
+     * does not write it. A `live` setting of the game is previewed: the game has its value at once. A value
+     * that is set ends the failure of the last Save.
      * Returns false for a value that is not set: one of a setting that is read-only or not available, and one
      * that is not a value of the setting, as a number outside its limits.
      */
@@ -637,6 +640,7 @@ namespace mods_config::package
             return false;
         }
         auto& entry = found->second;
+        _saveFailure.clear();
         if (entry.baseline && isSameValue(*accepted, *entry.baseline)) {
             entry.pending.reset();
         } else {
@@ -672,24 +676,32 @@ namespace mods_config::package
     /**
      * Writes the dirty settings into their files, each file in one write, in the order of the package, and a
      * setting then has the value written as its baseline. A file is read again as it is written, so a value
-     * that changed in it since the session started stays, but for one the player changed too. The dirty
-     * settings of the game are written after every file, and the action of each setting that was written runs
-     * then, in the order of the package, with the value written.
-     * A file that cannot be written keeps its settings dirty, with the reason in the log, and the other files
-     * are still written: the game's values are not, as a Save that fails changes none of them. Returns whether
-     * every dirty setting is written.
+     * that changed in it since the session started stays, but for one the player changed too, and a file that
+     * is not there is created. The dirty settings of the game are written after every file, and the action of
+     * each setting that was written runs then, in the order of the package, with the value written.
+     * Nothing is written before every file has its new text, checked to read back, and every global and
+     * property is in the game, and the files already written are put back when a write fails: a Save that
+     * fails changes no file and no value of the game, and keeps every setting dirty.
+     * Returns the reason, which is in the log too, for a Save that does not write every dirty setting, as
+     * `showcase.toml cannot be written`.
      */
-    bool PackageStore::save()
+    std::expected<void, std::string> PackageStore::save()
     {
-        bool saved = true;
-        std::unordered_set<const model::Setting*> written;
-        const auto wrote = [this, &written](const model::Setting* setting) {
-            auto& entry = _entries.at(setting);
-            entry.baseline = std::move(entry.pending);
-            entry.pending.reset();
-            entry.invalid.clear();
-            written.insert(setting);
+        _saveFailure.clear();
+        const auto failed = [this](const std::string& reason) {
+            _saveFailure = reason;
+            return std::unexpected(reason);
         };
+
+        // the files that have dirty settings, with their names in the package and the settings
+        struct FileSave
+        {
+            std::string_view name;
+            ModFile* file;
+            std::vector<const model::Setting*> settings;
+        };
+
+        std::vector<FileSave> saves;
         for (const auto& [name, file] : _files) {
             std::vector<ModFile::Change> changes;
             std::vector<const model::Setting*> settings;
@@ -704,26 +716,55 @@ namespace mods_config::package
             if (changes.empty()) {
                 continue;
             }
-            if (const auto result = file->write(changes); !result) {
-                logger::warn("The changes of '{}' to its file '{}' are not saved: {}", _modName, name, result.error());
-                saved = false;
-                continue;
+            if (const auto result = file->prepare(changes); !result) {
+                logger::warn("The changes of '{}' are not saved, as its file '{}' cannot have them: {}", _modName, name, result.error());
+                return failed(result.error());
             }
-            std::ranges::for_each(settings, wrote);
+            saves.push_back({ .name = name, .file = file.get(), .settings = std::move(settings) });
+        }
+        for (const auto* setting : _settingList) {
+            if (_entries.at(setting).pending && isInGame(setting->storage)) {
+                if (const auto stored = readGame(*setting); !stored) {
+                    logger::warn("The changes of '{}' are not saved, as a setting of the game is not available: {}", _modName, stored.error());
+                    return failed(stored.error());
+                }
+            }
         }
 
+        for (std::size_t next = 0; next < saves.size(); ++next) {
+            if (const auto result = saves[next].file->commit(); !result) {
+                logger::warn("The changes of '{}' are not saved, as its file '{}' cannot be written: {}", _modName, saves[next].name, result.error());
+                for (const auto& written : std::span(saves).first(next) | std::views::reverse) {
+                    if (const auto restored = written.file->restore(); !restored) {
+                        logger::error("The file '{}' of '{}' is not put back as it was: {}", written.name, _modName, restored.error());
+                    }
+                }
+                return failed(result.error());
+            }
+        }
+
+        std::expected<void, std::string> saved;
+        std::unordered_set<const model::Setting*> written;
+        const auto wrote = [this, &written](const model::Setting* setting) {
+            auto& entry = _entries.at(setting);
+            entry.baseline = std::move(entry.pending);
+            entry.pending.reset();
+            entry.invalid.clear();
+            written.insert(setting);
+        };
+        for (const auto& fileSave : saves) {
+            std::ranges::for_each(fileSave.settings, wrote);
+        }
         for (const auto* setting : _settingList) {
             const auto& entry = _entries.at(setting);
             if (!entry.pending || !isInGame(setting->storage)) {
                 continue;
             }
-            if (!saved) {
-                logger::warn("The change of '{}' to {} is not saved, as a file is not", _modName, gameName(setting->storage));
-                continue;
-            }
             if (!writeGame(setting->storage, storedValue(*setting, *entry.pending))) {
                 logger::warn("The change of '{}' to {} is not saved: it is not in the game", _modName, gameName(setting->storage));
-                saved = false;
+                if (saved) {
+                    saved = std::unexpected(std::format("{} is not in the game", gameName(setting->storage)));
+                }
                 continue;
             }
             _previews.erase(setting);
@@ -736,16 +777,20 @@ namespace mods_config::package
             }
         }
         logger::info("Saved {} changes of '{}'", written.size(), _modName);
-        return saved;
+        if (!saved) {
+            return failed(saved.error());
+        }
+        return {};
     }
 
     /**
      * Takes back the pending values: each setting has its baseline again, also an invalid one of its file,
-     * and the game has the baseline of each setting that is previewed again.
+     * and the game has the baseline of each setting that is previewed again. A Save that failed is over.
      */
     void PackageStore::discard()
     {
         rollBack();
+        _saveFailure.clear();
         for (auto& entry : _entries | std::views::values) {
             entry.pending.reset();
         }

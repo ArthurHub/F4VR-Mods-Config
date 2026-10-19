@@ -370,7 +370,7 @@ TEST_CASE("PackageStore: Save keeps a value that changed in the file since the s
     CHECK(invalid.value(1).reason.empty());
 }
 
-TEST_CASE("PackageStore: a file that cannot be written keeps its settings dirty, and Save says so")
+TEST_CASE("PackageStore: a file that is not written right keeps its settings dirty, and Save says so")
 {
     Session session;
     session.open(MOD_TOML);
@@ -384,6 +384,101 @@ TEST_CASE("PackageStore: a file that cannot be written keeps its settings dirty,
     session.myGames.write(MOD_FILE, MOD_TOML);
     CHECK(session.store.save());
     CHECK(session.store.dirtyCount() == 0);
+}
+
+namespace
+{
+    // a setting of the INI file and one of the TOML file
+    constexpr auto TWO_FILES = R"(
+        { "type": "switcher", "valueType": "bool", "text": "On", "default": false, "storage": { "file": "ini", "section": "Main", "key": "bOn" } },
+        { "type": "switcher", "valueType": "bool", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } }
+    )";
+}
+
+TEST_CASE("PackageStore: a Save that fails leaves every file as it was, and keeps every setting dirty")
+{
+    SECTION("a file that cannot have its values writes no other file")
+    {
+        Session session(TWO_FILES);
+        session.data.write("MyMod.ini", "[Main]\r\nbOn=0\r\n");
+        session.open("[Main]\r\nbEnable = false\r\n");
+        CHECK(session.store.set(session.setting(0), true));
+        CHECK(session.store.set(session.setting(1), true));
+        session.myGames.write(MOD_FILE, "[Main\r\n");
+        CHECK_FALSE(session.store.save());
+        CHECK(readFile(session.data.path / "MyMod.ini") == "[Main]\r\nbOn=0\r\n");
+        CHECK(session.store.dirtyCount() == 2);
+    }
+
+    SECTION("a file that cannot be written has the files written before it put back")
+    {
+        Session session(TWO_FILES);
+        session.data.write("MyMod.ini", "[Main]\r\nbOn=0\r\n");
+        session.open("[Main]\r\nbEnable = false\r\n");
+        CHECK(session.store.set(session.setting(0), true));
+        CHECK(session.store.set(session.setting(1), true));
+
+        // the files are written in the order of their names, so the INI file `ini` is written before `main`
+        const auto toml = session.myGames.path / MOD_FILE;
+        {
+            const test_files::ReadOnly readOnly(toml);
+            CHECK_FALSE(session.store.save());
+        }
+        CHECK(readFile(session.data.path / "MyMod.ini") == "[Main]\r\nbOn=0\r\n");
+        CHECK(readFile(toml) == "[Main]\r\nbEnable = false\r\n");
+        CHECK(session.store.dirtyCount() == 2);
+
+        // and the next Save writes both
+        CHECK(session.store.save());
+        CHECK(readFile(session.data.path / "MyMod.ini") == "[Main]\r\nbOn=1\r\n");
+        CHECK(readFile(toml) == "[Main]\r\nbEnable = true\r\n");
+        CHECK(session.store.dirtyCount() == 0);
+    }
+
+    SECTION("a file the Save created is removed")
+    {
+        Session session(TWO_FILES);
+        session.open("[Main]\r\nbEnable = false\r\n");
+        CHECK(session.store.set(session.setting(0), true));
+        CHECK(session.store.set(session.setting(1), true));
+        const auto toml = session.myGames.path / MOD_FILE;
+        {
+            const test_files::ReadOnly readOnly(toml);
+            CHECK_FALSE(session.store.save());
+        }
+        CHECK_FALSE(std::filesystem::exists(session.data.path / "MyMod.ini"));
+        CHECK(session.store.dirtyCount() == 2);
+    }
+}
+
+TEST_CASE("PackageStore: Save creates a file that is not there, with the folders on the way to it, and with only the settings it changed")
+{
+    Session session;
+    session.store.open(session.mod);
+
+    // a setting set back to its default changes nothing, so no file is created
+    CHECK(session.store.set(session.setting(0), false));
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.save());
+    CHECK_FALSE(std::filesystem::exists(session.myGames.path / "Mods_Config"));
+
+    CHECK(session.store.set(session.setting(0), false));
+    CHECK(session.store.set(session.setting(6), "7"s));
+    CHECK(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) == "[Main]\nbEnable = false\niCount = 7\n");
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(6).value == model::Value("7"s));
+
+    // and the next Save writes into the file it created
+    CHECK(session.store.set(session.setting(1), 0.75f));
+    CHECK(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) == "[Main]\nbEnable = false\niCount = 7\nfScale = 0.75\n");
+
+    Session ini(TWO_FILES);
+    ini.open(MOD_TOML);
+    CHECK(ini.store.set(ini.setting(0), true));
+    CHECK(ini.store.save());
+    CHECK(readFile(ini.data.path / "MyMod.ini") == "[Main]\r\nbOn=1\r\n");
 }
 
 TEST_CASE("PackageStore: a setting of an INI file has the file's value or is invalid, and Save writes it with the file's layout kept")
@@ -649,12 +744,13 @@ TEST_CASE("PackageStore: a Save whose file cannot be written writes nothing into
     CHECK(session.store.dirtyCount() == 2);
     CHECK(game.actions.called.empty());
 
-    // a global that is not in the game since the session started keeps its setting dirty
+    // nor does one with a global that is not in the game since the session started, which writes no file
     session.myGames.write(MOD_FILE, MOD_TOML);
     game.globals.values.erase({ "MyMod.esp", 0x801 });
     CHECK_FALSE(session.store.save());
-    CHECK(session.store.isDirty(session.setting(1)));
-    CHECK_FALSE(session.store.isDirty(session.setting(4)));
+    CHECK(readFile(session.myGames.path / MOD_FILE) == MOD_TOML);
+    CHECK(session.store.dirtyCount() == 2);
+    CHECK(game.actions.called.empty());
 }
 
 TEST_CASE("PackageStore: the default of a setting is its package's, in the type of its control")

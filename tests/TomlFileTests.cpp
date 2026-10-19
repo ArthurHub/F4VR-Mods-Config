@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <expected>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -37,6 +38,17 @@ namespace
         std::ostringstream text;
         text << std::ifstream(path, std::ios::binary).rdbuf();
         return text.str();
+    }
+
+    /**
+     * Writes values into a file as a Save does: its new text is made, and then written.
+     */
+    std::expected<void, std::string> writeChanges(package::ModFile& file, const std::vector<package::ModFile::Change>& changes)
+    {
+        if (auto prepared = file.prepare(changes); !prepared) {
+            return prepared;
+        }
+        return file.commit();
     }
 
     /**
@@ -121,7 +133,7 @@ TEST_CASE("TomlFile: a write changes the values alone, and keeps the comments, t
         { { "Main", "sName" }, std::string("D:\\Games") },
         { { "Body", "hand", "fX" }, 1.5f },
     };
-    const auto written = mod.file.write(changes);
+    const auto written = writeChanges(mod.file, changes);
     if (!written) {
         FAIL(written.error());
     }
@@ -152,7 +164,7 @@ TEST_CASE("TomlFile: a value the file does not have is added, in its section or 
         { { "Main", "iNew" }, 7 },
         { { "Extra", "bOn" }, true },
     };
-    REQUIRE(mod.file.write(changes));
+    REQUIRE(writeChanges(mod.file, changes));
     const auto text = readFile(mod.path);
     CHECK(text.contains("iFlags = 0x10\r\niNew = 7\r\n"));
     CHECK(text.ends_with("[Extra]\r\nbOn = true\r\n"));
@@ -165,7 +177,7 @@ TEST_CASE("TomlFile: a write reads the file again, and keeps a change someone el
     ModFile mod;
     mod.folder.write("MyMod.toml", "[Main]\r\nbEnabled = true\r\niCount = 9\r\n");
     const std::vector<TomlFile::Change> changes{ { { "Main", "bEnabled" }, false } };
-    REQUIRE(mod.file.write(changes));
+    REQUIRE(writeChanges(mod.file, changes));
     CHECK(readFile(mod.path) == "[Main]\r\nbEnabled = false\r\niCount = 9\r\n");
     CHECK(mod.file.value(Path{ "Main", "iCount" }, StoredType::Int) == model::Value(9));
 }
@@ -179,10 +191,8 @@ TEST_CASE("TomlFile: a file that has every value already is not written")
     };
 
     // a file that cannot be written: the write succeeds only when it does not write
-    std::filesystem::permissions(mod.path, std::filesystem::perms::owner_write, std::filesystem::perm_options::remove);
-    const auto written = mod.file.write(changes);
-    std::filesystem::permissions(mod.path, std::filesystem::perms::owner_write, std::filesystem::perm_options::add);
-    CHECK(written);
+    const test_files::ReadOnly readOnly(mod.path);
+    CHECK(writeChanges(mod.file, changes));
     CHECK(readFile(mod.path) == MOD_TOML);
 }
 
@@ -195,7 +205,7 @@ TEST_CASE("TomlFile: a write that cannot be made in full writes nothing, with th
             { { "Main", "bEnabled" }, false },
             { { "Main", "iCount", "x" }, 1 },
         };
-        const auto written = mod.file.write(changes);
+        const auto written = writeChanges(mod.file, changes);
         REQUIRE_FALSE(written);
         CHECK(written.error().contains("Main.iCount.x"));
         CHECK(readFile(mod.path) == MOD_TOML);
@@ -206,18 +216,9 @@ TEST_CASE("TomlFile: a write that cannot be made in full writes nothing, with th
         ModFile mod;
         mod.folder.write("MyMod.toml", "[Main]\nbEnabled = yes\n");
         const std::vector<TomlFile::Change> changes{ { { "Main", "bEnabled" }, false } };
-        const auto written = mod.file.write(changes);
+        const auto written = writeChanges(mod.file, changes);
         REQUIRE_FALSE(written);
         CHECK(written.error().contains("line 2"));
         CHECK(readFile(mod.path) == "[Main]\nbEnabled = yes\n");
-    }
-
-    SECTION("a file that is not there")
-    {
-        ModFile mod;
-        std::filesystem::remove(mod.path);
-        const std::vector<TomlFile::Change> changes{ { { "Main", "bEnabled" }, false } };
-        CHECK(mod.file.write(changes).error() == "there is no file MyMod.toml");
-        CHECK_FALSE(std::filesystem::exists(mod.path));
     }
 }

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <format>
 #include <string_view>
+#include <tuple>
 
 #include <imgui.h>
 
@@ -257,7 +258,8 @@ namespace mods_config::ui
 
     /**
      * Gives the help line the status of the selected mod's editing session: that its changes are saved as
-     * they are made, or how many wait for a Save. Nothing with no mod, and with no store.
+     * they are made, why the last Save failed, until the next change, or how many wait for a Save. Nothing
+     * with no mod, and with no store.
      */
     void FullPanel::updateStatus()
     {
@@ -266,10 +268,12 @@ namespace mods_config::ui
             _helpLine.setStatus({});
         } else if (store->savesAtOnce()) {
             _helpLine.setStatus(SAVED_AS_MADE);
+        } else if (const auto failure = store->saveFailure(); !failure.empty()) {
+            _helpLine.setStatus(std::format("Not saved: {}.", failure), StatusLook::Failed);
         } else if (const auto dirty = store->dirtyCount(); dirty == 0) {
             _helpLine.setStatus(NO_UNSAVED);
         } else {
-            _helpLine.setStatus(std::format("{} unsaved change{}", dirty, dirty == 1 ? "" : "s"), true);
+            _helpLine.setStatus(std::format("{} unsaved change{}", dirty, dirty == 1 ? "" : "s"), StatusLook::Pending);
         }
     }
 
@@ -720,8 +724,8 @@ namespace mods_config::ui
     /**
      * The footer, from its top left: a line over it, the help line on its left, and Discard and Save on its
      * right, which keep their places. They are enabled while the selected mod has changes that wait for a
-     * Save, and are disabled on the menu's front page, which has no session. A press on Save writes the
-     * changes, and one on Discard takes them back. An MCM mod saves its changes as they are made, so it has
+     * Save, also after a Save that failed, and are disabled on the menu's front page, which has no session. A
+     * press on Save writes the changes, and one on Discard takes them back. An MCM mod saves its changes as they are made, so it has
      * no Discard and Save, and its help line has all of the footer's width.
      */
     void FullPanel::drawFooter(const ImVec2& pos)
@@ -741,7 +745,8 @@ namespace mods_config::ui
                 _pressActed = true;
             }
             if (footerButton("Save", save, true)) {
-                store->save();
+                // the status has the reason of a Save that failed, which the store keeps
+                std::ignore = store->save();
                 _pressActed = true;
             }
             ImGui::EndDisabled();

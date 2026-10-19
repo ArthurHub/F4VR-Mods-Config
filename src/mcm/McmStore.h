@@ -86,9 +86,14 @@ namespace mods_config::mcm
             return 0;
         }
 
-        bool save() override
+        std::expected<void, std::string> save() override
         {
-            return true;
+            return {};
+        }
+
+        std::string_view saveFailure() const override
+        {
+            return {};
         }
 
         void discard() override

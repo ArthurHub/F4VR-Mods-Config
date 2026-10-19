@@ -1,7 +1,6 @@
 #pragma once
 
 #include <expected>
-#include <filesystem>
 #include <span>
 #include <string>
 
@@ -19,22 +18,18 @@ namespace mods_config::package
     class TomlFile : public ModFile
     {
     public:
-        explicit TomlFile(std::filesystem::path path)
-            : _path(std::move(path))
-        {}
+        using ModFile::ModFile;
 
-        std::expected<void, std::string> read() override;
         bool contains(std::span<const std::string> path) const override;
         std::expected<model::Value, std::string> value(std::span<const std::string> path, model::StoredType type) const override;
-        std::expected<void, std::string> write(std::span<const Change> changes) override;
         std::string pathName(std::span<const std::string> path) const override;
+
+    protected:
+        std::expected<void, std::string> load(const std::string& text) override;
+        std::expected<std::string, std::string> edit(const std::string& text, std::span<const Change> changes) const override;
 
     private:
         toml::node_view<const toml::node> find(std::span<const std::string> path) const;
-        std::string name() const;
-
-        // the file, absolute
-        std::filesystem::path _path;
 
         // the values of the file as it was last read or written. Empty before a read, and after one that failed
         toml::table _table;

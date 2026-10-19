@@ -742,6 +742,36 @@ TEST_CASE("FullPanel render: the front page of the package showcase with values 
     WARN("Saved " << renderToFile(panel, "package-showcase-pending", POINTER_AWAY));
 }
 
+TEST_CASE("FullPanel render: a Save that failed, with a short reason and with one that wraps", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } } ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = {} });
+    store.set(std::get<model::Setting>(panel.mods()[0].frontPage.items[0]), true);
+
+    {
+        const test_files::ReadOnly readOnly(file);
+        REQUIRE_FALSE(store.save());
+    }
+    WARN("Saved " << renderToFile(panel, "package-save-failed", POINTER_AWAY));
+
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main\r\nbEnable = false\r\n");
+    REQUIRE_FALSE(store.save());
+    WARN("Saved " << renderToFile(panel, "package-save-failed-long", POINTER_AWAY));
+}
+
 TEST_CASE("FullPanel render: the values of the package showcase's file that are not the settings'", "[.render]")
 {
     const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);

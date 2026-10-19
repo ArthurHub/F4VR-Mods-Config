@@ -396,8 +396,8 @@ namespace mods_config::devbench
         json runSave(const json&)
         {
             auto& store = selectedStore();
-            const bool saved = store.save();
-            return { { "saved", saved }, { "session", sessionToJson(store) } };
+            const auto saved = store.save();
+            return { { "saved", saved.has_value() }, { "reason", saved ? std::string() : saved.error() }, { "session", sessionToJson(store) } };
         }
 
         json runDiscard(const json&)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -20,6 +21,17 @@ namespace mods_config::ui
     };
 
     /**
+     * How the status of the help line looks: plain in the muted color, in amber after the pending mark while
+     * changes wait for a Save, or in red after the invalid mark for a Save that failed.
+     */
+    enum class StatusLook : std::uint8_t
+    {
+        Plain,
+        Pending,
+        Failed,
+    };
+
+    /**
      * The help line, on the left of the Full panel's footer: the help of the row the ray is on, as
      * `Name: help`, with the warning of a row that warns before its help. It keeps the row it was last given, so the line does not change while the ray is in the
      * gap between two rows. With no row it has the status of the editing session, where there is one.
@@ -29,7 +41,7 @@ namespace mods_config::ui
     public:
         void show(const PointedRow& row);
         void clear();
-        void setStatus(std::string_view status, bool pending = false);
+        void setStatus(std::string_view status, StatusLook look = StatusLook::Plain);
         void draw(const ImVec2& pos, float width) const;
         std::string text() const;
 
@@ -38,9 +50,9 @@ namespace mods_config::ui
             return _status;
         }
 
-        bool isStatusPending() const
+        StatusLook statusLook() const
         {
-            return _pending;
+            return _look;
         }
 
     private:
@@ -53,7 +65,7 @@ namespace mods_config::ui
         // what the line says with no row: empty for nothing
         std::string _status;
 
-        // the status tells of changes that wait for a Save
-        bool _pending = false;
+        // how the status looks
+        StatusLook _look = StatusLook::Plain;
     };
 }

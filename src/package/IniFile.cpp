@@ -12,7 +12,6 @@
 #include <variant>
 
 #include "common/CommonUtils.h"
-#include "config/ConfigFile.h"
 
 using namespace mods_config;
 
@@ -216,36 +215,17 @@ namespace
         const auto lineBreak = text.find('\n');
         return lineBreak != std::string_view::npos && (lineBreak == 0 || text[lineBreak - 1] != '\r') ? "\n" : "\r\n";
     }
-
-    /**
-     * The whole text of a file, or the reason it is not there or cannot be read.
-     */
-    std::expected<std::string, std::string> readText(const std::filesystem::path& path)
-    {
-        auto text = f4cf::config::ConfigFile::readFile(path.string());
-        if (!text) {
-            const auto name = path.filename().string();
-            return std::unexpected(std::filesystem::exists(path) ? std::format("{} cannot be read", name) : std::format("there is no file {}", name));
-        }
-        return std::move(*text);
-    }
 }
 
 namespace mods_config::package
 {
     /**
-     * Reads the file's values. A file that is not there or cannot be read has none, and the reason is returned.
-     * Any text is an INI file: a line that is no section and no value is left out.
+     * Takes the values of a text as the file's. Any text is an INI file: a line that is no section and no value
+     * is left out.
      */
-    std::expected<void, std::string> IniFile::read()
+    std::expected<void, std::string> IniFile::load(const std::string& text)
     {
-        _text.clear();
-        _lines.clear();
-        auto text = readText(_path);
-        if (!text) {
-            return std::unexpected(text.error());
-        }
-        _text = std::move(*text);
+        _text = text;
         _lines = parse(_text);
         return {};
     }
@@ -271,39 +251,27 @@ namespace mods_config::package
     }
 
     /**
-     * Writes values into the file. It is read again first, so a value someone else changed since it was read
-     * stays, but for one that is written here. Each value replaces the text of each line of its key, and a key
-     * the file does not have is added after the last value of its section, or in a new section at the file's
-     * end. The text is checked to read back as the values before it is written, and a file that has every value
-     * already is not written. When one of them cannot be written, or the file cannot be read, it is not written
-     * at all, and the reason is returned.
+     * A text with values set in it: each replaces the text of each line of its key, and a key the text does not
+     * have is added after the last value of its section, or in a new section at the text's end. The text is
+     * checked to read back as the values. Returns the reason for a value that cannot be set.
      */
-    std::expected<void, std::string> IniFile::write(const std::span<const Change> changes)
+    std::expected<std::string, std::string> IniFile::edit(const std::string& text, const std::span<const Change> changes) const
     {
-        const auto text = readText(_path);
-        if (!text) {
-            return std::unexpected(text.error());
-        }
-        auto edited = *text;
+        auto edited = text;
         for (const auto& [path, value] : changes) {
             if (!keyOf(path)) {
                 return std::unexpected(std::format("{} is no key of {}, which has a section and a key", pathName(path), name()));
             }
             set(edited, path, value);
         }
-        auto lines = parse(edited);
+        const auto lines = parse(edited);
         for (const auto& [path, value] : changes) {
             const auto written = valueIn(edited, lines, path, typeOf(value));
             if (!written || !isWritten(*written, value)) {
                 return std::unexpected(std::format("{} cannot be written as \"{}\" in {}", pathName(path), valueText(value, {}), name()));
             }
         }
-        if (edited != *text && !f4cf::config::ConfigFile::writeFile(_path.string(), edited)) {
-            return std::unexpected(std::format("{} cannot be written", name()));
-        }
-        _text = std::move(edited);
-        _lines = std::move(lines);
-        return {};
+        return edited;
     }
 
     /**
@@ -445,13 +413,5 @@ namespace mods_config::package
             return std::unexpected(std::format("{} is \"{}\" in {}, {}", pathName(path), shown, name(), what));
         }
         return std::move(*value);
-    }
-
-    /**
-     * The file's name, which names it in a reason.
-     */
-    std::string IniFile::name() const
-    {
-        return _path.filename().string();
     }
 }

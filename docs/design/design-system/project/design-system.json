@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-19T17:00:00Z",
+    "at": "2026-10-19T23:30:00Z",
     "via": "Claude Code",
-    "note": "In review: ModTree's levels are set in by space-4, and a name is 6 px after its arrow's column."
+    "note": "In review: SaveBar's Not saved state, the status after a Save that failed."
   },
   "layout": "files",
   "libraries": [],

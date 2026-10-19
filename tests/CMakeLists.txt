@@ -15,6 +15,7 @@ add_executable(${PROJECT_NAME}_tests
   McmLoaderTests.cpp
   McmStoreTests.cpp
   MenuControlsTests.cpp
+  ModFileTests.cpp
   NumbersTests.cpp
   PackageLoaderTests.cpp
   PackageStoreTests.cpp
@@ -48,6 +49,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/package/IniFile.cpp
+  ${SOURCE_DIR}/package/ModFile.cpp
   ${SOURCE_DIR}/package/PackageLoader.cpp
   ${SOURCE_DIR}/package/PackageStore.cpp
   ${SOURCE_DIR}/package/TomlFile.cpp

@@ -42,4 +42,30 @@ namespace test_files
             std::ofstream(path / file, std::ios::binary | std::ios::trunc) << text;
         }
     };
+
+    /**
+     * A file that cannot be written while this lives, and can again after. Windows makes a file read-only only
+     * when it has no write permission for anyone.
+     */
+    struct ReadOnly
+    {
+        static constexpr auto WRITE = std::filesystem::perms::owner_write | std::filesystem::perms::group_write | std::filesystem::perms::others_write;
+
+        std::filesystem::path path;
+
+        explicit ReadOnly(std::filesystem::path file)
+            : path(std::move(file))
+        {
+            std::filesystem::permissions(path, WRITE, std::filesystem::perm_options::remove);
+        }
+
+        ReadOnly(const ReadOnly&) = delete;
+        ReadOnly& operator=(const ReadOnly&) = delete;
+
+        ~ReadOnly()
+        {
+            std::error_code error;
+            std::filesystem::permissions(path, WRITE, std::filesystem::perm_options::add, error);
+        }
+    };
 }

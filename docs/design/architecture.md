@@ -124,17 +124,18 @@ Save proceeds as follows:
 4. Apply the dirty settings.
 5. Serialize each file to a memory buffer.
 6. Parse each buffer and check that every dirty setting reads back with its intended value.
-7. Write each buffer over its file, creating a file that does not exist.
-8. If a write fails, write the content read in step 2 back to the files already written, delete the files this Save created, and report the failure. The Save stops there.
-9. Write the dirty globals and properties into the game.
-10. Run the action of each setting that was written, in the order of the package, with its saved value.
-11. Call the scoped native `OnSettingsSaved` callback with one batch.
-12. Send one final native notification and one equivalent Papyrus notification.
-13. Tell the player that the game has to be restarted, when a `restart` setting was written.
+7. Check that every dirty global and property is still in the game. One that is not fails the Save.
+8. Write each buffer over its file, creating a file that does not exist, with any missing folders in its path.
+9. If a write fails, write the content read in step 2 back to the files already written, delete the files this Save created, and report the failure. The folders it created stay. The Save stops there.
+10. Write the dirty globals and properties into the game.
+11. Run the action of each setting that was written, in the order of the package, with its saved value.
+12. Call the scoped native `OnSettingsSaved` callback with one batch.
+13. Send one final native notification and one equivalent Papyrus notification.
+14. Tell the player that the game has to be restarted, when a `restart` setting was written.
 
-Nothing is written before step 7, so a validation, parsing, or serialization problem leaves every file untouched. The game's values are written after the files, so a Save that fails changes none of them either.
+Nothing is written before step 8, so a validation, parsing, or serialization problem, or a global or a property that is gone, leaves every file untouched. The game's values are written after the files, so a Save that fails changes none of them either. A Save that fails keeps every setting dirty, so the next Save tries them all again. The footer's status says why it failed, in the design system's SaveBar's Not saved state, until the next change, Save or Discard.
 
-A crash during step 7 can leave the file being written incomplete. Each file is a few kilobytes written in one call, so the window is small and is accepted. Whether to keep a last-good copy is an open question.
+A crash during step 8 can leave the file being written incomplete. Each file is a few kilobytes written in one call, so the window is small and is accepted. Whether to keep a last-good copy is an open question.
 
 The final notification means:
 

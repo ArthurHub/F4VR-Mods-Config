@@ -2156,12 +2156,12 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
     CHECK(panel.helpLine().status() == "No unsaved changes");
-    CHECK_FALSE(panel.helpLine().isStatusPending());
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Plain);
 
     CHECK(pressActs(panel, pageRow(0)));
     drawFrames(panel, 1);
     CHECK(panel.helpLine().status() == "1 unsaved change");
-    CHECK(panel.helpLine().isStatusPending());
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Pending);
     CHECK(pressActs(panel, pageRow(1)));
     drawFrames(panel, 1);
     CHECK(panel.helpLine().status() == "2 unsaved changes");
@@ -2174,7 +2174,7 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     // the menu's front page has no session
     panel.select({});
     CHECK(panel.helpLine().status().empty());
-    CHECK_FALSE(panel.helpLine().isStatusPending());
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Plain);
 }
 
 TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them back, and both are disabled while none waits")
@@ -2218,6 +2218,70 @@ TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them bac
     panel.select({});
     drawFrames(panel, 2);
     CHECK_FALSE(pressActs(panel, saveButton()));
+}
+
+TEST_CASE("FullPanel: a Save that fails says why in the help line, until the next change, and Save is still enabled")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\nbOther = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } },
+            { "type": "switcher", "text": "Other", "default": false, "storage": { "path": ["Main", "bOther"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    {
+        const test_files::ReadOnly readOnly(file);
+        CHECK(pressActs(panel, saveButton()));
+        drawFrames(panel, 1);
+    }
+    CHECK(store.dirtyCount() == 1);
+    CHECK(panel.helpLine().status() == "Not saved: MyMod.toml cannot be written.");
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Failed);
+
+    // the row the ray is on has its help over it, and the status is there again as the ray leaves
+    test_panel::drawFrame(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Other: (Default: off)");
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "Not saved: MyMod.toml cannot be written.");
+
+    // a change ends it
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "2 unsaved changes");
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Pending);
+
+    // and so do a Save that writes, and a Discard
+    {
+        const test_files::ReadOnly readOnly(file);
+        CHECK(pressActs(panel, saveButton()));
+    }
+    CHECK(pressActs(panel, discardButton()));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+    CHECK(pressActs(panel, pageRow(0)));
+    {
+        const test_files::ReadOnly readOnly(file);
+        CHECK(pressActs(panel, saveButton()));
+    }
+    CHECK(pressActs(panel, saveButton()));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+    CHECK(store.dirtyCount() == 0);
 }
 
 TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, and its Reset sets the default")

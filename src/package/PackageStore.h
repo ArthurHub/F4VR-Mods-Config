@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -61,7 +62,13 @@ namespace mods_config::package
 
         bool isDirty(const model::Setting& setting) const override;
         std::size_t dirtyCount() const override;
-        bool save() override;
+        std::expected<void, std::string> save() override;
+
+        std::string_view saveFailure() const override
+        {
+            return _saveFailure;
+        }
+
         void discard() override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         bool run(const model::Action& action) override;
@@ -126,5 +133,8 @@ namespace mods_config::package
 
         // the settings of the game that are previewed, by the setting, which is not read through it
         std::unordered_map<const model::Setting*, Preview> _previews;
+
+        // why the last Save did not write every dirty setting, until the next change, Save or Discard
+        std::string _saveFailure;
     };
 }

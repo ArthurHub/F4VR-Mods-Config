@@ -46,8 +46,8 @@ namespace
         float inkWidth = 0.0f;
         Look look;
 
-        // it is the warning mark, with no text
-        bool warningMark = false;
+        // the mark it is, with no text
+        ui::TextMark mark = ui::TextMark::None;
     };
 
     /**
@@ -117,16 +117,16 @@ namespace
     }
 
     /**
-     * The words of pieces of text that are one text, in the current font size. The warning mark is a word
-     * of its own, with the room of a space after it.
+     * The words of pieces of text that are one text, in the current font size. A mark is a word of its own,
+     * with the room of a space after it.
      */
     std::vector<Word> wordsOf(const std::span<const ui::TextPiece> pieces)
     {
         std::vector<Word> words;
         for (const auto& piece : pieces) {
             const Look look{ .fontSize = ImGui::GetFontSize(), .color = piece.color, .font = ImGui::GetFont(), .underline = false };
-            if (piece.warningMark) {
-                words.push_back({ .text = {}, .width = ui::WARNING_MARK_WIDTH + theme::SPACE_2, .inkWidth = ui::WARNING_MARK_WIDTH, .look = look, .warningMark = true });
+            if (piece.mark != ui::TextMark::None) {
+                words.push_back({ .text = {}, .width = ui::WARNING_MARK_WIDTH + theme::SPACE_2, .inkWidth = ui::WARNING_MARK_WIDTH, .look = look, .mark = piece.mark });
             } else {
                 addWords(piece.text, look, words);
             }
@@ -137,7 +137,7 @@ namespace
     /**
      * Draws words on one line, set in its room by the line's align. Words of a smaller size stand on the
      * bottom of the line. An underlined word has its line under it and under the spaces after it, but not
-     * under the spaces that end the line. The warning mark is in the middle of the line's height.
+     * under the spaces that end the line. A mark is in the middle of the line's height.
      * Returns the height of the line.
      */
     float drawWords(const std::span<const Word> words, const model::TextAlign align, const ImVec2& pos, const float width)
@@ -160,8 +160,9 @@ namespace
         auto* drawList = ImGui::GetWindowDrawList();
         for (const auto& word : words) {
             const auto& look = word.look;
-            if (word.warningMark) {
-                ui::drawWarningMark(ImVec2(x + ui::WARNING_MARK_WIDTH * 0.5f, pos.y + height * 0.5f));
+            if (word.mark != ui::TextMark::None) {
+                const ImVec2 center(x + ui::WARNING_MARK_WIDTH * 0.5f, pos.y + height * 0.5f);
+                word.mark == ui::TextMark::Warning ? ui::drawWarningMark(center) : ui::drawInvalidMark(center);
                 x += word.width;
                 continue;
             }

@@ -8,7 +8,6 @@
 #include <variant>
 
 #include "common/TomlEditor.h"
-#include "config/ConfigFile.h"
 
 using namespace mods_config;
 
@@ -84,35 +83,18 @@ namespace
         }
         return common::TomlEditor::Value(node).text();
     }
-
-    /**
-     * The whole text of a file, or the reason it is not there or cannot be read.
-     */
-    std::expected<std::string, std::string> readText(const std::filesystem::path& path)
-    {
-        auto text = f4cf::config::ConfigFile::readFile(path.string());
-        if (!text) {
-            const auto name = path.filename().string();
-            return std::unexpected(std::filesystem::exists(path) ? std::format("{} cannot be read", name) : std::format("there is no file {}", name));
-        }
-        return std::move(*text);
-    }
 }
 
 namespace mods_config::package
 {
     /**
-     * Reads the file's values. A file that is not there, cannot be read or is no TOML has none, and the reason
-     * is returned: a parse error says what is wrong, at which line and column.
+     * Takes the values of a text as the file's. A text that is no TOML has none, and the reason is returned: a
+     * parse error says what is wrong, at which line and column.
      */
-    std::expected<void, std::string> TomlFile::read()
+    std::expected<void, std::string> TomlFile::load(const std::string& text)
     {
         _table = {};
-        const auto text = readText(_path);
-        if (!text) {
-            return std::unexpected(text.error());
-        }
-        auto table = common::parseToml(*text, name());
+        auto table = common::parseToml(text, name());
         if (!table) {
             return std::unexpected(std::move(table.error()));
         }
@@ -148,18 +130,13 @@ namespace mods_config::package
     }
 
     /**
-     * Writes values into the file. It is read again first, so a value someone else changed since it was read
-     * stays, but for one that is written here. Each value replaces the text of the one the file has, and one it
-     * does not have is added. A file that has every value already is not written. When one of them cannot be
-     * written, or the file cannot be read or is no TOML, it is not written at all, and the reason is returned.
+     * A text with values set in it: each replaces the text of the one the text has, and one it does not have is
+     * added. `common::TomlEditor` checks that each reads back. Returns the reason for a text that is no TOML, and
+     * for a value that cannot be set.
      */
-    std::expected<void, std::string> TomlFile::write(const std::span<const Change> changes)
+    std::expected<std::string, std::string> TomlFile::edit(const std::string& text, const std::span<const Change> changes) const
     {
-        const auto text = readText(_path);
-        if (!text) {
-            return std::unexpected(text.error());
-        }
-        common::TomlEditor editor(*text, name());
+        common::TomlEditor editor(text, name());
         if (!editor.ok()) {
             return std::unexpected(editor.error());
         }
@@ -177,11 +154,7 @@ namespace mods_config::package
         if (!editor.set(edits)) {
             return std::unexpected(editor.error());
         }
-        if (editor.text() != *text && !f4cf::config::ConfigFile::writeFile(_path.string(), editor.text())) {
-            return std::unexpected(std::format("{} cannot be written", name()));
-        }
-        _table = editor.table();
-        return {};
+        return editor.text();
     }
 
     /**
@@ -202,13 +175,5 @@ namespace mods_config::package
             node = node[key];
         }
         return node;
-    }
-
-    /**
-     * The file's name, which names it in a reason.
-     */
-    std::string TomlFile::name() const
-    {
-        return _path.filename().string();
     }
 }

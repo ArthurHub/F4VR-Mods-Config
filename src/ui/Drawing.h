@@ -14,13 +14,23 @@
 namespace mods_config::ui
 {
     /**
-     * A piece of a text that is drawn in one color, or the warning mark, which has no text.
+     * A mark that is a piece of a text, with no text: the warning mark, or the invalid mark.
+     */
+    enum class TextMark : std::uint8_t
+    {
+        None,
+        Warning,
+        Invalid,
+    };
+
+    /**
+     * A piece of a text that is drawn in one color, or a mark.
      */
     struct TextPiece
     {
         std::string_view text;
         ImU32 color = 0;
-        bool warningMark = false;
+        TextMark mark = TextMark::None;
     };
 
     /**
@@ -43,7 +53,7 @@ namespace mods_config::ui
     // the box of the arrow of a row that opens and closes, as a mod's row of the tree and a section that folds
     constexpr float FOLD_ARROW_SIZE = 14.0f;
 
-    // the box of the warning mark, as the design system draws it
+    // the box of the warning mark and of the invalid mark, as the design system draws them
     constexpr float WARNING_MARK_WIDTH = 20.0f;
 
     float mcmScale();
