@@ -2227,3 +2227,131 @@ TEST_CASE("FullPanel: the help line names the default of the row the ray is on, 
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Enabled: What it does. (Default: on)");
 }
+
+namespace
+{
+    /**
+     * A package's mod with sections that fold, shown on its front page, with its values in a TOML file of a
+     * My Games folder. Its rows: a switcher, the heading of Advanced, which starts folded and has a switcher
+     * whose value is invalid and another in it, the heading of Open, which starts open and has a switcher in
+     * it, that switcher, and the heading of a section with a help that does not fold. The mod has a page with no rows.
+     */
+    FullPanel modWithFolds(package::PackageStore& store, const test_files::TempFolder& myGames)
+    {
+        myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = true\r\nbInvalid = \"yes\"\r\nbInner = false\r\nbShown = false\r\n");
+        auto mod = package::loadPackage(R"({
+            "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+            "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+            "defaultFile": "main",
+            "content": [
+                { "type": "switcher", "text": "Enable", "help": "Turns it on.", "storage": { "path": ["Main", "bEnable"] } },
+                { "type": "section", "text": "Advanced", "help": "Fine-tuning.", "isCollapsible": true, "collapsed": true, "content": [
+                    { "type": "switcher", "text": "Invalid", "storage": { "path": ["Main", "bInvalid"] } },
+                    { "type": "switcher", "text": "Inner", "help": "In the folded section.", "storage": { "path": ["Main", "bInner"] } }
+                ] },
+                { "type": "section", "text": "Open", "isCollapsible": true, "content": [
+                    { "type": "switcher", "text": "Shown", "help": "In the open section.", "storage": { "path": ["Main", "bShown"] } }
+                ] },
+                { "type": "section", "text": "Plain", "help": "A heading that does not fold.", "content": [] }
+            ],
+            "pages": [ { "pageDisplayName": "Other", "content": [] } ]
+        })");
+        REQUIRE(mod);
+        FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
+        panel.setMods({ std::move(*mod) });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+}
+
+TEST_CASE("FullPanel: a section that folds starts as its collapsed says, and a press on its heading folds or opens it, and acts")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    package::PackageStore store({}, myGames.path);
+    auto panel = modWithFolds(store, myGames);
+    drawFrames(panel, 2);
+
+    // Advanced is folded, and Open is open
+    point(panel, pageRow(3));
+    CHECK(panel.helpLine().text() == "Shown: In the open section.");
+
+    CHECK(pressActs(panel, pageRow(1)));
+    point(panel, pageRow(3));
+    CHECK(panel.helpLine().text() == "Inner: In the folded section.");
+
+    CHECK(pressActs(panel, pageRow(1)));
+    point(panel, pageRow(3));
+    CHECK(panel.helpLine().text() == "Shown: In the open section.");
+
+    // the heading of Open, with no help, and the one that does not fold, where its row was
+    CHECK(pressActs(panel, pageRow(2)));
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Open");
+    point(panel, pageRow(3));
+    CHECK(panel.helpLine().text() == "Plain: A heading that does not fold.");
+}
+
+TEST_CASE("FullPanel: a section that folds starts as its collapsed says each time its page is shown")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    package::PackageStore store({}, myGames.path);
+    auto panel = modWithFolds(store, myGames);
+    // Advanced is opened and Open is folded, and then the page is shown again
+    const auto foldBoth = [&panel] {
+        drawFrames(panel, 2);
+        CHECK(pressActs(panel, pageRow(1)));
+        CHECK(pressActs(panel, pageRow(4)));
+    };
+    const auto checkAsCollapsedSays = [&panel] {
+        drawFrames(panel, 2);
+        point(panel, pageRow(2));
+        CHECK(panel.helpLine().text() == "Open");
+        point(panel, pageRow(3));
+        CHECK(panel.helpLine().text() == "Shown: In the open section.");
+    };
+
+    // after another page
+    foldBoth();
+    panel.select(selectionOf(0, 0));
+    panel.back();
+    checkAsCollapsedSays();
+
+    // after the Help page
+    foldBoth();
+    panel.showHelp(true);
+    panel.back();
+    checkAsCollapsedSays();
+}
+
+TEST_CASE("FullPanel: the help line says what a folded section hides: its invalid values, and its changes that wait for a Save")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    package::PackageStore store({}, myGames.path);
+    auto panel = modWithFolds(store, myGames);
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Advanced: Fine-tuning. Folded: 1 invalid value.");
+
+    // open, it says nothing of its rows, which show their own marks
+    CHECK(pressActs(panel, pageRow(1)));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Advanced: Fine-tuning.");
+
+    CHECK(pressActs(panel, pageRow(3)));
+    CHECK(pressActs(panel, pageRow(1)));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Advanced: Fine-tuning. Folded: 1 invalid value, 1 unsaved change.");
+
+    // a section with no help, which hides nothing
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Open");
+    CHECK(pressActs(panel, pageRow(3)));
+    CHECK(pressActs(panel, pageRow(2)));
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Open: Folded: 1 unsaved change.");
+}

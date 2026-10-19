@@ -780,6 +780,98 @@ TEST_CASE("FullPanel render: a package's section in a section, with rows before 
     WARN("Saved " << renderToFile(panel, "package-nested-sections", POINTER_AWAY));
 }
 
+TEST_CASE("FullPanel render: a package's sections that fold, folded with what they hide and open, with the ray on one", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    myGames.write("MyMod.toml", "[Holsters]\nfReach = 99.0\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "switcher", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
+            { "type": "section", "text": "Holsters", "content": [
+                { "type": "switcher", "text": "Enable holsters", "default": true, "storage": { "path": ["Holsters", "bEnabled"] } },
+                { "type": "section", "text": "Advanced", "help": "Fine-tuning of the holsters.", "isCollapsible": true, "collapsed": true, "content": [
+                    { "type": "slider", "text": "Reach", "default": 10.0, "valueOptions": { "min": 0, "max": 50, "step": 1 }, "storage": { "path": ["Holsters", "fReach"] } },
+                    { "type": "slider", "text": "Angle", "default": 45.0, "valueOptions": { "min": 0, "max": 90, "step": 5 }, "storage": { "path": ["Holsters", "fAngle"] } },
+                    { "type": "switcher", "text": "Snap", "default": false, "storage": { "path": ["Holsters", "bSnap"] } }
+                ] },
+                { "type": "slider", "text": "Size", "default": 1.0, "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 }, "storage": { "path": ["Holsters", "fSize"] } }
+            ] },
+            { "type": "section", "text": "Weapons", "isCollapsible": true, "content": [
+                { "type": "switcher", "text": "Draw with the grip", "default": true, "storage": { "path": ["Weapons", "bGrip"] } },
+                { "type": "section", "text": "Even more", "isCollapsible": true, "collapsed": true, "content": [
+                    { "type": "switcher", "text": "Hidden", "default": false, "storage": { "path": ["Weapons", "bHidden"] } }
+                ] }
+            ] },
+            { "type": "section", "text": "Body", "isCollapsible": true, "collapsed": true, "content": [
+                { "type": "slider", "text": "Height", "default": 1.0, "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 }, "storage": { "path": ["Body", "fHeight"] } }
+            ] }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = std::nullopt });
+
+    // Advanced hides Reach, which the file has outside its range, and two changes that wait for a Save
+    const auto& holsters = std::get<model::Group>(panel.mods()[0].frontPage.items[1]);
+    const auto& advanced = std::get<model::Group>(holsters.items[1]);
+    REQUIRE(store.set(std::get<model::Setting>(advanced.items[1]), 60.0f));
+    REQUIRE(store.set(std::get<model::Setting>(advanced.items[2]), true));
+
+    // the heading of Advanced, after the heading of Holsters, which is not as high as a row, and its first row
+    const ImVec2 advancedHeading(pageRow(2).x, pageRow(2).y + 45.0f);
+    WARN("Saved " << renderToFile(panel, "package-folding-sections", advancedHeading));
+}
+
+TEST_CASE("FullPanel render: a package's section in a section, with its line down its rows, their marks, and a folded section in it", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    myGames.write("MyMod.toml", "[Holsters]\nfReach = 99.0\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "section", "text": "Holsters", "content": [
+                { "type": "switcher", "text": "Enable holsters", "default": true, "storage": { "path": ["Holsters", "bEnabled"] } },
+                { "type": "section", "text": "Left hip", "content": [
+                    { "type": "text", "text": "Where the holster sits on the left hip." },
+                    { "type": "slider", "text": "Reach", "default": 10.0, "valueOptions": { "min": 0, "max": 50, "step": 1 }, "storage": { "path": ["Holsters", "fReach"] } },
+                    { "type": "slider", "text": "Down", "default": 12.0, "valueOptions": { "min": 0, "max": 50, "step": 1 }, "storage": { "path": ["Holsters", "fDown"] } },
+                    { "type": "section", "text": "Advanced", "isCollapsible": true, "collapsed": true, "content": [
+                        { "type": "switcher", "text": "Snap", "default": false, "storage": { "path": ["Holsters", "bSnap"] } }
+                    ] }
+                ] },
+                { "type": "slider", "text": "Size", "default": 1.0, "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 }, "storage": { "path": ["Holsters", "fSize"] } }
+            ] },
+            { "type": "section", "text": "Weapons", "content": [
+                { "type": "switcher", "text": "Draw with the grip", "default": true, "storage": { "path": ["Weapons", "bGrip"] } },
+                { "type": "section", "text": "Advanced", "isCollapsible": true, "content": [
+                    { "type": "slider", "text": "Draw angle", "default": 35.0, "valueOptions": { "min": 0, "max": 90, "step": 5 }, "storage": { "path": ["Weapons", "fAngle"] } }
+                ] }
+            ] }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = std::nullopt });
+
+    // Reach is invalid in the file, and Down and Snap wait for a Save
+    const auto& holsters = std::get<model::Group>(panel.mods()[0].frontPage.items[0]);
+    const auto& leftHip = std::get<model::Group>(holsters.items[1]);
+    REQUIRE(store.set(std::get<model::Setting>(leftHip.items[2]), 20.0f));
+    REQUIRE(store.set(std::get<model::Setting>(std::get<model::Group>(leftHip.items[3]).items[0]), true));
+    WARN("Saved " << renderToFile(panel, "package-section-lines", POINTER_AWAY));
+}
+
 TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the switcher that controls it is on", "[.render]")
 {
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);

@@ -325,21 +325,23 @@
     },
     {
       "pageDisplayName": "Sections",
-      "help": "Sections in sections, each set in under the one it is in.",
+      "help": "Sections in sections, each set in under the one it is in, and sections that fold.",
       "content": [
         {
           "type": "switcher", "valueType": "bool", "text": "Before any section", "help": "A row of the page itself.",
           "default": true, "storage": { "path": ["Sections", "bBefore"] }
         },
         {
-          "type": "section", "text": "Holsters",
+          "type": "section", "text": "Holsters", "help": "A section's help, which the help line has while the ray is on its heading.",
           "content": [
             {
               "type": "switcher", "valueType": "bool", "text": "Enable holsters", "help": "A row of the outer section.",
               "default": true, "storage": { "path": ["Sections", "bHolsters"] }
             },
             {
-              "type": "section", "text": "Advanced",
+              // the detailed settings of the section, after the settings they belong to
+              "type": "section", "text": "Advanced", "help": "A section that folds, folded each time the page is shown. Change a row in it and fold it.",
+              "isCollapsible": true, "collapsed": true,
               "content": [
                 {
                   "type": "slider", "valueType": "float", "text": "Reach", "help": "A row of a section in a section.",
@@ -347,7 +349,8 @@
                   "storage": { "path": ["Sections", "fReach"] }
                 },
                 {
-                  "type": "section", "text": "Even more",
+                  "type": "section", "text": "Even more", "help": "A section that folds, open each time the page is shown.",
+                  "isCollapsible": true,
                   "content": [
                     {
                       "type": "slider", "valueType": "float", "text": "Angle", "help": "A row three sections in.",
@@ -383,6 +386,17 @@
         {
           "type": "switcher", "valueType": "bool", "text": "After the sections", "help": "A row of the last section.",
           "default": false, "storage": { "path": ["Sections", "bAfter"] }
+        },
+        {
+          "type": "section", "text": "Folded with an invalid value", "help": "Its file has a value that is not its setting's, which its heading tells.",
+          "isCollapsible": true, "collapsed": true, "defaultFile": "invalid",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Past its most", "help": "The file has 2.0, and the slider goes from 0 to 1.",
+              "default": 0.5, "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+              "storage": { "path": ["Folded", "fPastMost"] }
+            }
+          ]
         }
       ]
     },
@@ -790,6 +804,17 @@
               "type": "switcher", "valueType": "bool", "text": "No operator", "help": "Its condition names a setting and does not say how it is compared, so it is shown.",
               "default": true, "storage": { "path": ["Mistakes", "bNoOperator"] },
               "visibleWhen": { "setting": "showRows", "is": false }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Sections",
+          "content": [
+            {
+              "type": "section", "text": "Collapsed, and does not fold", "collapsed": true,
+              "content": [
+                { "type": "text", "text": "It says it starts folded, and it has no isCollapsible, so it could not be opened: it is open." }
+              ]
             }
           ]
         },

@@ -444,9 +444,9 @@ A section is a heading with its own rows, in its `content`. A section can be in 
 }
 ```
 
-- `isCollapsible` makes the section fold: a press on its heading hides its rows, and another shows them again. `collapsed` makes it start folded.
+- `isCollapsible` makes the section fold: a press on its heading hides its rows, and another shows them again. `collapsed` makes it start folded. A section with `collapsed` and no `isCollapsible` could not be opened, so it is open, and the log says so.
 - A section starts as `collapsed` says each time its page is shown. How the player left it is not remembered.
-- A folded section that has an invalid value or an unsaved change inside it marks its heading, so the player sees that something is there.
+- A folded section that has an invalid value or an unsaved change inside it marks its heading, so the player sees that something is there. It counts the settings in it whose rows would show when it is opened, also in the sections in it.
 - Detailed settings are a folded section right after the settings they belong to, as the Advanced section above. There is no flag of its own for them.
 - What a section has goes down to its rows and to the sections in it: its `defaultFile`, its `applies`, and its conditions; see [Conditions](#conditions).
 - A section has a `text` and can have a `help`, as any row.

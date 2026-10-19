@@ -549,6 +549,8 @@ namespace
     /**
      * The items of the `content` of a page or a section, by their `type`, one for each row. A section is a
      * group of the items of its own `content`, and passes its `defaultFile` and its `applies` down to them.
+     * It folds with `isCollapsible`, and starts folded with `collapsed`: one that does not fold could not be
+     * opened, so its `collapsed` is left out, and the log says so.
      * Any other row the menu does not have is a placeholder with its type.
      */
     std::vector<model::Item> loadItems(const Json& container, const Inherited& above, PackageReading& reading)
@@ -561,8 +563,16 @@ namespace
         for (const auto& row : *content) {
             const auto type = getText(row, "type");
             if (type == "section") {
-                items.emplace_back(
-                    model::Group{ .text = getShownText(row, "text", reading.translations), .items = loadItems(row, inherit(row, above), reading), .visibleWhen = {} });
+                const bool collapsible = getBool(row, "isCollapsible");
+                if (getBool(row, "collapsed") && !collapsible) {
+                    logger::warn("The section '{}' is collapsed and does not fold, so it is open", getText(row, "text"));
+                }
+                items.emplace_back(model::Group{ .text = getShownText(row, "text", reading.translations),
+                    .help = getShownText(row, "help", reading.translations),
+                    .items = loadItems(row, inherit(row, above), reading),
+                    .visibleWhen = {},
+                    .collapsible = collapsible,
+                    .collapsed = collapsible && getBool(row, "collapsed") });
                 continue;
             }
             if (type == "text") {
@@ -901,8 +911,8 @@ namespace mods_config::package
 {
     /**
      * Reads the text of a package's `config.json` into the model: the mod and its help, its files, its front
-     * page and its pages, which nest, with their help, and their sections, which nest, settings, texts,
-     * spacers and images. Every
+     * page and its pages, which nest, with their help, and their sections, which nest and fold, with their
+     * help, settings, texts, spacers and images. Every
      * text the player sees is in the game's language. A setting has the file its value is kept in, and when
      * its change takes effect, which the package's root has to say. A choice has its options or a list of
      * the package's `sharedLists`. A row is shown and enabled by its conditions, which are read once every

@@ -224,7 +224,7 @@ namespace mods_config::devbench
                         if constexpr (std::is_same_v<T, model::Setting>) {
                             return settingToJson(it, store);
                         } else if constexpr (std::is_same_v<T, model::Group>) {
-                            return { { "kind", "section" }, { "text", it.text } };
+                            return { { "kind", "section" }, { "text", it.text }, { "help", it.help }, { "collapsible", it.collapsible }, { "collapsed", it.collapsed } };
                         } else if constexpr (std::is_same_v<T, model::Button>) {
                             return { { "kind", "button" },
                                 { "text", it.text },
@@ -557,7 +557,8 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "page",
             .description = "the rows of the page that is shown, in their order, with the session (dirty: the changes that wait for a Save): each with its kind and depth "
-                           "(a section's rows follow it, one deeper), shown (its condition holds), and for a setting its id, type, value, available, invalid, "
+                           "(a section's rows follow it, one deeper), shown (its condition holds), for a section its help, collapsible (it folds) and "
+                           "collapsed (it starts folded), and for a setting its id, type, value, available, invalid, "
                            "reason, dirty, enabled, default, applies, and its range or options",
             .handler = &runPage,
         });

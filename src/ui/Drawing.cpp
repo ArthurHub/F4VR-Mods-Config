@@ -314,12 +314,18 @@ namespace mods_config::ui
     }
 
     /**
-     * The heading of a section of rows: its text, and a line from it to the right edge.
+     * The heading of a section of rows: its text, and a line from it to a right edge, where the rows end.
+     * ImGui draws the line to the right of the window's work area, past the rows into the room of the scroll
+     * bar, so that edge is the heading's while it is drawn.
      */
-    void sectionHeading(const std::string_view text)
+    void sectionHeading(const std::string_view text, const float right)
     {
+        auto* window = ImGui::GetCurrentWindow();
+        const float workRight = window->WorkRect.Max.x;
+        window->WorkRect.Max.x = right;
         // by its end: the text is a mod's, and ImGui would cut it at a "##"
         ImGui::SeparatorTextEx(0, text.data(), text.data() + text.size(), 0.0f);
+        window->WorkRect.Max.x = workRight;
     }
 
     /**
@@ -460,5 +466,21 @@ namespace mods_config::ui
         const auto bang = ImGui::GetColorU32(theme::color::ON_RED);
         drawList->AddRectFilled(at(9.0f, 6.0f), at(11.0f, 12.0f), bang);
         drawList->AddRectFilled(at(9.0f, 13.4f), at(11.0f, 15.4f), bang);
+    }
+
+    /**
+     * The arrow of a row that opens and closes, in its box from its top left corner: it points down while
+     * the row is open, and right while it is closed, as the design system draws it in a box of 14.
+     */
+    void drawFoldArrow(const ImVec2& topLeft, const bool open, const ImU32 color)
+    {
+        const auto at = [&topLeft](const float x, const float y) {
+            return ImVec2(topLeft.x + x, topLeft.y + y);
+        };
+        if (open) {
+            ImGui::GetWindowDrawList()->AddTriangleFilled(at(2.0f, 4.0f), at(12.0f, 4.0f), at(7.0f, 11.0f), ImGui::GetColorU32(color));
+        } else {
+            ImGui::GetWindowDrawList()->AddTriangleFilled(at(4.0f, 2.0f), at(11.0f, 7.0f), at(4.0f, 12.0f), ImGui::GetColorU32(color));
+        }
     }
 }

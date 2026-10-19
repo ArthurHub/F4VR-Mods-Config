@@ -8,6 +8,7 @@
 
 #include "Choices.h"
 #include "HelpLine.h"
+#include "Sections.h"
 #include "Sliders.h"
 #include "TextInputs.h"
 #include "model/Definition.h"
@@ -39,13 +40,15 @@ namespace mods_config::ui
         std::optional<PointedRow> pointed;
 
         // a press did something in this frame: it changed a value, took hold of a slider, opened the list of
-        // a dropdown, started the edit of a text input, or ran the action of a button. Or the thumbstick stepped a slider or a stepper
+        // a dropdown, started the edit of a text input, ran the action of a button, or folded or opened a
+        // section. Or the thumbstick stepped a slider or a stepper
         bool pressActed = false;
     };
 
     /**
      * A page of a mod, in the content pane of the Full panel: its rows, in the order the mod gives them.
-     * A section, a spacer, a text row and an image are drawn as they are. A setting is drawn as its control,
+     * A section, a spacer, a text row and an image are drawn as they are, and a press on the heading of a
+     * section that folds folds or opens it. A setting is drawn as its control,
      * with the value its store has for it, and a button as its text and a Run button, which runs its action in
      * the store, and a text input as its text in a box, which a press edits. A hotkey is its text and the key the store has for it, which is only shown. Any other row is its text and what it is, until the commit that draws its control.
      */
@@ -71,5 +74,8 @@ namespace mods_config::ui
 
         // its text inputs, and the one that is edited
         TextInputs _textInputs;
+
+        // its sections that fold, and whether each is folded
+        Sections _sections;
     };
 }

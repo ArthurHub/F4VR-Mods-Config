@@ -221,6 +221,34 @@ TEST_CASE("PackageLoader: a section has the rows of its own content, and a secti
                                      });
 }
 
+TEST_CASE("PackageLoader: a section folds with isCollapsible, starts folded with collapsed, and has its help")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "section", "text": "Plain", "content": [] },
+        { "type": "section", "text": "Folds", "help": "Opens and closes.", "isCollapsible": true, "content": [] },
+        { "type": "section", "text": "Folded", "isCollapsible": true, "collapsed": true, "content": [] },
+        { "type": "section", "text": "Collapsed alone", "collapsed": true, "content": [] },
+        { "type": "section", "text": "Not bools", "isCollapsible": "yes", "collapsed": 1, "content": [] }
+    )"));
+
+    struct Fold
+    {
+        std::string help;
+        bool collapsible = false;
+        bool collapsed = false;
+
+        bool operator==(const Fold&) const = default;
+    };
+
+    std::vector<Fold> folds;
+    for (const auto& item : mod.frontPage.items) {
+        const auto& group = std::get<model::Group>(item);
+        folds.push_back({ .help = group.help, .collapsible = group.collapsible, .collapsed = group.collapsed });
+    }
+    // a section that does not fold could not be opened, so it does not start folded
+    CHECK(folds == std::vector<Fold>{ {}, { .help = "Opens and closes.", .collapsible = true }, { .collapsible = true, .collapsed = true }, {}, {} });
+}
+
 TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are settings, and any other row is a placeholder with its type")
 {
     const auto mod = loaded(packageOf(R"(

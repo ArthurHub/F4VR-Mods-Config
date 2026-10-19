@@ -5,3 +5,7 @@
 fPastMost = 2.0
 bText = "yes"
 sPlace = "elbow"
+
+# in a section that is folded as the page is shown, which says it hides an invalid value
+[Folded]
+fPastMost = 2.0

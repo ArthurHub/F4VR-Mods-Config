@@ -475,15 +475,24 @@ namespace mods_config::model
 
     /**
      * A section: its heading and the items under it. A package's sections nest: a group can be an item of a
-     * group.
+     * group, and a package's section can fold.
      */
     struct Group
     {
         std::string text;
+
+        // what the help line says of its heading: empty for none, as an MCM section has
+        std::string help;
         std::vector<Item> items;
 
         // of the heading alone: an item is shown by its own
         std::optional<Condition> visibleWhen;
+
+        // a press on its heading hides its items, and another shows them again
+        bool collapsible = false;
+
+        // it starts folded each time its page is shown. Only a section that folds has it
+        bool collapsed = false;
     };
 
     struct Page

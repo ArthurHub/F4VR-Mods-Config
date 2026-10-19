@@ -21,8 +21,7 @@ namespace
     constexpr float TIP_DEPTH = 20.0f;
     // the room it keeps on its right, for that tip and for its scroll bar:
     constexpr float RIGHT_ROOM = TIP_DEPTH + theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
-    // the arrow of a mod's row, with the column it is in the middle of:
-    constexpr float ARROW_SIZE = 14.0f;
+    // the column the arrow of a mod's row is in the middle of:
     constexpr float ARROW_COLUMN = 16.0f;
 
     enum class RowKind : std::uint8_t
@@ -41,15 +40,8 @@ namespace
      */
     void drawArrow(const ImVec2& rowMin, const bool open, const ImU32 color)
     {
-        const ImVec2 box(rowMin.x + theme::SPACE_2 + (ARROW_COLUMN - ARROW_SIZE) * 0.5f, rowMin.y + (theme::CONTROL_HEIGHT - ARROW_SIZE) * 0.5f);
-        const auto at = [&box](const float x, const float y) {
-            return ImVec2(box.x + x, box.y + y);
-        };
-        if (open) {
-            ImGui::GetWindowDrawList()->AddTriangleFilled(at(2.0f, 4.0f), at(12.0f, 4.0f), at(7.0f, 11.0f), ImGui::GetColorU32(color));
-        } else {
-            ImGui::GetWindowDrawList()->AddTriangleFilled(at(4.0f, 2.0f), at(11.0f, 7.0f), at(4.0f, 12.0f), ImGui::GetColorU32(color));
-        }
+        const ImVec2 box(rowMin.x + theme::SPACE_2 + (ARROW_COLUMN - ui::FOLD_ARROW_SIZE) * 0.5f, rowMin.y + (theme::CONTROL_HEIGHT - ui::FOLD_ARROW_SIZE) * 0.5f);
+        ui::drawFoldArrow(box, open, color);
     }
 
     /**

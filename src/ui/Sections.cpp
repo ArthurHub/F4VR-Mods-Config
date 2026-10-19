@@ -1,0 +1,198 @@
+#include "Sections.h"
+
+#include <algorithm>
+#include <cmath>
+#include <format>
+#include <string>
+#include <variant>
+#include <vector>
+
+#include <imgui.h>
+
+#include "Drawing.h"
+#include "Theme.h"
+#include "model/Conditions.h"
+
+namespace
+{
+    using namespace mods_config;
+
+    /**
+     * What a folded section hides: how many of its settings are invalid, and how many others wait for a Save.
+     */
+    struct HiddenValues
+    {
+        int invalid = 0;
+        int unsaved = 0;
+    };
+
+    /**
+     * Counts the settings of items, and of the sections in them, whose rows would be shown: those whose
+     * condition holds. One is counted by the mark its row has: invalid, or else dirty.
+     */
+    void countHidden(const std::vector<model::Item>& items, model::Store& store, HiddenValues& hidden)
+    {
+        for (const auto& item : items) {
+            if (const auto* group = std::get_if<model::Group>(&item)) {
+                countHidden(group->items, store, hidden);
+                continue;
+            }
+            const auto* setting = std::get_if<model::Setting>(&item);
+            if (!setting || (setting->visibleWhen && !model::holds(*setting->visibleWhen, &store))) {
+                continue;
+            }
+            const auto stored = store.value(*setting);
+            if (stored.invalid) {
+                ++hidden.invalid;
+            } else if (stored.available && store.isDirty(*setting)) {
+                ++hidden.unsaved;
+            }
+        }
+    }
+
+    /**
+     * The help of the heading of a section that folds: its own, and then what it hides while it is folded,
+     * as `Folded: 1 invalid value, 2 unsaved changes.`
+     */
+    std::string foldedHelp(const std::string& help, const HiddenValues& hidden)
+    {
+        std::string what;
+        if (hidden.invalid > 0) {
+            what = std::format("{} invalid value{}", hidden.invalid, hidden.invalid == 1 ? "" : "s");
+        }
+        if (hidden.unsaved > 0) {
+            what += std::format("{}{} unsaved change{}", what.empty() ? "" : ", ", hidden.unsaved, hidden.unsaved == 1 ? "" : "s");
+        }
+        if (what.empty()) {
+            return help;
+        }
+        return std::format("{}{}Folded: {}.", help, help.empty() ? "" : " ", what);
+    }
+
+    /**
+     * What a folded section hides, in the detail size, ending at a right edge: the invalid mark and the count of
+     * the invalid values in red, then the pending mark and the count of the unsaved changes in amber, each only
+     * where there is one. Returns its left edge.
+     */
+    float drawHiddenValues(const float right, const float top, const HiddenValues& hidden)
+    {
+        // the marks' boxes, as the design system draws them
+        constexpr float INVALID_MARK_WIDTH = 20.0f;
+        constexpr float PENDING_MARK_WIDTH = 10.0f;
+
+        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+        const auto invalid = hidden.invalid > 0 ? std::format("{} invalid", hidden.invalid) : std::string();
+        const auto unsaved = hidden.unsaved > 0 ? std::format("{} unsaved", hidden.unsaved) : std::string();
+        float width = 0.0f;
+        if (!invalid.empty()) {
+            width += INVALID_MARK_WIDTH + theme::SPACE_2 + ui::textWidth(invalid);
+        }
+        if (!unsaved.empty()) {
+            width += (invalid.empty() ? 0.0f : theme::SPACE_2 * 2.0f) + PENDING_MARK_WIDTH + theme::SPACE_2 + ui::textWidth(unsaved);
+        }
+
+        const float left = std::floor(right - width);
+        const float middle = top + theme::CONTROL_HEIGHT * 0.5f;
+        float x = left;
+        if (!invalid.empty()) {
+            ui::drawInvalidMark(ImVec2(x + INVALID_MARK_WIDTH * 0.5f, middle));
+            x += INVALID_MARK_WIDTH + theme::SPACE_2;
+            ui::drawText(x, right, top, theme::CONTROL_HEIGHT, theme::color::RED, invalid);
+            x += ui::textWidth(invalid) + theme::SPACE_2 * 2.0f;
+        }
+        if (!unsaved.empty()) {
+            ui::drawPendingMark(ImVec2(x + PENDING_MARK_WIDTH * 0.5f, middle));
+            x += PENDING_MARK_WIDTH + theme::SPACE_2;
+            ui::drawText(x, right, top, theme::CONTROL_HEIGHT, theme::color::AMBER, unsaved);
+        }
+        ImGui::PopFont();
+        return left;
+    }
+}
+
+namespace mods_config::ui
+{
+    /**
+     * The line of a section in a section, along the left of its rows: from under its heading down to the
+     * bottom of its last row, where it turns toward the rows in a short foot with a rounded corner. It shows
+     * what the section covers, so a row after it is seen to be the outer section's.
+     */
+    void drawSectionLine(const float left, const float top, const float bottom)
+    {
+        // the length of the foot, as the design system draws it: not a token
+        constexpr float FOOT_WIDTH = 14.0f;
+        const float x = left + theme::BORDER_FRAME * 0.5f;
+        const float y = bottom - theme::BORDER_FRAME * 0.5f;
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathLineTo(ImVec2(x, top));
+        drawList->PathArcTo(ImVec2(x + theme::RADIUS_FRAME, y - theme::RADIUS_FRAME), theme::RADIUS_FRAME, IM_PI, IM_PI * 0.5f);
+        drawList->PathLineTo(ImVec2(left + FOOT_WIDTH, y));
+        drawList->PathStroke(ImGui::GetColorU32(theme::color::RULE), ImDrawFlags_None, theme::BORDER_FRAME);
+    }
+
+    /**
+     * Whether a section that folds is folded: as the player left it on the page that is shown, or else as its
+     * `collapsed` says.
+     */
+    bool Sections::isFolded(const model::Group& group) const
+    {
+        const auto found = _folded.find(&group);
+        return found != _folded.end() ? found->second : group.collapsed;
+    }
+
+    /**
+     * Draws the heading of a section that folds in its row, which the page added at a place and in a width: an
+     * arrow that points right while it is folded and down while it is open, its text, and a rule from it to the
+     * right edge of the rows, as a heading has. Its text and its arrow are muted, and brighter while the ray
+     * is on it. A press on the row folds or opens it.
+     * Folded, it says at the right what it hides: how many of its settings are invalid, and how many wait for
+     * a Save, and the help it tells while the ray is on it has that after the section's own.
+     * Returns whether the section is folded, after a press in this frame.
+     */
+    bool Sections::drawHeading(const model::Group& group, model::Store* store, const ImVec2& pos, const float width, const SectionRow& row, std::string& help)
+    {
+        bool folded = isFolded(group);
+        if (row.pressed) {
+            folded = !folded;
+            _folded[&group] = folded;
+        }
+
+        HiddenValues hidden;
+        if (folded && store && row.shown) {
+            countHidden(group.items, *store, hidden);
+        }
+        if (row.pointed) {
+            help = foldedHelp(group.help, hidden);
+        }
+        if (!row.shown) {
+            return folded;
+        }
+
+        // the room a rule keeps at the least, as the design system has it
+        constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
+        const auto color = row.pointed || row.held ? theme::color::GREEN : theme::color::GREEN_MUTED;
+        drawFoldArrow(ImVec2(pos.x + theme::SPACE_2, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
+        float ruleRight = pos.x + width;
+        if (hidden.invalid > 0 || hidden.unsaved > 0) {
+            ruleRight = drawHiddenValues(ruleRight - theme::SPACE_3, pos.y, hidden) - theme::SPACE_2;
+        }
+        const float textLeft = pos.x + theme::SPACE_2 + FOLD_ARROW_SIZE + theme::SPACE_2;
+        const float textRight = (std::min)(textLeft + textWidth(group.text), ruleRight - RULE_MIN_WIDTH - theme::SPACE_3);
+        drawText(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, group.text);
+        const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
+        if (ruleLeft < ruleRight) {
+            const float ruleTop = std::floor(pos.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);
+            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(ruleRight, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        }
+        return folded;
+    }
+
+    /**
+     * Forgets how the sections of the page were folded, as another page is shown: each starts as its
+     * `collapsed` says each time its page is shown.
+     */
+    void Sections::reset()
+    {
+        _folded.clear();
+    }
+}

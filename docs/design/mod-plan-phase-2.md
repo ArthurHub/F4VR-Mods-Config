@@ -45,7 +45,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | #   | Repo | Commit                                                                                    | Status |
 | --- | ---- | ----------------------------------------------------------------------------------------- | ------ |
 | M59 | mod  | Text, spacers and images in a package                                                     | in review |
-| M108 | mod | A section folds, and marks what it hides                                                  | todo   |
+| M108 | mod | A section folds, and marks what it hides                                                  | in review |
 | M109 | mod | Pages under pages: the tree's levels, the breadcrumbs and Back                            | todo   |
 | M111 | mod | A read-only setting, and how a number is shown                                            | todo   |
 | M112 | mod | A row warns while a condition holds                                                       | todo   |
@@ -63,7 +63,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 
 M108, M109, M111 and M112 draw what M103 added to the page and the tree:
 
-- M108: a section that folds opens and closes with a press on its heading, starts as its `collapsed` says each time its page is shown, and marks its heading while it hides an invalid value or an unsaved change.
+- M108: a section that folds opens and closes with a press on its heading, starts as its `collapsed` says each time its page is shown, and marks its heading while it hides an invalid value or an unsaved change. A section in a section that is open has the line down its rows that shows what it covers.
 - M109: a page's pages are rows under it in the tree, a level further in, with a crumb for each level, and Back goes a level up.
 - M111: a read-only setting, and the decimals, the unit and the percentage of a number's `display`.
 - M112: a setting or a button whose warning holds has a warning mark, and the help line shows the warning before the row's help.

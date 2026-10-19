@@ -39,6 +39,9 @@ namespace mods_config::ui
     // the strokes of a drawn icon, as the design system draws its icons in a box of 24
     constexpr float ICON_THICKNESS = 2.5f;
 
+    // the box of the arrow of a row that opens and closes, as a mod's row of the tree and a section that folds
+    constexpr float FOLD_ARROW_SIZE = 14.0f;
+
     float mcmScale();
     float textWidth(std::string_view text);
     void drawText(float left, float right, float top, float height, ImU32 color, std::string_view text);
@@ -46,7 +49,7 @@ namespace mods_config::ui
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
     int countTextLines(std::span<const TextPiece> pieces, float width);
     void drawTextPieces(std::span<const TextPiece> pieces, const ImVec2& pos, float width, int maxLines);
-    void sectionHeading(std::string_view text);
+    void sectionHeading(std::string_view text, float right);
     void drawOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawDashedOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawRowState();
@@ -57,4 +60,5 @@ namespace mods_config::ui
     ImU32 valueColor(ValueLook look);
     void drawPendingMark(const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);
+    void drawFoldArrow(const ImVec2& topLeft, bool open, ImU32 color);
 }
