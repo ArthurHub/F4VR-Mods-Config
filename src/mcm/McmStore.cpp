@@ -357,7 +357,8 @@ namespace mods_config::mcm
      * Starts the session of a mod, after it ends the one of the mod before it: the settings of an id are the
      * mod's. Its ModSettings are read from MCM's files now, and the player's file again as another of its pages
      * is shown: MCM writes it on every set, so the files have what MCM has. Its hotkeys are read now alone: MCM
-     * writes their file as its own menu closes.
+     * writes their file as its own menu closes. The options a choice reads in the game are read now, and again
+     * as another page is shown.
      * The scripts are told that the mod is shown, as MCM's menu tells them for a press on the mod's row.
      */
     void McmStore::open(const model::Mod& mod)
@@ -366,6 +367,7 @@ namespace mods_config::mcm
         _modName = mod.name;
         _modSettings.load(_mcmFolder, mod.name);
         _keybinds.load(_mcmFolder, mod.name);
+        _options.read(mod);
         logger::debug("Read {} ModSettings and {} hotkeys of '{}' from MCM's files", _modSettings.size(), _keybinds.size(), mod.name);
         addSettings(mod.frontPage.items, _settings);
         for (const auto& page : mod.pages) {
@@ -388,6 +390,7 @@ namespace mods_config::mcm
         _modName.clear();
         _modSettings.load({}, {});
         _keybinds.load({}, {});
+        _options.clear();
         _held.clear();
         _settings.clear();
     }
@@ -395,6 +398,7 @@ namespace mods_config::mcm
     /**
      * Reads the player's file of the ModSettings of the mod that is selected again, as another of its pages is
      * shown, so a value a script set since shows there: MCM writes the file on every set, also one of a script.
+     * The options a choice reads in the game are read again too, as a script can change its list.
      * Nothing with no mod selected.
      */
     void McmStore::pageShown()
@@ -402,6 +406,7 @@ namespace mods_config::mcm
         if (_modName.empty()) {
             return;
         }
+        _options.readAgain();
         if (const auto changed = _modSettings.readAgain()) {
             logger::debug("Read the ModSettings of '{}' from MCM's files again: {} changed", _modName, changed);
         }
@@ -414,10 +419,14 @@ namespace mods_config::mcm
      * A property of a script is read from the script now too.
      * A ModSetting that is in neither of MCM's files is what MCM reads for it, until it is set and held.
      * A global that is not in the game is not available, with the reason, and neither is a property that is
-     * not in the game, and a value of a storage the store does not read.
+     * not in the game, a value of a storage the store does not read, and a choice whose list of options is not
+     * in the game.
      */
     model::StoredValue McmStore::value(const model::Setting& setting)
     {
+        if (const auto reason = _options.notAvailable(setting); !reason.empty()) {
+            return { .value = valueWithNone(setting), .available = false, .reason = std::string(reason) };
+        }
         if (std::holds_alternative<model::NoStorage>(setting.storage)) {
             const auto held = _held.find(&setting);
             return { .value = held != _held.end() ? held->second : valueWithNone(setting), .available = true, .reason = {} };

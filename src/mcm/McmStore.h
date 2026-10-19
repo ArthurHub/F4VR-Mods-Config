@@ -13,6 +13,7 @@
 #include "GameValues.h"
 #include "McmKeybinds.h"
 #include "McmModSettings.h"
+#include "model/ChoiceOptions.h"
 #include "model/Definition.h"
 #include "model/Store.h"
 
@@ -39,6 +40,8 @@ namespace mods_config::mcm
      * of its pages is shown, as a script can set one. It is written through MCM. It alone has a default: the
      * value of the mod's own file.
      * The key of a hotkey is read from MCM's files then too, and is only shown.
+     * A choice that reads its options in the game, from a FormList or a property of a script, reads them as
+     * its mod is selected and again as another of its pages is shown, as MCM's menu does.
      * A global is read and written with `getGlobal` and `setGlobal`, and a property of a script with
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
@@ -62,6 +65,11 @@ namespace mods_config::mcm
         model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;
         std::optional<model::Value> defaultValue(const model::Setting& setting) override;
+
+        const std::vector<model::Option>& options(const model::Setting& setting) const override
+        {
+            return _options.of(setting);
+        }
 
         bool savesAtOnce() const override
         {
@@ -104,6 +112,9 @@ namespace mods_config::mcm
 
         // the hotkeys of the mod that is selected, with the key of each as MCM's files had it when it was
         McmKeybinds _keybinds;
+
+        // the options of the choices of the mod that is selected
+        model::ChoiceOptions _options;
 
         // the settings of the mod that is selected, by their ids
         std::map<std::string, const model::Setting*, std::less<>> _settings;

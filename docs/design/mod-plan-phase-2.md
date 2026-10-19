@@ -51,7 +51,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M112 | mod | A row warns while a condition holds                                                       | in review |
 | M49 | mod  | A package's button calls a Papyrus function or runs a console command, with its own text  | in review |
 | M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | in review |
-| M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a package        | todo   |
+| M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a package        | in review |
 | M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | todo   |
 | M53 | mod  | A Save that fails leaves every file as it was                                             | todo   |
 | M54 | mod  | Save creates a file that is missing                                                       | todo   |
@@ -74,7 +74,7 @@ M49 lets a package use the actions the menu supports for MCM, so a script-only m
 
 M107 lets a script mod keep its package's settings where its scripts and the game read them, as an MCM mod does. A global and a property are pending until Save, as a key of a file is, and the store previews a `live` one by writing it into the game. Save writes them after the files, then runs the action of each setting it wrote, with `"{value}"`. It is tried with a package written for one of the test set's MCM mods that keeps its values in globals. The package showcase gets a slider of the time of day, kept in the game's global `GameHour` (`Fallout4.esm|38`) with `applies` `live`, so the time changes as the slider moves.
 
-M110 reads MCM's `listFromForm` and `listFromProperty`, for an MCM config and a package alike. The store answers the options of a choice, which it reads in the game as the page is shown: until then they are fixed in the definition. It comes after M107, which reads a property of a script for a package. No MCM config of the author's lists has either, so the unit tests cover it.
+M110 reads MCM's `listFromForm` and `listFromProperty`, for an MCM config and a package alike. The store answers the options of a choice, which it reads in the game as the mod is selected: the MCM store again as another page is shown, as MCM's menu does, and the package store with the rest of its baseline. A choice whose list is not in the game is not available, with the reason. It comes after M107, which reads a property of a script for a package. No MCM config of the author's lists has either, so the unit tests cover it, and both showcases have choices of the game's FormLists of its settlements and of its companions.
 
 M50 is for the many F4SE mods that keep their config in an INI file, and for a CommonFramework mod on an older framework.
 

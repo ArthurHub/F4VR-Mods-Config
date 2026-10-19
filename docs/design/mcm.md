@@ -68,7 +68,7 @@ What a row has beside its type:
 | No `sourceType` | As in MCM: the value is held while the mod is selected | M25 |
 | A value that is not available | The row is disabled, and the help line says why | M25 |
 | The default of a ModSetting | Its Reset, which MCM's menu does not have | M102 |
-| `listFromForm`, `listFromProperty` | Not read: the stepper or the dropdown has no options, and is disabled | M37 |
+| `listFromForm`, `listFromProperty` | As in MCM: the stepper or the dropdown has the options it reads in the game, in place of its `options`, as its mod is selected and as another page is shown. A `sharedOptions` comes first, then a `listFromForm`. A list that is not in the game leaves it with no options, and the help line says why | M110 |
 | `allowModifierKeys` of a hotkey | Not read: it is of an edit the menu does not make | |
 | `precision` of a text input | Not read: a number has 6 decimals at most, MCM's default | M45 |
 

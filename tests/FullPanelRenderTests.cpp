@@ -22,6 +22,7 @@
 #include "TestFiles.h"
 #include "TestGlobals.h"
 #include "TestPanel.h"
+#include "TestProperties.h"
 #include "Theme.h"
 #include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
@@ -1018,6 +1019,35 @@ TEST_CASE("FullPanel render: the dropdowns of files of the MCM showcase", "[.ren
         test_panel::drawFrame(panel, pageRow(3));
     };
     WARN("Saved " << renderToFile(panel, "mcm-showcase-dropdown-files", POINTER_AWAY, false, scrollToEnd));
+}
+
+TEST_CASE("FullPanel render: the choices of the package showcase that read their options in the game", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    test_properties::TestProperties lists;
+    lists.lists[{ "Fallout4.esm", 0x1D98E2, "", "" }] = { "Abernathy Farm", "Cabot House", "The Castle", "Covenant", "Diamond City", "Drumlin Diner" };
+    lists.lists[{ "Fallout4.esm", 0x78591, "", "" }] = { "Cait", "Codsworth", "Curie", "Paladin Danse", "Deacon", "John Hancock" };
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods(mods);
+    const auto& examples = panel.mods()[0].pages;
+    const auto detailed = std::ranges::find(examples, "Detailed Examples", &model::Page::name);
+    REQUIRE(detailed != examples.end());
+    const auto page = std::ranges::find(detailed->pages, "Choices", &model::Page::name);
+    REQUIRE(page != detailed->pages.end());
+    panel.select({ .mod = 0, .page = { static_cast<std::size_t>(detailed - examples.begin()), static_cast<std::size_t>(page - detailed->pages.begin()) } });
+
+    // they are at the end of the page: the thumbstick scrolls the page the ray is on
+    const auto scrollToEnd = [&panel] {
+        test_panel::drawFrame(panel, pageRow(3));
+        test_panel::drawFrame(panel, pageRow(3));
+        ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+        test_panel::drawFrame(panel, pageRow(3));
+    };
+    WARN("Saved " << renderToFile(panel, "package-showcase-game-options", POINTER_AWAY, false, scrollToEnd));
 }
 
 TEST_CASE("FullPanel render: the values of a page's settings, and the status of the mod", "[.render]")

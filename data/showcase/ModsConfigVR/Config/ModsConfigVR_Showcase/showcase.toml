@@ -54,6 +54,8 @@ sPlace = "hip"
 iOtherHand = 1
 iMany = 0
 iLong = 1
+sSettlement = "Abernathy Farm"
+iCompanion = 0
 
 [TextInputs]
 sText = "Hello"
@@ -164,6 +166,7 @@ iNoOptions = 0
 iNoList = 0
 sWrongOptions = "b"
 sNoOptionDefault = "a"
+iNoFormList = 0
 bNoSetting = true
 bWrongType = true
 bTextOrder = true

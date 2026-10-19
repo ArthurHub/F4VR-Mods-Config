@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <vector>
 
 #include "Drawing.h"
 #include "model/Definition.h"
@@ -22,27 +23,31 @@ namespace mods_config::ui
         bool pressed = false;
     };
 
-    std::optional<std::size_t> chosenOption(const model::Setting& setting, const model::StoredValue& stored);
+    std::optional<std::size_t> chosenOption(const std::vector<model::Option>& options, const model::StoredValue& stored);
 
     /**
      * The steppers and the dropdowns of the page that is shown: how one is drawn, and how the player picks
      * an option of one. A stepper goes to the option before and after, by its buttons and by the thumbstick,
-     * and a dropdown opens its list over the page.
+     * and a dropdown opens its list over the page. A choice has the options its store answers, which are given
+     * with it.
      * It points into the page that is shown, so it is reset as another page is.
      */
     class Choices
     {
     public:
         void startFrame(float thumbstickSideValue);
-        std::optional<std::size_t> edit(const model::Setting& setting, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen, bool& pulse);
-        float draw(const model::Setting& setting, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen, ValueLook look) const;
+        std::optional<std::size_t> edit(const model::Setting& setting, const std::vector<model::Option>& options, float right, float top, const ChoiceRow& row,
+            std::optional<std::size_t> chosen, bool& pulse);
+        float draw(const model::Setting& setting, const std::vector<model::Option>& options, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen,
+            ValueLook look) const;
         void endFrame();
         bool isListOpen(const model::Setting& setting) const;
         bool closeList();
         void reset();
 
     private:
-        std::optional<std::size_t> editList(const model::Setting& setting, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen, bool& pulse);
+        std::optional<std::size_t> editList(const model::Setting& setting, const std::vector<model::Option>& options, float right, float top, const ChoiceRow& row,
+            std::optional<std::size_t> chosen, bool& pulse);
 
         // the dropdown whose list is open, and none
         const model::Setting* _open = nullptr;

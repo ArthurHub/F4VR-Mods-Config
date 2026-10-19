@@ -579,9 +579,9 @@ A list of options that several choices use is written once, as in an MCM config.
 A choice can take its options from the game, as its page is shown, for a list its author does not know: the settlements the player built, or the weathers that other mods add. MCM's two fields do it:
 
 - `listFromForm` names a FormList, as `"MyMod.esp|900"`. The options are the names of its forms, or the editor ID of a form with no name.
-- `listFromProperty` names a property of a script whose value is an array of texts: `{ "form": "MyMod.esp|800", "scriptName": "MyMod:ConfigScript", "propertyName": "SettlementNames" }`. The options are its texts.
+- `listFromProperty` names a property of a script whose value is an array of texts: `{ "form": "MyMod.esp|800", "scriptName": "MyMod:ConfigScript", "propertyName": "SettlementNames" }`. The options are its texts. `scriptName` is optional: without it, the property is of the form's first script.
 
-A choice of `valueType` `int` stores the place of the option, as MCM does, and one of `valueType` `string` stores its text. A list that changes its order moves a stored place to another option. While the list cannot be read, the choice has no options and is disabled.
+The list is read as the mod is selected, with the values of the session. A choice of `valueType` `int` stores the place of the option, as MCM does, and one of `valueType` `string` stores its text: a choice of another type has no options. A list that changes its order moves a stored place to another option. While the list cannot be read, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options read is invalid. The `default` is any value of the setting's type, as the options are not known before the game is read.
 
 Options supplied by native code are deferred to the native API.
 

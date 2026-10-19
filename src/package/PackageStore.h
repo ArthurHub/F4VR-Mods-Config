@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "model/ChoiceOptions.h"
 #include "model/Definition.h"
 #include "model/Store.h"
 
@@ -25,6 +26,8 @@ namespace mods_config::package
      * shown and edited, and is clean until the player changes it.
      * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
      * The menu reads a TOML file: a setting of any other file is not available.
+     * A choice that reads its options in the game, from a FormList or a property of a script, reads them as the
+     * mod is selected, with the values they are checked against.
      * A global and a property are read and written with `getGlobal`, `setGlobal`, `getProperty` and
      * `setProperty`. A `live` one is previewed: its pending value is written into the game as it is set, and
      * its baseline is written back as it is set back, discarded, or its session ends. Save writes them after
@@ -43,6 +46,11 @@ namespace mods_config::package
         model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;
         std::optional<model::Value> defaultValue(const model::Setting& setting) override;
+
+        const std::vector<model::Option>& options(const model::Setting& setting) const override
+        {
+            return _options.of(setting);
+        }
 
         bool savesAtOnce() const override
         {
@@ -101,6 +109,9 @@ namespace mods_config::package
         // the TOML files of the mod that is selected, absolute, by their names in its package. A file that is
         // not there is one too
         std::map<std::string, std::filesystem::path, std::less<>> _tomlFiles;
+
+        // the options of the choices of the mod that is selected
+        model::ChoiceOptions _options;
 
         // the settings of the mod that is selected, in the order of its package
         std::vector<const model::Setting*> _settingList;

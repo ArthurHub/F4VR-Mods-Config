@@ -1,6 +1,8 @@
 #pragma once
 
 #include <optional>
+#include <string>
+#include <vector>
 
 #include "model/Definition.h"
 
@@ -18,4 +20,8 @@ namespace mods_config
     // the game. Setting one returns false for one that is not in the game.
     std::optional<model::Value> getProperty(const model::PropertyStorage& property);
     bool setProperty(const model::PropertyStorage& property, const model::Value& value);
+
+    // The texts of the options a choice reads in the game: the names of the forms of a FormList, or the texts
+    // of a property of a script whose value is an array of texts. None for a list that is not in the game.
+    std::optional<std::vector<std::string>> getOptionTexts(const model::GameOptions& options);
 }

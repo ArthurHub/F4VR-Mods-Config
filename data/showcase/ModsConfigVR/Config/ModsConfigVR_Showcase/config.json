@@ -934,7 +934,7 @@
         },
         {
           "pageDisplayName": "Choices",
-          "help": "Steppers and dropdowns, of their own options and of a shared list, that store a place, a text or a number.",
+          "help": "Steppers and dropdowns, of their own options, of a shared list and of a list of the game, that store a place, a text or a number.",
           "content": [
             {
               "type": "section",
@@ -1060,6 +1060,30 @@
                     ]
                   },
                   "storage": { "path": ["Choices", "iLong"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "From the game",
+              "content": [
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Settlements",
+                  "help": "A listFromForm: the names of the forms of the game's FormList SettlementLocationsList, read as the mod is selected. It stores the name.",
+                  "default": "Abernathy Farm",
+                  "valueOptions": { "listFromForm": "Fallout4.esm|1D98E2" },
+                  "storage": { "path": ["Choices", "sSettlement"] }
+                },
+                {
+                  "type": "stepper",
+                  "valueType": "int",
+                  "text": "Companions",
+                  "help": "A listFromForm in a stepper: the game's FormList CompanionFormlist. It stores the place of the companion.",
+                  "default": 0,
+                  "valueOptions": { "listFromForm": "Fallout4.esm|78591" },
+                  "storage": { "path": ["Choices", "iCompanion"] }
                 }
               ]
             }
@@ -2640,6 +2664,15 @@
                     ]
                   },
                   "storage": { "path": ["Mistakes", "sNoOptionDefault"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "int",
+                  "text": "A FormList that is not in the game",
+                  "help": "Its listFromForm names a plugin that is not loaded, so it has no options and is not available.",
+                  "default": 0,
+                  "valueOptions": { "listFromForm": "ModsConfigVR_Showcase.esp|800" },
+                  "storage": { "path": ["Mistakes", "iNoFormList"] }
                 }
               ]
             },

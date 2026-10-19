@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "Definition.h"
 
@@ -75,6 +76,12 @@ namespace mods_config::model
          * None for a setting that has no default.
          */
         virtual std::optional<Value> defaultValue(const Setting& setting) = 0;
+
+        /**
+         * The options of a choice: its definition's, or the ones its store read in the game for one that
+         * reads them there. None while that list cannot be read: its value is not available then, with the reason.
+         */
+        virtual const std::vector<Option>& options(const Setting& setting) const = 0;
 
         /**
          * Whether a change is saved as it is made, as an MCM mod's is: nothing waits for a Save then, and no

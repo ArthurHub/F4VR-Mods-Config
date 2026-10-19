@@ -63,11 +63,11 @@ namespace
     }
 
     /**
-     * Whether a value is the value of an option of a choice.
+     * Whether a value is the value of one of the options of a choice.
      */
-    bool isOption(const model::Setting& setting, const model::Value& value)
+    bool isOption(const std::vector<model::Option>& options, const model::Value& value)
     {
-        return std::ranges::any_of(setting.valueOptions.options, [&value](const model::Option& option) {
+        return std::ranges::any_of(options, [&value](const model::Option& option) {
             return isSameValue(option.value, value);
         });
     }
@@ -169,10 +169,10 @@ namespace
     }
 
     /**
-     * The value a setting shows while it has none of its own: its default, or else its least, its first option,
-     * or the zero of its type.
+     * The value a setting shows while it has none of its own: its default, or else its least, the first of its
+     * options, or the zero of its type.
      */
-    model::Value noneValue(const model::Setting& setting)
+    model::Value noneValue(const model::Setting& setting, const std::vector<model::Option>& options)
     {
         if (setting.defaultValue) {
             if (auto value = controlValue(setting, *setting.defaultValue)) {
@@ -182,8 +182,8 @@ namespace
         if (setting.type == model::SettingType::Slider) {
             return setting.valueOptions.min;
         }
-        if (isChoice(setting) && !setting.valueOptions.options.empty()) {
-            return setting.valueOptions.options.front().value;
+        if (isChoice(setting) && !options.empty()) {
+            return options.front().value;
         }
         return controlValue(setting, zeroOf(setting.valueType)).value_or(zeroOf(setting.valueType));
     }
@@ -207,10 +207,10 @@ namespace
 
     /**
      * A value the player sets, as its control has it, if it is one of its setting: inside the limits of a
-     * number, and an option of a choice. A number of a whole number setting is the nearest whole number, and
-     * the text of a number is written as short as it can be. None for a value that is not one.
+     * number, and one of the options of a choice. A number of a whole number setting is the nearest whole
+     * number, and the text of a number is written as short as it can be. None for a value that is not one.
      */
-    std::optional<model::Value> acceptedValue(const model::Setting& setting, const model::Value& value)
+    std::optional<model::Value> acceptedValue(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
         switch (setting.type) {
         case model::SettingType::Switcher:
@@ -228,7 +228,7 @@ namespace
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
-            if (isOption(setting, value)) {
+            if (isOption(options, value)) {
                 return value;
             }
             break;
@@ -272,10 +272,10 @@ namespace
 
     /**
      * Why a value in a file, as its control has it, is not one of its setting: a number outside the limits,
-     * or no option of a choice. Empty for a value that is one. It names the value by its path and its file,
-     * as a reason of a TOML file does.
+     * or none of the options of a choice. Empty for a value that is one. It names the value by its path and its
+     * file, as a reason of a TOML file does.
      */
-    std::string invalidReason(const model::Setting& setting, const model::Value& value, const std::string& path, const std::string& file)
+    std::string invalidReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const std::string& path, const std::string& file)
     {
         const auto number = setting.type == model::SettingType::Slider ? std::optional(std::get<float>(value))
                             : isNumberField(setting)                   ? fieldNumber(setting, std::get<std::string>(value))
@@ -283,7 +283,7 @@ namespace
         if (number && !inLimits(setting, *number)) {
             return std::format("Invalid: {} is {} in {}, which is not from {} to {}.", path, valueText(value), file, setting.valueOptions.min, setting.valueOptions.max);
         }
-        if (isChoice(setting) && !isOption(setting, value)) {
+        if (isChoice(setting) && !isOption(options, value)) {
             return std::format("Invalid: {} is {} in {}, which is none of its options.", path, valueText(value), file);
         }
         return {};
@@ -468,6 +468,8 @@ namespace mods_config::package
      * read, or is no TOML, has its settings not available, with the reason, and so has a file the menu does
      * not read. A value that is not of its setting's type, outside its limits or no option of its choice is
      * invalid, with the reason: of the game, one that is no value of the setting's type is not available.
+     * A choice that reads its options in the game reads them now, and is not available while its list is not
+     * in the game.
      * A read-only setting is never invalid: it has the value of its file as it is, none where the file has
      * none, and is not available where the file's value is not of its type.
      */
@@ -498,13 +500,19 @@ namespace mods_config::package
             }
         }
 
+        _options.read(mod);
         addSettings(mod.frontPage.items, _settingList);
         addSettings(mod.pages, _settingList);
         for (const auto* setting : _settingList) {
             _settings.try_emplace(setting->id, setting);
             auto& entry = _entries[setting];
+            const auto& options = _options.of(*setting);
             if (!controlValue(*setting, zeroOf(setting->valueType))) {
                 entry.notAvailable = "Not available: its control does not show a value of its valueType.";
+                continue;
+            }
+            if (const auto reason = _options.notAvailable(*setting); !reason.empty()) {
+                entry.notAvailable = reason;
                 continue;
             }
             if (const auto* unknown = std::get_if<model::UnknownStorage>(&setting->storage)) {
@@ -519,7 +527,7 @@ namespace mods_config::package
                 }
                 entry.baseline = controlValue(*setting, *stored);
                 if (!setting->readOnly) {
-                    entry.invalid = invalidReason(*setting, *entry.baseline, gameName(setting->storage), "the game");
+                    entry.invalid = invalidReason(*setting, options, *entry.baseline, gameName(setting->storage), "the game");
                 }
                 continue;
             }
@@ -552,7 +560,7 @@ namespace mods_config::package
             }
             entry.baseline = controlValue(*setting, *stored);
             if (!setting->readOnly) {
-                entry.invalid = invalidReason(*setting, *entry.baseline, pathText(storage.path), fileName(mod.files.at(storage.file)));
+                entry.invalid = invalidReason(*setting, options, *entry.baseline, pathText(storage.path), fileName(mod.files.at(storage.file)));
             }
         }
         logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
@@ -568,6 +576,7 @@ namespace mods_config::package
         rollBack();
         _modName.clear();
         _tomlFiles.clear();
+        _options.clear();
         _settingList.clear();
         _settings.clear();
         _entries.clear();
@@ -588,21 +597,22 @@ namespace mods_config::package
      */
     model::StoredValue PackageStore::value(const model::Setting& setting)
     {
+        const auto none = noneValue(setting, _options.of(setting));
         const auto found = _entries.find(&setting);
         if (found == _entries.end()) {
-            return { .value = noneValue(setting), .available = false, .invalid = false, .reason = {} };
+            return { .value = none, .available = false, .invalid = false, .reason = {} };
         }
         const auto& entry = found->second;
         if (!entry.notAvailable.empty()) {
-            return { .value = noneValue(setting), .available = false, .invalid = false, .reason = entry.notAvailable };
+            return { .value = none, .available = false, .invalid = false, .reason = entry.notAvailable };
         }
         if (entry.pending) {
             return { .value = *entry.pending, .available = true, .invalid = false, .reason = {} };
         }
         if (setting.readOnly && !entry.baseline) {
-            return { .value = noneValue(setting), .available = false, .invalid = false, .reason = {} };
+            return { .value = none, .available = false, .invalid = false, .reason = {} };
         }
-        return { .value = entry.baseline.value_or(noneValue(setting)), .available = true, .invalid = !entry.invalid.empty(), .reason = entry.invalid };
+        return { .value = entry.baseline.value_or(none), .available = true, .invalid = !entry.invalid.empty(), .reason = entry.invalid };
     }
 
     /**
@@ -626,7 +636,7 @@ namespace mods_config::package
         if (setting.readOnly || found == _entries.end() || !found->second.notAvailable.empty()) {
             return false;
         }
-        auto accepted = acceptedValue(setting, value);
+        auto accepted = acceptedValue(setting, _options.of(setting), value);
         if (!accepted) {
             logger::debug("A value that is not one of '{}' is not set", setting.text);
             return false;

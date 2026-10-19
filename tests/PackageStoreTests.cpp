@@ -591,6 +591,44 @@ TEST_CASE("PackageStore: the default of a setting is its package's, in the type 
     CHECK_FALSE(session.store.hotkey({}).available);
 }
 
+TEST_CASE("PackageStore: a choice reads its options in the game as its mod is selected, and is not available while its list is not in the game")
+{
+    test_properties::TestProperties lists;
+    lists.lists[{ "MyMod.esp", 0x900, "", "" }] = { "Sanctuary", "Red Rocket" };
+    lists.lists[{ "MyMod.esp", 0x800, "", "Names" }] = { "Nate", "Nora" };
+    Session session(R"(
+        { "type": "dropdown", "text": "Settlement", "default": 0, "valueOptions": { "listFromForm": "MyMod.esp|900" }, "storage": { "path": ["Main", "iPlace"] } },
+        { "type": "stepper", "valueType": "string", "text": "Name", "default": "Nate",
+          "valueOptions": { "listFromProperty": { "form": "MyMod.esp|800", "propertyName": "Names" } }, "storage": { "path": ["Main", "sName"] } },
+        { "type": "dropdown", "text": "Missing", "default": 0, "valueOptions": { "listFromForm": "MyMod.esp|901" }, "storage": { "path": ["Main", "iMissing"] } }
+    )");
+    session.open("[Main]\r\niPlace = 1\r\nsName = \"Shaun\"\r\n");
+    using Options = std::vector<model::Option>;
+
+    // a choice of an int has the place of its option, and one of a string its text
+    CHECK(session.store.options(session.setting(0)) == Options{ { 0, "Sanctuary" }, { 1, "Red Rocket" } });
+    CHECK(session.store.options(session.setting(1)) == Options{ { "Nate"s, "Nate" }, { "Nora"s, "Nora" } });
+    CHECK(session.value(0).value == model::Value(1));
+
+    // a value of the file that is none of the options read is invalid, and only an option is set
+    CHECK(session.value(1).invalid);
+    CHECK(session.value(1).reason == "Invalid: Main.sName is \"Shaun\" in MyMod.toml, which is none of its options.");
+    CHECK(session.store.set(session.setting(1), "Nora"s));
+    CHECK_FALSE(session.store.set(session.setting(0), 2));
+
+    CHECK_FALSE(session.value(2).available);
+    CHECK(session.value(2).reason == "Not available: the FormList MyMod.esp|901 of its options is not in the game.");
+    CHECK(session.store.options(session.setting(2)).empty());
+    CHECK_FALSE(session.store.set(session.setting(2), 0));
+
+    // the options are of the session's start, as its values are: a list that changes is read by the next session
+    lists.lists[{ "MyMod.esp", 0x900, "", "" }].push_back("Abernathy Farm");
+    session.store.pageShown();
+    CHECK(session.store.options(session.setting(0)).size() == 2);
+    session.store.open(session.mod);
+    CHECK(session.store.options(session.setting(0)).size() == 3);
+}
+
 TEST_CASE("PackageStore: a button calls its function or runs its console command at once")
 {
     test_actions::TestActions actions;

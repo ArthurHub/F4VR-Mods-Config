@@ -1038,6 +1038,47 @@ TEST_CASE("McmLoader: a row with sharedOptions has the options of that list of t
     CHECK(optionsOf(mod.pages[0].items[2]) == Lines{ "Own" });
 }
 
+TEST_CASE("McmLoader: a stepper and a dropdown read their options in the game from a FormList or a property, in MCM's order")
+{
+    const auto mod = loaded(R"({ "modName": "MyMod",
+        "sharedLists": { "weather": ["Clear", "Rain"] },
+        "content": [
+            { "type": "dropdown", "text": "Settlement", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "MyMod.esp|801",
+                "listFromForm": "MyMod.esp|0x900", "options": ["Own"] } },
+            { "type": "stepper", "text": "Name", "valueOptions": {
+                "listFromProperty": { "form": "MyMod.esp|800", "scriptName": "MyMod:Config", "propertyName": "Names" } } },
+            { "type": "dropdown", "text": "Both", "valueOptions": { "listFromForm": "MyMod.esp|900",
+                "listFromProperty": { "form": "MyMod.esp|800", "propertyName": "Names" } } },
+            { "type": "dropdown", "text": "Shared", "valueOptions": { "sharedOptions": "weather", "listFromForm": "MyMod.esp|900" } },
+            { "type": "dropdown", "text": "No form", "valueOptions": { "listFromForm": "MyMod.esp", "options": ["Own"] } },
+            { "type": "stepper", "text": "No name", "valueOptions": { "listFromProperty": { "form": "MyMod.esp|800" }, "options": ["Own"] } },
+            { "type": "switcher", "text": "Not a choice", "valueOptions": { "listFromForm": "MyMod.esp|900" } }
+        ]
+    })");
+    const auto valueOptionsOf = [&mod](const std::size_t row) {
+        return std::get<model::Setting>(mod.frontPage.items[row]).valueOptions;
+    };
+    using Options = std::vector<model::Option>;
+
+    // in place of the row's own options, and an option's value is its place, as MCM stores it
+    const auto formList = valueOptionsOf(0);
+    CHECK(formList.gameOptions == model::GameOptions{ .plugin = "MyMod.esp", .formId = 0x900, .script = {}, .property = {}, .storesText = false });
+    CHECK(formList.options.empty());
+    CHECK(valueOptionsOf(1).gameOptions == model::GameOptions{ .plugin = "MyMod.esp", .formId = 0x800, .script = "MyMod:Config", .property = "Names", .storesText = false });
+
+    // a FormList comes before a property, and a shared list before both
+    CHECK(valueOptionsOf(2).gameOptions->property.empty());
+    CHECK_FALSE(valueOptionsOf(3).gameOptions);
+    CHECK(valueOptionsOf(3).options == Options{ { 0, "Clear" }, { 1, "Rain" } });
+
+    // a list that is not written so leaves no options, as MCM's menu has none of it
+    CHECK_FALSE(valueOptionsOf(4).gameOptions);
+    CHECK(valueOptionsOf(4).options.empty());
+    CHECK_FALSE(valueOptionsOf(5).gameOptions);
+    CHECK(valueOptionsOf(5).options.empty());
+    CHECK_FALSE(valueOptionsOf(6).gameOptions);
+}
+
 TEST_CASE("McmLoader: the text of a row that is not a text row is shown without its tags, as MCM sets it as html")
 {
     model::Translations translations;

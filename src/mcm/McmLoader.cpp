@@ -227,6 +227,44 @@ namespace
     }
 
     /**
+     * Where a stepper or a dropdown reads its options in the game, as MCM's menu reads them in place of its
+     * `options`: a `listFromForm` names a FormList, as `MyMod.esp|900`, or else a `listFromProperty` names a
+     * property of a script, by its `form`, its `propertyName` and its `scriptName`. A row with a
+     * `sharedOptions` has the options of that list. An option's value is its place in the list, as MCM stores it.
+     * A list that is not written so leaves the row with no options, as MCM's menu does, with the reason in the log.
+     */
+    void loadGameOptions(const Json& row, model::ValueOptions& valueOptions)
+    {
+        const auto found = row.find("valueOptions");
+        if (found == row.end() || !found->is_object() || !getText(*found, "sharedOptions").empty()) {
+            return;
+        }
+        if (const auto formList = getText(*found, "listFromForm"); !formList.empty()) {
+            valueOptions.options.clear();
+            if (auto form = parseSourceForm(formList)) {
+                valueOptions.gameOptions = model::GameOptions{ .plugin = std::move(form->first), .formId = form->second };
+            } else {
+                logger::warn("The FormList '{}' of the row '{}' is not a plugin and an id in hex", formList, getText(row, "text"));
+            }
+            return;
+        }
+        const auto property = found->find("listFromProperty");
+        if (property == found->end() || !property->is_object()) {
+            return;
+        }
+        valueOptions.options.clear();
+        const auto formText = getText(*property, "form");
+        auto form = parseSourceForm(formText);
+        auto name = getText(*property, "propertyName");
+        if (form && !name.empty()) {
+            valueOptions.gameOptions =
+                model::GameOptions{ .plugin = std::move(form->first), .formId = form->second, .script = getText(*property, "scriptName"), .property = std::move(name) };
+        } else {
+            logger::warn("The property '{}' of the form '{}' that the row '{}' lists is not a name, and a plugin and an id in hex", name, formText, getText(row, "text"));
+        }
+    }
+
+    /**
      * Where a row keeps its value, by the `sourceType` of its `valueOptions`. A row with none is kept
      * nowhere. A `GlobalValue` names its global in `sourceForm`, as `MyMod.esp|1234`. A ModSetting is named
      * by the `id` of its row as the config has it, also where another row has that id too, so one with no id
@@ -787,6 +825,8 @@ namespace
             auto valueOptions = loadValueOptions(row, texts);
             if (type == DROPDOWN_FILES) {
                 valueOptions.options = loadFileOptions(row, storage, gameFolder);
+            } else if (setting->second == model::SettingType::Stepper || setting->second == model::SettingType::Dropdown) {
+                loadGameOptions(row, valueOptions);
             }
             return model::Setting{ .id = std::move(id),
                 .sourceId = getText(row, "id"),

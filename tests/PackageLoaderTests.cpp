@@ -656,6 +656,41 @@ TEST_CASE("PackageLoader: a choice has the options of the shared list it names, 
     CHECK(settings[4].valueOptions.options.empty());
 }
 
+TEST_CASE("PackageLoader: a choice reads its options in the game from a FormList or a property, by their place or their text")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "dropdown", "text": "Settlement", "default": 3, "valueOptions": { "listFromForm": "MyMod.esp|0x900" }, "storage": { "path": ["Main", "a"] } },
+        { "type": "stepper", "valueType": "string", "text": "Name", "default": "Sanctuary",
+          "valueOptions": { "listFromProperty": { "form": "MyMod.esp|800", "scriptName": "MyMod:Config", "propertyName": "Names" } }, "storage": { "path": ["Main", "b"] } },
+        { "type": "dropdown", "text": "Any script", "default": 0, "valueOptions": { "listFromProperty": { "form": "MyMod.esp|800", "propertyName": "Names" } },
+          "storage": { "path": ["Main", "c"] } },
+        { "type": "dropdown", "text": "Own first", "default": 0, "valueOptions": { "options": ["Own"], "listFromForm": "MyMod.esp|900" }, "storage": { "path": ["Main", "d"] } },
+        { "type": "dropdown", "valueType": "float", "text": "Of a float", "default": 0.0, "valueOptions": { "listFromForm": "MyMod.esp|900" }, "storage": { "path": ["Main", "e"] } },
+        { "type": "dropdown", "text": "No form", "default": 0, "valueOptions": { "listFromForm": "MyMod.esp" }, "storage": { "path": ["Main", "f"] } },
+        { "type": "stepper", "text": "No name", "default": 0, "valueOptions": { "listFromProperty": { "form": "MyMod.esp|800" } }, "storage": { "path": ["Main", "g"] } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 7);
+
+    CHECK(settings[0].valueOptions.gameOptions == model::GameOptions{ .plugin = "MyMod.esp", .formId = 0x900, .script = {}, .property = {}, .storesText = false });
+    CHECK(settings[0].valueOptions.options.empty());
+    CHECK(settings[1].valueOptions.gameOptions == model::GameOptions{ .plugin = "MyMod.esp", .formId = 0x800, .script = "MyMod:Config", .property = "Names", .storesText = true });
+    CHECK(settings[2].valueOptions.gameOptions->script.empty());
+
+    // its default is any value of its type, as its options are not known until the game is read
+    CHECK(settings[0].defaultValue == model::Value(3));
+    CHECK(settings[1].defaultValue == model::Value(std::string("Sanctuary")));
+
+    // its own options come first, and a list that is not one has no options
+    CHECK_FALSE(settings[3].valueOptions.gameOptions);
+    CHECK(settings[3].valueOptions.options.size() == 1);
+    for (std::size_t i = 4; i < settings.size(); ++i) {
+        INFO(settings[i].text);
+        CHECK_FALSE(settings[i].valueOptions.gameOptions);
+        CHECK(settings[i].valueOptions.options.empty());
+    }
+}
+
 TEST_CASE("PackageLoader: a row is shown by its visibleWhen and a setting enabled by its enabledWhen, with every operator")
 {
     const auto mod = loaded(packageOf(R"(

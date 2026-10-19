@@ -202,9 +202,9 @@ namespace mods_config::devbench
             row["applies"] = setting.applies ? json(appliesName(*setting.applies)) : json(nullptr);
             if (setting.type == model::SettingType::Slider) {
                 row["range"] = { { "min", setting.valueOptions.min }, { "max", setting.valueOptions.max }, { "step", setting.valueOptions.step } };
-            } else if (!setting.valueOptions.options.empty()) {
+            } else if (const auto& choiceOptions = store.options(setting); !choiceOptions.empty()) {
                 auto options = json::array();
-                for (const auto& option : setting.valueOptions.options) {
+                for (const auto& option : choiceOptions) {
                     options.push_back({ { "value", valueToJson(option.value) }, { "text", option.text } });
                 }
                 row["options"] = std::move(options);
@@ -312,9 +312,9 @@ namespace mods_config::devbench
 
         /**
          * A value of the request in the type of a setting: a bool for a switcher, a number for a slider, a text
-         * for a text input, and for a choice the value of an option or its text.
+         * for a text input, and for a choice the value of one of the options its store has, or its text.
          */
-        model::Value valueFromJson(const model::Setting& setting, const json& given)
+        model::Value valueFromJson(const model::Setting& setting, const model::Store& store, const json& given)
         {
             // the tool's schema has `value` as a text, which the generic set action declares it as: a text that is a
             // JSON value is that value, as `true` or `2.5`
@@ -340,7 +340,7 @@ namespace mods_config::devbench
                 return value.is_string() ? value.get<std::string>() : value.dump();
             case model::SettingType::Stepper:
             case model::SettingType::Dropdown:
-                for (const auto& option : setting.valueOptions.options) {
+                for (const auto& option : store.options(setting)) {
                     if (valueToJson(option.value) == value || valueToJson(option.value) == given || (given.is_string() && option.text == given.get<std::string>())) {
                         return option.value;
                     }
@@ -374,7 +374,7 @@ namespace mods_config::devbench
             if (!args.contains("value")) {
                 throw std::runtime_error("no value is given");
             }
-            const bool set = store.set(setting, valueFromJson(setting, args["value"]));
+            const bool set = store.set(setting, valueFromJson(setting, store, args["value"]));
             return { { "set", set }, { "setting", settingToJson(setting, store) }, { "session", sessionToJson(store) } };
         }
 

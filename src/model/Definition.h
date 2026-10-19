@@ -43,6 +43,31 @@ namespace mods_config::model
     };
 
     /**
+     * Where a choice reads its options in the game, for a list its author does not know: a FormList, whose
+     * options are the names of its forms, or a property of a script whose value is an array of texts. Its
+     * store reads them as its mod is selected.
+     */
+    struct GameOptions
+    {
+        // the file name of the plugin of the FormList, or of the form the script is attached to, as `MyMod.esp`
+        std::string plugin;
+
+        // the form's id without the plugin's place in the load order
+        std::uint32_t formId = 0;
+
+        // the script that has the property. Empty for any script of the form
+        std::string script;
+
+        // the name of the property. Empty for a FormList
+        std::string property;
+
+        // the value of an option is its text. Else it is its place in the list, as MCM stores it
+        bool storesText = false;
+
+        bool operator==(const GameOptions&) const = default;
+    };
+
+    /**
      * What the value of a setting can be: the range of a slider, or the options of a stepper and a dropdown.
      */
     struct ValueOptions
@@ -52,8 +77,11 @@ namespace mods_config::model
         float max = 0.0f;
         float step = 1.0f;
 
-        // in the order they are shown
+        // in the order they are shown. None for a choice that reads them in the game
         std::vector<Option> options;
+
+        // where a choice reads its options in the game. None for one whose options are these
+        std::optional<GameOptions> gameOptions;
     };
 
     /**

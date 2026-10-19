@@ -311,7 +311,8 @@ namespace
 
     /**
      * The default the store has for a setting, where its control can show it: a switcher that is on or off,
-     * a number of a slider with a range, an option of a stepper and a dropdown, and a text of a text input.
+     * a number of a slider with a range, one of the options the store has for a stepper and a dropdown, and a
+     * text of a text input.
      * None for a setting with no default.
      */
     std::optional<model::Value> defaultOf(const model::Setting& setting, model::Store& store)
@@ -330,7 +331,7 @@ namespace
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
-            shown = ui::chosenOption(setting, { .value = *value, .available = true, .reason = {} }).has_value();
+            shown = ui::chosenOption(store.options(setting), { .value = *value, .available = true, .reason = {} }).has_value();
             break;
         case model::SettingType::TextInput:
             shown = std::holds_alternative<std::string>(*value);
@@ -344,7 +345,7 @@ namespace
      * as its display writes it, with its unit, and the text of the option of a stepper and a dropdown. The
      * text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
      */
-    std::string defaultName(const model::Setting& setting, const model::Value& value)
+    std::string defaultName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
         if (setting.type == model::SettingType::TextInput) {
             const auto& text = std::get<std::string>(value);
@@ -356,8 +357,8 @@ namespace
         if (const auto* number = std::get_if<float>(&value)) {
             return ui::numberText(setting, *number);
         }
-        const auto option = ui::chosenOption(setting, { .value = value, .available = true, .reason = {} });
-        return option ? setting.valueOptions.options[*option].text : std::string();
+        const auto option = ui::chosenOption(options, { .value = value, .available = true, .reason = {} });
+        return option ? options[*option].text : std::string();
     }
 
     // what the help line says of every row that is only shown, before its own help: it cannot be changed in the menu
@@ -481,11 +482,12 @@ namespace
         const bool rowPressed = row.pressed && !onReset;
 
         const auto& options = setting.valueOptions;
+        const auto& choiceOptions = page.store ? page.store->options(setting) : options.options;
         const auto* on = std::get_if<bool>(&stored.value);
         const auto* number = std::get_if<float>(&stored.value);
         const bool isSwitcher = editable && setting.type == model::SettingType::Switcher && on;
         const bool isSlider = editable && setting.type == model::SettingType::Slider && number && options.max > options.min;
-        const bool isChoice = editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !options.options.empty();
+        const bool isChoice = editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !choiceOptions.empty();
         const bool isText = editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(stored.value);
 
         // before the row is known to be shown: a slider that is dragged out of the page is still held
@@ -504,12 +506,12 @@ namespace
             page.drawn.pressActed = true;
         }
         // before the row is known to be shown too: the list of a dropdown is not a part of its row
-        auto chosen = ui::chosenOption(setting, stored);
+        auto chosen = ui::chosenOption(choiceOptions, stored);
         const ui::ChoiceRow choiceRow{ .pointed = isChoice && row.pointed, .held = isChoice && row.held, .pressed = isChoice && rowPressed };
         if (isChoice) {
             bool pulse = false;
-            const auto picked = page.choices.edit(setting, right, pos.y, choiceRow, chosen, pulse);
-            if (picked && picked != chosen && page.store->set(setting, options.options[*picked].value)) {
+            const auto picked = page.choices.edit(setting, choiceOptions, right, pos.y, choiceRow, chosen, pulse);
+            if (picked && picked != chosen && page.store->set(setting, choiceOptions[*picked].value)) {
                 chosen = picked;
                 pulse = true;
             }
@@ -535,11 +537,11 @@ namespace
             if (!stored.available && !stored.reason.empty()) {
                 help = std::move(stored.reason);
             } else if (resets && onReset) {
-                help = std::format("Reset to {}", defaultName(setting, *defaultValue));
+                help = std::format("Reset to {}", defaultName(setting, choiceOptions, *defaultValue));
             } else if (!stored.reason.empty()) {
                 help = std::move(stored.reason);
             } else {
-                const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, *defaultValue)) : std::string();
+                const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, choiceOptions, *defaultValue)) : std::string();
                 help = joinHelp({ setting.readOnly ? READ_ONLY : std::string_view(), setting.help, numberDetail(setting, stored, value), defaultText });
             }
         }
@@ -566,7 +568,7 @@ namespace
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
-            left = page.choices.draw(setting, right, pos.y, choiceRow, showsValue ? chosen : std::nullopt, look);
+            left = page.choices.draw(setting, choiceOptions, right, pos.y, choiceRow, showsValue ? chosen : std::nullopt, look);
             break;
         case model::SettingType::TextInput: {
             // one whose value is not available has an empty box

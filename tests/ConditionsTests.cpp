@@ -95,6 +95,11 @@ namespace
             return std::nullopt;
         }
 
+        const std::vector<model::Option>& options(const model::Setting& setting) const override
+        {
+            return setting.valueOptions.options;
+        }
+
         bool savesAtOnce() const override
         {
             return true;

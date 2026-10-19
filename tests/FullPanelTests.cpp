@@ -19,6 +19,7 @@
 #include "TestFiles.h"
 #include "TestGlobals.h"
 #include "TestPanel.h"
+#include "TestProperties.h"
 #include "Theme.h"
 #include "mcm/McmStore.h"
 #include "package/PackageLoader.h"
@@ -2054,6 +2055,43 @@ TEST_CASE("FullPanel: the help line keeps the row of a dropdown while the ray is
     point(panel, listOption(1, 2));
     REQUIRE(isListOpen());
     CHECK(panel.helpLine().text() == "Place: What it does.");
+}
+
+TEST_CASE("FullPanel: a choice that reads its options in the game has the options its store read, and says why while its list is not in the game")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    test_properties::TestProperties lists;
+    lists.lists[{ PLUGIN, 0x900, "", "" }] = { "Sanctuary", "Red Rocket", "Abernathy Farm" };
+    const auto fromList = [](const model::SettingType type, std::string text, const std::uint32_t formId, const std::uint32_t listId) {
+        auto item = globalSetting(type, std::move(text), formId);
+        std::get<model::Setting>(item).valueOptions.gameOptions = model::GameOptions{ .plugin = PLUGIN, .formId = listId };
+        return item;
+    };
+    auto mod = modOf("Alpha", {});
+    mod.frontPage.items.push_back(fromList(model::SettingType::Stepper, "Settlement", 0x820, 0x900));
+    mod.frontPage.items.push_back(fromList(model::SettingType::Dropdown, "Home", 0x821, 0x900));
+    mod.frontPage.items.push_back(fromList(model::SettingType::Dropdown, "Missing", 0x822, 0x901));
+    mcm::McmStore store;
+    FullPanel panel;
+    panel.setStore(model::Source::Mcm, &store);
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, stepperButton(0, true)));
+    CHECK(globals.values.at({ PLUGIN, 0x820 }) == 2.0f);
+    CHECK_FALSE(pressActs(panel, stepperButton(0, true)));
+
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(isListOpen());
+    CHECK(pressActs(panel, listOption(1, 2)));
+    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 2.0f);
+
+    CHECK_FALSE(pressActs(panel, pageRow(2)));
+    CHECK_FALSE(isListOpen());
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Missing: Not available: the FormList MyMod.esp|901 of its options is not in the game.");
 }
 
 TEST_CASE("FullPanel: a dropdown with no options is not opened")

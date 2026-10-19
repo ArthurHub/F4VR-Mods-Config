@@ -202,4 +202,54 @@ namespace mods_config
         found.set(property.name.c_str(), newValue);
         return true;
     }
+
+    /**
+     * The texts of the options a choice reads in the game, as `mcm_vr.dll` gives them to MCM's menu. Of a
+     * FormList, the name of each of its forms, or its editor ID for one with no name, and then those of the
+     * forms a script added to it. Of a property of a script, the texts of its array.
+     * None for a FormList that is not in the game, and for a property that is not, or is no array of texts.
+     */
+    std::optional<std::vector<std::string>> getOptionTexts(const model::GameOptions& options)
+    {
+        if (options.property.empty()) {
+            const auto dataHandler = RE::TESDataHandler::GetSingleton();
+            const auto* list = dataHandler ? dataHandler->LookupForm<RE::BGSListForm>(options.formId, options.plugin) : nullptr;
+            if (!list) {
+                logger::warn("The FormList {:X} of '{}' is not in the game: its choice has no options", options.formId, options.plugin);
+                return std::nullopt;
+            }
+            std::vector<std::string> texts;
+            list->ForEachForm([&texts](RE::TESForm* form) {
+                const auto name = RE::TESFullName::GetFullName(*form);
+                const auto* editorId = form->GetFormEditorID();
+                texts.emplace_back(!name.empty() ? name : std::string_view(editorId ? editorId : ""));
+                return RE::BSContainer::ForEachResult::kContinue;
+            });
+            return texts;
+        }
+
+        const model::PropertyStorage property{ .plugin = options.plugin,
+            .formId = options.formId,
+            .script = options.script,
+            .name = options.property,
+            .type = model::StoredType::String };
+        ScriptProperty found(property);
+        if (!found) {
+            return std::nullopt;
+        }
+        F4SEVR::VMValue value;
+        found.get(value);
+        if (value.GetTypeEnum() != F4SEVR::VMValue::kType_StringArray) {
+            warnOnce(property, lookedProperty(property), "its value is no array of texts");
+            return std::nullopt;
+        }
+        std::vector<std::string> texts;
+        if (const auto* array = value.data.arr) {
+            for (F4SEVR::UInt32 i = 0; i < array->arr.count; ++i) {
+                const auto* text = array->arr.entries[i].data.GetStr()->c_str();
+                texts.emplace_back(text ? text : "");
+            }
+        }
+        return texts;
+    }
 }

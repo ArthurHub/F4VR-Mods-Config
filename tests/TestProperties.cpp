@@ -5,6 +5,7 @@
 namespace
 {
     using Properties = std::map<std::tuple<std::string, std::uint32_t, std::string, std::string>, mods_config::model::Value>;
+    using Lists = std::map<std::tuple<std::string, std::uint32_t, std::string, std::string>, std::vector<std::string>>;
 
     /**
      * The properties of the tests, in place of the game's.
@@ -13,6 +14,15 @@ namespace
     {
         static Properties values;
         return values;
+    }
+
+    /**
+     * The lists of the tests, in place of the game's.
+     */
+    Lists& optionLists()
+    {
+        static Lists lists;
+        return lists;
     }
 
     /**
@@ -27,9 +37,11 @@ namespace
 namespace test_properties
 {
     TestProperties::TestProperties()
-        : values(propertyValues())
+        : values(propertyValues()),
+          lists(optionLists())
     {
         values.clear();
+        lists.clear();
     }
 }
 
@@ -55,5 +67,14 @@ namespace mods_config
         }
         found->second = value;
         return true;
+    }
+
+    /**
+     * The texts of a list of the tests: the tests' own, which is linked in place of the mod's.
+     */
+    std::optional<std::vector<std::string>> getOptionTexts(const model::GameOptions& options)
+    {
+        const auto found = optionLists().find({ options.plugin, options.formId, options.script, options.property });
+        return found != optionLists().end() ? std::optional(found->second) : std::nullopt;
     }
 }

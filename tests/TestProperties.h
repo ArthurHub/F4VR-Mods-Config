@@ -4,11 +4,12 @@
 #include <map>
 #include <string>
 #include <tuple>
+#include <vector>
 
 #include "model/Definition.h"
 
 // The properties of scripts of a test, in place of the game's: TestProperties.cpp is the tests' own
-// `getProperty` and `setProperty`, in place of the mod's.
+// `getProperty`, `setProperty` and `getOptionTexts`, in place of the mod's.
 namespace test_properties
 {
     /**
@@ -22,5 +23,9 @@ namespace test_properties
         TestProperties();
 
         std::map<std::tuple<std::string, std::uint32_t, std::string, std::string>, mods_config::model::Value>& values;
+
+        // the lists a choice reads its options from, each by its plugin, the id of its form, and the script and
+        // the name of a property, which are empty for a FormList, with its texts
+        std::map<std::tuple<std::string, std::uint32_t, std::string, std::string>, std::vector<std::string>>& lists;
     };
 }

@@ -454,9 +454,53 @@ namespace
     }
 
     /**
+     * Where a choice reads its options in the game: a `listFromForm` names a FormList, as `MyMod.esp|900`, and a
+     * `listFromProperty` a property of a script, by its `form`, its `propertyName` and its `scriptName`, which
+     * is optional. A choice of an int stores the place of an option, and one of a string its text. None for a
+     * choice with neither, and with the reason in the log for a list that is not written so, and for a choice
+     * of another type.
+     */
+    std::optional<model::GameOptions> loadGameOptions(const Json& valueOptions, const Json& row, const model::StoredType valueType)
+    {
+        model::GameOptions list{ .storesText = valueType == model::StoredType::String };
+        const auto property = valueOptions.find("listFromProperty");
+        if (valueOptions.contains("listFromForm")) {
+            const auto formList = getText(valueOptions, "listFromForm");
+            auto form = parseForm(formList);
+            if (!form) {
+                logger::warn("The FormList '{}' of the choice '{}' is not a plugin and an id in hex", formList, getText(row, "text"));
+                return std::nullopt;
+            }
+            list.plugin = std::move(form->first);
+            list.formId = form->second;
+        } else if (property != valueOptions.end() && property->is_object()) {
+            const auto formText = getText(*property, "form");
+            auto form = parseForm(formText);
+            list.property = getText(*property, "propertyName");
+            if (!form || list.property.empty()) {
+                logger::warn("The property '{}' of the form '{}' that the choice '{}' lists is not a name, and a plugin and an id in hex",
+                    list.property,
+                    formText,
+                    getText(row, "text"));
+                return std::nullopt;
+            }
+            list.plugin = std::move(form->first);
+            list.formId = form->second;
+            list.script = getText(*property, "scriptName");
+        } else {
+            return std::nullopt;
+        }
+        if (valueType != model::StoredType::Int && valueType != model::StoredType::String) {
+            logger::warn("The choice '{}' lists its options in the game, so its valueType is int or string", getText(row, "text"));
+            return std::nullopt;
+        }
+        return list;
+    }
+
+    /**
      * The `valueOptions` of a setting: the least, the most and the step of a number, and the options of a
-     * choice, its own `options` or the shared list its `sharedOptions` names. A choice with neither has no
-     * options, with the reason in the log, so it is disabled.
+     * choice: its own `options`, the shared list its `sharedOptions` names, or where it reads them in the game.
+     * A choice with none of them has no options, with the reason in the log, so it is disabled.
      */
     model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, const PackageReading& reading)
     {
@@ -479,7 +523,12 @@ namespace
         }
         if (list && list->is_array()) {
             valueOptions.options = loadOptions(*list, row, valueType, reading);
-        } else {
+            return valueOptions;
+        }
+        if (hasOptions) {
+            valueOptions.gameOptions = loadGameOptions(*found, row, valueType);
+        }
+        if (!valueOptions.gameOptions) {
             logger::warn("The choice '{}' has no list of options, or names no shared list of its package", getText(row, "text"));
         }
         return valueOptions;
@@ -498,12 +547,13 @@ namespace
 
     /**
      * Whether a value of a setting's type is one of its values: an option of a choice, and a number inside
-     * the limits of a setting that has them, its least and its most among them.
+     * the limits of a setting that has them, its least and its most among them. Any value is one of a choice
+     * that reads its options in the game, which are not known until then.
      */
     bool isValueOf(const model::Value& value, const model::SettingType type, const model::ValueOptions& options)
     {
         if (isChoice(type)) {
-            return std::ranges::any_of(options.options, [&value](const model::Option& option) {
+            return options.gameOptions || std::ranges::any_of(options.options, [&value](const model::Option& option) {
                 return isSameValue(option.value, value);
             });
         }

@@ -167,9 +167,8 @@ namespace mods_config::ui
      * The place of the option a choice is at, among its options: the one whose value is the stored one, and
      * none where no option has it. A choice whose value is not available is at its first option.
      */
-    std::optional<std::size_t> chosenOption(const model::Setting& setting, const model::StoredValue& stored)
+    std::optional<std::size_t> chosenOption(const std::vector<model::Option>& options, const model::StoredValue& stored)
     {
-        const auto& options = setting.valueOptions.options;
         if (!stored.available) {
             return options.empty() ? std::nullopt : std::optional<std::size_t>(0);
         }
@@ -205,14 +204,14 @@ namespace mods_config::ui
      * before or after as the buttons do.
      * A press on the row of a dropdown opens its list, which tells that the hand gets its pulse.
      */
-    std::optional<std::size_t> Choices::edit(const model::Setting& setting, const float right, const float top, const ChoiceRow& row, const std::optional<std::size_t> chosen,
-        bool& pulse)
+    std::optional<std::size_t> Choices::edit(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
+        const std::optional<std::size_t> chosen, bool& pulse)
     {
         if (setting.type == model::SettingType::Dropdown) {
-            return editList(setting, right, top, row, chosen, pulse);
+            return editList(setting, options, right, top, row, chosen, pulse);
         }
         const StepperBoxes boxes(right, top);
-        const auto count = setting.valueOptions.options.size();
+        const auto count = options.size();
         const auto after = chosen ? *chosen + 1 : 0;
         const float x = ImGui::GetIO().MousePos.x;
         const bool pushed = row.pointed && _step != 0;
@@ -235,8 +234,8 @@ namespace mods_config::ui
      * list no press.
      * Returns the option that was picked, and none.
      */
-    std::optional<std::size_t> Choices::editList(const model::Setting& setting, const float right, const float top, const ChoiceRow& row, const std::optional<std::size_t> chosen,
-        bool& pulse)
+    std::optional<std::size_t> Choices::editList(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
+        const std::optional<std::size_t> chosen, bool& pulse)
     {
         const auto id = ImGui::GetID("list");
         if (row.pressed) {
@@ -249,7 +248,6 @@ namespace mods_config::ui
         _open = &setting;
         _openSeen = true;
 
-        const auto& options = setting.valueOptions.options;
         const auto list = listBox(dropdownBox(right, top), options.size());
         ImGui::SetNextWindowPos(list.Min);
         ImGui::SetNextWindowSize(list.GetSize());
@@ -289,10 +287,9 @@ namespace mods_config::ui
      * after. A dropdown is the option at the left of its box, and an arrow at the right. The box has its
      * outline in the full color while its list is open.
      */
-    float Choices::draw(const model::Setting& setting, const float right, const float top, const ChoiceRow& row, const std::optional<std::size_t> chosen,
-        const ValueLook look) const
+    float Choices::draw(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
+        const std::optional<std::size_t> chosen, const ValueLook look) const
     {
-        const auto& options = setting.valueOptions.options;
         const auto option = chosen ? std::string_view(options[*chosen].text) : std::string_view();
 
         if (setting.type == model::SettingType::Dropdown) {

@@ -546,6 +546,46 @@ TEST_CASE("McmStore: a choice of files keeps the name of its file, and an empty 
     CHECK(store.value(settingOf(SettingType::Dropdown, model::NoStorage{}, files)).value == model::Value(""s));
 }
 
+TEST_CASE("McmStore: a choice reads its options in the game as its mod is selected and as another page is shown, and is not available while its list is not in the game")
+{
+    auto globals = someGlobals();
+    TestProperties lists;
+    lists.lists[{ PLUGIN, 0x900, "", "" }] = { "Sanctuary", "Red Rocket" };
+    lists.lists[{ PLUGIN, 0x800, "MyMod:Config", "Names" }] = { "Nate", "Nora" };
+    model::Mod mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} };
+    mod.frontPage.items.push_back(globalSetting(SettingType::Dropdown, 0x800, { .gameOptions = model::GameOptions{ .plugin = PLUGIN, .formId = 0x900 } }));
+    mod.frontPage.items.push_back(
+        globalSetting(SettingType::Stepper, 0x801, { .gameOptions = model::GameOptions{ .plugin = PLUGIN, .formId = 0x800, .script = "MyMod:Config", .property = "Names" } }));
+    mod.frontPage.items.push_back(globalSetting(SettingType::Dropdown, 0x803, { .gameOptions = model::GameOptions{ .plugin = PLUGIN, .formId = 0x901 } }));
+    const auto settingAt = [&mod](const std::size_t row) -> const model::Setting& {
+        return std::get<model::Setting>(mod.frontPage.items[row]);
+    };
+    McmStore store;
+    using Options = std::vector<model::Option>;
+
+    // none until the mod is selected, and then each option has its place as its value, as MCM stores it
+    CHECK(store.options(settingAt(0)).empty());
+    store.open(mod);
+    CHECK(store.options(settingAt(0)) == Options{ { 0, "Sanctuary" }, { 1, "Red Rocket" } });
+    CHECK(store.options(settingAt(1)) == Options{ { 0, "Nate" }, { 1, "Nora" } });
+    CHECK(store.value(settingAt(0)).value == model::Value(1));
+    CHECK(store.set(settingAt(1), 1));
+    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 1.0f);
+
+    const auto missing = store.value(settingAt(2));
+    CHECK_FALSE(missing.available);
+    CHECK(missing.reason == "Not available: the FormList MyMod.esp|901 of its options is not in the game.");
+
+    // a script can change its list, which is read again as another page is shown
+    lists.lists[{ PLUGIN, 0x900, "", "" }].push_back("Abernathy Farm");
+    CHECK(store.options(settingAt(0)).size() == 2);
+    store.pageShown();
+    CHECK(store.options(settingAt(0)).size() == 3);
+
+    store.close();
+    CHECK(store.options(settingAt(0)).empty());
+}
+
 TEST_CASE("McmModSettings: a ModSetting that is set has the text MCM writes to its file")
 {
     const test_files::TempFolder mcm;

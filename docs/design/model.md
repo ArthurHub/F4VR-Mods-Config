@@ -66,7 +66,7 @@ What the UI asks of the store:
 - The key of a hotkey, which is only shown.
 - To set a value.
 - The default of a setting, where it has one. Reset sets it, as any other value is set.
-- The options of a choice: the definition's, or the ones it reads in the game as the page is shown, for a choice that takes them from a FormList or a property of a script.
+- The options of a choice: the definition's, or the ones it reads in the game as the mod is selected, for a choice that takes them from a FormList or a property of a script. The MCM store reads them again as another page is shown, as MCM's menu does.
 - Whether a change is saved at once or waits for Save.
 - With Save: whether a setting is dirty, and to Save and Discard.
 - To run an action.
