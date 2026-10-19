@@ -44,7 +44,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 
 | #   | Repo | Commit                                                                                    | Status |
 | --- | ---- | ----------------------------------------------------------------------------------------- | ------ |
-| M59 | mod  | Text, spacers and images in a package                                                     | todo   |
+| M59 | mod  | Text, spacers and images in a package                                                     | in review |
 | M108 | mod | A section folds, and marks what it hides                                                  | todo   |
 | M109 | mod | Pages under pages: the tree's levels, the breadcrumbs and Back                            | todo   |
 | M111 | mod | A read-only setting, and how a number is shown                                            | todo   |
@@ -67,6 +67,8 @@ M108, M109, M111 and M112 draw what M103 added to the page and the tree:
 - M109: a page's pages are rows under it in the tree, a level further in, with a crumb for each level, and Back goes a level up.
 - M111: a read-only setting, and the decimals, the unit and the percentage of a number's `display`.
 - M112: a setting or a button whose warning holds has a warning mark, and the help line shows the warning before the row's help.
+
+M59 draws a package's `text`, `spacer` and `image` as an MCM config's are drawn. An image is a texture file, which the game loads as it loads a texture of a mesh, from a loose file or a BA2 archive. It is drawn at the size its row gives, or at the texture's own, and a texture the game does not load is a box that names it. The package showcase has a page of them, with textures of its own.
 
 M49 lets a package use the actions the menu supports for MCM, so a script-only mod has buttons, and a console command, which needs no script. The action of a native client comes in milestone 7.
 

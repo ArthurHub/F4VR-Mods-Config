@@ -12,6 +12,7 @@
 
 #include "TestFiles.h"
 #include "common/CommonUtils.h"
+#include "model/TextMarkup.h"
 #include "package/PackageLoader.h"
 
 using namespace mods_config;
@@ -228,7 +229,7 @@ TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are se
         { "type": "textinput", "text": "Name", "storage": { "path": ["Main", "sName"] } },
         { "type": "textinput", "text": "Scale", "valueType": "float", "storage": { "path": ["Main", "fScale"] } },
         { "type": "button", "text": "Mode", "help": "Low or high." },
-        { "type": "spacer" },
+        { "type": "color", "text": "Tint" },
         { "type": "stepper", "text": "Hand", "valueOptions": { "options": ["Left", "Right"] }, "storage": { "path": ["Main", "iHand"] } },
         { "type": "dropdown", "text": "Where", "valueOptions": { "options": ["Head", "Hand"] }, "storage": { "path": ["Main", "iWhere"] } }
     )"));
@@ -256,13 +257,62 @@ TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are se
     CHECK(mode.type == "button");
     CHECK(mode.text == "Mode");
     CHECK(mode.help == "Low or high.");
-    CHECK(std::get<model::Placeholder>(items[5]).type == "spacer");
+    CHECK(std::get<model::Placeholder>(items[5]).type == "color");
 
     // a choice with no valueType stores the place of its option
     CHECK(std::get<model::Setting>(items[6]).type == model::SettingType::Stepper);
     CHECK(std::get<model::Setting>(items[6]).valueType == model::StoredType::Int);
     CHECK(std::get<model::Setting>(items[7]).type == model::SettingType::Dropdown);
     CHECK(std::get<model::Setting>(items[7]).valueType == model::StoredType::Int);
+}
+
+TEST_CASE("PackageLoader: a text, a spacer and an image are rows that hold no value")
+{
+    model::Translations translations;
+    translations.add("$MyMod_Note", "A translated note.");
+    const auto mod = loaded(packageOf(R"(
+        { "type": "text", "text": "A plain text with <b>a tag</b>.\nIts second line." },
+        { "type": "text", "text": "<p align='center'>A <b>bold</b> word</p>", "html": true },
+        { "type": "text", "text": "$MyMod_Note" },
+        { "type": "text", "text": { "token": "$MyMod_Missing", "fallback": "A fallback." }, "html": "yes" },
+        { "type": "spacer" },
+        { "type": "spacer", "numLines": 3 },
+        { "type": "spacer", "numLines": 100 },
+        { "type": "spacer", "numLines": -2 },
+        { "type": "image", "texture": "MyMod/config/logo.dds", "width": 512, "height": 128 },
+        { "type": "image", "texture": "MyMod/config/logo.dds", "width": 256 },
+        { "type": "image", "texture": "MyMod/config/logo.dds", "width": -5, "height": "big" },
+        { "type": "image" }
+    )"),
+        translations);
+    const auto& items = mod.frontPage.items;
+    REQUIRE(items.size() == 12);
+
+    // a text is plain where its html is not true, so a tag in it is shown as it is written
+    CHECK(std::get<model::Text>(items[0]).lines == model::plainLines("A plain text with <b>a tag</b>.\nIts second line."));
+    CHECK(std::get<model::Text>(items[1]).lines == model::parseMarkup("<p align='center'>A <b>bold</b> word</p>"));
+    CHECK(std::get<model::Text>(items[2]).lines == model::plainLines("A translated note."));
+    CHECK(std::get<model::Text>(items[3]).lines == model::plainLines("A fallback."));
+
+    // one line without numLines, and from 1 to 20
+    CHECK(std::get<model::Spacer>(items[4]).lines == 1);
+    CHECK(std::get<model::Spacer>(items[5]).lines == 3);
+    CHECK(std::get<model::Spacer>(items[6]).lines == 20);
+    CHECK(std::get<model::Spacer>(items[7]).lines == 1);
+
+    // a side that is not given, or is not more than 0, is 0: the texture's own, or of its aspect
+    const auto image = [&items](const std::size_t place) {
+        return std::get<model::Image>(items[place]);
+    };
+    CHECK_FALSE(image(8).pixels);
+    CHECK(image(8).texture == "MyMod/config/logo.dds");
+    CHECK(common::fEqual(image(8).width, 512.0f));
+    CHECK(common::fEqual(image(8).height, 128.0f));
+    CHECK(common::fEqual(image(9).width, 256.0f));
+    CHECK(common::fEqual(image(9).height, 0.0f));
+    CHECK(common::fEqual(image(10).width, 0.0f));
+    CHECK(common::fEqual(image(10).height, 0.0f));
+    CHECK(image(11).texture.empty());
 }
 
 TEST_CASE("PackageLoader: a choice's options are texts that store their place, or objects with the value each stores")
@@ -384,7 +434,7 @@ TEST_CASE("PackageLoader: a row is shown by its visibleWhen and a setting enable
         .setting = {},
         .conditions = { compared(Kind::Equals, "enable", { true }),
             Condition{ .kind = Kind::Not, .setting = {}, .conditions = { Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} } } } } };
-    CHECK(std::get<model::Placeholder>(items[8]).visibleWhen == joined);
+    CHECK(std::get<model::Text>(items[8]).visibleWhen == joined);
 }
 
 TEST_CASE("PackageLoader: a section's conditions are joined with those of every row in it, at every level")
@@ -449,9 +499,8 @@ TEST_CASE("PackageLoader: a condition that is not one is left out as a whole, so
     const auto& items = mod.frontPage.items;
     REQUIRE(items.size() == 14);
     for (std::size_t place = 2; place < 13; ++place) {
-        // a package's text row is a placeholder until the menu draws it
-        const auto& text = std::get<model::Placeholder>(items[place]);
-        INFO(text.text);
+        INFO(place);
+        const auto& text = std::get<model::Text>(items[place]);
         CHECK_FALSE(text.visibleWhen);
     }
     CHECK_FALSE(std::get<model::Setting>(items[13]).enabledWhen);
@@ -482,14 +531,14 @@ TEST_CASE("PackageLoader: a condition on a plugin is answered as the package is 
     const Condition holds{ .kind = Kind::All, .setting = {}, .conditions = {} };
     const Condition fails{ .kind = Kind::Any, .setting = {}, .conditions = {} };
     const auto& items = mod->frontPage.items;
-    CHECK(std::get<model::Placeholder>(items[0]).visibleWhen == holds);
-    CHECK(std::get<model::Placeholder>(items[1]).visibleWhen == Condition{ .kind = Kind::Not, .setting = {}, .conditions = { fails } });
-    CHECK(std::get<model::Placeholder>(items[2]).visibleWhen == holds);
-    CHECK(std::get<model::Placeholder>(items[3]).visibleWhen == fails);
+    CHECK(std::get<model::Text>(items[0]).visibleWhen == holds);
+    CHECK(std::get<model::Text>(items[1]).visibleWhen == Condition{ .kind = Kind::Not, .setting = {}, .conditions = { fails } });
+    CHECK(std::get<model::Text>(items[2]).visibleWhen == holds);
+    CHECK(std::get<model::Text>(items[3]).visibleWhen == fails);
 
     // with no checks every plugin is loaded
     const auto unchecked = loaded(text);
-    CHECK(std::get<model::Placeholder>(unchecked.frontPage.items[3]).visibleWhen == holds);
+    CHECK(std::get<model::Text>(unchecked.frontPage.items[3]).visibleWhen == holds);
 }
 
 TEST_CASE("PackageLoader: a slider and a switcher with no valueType have the type of their control")
@@ -876,7 +925,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    CHECK(mod.pages.size() == 11);
+    CHECK(mod.pages.size() == 12);
 
     // the file whose path goes up out of its root is left out
     Lines files;

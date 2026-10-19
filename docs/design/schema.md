@@ -680,11 +680,13 @@ A `spacer` is empty space, one line high or `numLines`:
 { "type": "spacer", "numLines": 2 }
 ```
 
-An MCM `image` names a picture inside the mod's SWF, which a package does not have. A package's `image` names a texture file by its path under `Data/Textures`, and can give the size it is drawn at:
+An MCM `image` names a picture inside the mod's SWF, which a package does not have. A package's `image` names a texture file by its path under `Data/Textures`, and can give the size it is drawn at, in the panel's pixels:
 
 ```json
 { "type": "image", "texture": "MyMod/config/logo.dds", "width": 512, "height": 128 }
 ```
+
+The texture is loaded by the game, as a texture of a mesh is, from a loose file or a BA2 archive, in any DDS format the game reads. With no size it is drawn at its own, and with one side alone the other is of its aspect. One wider than the rows is as wide as they are. A texture the game does not load is a box of its size that names it, and the log has the reason.
 
 A warning is a `text` row, as in MCM. The one warning the host draws itself is the mark of a setting that needs a restart; see [When a change takes effect](#when-a-change-takes-effect).
 

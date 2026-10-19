@@ -34,6 +34,7 @@
   // until the commit that draws them
   "content": [
     { "type": "text", "text": "Every kind of row a package has, to see how each looks and works in Mods Config VR. Each page is one kind." },
+    { "type": "image", "texture": "ModsConfigVR_Showcase/swatches.dds" },
     { "type": "spacer" },
     {
       "type": "section", "text": "A bit of everything",
@@ -266,6 +267,58 @@
               "type": "textinput", "valueType": "float", "text": "Number", "help": "A text input that takes a number.",
               "default": 1.5, "storage": { "path": ["TextInputs", "fNumber"] }
             }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Text, spacers and images",
+      "help": "Rows that hold no value: texts with and without tags, spacers, and textures at their own size and at the size a row gives.",
+      "content": [
+        {
+          "type": "section", "text": "Texts",
+          "content": [
+            { "type": "text", "text": "A plain text, wrapped to the width of the rows. It has no html, so a tag in it, as <b>this</b>, is shown as it is written." },
+            {
+              "type": "text", "html": true,
+              "text": "<p align='center'><font size='28'>A title in a larger size</font></p><p>A text with tags: <b>bold</b>, <i>italic</i>, <u>underlined words</u>, and <font color='#FFFFFF'>a color of its own</font>.</p><p align='right'><font size='16'>A note in a smaller size, at the right</font></p>"
+            },
+            { "type": "text", "text": "A text of two lines.\nIts second line." },
+            { "type": "text", "text": { "token": "$ModsConfigVR_Showcase_TextRow", "fallback": "A text of a token, which no translation file has, so it is its fallback." } }
+          ]
+        },
+        {
+          "type": "section", "text": "Spacers",
+          "content": [
+            { "type": "text", "text": "A spacer of one line under this text." },
+            { "type": "spacer" },
+            { "type": "text", "text": "A spacer of three lines under this text." },
+            { "type": "spacer", "numLines": 3 },
+            { "type": "text", "text": "The end of the spacers." }
+          ]
+        },
+        {
+          "type": "section", "text": "Images",
+          "content": [
+            { "type": "text", "text": "Swatches at the texture's own size, 256 by 64." },
+            { "type": "image", "texture": "ModsConfigVR_Showcase/swatches.dds" },
+            { "type": "text", "text": "A checker of 128 by 128, at the size its row gives, 64 by 64." },
+            { "type": "image", "texture": "ModsConfigVR_Showcase/checker.dds", "width": 64, "height": 64 },
+            { "type": "text", "text": "The checker at a width of 192 alone: its height is of its aspect." },
+            { "type": "image", "texture": "ModsConfigVR_Showcase/checker.dds", "width": 192 },
+            { "type": "text", "text": "A ruler of 1024 by 64, which is wider than the rows, so it is as wide as they are." },
+            { "type": "image", "texture": "ModsConfigVR_Showcase/ruler.dds" }
+          ]
+        },
+        {
+          "type": "section", "text": "Shown by a switcher",
+          "content": [
+            {
+              "id": "showPicture", "type": "switcher", "valueType": "bool", "text": "Show the picture", "help": "The text and the image under it are shown while it is on.",
+              "default": true, "storage": { "path": ["Rows", "bShowPicture"] }
+            },
+            { "type": "text", "text": "Shown while Show the picture is on.", "visibleWhen": { "setting": "showPicture", "equals": true } },
+            { "type": "image", "texture": "ModsConfigVR_Showcase/checker.dds", "width": 64, "height": 64, "visibleWhen": { "setting": "showPicture", "equals": true } }
           ]
         }
       ]
@@ -745,6 +798,17 @@
           "content": [
             { "type": "colour", "text": "A type no menu knows", "help": "A row of a type that is not one." },
             { "text": "A row with no type", "help": "A row that does not say what it is." }
+          ]
+        },
+        {
+          "type": "section", "text": "Images",
+          "content": [
+            { "type": "text", "text": "A texture that is not there, at the size its row gives:" },
+            { "type": "image", "texture": "ModsConfigVR_Showcase/missing.dds", "width": 256, "height": 64 },
+            { "type": "text", "text": "A texture that is not there, with no size:" },
+            { "type": "image", "texture": "ModsConfigVR_Showcase/missing.dds" },
+            { "type": "text", "text": "An image that names no texture:" },
+            { "type": "image" }
           ]
         }
       ]

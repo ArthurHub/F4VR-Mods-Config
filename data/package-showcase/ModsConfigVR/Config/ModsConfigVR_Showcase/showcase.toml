@@ -42,6 +42,9 @@ sEmpty = ""
 iNumber = 42
 fNumber = 1.5
 
+[Rows]
+bShowPicture = true
+
 [Sections]
 bBefore = true
 bHolsters = true

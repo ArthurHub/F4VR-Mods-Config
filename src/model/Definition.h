@@ -425,15 +425,22 @@ namespace mods_config::model
     };
 
     /**
-     * A row that shows a picture, in the middle of the rows' width.
+     * A row that shows a picture, in the middle of the rows' width: the pixels an MCM image is read into, or a
+     * package's texture, which the game loads.
      */
     struct Image
     {
-        // none for an image that could not be read: the row then says that an image is there
+        // the pixels of an MCM image. None for a package's, and for an image that could not be read and has no
+        // texture: the row then says that an image is there
         std::shared_ptr<const ImagePixels> pixels;
 
-        // the size it is shown at, in the pixels of MCM's menu, which the drawing scales to the panel's as it
-        // does the size of a text
+        // a package's texture, by its path under `Data/Textures`, as `MyMod/config/logo.dds`. Empty for an MCM
+        // image
+        std::string texture;
+
+        // the size it is shown at. Of pixels in the pixels of MCM's menu, which the drawing scales to the
+        // panel's as it does the size of a text. Of a texture in the panel's pixels, and 0 for a side its
+        // package does not give
         float width = 0.0f;
         float height = 0.0f;
         std::optional<Condition> visibleWhen;

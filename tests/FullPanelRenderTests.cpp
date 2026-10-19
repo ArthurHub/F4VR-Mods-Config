@@ -8,6 +8,9 @@
 #include <format>
 #include <fstream>
 #include <functional>
+#include <iterator>
+#include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -256,6 +259,45 @@ namespace
     }
 
     /**
+     * A texture of the package showcase, by its path under its Textures folder, as the game loads it: read from
+     * its DDS file, whose pixels are not compressed, as blue, green, red and alpha from the top row. None for a
+     * file that is not there or not of that form. A file is read once.
+     */
+    const model::ImagePixels* showcaseTexture(const std::string& texture)
+    {
+        static std::map<std::string, std::unique_ptr<model::ImagePixels>> textures;
+        if (const auto found = textures.find(texture); found != textures.end()) {
+            return found->second.get();
+        }
+        auto& kept = textures[texture];
+        const auto file = std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path() / "Textures" / texture;
+        std::ifstream stream(file, std::ios::binary);
+        const std::vector<std::uint8_t> bytes{ std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
+        const auto read = [&bytes](const std::size_t at) {
+            return static_cast<std::uint32_t>(bytes[at] | bytes[at + 1] << 8 | bytes[at + 2] << 16 | bytes[at + 3] << 24);
+        };
+        // where the header has the height, the width, and the bits of a pixel, which are 32 in a file that is
+        // not compressed
+        constexpr std::size_t HEADER_SIZE = 128;
+        constexpr std::size_t HEIGHT_AT = 12;
+        constexpr std::size_t WIDTH_AT = 16;
+        constexpr std::size_t PIXEL_BITS_AT = 88;
+        if (bytes.size() < HEADER_SIZE || !std::equal(bytes.begin(), bytes.begin() + 4, "DDS ") || read(PIXEL_BITS_AT) != 32) {
+            return nullptr;
+        }
+        auto pixels = std::make_unique<model::ImagePixels>(model::ImagePixels{ .name = texture, .width = read(WIDTH_AT), .height = read(HEIGHT_AT), .rgba = {} });
+        if (bytes.size() < HEADER_SIZE + std::size_t{ pixels->width } * pixels->height * 4) {
+            return nullptr;
+        }
+        pixels->rgba.assign(bytes.begin() + HEADER_SIZE, bytes.begin() + HEADER_SIZE + std::size_t{ pixels->width } * pixels->height * 4);
+        for (std::size_t at = 0; at < pixels->rgba.size(); at += 4) {
+            std::swap(pixels->rgba[at], pixels->rgba[at + 2]);
+        }
+        kept = std::move(pixels);
+        return kept.get();
+    }
+
+    /**
      * Draws the panel with the pointer at a place and saves it as an image, at the size the framework
      * rasterizes the panel. A few frames are drawn first: ImGui needs them to find what the pointer is on, and
      * to scroll to a row. What is given to run before them draws the frames that bring the panel to the
@@ -264,10 +306,17 @@ namespace
     std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer, const bool pressed = false, const std::function<void()>& before = {})
     {
         const test_panel::PanelContext context;
-        // an image is drawn with its pixels as its texture, which the rasterizer reads
-        panel.setImageDrawer([](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
-            ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(&pixels)), min, max);
-        });
+        // an image is drawn with its pixels as its texture, which the rasterizer reads. A package's texture is
+        // the package showcase's, and any other is not there
+        panel.setImageDrawer({ .textureSize = [](const std::string& texture) -> std::optional<ImVec2> {
+                                  const auto* pixels = showcaseTexture(texture);
+                                  return pixels ? std::optional(ImVec2(static_cast<float>(pixels->width), static_cast<float>(pixels->height))) : std::nullopt;
+                              },
+            .draw =
+                [](const model::Image& image, const ImVec2& min, const ImVec2& max) {
+                    const auto* pixels = image.pixels ? image.pixels.get() : showcaseTexture(image.texture);
+                    ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(pixels)), min, max);
+                } });
         if (before) {
             before();
         }
@@ -676,6 +725,29 @@ TEST_CASE("FullPanel render: the values of the package showcase's file that are 
         test_panel::drawFrame(panel, pageRow(7));
     };
     WARN("Saved " << renderToFile(panel, "package-showcase-invalid", POINTER_AWAY, false, scrollToEnd));
+}
+
+TEST_CASE("FullPanel render: the ends of the package showcase's pages of rows that hold no value, and of its textures that are not there", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+
+    // the images are at the end of each page: the thumbstick scrolls the page the ray is on
+    for (const auto& [pageName, name] : { std::pair{ "Text, spacers and images", "package-showcase-images" }, std::pair{ "Mistakes", "package-showcase-missing-textures" } }) {
+        FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
+        panel.setMods(mods);
+        select(panel, "Mods Config VR: Showcase", pageName);
+        const auto scrollToEnd = [&panel] {
+            test_panel::drawFrame(panel, pageRow(3));
+            test_panel::drawFrame(panel, pageRow(3));
+            ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+            test_panel::drawFrame(panel, pageRow(3));
+        };
+        WARN("Saved " << renderToFile(panel, name, POINTER_AWAY, false, scrollToEnd));
+    }
 }
 
 TEST_CASE("FullPanel render: a package's section in a section, with rows before and after it", "[.render]")

@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <optional>
+#include <string>
 
 #include <imgui.h>
 
@@ -15,10 +16,18 @@
 namespace mods_config::ui
 {
     /**
-     * Draws the pixels of an image in a rectangle of the current ImGui window. The panel knows nothing of the
-     * game, whose renderer an image is drawn by, so the menu gives the panel what draws one.
+     * What draws the images of a page. The panel knows nothing of the game, whose renderer an image is drawn
+     * by and which loads a package's texture, so the menu gives the panel what draws one.
      */
-    using ImageDrawer = std::function<void(const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max)>;
+    struct ImageDrawer
+    {
+        // the size of a package's texture, by its path under `Data/Textures`, in its pixels. None for one the
+        // game does not load, as one that is not there
+        std::function<std::optional<ImVec2>(const std::string& texture)> textureSize;
+
+        // draws an image in a rectangle of the current ImGui window: its pixels, or else its texture
+        std::function<void(const model::Image& image, const ImVec2& min, const ImVec2& max)> draw;
+    };
 
     /**
      * What the drawing of a page tells.
@@ -51,7 +60,7 @@ namespace mods_config::ui
         void reset();
 
     private:
-        // none draws no image, and an image keeps its room
+        // with none an image from pixels keeps its room, and a texture is drawn as one the game does not load
         ImageDrawer _imageDrawer;
 
         // the sliders of the page that is shown, and how the player edits one

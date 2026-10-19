@@ -1,6 +1,7 @@
 #include "Drawing.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <vector>
 
@@ -332,6 +333,31 @@ namespace mods_config::ui
             ImGui::GetColorU32(color),
             theme::RADIUS_FRAME,
             theme::BORDER_FRAME);
+    }
+
+    /**
+     * A dashed outline inside a rectangle, as the box of a texture the game does not load has it: dashes three
+     * times as long as the outline is thick, with gaps of twice it, from each corner along its side.
+     */
+    void drawDashedOutline(const ImVec2& min, const ImVec2& max, const ImU32 color)
+    {
+        const float inset = theme::BORDER_FRAME * 0.5f;
+        const std::array corners{ ImVec2(min.x + inset, min.y + inset),
+            ImVec2(max.x - inset, min.y + inset),
+            ImVec2(max.x - inset, max.y - inset),
+            ImVec2(min.x + inset, max.y - inset) };
+        const float dash = theme::BORDER_FRAME * 3.0f;
+        const float gap = theme::BORDER_FRAME * 2.0f;
+        auto* drawList = ImGui::GetWindowDrawList();
+        for (std::size_t side = 0; side < corners.size(); ++side) {
+            const auto& from = corners[side];
+            const auto& to = corners[(side + 1) % corners.size()];
+            const float length = std::hypot(to.x - from.x, to.y - from.y);
+            for (float at = 0.0f; at < length; at += dash + gap) {
+                const float end = (std::min)(at + dash, length);
+                drawList->AddLine(ImLerp(from, to, at / length), ImLerp(from, to, end / length), ImGui::GetColorU32(color), theme::BORDER_FRAME);
+            }
+        }
     }
 
     /**

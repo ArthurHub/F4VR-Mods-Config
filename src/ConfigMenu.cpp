@@ -92,6 +92,7 @@ namespace mods_config
         _wristButtons.reset();
         _minimizeButton.reset();
         _imageTextures.clear();
+        _packageTextures.clear();
         // the mod that is shown is left, which its scripts are told before they are told of the menu
         _fullPanel.reset();
         _store.menuClosed();
@@ -232,9 +233,14 @@ namespace mods_config
                 } });
         _fullPanel.setStore(model::Source::Mcm, &_store);
         _fullPanel.setStore(model::Source::Package, &_packageStore);
-        _fullPanel.setImageDrawer([this](const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max) {
-            drawImage(pixels, min, max);
-        });
+        _fullPanel.setImageDrawer({ .textureSize =
+                                        [this](const std::string& texture) {
+                                            return textureSize(texture);
+                                        },
+            .draw =
+                [this](const model::Image& image, const ImVec2& min, const ImVec2& max) {
+                    drawImage(image, min, max);
+                } });
         // In front of the player, and left there: a panel that follows the head moves under the ray.
         // The player moves it by holding it with the config's move button. When they walk away from it,
         // it is put in front of them again. The menu is not closed for that, as it can hold changes that
@@ -309,16 +315,50 @@ namespace mods_config
     }
 
     /**
-     * Draws an image of a mod's page in the panel, with a texture that is made from its pixels when it is
-     * first drawn. Called while the panel's content is drawn.
+     * Draws an image of a mod's page in the panel: an MCM image with a texture that is made from its pixels
+     * when it is first drawn, and a package's with its texture. Called while the panel's content is drawn.
      */
-    void ConfigMenu::drawImage(const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max)
+    void ConfigMenu::drawImage(const model::Image& image, const ImVec2& min, const ImVec2& max)
     {
+        if (!image.pixels) {
+            imgui::addImage(ImGui::GetWindowDrawList(), textureOf(image.texture), min, max);
+            return;
+        }
+        const auto& pixels = *image.pixels;
         auto& texture = _imageTextures[&pixels];
         if (!texture) {
             texture = render::Texture::fromPixels(pixels.name, pixels.width, pixels.height, pixels.rgba);
         }
         imgui::addImage(ImGui::GetWindowDrawList(), *texture, min, max);
+    }
+
+    /**
+     * The size of a package's texture in its pixels. None while the game has no view of it, as for a file
+     * that is not there, whose reason the log has. Called while the panel's content is drawn, on the game thread.
+     */
+    std::optional<ImVec2> ConfigMenu::textureSize(const std::string& texture)
+    {
+        auto& loaded = textureOf(texture);
+        if (!loaded.view() || loaded.width() == 0 || loaded.height() == 0) {
+            return std::nullopt;
+        }
+        return ImVec2(static_cast<float>(loaded.width()), static_cast<float>(loaded.height()));
+    }
+
+    /**
+     * A package's texture, by its path under `Data/Textures`, which the game loads the first time its view is asked
+     * for: from a loose file or a BA2 archive, as a texture of a mesh is.
+     */
+    render::Texture& ConfigMenu::textureOf(const std::string& texture)
+    {
+        auto& loaded = _packageTextures[texture];
+        if (!loaded) {
+            // a package's path has `/` between its folders, and the game's has `\`
+            auto path = R"(Data\Textures\)" + texture;
+            std::ranges::replace(path, '/', '\\');
+            loaded = render::Texture::load(path);
+        }
+        return *loaded;
     }
 
     void ConfigMenu::createWristButtons()

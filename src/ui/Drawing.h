@@ -48,6 +48,7 @@ namespace mods_config::ui
     void drawTextPieces(std::span<const TextPiece> pieces, const ImVec2& pos, float width, int maxLines);
     void sectionHeading(std::string_view text);
     void drawOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
+    void drawDashedOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawRowState();
     ImRect controlBox(float left, float top, float width);
     void drawFrame(const ImRect& box, ValueLook look = ValueLook::Saved);

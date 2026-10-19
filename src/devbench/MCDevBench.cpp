@@ -235,7 +235,7 @@ namespace mods_config::devbench
                         } else if constexpr (std::is_same_v<T, model::Text>) {
                             return { { "kind", "text" }, { "lines", it.lines.size() } };
                         } else if constexpr (std::is_same_v<T, model::Image>) {
-                            return { { "kind", "image" }, { "read", it.pixels != nullptr }, { "width", it.width }, { "height", it.height } };
+                            return { { "kind", "image" }, { "read", it.pixels != nullptr }, { "texture", it.texture }, { "width", it.width }, { "height", it.height } };
                         } else if constexpr (std::is_same_v<T, model::Spacer>) {
                             return { { "kind", "spacer" }, { "lines", it.lines } };
                         } else {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -51,7 +53,9 @@ namespace mods_config
         void createWristButtons();
         static void pulse();
         static float getThumbstickSideValue();
-        void drawImage(const model::ImagePixels& pixels, const ImVec2& min, const ImVec2& max);
+        void drawImage(const model::Image& image, const ImVec2& min, const ImVec2& max);
+        std::optional<ImVec2> textureSize(const std::string& texture);
+        render::Texture& textureOf(const std::string& texture);
         std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
@@ -73,5 +77,9 @@ namespace mods_config
         // The textures of the images that were drawn, each by the pixels of the mod it is made from. They are
         // on the GPU while the menu is open, and are made again from the pixels when it is opened again
         std::unordered_map<const model::ImagePixels*, std::shared_ptr<render::Texture>> _imageTextures;
+
+        // the textures of packages that were drawn, by their paths under `Data/Textures`, which the game loads
+        // as they are first drawn. They are given back to the game as the menu closes
+        std::unordered_map<std::string, std::shared_ptr<render::Texture>> _packageTextures;
     };
 }

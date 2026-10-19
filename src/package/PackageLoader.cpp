@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/CommonUtils.h"
+#include "model/TextMarkup.h"
 
 using namespace mods_config;
 
@@ -21,6 +22,9 @@ namespace
 
     // where the packages are, from the game's folder: a folder each, with its `config.json`
     constexpr auto PACKAGE_CONFIG_FOLDER = R"(Data\ModsConfigVR\Config)";
+
+    // the most lines a spacer is high, whatever its package says, as in an MCM config
+    constexpr float MAX_SPACER_LINES = 20.0f;
 
     /**
      * The text of a key. It is empty when the value has no such key, or the key holds something else than a text.
@@ -55,6 +59,15 @@ namespace
     {
         const auto found = value.find(key);
         return found != value.end() && found->is_number() ? found->get<float>() : otherwise;
+    }
+
+    /**
+     * Whether a key is true. False for a value with no such key, or with one that holds something else than a bool.
+     */
+    bool getBool(const Json& value, const char* key)
+    {
+        const auto found = value.find(key);
+        return found != value.end() && found->is_boolean() && found->get<bool>();
     }
 
     /**
@@ -498,6 +511,42 @@ namespace
     }
 
     /**
+     * A text row: its text in lines, and with the tags of an MCM config read where its `html` is true.
+     */
+    model::Text loadText(const Json& row, const PackageReading& reading)
+    {
+        const auto text = getShownText(row, "text", reading.translations);
+        return model::Text{ .lines = getBool(row, "html") ? model::parseMarkup(text) : model::plainLines(text), .visibleWhen = {} };
+    }
+
+    /**
+     * A spacer: as high as its `numLines`, from 1 to 20, and one line without it.
+     */
+    model::Spacer loadSpacer(const Json& row)
+    {
+        const auto lines = std::clamp(getNumber(row, "numLines", 1.0f), 1.0f, MAX_SPACER_LINES);
+        return model::Spacer{ .lines = static_cast<int>(lines), .visibleWhen = {} };
+    }
+
+    /**
+     * An image: its `texture`, a path under `Data/Textures`, and its `width` and `height` in the panel's pixels,
+     * of which a side that is not more than 0 is none. One with no texture shows that an image is there, with
+     * the reason in the log.
+     */
+    model::Image loadImage(const Json& row)
+    {
+        auto texture = getText(row, "texture");
+        if (texture.empty()) {
+            logger::warn("An image names no texture");
+        }
+        return model::Image{ .pixels = {},
+            .texture = std::move(texture),
+            .width = (std::max)(getNumber(row, "width", 0.0f), 0.0f),
+            .height = (std::max)(getNumber(row, "height", 0.0f), 0.0f),
+            .visibleWhen = {} };
+    }
+
+    /**
      * The items of the `content` of a page or a section, by their `type`, one for each row. A section is a
      * group of the items of its own `content`, and passes its `defaultFile` and its `applies` down to them.
      * Any other row the menu does not have is a placeholder with its type.
@@ -514,6 +563,18 @@ namespace
             if (type == "section") {
                 items.emplace_back(
                     model::Group{ .text = getShownText(row, "text", reading.translations), .items = loadItems(row, inherit(row, above), reading), .visibleWhen = {} });
+                continue;
+            }
+            if (type == "text") {
+                items.emplace_back(loadText(row, reading));
+                continue;
+            }
+            if (type == "spacer") {
+                items.emplace_back(loadSpacer(row));
+                continue;
+            }
+            if (type == "image") {
+                items.emplace_back(loadImage(row));
                 continue;
             }
             if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
@@ -840,7 +901,8 @@ namespace mods_config::package
 {
     /**
      * Reads the text of a package's `config.json` into the model: the mod and its help, its files, its front
-     * page and its pages, which nest, with their help, and their sections, which nest, and settings. Every
+     * page and its pages, which nest, with their help, and their sections, which nest, settings, texts,
+     * spacers and images. Every
      * text the player sees is in the game's language. A setting has the file its value is kept in, and when
      * its change takes effect, which the package's root has to say. A choice has its options or a list of
      * the package's `sharedLists`. A row is shown and enabled by its conditions, which are read once every
