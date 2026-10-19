@@ -1,6 +1,6 @@
 #include "TestProperties.h"
 
-#include "mcm/McmStore.h"
+#include "GameValues.h"
 
 namespace
 {
@@ -33,7 +33,7 @@ namespace test_properties
     }
 }
 
-namespace mods_config::mcm
+namespace mods_config
 {
     /**
      * The value of a property of the tests: the tests' own, which is linked in place of the mod's.

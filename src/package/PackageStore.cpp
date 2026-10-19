@@ -3,13 +3,16 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
+#include <expected>
 #include <format>
 #include <memory>
 #include <ranges>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
 #include "GameActions.h"
+#include "GameValues.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
 
@@ -287,6 +290,117 @@ namespace
     }
 
     /**
+     * Whether a setting is kept in the game, in a global or in a property of a script, which the game keeps
+     * in the save.
+     */
+    bool isInGame(const model::Storage& storage)
+    {
+        return std::holds_alternative<model::GlobalStorage>(storage) || std::holds_alternative<model::PropertyStorage>(storage);
+    }
+
+    /**
+     * A form as a package names it, by its plugin and its id in hex: `Fallout4.esm|38`.
+     */
+    std::string formText(const std::string& plugin, const std::uint32_t formId)
+    {
+        return std::format("{}|{:X}", plugin, formId);
+    }
+
+    /**
+     * A global or a property as a reason names it: `the global Fallout4.esm|38`.
+     */
+    std::string gameName(const model::Storage& storage)
+    {
+        if (const auto* global = std::get_if<model::GlobalStorage>(&storage)) {
+            return "the global " + formText(global->plugin, global->formId);
+        }
+        const auto& property = std::get<model::PropertyStorage>(storage);
+        return std::format("the property {} of {}", property.name, formText(property.plugin, property.formId));
+    }
+
+    /**
+     * A value of the game in the type of a setting's value: a bool is on at any number but 0, as Papyrus casts
+     * a number to a bool, a whole number is the nearest one, and a bool is 1 and 0 as a number. None for a
+     * text as a number, and for a number as a text.
+     */
+    std::optional<model::Value> asType(const model::Value& value, const model::StoredType type)
+    {
+        const bool isText = std::holds_alternative<std::string>(value);
+        if (type == model::StoredType::String || isText) {
+            return type == model::StoredType::String && isText ? std::optional(value) : std::nullopt;
+        }
+        const auto* on = std::get_if<bool>(&value);
+        const auto* whole = std::get_if<int>(&value);
+        const float number = on ? (*on ? 1.0f : 0.0f) : whole ? static_cast<float>(*whole) : std::get<float>(value);
+        switch (type) {
+        case model::StoredType::Bool:
+            return common::fNotEqual(number, 0.0f);
+        case model::StoredType::Int:
+            return static_cast<int>(std::lround(number));
+        default:
+            return number;
+        }
+    }
+
+    /**
+     * The value a setting keeps in the game now, in the type of its value, or why it is not available: its
+     * global or its property is not in the game, or keeps no value of the setting's type, as a global, which
+     * keeps a number, does not for a setting of a text.
+     */
+    std::expected<model::Value, std::string> readGame(const model::Setting& setting)
+    {
+        std::optional<model::Value> read;
+        if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
+            if (const auto number = getGlobal(*global)) {
+                read = *number;
+            }
+        } else {
+            read = getProperty(std::get<model::PropertyStorage>(setting.storage));
+        }
+        if (!read) {
+            return std::unexpected(std::format("Not available: {} is not in the game.", gameName(setting.storage)));
+        }
+        auto typed = asType(*read, setting.valueType);
+        if (!typed) {
+            return std::unexpected(std::format("Not available: {} is {}, which is no value of the setting's valueType.", gameName(setting.storage), valueText(*read)));
+        }
+        return std::move(*typed);
+    }
+
+    /**
+     * Writes a value into the game, where a storage keeps it, in the type of its setting's value: a global
+     * keeps a number, which is 1 and 0 for a bool. Returns false for a global or a property that is not in the
+     * game.
+     */
+    bool writeGame(const model::Storage& storage, const model::Value& stored)
+    {
+        if (const auto* global = std::get_if<model::GlobalStorage>(&storage)) {
+            const auto number = asType(stored, model::StoredType::Float);
+            return number && setGlobal(*global, std::get<float>(*number));
+        }
+        return setProperty(std::get<model::PropertyStorage>(storage), stored);
+    }
+
+    /**
+     * Runs the action of a setting that Save wrote: a `CallFunction` and a `CallGlobalFunction` have the value
+     * written in place of each of their `{value}` parameters, as the file or the game keeps it, and a
+     * `RunConsoleCommand` runs its line.
+     */
+    void runAction(const model::Setting& setting, const model::Value& written)
+    {
+        if (const auto* call = std::get_if<model::CallFunction>(&setting.action)) {
+            auto filled = *call;
+            for (const auto& argument : filled.valueArguments) {
+                filled.arguments[argument.place] = storedValue(setting, written);
+            }
+            filled.valueArguments.clear();
+            callFunction(filled);
+        } else if (const auto* command = std::get_if<model::ConsoleCommand>(&setting.action)) {
+            runConsoleCommand(*command);
+        }
+    }
+
+    /**
      * Adds the settings of the items to the list, with those of the groups among them.
      */
     void addSettings(const std::vector<model::Item>& items, std::vector<const model::Setting*>& settings)
@@ -328,8 +442,11 @@ namespace
      */
     std::string unknownStorageReason(const model::UnknownStorage& storage)
     {
-        if (storage.type == "global" || storage.type == "property") {
-            return std::format("Not available: the menu does not read a package's setting that is kept in a {} yet.", storage.type);
+        if (storage.type == "global") {
+            return "Not available: its global is not a plugin and an id in hex, as MyMod.esp|800.";
+        }
+        if (storage.type == "property") {
+            return "Not available: its property names no form as a plugin and an id in hex, as MyMod.esp|800, or has no propertyName.";
         }
         return storage.type == "file" ? "Not available: the setting names no file of its package, or no value of it." : "Not available: the setting has no storage.";
     }
@@ -343,13 +460,14 @@ namespace mods_config::package
     {}
 
     /**
-     * Starts the session of a mod, after it ends the one of the mod before it: its files are read now, and
-     * the value of each setting is its baseline.
+     * Starts the session of a mod, after it ends the one of the mod before it: its files, its globals and its
+     * properties are read now, and the value of each setting is its baseline. One that is not in the game is
+     * not available, with the reason.
      * A file that is not there has none of its values, and a key the file does not have is its setting's
      * default: both are clean, and the first Save that changes one of them writes it. A file that cannot be
      * read, or is no TOML, has its settings not available, with the reason, and so has a file the menu does
      * not read. A value that is not of its setting's type, outside its limits or no option of its choice is
-     * invalid, with the reason.
+     * invalid, with the reason: of the game, one that is no value of the setting's type is not available.
      * A read-only setting is never invalid: it has the value of its file as it is, none where the file has
      * none, and is not available where the file's value is not of its type.
      */
@@ -393,6 +511,18 @@ namespace mods_config::package
                 entry.notAvailable = unknownStorageReason(*unknown);
                 continue;
             }
+            if (isInGame(setting->storage)) {
+                auto stored = readGame(*setting);
+                if (!stored) {
+                    entry.notAvailable = std::move(stored.error());
+                    continue;
+                }
+                entry.baseline = controlValue(*setting, *stored);
+                if (!setting->readOnly) {
+                    entry.invalid = invalidReason(*setting, *entry.baseline, gameName(setting->storage), "the game");
+                }
+                continue;
+            }
             const auto& storage = std::get<model::FileStorage>(setting->storage);
             const auto file = files.find(storage.file);
             if (file == files.end() || !file->second.notAvailable.empty()) {
@@ -425,15 +555,17 @@ namespace mods_config::package
                 entry.invalid = invalidReason(*setting, *entry.baseline, pathText(storage.path), fileName(mod.files.at(storage.file)));
             }
         }
-        logger::debug("Read {} settings of '{}' from {} files", _settingList.size(), mod.name, files.size());
+        logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
     }
 
     /**
-     * Ends the session of the mod: its values are forgotten, also the pending ones.
+     * Ends the session of the mod: its values are forgotten, also the pending ones, and the game has the
+     * baseline of each setting that is previewed again.
      * It does not read the mod, which can be gone by now: the menu's mods are replaced before it is called.
      */
     void PackageStore::close()
     {
+        rollBack();
         _modName.clear();
         _tomlFiles.clear();
         _settingList.clear();
@@ -484,8 +616,9 @@ namespace mods_config::package
 
     /**
      * Sets the pending value of a setting. A value that is the baseline leaves the setting clean, so the Save
-     * does not write it. Returns false for a value that is not set: one of a setting that is read-only or not
-     * available, and one that is not a value of the setting, as a number outside its limits.
+     * does not write it. A `live` setting of the game is previewed: the game has its value at once.
+     * Returns false for a value that is not set: one of a setting that is read-only or not available, and one
+     * that is not a value of the setting, as a number outside its limits.
      */
     bool PackageStore::set(const model::Setting& setting, const model::Value& value)
     {
@@ -503,6 +636,9 @@ namespace mods_config::package
             entry.pending.reset();
         } else {
             entry.pending = std::move(*accepted);
+        }
+        if (isInGame(setting.storage) && setting.applies == model::Applies::Live) {
+            preview(setting, entry);
         }
         return true;
     }
@@ -531,23 +667,33 @@ namespace mods_config::package
     /**
      * Writes the dirty settings into their files, each file in one write, in the order of the package, and a
      * setting then has the value written as its baseline. A file is read again as it is written, so a value
-     * that changed in it since the session started stays, but for one the player changed too.
+     * that changed in it since the session started stays, but for one the player changed too. The dirty
+     * settings of the game are written after every file, and the action of each setting that was written runs
+     * then, in the order of the package, with the value written.
      * A file that cannot be written keeps its settings dirty, with the reason in the log, and the other files
-     * are still written. Returns whether every dirty setting is written.
+     * are still written: the game's values are not, as a Save that fails changes none of them. Returns whether
+     * every dirty setting is written.
      */
     bool PackageStore::save()
     {
         bool saved = true;
-        std::size_t written = 0;
+        std::unordered_set<const model::Setting*> written;
+        const auto wrote = [this, &written](const model::Setting* setting) {
+            auto& entry = _entries.at(setting);
+            entry.baseline = std::move(entry.pending);
+            entry.pending.reset();
+            entry.invalid.clear();
+            written.insert(setting);
+        };
         for (const auto& [name, path] : _tomlFiles) {
             std::vector<TomlFile::Change> changes;
-            std::vector<Entry*> entries;
+            std::vector<const model::Setting*> settings;
             for (const auto* setting : _settingList) {
-                auto& entry = _entries.at(setting);
+                const auto& entry = _entries.at(setting);
                 const auto* storage = std::get_if<model::FileStorage>(&setting->storage);
                 if (entry.pending && storage && storage->file == name) {
                     changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending) });
-                    entries.push_back(&entry);
+                    settings.push_back(setting);
                 }
             }
             if (changes.empty()) {
@@ -558,22 +704,43 @@ namespace mods_config::package
                 saved = false;
                 continue;
             }
-            for (auto* entry : entries) {
-                entry->baseline = std::move(entry->pending);
-                entry->pending.reset();
-                entry->invalid.clear();
-            }
-            written += changes.size();
+            std::ranges::for_each(settings, wrote);
         }
-        logger::info("Saved {} changes of '{}'", written, _modName);
+
+        for (const auto* setting : _settingList) {
+            const auto& entry = _entries.at(setting);
+            if (!entry.pending || !isInGame(setting->storage)) {
+                continue;
+            }
+            if (!saved) {
+                logger::warn("The change of '{}' to {} is not saved, as a file is not", _modName, gameName(setting->storage));
+                continue;
+            }
+            if (!writeGame(setting->storage, storedValue(*setting, *entry.pending))) {
+                logger::warn("The change of '{}' to {} is not saved: it is not in the game", _modName, gameName(setting->storage));
+                saved = false;
+                continue;
+            }
+            _previews.erase(setting);
+            wrote(setting);
+        }
+
+        for (const auto* setting : _settingList) {
+            if (written.contains(setting)) {
+                runAction(*setting, *_entries.at(setting).baseline);
+            }
+        }
+        logger::info("Saved {} changes of '{}'", written.size(), _modName);
         return saved;
     }
 
     /**
-     * Takes back the pending values: each setting has its baseline again, also an invalid one of its file.
+     * Takes back the pending values: each setting has its baseline again, also an invalid one of its file,
+     * and the game has the baseline of each setting that is previewed again.
      */
     void PackageStore::discard()
     {
+        rollBack();
         for (auto& entry : _entries | std::views::values) {
             entry.pending.reset();
         }
@@ -600,5 +767,36 @@ namespace mods_config::package
         }
         const auto* command = std::get_if<model::ConsoleCommand>(&action);
         return command && runConsoleCommand(*command);
+    }
+
+    /**
+     * Writes the value a `live` setting of the game has now into the game: its pending value, as a preview,
+     * or its baseline, as it is set back. The baseline of one that is previewed is kept, which a Discard
+     * writes back, and so does the end of the session.
+     */
+    void PackageStore::preview(const model::Setting& setting, const Entry& entry)
+    {
+        const auto& shown = entry.pending ? *entry.pending : *entry.baseline;
+        if (!writeGame(setting.storage, storedValue(setting, shown))) {
+            logger::warn("The change of '{}' to {} is not previewed: it is not in the game", _modName, gameName(setting.storage));
+            return;
+        }
+        if (entry.pending) {
+            _previews.insert_or_assign(&setting, Preview{ .storage = setting.storage, .baseline = storedValue(setting, *entry.baseline) });
+        } else {
+            _previews.erase(&setting);
+        }
+    }
+
+    /**
+     * Writes the baseline of each setting that is previewed back into the game, so no preview outlives the
+     * change it shows.
+     */
+    void PackageStore::rollBack()
+    {
+        for (const auto& preview : _previews | std::views::values) {
+            writeGame(preview.storage, preview.baseline);
+        }
+        _previews.clear();
     }
 }

@@ -16,16 +16,19 @@
 namespace mods_config::package
 {
     /**
-     * The store of a package's mod: its editing session. As the mod is selected its files are read, and the
-     * value of each setting then is its baseline. A change is a pending value, and a setting whose pending
+     * The store of a package's mod: its editing session. As the mod is selected its files, its globals and its
+     * properties of scripts are read, and the value of each setting then is its baseline. A change is a pending value, and a setting whose pending
      * value is not its baseline is dirty: it waits for a Save, which writes it and makes it the baseline, or a
      * Discard, which takes it back. A change back to the baseline leaves the setting clean.
      * A value the file does not have, as in a file that is not there, is the setting's default, and is clean.
      * One that is not of its setting's type, outside its limits or no option of its choice is invalid: it is
      * shown and edited, and is clean until the player changes it.
      * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
-     * The menu reads a TOML file: a setting of any other file, or kept in a global or a property of a script,
-     * is not available.
+     * The menu reads a TOML file: a setting of any other file is not available.
+     * A global and a property are read and written with `getGlobal`, `setGlobal`, `getProperty` and
+     * `setProperty`. A `live` one is previewed: its pending value is written into the game as it is set, and
+     * its baseline is written back as it is set back, discarded, or its session ends. Save writes them after
+     * the files, and then runs the action of each setting it wrote.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
     class PackageStore : public model::Store
@@ -73,6 +76,20 @@ namespace mods_config::package
             std::optional<model::Value> pending;
         };
 
+        /**
+         * A setting of the game whose pending value the game has, as a preview: where it is kept, and its
+         * baseline as the game keeps it, which is written back. It does not need the mod, which can be gone
+         * as the session ends.
+         */
+        struct Preview
+        {
+            model::Storage storage;
+            model::Value baseline;
+        };
+
+        void preview(const model::Setting& setting, const Entry& entry);
+        void rollBack();
+
         // the folders a path of a package's file is from: the game's Data folder, and
         // `Documents\My Games\Fallout4VR`
         std::filesystem::path _dataFolder;
@@ -93,5 +110,8 @@ namespace mods_config::package
 
         // what the session has of each setting of the mod that is selected
         std::unordered_map<const model::Setting*, Entry> _entries;
+
+        // the settings of the game that are previewed, by the setting, which is not read through it
+        std::unordered_map<const model::Setting*, Preview> _previews;
     };
 }

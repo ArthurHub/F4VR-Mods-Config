@@ -1,6 +1,6 @@
 #include "TestGlobals.h"
 
-#include "mcm/McmStore.h"
+#include "GameValues.h"
 
 namespace
 {
@@ -23,7 +23,7 @@ namespace test_globals
     }
 }
 
-namespace mods_config::mcm
+namespace mods_config
 {
     /**
      * The value of a global of the tests: the tests' own, which is linked in place of the mod's.

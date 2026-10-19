@@ -733,6 +733,37 @@
       ]
     },
     {
+      "pageDisplayName": "In the game",
+      "help": "Settings kept in the game, where a script mod keeps them, and the action of a setting, which Save runs.",
+      "content": [
+        {
+          "type": "text",
+          "text": "A global and a property of a script are in the save game, not in a file. A change waits for a Save, as one of a file does, and a live one is in the game as it is made: Discard puts it back."
+        },
+        {
+          "type": "section", "text": "A global",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Time of day", "help": "The game's global GameHour, live: the time changes as the slider moves.",
+              "default": 12.0, "valueOptions": { "min": 0, "max": 24, "step": 0.25 }, "display": { "decimals": 2, "unit": "h" },
+              "applies": "live", "storage": { "global": "Fallout4.esm|38" }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "A setting's action",
+          "content": [
+            {
+              "type": "textinput", "valueType": "string", "text": "Notification",
+              "help": "Save writes it, then shows it as a notification: its action calls Debug.Notification with its value.",
+              "default": "Showcase: saved", "applies": "save", "storage": { "path": ["Game", "sNotification"] },
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["{value}"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "pageDisplayName": "When a change takes effect",
       "help": "Settings that take effect as they are changed, after Save, and after a restart: their own, a section's and the page's.",
       "applies": "save",
@@ -1018,6 +1049,22 @@
             {
               "type": "switcher", "valueType": "bool", "text": "No storage", "help": "It does not say where its value is kept.",
               "default": true
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A global by its name", "help": "Its global is GameHour, which is not a plugin and an id in hex.",
+              "default": true, "storage": { "global": "GameHour" }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A global that is not in the game", "help": "Its global is of a plugin the game does not have.",
+              "default": true, "storage": { "global": "ModsConfigVR_Showcase.esp|801" }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "A property that is not in the game", "help": "Its form is of a plugin the game does not have.",
+              "default": true, "storage": { "form": "ModsConfigVR_Showcase.esp|800", "propertyName": "bOn" }
+            },
+            {
+              "type": "textinput", "valueType": "string", "text": "A global of a text", "help": "A global keeps a number, and its value is a text.",
+              "default": "noon", "storage": { "global": "Fallout4.esm|38" }
             }
           ]
         },

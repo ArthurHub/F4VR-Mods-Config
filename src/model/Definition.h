@@ -105,7 +105,7 @@ namespace mods_config::model
 
     /**
      * A property of a script: a value a Papyrus script keeps, on a form of a game plugin the script is
-     * attached to. The game keeps it in the save.
+     * attached to. The game keeps it in the save. A package's is in the type of its setting's value.
      */
     struct PropertyStorage
     {
@@ -239,7 +239,8 @@ namespace mods_config::model
     };
 
     /**
-     * An argument of a call that has the value of its row in it: the value a setting is set to.
+     * An argument of a call that has the value of its row in it: the value a setting is set to. A package's is
+     * a parameter that is exactly `{value}`, which is the value itself, in its setting's type.
      */
     struct ValueArgument
     {
@@ -379,7 +380,8 @@ namespace mods_config::model
         // number or a number: the value of every other is of its type of control
         StoredType valueType = StoredType::String;
 
-        // what runs after its value is set, with the value. Most have none
+        // what runs after its value is set, with the value: an MCM row's as it is set, and a package's as Save
+        // writes it. Most have none
         Action action;
 
         // the row is shown while it holds. A row with none is always shown

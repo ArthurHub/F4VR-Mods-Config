@@ -381,6 +381,36 @@ TEST_CASE("PackageLoader: a button calls a function with its typed params, or ru
     CHECK(std::get<model::Button>(items[2]).action == model::Action(model::ConsoleCommand{ "tm" }));
 }
 
+TEST_CASE("PackageLoader: a setting's action has the value written for each parameter that is {value}")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "switcher", "text": "Automation", "storage": { "global": "MyMod.esp|1234" },
+          "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "OnChanged", "params": ["{value}", 2, "a {value}", "{value}"] } },
+        { "type": "slider", "valueType": "int", "text": "Count", "storage": { "path": ["Main", "iCount"] },
+          "action": { "type": "CallGlobalFunction", "script": "MyMod:Config", "function": "SetCount", "params": ["{value}"] } },
+        { "type": "switcher", "text": "HUD", "storage": { "path": ["Main", "bHud"] }, "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "switcher", "text": "No action", "storage": { "path": ["Main", "bNone"] } },
+        { "type": "switcher", "text": "Native", "storage": { "path": ["Main", "bNative"] }, "action": { "type": "CallNativeFunction", "function": "apply" } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 5);
+
+    // only a parameter that is exactly {value}, in the setting's type
+    const auto* automation = std::get_if<model::CallFunction>(&settings[0].action);
+    REQUIRE(automation);
+    CHECK(automation->function == "OnChanged");
+    CHECK(automation->arguments == std::vector<model::Value>{ "{value}"s, 2, "a {value}"s, "{value}"s });
+    CHECK(automation->valueArguments == std::vector<model::ValueArgument>{ { .place = 0, .text = "{value}", .type = model::StoredType::Bool },
+                                            { .place = 3, .text = "{value}", .type = model::StoredType::Bool } });
+    const auto* count = std::get_if<model::CallFunction>(&settings[1].action);
+    REQUIRE(count);
+    CHECK(count->valueArguments == std::vector<model::ValueArgument>{ { .place = 0, .text = "{value}", .type = model::StoredType::Int } });
+
+    CHECK(settings[2].action == model::Action(model::ConsoleCommand{ "tm" }));
+    CHECK(std::holds_alternative<model::NoAction>(settings[3].action));
+    CHECK(std::holds_alternative<model::UnknownAction>(settings[4].action));
+}
+
 TEST_CASE("PackageLoader: a button whose action the menu does not run, or is not written right, has the reason")
 {
     const auto mod = loaded(packageOf(R"(
@@ -784,6 +814,28 @@ TEST_CASE("PackageLoader: a value is named by its path, or by its section and it
     CHECK(settings[3].storage == fileValue("main", { "Main", "bCase" }));
 }
 
+TEST_CASE("PackageLoader: a setting is kept in a global, or in a property of a script in the type of its value")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "slider", "text": "Time of day", "storage": { "global": "Fallout4.esm|38" } },
+        { "type": "switcher", "text": "Global with 0x", "storage": { "global": "MyMod.esp|0x1234" } },
+        { "type": "slider", "valueType": "int", "text": "Property", "storage": { "form": "MyMod.esp|800", "scriptName": "MyMod:Config", "propertyName": "iCount" } },
+        { "type": "switcher", "text": "First script", "storage": { "form": "MyMod.esp|800", "propertyName": "bOn" } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 4);
+    CHECK(settings[0].storage == model::Storage(model::GlobalStorage{ .plugin = "Fallout4.esm", .formId = 0x38 }));
+    CHECK(settings[1].storage == model::Storage(model::GlobalStorage{ .plugin = "MyMod.esp", .formId = 0x1234 }));
+    CHECK(settings[2].storage ==
+          model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x800, .script = "MyMod:Config", .name = "iCount", .type = model::StoredType::Int }));
+    CHECK(settings[3].storage == model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x800, .script = {}, .name = "bOn", .type = model::StoredType::Bool }));
+
+    // it has no id from where its value is kept
+    for (const auto& setting : settings) {
+        CHECK(setting.id.empty());
+    }
+}
+
 TEST_CASE("PackageLoader: a setting that names no file of its package, or no value, is kept where the menu does not read")
 {
     const auto mod = loaded(R"({
@@ -795,8 +847,10 @@ TEST_CASE("PackageLoader: a setting that names no file of its package, or no val
             { "type": "switcher", "text": "No path", "storage": { "file": "main" } },
             { "type": "switcher", "text": "Empty name", "storage": { "file": "main", "path": ["Main", ""] } },
             { "type": "switcher", "text": "No storage" },
-            { "type": "switcher", "text": "Global", "storage": { "global": "MyMod.esp|1234" } },
-            { "type": "switcher", "text": "Property", "storage": { "form": "MyMod.esp|800", "propertyName": "bOn" } }
+            { "type": "switcher", "text": "Global by its name", "storage": { "global": "GameHour" } },
+            { "type": "switcher", "text": "Global of no text", "storage": { "global": 56 } },
+            { "type": "switcher", "text": "Property with no name", "storage": { "form": "MyMod.esp|800" } },
+            { "type": "switcher", "text": "Property with no id", "storage": { "form": "MyMod.esp", "propertyName": "bOn" } }
         ]
     })");
     Lines storages;
@@ -811,8 +865,10 @@ TEST_CASE("PackageLoader: a setting that names no file of its package, or no val
                           "No path unknown file",
                           "Empty name unknown file",
                           "No storage unknown ",
-                          "Global unknown global",
-                          "Property unknown property" });
+                          "Global by its name unknown global",
+                          "Global of no text unknown global",
+                          "Property with no name unknown property",
+                          "Property with no id unknown property" });
 }
 
 TEST_CASE("PackageLoader: a file that is not written as the schema has it is left out")
@@ -1144,7 +1200,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    CHECK(mod.pages.size() == 16);
+    CHECK(mod.pages.size() == 17);
 
     // the file whose path goes up out of its root is left out
     Lines files;

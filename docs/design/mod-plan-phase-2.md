@@ -50,7 +50,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M111 | mod | A read-only setting, and how a number is shown                                            | in review |
 | M112 | mod | A row warns while a condition holds                                                       | in review |
 | M49 | mod  | A package's button calls a Papyrus function or runs a console command, with its own text  | in review |
-| M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | todo   |
+| M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | in review |
 | M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a package        | todo   |
 | M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | todo   |
 | M53 | mod  | A Save that fails leaves every file as it was                                             | todo   |

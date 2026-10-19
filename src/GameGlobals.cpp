@@ -1,4 +1,4 @@
-#include "McmStore.h"
+#include "GameValues.h"
 
 #include <map>
 #include <utility>
@@ -29,7 +29,7 @@ namespace
     }
 }
 
-namespace mods_config::mcm
+namespace mods_config
 {
     /**
      * The value a global has in the game now, and none for one that is not in the game.

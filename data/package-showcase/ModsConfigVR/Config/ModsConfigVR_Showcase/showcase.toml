@@ -92,6 +92,9 @@ bOwn = false
 [Files.Tables]
 bDeep = true
 
+[Game]
+sNotification = "Showcase: saved"
+
 [Applies]
 bPage = true
 bLive = true

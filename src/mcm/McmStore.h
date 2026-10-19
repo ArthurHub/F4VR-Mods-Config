@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "GameActions.h"
+#include "GameValues.h"
 #include "McmKeybinds.h"
 #include "McmModSettings.h"
 #include "model/Definition.h"
@@ -19,18 +20,6 @@ namespace mods_config::mcm
 {
     // What the store does in the game is in files of their own, which the unit tests do not compile: they
     // link their own in place of each, so the store is tested with no game.
-
-    // The value of a global of the game, and none for one that is not in the game. Setting one returns false
-    // for one that is not in the game. The mod's are in McmGlobals.cpp, and the tests' in tests/TestGlobals.cpp,
-    // which keeps the globals in a map.
-    std::optional<float> getGlobal(const model::GlobalStorage& global);
-    bool setGlobal(const model::GlobalStorage& global, float value);
-
-    // The value of a property of a script, in the type the script keeps it in, and none for one that is not in
-    // the game. Setting one returns false for one that is not in the game. The mod's are in McmProperties.cpp,
-    // and the tests' in tests/TestProperties.cpp, which keeps the properties in a map.
-    std::optional<model::Value> getProperty(const model::PropertyStorage& property);
-    bool setProperty(const model::PropertyStorage& property, const model::Value& value);
 
     // Sends an event of MCM's menu to the scripts that wait for it, with the texts their function takes.
     // The mod's is in McmEvents.cpp, which calls the scripts of the game, and the tests' in

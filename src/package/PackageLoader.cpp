@@ -220,21 +220,61 @@ namespace
     }
 
     /**
-     * Where a setting keeps its value: a value of the file its `storage` names, or else of the nearest
-     * `defaultFile` above it. The value is named by its `path`, or by its `section` and its `key`, as an INI
-     * key is. A storage that names no file of the package or no value, and a global or a property, are ones
-     * the menu does not read, with the reason in the log.
+     * A form of a game plugin, written as its plugin and its id in hex, as `MyMod.esp|800`, which can start
+     * with `0x`. None for a text that is not written so.
      */
-    model::Storage loadStorage(const Json& row, const std::string& defaultFile, const PackageReading& reading)
+    std::optional<std::pair<std::string, std::uint32_t>> parseForm(const std::string& text)
+    {
+        const auto separator = text.find('|');
+        auto plugin = common::trim(text.substr(0, separator));
+        auto id = separator == std::string::npos ? std::string() : common::trim(text.substr(separator + 1));
+        if (id.starts_with("0x") || id.starts_with("0X")) {
+            id.erase(0, 2);
+        }
+        std::uint32_t formId = 0;
+        const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), formId, 16);
+        if (plugin.empty() || id.empty() || error != std::errc() || end != id.data() + id.size()) {
+            return std::nullopt;
+        }
+        return std::pair(std::move(plugin), formId);
+    }
+
+    /**
+     * Where a setting keeps its value: a global, as `{ "global": "MyMod.esp|1234" }`, a property of a script,
+     * by its `form`, its `propertyName` and its `scriptName`, which is optional, in the setting's `valueType`,
+     * or a value of the file its `storage` names, or else of the nearest `defaultFile` above it. The value of a
+     * file is named by its `path`, or by its `section` and its `key`, as an INI key is. A storage that is not
+     * written as one, as a form that is not a plugin and an id in hex, a property with no name, or no file of
+     * the package or no value of it, is one the menu does not read, with the reason in the log.
+     */
+    model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, const PackageReading& reading)
     {
         const auto storage = row.find("storage");
         if (storage == row.end() || !storage->is_object()) {
             logger::warn("The setting '{}' has no storage", getText(row, "text"));
             return model::UnknownStorage{};
         }
-        if (storage->contains("global") || storage->contains("form")) {
-            logger::warn("The setting '{}' is kept in a global or a property, which a package's menu does not read", getText(row, "text"));
-            return model::UnknownStorage{ .type = storage->contains("global") ? "global" : "property" };
+        if (storage->contains("global")) {
+            const auto global = getText(*storage, "global");
+            if (auto form = parseForm(global)) {
+                return model::GlobalStorage{ .plugin = std::move(form->first), .formId = form->second };
+            }
+            logger::warn("The global '{}' of the setting '{}' is not a plugin and an id in hex", global, getText(row, "text"));
+            return model::UnknownStorage{ .type = "global" };
+        }
+        if (storage->contains("form")) {
+            const auto formText = getText(*storage, "form");
+            auto form = parseForm(formText);
+            auto name = getText(*storage, "propertyName");
+            if (form && !name.empty()) {
+                return model::PropertyStorage{ .plugin = std::move(form->first),
+                    .formId = form->second,
+                    .script = getText(*storage, "scriptName"),
+                    .name = std::move(name),
+                    .type = valueType };
+            }
+            logger::warn("The property '{}' of the form '{}' of the setting '{}' is not a name, and a plugin and an id in hex", name, formText, getText(row, "text"));
+            return model::UnknownStorage{ .type = "property" };
         }
 
         std::vector<std::string> path;
@@ -500,67 +540,6 @@ namespace
         return display;
     }
 
-    /**
-     * A setting of a package: its author's `id`, or one it gets from where its value is kept, its own
-     * `applies` or the nearest above it, its `default`, how its number is shown, and the options of a choice.
-     * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
-     * package, which the log has: an author gives one of them an id of its own. Its conditions and its
-     * warnings are read once every setting of the package is (`loadConditions`).
-     */
-    model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, PackageReading& reading)
-    {
-        const auto own = inherit(row, above);
-        auto storage = loadStorage(row, own.defaultFile, reading);
-        auto id = getText(row, "id");
-        if (id.empty()) {
-            id = idOf(storage);
-        }
-        const auto valueType = loadValueType(row, type);
-        if (!id.empty() && !reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType }).second) {
-            logger::warn("Two settings have the id '{}': give one of them an id of its own", id);
-        }
-        auto valueOptions = loadValueOptions(row, type, valueType, reading);
-        const bool readOnly = getBool(row, "readOnly");
-        auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions);
-        return model::Setting{ .id = std::move(id),
-            .sourceId = {},
-            .type = type,
-            .text = getShownText(row, "text", reading.translations),
-            .textRuns = {},
-            .help = getShownText(row, "help", reading.translations),
-            .valueOptions = std::move(valueOptions),
-            .storage = std::move(storage),
-            .valueType = valueType,
-            .action = {},
-            .visibleWhen = {},
-            .enabledWhen = {},
-            .applies = own.applies,
-            .defaultValue = std::move(defaultValue),
-            .display = loadDisplay(row, reading.translations),
-            .readOnly = readOnly,
-            .warnings = {} };
-    }
-
-    /**
-     * A form of a game plugin, written as its plugin and its id in hex, as `MyMod.esp|800`, which can start
-     * with `0x`. None for a text that is not written so.
-     */
-    std::optional<std::pair<std::string, std::uint32_t>> parseForm(const std::string& text)
-    {
-        const auto separator = text.find('|');
-        auto plugin = common::trim(text.substr(0, separator));
-        auto id = separator == std::string::npos ? std::string() : common::trim(text.substr(separator + 1));
-        if (id.starts_with("0x") || id.starts_with("0X")) {
-            id.erase(0, 2);
-        }
-        std::uint32_t formId = 0;
-        const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), formId, 16);
-        if (plugin.empty() || id.empty() || error != std::errc() || end != id.data() + id.size()) {
-            return std::nullopt;
-        }
-        return std::pair(std::move(plugin), formId);
-    }
-
     // the least and the most a whole number of Papyrus is
     constexpr double MIN_WHOLE = -2147483648.0;
     constexpr double MAX_WHOLE = 2147483647.0;
@@ -633,12 +612,12 @@ namespace
     }
 
     /**
-     * An action of a button that is not written right, which the menu does not run: the help line has the
-     * mistake as its reason, and the log has it too.
+     * An action of a button or a setting that is not written right, which the menu does not run: the help line
+     * of a button has the mistake as its reason, and the log has it too.
      */
     model::UnknownAction mistakenAction(const Json& row, std::string type, const std::string& mistake)
     {
-        logger::warn("The action of the button '{}' is not run: {}", getText(row, "text"), mistake);
+        logger::warn("The action of '{}' is not run: {}", getText(row, "text"), mistake);
         return model::UnknownAction{ .type = std::move(type), .reason = std::format("Not available: {}.", mistake) };
     }
 
@@ -666,7 +645,7 @@ namespace
         if (type.empty()) {
             return mistakenAction(row, {}, "the action has no type");
         }
-        logger::info("The button '{}' has an action '{}', which the menu does not run", getText(row, "text"), type);
+        logger::info("'{}' has an action '{}', which the menu does not run", getText(row, "text"), type);
         auto reason =
             type == "CallNativeFunction" ? "Not available: the mod's DLL has not given the menu its functions."s : std::format("Not available: the menu does not run a {}.", type);
         return model::UnknownAction{ .type = std::move(type), .reason = std::move(reason) };
@@ -685,6 +664,72 @@ namespace
             .action = loadAction(row),
             .visibleWhen = {},
             .enabledWhen = {},
+            .warnings = {} };
+    }
+
+    // the parameter of a setting's action that is its value
+    constexpr auto VALUE_PARAMETER = "{value}";
+
+    /**
+     * What a setting runs as Save writes its value: an action as a button's, of which a parameter that is
+     * exactly `"{value}"` is the value written, in the setting's `valueType`. A setting with no `action` runs
+     * nothing, and so does one whose action the menu does not run, with the reason in the log.
+     */
+    model::Action loadSettingAction(const Json& row, const model::StoredType valueType)
+    {
+        if (!row.contains("action")) {
+            return model::NoAction{};
+        }
+        auto action = loadAction(row);
+        if (auto* call = std::get_if<model::CallFunction>(&action)) {
+            for (std::size_t place = 0; place < call->arguments.size(); ++place) {
+                if (call->arguments[place] == model::Value(std::string(VALUE_PARAMETER))) {
+                    call->valueArguments.push_back({ .place = place, .text = VALUE_PARAMETER, .type = valueType });
+                }
+            }
+        }
+        return action;
+    }
+
+    /**
+     * A setting of a package: its author's `id`, or one it gets from where its value is kept, its own
+     * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, and
+     * its action, which Save runs.
+     * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
+     * package, which the log has: an author gives one of them an id of its own. Its conditions and its
+     * warnings are read once every setting of the package is (`loadConditions`).
+     */
+    model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, PackageReading& reading)
+    {
+        const auto own = inherit(row, above);
+        const auto valueType = loadValueType(row, type);
+        auto storage = loadStorage(row, own.defaultFile, valueType, reading);
+        auto id = getText(row, "id");
+        if (id.empty()) {
+            id = idOf(storage);
+        }
+        if (!id.empty() && !reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType }).second) {
+            logger::warn("Two settings have the id '{}': give one of them an id of its own", id);
+        }
+        auto valueOptions = loadValueOptions(row, type, valueType, reading);
+        const bool readOnly = getBool(row, "readOnly");
+        auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions);
+        return model::Setting{ .id = std::move(id),
+            .sourceId = {},
+            .type = type,
+            .text = getShownText(row, "text", reading.translations),
+            .textRuns = {},
+            .help = getShownText(row, "help", reading.translations),
+            .valueOptions = std::move(valueOptions),
+            .storage = std::move(storage),
+            .valueType = valueType,
+            .action = loadSettingAction(row, valueType),
+            .visibleWhen = {},
+            .enabledWhen = {},
+            .applies = own.applies,
+            .defaultValue = std::move(defaultValue),
+            .display = loadDisplay(row, reading.translations),
+            .readOnly = readOnly,
             .warnings = {} };
     }
 

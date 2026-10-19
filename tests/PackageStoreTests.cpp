@@ -10,6 +10,8 @@
 
 #include "TestActions.h"
 #include "TestFiles.h"
+#include "TestGlobals.h"
+#include "TestProperties.h"
 #include "common/CommonUtils.h"
 #include "package/PackageLoader.h"
 #include "package/PackageStore.h"
@@ -268,6 +270,8 @@ TEST_CASE("PackageStore: a value in the file that is not one of its setting is i
 
 TEST_CASE("PackageStore: a setting of a file that cannot be read, of a file the menu does not read, or of no file is not available, with the reason")
 {
+    // a game with no globals
+    const test_globals::TestGlobals globals;
     Session session(R"(
         { "type": "switcher", "valueType": "bool", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
         { "type": "switcher", "valueType": "bool", "text": "INI", "default": true, "storage": { "file": "ini", "section": "Main", "key": "bIni" } },
@@ -280,7 +284,7 @@ TEST_CASE("PackageStore: a setting of a file that cannot be read, of a file the 
     CHECK(broken.reason.starts_with("Not available: "));
     CHECK(broken.reason.find("MyMod.toml") != std::string::npos);
     CHECK(session.value(1).reason == "Not available: the menu does not read INI files yet.");
-    CHECK(session.value(2).reason == "Not available: the menu does not read a package's setting that is kept in a global yet.");
+    CHECK(session.value(2).reason == "Not available: the global MyMod.esp|800 is not in the game.");
     CHECK(session.value(3).reason == "Not available: its control does not show a value of its valueType.");
     for (std::size_t row = 0; row < 4; ++row) {
         CHECK_FALSE(session.value(row).available);
@@ -399,6 +403,182 @@ TEST_CASE("PackageStore: Discard takes back every pending value, and writes noth
     // a Save then has nothing to write
     CHECK(session.store.save());
     CHECK(readFile(session.myGames.path / MOD_FILE) == "[Main]\r\nbEnable = false\r\nfScale = 2.0\r\n");
+}
+
+namespace
+{
+    // a setting of each control kept in the game: two globals and two properties of a script, with an action
+    constexpr auto GAME_SETTINGS = R"(
+        { "type": "slider", "valueType": "float", "text": "Time of day", "default": 12.0, "valueOptions": { "min": 0, "max": 24, "step": 0.5 },
+          "storage": { "global": "Fallout4.esm|38" } },
+        { "type": "switcher", "valueType": "bool", "text": "Automation", "default": true, "storage": { "global": "MyMod.esp|801" }, "applies": "save",
+          "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "OnAutomationChanged", "params": ["{value}", 1] } },
+        { "type": "stepper", "valueType": "int", "text": "Mode", "default": 0, "valueOptions": { "options": ["Off", "Low", "High"] },
+          "storage": { "form": "MyMod.esp|800", "scriptName": "MyMod:Config", "propertyName": "iMode" } },
+        { "type": "textinput", "valueType": "string", "text": "Name", "default": "Me",
+          "storage": { "form": "MyMod.esp|800", "propertyName": "sName" } }
+    )";
+
+    /**
+     * The game of a test, with each global and property of `GAME_SETTINGS` in it.
+     */
+    struct TestGame
+    {
+        test_globals::TestGlobals globals;
+        test_properties::TestProperties properties;
+        test_actions::TestActions actions;
+
+        TestGame()
+        {
+            globals.values[{ "Fallout4.esm", 0x38 }] = 8.5f;
+            globals.values[{ "MyMod.esp", 0x801 }] = 0.0f;
+            properties.values[{ "MyMod.esp", 0x800, "MyMod:Config", "iMode" }] = 2;
+            properties.values[{ "MyMod.esp", 0x800, "", "sName" }] = "You"s;
+        }
+
+        float hour() const
+        {
+            return globals.values.at({ "Fallout4.esm", 0x38 });
+        }
+
+        model::Value mode() const
+        {
+            return properties.values.at({ "MyMod.esp", 0x800, "MyMod:Config", "iMode" });
+        }
+    };
+}
+
+TEST_CASE("PackageStore: a setting of a global or a property has the game's value as its baseline, and one that is not in the game is not available")
+{
+    TestGame game;
+    Session session(GAME_SETTINGS);
+    session.open(MOD_TOML);
+    CHECK(session.value(0).value == model::Value(8.5f));
+    // a global of a switcher is on at any number but 0
+    CHECK(session.value(1).value == model::Value(false));
+    CHECK(session.value(2).value == model::Value(2));
+    CHECK(session.value(3).value == model::Value("You"s));
+    for (std::size_t row = 0; row < 4; ++row) {
+        CHECK(session.value(row).available);
+        CHECK_FALSE(session.value(row).invalid);
+        CHECK_FALSE(session.store.isDirty(session.setting(row)));
+    }
+
+    // the baseline is the one of the session's start: the game reads nothing again for another page
+    game.globals.values[{ "Fallout4.esm", 0x38 }] = 9.0f;
+    session.store.pageShown();
+    CHECK(session.value(0).value == model::Value(8.5f));
+
+    // a value that is no value of its setting is invalid, and one of another type is not available
+    game.globals.values[{ "Fallout4.esm", 0x38 }] = 30.0f;
+    game.properties.values[{ "MyMod.esp", 0x800, "", "sName" }] = 5;
+    game.globals.values.erase({ "MyMod.esp", 0x801 });
+    session.store.open(session.mod);
+    CHECK(session.value(0).invalid);
+    CHECK(session.value(0).reason == "Invalid: the global Fallout4.esm|38 is 30 in the game, which is not from 0 to 24.");
+    CHECK(session.value(1).reason == "Not available: the global MyMod.esp|801 is not in the game.");
+    CHECK(session.value(3).reason == "Not available: the property sName of MyMod.esp|800 is 5, which is no value of the setting's valueType.");
+    CHECK_FALSE(session.value(1).available);
+    CHECK_FALSE(session.value(3).available);
+    CHECK_FALSE(session.store.set(session.setting(1), true));
+}
+
+TEST_CASE("PackageStore: a live setting of the game is previewed, and has its baseline again as it is set back, discarded, or its session ends")
+{
+    TestGame game;
+    Session session(GAME_SETTINGS);
+    session.open(MOD_TOML);
+
+    // the game has a pending value at once, and it is still dirty
+    CHECK(session.store.set(session.setting(0), 20.0f));
+    CHECK(common::fEqual(game.hour(), 20.0f));
+    CHECK(session.store.set(session.setting(2), 0));
+    CHECK(game.mode() == model::Value(0));
+    CHECK(session.store.dirtyCount() == 2);
+
+    // set back to its baseline, the game has it again
+    CHECK(session.store.set(session.setting(0), 8.5f));
+    CHECK(common::fEqual(game.hour(), 8.5f));
+    CHECK(session.store.dirtyCount() == 1);
+
+    CHECK(session.store.set(session.setting(0), 6.0f));
+    session.store.discard();
+    CHECK(common::fEqual(game.hour(), 8.5f));
+    CHECK(game.mode() == model::Value(2));
+    CHECK(session.store.dirtyCount() == 0);
+
+    CHECK(session.store.set(session.setting(0), 6.0f));
+    session.store.close();
+    CHECK(common::fEqual(game.hour(), 8.5f));
+
+    // a setting that is not live waits for a Save
+    session.store.open(session.mod);
+    CHECK(session.store.set(session.setting(1), true));
+    CHECK(common::fEqual(game.globals.values.at({ "MyMod.esp", 0x801 }), 0.0f));
+    session.store.close();
+    CHECK(game.actions.called.empty());
+}
+
+TEST_CASE("PackageStore: Save writes the game's values after the files, then runs the action of each setting it wrote, with its value")
+{
+    TestGame game;
+    Session session(std::string(GAME_SETTINGS) + "," + R"(
+        { "type": "slider", "valueType": "int", "text": "Count", "default": 3, "valueOptions": { "min": 0, "max": 9 }, "storage": { "path": ["Main", "iCount"] },
+          "action": { "type": "CallGlobalFunction", "script": "MyMod:Config", "function": "SetCount", "params": ["{value}"] } },
+        { "type": "switcher", "valueType": "bool", "text": "HUD", "default": true, "storage": { "path": ["Main", "bHud"] },
+          "action": { "type": "RunConsoleCommand", "command": "tm" } }
+    )");
+    session.open("[Main]\r\niCount = 5\r\nbHud = true\r\n");
+    CHECK(session.store.set(session.setting(1), true));
+    CHECK(session.store.set(session.setting(3), "Them"s));
+    CHECK(session.store.set(session.setting(4), 7.0f));
+    // a change that is set back runs nothing
+    CHECK(session.store.set(session.setting(5), false));
+    CHECK(session.store.set(session.setting(5), true));
+    CHECK(session.store.save());
+
+    // a global keeps a bool as 1
+    CHECK(common::fEqual(game.globals.values.at({ "MyMod.esp", 0x801 }), 1.0f));
+    CHECK(game.properties.values.at({ "MyMod.esp", 0x800, "", "sName" }) == model::Value("Them"s));
+    CHECK(readFile(session.myGames.path / MOD_FILE) == "[Main]\r\niCount = 7\r\nbHud = true\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(1).value == model::Value(true));
+
+    // in the order of the package, with the value in its type
+    REQUIRE(game.actions.called.size() == 2);
+    CHECK(game.actions.called[0].function == "OnAutomationChanged");
+    CHECK(game.actions.called[0].arguments == std::vector<model::Value>{ true, 1 });
+    CHECK(game.actions.called[0].valueArguments.empty());
+    CHECK(game.actions.called[1].function == "SetCount");
+    CHECK(game.actions.called[1].arguments == std::vector<model::Value>{ 7 });
+    CHECK(game.actions.commands.empty());
+
+    // a setting that is not written again runs nothing
+    CHECK(session.store.save());
+    CHECK(game.actions.called.size() == 2);
+}
+
+TEST_CASE("PackageStore: a Save whose file cannot be written writes nothing into the game")
+{
+    TestGame game;
+    Session session(std::string(GAME_SETTINGS) + "," + R"(
+        { "type": "switcher", "valueType": "bool", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } }
+    )");
+    session.open(MOD_TOML);
+    CHECK(session.store.set(session.setting(1), true));
+    CHECK(session.store.set(session.setting(4), true));
+    session.myGames.write(MOD_FILE, "[Main\r\n");
+    CHECK_FALSE(session.store.save());
+    CHECK(common::fEqual(game.globals.values.at({ "MyMod.esp", 0x801 }), 0.0f));
+    CHECK(session.store.dirtyCount() == 2);
+    CHECK(game.actions.called.empty());
+
+    // a global that is not in the game since the session started keeps its setting dirty
+    session.myGames.write(MOD_FILE, MOD_TOML);
+    game.globals.values.erase({ "MyMod.esp", 0x801 });
+    CHECK_FALSE(session.store.save());
+    CHECK(session.store.isDirty(session.setting(1)));
+    CHECK_FALSE(session.store.isDirty(session.setting(4)));
 }
 
 TEST_CASE("PackageStore: the default of a setting is its package's, in the type of its control")

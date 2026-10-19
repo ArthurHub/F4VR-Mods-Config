@@ -1,4 +1,4 @@
-#include "McmStore.h"
+#include "GameValues.h"
 
 #include <map>
 #include <tuple>
@@ -144,7 +144,7 @@ namespace
     };
 }
 
-namespace mods_config::mcm
+namespace mods_config
 {
     /**
      * The value a property of a script has in the game now, in the type the script keeps it in: a bool, a
