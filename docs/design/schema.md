@@ -293,6 +293,8 @@ Value type, UI control, storage, and application behavior remain separate concep
 
 `text` is what the row says, and `help` is its help text, shown in the help line while the row is pointed at. Both are the names MCM uses, and every item that is a row has them: a setting, a section, a button, and an option of a choice.
 
+Settings and button labels can set `"html": true` to style their `text` with the tags described in [Text, spacers and images](#text-spacers-and-images). Labels stay on one line: line and paragraph breaks become spaces, paragraph alignment is ignored, and font sizes are capped at the row's normal text size. Search and the help line use the label without tags. Without `html`, or when it is not the boolean `true`, labels remain plain text. This flag styles the row's label; `help`, `buttonText`, section headings and choice options remain plain text.
+
 Every writable setting has an inline required `default`. Defaults use the same type and constraint validation as player values. The default is the value Reset applies, so it has to match the default the mod itself uses.
 
 A `textinput` whose `valueType` is `int` or `float` takes a number, as MCM's `textinputInt` and `textinputFloat` do. Its limits are the `min` and `max` of its `valueOptions`.

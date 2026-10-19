@@ -1,0 +1,2850 @@
+{
+  "minSchemaVersion": 1,
+  "modName": "ModsConfigVR_Showcase",
+  "displayName": "Mods Config VR: Showcase",
+  "help": "Every kind of row and setting a package has, to see how each looks and works. Each page is one kind.",
+  "packageVersion": 1,
+  "files": {
+    "showcase": {
+      "format": "toml",
+      "root": "data",
+      "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/showcase.toml"
+    },
+    "player": {
+      "format": "toml",
+      "root": "myGames",
+      "path": "Mods_Config/ModsConfigVR_Showcase/player.toml"
+    },
+    "ini": {
+      "format": "ini",
+      "root": "data",
+      "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/showcase.ini"
+    },
+    "invalid": {
+      "format": "toml",
+      "root": "data",
+      "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/invalid.toml"
+    },
+    "outside": { "format": "toml", "root": "data", "path": "../showcase.toml" }
+  },
+  "defaultFile": "showcase",
+  "applies": "live",
+  "sharedLists": {
+    "hands": ["Left", "Right"],
+    "places": [
+      { "value": "head", "text": "Head" },
+      { "value": "chest", "text": "Chest" },
+      { "value": "hip", "text": "Hip" }
+    ]
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Every kind of row a package has, to see how each looks and works in Mods Config VR. Each page is one kind."
+    },
+    { "type": "image", "texture": "ModsConfigVR_Showcase/swatches.dds" },
+    { "type": "spacer" },
+    {
+      "type": "section",
+      "text": "A bit of everything",
+      "content": [
+        { "type": "text", "text": "A plain text row above the controls." },
+        {
+          "type": "switcher",
+          "valueType": "bool",
+          "text": "Switcher",
+          "help": "A switcher that is on by default.",
+          "default": true,
+          "storage": { "path": ["Main", "bSwitcher"] }
+        },
+        {
+          "type": "slider",
+          "valueType": "float",
+          "text": "Slider",
+          "help": "A slider from 0 to 100 by 5.",
+          "default": 50.0,
+          "valueOptions": { "min": 0, "max": 100, "step": 5 },
+          "storage": { "path": ["Main", "fSlider"] }
+        },
+        {
+          "type": "slider",
+          "valueType": "int",
+          "text": "Whole number slider",
+          "help": "A slider of whole numbers from 0 to 255.",
+          "default": 217,
+          "valueOptions": { "min": 0, "max": 255, "step": 1 },
+          "storage": { "path": ["Main", "iSlider"] }
+        },
+        {
+          "type": "stepper",
+          "valueType": "int",
+          "text": "Stepper",
+          "help": "A stepper of three options, which stores the place of the chosen one.",
+          "default": 1,
+          "valueOptions": { "options": ["Low", "Medium", "High"] },
+          "storage": { "path": ["Main", "iStepper"] }
+        },
+        {
+          "type": "dropdown",
+          "valueType": "string",
+          "text": "Dropdown",
+          "help": "A dropdown of four options, each with the value it stores.",
+          "default": "offhand",
+          "valueOptions": {
+            "options": [
+              { "value": "head", "text": "Head", "help": "On the head." },
+              {
+                "value": "offhand",
+                "text": "Offhand",
+                "help": "On the hand that does not point."
+              },
+              {
+                "value": "primary",
+                "text": "Primary hand",
+                "help": "On the hand that points."
+              },
+              { "value": "chest", "text": "Chest", "help": "On the chest." }
+            ]
+          },
+          "storage": { "path": ["Main", "sDropdown"] }
+        },
+        {
+          "type": "textinput",
+          "valueType": "string",
+          "text": "Text input",
+          "help": "A text that is typed.",
+          "default": "Hello",
+          "storage": { "path": ["Main", "sText"] }
+        },
+        {
+          "type": "textinput",
+          "valueType": "float",
+          "text": "Number input",
+          "help": "A text input that takes a number.",
+          "default": 1.5,
+          "storage": { "path": ["Main", "fNumber"] }
+        },
+        {
+          "type": "button",
+          "text": "Button",
+          "help": "Shows a notification.",
+          "buttonText": "Show",
+          "action": {
+            "type": "CallGlobalFunction",
+            "script": "Debug",
+            "function": "Notification",
+            "params": ["Showcase: the button ran"]
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "pageDisplayName": "Simple",
+      "help": "An example page of common and simple features.",
+      "content": [
+        {
+          "type": "text",
+          "text": "Common controls in a small example menu. Change a value, try its Reset, then Save or Discard your changes. These settings are examples and do not change gameplay."
+        },
+        {
+          "type": "section",
+          "text": "General",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "Enable notifications",
+              "help": "A simple on/off setting.",
+              "default": true,
+              "storage": { "path": ["Simple", "bNotifications"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Notification duration",
+              "help": "A number with a unit, from 1 to 10 seconds in half-second steps.",
+              "default": 3.0,
+              "valueOptions": { "min": 1, "max": 10, "step": 0.5 },
+              "display": { "unit": "s" },
+              "storage": { "path": ["Simple", "fDuration"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "int",
+              "text": "Notification limit",
+              "help": "A whole number from 1 to 10.",
+              "default": 3,
+              "valueOptions": { "min": 1, "max": 10, "step": 1 },
+              "storage": { "path": ["Simple", "iLimit"] }
+            },
+            {
+              "type": "stepper",
+              "valueType": "int",
+              "text": "Detail level",
+              "help": "Cycle through three labels. The file stores the chosen option's position, starting at zero.",
+              "default": 1,
+              "valueOptions": { "options": ["Low", "Medium", "High"] },
+              "storage": { "path": ["Simple", "iDetail"] }
+            },
+            {
+              "type": "dropdown",
+              "valueType": "string",
+              "text": "Placement",
+              "help": "Choose a label from a list. The file stores its text value.",
+              "default": "chest",
+              "valueOptions": {
+                "options": [
+                  { "value": "head", "text": "Head" },
+                  { "value": "chest", "text": "Chest" },
+                  { "value": "hip", "text": "Hip" }
+                ]
+              },
+              "storage": { "path": ["Simple", "sPlacement"] }
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Profile",
+          "content": [
+            {
+              "type": "textinput",
+              "valueType": "string",
+              "text": "Profile name",
+              "help": "Type a name with the keyboard.",
+              "default": "Standing",
+              "storage": { "path": ["Simple", "sProfile"] }
+            },
+            {
+              "type": "textinput",
+              "valueType": "float",
+              "text": "Player height",
+              "help": "A numeric input between 0.5 and 2.5 meters.",
+              "default": 1.78,
+              "valueOptions": { "min": 0.5, "max": 2.5 },
+              "display": { "decimals": 2, "unit": "m" },
+              "storage": { "path": ["Simple", "fHeight"] }
+            },
+            {
+              "type": "button",
+              "text": "Test notification",
+              "help": "Runs a Papyrus notification immediately, independently of the example settings above.",
+              "buttonText": "Show",
+              "action": {
+                "type": "CallGlobalFunction",
+                "script": "Debug",
+                "function": "Notification",
+                "params": ["Showcase: hello from the Simple page"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Advanced",
+      "help": "An example page of advanced features.",
+      "applies": "save",
+      "content": [
+        {
+          "type": "text",
+          "text": "A connected example of conditions, shared choices, warnings and inherited defaults. These settings do not change gameplay. Turn holsters off or change the mode to see the layout respond to pending changes."
+        },
+        {
+          "type": "switcher",
+          "valueType": "bool",
+          "id": "advancedHolsters",
+          "text": "Enable holsters",
+          "help": "Enables the holster settings below. The page's settings apply on Save.",
+          "default": true,
+          "storage": { "path": ["Advanced", "bHolsters"] }
+        },
+        {
+          "type": "section",
+          "text": "Holsters",
+          "enabledWhen": { "setting": "advancedHolsters", "equals": true },
+          "content": [
+            {
+              "type": "dropdown",
+              "valueType": "string",
+              "id": "advancedMode",
+              "text": "Activation mode",
+              "help": "Physical shows the tuning section; Buttons hides it.",
+              "default": "physical",
+              "valueOptions": {
+                "options": [
+                  { "value": "physical", "text": "Physical" },
+                  { "value": "buttons", "text": "Buttons" }
+                ]
+              },
+              "storage": { "path": ["Advanced", "sMode"] }
+            },
+            {
+              "type": "stepper",
+              "valueType": "int",
+              "text": "Activation hand",
+              "help": "Uses the package's shared hands list and stores the option's position.",
+              "default": 1,
+              "valueOptions": { "sharedOptions": "hands" },
+              "storage": { "path": ["Advanced", "iHand"] }
+            },
+            {
+              "type": "dropdown",
+              "valueType": "string",
+              "text": "Holster position",
+              "help": "Uses the package's shared places list and stores the option's text value.",
+              "default": "hip",
+              "valueOptions": { "sharedOptions": "places" },
+              "storage": { "path": ["Advanced", "sPlace"] }
+            },
+            {
+              "type": "section",
+              "text": "Physical tuning",
+              "help": "A nested section that starts folded. Its rows inherit the outer section's enabled condition.",
+              "isCollapsible": true,
+              "collapsed": true,
+              "visibleWhen": {
+                "setting": "advancedMode",
+                "equals": "physical"
+              },
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "id": "advancedReach",
+                  "text": "Activation reach",
+                  "help": "Try more than 30 cm to show a warning. A warning does not block Save.",
+                  "default": 15.0,
+                  "valueOptions": { "min": 5, "max": 50, "step": 1 },
+                  "display": { "unit": "cm" },
+                  "storage": { "path": ["Advanced", "fReach"] },
+                  "warnings": [
+                    {
+                      "when": { "setting": "advancedReach", "greaterThan": 30 },
+                      "text": "A large reach can activate a nearby holster by accident. This is an example warning."
+                    }
+                  ]
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Grip threshold",
+                  "help": "Stores a value from 0 to 1 and displays it as a percentage of that range.",
+                  "default": 0.75,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "display": { "percent": true },
+                  "storage": { "path": ["Advanced", "fGrip"] }
+                }
+              ]
+            },
+            {
+              "type": "button",
+              "text": "Test holster action",
+              "help": "Enabled only with holsters on in Physical mode: both the section's condition and its own must hold. Shows a notification immediately.",
+              "buttonText": "Test",
+              "enabledWhen": {
+                "setting": "advancedMode",
+                "equals": "physical"
+              },
+              "action": {
+                "type": "CallGlobalFunction",
+                "script": "Debug",
+                "function": "Notification",
+                "params": ["Showcase: the Advanced holster action ran"]
+              }
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "text": "Player-specific file",
+          "help": "This section overrides the package's file. Its values go to Mods_Config/ModsConfigVR_Showcase/player.toml under My Games/Fallout4VR, created on the first Save that changes them.",
+          "defaultFile": "player",
+          "content": [
+            {
+              "type": "textinput",
+              "valueType": "string",
+              "text": "Calibration profile",
+              "help": "Stored in the player file instead of the showcase's shipped TOML file.",
+              "default": "Room scale",
+              "storage": { "path": ["Advanced", "sProfile"] }
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "text": "Startup options",
+          "help": "This section overrides the page's apply-on-save behavior. Its settings are marked as needing a restart.",
+          "applies": "restart",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "Enable startup diagnostics",
+              "help": "An example of a setting read only at startup. Saving a change shows the restart notice.",
+              "default": false,
+              "storage": { "path": ["Advanced", "bDiagnostics"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Detailed Examples",
+      "help": "Pages with very detailed examples of all supported features.",
+      "content": [
+        {
+          "type": "text",
+          "text": "Every kind of row a package has, to see how each looks and works in Mods Config VR. Each page is one kind."
+        }
+      ],
+      "pages": [
+        {
+          "pageDisplayName": "Text: sizes",
+          "content": [
+            {
+              "type": "section",
+              "text": "Each size on a row of its own",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='48'>Size 48: The quick brown fox</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='40'>Size 40: The quick brown fox</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='36'>Size 36: The quick brown fox</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='30'>Size 30: The quick brown fox jumps</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='28'>Size 28: The quick brown fox jumps</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='24'>Size 24: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "No size: The quick brown fox jumps over the lazy dog",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='22'>Size 22: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='20'>Size 20: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='18'>Size 18: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='16'>Size 16: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='15'>Size 15: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='14'>Size 14: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='12'>Size 12: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='10'>Size 10: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Sizes on one line",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='40'>40</font> <font size='30'>30</font> <font size='24'>24</font> <font size='20'>20</font> <font size='16'>16</font> <font size='12'>12</font> and no size",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "A sentence with <font size='36'>one large word</font> in it, long enough that it is wrapped to a second line, so the height of a line with a large word shows beside the height of a line without one.",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A size inside a size",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='30'>Thirty, <font size='16'>sixteen inside it,</font> and thirty again</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='big'>A size that is not a number</font>, <font size='0'>a size of zero</font>, <font size='-4'>and one below it</font>",
+                  "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text: colors",
+          "content": [
+            {
+              "type": "section",
+              "text": "Colors",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "No color: the panel's muted text",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FFFFFF'>#FFFFFF white</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#AAAAAA'>#AAAAAA grey, as FallUI's notes</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#666666'>#666666 dark grey</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#000000'>#000000 black</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#0AFA78'>#0AFA78 the panel's green</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FFBF33'>#FFBF33 the panel's amber</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FF9585'>#FF9585 the panel's red</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FF0000'>#FF0000 red</font> <font color='#00FF00'>#00FF00 green</font> <font color='#0000FF'>#0000FF blue</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FFFF00'>#FFFF00 yellow</font> <font color='#00FFFF'>#00FFFF cyan</font> <font color='#FF00FF'>#FF00FF magenta</font>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Colors in a sentence",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Stand straight and look ahead. <font color='#FFFFFF'>Do not move</font> until it is done, and <font color='#FF9585'>do not press anything</font>.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#AAAAAA' size='16'>A grey note in size 16, <font color='#FFFFFF'>with white words inside it</font>, and grey again.</font>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Colors that are not read",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font color='red'>A color by its name</font>, <font color='#FFF'>one of three digits</font>, <font color='#GGGGGG'>and one that is no number</font>",
+                  "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text: align and lines",
+          "content": [
+            {
+              "type": "section",
+              "text": "Align",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<p align='left'>A paragraph at the left</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'>A paragraph in the center</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='right'>A paragraph at the right</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'>A centered paragraph that is long enough to be wrapped, so that each of its lines is seen to be centered by itself in the width of the rows, the last one too.</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='right'>A paragraph at the right that is long enough to be wrapped, so that each of its lines is seen to end at the right edge of the rows, the last one too.</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'><font size='30'>A centered title</font></p><p>A paragraph under it, at the left.</p><p align='right'><font size='16'>And a note at the right</font></p>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Lines",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "One line<br>A second, after a br<br/>A third, after a br/<br />A fourth, after a br /",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "A line before an empty one<br><br>A line after it",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p>A first paragraph.</p><p>A second, right under it.</p><br><p>A third, after a br between the paragraphs.</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "A line that ends in the config\nand goes on in the next, with html",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Wrapping",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A long paragraph. Sim Settlements 2 allows your settlers to build their own homes, farms, shops, and more. If this is your first time using the mod, know that you'll need to grab the holotape in the world or you can spawn it with the button below. Run the holotape to get started, and come back to this menu for the options.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "AWordThatIsMuchTooLongForTheWidthOfTheRowsAndHasNoSpaceToBeWrappedAtSoItRunsPastTheEdgeOfThePageToSeeWhatHappensToItThere and words after it",
+                  "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text: tags and plain",
+          "content": [
+            {
+              "type": "section",
+              "text": "Bold, italic and underlined",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A <b>bold</b>, an <i>italic</i> and an <u>underlined</u> word, and <b><i>one that is both</i></b>, which is bold.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<u>An underlined sentence that is long enough to be wrapped, so its line is seen under the words and the spaces between them, but not after its last word on a line.</u>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='30'><b>Bold</b> in size 30</font>, <font color='#FFFFFF'><i>italic in white</i></font>, and <b>bold <font color='#FFBF33' size='16'>around a small amber font</font> tag</b>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Tags that are dropped",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A <a href='https://example.com'>link</a> keeps its text.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "An image tag<img src='logo.png'/> and a closing tag with none open</font> leave nothing.",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Entities",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Salt &amp; pepper, &lt;b&gt;, &quot;quoted&quot;, it&apos;s, a&nbsp;space, &#169; and &#xE9;",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "What is no entity: fish & chips; &unknown; and 1 < 2 > 0",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Text rows with no html",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A plain text row."
+                },
+                {
+                  "type": "text",
+                  "text": "A plain text row\nwith a line end in it."
+                },
+                {
+                  "type": "text",
+                  "text": "A plain row shows its <b>tags</b> &amp; entities as they are written.<br>"
+                },
+                {
+                  "type": "text",
+                  "text": "The chance decides, if a human NPC can use items. If you set the chance to 100%, all human NPCs will use items. If you set it to 50%, every second NPC can use items."
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Titles and notes as mods write them",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='30'><p align='center'>FallUI - Inventory</p></font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'><font size='24'>Sim Settlements 2</font></p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size=\"40\"><p align = \"center\">Unlimited Survival Mode</p></font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align = \"center\"><font size='25'><b>by an author</b></font></p>",
+                  "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Switchers",
+          "help": "Switchers, on and off by default.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Switchers",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "<b>On</b> <font color='#FFBF33'>by default</font>",
+                  "html": true,
+                  "help": "A switcher that is on by default, with a bold word and an amber phrase in its HTML label.",
+                  "default": true,
+                  "storage": { "path": ["Switchers", "bOn"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "<font size=\"10\">Off by default</font>",
+                  "html": true,
+                  "help": "A switcher that is off by default.",
+                  "default": false,
+                  "storage": { "path": ["Switchers", "bOff"] }
+                },
+                {
+                  "type": "switcher",
+                  "text": "No valueType",
+                  "help": "A switcher with no valueType, which is a bool as its control is.",
+                  "default": true,
+                  "storage": { "path": ["Switchers", "bNoValueType"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "No help",
+                  "default": false,
+                  "storage": { "path": ["Switchers", "bNoHelp"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A switcher with a name that is much too long for the room a row has before its control",
+                  "help": "Its name ends in an ellipsis, and the help line has all of it.",
+                  "default": false,
+                  "storage": { "path": ["Switchers", "bLongName"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Sliders",
+          "help": "Sliders of numbers and of whole numbers, in ranges and steps of each size.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Numbers",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "<font color='#FFBF33'><b>HTML label:</b></font> <i>0 to 1</i> <u>by 0.05</u>",
+                  "html": true,
+                  "help": "A number with two decimals. Its HTML label has a bold amber prefix, an italic range and an underlined step.",
+                  "default": 0.5,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Sliders", "fFraction"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "From 0 to 1 by 0.001",
+                  "help": "A fine step: the slider has a thousand steps.",
+                  "default": 0.125,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.001 },
+                  "storage": { "path": ["Sliders", "fFine"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "From -100 to 100 by 5",
+                  "help": "A range below and above zero.",
+                  "default": -20.0,
+                  "valueOptions": { "min": -100, "max": 100, "step": 5 },
+                  "storage": { "path": ["Sliders", "fNegative"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "From 0 to 10000 by 100",
+                  "help": "A large range.",
+                  "default": 2500.0,
+                  "valueOptions": { "min": 0, "max": 10000, "step": 100 },
+                  "storage": { "path": ["Sliders", "fLarge"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Whole numbers",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "From 0 to 255 by 1",
+                  "help": "A whole number, as an opacity is.",
+                  "default": 217,
+                  "valueOptions": { "min": 0, "max": 255, "step": 1 },
+                  "storage": { "path": ["Sliders", "iOpacity"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "From 1 to 10 by 1",
+                  "help": "A short range of whole numbers.",
+                  "default": 3,
+                  "valueOptions": { "min": 1, "max": 10, "step": 1 },
+                  "storage": { "path": ["Sliders", "iCount"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Choices",
+          "help": "Steppers and dropdowns, of their own options and of a shared list, that store a place, a text or a number.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Steppers",
+              "content": [
+                {
+                  "type": "stepper",
+                  "valueType": "int",
+                  "text": "<font color='#FFBF33'><b>HTML:</b></font> <i>Texts</i>",
+                  "html": true,
+                  "help": "A bold amber prefix and italic label. The text options store the position of the chosen one.",
+                  "default": 1,
+                  "valueOptions": { "options": ["Low", "Medium", "High"] },
+                  "storage": { "path": ["Choices", "iStepper"] }
+                },
+                {
+                  "type": "stepper",
+                  "valueType": "string",
+                  "text": "Values",
+                  "help": "Options with the text each stores.",
+                  "default": "normal",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "slow", "text": "Slow" },
+                      { "value": "normal", "text": "Normal" },
+                      { "value": "fast", "text": "Fast" }
+                    ]
+                  },
+                  "storage": { "path": ["Choices", "sStepper"] }
+                },
+                {
+                  "type": "stepper",
+                  "text": "A shared list",
+                  "help": "The options of the package's shared list hands. With no valueType it stores a place.",
+                  "default": 0,
+                  "valueOptions": { "sharedOptions": "hands" },
+                  "storage": { "path": ["Choices", "iHand"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Dropdowns",
+              "content": [
+                {
+                  "type": "dropdown",
+                  "valueType": "int",
+                  "text": "<font color='#FFFFFF'><u>HTML: Texts</u></font>",
+                  "html": true,
+                  "help": "A white underlined dropdown label. The text options store the position of the chosen one.",
+                  "default": 0,
+                  "valueOptions": {
+                    "options": ["Head", "Offhand", "Primary hand"]
+                  },
+                  "storage": { "path": ["Choices", "iDropdown"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "float",
+                  "text": "Numbers",
+                  "help": "Options with the number each stores.",
+                  "default": 1.0,
+                  "valueOptions": {
+                    "options": [
+                      { "value": 0.5, "text": "Half" },
+                      { "value": 1.0, "text": "Normal" },
+                      { "value": 2.0, "text": "Double" }
+                    ]
+                  },
+                  "storage": { "path": ["Choices", "fScale"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "A shared list",
+                  "help": "The options of the package's shared list places, with the text each stores.",
+                  "default": "hip",
+                  "valueOptions": { "sharedOptions": "places" },
+                  "storage": { "path": ["Choices", "sPlace"] }
+                },
+                {
+                  "type": "dropdown",
+                  "text": "The same shared list",
+                  "help": "Another choice of the shared list hands, named in another case.",
+                  "default": 1,
+                  "valueOptions": { "sharedOptions": "Hands" },
+                  "storage": { "path": ["Choices", "iOtherHand"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "int",
+                  "text": "Many options",
+                  "help": "A list longer than the room under it.",
+                  "default": 0,
+                  "valueOptions": {
+                    "options": [
+                      "One",
+                      "Two",
+                      "Three",
+                      "Four",
+                      "Five",
+                      "Six",
+                      "Seven",
+                      "Eight",
+                      "Nine",
+                      "Ten",
+                      "Eleven",
+                      "Twelve"
+                    ]
+                  },
+                  "storage": { "path": ["Choices", "iMany"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "int",
+                  "text": "A long option",
+                  "help": "An option whose text is much too long for the room of its box.",
+                  "default": 1,
+                  "valueOptions": {
+                    "options": [
+                      "Short",
+                      "An option with a text that is much too long for the room its box has"
+                    ]
+                  },
+                  "storage": { "path": ["Choices", "iLong"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text inputs",
+          "help": "Text inputs of a text, a whole number and a number.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Text inputs",
+              "content": [
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "<font color='#FFBF33'><b>HTML:</b></font> <i>Text</i>",
+                  "html": true,
+                  "help": "A bold amber prefix and italic label beside a text input.",
+                  "default": "Hello",
+                  "storage": { "path": ["TextInputs", "sText"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "Empty text",
+                  "help": "A text that is empty by default.",
+                  "default": "",
+                  "storage": { "path": ["TextInputs", "sEmpty"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "int",
+                  "text": "Whole number",
+                  "help": "A text input that takes a whole number.",
+                  "default": 42,
+                  "storage": { "path": ["TextInputs", "iNumber"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "float",
+                  "text": "Number",
+                  "help": "A text input that takes a number.",
+                  "default": 1.5,
+                  "storage": { "path": ["TextInputs", "fNumber"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Numbers",
+          "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Decimals",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "As many as the step has",
+                  "help": "A step of 0.01 has two decimals.",
+                  "default": 1.25,
+                  "valueOptions": { "min": 0, "max": 2, "step": 0.01 },
+                  "storage": { "path": ["Numbers", "fStepDecimals"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "A whole number",
+                  "help": "A step of 1 has none.",
+                  "default": 8,
+                  "valueOptions": { "min": 0, "max": 24, "step": 1 },
+                  "storage": { "path": ["Numbers", "iWhole"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "One decimal",
+                  "help": "A step of 1, and one decimal of its display.",
+                  "default": 12.0,
+                  "valueOptions": { "min": 0, "max": 50, "step": 1 },
+                  "display": { "decimals": 1 },
+                  "storage": { "path": ["Numbers", "fOneDecimal"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Below zero",
+                  "help": "A negative number has a minus.",
+                  "default": -0.5,
+                  "valueOptions": { "min": -1, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Numbers", "fNegative"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Units",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Meters",
+                  "help": "A unit after a space.",
+                  "default": 1.78,
+                  "valueOptions": { "min": 0.5, "max": 2.5, "step": 0.01 },
+                  "display": { "unit": "m" },
+                  "storage": { "path": ["Numbers", "fMeters"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Degrees",
+                  "help": "A degree follows its number with no space.",
+                  "default": 40.0,
+                  "valueOptions": { "min": 0, "max": 90, "step": 1 },
+                  "display": { "unit": "°" },
+                  "storage": { "path": ["Numbers", "fDegrees"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "A unit of a token",
+                  "help": "A unit is a text the player sees: this one is a token with a fallback.",
+                  "default": 2.5,
+                  "valueOptions": { "min": 0, "max": 10, "step": 0.5 },
+                  "display": {
+                    "unit": {
+                      "token": "$ModsConfigVR_Showcase_Seconds",
+                      "fallback": "s"
+                    }
+                  },
+                  "storage": { "path": ["Numbers", "fSeconds"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "int",
+                  "text": "A text input",
+                  "help": "A text input of a number shows it with its unit too.",
+                  "default": 8,
+                  "valueOptions": { "min": 1, "max": 24 },
+                  "display": { "unit": "h" },
+                  "storage": { "path": ["Numbers", "iHours"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Percentages",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "Opacity",
+                  "help": "From 0 to 255, as a percentage: the help line has the number too.",
+                  "default": 217,
+                  "valueOptions": { "min": 0, "max": 255, "step": 1 },
+                  "display": { "percent": true },
+                  "storage": { "path": ["Numbers", "iOpacity"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "With a decimal",
+                  "help": "From 0.5 to 1.5, as a percentage with one decimal.",
+                  "default": 1.2,
+                  "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 },
+                  "display": { "decimals": 1, "percent": true },
+                  "storage": { "path": ["Numbers", "fPercent"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Too wide for the box",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Smaller",
+                  "help": "A number and its unit that are too wide are in a smaller size.",
+                  "default": 12000.0,
+                  "valueOptions": { "min": 0, "max": 20000, "step": 1 },
+                  "display": { "unit": "ms" },
+                  "storage": { "path": ["Numbers", "fFade"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Without its unit",
+                  "help": "One that is too wide then too is the number alone, and the help line has its unit.",
+                  "default": 250000.0,
+                  "valueOptions": { "min": 0, "max": 1000000, "step": 1 },
+                  "display": { "unit": "meters" },
+                  "storage": { "path": ["Numbers", "fDistance"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Read-only",
+          "help": "Values the mod writes for the player to read: shown, and not edited.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Read-only",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Measured height",
+                  "help": "A slider that is only shown, with no Reset.",
+                  "readOnly": true,
+                  "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
+                  "display": { "unit": "m" },
+                  "storage": { "path": ["ReadOnly", "fHeight"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Calibrated",
+                  "help": "A switcher that is only shown.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "bCalibrated"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Hand",
+                  "help": "A dropdown that is only shown: its list does not open.",
+                  "readOnly": true,
+                  "valueOptions": { "sharedOptions": "places" },
+                  "storage": { "path": ["ReadOnly", "sPlace"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "Profile",
+                  "help": "A text that is only shown: it is not typed.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "sProfile"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Past its most",
+                  "help": "The file has 2.0, and the slider goes from 0 to 1: it is shown as it is.",
+                  "readOnly": true,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["ReadOnly", "fPastMost"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "With no value",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Not measured",
+                  "help": "The file has no value of it, so its slider shows none.",
+                  "readOnly": true,
+                  "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
+                  "storage": { "path": ["ReadOnly", "fNoHeight"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Not calibrated",
+                  "help": "The file has no value of it, so neither side is on.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "bNoCalibrated"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "No hand",
+                  "help": "The file has no value of it, so no option shows.",
+                  "readOnly": true,
+                  "valueOptions": { "sharedOptions": "places" },
+                  "storage": { "path": ["ReadOnly", "sNoPlace"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "No profile",
+                  "help": "The file has no value of it, so its box is empty.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "sNoProfile"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Buttons",
+          "help": "Buttons that call a function of a script or run a console command, with the text on their button.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Functions",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "<font color='#FFBF33'><b>HTML:</b></font> <u>A global function</u>",
+                  "html": true,
+                  "help": "A bold amber prefix and underlined label. Calls Debug.Notification to show a notification.",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: a global function ran"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "Typed parameters",
+                  "help": "Calls Debug.Trace with a text and a whole number: the Papyrus log has the text.",
+                  "buttonText": "Trace",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Trace",
+                    "params": ["Showcase: a text and a whole number", 0]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "Noon",
+                  "help": "Calls SetValue of the game's global GameHour with 12.0, a function of a form: the time of day is noon.",
+                  "buttonText": "Set",
+                  "action": {
+                    "type": "CallFunction",
+                    "form": "Fallout4.esm|38",
+                    "scriptName": "GlobalVariable",
+                    "function": "SetValue",
+                    "params": [12.0]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Console commands",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "A console command",
+                  "help": "Runs cgf in the console, which calls Debug.Notification: it needs no script of the mod.",
+                  "action": {
+                    "type": "RunConsoleCommand",
+                    "command": "cgf \"Debug.Notification\" \"Showcase: a console command ran\""
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "Evening",
+                  "help": "Runs set gamehour to 20 in the console: the time of day is 8 in the evening.",
+                  "buttonText": "Set",
+                  "action": {
+                    "type": "RunConsoleCommand",
+                    "command": "set gamehour to 20"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "The text on a button",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "A text of its own",
+                  "help": "Its button says Show, in place of Run.",
+                  "buttonText": "Show",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: Show"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "A text of a token",
+                  "help": "The text on its button is a token with a fallback.",
+                  "buttonText": {
+                    "token": "$ModsConfigVR_Showcase_Apply",
+                    "fallback": "Apply"
+                  },
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: Apply"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "A long text",
+                  "help": "The text on its button is too long for it, and ends in an ellipsis.",
+                  "buttonText": "Show a notification now",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: a long text"]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Enabled by a setting",
+              "content": [
+                {
+                  "id": "buttonsEnabled",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Buttons enabled",
+                  "help": "Turns off the button under it.",
+                  "default": true,
+                  "storage": { "path": ["Buttons", "bEnabled"] }
+                },
+                {
+                  "type": "button",
+                  "text": "Enabled by the switcher",
+                  "help": "Its enabledWhen asks for the switcher above, so it is disabled while the switcher is off.",
+                  "enabledWhen": {
+                    "setting": "buttonsEnabled",
+                    "equals": true
+                  },
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the switcher is on"]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Not run",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "A function of the mod's DLL",
+                  "help": "A CallNativeFunction runs a function the mod's DLL gives the menu.",
+                  "buttonText": "Calibrate",
+                  "action": {
+                    "type": "CallNativeFunction",
+                    "function": "calibrate",
+                    "params": { "mode": "height" }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text, spacers and images",
+          "help": "Rows that hold no value: texts with and without tags, spacers, and textures at their own size and at the size a row gives.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Texts",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A plain text, wrapped to the width of the rows. It has no html, so a tag in it, as <b>this</b>, is shown as it is written."
+                },
+                {
+                  "type": "text",
+                  "html": true,
+                  "text": "<p align='center'><font size='28'>A title in a larger size</font></p><p>A text with tags: <b>bold</b>, <i>italic</i>, <u>underlined words</u>, and <font color='#FFFFFF'>a color of its own</font>.</p><p align='right'><font size='16'>A note in a smaller size, at the right</font></p>"
+                },
+                {
+                  "type": "text",
+                  "text": "A text of two lines.\nIts second line."
+                },
+                {
+                  "type": "text",
+                  "text": {
+                    "token": "$ModsConfigVR_Showcase_TextRow",
+                    "fallback": "A text of a token, which no translation file has, so it is its fallback."
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Spacers",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A spacer of one line under this text."
+                },
+                { "type": "spacer" },
+                {
+                  "type": "text",
+                  "text": "A spacer of three lines under this text."
+                },
+                { "type": "spacer", "numLines": 3 },
+                { "type": "text", "text": "The end of the spacers." }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Images",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Swatches at the texture's own size, 256 by 64."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/swatches.dds"
+                },
+                {
+                  "type": "text",
+                  "text": "A checker of 128 by 128, at the size its row gives, 64 by 64."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "width": 64,
+                  "height": 64
+                },
+                {
+                  "type": "text",
+                  "text": "The checker at a width of 192 alone: its height is of its aspect."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "width": 192
+                },
+                {
+                  "type": "text",
+                  "text": "A ruler of 1024 by 64, which is wider than the rows, so it is as wide as they are."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/ruler.dds"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Shown by a switcher",
+              "content": [
+                {
+                  "id": "showPicture",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Show the picture",
+                  "help": "The text and the image under it are shown while it is on.",
+                  "default": true,
+                  "storage": { "path": ["Rows", "bShowPicture"] }
+                },
+                {
+                  "type": "text",
+                  "text": "Shown while Show the picture is on.",
+                  "visibleWhen": { "setting": "showPicture", "equals": true }
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "width": 64,
+                  "height": 64,
+                  "visibleWhen": { "setting": "showPicture", "equals": true }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Sections",
+          "help": "Sections in sections, each set in under the one it is in, and sections that fold.",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "Before any section",
+              "help": "A row of the page itself.",
+              "default": true,
+              "storage": { "path": ["Sections", "bBefore"] }
+            },
+            {
+              "type": "section",
+              "text": "Holsters",
+              "help": "A section's help, which the help line has while the ray is on its heading.",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Enable holsters",
+                  "help": "A row of the outer section.",
+                  "default": true,
+                  "storage": { "path": ["Sections", "bHolsters"] }
+                },
+                {
+                  // the detailed settings of the section, after the settings they belong to
+                  "type": "section",
+                  "text": "Advanced",
+                  "help": "A section that folds, folded each time the page is shown. Change a row in it and fold it.",
+                  "isCollapsible": true,
+                  "collapsed": true,
+                  "content": [
+                    {
+                      "type": "slider",
+                      "valueType": "float",
+                      "text": "Reach",
+                      "help": "A row of a section in a section.",
+                      "default": 10.0,
+                      "valueOptions": { "min": 0, "max": 50, "step": 1 },
+                      "storage": { "path": ["Sections", "fReach"] }
+                    },
+                    {
+                      "type": "section",
+                      "text": "Even more",
+                      "help": "A section that folds, open each time the page is shown.",
+                      "isCollapsible": true,
+                      "content": [
+                        {
+                          "type": "slider",
+                          "valueType": "float",
+                          "text": "Angle",
+                          "help": "A row three sections in.",
+                          "default": 45.0,
+                          "valueOptions": { "min": 0, "max": 90, "step": 5 },
+                          "storage": { "path": ["Sections", "fAngle"] }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Size",
+                  "help": "A row of the outer section, after the sections in it.",
+                  "default": 1.0,
+                  "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 },
+                  "storage": { "path": ["Sections", "fSize"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Only a section in it",
+              "content": [
+                {
+                  "type": "section",
+                  "text": "Inside",
+                  "content": [
+                    {
+                      "type": "switcher",
+                      "valueType": "bool",
+                      "text": "In the inner section",
+                      "help": "The outer section has no rows of its own.",
+                      "default": false,
+                      "storage": { "path": ["Sections", "bInside"] }
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "section", "text": "An empty section", "content": [] },
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "After the sections",
+              "help": "A row of the last section.",
+              "default": false,
+              "storage": { "path": ["Sections", "bAfter"] }
+            },
+            {
+              "type": "section",
+              "text": "Folded with an invalid value",
+              "help": "Its file has a value that is not its setting's, which its heading tells.",
+              "isCollapsible": true,
+              "collapsed": true,
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Past its most",
+                  "help": "The file has 2.0, and the slider goes from 0 to 1.",
+                  "default": 0.5,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Folded", "fPastMost"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Pages",
+          "help": "A page with pages under it, two levels deep.",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "On the page",
+              "help": "A row of the page that has pages under it.",
+              "default": true,
+              "storage": { "path": ["Pages", "bTop"] }
+            }
+          ],
+          "pages": [
+            {
+              "pageDisplayName": "Under a page",
+              "help": "A page under the Pages page.",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "One level down",
+                  "help": "A row of a page under a page.",
+                  "default": false,
+                  "storage": { "path": ["Pages", "bUnder"] }
+                }
+              ],
+              "pages": [
+                {
+                  "pageDisplayName": "Two levels down",
+                  "content": [
+                    {
+                      "type": "switcher",
+                      "valueType": "bool",
+                      "text": "Two levels down",
+                      "help": "A row of a page with no help.",
+                      "default": false,
+                      "storage": { "path": ["Pages", "bDeeper"] }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Files",
+          "help": "Settings of three files: the package's default, the page's, and a section's.",
+          "defaultFile": "player",
+          "content": [
+            {
+              "type": "section",
+              "text": "The page's file: a TOML file that is not there yet",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Player's switcher",
+                  "help": "Its file is not there until a Save writes it, so it has its default.",
+                  "default": true,
+                  "storage": { "path": ["Player", "bSwitcher"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Player's slider",
+                  "help": "Its file is not there until a Save writes it, so it has its default.",
+                  "default": 0.75,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Player", "fSlider"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A section's file: an INI file",
+              "defaultFile": "ini",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "INI switcher",
+                  "help": "A key of an INI file, by its section and its key.",
+                  "default": true,
+                  "storage": { "section": "Ini", "key": "bSwitcher" }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "INI slider",
+                  "help": "A key of an INI file, by its section and its key.",
+                  "default": 5,
+                  "valueOptions": { "min": 0, "max": 10, "step": 1 },
+                  "storage": { "section": "Ini", "key": "iSlider" }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Its own file: the package's default",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Shipped switcher",
+                  "help": "A setting that names its file, which is not the page's.",
+                  "default": false,
+                  "storage": { "file": "showcase", "path": ["Files", "bOwn"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A value in a table in a table",
+                  "help": "A path of three names: its id is bDeep:Files.Tables.",
+                  "default": true,
+                  "storage": {
+                    "file": "showcase",
+                    "path": ["Files", "Tables", "bDeep"]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A file whose values are not the settings'",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Past its most",
+                  "help": "The file has 2.0, and the slider goes from 0 to 1.",
+                  "default": 0.5,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Invalid", "fPastMost"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A text for a switcher",
+                  "help": "The file has the text \"yes\", which is not true or false.",
+                  "default": true,
+                  "storage": { "path": ["Invalid", "bText"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "No option of its choice",
+                  "help": "The file has \"elbow\", which is none of its options.",
+                  "default": "hip",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "hip", "text": "Hip" },
+                      { "value": "chest", "text": "Chest" }
+                    ]
+                  },
+                  "storage": { "path": ["Invalid", "sPlace"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "In the game",
+          "help": "Settings kept in the game, where a script mod keeps them, and the action of a setting, which Save runs.",
+          "content": [
+            {
+              "type": "text",
+              "text": "A global and a property of a script are in the save game, not in a file. A change waits for a Save, as one of a file does, and a live one is in the game as it is made: Discard puts it back."
+            },
+            {
+              "type": "section",
+              "text": "A global",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Time of day",
+                  "help": "The game's global GameHour, live: the time changes as the slider moves.",
+                  "default": 12.0,
+                  "valueOptions": { "min": 0, "max": 24, "step": 0.25 },
+                  "display": { "decimals": 2, "unit": "h" },
+                  "applies": "live",
+                  "storage": { "global": "Fallout4.esm|38" }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A setting's action",
+              "content": [
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "Notification",
+                  "help": "Save writes it, then shows it as a notification: its action calls Debug.Notification with its value.",
+                  "default": "Showcase: saved",
+                  "applies": "save",
+                  "storage": { "path": ["Game", "sNotification"] },
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["{value}"]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "When a change takes effect",
+          "help": "Settings that take effect as they are changed, after Save, and after a restart: their own, a section's and the page's.",
+          "applies": "save",
+          "content": [
+            {
+              "type": "section",
+              "text": "The page's: after Save",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "After Save",
+                  "help": "It has the page's applies.",
+                  "default": true,
+                  "storage": { "path": ["Applies", "bPage"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "As it is changed",
+                  "help": "It has its own applies, live.",
+                  "applies": "live",
+                  "default": true,
+                  "storage": { "path": ["Applies", "bLive"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A section's: after a restart",
+              "applies": "restart",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "After a restart",
+                  "help": "It has its section's applies.",
+                  "default": false,
+                  "storage": { "path": ["Applies", "bRestart"] }
+                },
+                {
+                  "type": "section",
+                  "text": "A section in it",
+                  "content": [
+                    {
+                      "type": "switcher",
+                      "valueType": "bool",
+                      "text": "Also after a restart",
+                      "help": "It has the applies of the section its section is in.",
+                      "default": false,
+                      "storage": { "path": ["Applies", "bInner"] }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Conditions",
+          "help": "Rows that are shown and enabled by the values of settings, and by the plugins that are loaded.",
+          "content": [
+            {
+              "type": "section",
+              "text": "The settings they ask of",
+              "content": [
+                {
+                  "id": "showRows",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Show rows",
+                  "help": "The rows of the next section are shown while it is on.",
+                  "default": true,
+                  "storage": { "path": ["Conditions", "bShow"] }
+                },
+                {
+                  "id": "enableRows",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Enable rows",
+                  "help": "The rows of the section after are enabled while it is on.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bEnable"] }
+                },
+                {
+                  "id": "mode",
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Mode",
+                  "help": "Some rows are shown for some modes.",
+                  "default": "physical",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "physical", "text": "Physical" },
+                      { "value": "hybrid", "text": "Hybrid" },
+                      { "value": "buttons", "text": "Buttons" }
+                    ]
+                  },
+                  "storage": { "path": ["Conditions", "sMode"] }
+                },
+                {
+                  "id": "level",
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "Level",
+                  "help": "Some rows are shown above or below a level.",
+                  "default": 5,
+                  "valueOptions": { "min": 0, "max": 10, "step": 1 },
+                  "storage": { "path": ["Conditions", "iLevel"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Shown by a switcher",
+              "visibleWhen": { "setting": "showRows", "equals": true },
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "In the section",
+                  "help": "Shown while Show rows is on: the section's condition.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bInSection"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Also in Hybrid",
+                  "help": "Shown while Show rows is on and Mode is Hybrid: its own condition and the section's.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bHybrid"] },
+                  "visibleWhen": { "setting": "mode", "equals": "hybrid" }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Enabled by a switcher",
+              "enabledWhen": { "setting": "enableRows", "equals": true },
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Enabled with the section",
+                  "help": "Edited while Enable rows is on.",
+                  "default": 0.5,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.1 },
+                  "storage": { "path": ["Conditions", "fEnabled"] }
+                },
+                {
+                  "type": "stepper",
+                  "valueType": "int",
+                  "text": "Also not in Buttons",
+                  "help": "Edited while Enable rows is on and Mode is not Buttons.",
+                  "default": 0,
+                  "valueOptions": { "sharedOptions": "hands" },
+                  "storage": { "path": ["Conditions", "iNotButtons"] },
+                  "enabledWhen": { "setting": "mode", "notEquals": "buttons" }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Every operator",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Level below 3",
+                  "help": "Shown while Level is less than 3.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bLessThan"] },
+                  "visibleWhen": { "setting": "level", "lessThan": 3 }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Level 5 or below",
+                  "help": "Shown while Level is less than or equal to 5.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bLessThanOrEqual"] },
+                  "visibleWhen": { "setting": "level", "lessThanOrEqual": 5 }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Level above 7",
+                  "help": "Shown while Level is greater than 7.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bGreaterThan"] },
+                  "visibleWhen": { "setting": "level", "greaterThan": 7 }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Level 5 or above",
+                  "help": "Shown while Level is greater than or equal to 5.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bGreaterThanOrEqual"] },
+                  "visibleWhen": { "setting": "level", "greaterThanOrEqual": 5 }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Physical or Hybrid",
+                  "help": "Shown while Mode is one of Physical and Hybrid.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bOneOf"] },
+                  "visibleWhen": {
+                    "setting": "mode",
+                    "oneOf": ["physical", "hybrid"]
+                  }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Not Physical",
+                  "help": "Shown while Mode is none of Physical.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bNotOneOf"] },
+                  "visibleWhen": { "setting": "mode", "notOneOf": ["physical"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Any of two",
+                  "help": "Shown while Show rows is off or Level is 10.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bAny"] },
+                  "visibleWhen": {
+                    "any": [
+                      { "setting": "showRows", "equals": false },
+                      { "setting": "level", "equals": 10 }
+                    ]
+                  }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "All but one",
+                  "help": "Shown while Show rows is on and Mode is not Hybrid.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bAllNot"] },
+                  "visibleWhen": {
+                    "all": [
+                      { "setting": "showRows", "equals": true },
+                      { "not": { "setting": "mode", "equals": "hybrid" } }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Plugins",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "With Fallout4.esm",
+                  "help": "Shown while the game plugin Fallout4.esm is loaded, which it always is.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bGamePlugin"] },
+                  "visibleWhen": { "plugin": "Fallout4.esm" }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Without a missing plugin",
+                  "help": "Shown while the game plugin NoSuchPlugin.esp is not loaded.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bNoGamePlugin"] },
+                  "visibleWhen": { "not": { "plugin": "NoSuchPlugin.esp" } }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Never: a missing plugin",
+                  "help": "Shown while the game plugin NoSuchPlugin.esp is loaded, so it is not.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bMissingGamePlugin"] },
+                  "visibleWhen": { "plugin": "NoSuchPlugin.esp" }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "With FRIK",
+                  "help": "Shown while the F4SE plugin F4VRBody, which is FRIK, is loaded.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bF4sePlugin"] },
+                  "visibleWhen": { "f4sePlugin": "F4VRBody" }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Enabled without a missing F4SE plugin",
+                  "help": "Edited while the F4SE plugin NoSuchPlugin is not loaded.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bNoF4sePlugin"] },
+                  "enabledWhen": { "not": { "f4sePlugin": "NoSuchPlugin" } }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Warnings",
+          "help": "Rows that warn while a condition holds: a value that works and has a cost, or a button whose action needs a save to be loaded again. A warning blocks nothing.",
+          "content": [
+            {
+              "type": "section",
+              "text": "A value that has a cost",
+              "content": [
+                {
+                  "id": "playerHeight",
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Player height",
+                  "help": "It warns above 1.4 m, as it is shipped. Move it to 1.4 m or less and its warning goes.",
+                  "default": 1.45,
+                  "valueOptions": { "min": 0.5, "max": 2, "step": 0.01 },
+                  "display": { "unit": "m" },
+                  "storage": { "path": ["Warnings", "fPlayerHeight"] },
+                  "warnings": [
+                    {
+                      "when": { "setting": "playerHeight", "greaterThan": 1.4 },
+                      "text": "Above 1.4 m your view can be in the ceiling."
+                    }
+                  ]
+                },
+                {
+                  "id": "shadows",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Shadows",
+                  "help": "It warns while it is on.",
+                  "default": false,
+                  "storage": { "path": ["Warnings", "bShadows"] },
+                  "warnings": [
+                    {
+                      "when": { "setting": "shadows", "equals": true },
+                      "text": "Shadows cost frames in VR."
+                    }
+                  ]
+                },
+                {
+                  "id": "shadowSize",
+                  "type": "stepper",
+                  "valueType": "int",
+                  "text": "Shadow size",
+                  "help": "It has two warnings, and the first that holds is told: one at 4096, and one at 2048 and above.",
+                  "default": 1,
+                  "valueOptions": { "options": ["1024", "2048", "4096"] },
+                  "storage": { "path": ["Warnings", "iShadowSize"] },
+                  "warnings": [
+                    {
+                      "when": { "setting": "shadowSize", "equals": 2 },
+                      "text": "4096 costs the most frames."
+                    },
+                    {
+                      "when": {
+                        "setting": "shadowSize",
+                        "greaterThanOrEqual": 1
+                      },
+                      "text": "A larger size costs frames."
+                    }
+                  ]
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Warned of another setting",
+                  "help": "It warns while Shadows is on.",
+                  "default": true,
+                  "storage": { "path": ["Warnings", "bOther"] },
+                  "warnings": [
+                    {
+                      "when": { "setting": "shadows", "equals": true },
+                      "text": "Shadows is on."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A button",
+              "content": [
+                {
+                  "id": "holstersChanged",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Holsters changed",
+                  "help": "The button under it warns while it is on.",
+                  "default": true,
+                  "storage": { "path": ["Warnings", "bHolstersChanged"] }
+                },
+                {
+                  "type": "button",
+                  "text": "Rebuild the holsters",
+                  "help": "Shows a notification.",
+                  "buttonText": "Rebuild",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the holsters are rebuilt"]
+                  },
+                  "warnings": [
+                    {
+                      "when": { "setting": "holstersChanged", "equals": true },
+                      "text": "Load the save again after it."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid comes first",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Warned and invalid",
+                  "help": "Its warning holds, and the file has the text \"yes\", which is not true or false: it shows what is wrong, and not the warning.",
+                  "default": true,
+                  "storage": { "path": ["Warnings", "bInvalid"] },
+                  "warnings": [
+                    {
+                      "when": { "setting": "playerHeight", "greaterThan": 1.4 },
+                      "text": "The player is tall."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": {
+            "token": "$ModsConfigVR_Showcase_Texts",
+            "fallback": "Texts"
+          },
+          "help": {
+            "token": "$ModsConfigVR_Showcase_TextsHelp",
+            "fallback": "Plain texts, tokens with a fallback, and a token with none."
+          },
+          "content": [
+            {
+              "type": "section",
+              "text": {
+                "token": "$ModsConfigVR_Showcase_Forms",
+                "fallback": "The three forms of a text"
+              },
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Plain text",
+                  "help": "A text as it is written.",
+                  "default": true,
+                  "storage": { "path": ["Texts", "bPlain"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": {
+                    "token": "$ModsConfigVR_Showcase_Fallback",
+                    "fallback": "A token with a fallback"
+                  },
+                  "help": {
+                    "token": "$ModsConfigVR_Showcase_FallbackHelp",
+                    "fallback": "No translation file has its token, so it is its fallback."
+                  },
+                  "default": true,
+                  "storage": { "path": ["Texts", "bFallback"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "$ModsConfigVR_Showcase_NoFallback",
+                  "help": "A token with no fallback, which no translation file has, is shown as it is written.",
+                  "default": true,
+                  "storage": { "path": ["Texts", "bToken"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Mistakes",
+          "help": "What a package can get wrong: each row says what, and the log has the error.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Storage",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "No such file",
+                  "help": "Its storage names a file the package does not have.",
+                  "default": true,
+                  "storage": {
+                    "file": "missing",
+                    "path": ["Mistakes", "bNoFile"]
+                  }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A file that is left out",
+                  "help": "Its file goes up out of its root.",
+                  "default": true,
+                  "storage": {
+                    "file": "outside",
+                    "path": ["Mistakes", "bOutside"]
+                  }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "No storage",
+                  "help": "It does not say where its value is kept.",
+                  "default": true
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A global by its name",
+                  "help": "Its global is GameHour, which is not a plugin and an id in hex.",
+                  "default": true,
+                  "storage": { "global": "GameHour" }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A global that is not in the game",
+                  "help": "Its global is of a plugin the game does not have.",
+                  "default": true,
+                  "storage": { "global": "ModsConfigVR_Showcase.esp|801" }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A property that is not in the game",
+                  "help": "Its form is of a plugin the game does not have.",
+                  "default": true,
+                  "storage": {
+                    "form": "ModsConfigVR_Showcase.esp|800",
+                    "propertyName": "bOn"
+                  }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "A global of a text",
+                  "help": "A global keeps a number, and its value is a text.",
+                  "default": "noon",
+                  "storage": { "global": "Fallout4.esm|38" }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Settings",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "No default",
+                  "help": "It has no default, so it has no Reset.",
+                  "valueOptions": { "min": 0, "max": 10, "step": 1 },
+                  "storage": { "path": ["Mistakes", "fNoDefault"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "A default of another type",
+                  "help": "Its default is not a whole number.",
+                  "default": 2.5,
+                  "valueOptions": { "min": 0, "max": 10, "step": 1 },
+                  "storage": { "path": ["Mistakes", "iWrongDefault"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "A default outside its range",
+                  "help": "Its default is not from 0 to 10, so it has no Reset.",
+                  "default": 20.0,
+                  "valueOptions": { "min": 0, "max": 10, "step": 1 },
+                  "storage": { "path": ["Mistakes", "fOutsideDefault"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "An applies that is not one",
+                  "help": "Its applies is not live, save or restart, so it has the package's.",
+                  "applies": "never",
+                  "default": true,
+                  "storage": { "path": ["Mistakes", "bApplies"] }
+                },
+                {
+                  "id": "bSwitcher:Main",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "An id another setting has",
+                  "help": "Its id is the one the front page's switcher has from its path.",
+                  "default": true,
+                  "storage": { "path": ["Mistakes", "bSameId"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Choices",
+              "content": [
+                {
+                  "type": "dropdown",
+                  "valueType": "int",
+                  "text": "No options",
+                  "help": "It has no options, so it is disabled.",
+                  "default": 0,
+                  "storage": { "path": ["Mistakes", "iNoOptions"] }
+                },
+                {
+                  "type": "stepper",
+                  "valueType": "int",
+                  "text": "No such shared list",
+                  "help": "It names a shared list the package does not have, so it has no options.",
+                  "default": 0,
+                  "valueOptions": { "sharedOptions": "feet" },
+                  "storage": { "path": ["Mistakes", "iNoList"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Options of another type",
+                  "help": "Of its four options, a text and a number are left out: they are not texts it stores.",
+                  "default": "b",
+                  "valueOptions": {
+                    "options": [
+                      "A place",
+                      { "value": 1, "text": "A number" },
+                      { "value": "b", "text": "B" },
+                      { "value": "c", "text": "C" }
+                    ]
+                  },
+                  "storage": { "path": ["Mistakes", "sWrongOptions"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "A default that is no option",
+                  "help": "Its default is none of its options, so it has no Reset.",
+                  "default": "d",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "a", "text": "A" },
+                      { "value": "b", "text": "B" }
+                    ]
+                  },
+                  "storage": { "path": ["Mistakes", "sNoOptionDefault"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Conditions",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "No such setting",
+                  "help": "Its condition names a setting the package does not have, so it is shown.",
+                  "default": true,
+                  "storage": { "path": ["Mistakes", "bNoSetting"] },
+                  "visibleWhen": { "setting": "missing", "equals": true }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A value of another type",
+                  "help": "Its condition compares a switcher with a number, so it is shown.",
+                  "default": true,
+                  "storage": { "path": ["Mistakes", "bWrongType"] },
+                  "visibleWhen": { "setting": "showRows", "equals": 1 }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "An order of a text",
+                  "help": "Its condition asks whether a text is above a number, so it is enabled.",
+                  "default": true,
+                  "storage": { "path": ["Mistakes", "bTextOrder"] },
+                  "enabledWhen": { "setting": "mode", "greaterThan": 1 }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A part that is not one",
+                  "help": "One part of its condition names no setting, so all of it is left out, and it is shown.",
+                  "default": true,
+                  "storage": { "path": ["Mistakes", "bBadPart"] },
+                  "visibleWhen": {
+                    "all": [
+                      { "setting": "showRows", "equals": false },
+                      { "setting": "missing", "equals": true }
+                    ]
+                  }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "No operator",
+                  "help": "Its condition names a setting and does not say how it is compared, so it is shown.",
+                  "default": true,
+                  "storage": { "path": ["Mistakes", "bNoOperator"] },
+                  "visibleWhen": { "setting": "showRows", "is": false }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Warnings that are left out",
+                  "help": "Of its three warnings, one has no text and one names no setting, so only the last is told: while it is on.",
+                  "default": false,
+                  "storage": { "path": ["Mistakes", "bWarnings"] },
+                  "warnings": [
+                    { "when": { "setting": "showRows", "equals": true } },
+                    {
+                      "when": { "setting": "missing", "equals": true },
+                      "text": "No such setting."
+                    },
+                    {
+                      "when": {
+                        "setting": "bWarnings:Mistakes",
+                        "equals": true
+                      },
+                      "text": "It is on."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Buttons",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "No action",
+                  "help": "A button that does not say what it runs."
+                },
+                {
+                  "type": "button",
+                  "text": "An action with no type",
+                  "help": "Its action does not say what it is.",
+                  "action": {
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "No form",
+                  "help": "Its CallFunction does not name the form of its script.",
+                  "action": { "type": "CallFunction", "function": "ResetAll" }
+                },
+                {
+                  "type": "button",
+                  "text": "A parameter that is an object",
+                  "help": "A parameter is a whole number, a number, a bool or a text.",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": [{ "text": "Showcase" }]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "No command",
+                  "help": "Its RunConsoleCommand has no command.",
+                  "action": { "type": "RunConsoleCommand", "command": "" }
+                },
+                {
+                  "type": "button",
+                  "text": "An action of MCM's menu",
+                  "help": "A CallExternalFunction calls a Flash function, which a package does not have.",
+                  "action": {
+                    "type": "CallExternalFunction",
+                    "function": "OnPress"
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "A form that is not in the game",
+                  "help": "Its form is of a plugin the game does not have: a press runs nothing, and the log says why.",
+                  "action": {
+                    "type": "CallFunction",
+                    "form": "ModsConfigVR_Showcase.esp|800",
+                    "function": "ResetAll"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Sections",
+              "content": [
+                {
+                  "type": "section",
+                  "text": "Collapsed, and does not fold",
+                  "collapsed": true,
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "It says it starts folded, and it has no isCollapsible, so it could not be opened: it is open."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Rows",
+              "content": [
+                {
+                  "type": "colour",
+                  "text": "A type no menu knows",
+                  "help": "A row of a type that is not one."
+                },
+                {
+                  "text": "A row with no type",
+                  "help": "A row that does not say what it is."
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Images",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A texture that is not there, at the size its row gives:"
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/missing.dds",
+                  "width": 256,
+                  "height": 64
+                },
+                {
+                  "type": "text",
+                  "text": "A texture that is not there, with no size:"
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/missing.dds"
+                },
+                { "type": "text", "text": "An image that names no texture:" },
+                { "type": "image" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

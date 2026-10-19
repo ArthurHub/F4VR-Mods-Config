@@ -11,6 +11,24 @@ sText = "Hello"
 fNumber = 1.5
 fReadOnly = 1.78
 
+[Simple]
+bNotifications = true
+fDuration = 3.0
+iLimit = 3
+iDetail = 1
+sPlacement = "chest"
+sProfile = "Standing"
+fHeight = 1.78
+
+[Advanced]
+bHolsters = true
+sMode = "physical"
+iHand = 1
+sPlace = "hip"
+fReach = 15.0
+fGrip = 0.75
+bDiagnostics = false
+
 [Switchers]
 bOn = true
 bOff = false

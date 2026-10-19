@@ -463,20 +463,46 @@ namespace
     }
 
     /**
-     * Shows a mod of the panel by its name, and one of its pages by the page's.
+     * The places of a page of a mod on the way to it, by the names of the pages on that way:
+     * { "Detailed Examples", "Files" } is the page Files under the page Detailed Examples.
      */
-    void select(FullPanel& panel, const std::string_view mod, const std::string_view page = {})
+    std::vector<std::size_t> pagePlaces(const model::Mod& mod, const std::initializer_list<std::string_view> path)
+    {
+        std::vector<std::size_t> places;
+        const auto* pages = &mod.pages;
+        for (const auto name : path) {
+            const auto found = std::ranges::find(*pages, name, &model::Page::name);
+            REQUIRE(found != pages->end());
+            places.push_back(static_cast<std::size_t>(found - pages->begin()));
+            pages = &found->pages;
+        }
+        return places;
+    }
+
+    /**
+     * A page of a mod by the names of the pages on the way to it, as `pagePlaces` has them.
+     */
+    const model::Page& findPage(const model::Mod& mod, const std::initializer_list<std::string_view> path)
+    {
+        const model::Page* page = nullptr;
+        const auto* pages = &mod.pages;
+        for (const auto place : pagePlaces(mod, path)) {
+            page = &(*pages)[place];
+            pages = &page->pages;
+        }
+        REQUIRE(page);
+        return *page;
+    }
+
+    /**
+     * Shows a mod of the panel by its name, and one of its pages by the names of the pages on the way to it.
+     */
+    void select(FullPanel& panel, const std::string_view mod, const std::initializer_list<std::string_view> path = {})
     {
         const auto& mods = panel.mods();
         const auto found = std::ranges::find(mods, mod, &model::Mod::displayName);
         REQUIRE(found != mods.end());
-        Selection selection{ .mod = static_cast<std::size_t>(found - mods.begin()), .page = {} };
-        if (!page.empty()) {
-            const auto foundPage = std::ranges::find(found->pages, page, &model::Page::name);
-            REQUIRE(foundPage != found->pages.end());
-            selection.page = { static_cast<std::size_t>(foundPage - found->pages.begin()) };
-        }
-        panel.select(selection);
+        panel.select({ .mod = static_cast<std::size_t>(found - mods.begin()), .page = pagePlaces(*found, path) });
     }
 }
 
@@ -538,14 +564,14 @@ TEST_CASE("FullPanel render: a mod with no pages keeps its arrow when it is sele
 TEST_CASE("FullPanel render: a page of a mod, with the ray on the mod's breadcrumb", "[.render]")
 {
     auto panel = testSetPanel();
-    select(panel, "Sim Settlements 2", "Gameplay");
+    select(panel, "Sim Settlements 2", { "Gameplay" });
     WARN("Saved " << renderToFile(panel, "mod-page", ImVec2(360.0f, 50.0f)));
 }
 
 TEST_CASE("FullPanel render: the Help page over a page of a mod, with the ray on Help", "[.render]")
 {
     auto panel = testSetPanel();
-    select(panel, "Sim Settlements 2", "Gameplay");
+    select(panel, "Sim Settlements 2", { "Gameplay" });
     // the shipped config's buttons and bindings
     panel.setControls(ui::menuControls({
         .openMenu = { .hand = vrcf::Hand::Primary,
@@ -571,14 +597,14 @@ TEST_CASE("FullPanel render: the Help page over a page of a mod, with the ray on
 TEST_CASE("FullPanel render: a page under the tree's last rows is scrolled to", "[.render]")
 {
     auto panel = testSetPanel();
-    select(panel, "Workshop Framework", "Advanced Controls");
+    select(panel, "Workshop Framework", { "Advanced Controls" });
     WARN("Saved " << renderToFile(panel, "mod-page-scrolled-to", POINTER_AWAY));
 }
 
 TEST_CASE("FullPanel render: pages that are set in under another by spaces", "[.render]")
 {
     auto panel = testSetPanel();
-    select(panel, "FallUI - Inventory", "    Container/Barter/Companion");
+    select(panel, "FallUI - Inventory", { "    Container/Barter/Companion" });
     WARN("Saved " << renderToFile(panel, "mod-page-set-in", POINTER_AWAY));
 }
 
@@ -724,10 +750,7 @@ TEST_CASE("FullPanel render: the values of the package showcase's file that are 
     FullPanel panel;
     panel.setStore(model::Source::Package, &store);
     panel.setMods(mods);
-    const auto& pages = panel.mods()[0].pages;
-    const auto page = std::ranges::find(pages, "Files", &model::Page::name);
-    REQUIRE(page != pages.end());
-    panel.select({ .mod = 0, .page = { static_cast<std::size_t>(page - pages.begin()) } });
+    select(panel, "Mods Config VR: Showcase", { "Detailed Examples", "Files" });
 
     // they are at the end of the page, and the help line has the reason of the last
     const auto scrollToEnd = [&panel] {
@@ -752,7 +775,7 @@ TEST_CASE("FullPanel render: the ends of the package showcase's pages of rows th
         FullPanel panel;
         panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);
-        select(panel, "Mods Config VR: Showcase", pageName);
+        select(panel, "Mods Config VR: Showcase", { "Detailed Examples", pageName });
         const auto scrollToEnd = [&panel] {
             test_panel::drawFrame(panel, pageRow(3));
             test_panel::drawFrame(panel, pageRow(3));
@@ -778,7 +801,7 @@ TEST_CASE("FullPanel render: the ends of the package showcase's pages of numbers
         FullPanel panel;
         panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);
-        select(panel, "Mods Config VR: Showcase", pageName);
+        select(panel, "Mods Config VR: Showcase", { "Detailed Examples", pageName });
         const auto scrollToEnd = [&panel] {
             test_panel::drawFrame(panel, pageRow(3));
             test_panel::drawFrame(panel, pageRow(3));
@@ -799,11 +822,11 @@ TEST_CASE("FullPanel render: the package showcase's warnings, as shipped and wit
         FullPanel panel;
         panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);
-        select(panel, "Mods Config VR: Showcase", "Warnings");
+        select(panel, "Mods Config VR: Showcase", { "Detailed Examples", "Warnings" });
         // Shadows is set once its session is open, which the page's first frame opens
         const auto turnOn = [&panel, &store] {
             test_panel::drawFrame(panel, POINTER_AWAY);
-            const auto& page = *std::ranges::find(panel.mods()[0].pages, "Warnings", &model::Page::name);
+            const auto& page = findPage(panel.mods()[0], { "Detailed Examples", "Warnings" });
             store.set(std::get<model::Setting>(std::get<model::Group>(page.items[0]).items[1]), true);
         };
         const auto name = shadows ? "package-showcase-warnings-shadows" : "package-showcase-warnings";
@@ -1254,7 +1277,7 @@ TEST_CASE("FullPanel render: a row of a page under the ray, and while the trigge
 {
     for (const bool pressed : { false, true }) {
         auto panel = testSetPanel();
-        select(panel, "Sim Settlements 2", "Gameplay");
+        select(panel, "Sim Settlements 2", { "Gameplay" });
         WARN("Saved " << renderToFile(panel, pressed ? "page-row-pressed" : "page-row-hover", pageRow(2), pressed));
     }
 }
@@ -1263,7 +1286,7 @@ TEST_CASE("FullPanel render: names too long for the title bar and for the tree",
 {
     FullPanel panel;
     panel.setMods({ modOf("Sim Settlements 2 - All Chapters with the City Plan Contest Packs", { "Settlement Gameplay and City Plan Options of Chapter 2" }) });
-    select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", "Settlement Gameplay and City Plan Options of Chapter 2");
+    select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", { "Settlement Gameplay and City Plan Options of Chapter 2" });
     WARN("Saved " << renderToFile(panel, "long-names", POINTER_AWAY));
 }
 
@@ -1282,7 +1305,7 @@ TEST_CASE("FullPanel render: a wider tree and a page in the rest of the panel", 
 {
     FullPanel panel;
     panel.setMods({ modOf("Sim Settlements 2 - All Chapters with the City Plan Contest Packs", { "Settlement Gameplay and City Plan Options of Chapter 2" }) });
-    select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", "Settlement Gameplay and City Plan Options of Chapter 2");
+    select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", { "Settlement Gameplay and City Plan Options of Chapter 2" });
     panel.setTreeWidth(theme::NAV_WIDTH * 1.5f);
     WARN("Saved " << renderToFile(panel, "wide-tree", POINTER_AWAY));
 }

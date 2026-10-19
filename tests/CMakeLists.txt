@@ -70,12 +70,12 @@ target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE
   # where FullPanelRenderTests.cpp saves its images
   MODS_CONFIG_TEST_OUTPUT_DIR="${CMAKE_CURRENT_BINARY_DIR}/render"
   # the MCM showcase, which is an optional file of the mod
-  MODS_CONFIG_MCM_SHOWCASE_DIR="${ROOT_DIR}/data/mcm-showcase/MCM/Config"
+  MODS_CONFIG_MCM_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/MCM/Config"
   # the mod's own package, and the config file it edits as the mod ships it
   MODS_CONFIG_PACKAGES_DIR="${ROOT_DIR}/data/mod/ModsConfigVR/Config"
   MODS_CONFIG_SHIPPED_CONFIG="${ROOT_DIR}/data/config/ModsConfigVR.toml"
   # the package showcase, which is an optional file of the mod
-  MODS_CONFIG_PACKAGE_SHOWCASE_DIR="${ROOT_DIR}/data/package-showcase/ModsConfigVR/Config"
+  MODS_CONFIG_PACKAGE_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/ModsConfigVR/Config"
 )
 target_include_directories(${PROJECT_NAME}_tests PRIVATE ${BUILD_DIR}/include ${SOURCE_DIR})
 target_precompile_headers(${PROJECT_NAME}_tests PRIVATE ${SOURCE_DIR}/PCH.h)

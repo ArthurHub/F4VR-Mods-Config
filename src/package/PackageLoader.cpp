@@ -73,6 +73,23 @@ namespace
     }
 
     /**
+     * A row's translated label, without tags where `html` is true, for search and the help line.
+     */
+    std::string getLabel(const Json& row, const model::Translations& translations)
+    {
+        auto text = getShownText(row, "text", translations);
+        return getBool(row, "html") ? model::removeMarkup(text) : text;
+    }
+
+    /**
+     * A label's styled pieces on one line where `html` is true. Other labels are drawn plain.
+     */
+    std::vector<model::TextRun> getLabelRuns(const Json& row, const model::Translations& translations)
+    {
+        return getBool(row, "html") ? model::markupRuns(getShownText(row, "text", translations)) : std::vector<model::TextRun>{};
+    }
+
+    /**
      * The `applies` of a package, a page, a section or a setting. None for one that has none, and for one
      * that is not `live`, `save` or `restart`.
      */
@@ -657,8 +674,8 @@ namespace
      */
     model::Button loadButton(const Json& row, const PackageReading& reading)
     {
-        return model::Button{ .text = getShownText(row, "text", reading.translations),
-            .textRuns = {},
+        return model::Button{ .text = getLabel(row, reading.translations),
+            .textRuns = getLabelRuns(row, reading.translations),
             .help = getShownText(row, "help", reading.translations),
             .buttonText = getShownText(row, "buttonText", reading.translations),
             .action = loadAction(row),
@@ -717,8 +734,8 @@ namespace
         return model::Setting{ .id = std::move(id),
             .sourceId = {},
             .type = type,
-            .text = getShownText(row, "text", reading.translations),
-            .textRuns = {},
+            .text = getLabel(row, reading.translations),
+            .textRuns = getLabelRuns(row, reading.translations),
             .help = getShownText(row, "help", reading.translations),
             .valueOptions = std::move(valueOptions),
             .storage = std::move(storage),
@@ -818,8 +835,8 @@ namespace
                 items.emplace_back(loadSetting(row, setting->second, above, reading));
                 continue;
             }
-            items.emplace_back(model::Placeholder{ .text = getShownText(row, "text", reading.translations),
-                .textRuns = {},
+            items.emplace_back(model::Placeholder{ .text = getLabel(row, reading.translations),
+                .textRuns = getLabelRuns(row, reading.translations),
                 .help = getShownText(row, "help", reading.translations),
                 .type = type,
                 .visibleWhen = {} });

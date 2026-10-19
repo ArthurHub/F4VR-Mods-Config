@@ -294,6 +294,63 @@ TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are se
     CHECK(std::get<model::Setting>(items[7]).valueType == model::StoredType::Int);
 }
 
+TEST_CASE("PackageLoader: HTML labels style every setting type after translation")
+{
+    model::Translations translations;
+    translations.add("$MyMod_Label", "<font size='16' color='#FFBF33'><b><i><u>A styled &amp; label</u></i></b></font>");
+    const std::vector<model::TextRun> expected{ { .text = "A styled & label", .size = 16, .color = 0xFFBF33, .bold = true, .italic = true, .underline = true } };
+    for (const auto* type : { "switcher", "slider", "stepper", "dropdown", "textinput" }) {
+        INFO(type);
+        const bool switcher = std::string_view(type) == "switcher";
+        const auto mod = loaded(packageOf(std::format(R"({{
+            "type": "{}", "text": {{ "token": "$MyMod_Label", "fallback": "Unused" }}, "html": true,
+            "valueType": "{}", "default": {}, "storage": {{ "path": ["Main", "value"] }},
+            "valueOptions": {{ "min": 0, "max": 10, "step": 1, "options": ["Low", "High"] }}
+        }})",
+                                    type,
+                                    switcher ? "bool" : "int",
+                                    switcher ? "true" : "1")),
+            translations);
+        const auto setting = onlySetting(mod);
+        CHECK(setting.text == "A styled & label");
+        CHECK(setting.textRuns == expected);
+        CHECK(setting.id == "value:Main");
+    }
+}
+
+TEST_CASE("PackageLoader: button and unsupported labels take HTML only with a boolean true flag")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "button", "text": "<p align='right'><b>First</b></p>Second<br>Third &amp; last", "html": true,
+          "buttonText": "<b>Run</b>", "help": "<b>Help</b>",
+          "action": { "type": "RunConsoleCommand", "command": "help showcase" } },
+        { "type": "color", "text": "<u>Tint</u>", "html": true },
+        { "type": "switcher", "text": "<b>Missing</b>", "default": true, "storage": { "path": ["Main", "a"] } },
+        { "type": "slider", "text": "<i>False</i>", "html": false, "default": 1, "storage": { "path": ["Main", "b"] } },
+        { "type": "textinput", "text": "<u>String</u>", "html": "true", "default": "", "storage": { "path": ["Main", "c"] } },
+        { "type": "dropdown", "text": "<b>Number</b>", "html": 1, "default": 0,
+          "valueOptions": { "options": ["Only"] }, "storage": { "path": ["Main", "d"] } }
+    )"));
+    const auto& items = mod.frontPage.items;
+    REQUIRE(items.size() == 6);
+    const auto& button = std::get<model::Button>(items[0]);
+    CHECK(button.text == "First Second Third & last");
+    REQUIRE_FALSE(button.textRuns.empty());
+    CHECK(button.textRuns[0].bold);
+    CHECK(button.buttonText == "<b>Run</b>");
+    CHECK(button.help == "<b>Help</b>");
+    const auto& placeholder = std::get<model::Placeholder>(items[1]);
+    CHECK(placeholder.text == "Tint");
+    REQUIRE(placeholder.textRuns.size() == 1);
+    CHECK(placeholder.textRuns[0].underline);
+    const Lines plain{ "<b>Missing</b>", "<i>False</i>", "<u>String</u>", "<b>Number</b>" };
+    for (std::size_t i = 0; i < plain.size(); ++i) {
+        const auto& setting = std::get<model::Setting>(items[i + 2]);
+        CHECK(setting.text == plain[i]);
+        CHECK(setting.textRuns.empty());
+    }
+}
+
 TEST_CASE("PackageLoader: a text, a spacer and an image are rows that hold no value")
 {
     model::Translations translations;
@@ -1200,7 +1257,12 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    CHECK(mod.pages.size() == 17);
+    REQUIRE(mod.pages.size() == 3);
+    CHECK(mod.pages[0].name == "Simple");
+    CHECK(mod.pages[1].name == "Advanced");
+    const auto& examples = mod.pages[2];
+    CHECK(examples.name == "Detailed Examples");
+    CHECK(examples.pages.size() == 21);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -1210,8 +1272,8 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(files == Lines{ "ini", "invalid", "player", "showcase" });
 
     // a page has pages under it, two levels deep
-    const auto pages = std::ranges::find(mod.pages, "Pages", &model::Page::name);
-    REQUIRE(pages != mod.pages.end());
+    const auto pages = std::ranges::find(examples.pages, "Pages", &model::Page::name);
+    REQUIRE(pages != examples.pages.end());
     REQUIRE(pages->pages.size() == 1);
     CHECK(pages->pages[0].pages.size() == 1);
 
@@ -1238,5 +1300,5 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     }
     CHECK(withNoDefault == Lines{ "No default", "A default of another type", "A default outside its range", "No options", "No such shared list", "A default that is no option" });
     CHECK(checked >= 30);
-    CHECK(readOnly == 10);
+    CHECK(readOnly == 9);
 }

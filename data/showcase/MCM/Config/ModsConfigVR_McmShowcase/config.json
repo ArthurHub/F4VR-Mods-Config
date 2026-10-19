@@ -1,11 +1,7 @@
 {
-  // The MCM showcase of Mods Config VR: every kind of row an MCM config has, in every look. All of it works
-  // in MCM too: what Mods Config VR adds to MCM is not here.
-  // It shows how an MCM menu looks in Mods Config VR, and is an optional file of the mod, for developers.
   "modName": "ModsConfigVR_McmShowcase",
-  "displayName": "Mods Config: MCM Showcase",
+  "displayName": "Mods Config VR: MCM Compatibility",
   "minMcmVersion": 2,
-  // lists of options that a stepper and a dropdown name in their sharedOptions
   "sharedLists": { "weather": ["Clear", "Cloudy", "Rain", "Storm"] },
   "content": [
     { "type": "text", "text": "<p align='center'><font size='30'>MCM Showcase</font></p>", "html": true },
