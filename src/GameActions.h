@@ -1,0 +1,15 @@
+#pragma once
+
+#include "model/Definition.h"
+
+// The actions a store runs in the game, for a button of an MCM mod and of a package. The mod's are in
+// GameActions.cpp, and the tests' in tests/TestActions.cpp, which keeps what is run.
+namespace mods_config
+{
+    // Calls a function of a script of a form, or a global function of a script, with its arguments. Returns
+    // false for one whose form or script is not in the game.
+    bool callFunction(const model::CallFunction& call);
+
+    // Runs a line of the game's console. Returns whether it is run.
+    bool runConsoleCommand(const model::ConsoleCommand& command);
+}

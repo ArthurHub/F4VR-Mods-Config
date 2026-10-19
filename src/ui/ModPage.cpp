@@ -563,20 +563,24 @@ namespace
     constexpr float BUTTON_WIDTH = 160.0f;
 
     /**
-     * The row of a button at the cursor: its text after the gutter, and a Run button where a control ends,
-     * before the room of a Reset. The whole row is pressed, so the button is only drawn, and a press runs
-     * the action in the store. A button with no action is disabled, and so is one whose action the menu
-     * does not run, which the reason says.
+     * The row of a button at the cursor: its text after the gutter, and its button where a control ends,
+     * before the room of a Reset, with its own text or `Run`. The whole row is pressed, so the button is
+     * only drawn, and a press runs the action in the store. A button with no action is disabled, and so is
+     * one whose action the menu does not run, which the reason says, and one whose enabledWhen does not hold.
      * Returns whether the ray is on the row.
      */
     bool drawButton(const model::Button& button, const PageDrawing& page, const Gutter& gutter, std::string& reason)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        const auto row = addRow(true);
+        const bool enabled = !button.enabledWhen || model::holds(*button.enabledWhen, page.store);
+        const auto row = addRow(enabled);
+        if (!enabled && row.shown) {
+            ui::drawRowState();
+        }
 
         const auto* unknown = std::get_if<model::UnknownAction>(&button.action);
-        const bool runs = page.store && !unknown && !std::holds_alternative<model::NoAction>(button.action);
+        const bool runs = page.store && enabled && !unknown && !std::holds_alternative<model::NoAction>(button.action);
         if (runs && row.pressed && page.store->run(button.action)) {
             page.drawn.pressActed = true;
         }
@@ -590,7 +594,7 @@ namespace
         ImGui::BeginDisabled(!runs);
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
         ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
-        ui::drawTextIn(box, "Run", theme::color::GREEN, 0.5f);
+        ui::drawTextIn(box, button.buttonText.empty() ? std::string_view("Run") : std::string_view(button.buttonText), theme::color::GREEN, 0.5f, theme::SPACE_3);
         drawLabel(pos, gutter, box.Min.x - theme::SPACE_3, button.text, button.textRuns);
         ImGui::EndDisabled();
         return row.pointed;

@@ -1154,6 +1154,49 @@ TEST_CASE("FullPanel: the help line says why a button is not run")
     CHECK(panel.helpLine().text() == "Notify: Not available: the menu has no Flash.");
 }
 
+TEST_CASE("FullPanel: a package's button runs its console command while its enabledWhen holds on the pending values")
+{
+    const test_panel::PanelContext context;
+    test_actions::TestActions actions;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "id": "enable", "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } },
+            { "type": "button", "text": "Hide the HUD", "help": "Toggles the HUD.", "buttonText": "Toggle",
+              "action": { "type": "RunConsoleCommand", "command": "tm" }, "enabledWhen": { "setting": "enable", "equals": true } },
+            { "type": "button", "text": "Calibrate", "action": { "type": "CallNativeFunction", "function": "calibrate" } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // disabled while its enabledWhen does not hold, with its own help
+    CHECK_FALSE(pressActs(panel, pageRow(1)));
+    CHECK(actions.commands.empty());
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Hide the HUD: Toggles the HUD.");
+
+    // the switcher's pending value enables it, with no Save
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "tm" } });
+    CHECK(store.dirtyCount() == 1);
+
+    // a function of the mod's DLL is not run, and the help line says why
+    CHECK_FALSE(pressActs(panel, pageRow(2)));
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Calibrate: Not available: the mod's DLL has not given the menu its functions.");
+}
+
 TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press on its row does nothing")
 {
     const test_panel::PanelContext context;

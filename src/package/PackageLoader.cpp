@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
+#include <cstdint>
 #include <format>
 #include <fstream>
 #include <map>
@@ -539,6 +541,152 @@ namespace
     }
 
     /**
+     * A form of a game plugin, written as its plugin and its id in hex, as `MyMod.esp|800`, which can start
+     * with `0x`. None for a text that is not written so.
+     */
+    std::optional<std::pair<std::string, std::uint32_t>> parseForm(const std::string& text)
+    {
+        const auto separator = text.find('|');
+        auto plugin = common::trim(text.substr(0, separator));
+        auto id = separator == std::string::npos ? std::string() : common::trim(text.substr(separator + 1));
+        if (id.starts_with("0x") || id.starts_with("0X")) {
+            id.erase(0, 2);
+        }
+        std::uint32_t formId = 0;
+        const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), formId, 16);
+        if (plugin.empty() || id.empty() || error != std::errc() || end != id.data() + id.size()) {
+            return std::nullopt;
+        }
+        return std::pair(std::move(plugin), formId);
+    }
+
+    // the least and the most a whole number of Papyrus is
+    constexpr double MIN_WHOLE = -2147483648.0;
+    constexpr double MAX_WHOLE = 2147483647.0;
+
+    /**
+     * A parameter of a call, in its own type as a JSON value: a number written with no point or exponent is a
+     * whole number, any other number is a number, a bool is a bool and a text is a text, which is never read
+     * for a type. None for any other value, and for a whole number that Papyrus does not have.
+     */
+    std::optional<model::Value> loadArgument(const Json& param)
+    {
+        if (param.is_boolean()) {
+            return param.get<bool>();
+        }
+        if (param.is_number_integer()) {
+            const auto whole = param.get<double>();
+            return whole >= MIN_WHOLE && whole <= MAX_WHOLE ? std::optional<model::Value>(static_cast<int>(whole)) : std::nullopt;
+        }
+        if (param.is_number()) {
+            return param.get<float>();
+        }
+        return param.is_string() ? std::optional<model::Value>(param.get<std::string>()) : std::nullopt;
+    }
+
+    /**
+     * The function a `CallFunction` or a `CallGlobalFunction` calls, with its `params`, or why it is not one.
+     * A `CallFunction` names the form of its script in `form`, as `MyMod.esp|800`, and can name the script
+     * in `scriptName`. A `CallGlobalFunction` names its script in `script`, and has no form.
+     */
+    std::expected<model::CallFunction, std::string> loadCall(const Json& action, const std::string& type)
+    {
+        model::CallFunction call{ .plugin = {}, .formId = 0, .script = {}, .function = getText(action, "function"), .arguments = {}, .valueArguments = {} };
+        if (call.function.empty()) {
+            return std::unexpected(std::format("its {} names no function", type));
+        }
+        if (type == "CallGlobalFunction") {
+            call.script = getText(action, "script");
+            if (call.script.empty()) {
+                return std::unexpected("its CallGlobalFunction names no script"s);
+            }
+        } else {
+            const auto formText = getText(action, "form");
+            auto form = parseForm(formText);
+            if (formText.empty()) {
+                return std::unexpected("its CallFunction names no form"s);
+            }
+            if (!form) {
+                return std::unexpected(std::format("the form '{}' of its CallFunction is not a plugin and an id in hex", formText));
+            }
+            call.plugin = std::move(form->first);
+            call.formId = form->second;
+            call.script = getText(action, "scriptName");
+        }
+
+        const auto params = action.find("params");
+        if (params == action.end()) {
+            return call;
+        }
+        if (!params->is_array()) {
+            return std::unexpected(std::format("the params of its {} are not a list", type));
+        }
+        for (std::size_t place = 0; place < params->size(); ++place) {
+            auto argument = loadArgument((*params)[place]);
+            if (!argument) {
+                return std::unexpected(std::format("parameter {} of its {} is not a whole number of Papyrus, a number, a bool or a text", place + 1, type));
+            }
+            call.arguments.push_back(std::move(*argument));
+        }
+        return call;
+    }
+
+    /**
+     * An action of a button that is not written right, which the menu does not run: the help line has the
+     * mistake as its reason, and the log has it too.
+     */
+    model::UnknownAction mistakenAction(const Json& row, std::string type, const std::string& mistake)
+    {
+        logger::warn("The action of the button '{}' is not run: {}", getText(row, "text"), mistake);
+        return model::UnknownAction{ .type = std::move(type), .reason = std::format("Not available: {}.", mistake) };
+    }
+
+    /**
+     * What a button runs, by the `type` of its `action`: a `CallFunction` and a `CallGlobalFunction`, with
+     * their `params`, and a `RunConsoleCommand`, with its `command`. A `CallNativeFunction` runs a function
+     * that the mod's DLL gives the menu, and the menu takes none from a DLL. A button with no action, any
+     * other action, and one that is not written right are actions the menu does not run, with the reason.
+     */
+    model::Action loadAction(const Json& row)
+    {
+        const auto action = row.find("action");
+        if (action == row.end() || !action->is_object()) {
+            return mistakenAction(row, {}, "the button has no action");
+        }
+        auto type = getText(*action, "type");
+        if (type == "CallFunction" || type == "CallGlobalFunction") {
+            auto call = loadCall(*action, type);
+            return call ? model::Action(std::move(*call)) : mistakenAction(row, std::move(type), call.error());
+        }
+        if (type == "RunConsoleCommand") {
+            auto command = getText(*action, "command");
+            return command.empty() ? model::Action(mistakenAction(row, std::move(type), "its RunConsoleCommand has no command")) : model::ConsoleCommand{ std::move(command) };
+        }
+        if (type.empty()) {
+            return mistakenAction(row, {}, "the action has no type");
+        }
+        logger::info("The button '{}' has an action '{}', which the menu does not run", getText(row, "text"), type);
+        auto reason =
+            type == "CallNativeFunction" ? "Not available: the mod's DLL has not given the menu its functions."s : std::format("Not available: the menu does not run a {}.", type);
+        return model::UnknownAction{ .type = std::move(type), .reason = std::move(reason) };
+    }
+
+    /**
+     * A button: its text, its action and the text on its button, `buttonText`, which is `Run` without one. Its
+     * conditions are read once every setting of the package is (`loadConditions`).
+     */
+    model::Button loadButton(const Json& row, const PackageReading& reading)
+    {
+        return model::Button{ .text = getShownText(row, "text", reading.translations),
+            .textRuns = {},
+            .help = getShownText(row, "help", reading.translations),
+            .buttonText = getShownText(row, "buttonText", reading.translations),
+            .action = loadAction(row),
+            .visibleWhen = {},
+            .enabledWhen = {} };
+    }
+
+    /**
      * A text row: its text in lines, and with the tags of an MCM config read where its `html` is true.
      */
     model::Text loadText(const Json& row, const PackageReading& reading)
@@ -613,6 +761,10 @@ namespace
             }
             if (type == "image") {
                 items.emplace_back(loadImage(row));
+                continue;
+            }
+            if (type == "button") {
+                items.emplace_back(loadButton(row, reading));
                 continue;
             }
             if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
@@ -864,6 +1016,8 @@ namespace
                 item);
             if (auto* setting = std::get_if<model::Setting>(&item)) {
                 setting->enabledWhen = own.enabledWhen;
+            } else if (auto* button = std::get_if<model::Button>(&item)) {
+                button->enabledWhen = own.enabledWhen;
             } else if (auto* group = std::get_if<model::Group>(&item)) {
                 loadConditions(row, group->items, own, reading);
             }
@@ -940,7 +1094,7 @@ namespace mods_config::package
     /**
      * Reads the text of a package's `config.json` into the model: the mod and its help, its files, its front
      * page and its pages, which nest, with their help, and their sections, which nest and fold, with their
-     * help, settings, texts, spacers and images. Every
+     * help, settings, buttons, texts, spacers and images. Every
      * text the player sees is in the game's language. A setting has the file its value is kept in, and when
      * its change takes effect, which the package's root has to say. A choice has its options or a list of
      * the package's `sharedLists`. A row is shown and enabled by its conditions, which are read once every

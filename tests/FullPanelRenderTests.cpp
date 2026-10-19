@@ -763,16 +763,18 @@ TEST_CASE("FullPanel render: the ends of the package showcase's pages of rows th
     }
 }
 
-TEST_CASE("FullPanel render: the ends of the package showcase's pages of numbers and of read-only settings, with the ray on a row", "[.render]")
+TEST_CASE("FullPanel render: the ends of the package showcase's pages of numbers, of read-only settings and of buttons, with the ray on a row", "[.render]")
 {
     const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
     package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
 
-    // the percentages and the numbers too wide for their box, with the help line of the last, and the
-    // read-only settings with no value, with the help line of one
-    for (const auto& [pageName, name, row] : { std::tuple{ "Numbers", "package-showcase-numbers-end", 8 }, std::tuple{ "Read-only", "package-showcase-read-only-end", 6 } }) {
+    // the percentages and the numbers too wide for their box, with the help line of the last, the read-only
+    // settings with no value, with the help line of one, and the button the menu does not run, with its reason
+    for (const auto& [pageName, name, row] : { std::tuple{ "Numbers", "package-showcase-numbers-end", 8 },
+             std::tuple{ "Read-only", "package-showcase-read-only-end", 6 },
+             std::tuple{ "Buttons", "package-showcase-buttons-end", 8 } }) {
         FullPanel panel;
         panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);

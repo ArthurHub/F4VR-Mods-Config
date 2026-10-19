@@ -801,7 +801,13 @@ namespace
                 .visibleWhen = {} };
         }
         if (type == "button") {
-            return model::Button{ .text = std::move(text), .textRuns = std::move(textRuns), .help = getHelp(row, texts), .action = loadAction(row), .visibleWhen = {} };
+            return model::Button{ .text = std::move(text),
+                .textRuns = std::move(textRuns),
+                .help = getHelp(row, texts),
+                .buttonText = {},
+                .action = loadAction(row),
+                .visibleWhen = {},
+                .enabledWhen = {} };
         }
         if (type == "hotkey") {
             return model::Hotkey{ .id = getText(row, "id"), .text = std::move(text), .textRuns = std::move(textRuns), .help = getHelp(row, texts), .visibleWhen = {} };

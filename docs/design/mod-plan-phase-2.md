@@ -49,7 +49,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M109 | mod | Pages under pages: the tree's levels, the breadcrumbs and Back                            | in review |
 | M111 | mod | A read-only setting, and how a number is shown                                            | in review |
 | M112 | mod | A row warns while a condition holds                                                       | todo   |
-| M49 | mod  | A package's button calls a Papyrus function or runs a console command, with its own text  | todo   |
+| M49 | mod  | A package's button calls a Papyrus function or runs a console command, with its own text  | in review |
 | M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | todo   |
 | M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a package        | todo   |
 | M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | todo   |
@@ -72,7 +72,7 @@ M59 draws a package's `text`, `spacer` and `image` as an MCM config's are drawn.
 
 M49 lets a package use the actions the menu supports for MCM, so a script-only mod has buttons, and a console command, which needs no script. The action of a native client comes in milestone 7.
 
-M107 lets a script mod keep its package's settings where its scripts and the game read them, as an MCM mod does. A global and a property are pending until Save, as a key of a file is, and the store previews a `live` one by writing it into the game. Save writes them after the files, then runs the action of each setting it wrote, with `"{value}"`. It is tried with a package written for one of the test set's MCM mods that keeps its values in globals.
+M107 lets a script mod keep its package's settings where its scripts and the game read them, as an MCM mod does. A global and a property are pending until Save, as a key of a file is, and the store previews a `live` one by writing it into the game. Save writes them after the files, then runs the action of each setting it wrote, with `"{value}"`. It is tried with a package written for one of the test set's MCM mods that keeps its values in globals. The package showcase gets a slider of the time of day, kept in the game's global `GameHour` (`Fallout4.esm|38`) with `applies` `live`, so the time changes as the slider moves.
 
 M110 reads MCM's `listFromForm` and `listFromProperty`, for an MCM config and a package alike. The store answers the options of a choice, which it reads in the game as the page is shown: until then they are fixed in the definition. It comes after M107, which reads a property of a script for a package. No MCM config of the author's lists has either, so the unit tests cover it.
 

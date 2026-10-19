@@ -1,4 +1,4 @@
-#include "McmStore.h"
+#include "GameActions.h"
 
 #include <type_traits>
 #include <variant>
@@ -104,7 +104,7 @@ namespace
     };
 }
 
-namespace mods_config::mcm
+namespace mods_config
 {
     /**
      * Calls a function of a script of a form, or a global function of a script, as `mcm_vr.dll` does for
@@ -145,6 +145,18 @@ namespace mods_config::mcm
         PackedArguments arguments(*vm, call.arguments);
         F4SEVR::CallFunctionNoWait_Internal(vm, 0, script.get(), &function, &arguments.packed);
         logger::debug("Called the function {}({}) of the form {:X} of '{}'", call.function, describeArguments(call.arguments), call.formId, call.plugin);
+        return true;
+    }
+
+    /**
+     * Runs a line of the console as the game's console runs what the player types, as `mcm_vr.dll` does for
+     * the RunConsoleCommand of a hotkey. It runs at once, on the game thread, and gives no result: a line the
+     * console does not know has its error in the console alone.
+     */
+    bool runConsoleCommand(const model::ConsoleCommand& command)
+    {
+        RE::Console::ExecuteCommand(command.command.c_str());
+        logger::debug("Ran the console command '{}'", command.command);
         return true;
     }
 }

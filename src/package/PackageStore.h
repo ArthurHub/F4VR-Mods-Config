@@ -26,6 +26,7 @@ namespace mods_config::package
      * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
      * The menu reads a TOML file: a setting of any other file, or kept in a global or a property of a script,
      * is not available.
+     * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
     class PackageStore : public model::Store
     {

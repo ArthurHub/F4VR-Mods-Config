@@ -9,6 +9,7 @@
 #include <variant>
 #include <vector>
 
+#include "GameActions.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
 
@@ -587,10 +588,17 @@ namespace mods_config::package
     }
 
     /**
-     * Runs no action: a package's button runs none yet.
+     * Runs the action of a button at once: a `CallFunction` and a `CallGlobalFunction` call their function,
+     * which Papyrus runs on its own time, and a `RunConsoleCommand` runs its line in the console.
+     * Returns false for a row with no action, for an action the store does not run, and for a function whose
+     * form or script is not in the game.
      */
-    bool PackageStore::run(const model::Action&)
+    bool PackageStore::run(const model::Action& action)
     {
-        return false;
+        if (const auto* call = std::get_if<model::CallFunction>(&action)) {
+            return callFunction(*call);
+        }
+        const auto* command = std::get_if<model::ConsoleCommand>(&action);
+        return command && runConsoleCommand(*command);
     }
 }

@@ -66,6 +66,9 @@ sPlace = "chest"
 sProfile = "Standing"
 fPastMost = 2.0
 
+[Buttons]
+bEnabled = true
+
 [Rows]
 bShowPicture = true
 

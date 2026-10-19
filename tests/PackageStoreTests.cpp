@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include "TestActions.h"
 #include "TestFiles.h"
 #include "common/CommonUtils.h"
 #include "package/PackageLoader.h"
@@ -408,7 +409,38 @@ TEST_CASE("PackageStore: the default of a setting is its package's, in the type 
     CHECK(session.store.defaultValue(session.setting(2)) == model::Value(200.0f));
     CHECK(session.store.defaultValue(session.setting(6)) == model::Value("3"s));
     CHECK_FALSE(session.store.hotkey({}).available);
+}
+
+TEST_CASE("PackageStore: a button calls its function or runs its console command at once")
+{
+    test_actions::TestActions actions;
+    Session session(R"(
+        { "type": "button", "text": "Reset", "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "ResetAll", "params": [1] } },
+        { "type": "button", "text": "Hide the HUD", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "button", "text": "Calibrate", "action": { "type": "CallNativeFunction", "function": "calibrate" } }
+    )");
+    session.open(MOD_TOML);
+    const auto action = [&session](const std::size_t row) {
+        return std::get<model::Button>(session.mod.frontPage.items.at(row)).action;
+    };
+
+    CHECK(session.store.run(action(0)));
+    REQUIRE(actions.called.size() == 1);
+    CHECK(actions.called[0].function == "ResetAll");
+    CHECK(actions.called[0].arguments == std::vector<model::Value>{ 1 });
+
+    CHECK(session.store.run(action(1)));
+    CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "tm" } });
+
+    // an action the menu does not run, a row with none, and a function whose form is not in the game
+    CHECK_FALSE(session.store.run(action(2)));
     CHECK_FALSE(session.store.run(model::NoAction{}));
+    actions.inGame = false;
+    CHECK_FALSE(session.store.run(action(0)));
+    CHECK(actions.called.size() == 1);
+
+    // nothing waits for a Save
+    CHECK(session.store.dirtyCount() == 0);
 }
 
 TEST_CASE("PackageStore: a read-only setting has its file's value as it is, none where the file has none, and is not set")

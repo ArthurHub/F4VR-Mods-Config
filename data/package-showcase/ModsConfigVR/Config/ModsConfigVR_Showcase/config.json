@@ -421,6 +421,88 @@
       ]
     },
     {
+      "pageDisplayName": "Buttons",
+      "help": "Buttons that call a function of a script or run a console command, with the text on their button.",
+      "content": [
+        {
+          "type": "section", "text": "Functions",
+          "content": [
+            {
+              "type": "button", "text": "A global function", "help": "Calls the global function Debug.Notification, which shows a notification.",
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: a global function ran"] }
+            },
+            {
+              "type": "button", "text": "Typed parameters", "help": "Calls Debug.Trace with a text and a whole number: the Papyrus log has the text.",
+              "buttonText": "Trace",
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Trace", "params": ["Showcase: a text and a whole number", 0] }
+            },
+            {
+              "type": "button", "text": "Noon", "help": "Calls SetValue of the game's global GameHour with 12.0, a function of a form: the time of day is noon.",
+              "buttonText": "Set",
+              "action": { "type": "CallFunction", "form": "Fallout4.esm|38", "scriptName": "GlobalVariable", "function": "SetValue", "params": [12.0] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Console commands",
+          "content": [
+            {
+              "type": "button", "text": "A console command", "help": "Runs cgf in the console, which calls Debug.Notification: it needs no script of the mod.",
+              "action": { "type": "RunConsoleCommand", "command": "cgf \"Debug.Notification\" \"Showcase: a console command ran\"" }
+            },
+            {
+              "type": "button", "text": "Evening", "help": "Runs set gamehour to 20 in the console: the time of day is 8 in the evening.",
+              "buttonText": "Set",
+              "action": { "type": "RunConsoleCommand", "command": "set gamehour to 20" }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "The text on a button",
+          "content": [
+            {
+              "type": "button", "text": "A text of its own", "help": "Its button says Show, in place of Run.", "buttonText": "Show",
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: Show"] }
+            },
+            {
+              "type": "button", "text": "A text of a token", "help": "The text on its button is a token with a fallback.",
+              "buttonText": { "token": "$ModsConfigVR_Showcase_Apply", "fallback": "Apply" },
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: Apply"] }
+            },
+            {
+              "type": "button", "text": "A long text", "help": "The text on its button is too long for it, and ends in an ellipsis.",
+              "buttonText": "Show a notification now",
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: a long text"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Enabled by a setting",
+          "content": [
+            {
+              "id": "buttonsEnabled", "type": "switcher", "valueType": "bool", "text": "Buttons enabled", "help": "Turns off the button under it.",
+              "default": true, "storage": { "path": ["Buttons", "bEnabled"] }
+            },
+            {
+              "type": "button", "text": "Enabled by the switcher", "help": "Its enabledWhen asks for the switcher above, so it is disabled while the switcher is off.",
+              "enabledWhen": { "setting": "buttonsEnabled", "equals": true },
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: the switcher is on"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Not run",
+          "content": [
+            {
+              "type": "button", "text": "A function of the mod's DLL", "help": "A CallNativeFunction runs a function the mod's DLL gives the menu.",
+              "buttonText": "Calibrate",
+              "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "mode": "height" } }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "pageDisplayName": "Text, spacers and images",
       "help": "Rows that hold no value: texts with and without tags, spacers, and textures at their own size and at the size a row gives.",
       "content": [
@@ -953,6 +1035,36 @@
               "type": "switcher", "valueType": "bool", "text": "No operator", "help": "Its condition names a setting and does not say how it is compared, so it is shown.",
               "default": true, "storage": { "path": ["Mistakes", "bNoOperator"] },
               "visibleWhen": { "setting": "showRows", "is": false }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Buttons",
+          "content": [
+            { "type": "button", "text": "No action", "help": "A button that does not say what it runs." },
+            {
+              "type": "button", "text": "An action with no type", "help": "Its action does not say what it is.",
+              "action": { "script": "Debug", "function": "Notification", "params": ["Showcase"] }
+            },
+            {
+              "type": "button", "text": "No form", "help": "Its CallFunction does not name the form of its script.",
+              "action": { "type": "CallFunction", "function": "ResetAll" }
+            },
+            {
+              "type": "button", "text": "A parameter that is an object", "help": "A parameter is a whole number, a number, a bool or a text.",
+              "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": [{ "text": "Showcase" }] }
+            },
+            {
+              "type": "button", "text": "No command", "help": "Its RunConsoleCommand has no command.",
+              "action": { "type": "RunConsoleCommand", "command": "" }
+            },
+            {
+              "type": "button", "text": "An action of MCM's menu", "help": "A CallExternalFunction calls a Flash function, which a package does not have.",
+              "action": { "type": "CallExternalFunction", "function": "OnPress" }
+            },
+            {
+              "type": "button", "text": "A form that is not in the game", "help": "Its form is of a plugin the game does not have: a press runs nothing, and the log says why.",
+              "action": { "type": "CallFunction", "form": "ModsConfigVR_Showcase.esp|800", "function": "ResetAll" }
             }
           ]
         },

@@ -231,7 +231,9 @@ namespace mods_config::devbench
                         } else if constexpr (std::is_same_v<T, model::Button>) {
                             return { { "kind", "button" },
                                 { "text", it.text },
-                                { "runnable", !std::holds_alternative<model::NoAction>(it.action) && !std::holds_alternative<model::UnknownAction>(it.action) } };
+                                { "buttonText", it.buttonText },
+                                { "runnable", !std::holds_alternative<model::NoAction>(it.action) && !std::holds_alternative<model::UnknownAction>(it.action) },
+                                { "enabled", shown(it.enabledWhen) } };
                         } else if constexpr (std::is_same_v<T, model::Hotkey>) {
                             const auto key = store.hotkey(it);
                             return { { "kind", "hotkey" }, { "id", it.id }, { "text", it.text }, { "value", valueToJson(key.value) }, { "available", key.available } };
@@ -581,7 +583,7 @@ namespace mods_config::devbench
             .name = "page",
             .description = "the rows of the page that is shown, in their order, with the session (dirty: the changes that wait for a Save): each with its kind and depth "
                            "(a section's rows follow it, one deeper), shown (its condition holds), for a section its help, collapsible (it folds) and "
-                           "collapsed (it starts folded), and for a setting its id, type, value, available, invalid, "
+                           "collapsed (it starts folded), for a button its buttonText, runnable and enabled, and for a setting its id, type, value, available, invalid, "
                            "reason, dirty, enabled, default, applies, and its range or options",
             .handler = &runPage,
         });

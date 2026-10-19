@@ -273,6 +273,16 @@ namespace mods_config::model
     };
 
     /**
+     * A line of the game's console, which the game runs as the player would type it.
+     */
+    struct ConsoleCommand
+    {
+        std::string command;
+
+        bool operator==(const ConsoleCommand&) const = default;
+    };
+
+    /**
      * An action the menu does not run: a button of it is disabled, and a value row is set with nothing run.
      */
     struct UnknownAction
@@ -289,7 +299,7 @@ namespace mods_config::model
     /**
      * What a row runs. Only the store runs it.
      */
-    using Action = std::variant<NoAction, CallFunction, UnknownAction>;
+    using Action = std::variant<NoAction, CallFunction, ConsoleCommand, UnknownAction>;
 
     /**
      * A piece of a line that is drawn in one size, one color and one face.
@@ -390,8 +400,14 @@ namespace mods_config::model
         std::string text;
         std::vector<TextRun> textRuns;
         std::string help;
+
+        // the text on its button: a package's button can have one. Empty for `Run`
+        std::string buttonText;
         Action action;
         std::optional<Condition> visibleWhen;
+
+        // it runs while it holds, and is disabled while it does not: a package's button can have it
+        std::optional<Condition> enabledWhen;
     };
 
     /**

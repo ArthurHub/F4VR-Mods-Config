@@ -256,7 +256,7 @@ TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are se
         { "type": "slider", "text": "Opacity", "valueType": "int", "valueOptions": { "min": 0, "max": 255, "step": 5 }, "storage": { "path": ["Main", "iOpacity"] } },
         { "type": "textinput", "text": "Name", "storage": { "path": ["Main", "sName"] } },
         { "type": "textinput", "text": "Scale", "valueType": "float", "storage": { "path": ["Main", "fScale"] } },
-        { "type": "button", "text": "Mode", "help": "Low or high." },
+        { "type": "transform", "text": "Offset", "help": "Where it is." },
         { "type": "color", "text": "Tint" },
         { "type": "stepper", "text": "Hand", "valueOptions": { "options": ["Left", "Right"] }, "storage": { "path": ["Main", "iHand"] } },
         { "type": "dropdown", "text": "Where", "valueOptions": { "options": ["Head", "Hand"] }, "storage": { "path": ["Main", "iWhere"] } }
@@ -281,10 +281,10 @@ TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are se
     CHECK(std::get<model::Setting>(items[2]).valueType == model::StoredType::String);
     CHECK(std::get<model::Setting>(items[3]).valueType == model::StoredType::Float);
 
-    const auto& mode = std::get<model::Placeholder>(items[4]);
-    CHECK(mode.type == "button");
-    CHECK(mode.text == "Mode");
-    CHECK(mode.help == "Low or high.");
+    const auto& offset = std::get<model::Placeholder>(items[4]);
+    CHECK(offset.type == "transform");
+    CHECK(offset.text == "Offset");
+    CHECK(offset.help == "Where it is.");
     CHECK(std::get<model::Placeholder>(items[5]).type == "color");
 
     // a choice with no valueType stores the place of its option
@@ -341,6 +341,104 @@ TEST_CASE("PackageLoader: a text, a spacer and an image are rows that hold no va
     CHECK(common::fEqual(image(10).width, 0.0f));
     CHECK(common::fEqual(image(10).height, 0.0f));
     CHECK(image(11).texture.empty());
+}
+
+TEST_CASE("PackageLoader: a button calls a function with its typed params, or runs a console command, with the text on its button")
+{
+    model::Translations translations;
+    translations.add("$MyMod_Reset", "Reset");
+    const auto mod = loaded(packageOf(R"(
+        { "type": "button", "text": "Reset everything", "help": "Puts every value back.", "buttonText": "$MyMod_Reset",
+          "action": { "type": "CallFunction", "form": "MyMod.esp|0x800", "scriptName": "MyMod:Config", "function": "ResetAll",
+                      "params": [4, -2, 4.0, 1e2, true, "a text", "{i}5", "{value}"] } },
+        { "type": "button", "text": "Notify",
+          "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Done"] } },
+        { "type": "button", "text": "Hide the HUD", "action": { "type": "RunConsoleCommand", "command": "tm" } }
+    )"),
+        translations);
+    const auto& items = mod.frontPage.items;
+    REQUIRE(items.size() == 3);
+
+    // a number with no point is a whole number, and a text is never read for a type
+    const auto& reset = std::get<model::Button>(items[0]);
+    CHECK(reset.text == "Reset everything");
+    CHECK(reset.help == "Puts every value back.");
+    CHECK(reset.buttonText == "Reset");
+    CHECK(reset.action == model::Action(model::CallFunction{ .plugin = "MyMod.esp",
+                              .formId = 0x800,
+                              .script = "MyMod:Config",
+                              .function = "ResetAll",
+                              .arguments = { 4, -2, 4.0f, 100.0f, true, std::string("a text"), std::string("{i}5"), std::string("{value}") },
+                              .valueArguments = {} }));
+
+    // with no buttonText, the button is Run
+    const auto& notify = std::get<model::Button>(items[1]);
+    CHECK(notify.buttonText.empty());
+    CHECK(
+        notify.action ==
+        model::Action(model::CallFunction{ .plugin = {}, .formId = 0, .script = "Debug", .function = "Notification", .arguments = { std::string("Done") }, .valueArguments = {} }));
+
+    CHECK(std::get<model::Button>(items[2]).action == model::Action(model::ConsoleCommand{ "tm" }));
+}
+
+TEST_CASE("PackageLoader: a button whose action the menu does not run, or is not written right, has the reason")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "button", "text": "Calibrate", "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "mode": "height" } } },
+        { "type": "button", "text": "Flash", "action": { "type": "CallExternalFunction", "function": "Flash" } },
+        { "type": "button", "text": "No type", "action": { "function": "ResetAll" } },
+        { "type": "button", "text": "No action" },
+        { "type": "button", "text": "No form", "action": { "type": "CallFunction", "function": "ResetAll" } },
+        { "type": "button", "text": "No id", "action": { "type": "CallFunction", "form": "MyMod.esp", "function": "ResetAll" } },
+        { "type": "button", "text": "No function", "action": { "type": "CallFunction", "form": "MyMod.esp|800" } },
+        { "type": "button", "text": "No script", "action": { "type": "CallGlobalFunction", "function": "Notification" } },
+        { "type": "button", "text": "Params not a list", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Trace", "params": "a" } },
+        { "type": "button", "text": "An object", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Trace", "params": ["a", { "b": 1 }] } },
+        { "type": "button", "text": "Too large", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Trace", "params": [2147483648] } },
+        { "type": "button", "text": "No command", "action": { "type": "RunConsoleCommand", "command": "" } }
+    )"));
+    std::vector<std::string> reasons;
+    for (const auto& item : mod.frontPage.items) {
+        const auto& action = std::get<model::Button>(item).action;
+        REQUIRE(std::holds_alternative<model::UnknownAction>(action));
+        reasons.push_back(std::get<model::UnknownAction>(action).reason);
+    }
+    CHECK(reasons == Lines{
+                         "Not available: the mod's DLL has not given the menu its functions.",
+                         "Not available: the menu does not run a CallExternalFunction.",
+                         "Not available: the action has no type.",
+                         "Not available: the button has no action.",
+                         "Not available: its CallFunction names no form.",
+                         "Not available: the form 'MyMod.esp' of its CallFunction is not a plugin and an id in hex.",
+                         "Not available: its CallFunction names no function.",
+                         "Not available: its CallGlobalFunction names no script.",
+                         "Not available: the params of its CallGlobalFunction are not a list.",
+                         "Not available: parameter 2 of its CallGlobalFunction is not a whole number of Papyrus, a number, a bool or a text.",
+                         "Not available: parameter 1 of its CallGlobalFunction is not a whole number of Papyrus, a number, a bool or a text.",
+                         "Not available: its RunConsoleCommand has no command.",
+                     });
+}
+
+TEST_CASE("PackageLoader: a button is shown by its visibleWhen and enabled by its enabledWhen, with those of its sections")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "id": "a", "type": "switcher", "text": "A", "default": true, "storage": { "path": ["Main", "bA"] } },
+        {
+            "type": "section", "text": "Tools", "enabledWhen": { "setting": "a", "equals": true },
+            "content": [
+                { "type": "button", "text": "Hide the HUD", "action": { "type": "RunConsoleCommand", "command": "tm" },
+                  "visibleWhen": { "setting": "a", "equals": false }, "enabledWhen": { "setting": "a", "notEquals": false } }
+            ]
+        }
+    )"));
+    using Condition = model::Condition;
+    using Kind = Condition::Kind;
+    const auto compared = [](const Kind kind, const bool on) {
+        return Condition{ .kind = kind, .setting = "a", .conditions = {}, .offWhenNotAvailable = false, .values = { on } };
+    };
+    const auto& button = std::get<model::Button>(std::get<model::Group>(mod.frontPage.items[1]).items[0]);
+    CHECK(button.visibleWhen == compared(Kind::Equals, false));
+    CHECK(button.enabledWhen == Condition{ .kind = Kind::All, .setting = {}, .conditions = { compared(Kind::Equals, true), compared(Kind::NotEquals, false) } });
 }
 
 TEST_CASE("PackageLoader: a choice's options are texts that store their place, or objects with the value each stores")
@@ -995,7 +1093,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    CHECK(mod.pages.size() == 14);
+    CHECK(mod.pages.size() == 15);
 
     // the file whose path goes up out of its root is left out
     Lines files;

@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "GameActions.h"
 #include "McmKeybinds.h"
 #include "McmModSettings.h"
 #include "model/Definition.h"
@@ -40,11 +41,6 @@ namespace mods_config::mcm
     // DLL reads its MCM file as the pause menu closes, which MCM's menu is in. The mod's is in McmEvents.cpp,
     // and the tests' in tests/TestEvents.cpp, which keeps the two events as sent.
     void sendPauseMenuEvents();
-
-    // Calls a function of a script of a form, or a global function of a script, with its arguments. Returns
-    // false for one whose form or script is not in the game. The mod's is in McmActions.cpp, which queues the call to Papyrus, and the tests' in
-    // tests/TestActions.cpp, which keeps what is called.
-    bool callFunction(const model::CallFunction& call);
 
     /**
      * The store of an MCM mod: a value is read from where its storage says, and a change is written there at
