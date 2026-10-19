@@ -2,7 +2,9 @@
 
 #include <cstdint>
 
+#include <catch2/catch_test_macros.hpp>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include "Theme.h"
 #include "imgui/ImGuiFonts.h"
@@ -122,5 +124,8 @@ namespace test_panel
         ImGui::PopStyleColor();
         ImGui::Render();
         answerTextureRequests();
+
+        // ImGui only counts a user error in a Release build, and shows it in a tooltip of the next frame
+        CHECK(GImGui->ErrorCountCurrentFrame == 0);
     }
 }

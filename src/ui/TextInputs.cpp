@@ -98,7 +98,9 @@ namespace mods_config::ui
         const bool active = ImGui::IsItemActive();
         ImGui::PopStyleVar(2);
         ImGui::PopStyleColor();
-        ImGui::SetCursorScreenPos(cursor);
+        // not with SetCursorScreenPos: ImGui takes a cursor that is set and followed by no item, as after the
+        // last row of a page, for one that grows the page past its items, which is an error
+        ImGui::GetCurrentWindow()->DC.CursorPos = cursor;
 
         if (activated) {
             if (auto* state = ImGui::GetInputTextState(id)) {
