@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 #include <imgui.h>
@@ -759,6 +760,30 @@ TEST_CASE("FullPanel render: the ends of the package showcase's pages of rows th
             test_panel::drawFrame(panel, pageRow(3));
         };
         WARN("Saved " << renderToFile(panel, name, POINTER_AWAY, false, scrollToEnd));
+    }
+}
+
+TEST_CASE("FullPanel render: the ends of the package showcase's pages of numbers and of read-only settings, with the ray on a row", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+
+    // the percentages and the numbers too wide for their box, with the help line of the last, and the
+    // read-only settings with no value, with the help line of one
+    for (const auto& [pageName, name, row] : { std::tuple{ "Numbers", "package-showcase-numbers-end", 8 }, std::tuple{ "Read-only", "package-showcase-read-only-end", 6 } }) {
+        FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
+        panel.setMods(mods);
+        select(panel, "Mods Config VR: Showcase", pageName);
+        const auto scrollToEnd = [&panel] {
+            test_panel::drawFrame(panel, pageRow(3));
+            test_panel::drawFrame(panel, pageRow(3));
+            ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+            test_panel::drawFrame(panel, pageRow(3));
+        };
+        WARN("Saved " << renderToFile(panel, name, pageRow(row), false, scrollToEnd));
     }
 }
 

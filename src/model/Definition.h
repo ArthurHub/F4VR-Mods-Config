@@ -314,6 +314,23 @@ namespace mods_config::model
     };
 
     /**
+     * How a number is shown, in its control and in the help line: the value that is kept is the number itself.
+     */
+    struct NumberDisplay
+    {
+        // the decimals it is written with. None for as many as the step of its slider has
+        std::optional<int> decimals;
+
+        // a text after the number, as `m` or `°`. Empty for none
+        std::string unit;
+
+        // it is written as a percentage of its range, from 0% at its least to 100% at its most
+        bool percent = false;
+
+        bool operator==(const NumberDisplay&) const = default;
+    };
+
+    /**
      * A row that edits one value.
      */
     struct Setting
@@ -357,6 +374,12 @@ namespace mods_config::model
         // the value Reset gives it, in its value's type: a package's setting has it. None for an MCM row,
         // whose default is its store's to answer
         std::optional<Value> defaultValue;
+
+        // how its number is shown: a package's slider and text input of a number can have it
+        NumberDisplay display;
+
+        // its value is shown and not edited, and it has no Reset: a package's setting can be
+        bool readOnly = false;
     };
 
     /**

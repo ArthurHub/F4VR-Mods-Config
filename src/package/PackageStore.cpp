@@ -349,6 +349,8 @@ namespace mods_config::package
      * read, or is no TOML, has its settings not available, with the reason, and so has a file the menu does
      * not read. A value that is not of its setting's type, outside its limits or no option of its choice is
      * invalid, with the reason.
+     * A read-only setting is never invalid: it has the value of its file as it is, none where the file has
+     * none, and is not available where the file's value is not of its type.
      */
     void PackageStore::open(const model::Mod& mod)
     {
@@ -398,6 +400,9 @@ namespace mods_config::package
             }
             const auto* toml = file->second.toml.get();
             if (!toml || !toml->contains(storage.path)) {
+                if (setting->readOnly) {
+                    continue;
+                }
                 if (!setting->defaultValue) {
                     entry.notAvailable = "Not available: the file has no value of the setting, and its package gives it no default.";
                     continue;
@@ -407,11 +412,17 @@ namespace mods_config::package
             }
             auto stored = toml->value(storage.path, setting->valueType);
             if (!stored) {
-                entry.invalid = std::format("Invalid: {}.", stored.error());
+                if (setting->readOnly) {
+                    entry.notAvailable = std::format("Not available: {}.", stored.error());
+                } else {
+                    entry.invalid = std::format("Invalid: {}.", stored.error());
+                }
                 continue;
             }
             entry.baseline = controlValue(*setting, *stored);
-            entry.invalid = invalidReason(*setting, *entry.baseline, pathText(storage.path), fileName(mod.files.at(storage.file)));
+            if (!setting->readOnly) {
+                entry.invalid = invalidReason(*setting, *entry.baseline, pathText(storage.path), fileName(mod.files.at(storage.file)));
+            }
         }
         logger::debug("Read {} settings of '{}' from {} files", _settingList.size(), mod.name, files.size());
     }
@@ -439,7 +450,8 @@ namespace mods_config::package
     /**
      * The value of a setting: its pending value, or else its baseline. One that is not available has the
      * reason, and so has one that is invalid, which is the setting's default where the file's value is not of
-     * its type.
+     * its type. A read-only setting whose file has no value of it is not available, with no reason: it has
+     * no value to show.
      */
     model::StoredValue PackageStore::value(const model::Setting& setting)
     {
@@ -453,6 +465,9 @@ namespace mods_config::package
         }
         if (entry.pending) {
             return { .value = *entry.pending, .available = true, .invalid = false, .reason = {} };
+        }
+        if (setting.readOnly && !entry.baseline) {
+            return { .value = noneValue(setting), .available = false, .invalid = false, .reason = {} };
         }
         return { .value = entry.baseline.value_or(noneValue(setting)), .available = true, .invalid = !entry.invalid.empty(), .reason = entry.invalid };
     }
@@ -468,13 +483,13 @@ namespace mods_config::package
 
     /**
      * Sets the pending value of a setting. A value that is the baseline leaves the setting clean, so the Save
-     * does not write it. Returns false for a value that is not set: one of a setting that is not available,
-     * and one that is not a value of the setting, as a number outside its limits.
+     * does not write it. Returns false for a value that is not set: one of a setting that is read-only or not
+     * available, and one that is not a value of the setting, as a number outside its limits.
      */
     bool PackageStore::set(const model::Setting& setting, const model::Value& value)
     {
         const auto found = _entries.find(&setting);
-        if (found == _entries.end() || !found->second.notAvailable.empty()) {
+        if (setting.readOnly || found == _entries.end() || !found->second.notAvailable.empty()) {
             return false;
         }
         auto accepted = acceptedValue(setting, value);

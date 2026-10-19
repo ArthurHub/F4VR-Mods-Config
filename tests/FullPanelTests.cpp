@@ -2172,6 +2172,84 @@ TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, 
     CHECK(store.value(setting).value == model::Value(true));
 }
 
+TEST_CASE("FullPanel: a package's read-only setting is not changed by a press or the thumbstick, and the help line says it is read-only")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfHeight = 1.78\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "text": "Measured height", "help": "The height FRIK measured.", "readOnly": true,
+              "valueOptions": { "min": 1.0, "max": 2.5, "step": 0.01 }, "display": { "unit": "m" }, "storage": { "path": ["Main", "fHeight"] } },
+            { "type": "switcher", "text": "Calibrated", "readOnly": true, "storage": { "path": ["Main", "bCalibrated"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& height = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Measured height: (Read-only) The height FRIK measured.");
+    // one with no value in its file
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Calibrated: (Read-only)");
+
+    // its row, its track and the room of a Reset
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+    CHECK_FALSE(pressActs(panel, sliderTrack(0, 0.9f)));
+    CHECK_FALSE(pressActs(panel, resetButton(0)));
+    CHECK_FALSE(pressActs(panel, pageRow(1)));
+    pushFrames(panel, sliderTrack(0, 0.5f), 1.0f, 60);
+    pushFrames(panel, sliderTrack(0, 0.5f), 0.0f, 1);
+    CHECK_FALSE(panel.pressActed());
+    CHECK(store.value(height).value == model::Value(1.78f));
+    CHECK(store.dirtyCount() == 0);
+}
+
+TEST_CASE("FullPanel: the help line writes a number as its display does, with a percentage's number, and a unit its box has no room for")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\niOpacity = 217\r\nfDistance = 250000.0\r\nfHeight = 1.5\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "valueType": "int", "text": "Ray opacity", "help": "How solid the ray is.", "default": 255,
+              "valueOptions": { "min": 0, "max": 255, "step": 1 }, "display": { "percent": true }, "storage": { "path": ["Main", "iOpacity"] } },
+            { "type": "slider", "text": "Draw distance", "help": "How far it is drawn.", "default": 1000.0,
+              "valueOptions": { "min": 0, "max": 1000000, "step": 1 }, "display": { "unit": "meters" }, "storage": { "path": ["Main", "fDistance"] } },
+            { "type": "textinput", "valueType": "float", "text": "Height", "default": 1.75, "display": { "decimals": 2, "unit": "m" },
+              "storage": { "path": ["Main", "fHeight"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Ray opacity: How solid the ray is. 85% (217 of 255). (Default: 100%)");
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Ray opacity: Reset to 100%");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Draw distance: How far it is drawn. 250000 meters. (Default: 1000 meters)");
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Height: (Default: 1.75 m)");
+}
+
 TEST_CASE("FullPanel: a package's Reset is a change as any other, which Save writes and Discard takes back")
 {
     const test_panel::PanelContext context;

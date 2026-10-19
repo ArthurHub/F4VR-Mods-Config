@@ -474,11 +474,36 @@ namespace
         return value;
     }
 
+    // the most decimals a number's display can have, as MCM's menu writes a number at the most
+    constexpr int MAX_DECIMALS = 6;
+
+    /**
+     * The `display` of a setting: its decimals, its unit, which is a text the player sees, and whether it is a
+     * percentage. Decimals that are no whole number from 0 to 6 are none, with the reason in the log.
+     */
+    model::NumberDisplay loadDisplay(const Json& row, const model::Translations& translations)
+    {
+        const auto found = row.find("display");
+        if (found == row.end() || !found->is_object()) {
+            return {};
+        }
+        model::NumberDisplay display{ .decimals = {}, .unit = getShownText(*found, "unit", translations), .percent = getBool(*found, "percent") };
+        if (const auto decimals = found->find("decimals"); decimals != found->end()) {
+            if (decimals->is_number_integer() && decimals->get<int>() >= 0 && decimals->get<int>() <= MAX_DECIMALS) {
+                display.decimals = decimals->get<int>();
+            } else {
+                logger::warn("The decimals of the setting '{}' are not a whole number from 0 to {}", getText(row, "text"), MAX_DECIMALS);
+            }
+        }
+        return display;
+    }
+
     /**
      * A setting of a package: its author's `id`, or one it gets from where its value is kept, its own
-     * `applies` or the nearest above it, its `default`, and the options of a choice. Two settings with one id
-     * are an error of the package, which the log has: an author gives one of them an id of its own. Its
-     * conditions are read once every setting of the package is (`loadConditions`).
+     * `applies` or the nearest above it, its `default`, how its number is shown, and the options of a choice.
+     * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
+     * package, which the log has: an author gives one of them an id of its own. Its conditions are read once
+     * every setting of the package is (`loadConditions`).
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, PackageReading& reading)
     {
@@ -493,7 +518,8 @@ namespace
             logger::warn("Two settings have the id '{}': give one of them an id of its own", id);
         }
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
-        auto defaultValue = loadDefault(row, type, valueType, valueOptions);
+        const bool readOnly = getBool(row, "readOnly");
+        auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions);
         return model::Setting{ .id = std::move(id),
             .sourceId = {},
             .type = type,
@@ -507,7 +533,9 @@ namespace
             .visibleWhen = {},
             .enabledWhen = {},
             .applies = own.applies,
-            .defaultValue = std::move(defaultValue) };
+            .defaultValue = std::move(defaultValue),
+            .display = loadDisplay(row, reading.translations),
+            .readOnly = readOnly };
     }
 
     /**

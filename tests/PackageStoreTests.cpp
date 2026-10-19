@@ -411,6 +411,55 @@ TEST_CASE("PackageStore: the default of a setting is its package's, in the type 
     CHECK_FALSE(session.store.run(model::NoAction{}));
 }
 
+TEST_CASE("PackageStore: a read-only setting has its file's value as it is, none where the file has none, and is not set")
+{
+    Session session(R"(
+        { "type": "slider", "valueType": "float", "text": "Height", "readOnly": true, "valueOptions": { "min": 1.0, "max": 2.5, "step": 0.01 },
+          "storage": { "path": ["Main", "fHeight"] } },
+        { "type": "slider", "valueType": "float", "text": "Past", "readOnly": true, "valueOptions": { "min": 0.0, "max": 1.0 },
+          "storage": { "path": ["Main", "fPast"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Place", "readOnly": true,
+          "valueOptions": { "options": [ { "value": "hip", "text": "Hip" } ] }, "storage": { "path": ["Main", "sPlace"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Calibrated", "readOnly": true, "storage": { "path": ["Main", "bCalibrated"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Text", "readOnly": true, "storage": { "path": ["Main", "bText"] } }
+    )");
+    session.open("[Main]\r\nfHeight = 1.78\r\nfPast = 2.0\r\nsPlace = \"elbow\"\r\nbText = \"yes\"\r\n");
+
+    const auto height = session.value(0);
+    CHECK(height.available);
+    CHECK(height.value == model::Value(1.78f));
+
+    // outside its limits and none of its options, as the file has it, and never invalid
+    for (const std::size_t row : { 1u, 2u }) {
+        INFO(session.setting(row).text);
+        const auto value = session.value(row);
+        CHECK(value.available);
+        CHECK_FALSE(value.invalid);
+        CHECK(value.reason.empty());
+    }
+    CHECK(session.value(1).value == model::Value(2.0f));
+    CHECK(session.value(2).value == model::Value("elbow"s));
+
+    // none where the file has none, with no reason, as the row shows none
+    const auto none = session.value(3);
+    CHECK_FALSE(none.available);
+    CHECK(none.reason.empty());
+    CHECK_FALSE(session.store.valueById("bCalibrated:Main").available);
+
+    // one of another type is no value it shows
+    const auto text = session.value(4);
+    CHECK_FALSE(text.available);
+    CHECK_FALSE(text.invalid);
+    CHECK(text.reason == R"(Not available: Main.bText is "yes" in MyMod.toml, which is not true or false.)");
+
+    // it is not set, has no default, and is never dirty
+    CHECK_FALSE(session.store.set(session.setting(0), 1.5f));
+    CHECK_FALSE(session.store.set(session.setting(3), true));
+    CHECK_FALSE(session.store.defaultValue(session.setting(0)));
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(0).value == model::Value(1.78f));
+}
+
 TEST_CASE("PackageStore: every setting of the mod's own package is available, valid and clean with the shipped config")
 {
     const auto mods = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);

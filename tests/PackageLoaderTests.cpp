@@ -745,6 +745,48 @@ TEST_CASE("PackageLoader: a default that is not one of its setting's values is n
     }
 }
 
+TEST_CASE("PackageLoader: a read-only setting has no default, as it has no Reset")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "slider", "text": "Measured", "readOnly": true, "storage": { "path": ["Main", "a"] } },
+        { "type": "switcher", "text": "With a default", "readOnly": true, "default": true, "storage": { "path": ["Main", "b"] } },
+        { "type": "switcher", "text": "Edited", "readOnly": false, "default": true, "storage": { "path": ["Main", "c"] } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 3);
+    CHECK(settings[0].readOnly);
+    CHECK_FALSE(settings[0].defaultValue);
+    CHECK(settings[1].readOnly);
+    CHECK_FALSE(settings[1].defaultValue);
+    CHECK_FALSE(settings[2].readOnly);
+    CHECK(settings[2].defaultValue == model::Value(true));
+}
+
+TEST_CASE("PackageLoader: a number's display has its decimals from 0 to 6, its unit, which is a text, and whether it is a percentage")
+{
+    model::Translations translations;
+    translations.add("$MyMod_Meters", "meters");
+    const auto mod = loaded(packageOf(R"(
+        { "type": "slider", "text": "Height", "default": 1.0, "display": { "decimals": 2, "unit": "m" }, "storage": { "path": ["Main", "a"] } },
+        { "type": "slider", "text": "Opacity", "default": 1.0, "display": { "percent": true }, "storage": { "path": ["Main", "b"] } },
+        { "type": "textinput", "valueType": "float", "text": "Reach", "default": 1.0, "display": { "unit": { "token": "$MyMod_Meters", "fallback": "m" } },
+          "storage": { "path": ["Main", "c"] } },
+        { "type": "slider", "text": "Too many", "default": 1.0, "display": { "decimals": 7 }, "storage": { "path": ["Main", "d"] } },
+        { "type": "slider", "text": "A point", "default": 1.0, "display": { "decimals": 1.5 }, "storage": { "path": ["Main", "e"] } },
+        { "type": "slider", "text": "None", "default": 1.0, "storage": { "path": ["Main", "f"] } }
+    )"),
+        translations);
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 6);
+    CHECK(settings[0].display == model::NumberDisplay{ .decimals = 2, .unit = "m", .percent = false });
+    CHECK(settings[1].display == model::NumberDisplay{ .decimals = {}, .unit = {}, .percent = true });
+    CHECK(settings[2].display == model::NumberDisplay{ .decimals = {}, .unit = "meters", .percent = false });
+    for (std::size_t i = 3; i < settings.size(); ++i) {
+        INFO(settings[i].text);
+        CHECK(settings[i].display == model::NumberDisplay{});
+    }
+}
+
 TEST_CASE("PackageLoader: a setting has its author's id, or one from where its value is kept")
 {
     const auto mod = loaded(packageOf(R"(
@@ -953,7 +995,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    CHECK(mod.pages.size() == 12);
+    CHECK(mod.pages.size() == 14);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -968,11 +1010,17 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     REQUIRE(pages->pages.size() == 1);
     CHECK(pages->pages[0].pages.size() == 1);
 
-    // the settings of the shipped file, but for those with no default: a choice with no options has none either
+    // the settings of the shipped file, but for those with no default: a choice with no options has none either,
+    // and a read-only setting needs none
     const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR) / "ModsConfigVR_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
+    std::size_t readOnly = 0;
     for (const auto& setting : settingsOf(mod)) {
+        if (setting.readOnly) {
+            ++readOnly;
+            continue;
+        }
         if (!setting.defaultValue) {
             withNoDefault.push_back(setting.text);
             continue;
@@ -985,4 +1033,5 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     }
     CHECK(withNoDefault == Lines{ "No default", "A default of another type", "A default outside its range", "No options", "No such shared list", "A default that is no option" });
     CHECK(checked >= 30);
+    CHECK(readOnly == 10);
 }

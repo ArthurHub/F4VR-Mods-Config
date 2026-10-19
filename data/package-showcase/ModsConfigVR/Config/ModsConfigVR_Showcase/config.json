@@ -81,6 +81,11 @@
           "default": 1.5, "storage": { "path": ["Main", "fNumber"] }
         },
         {
+          "type": "slider", "valueType": "float", "text": "Read-only", "help": "A value the mod writes for the player to read, in meters.",
+          "readOnly": true, "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 }, "display": { "unit": "m" },
+          "storage": { "path": ["Main", "fReadOnly"] }
+        },
+        {
           "type": "button", "text": "Button", "help": "Shows a notification.", "buttonText": "Show",
           "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["Showcase: the button ran"] }
         }
@@ -266,6 +271,150 @@
             {
               "type": "textinput", "valueType": "float", "text": "Number", "help": "A text input that takes a number.",
               "default": 1.5, "storage": { "path": ["TextInputs", "fNumber"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Numbers",
+      "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
+      "content": [
+        {
+          "type": "section", "text": "Decimals",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "As many as the step has", "help": "A step of 0.01 has two decimals.",
+              "default": 1.25, "valueOptions": { "min": 0, "max": 2, "step": 0.01 },
+              "storage": { "path": ["Numbers", "fStepDecimals"] }
+            },
+            {
+              "type": "slider", "valueType": "int", "text": "A whole number", "help": "A step of 1 has none.",
+              "default": 8, "valueOptions": { "min": 0, "max": 24, "step": 1 },
+              "storage": { "path": ["Numbers", "iWhole"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "One decimal", "help": "A step of 1, and one decimal of its display.",
+              "default": 12.0, "valueOptions": { "min": 0, "max": 50, "step": 1 }, "display": { "decimals": 1 },
+              "storage": { "path": ["Numbers", "fOneDecimal"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "Below zero", "help": "A negative number has a minus.",
+              "default": -0.5, "valueOptions": { "min": -1, "max": 1, "step": 0.05 },
+              "storage": { "path": ["Numbers", "fNegative"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Units",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Meters", "help": "A unit after a space.",
+              "default": 1.78, "valueOptions": { "min": 0.5, "max": 2.5, "step": 0.01 }, "display": { "unit": "m" },
+              "storage": { "path": ["Numbers", "fMeters"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "Degrees", "help": "A degree follows its number with no space.",
+              "default": 40.0, "valueOptions": { "min": 0, "max": 90, "step": 1 }, "display": { "unit": "°" },
+              "storage": { "path": ["Numbers", "fDegrees"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "A unit of a token", "help": "A unit is a text the player sees: this one is a token with a fallback.",
+              "default": 2.5, "valueOptions": { "min": 0, "max": 10, "step": 0.5 },
+              "display": { "unit": { "token": "$ModsConfigVR_Showcase_Seconds", "fallback": "s" } },
+              "storage": { "path": ["Numbers", "fSeconds"] }
+            },
+            {
+              "type": "textinput", "valueType": "int", "text": "A text input", "help": "A text input of a number shows it with its unit too.",
+              "default": 8, "valueOptions": { "min": 1, "max": 24 }, "display": { "unit": "h" },
+              "storage": { "path": ["Numbers", "iHours"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Percentages",
+          "content": [
+            {
+              "type": "slider", "valueType": "int", "text": "Opacity", "help": "From 0 to 255, as a percentage: the help line has the number too.",
+              "default": 217, "valueOptions": { "min": 0, "max": 255, "step": 1 }, "display": { "percent": true },
+              "storage": { "path": ["Numbers", "iOpacity"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "With a decimal", "help": "From 0.5 to 1.5, as a percentage with one decimal.",
+              "default": 1.2, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 }, "display": { "decimals": 1, "percent": true },
+              "storage": { "path": ["Numbers", "fPercent"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "Too wide for the box",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Smaller", "help": "A number and its unit that are too wide are in a smaller size.",
+              "default": 12000.0, "valueOptions": { "min": 0, "max": 20000, "step": 1 }, "display": { "unit": "ms" },
+              "storage": { "path": ["Numbers", "fFade"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "Without its unit", "help": "One that is too wide then too is the number alone, and the help line has its unit.",
+              "default": 250000.0, "valueOptions": { "min": 0, "max": 1000000, "step": 1 }, "display": { "unit": "meters" },
+              "storage": { "path": ["Numbers", "fDistance"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Read-only",
+      "help": "Values the mod writes for the player to read: shown, and not edited.",
+      "content": [
+        {
+          "type": "section", "text": "Read-only",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Measured height", "help": "A slider that is only shown, with no Reset.",
+              "readOnly": true, "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 }, "display": { "unit": "m" },
+              "storage": { "path": ["ReadOnly", "fHeight"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Calibrated", "help": "A switcher that is only shown.",
+              "readOnly": true, "storage": { "path": ["ReadOnly", "bCalibrated"] }
+            },
+            {
+              "type": "dropdown", "valueType": "string", "text": "Hand", "help": "A dropdown that is only shown: its list does not open.",
+              "readOnly": true, "valueOptions": { "sharedOptions": "places" },
+              "storage": { "path": ["ReadOnly", "sPlace"] }
+            },
+            {
+              "type": "textinput", "valueType": "string", "text": "Profile", "help": "A text that is only shown: it is not typed.",
+              "readOnly": true, "storage": { "path": ["ReadOnly", "sProfile"] }
+            },
+            {
+              "type": "slider", "valueType": "float", "text": "Past its most", "help": "The file has 2.0, and the slider goes from 0 to 1: it is shown as it is.",
+              "readOnly": true, "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+              "storage": { "path": ["ReadOnly", "fPastMost"] }
+            }
+          ]
+        },
+        {
+          "type": "section", "text": "With no value",
+          "content": [
+            {
+              "type": "slider", "valueType": "float", "text": "Not measured", "help": "The file has no value of it, so its slider shows none.",
+              "readOnly": true, "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
+              "storage": { "path": ["ReadOnly", "fNoHeight"] }
+            },
+            {
+              "type": "switcher", "valueType": "bool", "text": "Not calibrated", "help": "The file has no value of it, so neither side is on.",
+              "readOnly": true, "storage": { "path": ["ReadOnly", "bNoCalibrated"] }
+            },
+            {
+              "type": "dropdown", "valueType": "string", "text": "No hand", "help": "The file has no value of it, so no option shows.",
+              "readOnly": true, "valueOptions": { "sharedOptions": "places" },
+              "storage": { "path": ["ReadOnly", "sNoPlace"] }
+            },
+            {
+              "type": "textinput", "valueType": "string", "text": "No profile", "help": "The file has no value of it, so its box is empty.",
+              "readOnly": true, "storage": { "path": ["ReadOnly", "sNoProfile"] }
             }
           ]
         }

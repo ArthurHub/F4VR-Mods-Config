@@ -47,7 +47,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M59 | mod  | Text, spacers and images in a package                                                     | in review |
 | M108 | mod | A section folds, and marks what it hides                                                  | in review |
 | M109 | mod | Pages under pages: the tree's levels, the breadcrumbs and Back                            | in review |
-| M111 | mod | A read-only setting, and how a number is shown                                            | todo   |
+| M111 | mod | A read-only setting, and how a number is shown                                            | in review |
 | M112 | mod | A row warns while a condition holds                                                       | todo   |
 | M49 | mod  | A package's button calls a Papyrus function or runs a console command, with its own text  | todo   |
 | M107 | mod | A package's setting kept in a global or a script property, and its action run by Save     | todo   |

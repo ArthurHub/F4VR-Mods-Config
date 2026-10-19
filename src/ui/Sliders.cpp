@@ -2,13 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
-#include <format>
 #include <string>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
 #include "Drawing.h"
+#include "Numbers.h"
 #include "Theme.h"
 
 namespace
@@ -87,15 +87,30 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * A value of a slider as its text, with as many decimals as the slider's step has, and three at most.
+     * The text of a slider's value in the box of its value, as its display writes it. One that does not fit
+     * the box's room is in the detail size, and one that does not fit then either is the number alone, so the
+     * help line has its unit. A number is never shortened.
      */
-    std::string sliderValueText(const float value, const float step)
+    ValueBoxText valueBoxText(const model::Setting& setting, const float value)
     {
-        int decimals = 0;
-        for (float scaled = std::abs(step); decimals < 3 && std::abs(scaled - std::round(scaled)) > 0.001f; scaled *= 10.0f) {
-            ++decimals;
+        constexpr float ROOM = theme::VALUE_WIDTH - theme::SPACE_3 * 2.0f;
+        const auto widthAt = [](const std::string& text, const float size) {
+            ImGui::PushFont(nullptr, size);
+            const float width = textWidth(text);
+            ImGui::PopFont();
+            return width;
+        };
+        auto text = numberText(setting, value);
+        if (textWidth(text) <= ROOM) {
+            return { .text = std::move(text), .fontSize = ImGui::GetFontSize(), .withUnit = true };
         }
-        return std::format("{:.{}f}", value, decimals);
+        if (widthAt(text, theme::FONT_SIZE_DETAIL) <= ROOM) {
+            return { .text = std::move(text), .fontSize = theme::FONT_SIZE_DETAIL, .withUnit = true };
+        }
+        auto number = numberText(setting, value, false);
+        const bool withUnit = number == text;
+        const float size = textWidth(number) <= ROOM ? ImGui::GetFontSize() : theme::FONT_SIZE_DETAIL;
+        return { .text = std::move(number), .fontSize = size, .withUnit = withUnit };
     }
 
     /**
@@ -171,9 +186,10 @@ namespace mods_config::ui
     /**
      * A slider that ends at the right: its track, with a fill from the least to the grab, and the box of its
      * value, in the color of its value's look. While it is dragged the grab and the outline of the track are
-     * in the color of the pointer's mark. Returns its left edge.
+     * in the color of the pointer's mark. A slider with no value has no fill, no grab and an empty box.
+     * Returns its left edge.
      */
-    float Sliders::draw(const model::Setting& setting, const float right, const float top, const float value, const ValueLook look) const
+    float Sliders::draw(const model::Setting& setting, const float right, const float top, const std::optional<float> value, const ValueLook look) const
     {
         const auto& options = setting.valueOptions;
         const Boxes boxes(right, top);
@@ -183,8 +199,12 @@ namespace mods_config::ui
         if (dragged) {
             drawOutline(track.Min, track.Max, theme::color::GLOW);
         }
+        drawFrame(boxes.valueBox, look);
+        if (!value) {
+            return track.Min.x;
+        }
 
-        const float grab = boxes.grabAt(options, value);
+        const float grab = boxes.grabAt(options, *value);
         const float middle = track.GetCenter().y;
         const auto color = ImGui::GetColorU32(valueColor(look));
         auto* drawList = ImGui::GetWindowDrawList();
@@ -196,8 +216,10 @@ namespace mods_config::ui
             dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
             theme::RADIUS_GRAB);
 
-        drawFrame(boxes.valueBox, look);
-        drawTextIn(boxes.valueBox, sliderValueText(value, options.step), valueColor(look), 1.0f, theme::SPACE_3);
+        const auto text = valueBoxText(setting, *value);
+        ImGui::PushFont(nullptr, text.fontSize);
+        drawTextIn(boxes.valueBox, text.text, valueColor(look), 1.0f, theme::SPACE_3);
+        ImGui::PopFont();
         return track.Min.x;
     }
 

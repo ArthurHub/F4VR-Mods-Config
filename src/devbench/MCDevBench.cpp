@@ -181,7 +181,7 @@ namespace mods_config::devbench
 
         /**
          * A setting as its row shows it: its value in the store, whether that is available, invalid or dirty
-         * and why, whether its row is enabled, and what the player can set it to.
+         * and why, whether its row is enabled or read-only, and what the player can set it to.
          */
         json settingToJson(const model::Setting& setting, model::Store& store)
         {
@@ -195,6 +195,7 @@ namespace mods_config::devbench
                 { "invalid", stored.invalid },
                 { "reason", stored.reason.empty() ? json(nullptr) : json(stored.reason) },
                 { "dirty", store.isDirty(setting) },
+                { "readOnly", setting.readOnly },
                 { "enabled", !setting.enabledWhen || model::holds(*setting.enabledWhen, &store) } };
             const auto defaultValue = store.defaultValue(setting);
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);

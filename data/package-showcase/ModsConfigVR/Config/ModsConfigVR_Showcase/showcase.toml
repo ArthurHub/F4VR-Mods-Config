@@ -9,6 +9,7 @@ iStepper = 1
 sDropdown = "offhand"
 sText = "Hello"
 fNumber = 1.5
+fReadOnly = 1.78
 
 [Switchers]
 bOn = true
@@ -41,6 +42,29 @@ sText = "Hello"
 sEmpty = ""
 iNumber = 42
 fNumber = 1.5
+
+[Numbers]
+fStepDecimals = 1.25
+iWhole = 8
+fOneDecimal = 12.0
+fNegative = -0.5
+fMeters = 1.78
+fDegrees = 40.0
+fSeconds = 2.5
+iHours = 8
+iOpacity = 217
+fPercent = 1.2
+fFade = 12000.0
+fDistance = 250000.0
+
+# the values of read-only settings, which the mod writes and the menu only shows. The settings "With no value"
+# have none here
+[ReadOnly]
+fHeight = 1.78
+bCalibrated = true
+sPlace = "chest"
+sProfile = "Standing"
+fPastMost = 2.0
 
 [Rows]
 bShowPicture = true

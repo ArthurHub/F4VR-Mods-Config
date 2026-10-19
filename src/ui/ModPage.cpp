@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <format>
+#include <initializer_list>
 #include <optional>
 #include <span>
 #include <string>
@@ -16,6 +17,7 @@
 
 #include "Choices.h"
 #include "Drawing.h"
+#include "Numbers.h"
 #include "Sections.h"
 #include "Sliders.h"
 #include "Theme.h"
@@ -230,25 +232,25 @@ namespace
 
     /**
      * A switcher that ends at the right: an Off and an On cell, with the one of its value marked in the color
-     * of its value's look. On is a solid fill, and Off a ring, so a solid fill always says on. Returns its
-     * left edge.
+     * of its value's look. On is a solid fill, and Off a ring, so a solid fill always says on. One with no
+     * value has neither marked. Returns its left edge.
      */
-    float drawSwitcher(const float right, const float top, const bool on, const ui::ValueLook look)
+    float drawSwitcher(const float right, const float top, const std::optional<bool> on, const ui::ValueLook look)
     {
         const auto box = ui::controlBox(right - TOGGLE_CELL_WIDTH * 2.0f, top, TOGGLE_CELL_WIDTH * 2.0f);
         const auto offCell = ui::controlBox(box.Min.x, top, TOGGLE_CELL_WIDTH);
         const auto onCell = ui::controlBox(offCell.Max.x, top, TOGGLE_CELL_WIDTH);
         const auto color = ui::valueColor(look);
         ui::drawFrame(box);
-        if (on) {
+        if (on == true) {
             ImGui::GetWindowDrawList()->AddRectFilled(onCell.Min, onCell.Max, ImGui::GetColorU32(color), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersRight);
-        } else {
+        } else if (on == false) {
             ImGui::GetWindowDrawList()->AddRectFilled(offCell.Min, offCell.Max, ImGui::GetColorU32(theme::color::PRESSED), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersLeft);
             ui::drawOutline(offCell.Min, offCell.Max, color);
         }
         const auto onText = look == ui::ValueLook::Pending ? theme::color::ON_AMBER : look == ui::ValueLook::Invalid ? theme::color::ON_RED : theme::color::ON_GREEN;
-        ui::drawTextIn(offCell, "Off", on ? theme::color::GREEN_MUTED : color, 0.5f);
-        ui::drawTextIn(onCell, "On", on ? onText : theme::color::GREEN_MUTED, 0.5f);
+        ui::drawTextIn(offCell, "Off", on == false ? color : theme::color::GREEN_MUTED, 0.5f);
+        ui::drawTextIn(onCell, "On", on == true ? onText : theme::color::GREEN_MUTED, 0.5f);
         return box.Min.x;
     }
 
@@ -319,23 +321,70 @@ namespace
 
     /**
      * A default of a setting as the help line names it: on and off for a switcher, the number of a slider
-     * as the box of its value has it, and the text of the option of a stepper and a dropdown. The text of a
-     * text input is in quotes, so an empty one shows, and a number is as its field has it.
+     * as its display writes it, with its unit, and the text of the option of a stepper and a dropdown. The
+     * text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
      */
     std::string defaultName(const model::Setting& setting, const model::Value& value)
     {
         if (setting.type == model::SettingType::TextInput) {
             const auto& text = std::get<std::string>(value);
-            return setting.valueType == model::StoredType::String ? std::format("\"{}\"", text) : text;
+            return setting.valueType == model::StoredType::String ? std::format("\"{}\"", text) : ui::fieldText(setting, text);
         }
         if (const auto* on = std::get_if<bool>(&value)) {
             return *on ? "on" : "off";
         }
         if (const auto* number = std::get_if<float>(&value)) {
-            return ui::sliderValueText(*number, setting.valueOptions.step);
+            return ui::numberText(setting, *number);
         }
         const auto option = ui::chosenOption(setting, { .value = value, .available = true, .reason = {} });
         return option ? setting.valueOptions.options[*option].text : std::string();
+    }
+
+    // what the help line says of every row that is only shown, before its own help: it cannot be changed in the menu
+    constexpr std::string_view READ_ONLY = "(Read-only)";
+
+    /**
+     * The parts of a help that are not empty, with a space between each two.
+     */
+    std::string joinHelp(const std::initializer_list<std::string_view> parts)
+    {
+        std::string help;
+        for (const auto part : parts) {
+            if (!part.empty()) {
+                help += help.empty() ? "" : " ";
+                help += part;
+            }
+        }
+        return help;
+    }
+
+    /**
+     * What the help line says of the number of a slider and of a text input after the row's help: a
+     * percentage with the number it is of, and a number whose unit the box of a slider has no room for, with
+     * its unit. Empty for any other value, and for one that is not available.
+     */
+    std::string numberDetail(const model::Setting& setting, const model::StoredValue& stored, const float sliderValue)
+    {
+        if (!stored.available) {
+            return {};
+        }
+        std::optional<float> number;
+        const auto* text = std::get_if<std::string>(&stored.value);
+        if (setting.type == model::SettingType::Slider && std::holds_alternative<float>(stored.value)) {
+            number = sliderValue;
+        } else if (setting.type == model::SettingType::TextInput && setting.valueType != model::StoredType::String && text) {
+            number = ui::fieldNumber(*text);
+        }
+        if (!number) {
+            return {};
+        }
+        if (ui::isPercent(setting)) {
+            return ui::percentDetail(setting, *number) + ".";
+        }
+        if (setting.type == model::SettingType::Slider && !ui::valueBoxText(setting, *number).withUnit) {
+            return ui::numberText(setting, *number) + ".";
+        }
+        return {};
     }
 
     /**
@@ -370,23 +419,28 @@ namespace
      * in the row, also while Reset is disabled, so a second press on it changes nothing.
      * The gutter has the mark of an invalid value, or else of a dirty one, which waits for a Save, and the
      * control has its value in their colors.
+     * A read-only setting is drawn as its control with its value, disabled, with the look of a row under the
+     * ray and none of a press, and no Reset. One whose storage has no value shows none in its control.
      * Returns whether the ray is on the row or on its open list, and tells the help of the row: why a value
      * is not available, what Reset gives while the ray is on it, why a value is invalid, and else the row's
-     * own, with its default.
+     * own, after `(Read-only)` for a read-only setting, with a percentage's number and its default.
      */
     bool drawSetting(const model::Setting& setting, const PageDrawing& page, const Gutter& gutter, std::string& help)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
         const bool enabled = !setting.enabledWhen || model::holds(*setting.enabledWhen, page.store);
-        const auto row = addRow(enabled && !page.textInputs.isEdited(setting));
-        if (!enabled && row.shown) {
+        const auto row = addRow(enabled && !setting.readOnly && !page.textInputs.isEdited(setting));
+        if ((!enabled || setting.readOnly) && row.shown) {
             ui::drawRowState();
         }
         const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
 
         auto stored = page.store ? page.store->value(setting) : model::StoredValue{};
-        const bool editable = stored.available && enabled;
+        const bool editable = stored.available && enabled && !setting.readOnly;
+
+        // a read-only setting whose storage has no value shows none
+        const bool showsValue = stored.available || !setting.readOnly;
 
         // Reset is pressed a little beside it too, as a button of a stepper is. A press is its own when it
         // began there: a slider that is dragged and let go on it is not reset
@@ -457,10 +511,9 @@ namespace
                 help = std::format("Reset to {}", defaultName(setting, *defaultValue));
             } else if (!stored.reason.empty()) {
                 help = std::move(stored.reason);
-            } else if (!defaultValue) {
-                help = setting.help;
             } else {
-                help = std::format("{}{}(Default: {})", setting.help, setting.help.empty() ? "" : " ", defaultName(setting, *defaultValue));
+                const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, *defaultValue)) : std::string();
+                help = joinHelp({ setting.readOnly ? READ_ONLY : std::string_view(), setting.help, numberDetail(setting, stored, value), defaultText });
             }
         }
         if (!row.shown) {
@@ -479,19 +532,21 @@ namespace
         }
         switch (setting.type) {
         case model::SettingType::Switcher:
-            left = drawSwitcher(right, pos.y, on && *on, look);
+            left = drawSwitcher(right, pos.y, showsValue ? std::optional(on && *on) : std::nullopt, look);
             break;
         case model::SettingType::Slider:
-            left = page.sliders.draw(setting, right, pos.y, value, look);
+            left = page.sliders.draw(setting, right, pos.y, showsValue ? std::optional(value) : std::nullopt, look);
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
-            left = page.choices.draw(setting, right, pos.y, choiceRow, chosen, look);
+            left = page.choices.draw(setting, right, pos.y, choiceRow, showsValue ? chosen : std::nullopt, look);
             break;
-        case model::SettingType::TextInput:
+        case model::SettingType::TextInput: {
             // one whose value is not available has an empty box
-            left = page.textInputs.draw(setting, right, pos.y, isText ? std::get<std::string>(stored.value) : std::string(), look);
+            const auto* text = std::get_if<std::string>(&stored.value);
+            left = page.textInputs.draw(setting, right, pos.y, stored.available && text ? ui::fieldText(setting, *text) : std::string(), look);
             break;
+        }
         }
         drawLabel(pos, gutter, left - theme::SPACE_3, setting.text, setting.textRuns);
         ImGui::EndDisabled();
@@ -576,9 +631,6 @@ namespace
         ImGui::EndDisabled();
         return row.pointed;
     }
-
-    // what the help line says of every row that is only shown, before its own help: it cannot be changed in the menu
-    constexpr std::string_view READ_ONLY = "(Read-only)";
 
     /**
      * The help of a row that is only shown: that it is read-only, before the help of the row. One that is

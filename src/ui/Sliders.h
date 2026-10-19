@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "Drawing.h"
@@ -7,7 +8,19 @@
 
 namespace mods_config::ui
 {
-    std::string sliderValueText(float value, float step);
+    /**
+     * The text of a slider's value as the box of its value shows it, and its size.
+     */
+    struct ValueBoxText
+    {
+        std::string text;
+        float fontSize = 0.0f;
+
+        // false for a number whose unit the box has no room for, which is drawn alone
+        bool withUnit = true;
+    };
+
+    ValueBoxText valueBoxText(const model::Setting& setting, float value);
 
     /**
      * What the row of a slider tells of the pointer in the frame that is drawn.
@@ -33,7 +46,7 @@ namespace mods_config::ui
     public:
         void startFrame(float thumbstickSideValue);
         float edit(const model::Setting& setting, float right, float top, const SliderRow& row, float value, bool& write, bool& pulse);
-        float draw(const model::Setting& setting, float right, float top, float value, ValueLook look) const;
+        float draw(const model::Setting& setting, float right, float top, std::optional<float> value, ValueLook look) const;
         void endFrame();
         bool cancelDrag();
         void reset();

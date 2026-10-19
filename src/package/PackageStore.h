@@ -23,6 +23,7 @@ namespace mods_config::package
      * A value the file does not have, as in a file that is not there, is the setting's default, and is clean.
      * One that is not of its setting's type, outside its limits or no option of its choice is invalid: it is
      * shown and edited, and is clean until the player changes it.
+     * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
      * The menu reads a TOML file: a setting of any other file, or kept in a global or a property of a script,
      * is not available.
      */
