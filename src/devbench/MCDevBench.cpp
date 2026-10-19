@@ -38,9 +38,10 @@ namespace mods_config::devbench
             // the mods the menu lists
             std::size_t modCount = 0;
 
-            // what the panel shows, each as its place in the mods and in the mod's pages: -1 for none
+            // what the panel shows: the mod as its place in the mods, -1 for none, and the page as its place in
+            // the mod's pages and in the pages of each page on the way to it, empty for the mod's front page
             int selectedMod = -1;
-            int selectedPage = -1;
+            std::vector<std::size_t> selectedPage;
             bool helpShown = false;
 
             // the selected mod's editing session: none on the menu's front page
@@ -55,8 +56,9 @@ namespace mods_config::devbench
                    "pointer: onPanel (a wand's ray is on the panel), hand (primary or offhand), "
                    "x and y (where, in the panel's pixels from its top left), down (it presses the panel), wanted (ImGui uses the pointer); "
                    "mods: count (the mods the menu lists; the mods action has each of them); "
-                   "selection: mod and page (what the panel shows, each as its place from 0 in the mods action's answer; "
-                   "a null mod is the menu's front page, and a null page the mod's front page), helpShown (the Help page is shown over it); "
+                   "selection: mod and page (what the panel shows: the mod as its place from 0 in the mods action's answer, and the page as "
+                   "its place in the mod's pages, then in the pages of each page on the way to it; a null mod is the menu's front page, and "
+                   "an empty page the mod's front page), helpShown (the Help page is shown over it); "
                    "session: the selected mod's editing session, null on the menu's front page: savesAtOnce (an MCM mod's changes are written as "
                    "they are made), dirty (the changes that wait for a Save); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
@@ -80,7 +82,7 @@ namespace mods_config::devbench
             state.modCount = menu.mods().size();
             const auto& selection = menu.selection();
             state.selectedMod = selection.mod ? static_cast<int>(*selection.mod) : -1;
-            state.selectedPage = selection.page ? static_cast<int>(*selection.page) : -1;
+            state.selectedPage = selection.page;
             state.helpShown = menu.isOpen() && g_modsConfig.menu().fullPanel().isHelpShown();
 
             const auto* const store = menu.isOpen() ? g_modsConfig.menu().fullPanel().selectedStore() : nullptr;
@@ -109,7 +111,7 @@ namespace mods_config::devbench
                         { "down", state.pointerDown },
                         { "wanted", state.pointerWanted } } },
                 { "mods", { { "count", state.modCount } } },
-                { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", placeToJson(state.selectedPage) }, { "helpShown", state.helpShown } } },
+                { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", state.selectedPage }, { "helpShown", state.helpShown } } },
                 { "session", state.hasSession ? json{ { "savesAtOnce", state.savesAtOnce }, { "dirty", state.dirtyCount } } : json(nullptr) },
                 { "frik", { { "gestureTaken", state.frikGestureTaken } } },
             };
@@ -353,7 +355,7 @@ namespace mods_config::devbench
             auto& store = selectedStore();
             const auto& panel = g_modsConfig.menu().fullPanel();
             const auto& mod = panel.mods()[*panel.selection().mod];
-            const auto& page = panel.selection().page ? mod.pages[*panel.selection().page] : mod.frontPage;
+            const auto& page = *panel.selectedPage();
             auto rows = json::array();
             addRows(page.items, 0, store, rows);
             return { { "mod", mod.name }, { "page", page.name }, { "helpShown", panel.isHelpShown() }, { "session", sessionToJson(store) }, { "rows", std::move(rows) } };
@@ -457,26 +459,32 @@ namespace mods_config::devbench
             }
             menu.back();
             const auto& selection = menu.selection();
-            return { { "open", menu.isOpen() },
-                { "mod", selection.mod ? json(*selection.mod) : json(nullptr) },
-                { "page", selection.page ? json(*selection.page) : json(nullptr) } };
+            return { { "open", menu.isOpen() }, { "mod", selection.mod ? json(*selection.mod) : json(nullptr) }, { "page", selection.page } };
         }
 
         /**
-         * The mods the menu lists, in its order: each with its names, the names of its pages, and why it is not
-         * available, which is null for one that is.
+         * Pages by their names, in order: a page with pages under it is its name and its pages.
+         */
+        json pagesToJson(const std::vector<model::Page>& pages)
+        {
+            auto names = json::array();
+            for (const auto& page : pages) {
+                names.push_back(page.pages.empty() ? json(page.name) : json{ { "name", page.name }, { "pages", pagesToJson(page.pages) } });
+            }
+            return names;
+        }
+
+        /**
+         * The mods the menu lists, in its order: each with its names, its pages, and why it is not available,
+         * which is null for one that is.
          */
         json runMods(const json&)
         {
             auto mods = json::array();
             for (const auto& mod : g_modsConfig.menu().mods()) {
-                auto pages = json::array();
-                for (const auto& page : mod.pages) {
-                    pages.push_back(page.name);
-                }
                 mods.push_back({ { "name", mod.name },
                     { "displayName", mod.displayName },
-                    { "pages", std::move(pages) },
+                    { "pages", pagesToJson(mod.pages) },
                     { "notAvailable", mod.notAvailable.empty() ? json(nullptr) : json(mod.notAvailable) } });
             }
             return { { "mods", std::move(mods) } };
@@ -484,8 +492,8 @@ namespace mods_config::devbench
 
         /**
          * Shows a mod's front page or one of its pages, as a press on its row does: the mod by its name, and
-         * the page by its name. With no mod it is the menu's front page. A mod that is not available is not
-         * shown, as its row is not pressed.
+         * the page by its name, or a page under a page by the names of the pages on the way to it. With no mod
+         * it is the menu's front page. A mod that is not available is not shown, as its row is not pressed.
          */
         json runSelect(const json& args)
         {
@@ -506,16 +514,23 @@ namespace mods_config::devbench
                 }
                 selection.mod = static_cast<std::size_t>(mod - mods.begin());
 
-                if (const auto pageName = args.value("page", std::string()); !pageName.empty()) {
-                    const auto page = std::ranges::find(mod->pages, pageName, &model::Page::name);
-                    if (page == mod->pages.end()) {
-                        throw std::runtime_error("the mod has no page named '" + pageName + "'");
+                auto pageNames = args.value("page", json());
+                if (pageNames.is_string()) {
+                    pageNames = json::array({ pageNames });
+                }
+                const auto* pages = &mod->pages;
+                for (const auto& pageName : pageNames.is_array() ? pageNames : json::array()) {
+                    const auto name = pageName.is_string() ? pageName.get<std::string>() : std::string();
+                    const auto page = std::ranges::find(*pages, name, &model::Page::name);
+                    if (page == pages->end()) {
+                        throw std::runtime_error("no page named '" + name + "' is there");
                     }
-                    selection.page = static_cast<std::size_t>(page - mod->pages.begin());
+                    selection.page.push_back(static_cast<std::size_t>(page - pages->begin()));
+                    pages = &page->pages;
                 }
             }
             menu.select(selection);
-            return { { "mod", selection.mod ? json(*selection.mod) : json(nullptr) }, { "page", selection.page ? json(*selection.page) : json(nullptr) } };
+            return { { "mod", selection.mod ? json(*selection.mod) : json(nullptr) }, { "page", selection.page } };
         }
     }
 
@@ -539,19 +554,26 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "back",
-            .description = "one step back in the open menu, as the Back button: a page to its mod's front page, that to the menu's front page, and from there the menu closes",
+            .description = "one step back in the open menu, as the Back button: a page to the page it is under or to its mod's front page, that to the menu's "
+                           "front page, and from there the menu closes",
             .handler = &runBack,
         });
         f4cf::devbench::addAction({
             .name = "mods",
-            .description = "the mods the menu lists, in its order: each with its name, its display name, its pages, and why it is not available (null for one that is)",
+            .description = "the mods the menu lists, in its order: each with its name, its display name, its pages (a page with pages under it is an object "
+                           "with its name and its pages), and why it is not available (null for one that is)",
             .handler = &runMods,
         });
         f4cf::devbench::addAction({
             .name = "select",
             .description = "show a mod's front page or one of its pages in the open menu, or the menu's front page with no mod",
             .arguments = { { "mod", { { "type", "string" }, { "description", "select: the mod's name, as the mods action has it; none for the menu's front page" } } },
-                { "page", { { "type", "string" }, { "description", "select: the name of a page of the mod, as the mods action has it; none for the mod's front page" } } } },
+                { "page",
+                    { { "type", { "string", "array" } },
+                        { "items", { { "type", "string" } } },
+                        { "description",
+                            "select: the name of a page of the mod, as the mods action has it, or the names of the pages on the way to a page under a page; "
+                            "none for the mod's front page" } } } },
             .handler = &runSelect,
         });
         f4cf::devbench::addAction({

@@ -14,8 +14,8 @@ The navigation: every mod in one alphabetical list, with the selected mod expand
 
 ## Levels
 
-- Each level is set in by `IndentSpacing` (`space-8`), up to the third: a mod's pages are a level in, a package's page's pages a level further. A level past the third is set in as the third, so a name keeps its room.
-- Every row keeps a 16 px column for a drawn 14 px arrow before its name, so the names of a level line up whether or not they have one.
+- Each level is set in by `space-4`, up to the third: a mod's pages are a level in, a package's page's pages a level further. A level past the third is set in as the third, so a name keeps its room.
+- Every row keeps a 16 px column for a drawn 14 px arrow before its name, and the name starts 6 px after it, so the names of a level line up whether or not they have one.
 - A mod always has its arrow: down while its pages are the rows under it, right otherwise. A mod with no pages has nothing to open, so its arrow stays right when it is selected.
 - A page has an arrow only when it has pages of its own: down while it or one of its pages is selected, and its pages are the rows under it, and right otherwise. Of the selected mod's pages, only the ones on the way to the selected page are expanded.
 - While the ray is on a page, the help line shows the page's help.

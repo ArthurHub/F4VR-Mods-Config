@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-18T17:00:00Z",
+    "at": "2026-10-19T17:00:00Z",
     "via": "Claude Code",
-    "note": "In review: the title bar's Help, Minimize and Close, and the Help page (FullPanelHelp), as the code draws them."
+    "note": "In review: ModTree's levels are set in by space-4, and a name is 6 px after its arrow's column."
   },
   "layout": "files",
   "libraries": [],

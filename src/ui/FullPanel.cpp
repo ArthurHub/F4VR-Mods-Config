@@ -23,6 +23,10 @@ namespace
     // what stands between two breadcrumbs: U+00BB, as its bytes in UTF-8
     constexpr auto CRUMB_SEPARATOR = "\xC2\xBB";
 
+    // the crumb that stands for the pages between the mod and the page, when their crumbs do not fit: U+2026,
+    // as its bytes in UTF-8
+    constexpr auto PAGES_ELIDED = "\xE2\x80\xA6";
+
     // the breadcrumb of the Help page, after the menu's
     constexpr auto HELP_CRUMB = "Help";
 
@@ -51,6 +55,8 @@ namespace
         Current,
         // the menu's crumb while the menu's front page is open: a solid fill, as a selected row has
         Selected,
+        // the ellipsis that stands for the pages between the mod and the page, which is not pressed
+        Elided,
     };
 
     float crumbWidth(const std::string_view text)
@@ -60,7 +66,8 @@ namespace
 
     /**
      * A breadcrumb of the title bar, in the width it is given: a text that does not fit ends in an ellipsis.
-     * Returns whether it was pressed, which only a link is.
+     * Returns whether it was pressed, which only a link is. The crumb of the pages that do not fit is muted, as a
+     * link is while the ray is not on it.
      */
     bool crumb(const char* id, const std::string_view text, const ImVec2& min, const float width, const CrumbLook look)
     {
@@ -77,6 +84,8 @@ namespace
             if (!ImGui::IsItemHovered() && !ImGui::IsItemActive()) {
                 color = theme::color::GREEN_MUTED;
             }
+        } else if (look == CrumbLook::Elided) {
+            color = theme::color::GREEN_MUTED;
         }
         ui::drawText(min.x + theme::SPACE_2, max.x - theme::SPACE_1, min.y, theme::CONTROL_HEIGHT, color, text);
         return pressed;
@@ -285,8 +294,8 @@ namespace mods_config::ui
 
     /**
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
-     * what is not there shows the nearest that is: the mod's front page for a page, the menu's for a mod,
-     * and for a mod that is not available.
+     * what is not there shows the nearest that is: for a page, the deepest page on the way to it that is there,
+     * or the mod's front page, and the menu's front page for a mod, and for a mod that is not available.
      * Another mod than before starts its editing session in its store, which ends the session it had. A mod
      * that is left for no mod, or for a mod of another store, ends its session in its store. Another page of
      * the same mod is told to its store, which reads the values it keeps in files again.
@@ -298,8 +307,13 @@ namespace mods_config::ui
         Selection shown;
         if (selection.mod && *selection.mod < _mods.size() && _mods[*selection.mod].notAvailable.empty()) {
             shown.mod = selection.mod;
-            if (selection.page && *selection.page < _mods[*selection.mod].pages.size()) {
-                shown.page = selection.page;
+            const auto* pages = &_mods[*selection.mod].pages;
+            for (const auto place : selection.page) {
+                if (place >= pages->size()) {
+                    break;
+                }
+                shown.page.push_back(place);
+                pages = &(*pages)[place].pages;
             }
         }
         if (shown == _selection) {
@@ -321,6 +335,25 @@ namespace mods_config::ui
         _selection = shown;
         pageShown();
         return true;
+    }
+
+    /**
+     * The page of the selection: the selected mod's front page, or the page its places name. None on the
+     * menu's front page.
+     */
+    const model::Page* FullPanel::selectedPage() const
+    {
+        if (!_selection.mod) {
+            return nullptr;
+        }
+        const auto& mod = _mods[*_selection.mod];
+        const auto* page = &mod.frontPage;
+        const auto* pages = &mod.pages;
+        for (const auto place : _selection.page) {
+            page = &(*pages)[place];
+            pages = &page->pages;
+        }
+        return page;
     }
 
     /**
@@ -353,8 +386,8 @@ namespace mods_config::ui
     /**
      * Goes one step back: a slider that is dragged has the value it had before the drag, the list of a
      * dropdown that is open is closed, and a text input that is edited keeps its value. With none of them, from
-     * the Help page to the page it was shown over, from a page of a mod to the mod's front page, and from
-     * there to the menu's front page.
+     * the Help page to the page it was shown over, from a page of a mod to the page it is under or to the mod's
+     * front page, and from there to the menu's front page.
      * Returns false on the menu's front page, which has nothing before it: Back closes the menu there.
      */
     bool FullPanel::back()
@@ -365,7 +398,13 @@ namespace mods_config::ui
         if (!_selection.mod) {
             return false;
         }
-        select(_selection.page ? Selection{ .mod = _selection.mod, .page = std::nullopt } : Selection{});
+        if (_selection.page.empty()) {
+            select({});
+        } else {
+            auto above = _selection;
+            above.page.pop_back();
+            select(above);
+        }
         return true;
     }
 
@@ -436,8 +475,7 @@ namespace mods_config::ui
             if (_helpShown) {
                 drawHelpPage();
             } else if (_selection.mod) {
-                const auto& mod = _mods[*_selection.mod];
-                auto drawn = _modPage.draw(_selection.page ? mod.pages[*_selection.page] : mod.frontPage, storeOf(mod), _thumbstickSideValue);
+                auto drawn = _modPage.draw(*selectedPage(), storeOf(_mods[*_selection.mod]), _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
             } else {
@@ -495,9 +533,11 @@ namespace mods_config::ui
 
     /**
      * The title bar, with a line under it. Its breadcrumbs say where the player is: the menu, the selected
-     * mod, and the page, or the menu and the Help page. The last is where the player is, and each one before
-     * it is pressed to go there. The menu's crumb stands for the menu's front page, and is drawn selected while
-     * that page is open. Help, Minimize and Close are at the right of the bar, and the crumbs end before them.
+     * mod, and each page on the way to the selected page, or the menu and the Help page. The last is where the
+     * player is, and each one before it is pressed to go there. The menu's crumb stands for the menu's front
+     * page, and is drawn selected while that page is open. Help, Minimize and Close are at the right of the
+     * bar, and the crumbs end before them. When the crumbs do not fit, the pages between the mod and the last
+     * become one ellipsis, which is not pressed, and then the mod's name is shortened.
      * Returns what a pressed crumb selects, the button that was pressed, and the button the ray is on.
      */
     FullPanel::TitleBar FullPanel::drawTitleBar() const
@@ -560,25 +600,49 @@ namespace mods_config::ui
             drawSeparator();
             crumb("help", HELP_CRUMB, at, (std::min)(crumbWidth(HELP_CRUMB), right - at.x), CrumbLook::Current);
         } else if (mod) {
-            // MCM's own list sets a page in under another by spaces before its name: they are the tree's
-            const auto pageName = _selection.page ? common::trim(mod->pages[*_selection.page].name) : std::string();
-
-            // when the crumbs do not fit the bar, the mod's name is the one that is shortened
-            float modRoom = right - at.x - separatorWidth - gap;
-            if (_selection.page) {
-                modRoom -= gap + separatorWidth + gap + crumbWidth(pageName);
+            // the pages on the way to the selected page, by their names: MCM's own list sets a page in under
+            // another by spaces before its name, which are the tree's
+            std::vector<std::string> pageNames;
+            const auto* pages = &mod->pages;
+            for (const auto place : _selection.page) {
+                pageNames.push_back(common::trim((*pages)[place].name));
+                pages = &(*pages)[place].pages;
             }
-            const float modWidth = (std::min)(crumbWidth(mod->displayName), (std::max)(modRoom, MOD_CRUMB_MIN_WIDTH));
+
+            // the room of a crumb after another: the gap after the one before, the separator, and a gap
+            const float before = gap + separatorWidth + gap;
+            float pagesWidth = 0.0f;
+            for (const auto& name : pageNames) {
+                pagesWidth += before + crumbWidth(name);
+            }
+            const float modRoom = right - at.x - separatorWidth - gap;
+            const bool elided = pageNames.size() > 1 && crumbWidth(mod->displayName) + pagesWidth > modRoom;
+            if (elided) {
+                pagesWidth = before + crumbWidth(PAGES_ELIDED) + before + crumbWidth(pageNames.back());
+            }
+            const float modWidth = (std::min)(crumbWidth(mod->displayName), (std::max)(modRoom - pagesWidth, MOD_CRUMB_MIN_WIDTH));
 
             drawSeparator();
-            if (crumb("mod", mod->displayName, at, modWidth, _selection.page ? CrumbLook::Link : CrumbLook::Current)) {
-                bar.pressed = Selection{ .mod = _selection.mod, .page = std::nullopt };
+            if (crumb("mod", mod->displayName, at, modWidth, pageNames.empty() ? CrumbLook::Current : CrumbLook::Link)) {
+                bar.pressed = Selection{ .mod = _selection.mod, .page = {} };
             }
             at.x += modWidth + gap;
 
-            if (_selection.page) {
+            if (elided) {
                 drawSeparator();
-                crumb("page", pageName, at, (std::min)(crumbWidth(pageName), right - at.x), CrumbLook::Current);
+                crumb("elided", PAGES_ELIDED, at, crumbWidth(PAGES_ELIDED), CrumbLook::Elided);
+                at.x += crumbWidth(PAGES_ELIDED) + gap;
+            }
+            for (std::size_t level = elided ? pageNames.size() - 1 : 0; level < pageNames.size(); ++level) {
+                const bool last = level + 1 == pageNames.size();
+                const float pageWidth = last ? (std::min)(crumbWidth(pageNames[level]), right - at.x - separatorWidth - gap) : crumbWidth(pageNames[level]);
+                drawSeparator();
+                ImGui::PushID(static_cast<int>(level));
+                if (crumb("page", pageNames[level], at, pageWidth, last ? CrumbLook::Current : CrumbLook::Link)) {
+                    bar.pressed = Selection{ .mod = _selection.mod, .page = { _selection.page.begin(), _selection.page.begin() + static_cast<std::ptrdiff_t>(level + 1) } };
+                }
+                ImGui::PopID();
+                at.x += pageWidth + gap;
             }
         }
         ImGui::PopFont();

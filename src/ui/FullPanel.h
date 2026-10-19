@@ -62,6 +62,7 @@ namespace mods_config::ui
         void reset();
         void draw();
         model::Store* selectedStore() const;
+        const model::Page* selectedPage() const;
 
         const std::vector<model::Mod>& mods() const
         {

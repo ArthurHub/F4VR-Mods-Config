@@ -39,9 +39,9 @@ namespace mods_config::theme
     constexpr float SPACE_1            = 4.0f;     // TouchExtraPadding on each side: widens hit boxes into the item gap without moving anything
     constexpr float SPACE_2            = 8.0f;     // ItemSpacing.y and ItemInnerSpacing: between rows, between a control's parts
     constexpr float SPACE_3            = 12.0f;    // FramePadding.y and ItemSpacing.x
-    constexpr float SPACE_4            = 16.0f;    // FramePadding.x, WindowPadding of the content pane and of popups, the gap between the navigation and content panes
+    constexpr float SPACE_4            = 16.0f;    // FramePadding.x, WindowPadding of the content pane and of popups, the gap between the navigation and content panes, a level of the tree, as a page...
     constexpr float SPACE_6            = 24.0f;    // The row gutter that holds the pending dot or the warning mark; space above a section heading
-    constexpr float SPACE_8            = 32.0f;    // IndentSpacing: a level of the tree, as a page under its mod, and of the content, as a section in a section
+    constexpr float SPACE_8            = 32.0f;    // IndentSpacing: a level of the content, as a section in a section
     constexpr float SPACE_12           = 48.0f;    // One vrui unit
 
     // Corner radii, in layout px.

@@ -1,5 +1,6 @@
 #include "ModTree.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -21,26 +22,40 @@ namespace
     constexpr float TIP_DEPTH = 20.0f;
     // the room it keeps on its right, for that tip and for its scroll bar:
     constexpr float RIGHT_ROOM = TIP_DEPTH + theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
-    // the column the arrow of a mod's row is in the middle of:
+    // the column the arrow of a row is in the middle of, which every row keeps:
     constexpr float ARROW_COLUMN = 16.0f;
+    // and the gap from it to the name, 2 px less than space-2:
+    constexpr float ARROW_GAP = theme::SPACE_2 - 2.0f;
 
-    enum class RowKind : std::uint8_t
+    // the deepest level a row is set in to: a row further in is set in as one of it, so its name keeps its room
+    constexpr int MAX_INDENT_LEVEL = 3;
+
+    /**
+     * The arrow before the name of a row: none for a page with no pages, down for a row whose pages are the
+     * rows under it, and right for any other mod or page.
+     */
+    enum class Arrow : std::uint8_t
     {
-        // a mod with no rows under it: one that is not selected, or that has no pages
-        ClosedMod,
-        // the selected mod, with its pages as the rows under it
-        OpenMod,
-        Page,
+        None,
+        Closed,
+        Open,
     };
 
     /**
-     * The arrow of a mod's row: it points down at the mod whose pages are the rows under it, and right at
-     * any other. A mod with no pages has nothing to open, so its arrow stays when it is selected.
-     * It is faded in a disabled row, as the row's text is.
+     * How far a row of a level is set in, from a mod at 0: a step for each level, up to the deepest.
      */
-    void drawArrow(const ImVec2& rowMin, const bool open, const ImU32 color)
+    float indentOf(const int level)
     {
-        const ImVec2 box(rowMin.x + theme::SPACE_2 + (ARROW_COLUMN - ui::FOLD_ARROW_SIZE) * 0.5f, rowMin.y + (theme::CONTROL_HEIGHT - ui::FOLD_ARROW_SIZE) * 0.5f);
+        return theme::SPACE_4 * static_cast<float>((std::min)(level, MAX_INDENT_LEVEL));
+    }
+
+    /**
+     * The arrow of a row, in the middle of its column, which starts at `left`. It points down at a row whose
+     * pages are the rows under it, and right at any other. It is faded in a disabled row, as the row's text is.
+     */
+    void drawArrow(const float left, const float rowTop, const bool open, const ImU32 color)
+    {
+        const ImVec2 box(left + (ARROW_COLUMN - ui::FOLD_ARROW_SIZE) * 0.5f, rowTop + (theme::CONTROL_HEIGHT - ui::FOLD_ARROW_SIZE) * 0.5f);
         ui::drawFoldArrow(box, open, color);
     }
 
@@ -60,12 +75,14 @@ namespace
     }
 
     /**
-     * A row of the tree, a mod's or a page's under its mod, at the cursor, in the width of every row. The selected
+     * A row of the tree at the cursor, in the width of every row: a mod's at level 0, and a page's a level
+     * further in than the mod or the page it is under. Its name is set in by its level, after the column of its
+     * arrow, which every row keeps, so the names of a level line up whether or not they have one. The selected
      * row is a solid bar, and any other has the look of a row under the ray. With `show`, a selected row that is
      * not whole in the shown rows is scrolled to. Returns whether the row was pressed, and tells whether the ray
      * is on it.
      */
-    bool treeRow(const std::string_view name, const RowKind kind, const bool selected, const bool show, const float width, bool& pointed)
+    bool treeRow(const std::string_view name, const int level, const Arrow arrow, const bool selected, const bool show, const float width, bool& pointed)
     {
         const auto min = ImGui::GetCursorScreenPos();
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
@@ -86,12 +103,11 @@ namespace
             ui::drawRowState();
         }
         const auto color = selected ? theme::color::ON_GREEN : theme::color::GREEN;
-        float nameLeft = min.x + theme::SPACE_2 + theme::SPACE_8;
-        if (kind != RowKind::Page) {
-            drawArrow(min, kind == RowKind::OpenMod, color);
-            nameLeft = min.x + theme::SPACE_2 + ARROW_COLUMN + theme::SPACE_2;
+        const float left = min.x + theme::SPACE_2 + indentOf(level);
+        if (arrow != Arrow::None) {
+            drawArrow(left, min.y, arrow == Arrow::Open, color);
         }
-        ui::drawText(nameLeft, max.x - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, color, name);
+        ui::drawText(left + ARROW_COLUMN + ARROW_GAP, max.x - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, color, name);
         return pressed;
     }
 
@@ -111,8 +127,8 @@ namespace
         ui::drawRowState();
 
         ImGui::BeginDisabled();
-        drawArrow(min, false, theme::color::GREEN);
-        ui::drawText(min.x + theme::SPACE_2 + ARROW_COLUMN + theme::SPACE_2, min.x + width - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
+        drawArrow(min.x + theme::SPACE_2, min.y, false, theme::color::GREEN);
+        ui::drawText(min.x + theme::SPACE_2 + ARROW_COLUMN + ARROW_GAP, min.x + width - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
         ImGui::EndDisabled();
         return pointed;
     }
@@ -123,7 +139,8 @@ namespace mods_config::ui
     /**
      * Draws the tree at the cursor of the current ImGui window, in the height it is given. The header stays,
      * and the rows scroll under it.
-     * The selected mod's own row is its front page, and it is open when it has pages: they are the rows under it.
+     * The selected mod's own row is its front page, and it is open when it has pages: they are the rows under it,
+     * and so are the pages of a page of it that is open.
      * A mod that is not available is a disabled row, in its place, which says why while the ray is on it.
      * Returns what a pressed row selects, and the row the ray is on where it has something to say: the reason
      * of a mod that is not available, or the help of a mod or a page, which a package gives them.
@@ -171,22 +188,15 @@ namespace mods_config::ui
                         continue;
                     }
                     bool pointed = false;
-                    if (treeRow(mod.displayName, open ? RowKind::OpenMod : RowKind::ClosedMod, selected && !selection.page, _showSelection, rowWidth, pointed)) {
-                        drawn.pressed = Selection{ .mod = modIndex, .page = std::nullopt };
+                    if (treeRow(mod.displayName, 0, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed)) {
+                        drawn.pressed = Selection{ .mod = modIndex, .page = {} };
                     }
                     if (pointed && !mod.help.empty()) {
                         drawn.pointed = PointedRow{ .text = mod.displayName, .help = mod.help };
                     }
-                    for (std::size_t pageIndex = 0; open && pageIndex < mod.pages.size(); ++pageIndex) {
-                        const auto& page = mod.pages[pageIndex];
-                        ImGui::PushID(static_cast<int>(pageIndex));
-                        if (treeRow(page.name, RowKind::Page, selection.page == pageIndex, _showSelection, rowWidth, pointed)) {
-                            drawn.pressed = Selection{ .mod = modIndex, .page = pageIndex };
-                        }
-                        if (pointed && !page.help.empty()) {
-                            drawn.pointed = PointedRow{ .text = page.name, .help = page.help };
-                        }
-                        ImGui::PopID();
+                    if (open) {
+                        std::vector<std::size_t> path;
+                        drawPages(mod.pages, modIndex, selection, path, rowWidth, drawn);
                     }
                     ImGui::PopID();
                 }
@@ -197,6 +207,35 @@ namespace mods_config::ui
         ImGui::PopStyleVar();
         ImGui::EndChild();
         return drawn;
+    }
+
+    /**
+     * The rows of the pages of the selected mod, or of a page of it, under its row: `path` is the place of that
+     * page, and is empty for the mod. A page with pages is open while it or one of its pages is selected, and its
+     * pages are the rows under it, a level further in. Tells a pressed row and a pointed one with a help.
+     */
+    void ModTree::drawPages(const std::vector<model::Page>& pages, const std::size_t modIndex, const Selection& selection, std::vector<std::size_t>& path, const float rowWidth,
+        TreeDrawn& drawn) const
+    {
+        for (std::size_t pageIndex = 0; pageIndex < pages.size(); ++pageIndex) {
+            const auto& page = pages[pageIndex];
+            path.push_back(pageIndex);
+            const bool open = !page.pages.empty() && std::ranges::starts_with(selection.page, path);
+            const auto arrow = page.pages.empty() ? Arrow::None : open ? Arrow::Open : Arrow::Closed;
+            ImGui::PushID(static_cast<int>(pageIndex));
+            bool pointed = false;
+            if (treeRow(page.name, static_cast<int>(path.size()), arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
+                drawn.pressed = Selection{ .mod = modIndex, .page = path };
+            }
+            if (pointed && !page.help.empty()) {
+                drawn.pointed = PointedRow{ .text = page.name, .help = page.help };
+            }
+            if (open) {
+                drawPages(page.pages, modIndex, selection, path, rowWidth, drawn);
+            }
+            ImGui::PopID();
+            path.pop_back();
+        }
     }
 
     /**

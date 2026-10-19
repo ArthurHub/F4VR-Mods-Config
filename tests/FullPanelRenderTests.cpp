@@ -448,7 +448,7 @@ namespace
 
         FullPanel panel;
         panel.setMods({ std::move(mod) });
-        panel.select({ .mod = 0, .page = std::nullopt });
+        panel.select({ .mod = 0, .page = {} });
         return panel;
     }
 
@@ -469,11 +469,11 @@ namespace
         const auto& mods = panel.mods();
         const auto found = std::ranges::find(mods, mod, &model::Mod::displayName);
         REQUIRE(found != mods.end());
-        Selection selection{ .mod = static_cast<std::size_t>(found - mods.begin()), .page = std::nullopt };
+        Selection selection{ .mod = static_cast<std::size_t>(found - mods.begin()), .page = {} };
         if (!page.empty()) {
             const auto foundPage = std::ranges::find(found->pages, page, &model::Page::name);
             REQUIRE(foundPage != found->pages.end());
-            selection.page = static_cast<std::size_t>(foundPage - found->pages.begin());
+            selection.page = { static_cast<std::size_t>(foundPage - found->pages.begin()) };
         }
         panel.select(selection);
     }
@@ -594,16 +594,16 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     mcm::McmStore store(game.path / "Data" / "MCM");
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
-    const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
+    const auto render = [&mods, &store](std::vector<std::size_t> page, const std::string& name) {
         FullPanel panel;
         panel.setStore(model::Source::Mcm, &store);
         panel.setMods(mods);
-        panel.select({ .mod = 0, .page = page });
+        panel.select({ .mod = 0, .page = std::move(page) });
         WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
     };
-    render(std::nullopt, "mcm-showcase-front-page");
+    render({}, "mcm-showcase-front-page");
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
-        render(page, std::format("mcm-showcase-page-{}", page + 1));
+        render({ page }, std::format("mcm-showcase-page-{}", page + 1));
     }
 }
 
@@ -619,19 +619,19 @@ TEST_CASE("FullPanel render: the pages of the mod's own package, with the ray on
     package::PackageStore store({}, myGames.path);
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
-    const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name, const ImVec2& pointer) {
+    const auto render = [&mods, &store](std::vector<std::size_t> page, const std::string& name, const ImVec2& pointer) {
         FullPanel panel;
         panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);
-        panel.select({ .mod = 0, .page = page });
+        panel.select({ .mod = 0, .page = std::move(page) });
         WARN("Saved " << renderToFile(panel, name, pointer));
     };
     // the second row of the tree, which is the package's first page
     const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
     const ImVec2 onPage(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, rowsTop + theme::CONTROL_HEIGHT + theme::SPACE_1 + theme::CONTROL_HEIGHT * 0.5f);
-    render(std::nullopt, "package-front-page", onPage);
+    render({}, "package-front-page", onPage);
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
-        render(page, std::format("package-page-{}", page + 1), POINTER_AWAY);
+        render({ page }, std::format("package-page-{}", page + 1), POINTER_AWAY);
     }
 }
 
@@ -644,17 +644,29 @@ TEST_CASE("FullPanel render: the pages of the package showcase", "[.render]")
     package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
-    const auto render = [&mods, &store](const std::optional<std::size_t> page, const std::string& name) {
+    const auto render = [&mods, &store](const std::vector<std::size_t>& page, const std::string& name) {
         FullPanel panel;
         panel.setStore(model::Source::Package, &store);
         panel.setMods(mods);
         panel.select({ .mod = 0, .page = page });
         WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
     };
-    render(std::nullopt, "package-showcase-front-page");
-    for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
-        render(page, std::format("package-showcase-page-{}", page + 1));
-    }
+    render({}, "package-showcase-front-page");
+    // each page, and the pages under it, as package-showcase-page-7-1-1
+    std::vector<std::size_t> page;
+    const auto renderPages = [&render, &page](this const auto& self, const std::vector<model::Page>& pages) -> void {
+        for (std::size_t place = 0; place < pages.size(); ++place) {
+            page.push_back(place);
+            std::string name = "package-showcase-page";
+            for (const auto at : page) {
+                name += std::format("-{}", at + 1);
+            }
+            render(page, name);
+            self(pages[place].pages);
+            page.pop_back();
+        }
+    };
+    renderPages(mods[0].pages);
 }
 
 TEST_CASE("FullPanel render: the front page of the package showcase with values that wait for a Save", "[.render]")
@@ -666,7 +678,7 @@ TEST_CASE("FullPanel render: the front page of the package showcase with values 
     FullPanel panel;
     panel.setStore(model::Source::Package, &store);
     panel.setMods(mods);
-    panel.select({ .mod = 0, .page = std::nullopt });
+    panel.select({ .mod = 0, .page = {} });
 
     // a switcher, a slider, a stepper, a dropdown and a text input of its front page, each changed
     const auto change = [&store](const std::vector<model::Item>& items, const auto& self) -> void {
@@ -714,7 +726,7 @@ TEST_CASE("FullPanel render: the values of the package showcase's file that are 
     const auto& pages = panel.mods()[0].pages;
     const auto page = std::ranges::find(pages, "Files", &model::Page::name);
     REQUIRE(page != pages.end());
-    panel.select({ .mod = 0, .page = static_cast<std::size_t>(page - pages.begin()) });
+    panel.select({ .mod = 0, .page = { static_cast<std::size_t>(page - pages.begin()) } });
 
     // they are at the end of the page, and the help line has the reason of the last
     const auto scrollToEnd = [&panel] {
@@ -776,7 +788,7 @@ TEST_CASE("FullPanel render: a package's section in a section, with rows before 
     REQUIRE(mod);
     FullPanel panel;
     panel.setMods({ std::move(*mod) });
-    panel.select({ .mod = 0, .page = std::nullopt });
+    panel.select({ .mod = 0, .page = {} });
     WARN("Saved " << renderToFile(panel, "package-nested-sections", POINTER_AWAY));
 }
 
@@ -815,7 +827,7 @@ TEST_CASE("FullPanel render: a package's sections that fold, folded with what th
     FullPanel panel;
     panel.setStore(model::Source::Package, &store);
     panel.setMods({ std::move(*mod) });
-    panel.select({ .mod = 0, .page = std::nullopt });
+    panel.select({ .mod = 0, .page = {} });
 
     // Advanced hides Reach, which the file has outside its range, and two changes that wait for a Save
     const auto& holsters = std::get<model::Group>(panel.mods()[0].frontPage.items[1]);
@@ -862,7 +874,7 @@ TEST_CASE("FullPanel render: a package's section in a section, with its line dow
     FullPanel panel;
     panel.setStore(model::Source::Package, &store);
     panel.setMods({ std::move(*mod) });
-    panel.select({ .mod = 0, .page = std::nullopt });
+    panel.select({ .mod = 0, .page = {} });
 
     // Reach is invalid in the file, and Down and Snap wait for a Save
     const auto& holsters = std::get<model::Group>(panel.mods()[0].frontPage.items[0]);
@@ -887,7 +899,7 @@ TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the 
         const auto& pages = panel.mods()[0].pages;
         const auto page = std::ranges::find(pages, "Switchers", &model::Page::name);
         REQUIRE(page != pages.end());
-        panel.select({ .mod = 0, .page = static_cast<std::size_t>(page - pages.begin()) });
+        panel.select({ .mod = 0, .page = { static_cast<std::size_t>(page - pages.begin()) } });
 
         const auto& rows = std::get<model::Group>(page->items.back()).items;
         const auto unfold = std::ranges::find_if(rows, [](const model::Item& row) {
@@ -924,7 +936,7 @@ TEST_CASE("FullPanel render: the dropdowns of files of the MCM showcase", "[.ren
     const auto& pages = panel.mods()[0].pages;
     const auto page = std::ranges::find(pages, "Steppers and dropdowns", &model::Page::name);
     REQUIRE(page != pages.end());
-    panel.select({ .mod = 0, .page = static_cast<std::size_t>(page - pages.begin()) });
+    panel.select({ .mod = 0, .page = { static_cast<std::size_t>(page - pages.begin()) } });
 
     // they are at the end of the page: the thumbstick scrolls the page the ray is on
     const auto scrollToEnd = [&panel] {
@@ -964,7 +976,7 @@ TEST_CASE("FullPanel render: the values of a page's settings, and the status of 
         FullPanel panel;
         panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
-        panel.select({ .mod = 0, .page = std::nullopt });
+        panel.select({ .mod = 0, .page = {} });
         WARN("Saved " << renderToFile(panel, onRow ? "values-not-available" : "values", onRow ? pageRow(5) : POINTER_AWAY));
     }
 }
@@ -1006,7 +1018,7 @@ TEST_CASE("FullPanel render: the Reset of the rows with a default, disabled on t
         FullPanel panel;
         panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
-        panel.select({ .mod = 0, .page = std::nullopt });
+        panel.select({ .mod = 0, .page = {} });
         WARN("Saved " << renderToFile(panel, name, ImVec2(x, pageRow(row).y), pressed));
     }
 }
@@ -1039,7 +1051,7 @@ TEST_CASE("FullPanel render: the keys of a mod's hotkeys", "[.render]")
         FullPanel panel;
         panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
-        panel.select({ .mod = 0, .page = std::nullopt });
+        panel.select({ .mod = 0, .page = {} });
         WARN("Saved " << renderToFile(panel, available ? "hotkeys" : "hotkeys-not-available", pageRow(available ? 0 : 4)));
     }
 }
@@ -1073,7 +1085,7 @@ TEST_CASE("FullPanel render: the texts of a mod's text inputs, and the controls 
         FullPanel panel;
         panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
-        panel.select({ .mod = 0, .page = std::nullopt });
+        panel.select({ .mod = 0, .page = {} });
         WARN("Saved " << renderToFile(panel, onText ? "text-inputs" : "controls-not-supported", pageRow(onText ? 0 : 5)));
     }
 
@@ -1082,7 +1094,7 @@ TEST_CASE("FullPanel render: the texts of a mod's text inputs, and the controls 
     FullPanel panel;
     panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ mod });
-    panel.select({ .mod = 0, .page = std::nullopt });
+    panel.select({ .mod = 0, .page = {} });
     const auto edit = [&panel] {
         for (const bool held : { false, false, true, false, false }) {
             test_panel::drawFrame(panel, pageRow(2), held);
@@ -1114,7 +1126,7 @@ TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")
     FullPanel panel;
     panel.setStore(model::Source::Mcm, &store);
     panel.setMods({ std::move(mod) });
-    panel.select({ .mod = 0, .page = std::nullopt });
+    panel.select({ .mod = 0, .page = {} });
     // on the track of the first slider, with the trigger held
     WARN("Saved " << renderToFile(panel, "slider-dragged", ImVec2(820.0f, pageRow(0).y), true));
 }
@@ -1154,7 +1166,7 @@ TEST_CASE("FullPanel render: a stepper under the ray, and the open list of a dro
         FullPanel panel;
         panel.setStore(model::Source::Mcm, &store);
         panel.setMods({ mod });
-        panel.select({ .mod = 0, .page = std::nullopt });
+        panel.select({ .mod = 0, .page = {} });
         return panel;
     };
     // where a control ends at the right, and the middle of a stepper's button to the option after
@@ -1204,6 +1216,17 @@ TEST_CASE("FullPanel render: names too long for the title bar and for the tree",
     panel.setMods({ modOf("Sim Settlements 2 - All Chapters with the City Plan Contest Packs", { "Settlement Gameplay and City Plan Options of Chapter 2" }) });
     select(panel, "Sim Settlements 2 - All Chapters with the City Plan Contest Packs", "Settlement Gameplay and City Plan Options of Chapter 2");
     WARN("Saved " << renderToFile(panel, "long-names", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: the pages between the mod and the page as one ellipsis, as their crumbs do not fit", "[.render]")
+{
+    auto mod = modOf("Virtual Holsters", { "Calibration of the whole body" });
+    mod.pages[0].pages.push_back({ .name = "Where the hands are held", .items = {} });
+    mod.pages[0].pages[0].pages.push_back({ .name = "Fingers of the off hand", .items = {} });
+    FullPanel panel;
+    panel.setMods({ std::move(mod) });
+    panel.select({ .mod = 0, .page = { 0, 0, 0 } });
+    WARN("Saved " << renderToFile(panel, "crumbs-elided", POINTER_AWAY));
 }
 
 TEST_CASE("FullPanel render: a wider tree and a page in the rest of the panel", "[.render]")

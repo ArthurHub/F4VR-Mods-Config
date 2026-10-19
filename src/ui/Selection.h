@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <vector>
 
 namespace mods_config::ui
 {
@@ -13,8 +14,9 @@ namespace mods_config::ui
     {
         std::optional<std::size_t> mod;
 
-        // none for the mod's front page
-        std::optional<std::size_t> page;
+        // the page, as its place in the mod's pages, then in the pages of each page on the way to it: one place
+        // for a page under the mod, two for a page under one of those. Empty for the mod's front page
+        std::vector<std::size_t> page;
 
         bool operator==(const Selection&) const = default;
     };

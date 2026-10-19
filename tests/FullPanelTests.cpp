@@ -68,12 +68,12 @@ namespace
 
     Selection selectionOf(const std::size_t mod)
     {
-        return { .mod = mod, .page = std::nullopt };
+        return { .mod = mod, .page = {} };
     }
 
     Selection selectionOf(const std::size_t mod, const std::size_t page)
     {
-        return { .mod = mod, .page = page };
+        return { .mod = mod, .page = { page } };
     }
 
     void drawFrames(FullPanel& panel, const int count)
@@ -440,6 +440,43 @@ namespace
         return { left + 20.0f, CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f };
     }
 
+    /**
+     * A place on a breadcrumb, by its place among the crumbs of the title bar, which are given by their texts.
+     * Each is after the one before, a separator and their gaps.
+     */
+    ImVec2 crumbAt(const std::vector<const char*>& crumbs, const std::size_t place)
+    {
+        const float separator = crumbWidth("\xC2\xBB") - theme::SPACE_2 * 2.0f;
+        float left = CONTENT_START + theme::SPACE_2;
+        for (std::size_t before = 0; before < place; ++before) {
+            left += crumbWidth(crumbs[before]) + theme::SPACE_1 + separator + theme::SPACE_1;
+        }
+        return { left + 20.0f, CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f };
+    }
+
+    /**
+     * A panel with a mod whose pages nest, and a mod after it. Alpha has Body and Advanced, Body has Hands and
+     * Feet, and Hands has Fingers.
+     */
+    FullPanel nestedPages(const std::string& body = "Body", const std::string& hands = "Hands", const std::string& fingers = "Fingers")
+    {
+        auto mod = modOf("Alpha", { body, "Advanced" });
+        mod.pages[0].pages.push_back({ .name = hands, .help = "Where the hands are.", .items = {} });
+        mod.pages[0].pages[0].pages.push_back({ .name = fingers, .items = {} });
+        mod.pages[0].pages.push_back({ .name = "Feet", .items = {} });
+        FullPanel panel;
+        panel.setMods({ std::move(mod), modOf("Beta") });
+        return panel;
+    }
+
+    /**
+     * A selection of a page of the first mod, by its places on the way to it.
+     */
+    Selection pageOf(std::vector<std::size_t> page)
+    {
+        return { .mod = 0, .page = std::move(page) };
+    }
+
     // the buttons of the title bar, by their place from its right
     constexpr int CLOSE_BUTTON = 0;
     constexpr int MINIMIZE_BUTTON = 1;
@@ -521,7 +558,7 @@ TEST_CASE("FullPanel: a selection of what is not there shows the nearest that is
     CHECK(panel.selection() == Selection{});
 
     // a page of no mod
-    panel.select({ .mod = std::nullopt, .page = 0 });
+    panel.select({ .mod = std::nullopt, .page = { 0 } });
     CHECK(panel.selection() == Selection{});
 }
 
@@ -670,6 +707,110 @@ TEST_CASE("FullPanel: Back goes from a page to its mod's front page, and from th
     // the menu's front page has nothing before it: the menu is closed there
     CHECK_FALSE(panel.back());
     CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: a page's pages are rows under it while it or one of them is selected")
+{
+    const test_panel::PanelContext context;
+    auto panel = nestedPages();
+    drawFrames(panel, 2);
+
+    // Alpha's pages are the rows under it, and Body's are not yet
+    press(panel, treeRow(0));
+    CHECK(panel.selection() == selectionOf(0));
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == pageOf({ 1 }));
+
+    // Body opens, with Hands and Feet under it
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == pageOf({ 0 }));
+    press(panel, treeRow(3));
+    CHECK(panel.selection() == pageOf({ 0, 1 }));
+
+    // Hands opens, with Fingers under it, and Body stays open
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == pageOf({ 0, 0 }));
+    point(panel, treeRow(2));
+    CHECK(panel.helpLine().text() == "Hands: Where the hands are.");
+    press(panel, treeRow(3));
+    CHECK(panel.selection() == pageOf({ 0, 0, 0 }));
+    CHECK(panel.selectedPage()->name == "Fingers");
+
+    // Advanced is after them, and Body closes as it is selected: Beta is the fourth row again
+    press(panel, treeRow(5));
+    CHECK(panel.selection() == pageOf({ 1 }));
+    press(panel, treeRow(3));
+    CHECK(panel.selection() == selectionOf(1));
+}
+
+TEST_CASE("FullPanel: a selection of a page under a page that is not there shows the deepest page on the way that is")
+{
+    auto panel = nestedPages();
+    panel.select(pageOf({ 0, 0, 1 }));
+    CHECK(panel.selection() == pageOf({ 0, 0 }));
+    panel.select(pageOf({ 0, 2, 0 }));
+    CHECK(panel.selection() == pageOf({ 0 }));
+    panel.select(pageOf({ 1, 0 }));
+    CHECK(panel.selection() == pageOf({ 1 }));
+    panel.select(pageOf({ 2, 0 }));
+    CHECK(panel.selection() == selectionOf(0));
+}
+
+TEST_CASE("FullPanel: Back goes from a page under a page to the page it is under")
+{
+    auto panel = nestedPages();
+    panel.select(pageOf({ 0, 0, 0 }));
+
+    CHECK(panel.back());
+    CHECK(panel.selection() == pageOf({ 0, 0 }));
+    CHECK(panel.back());
+    CHECK(panel.selection() == pageOf({ 0 }));
+    CHECK(panel.back());
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(panel.back());
+    CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: a page under a page has a breadcrumb for each page on the way to it, which is pressed to go there")
+{
+    const test_panel::PanelContext context;
+    auto panel = nestedPages();
+    panel.select(pageOf({ 0, 0, 0 }));
+    drawFrames(panel, 2);
+    const std::vector<const char*> crumbs{ "MODS CONFIG VR", "Alpha", "Body", "Hands", "Fingers" };
+
+    // the last is where the player is: it is not pressed
+    press(panel, crumbAt(crumbs, 4));
+    CHECK(panel.selection() == pageOf({ 0, 0, 0 }));
+
+    press(panel, crumbAt(crumbs, 3));
+    CHECK(panel.selection() == pageOf({ 0, 0 }));
+    press(panel, crumbAt(crumbs, 2));
+    CHECK(panel.selection() == pageOf({ 0 }));
+    press(panel, crumbAt(crumbs, 1));
+    CHECK(panel.selection() == selectionOf(0));
+}
+
+TEST_CASE("FullPanel: the pages between the mod and the page are one ellipsis while their crumbs do not fit, which is not pressed")
+{
+    const test_panel::PanelContext context;
+    auto panel = nestedPages("Calibration of the body", "Where the hands are held");
+    panel.select(pageOf({ 0, 0, 0 }));
+    drawFrames(panel, 2);
+    const std::vector<const char*> crumbs{ "MODS CONFIG VR", "Alpha", "\xE2\x80\xA6", "Fingers" };
+
+    press(panel, crumbAt(crumbs, 2));
+    CHECK(panel.selection() == pageOf({ 0, 0, 0 }));
+
+    // the mod's name is not shortened while the rest fits
+    press(panel, crumbAt(crumbs, 1));
+    CHECK(panel.selection() == selectionOf(0));
+
+    // the crumbs of a page whose name is short fit, so the page above it has its own
+    panel.select(pageOf({ 0, 1 }));
+    drawFrames(panel, 2);
+    press(panel, crumbAt({ "MODS CONFIG VR", "Alpha", "Calibration of the body", "Feet" }, 2));
+    CHECK(panel.selection() == pageOf({ 0 }));
 }
 
 TEST_CASE("FullPanel: Help shows the Help page over the selection, and Back shows the selection's page again")

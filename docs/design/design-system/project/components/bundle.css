@@ -50,12 +50,13 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-nav-head { height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-2); color: var(--green-muted); }
 .mc-tree-row { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) 0 var(--space-2); border-radius: var(--radius-frame); white-space: nowrap; }
 .mc-tree-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-.mc-tree-row .arrow { width: 16px; flex: none; display: grid; place-items: center; }
+/* the name is 2px closer to the arrow than the row's gap */
+.mc-tree-row .arrow { width: 16px; flex: none; display: grid; place-items: center; margin-right: -2px; }
 .mc-tree-row .arrow svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
-/* a level of the tree is set in by IndentSpacing, up to the third; the arrow's column is kept on every row */
-.mc-tree-row.d1 { padding-left: calc(var(--space-2) + var(--space-8)); }
-.mc-tree-row.d2 { padding-left: calc(var(--space-2) + 2 * var(--space-8)); }
-.mc-tree-row.d3 { padding-left: calc(var(--space-2) + 3 * var(--space-8)); }
+/* a level of the tree is set in by space-4, up to the third; the arrow's column is kept on every row */
+.mc-tree-row.d1 { padding-left: calc(var(--space-2) + var(--space-4)); }
+.mc-tree-row.d2 { padding-left: calc(var(--space-2) + 2 * var(--space-4)); }
+.mc-tree-row.d3 { padding-left: calc(var(--space-2) + 3 * var(--space-4)); }
 .mc-tree-row.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
 .mc-tree-row.is-selected { background: var(--green); color: var(--on-green); border-radius: var(--radius-frame) 0 0 var(--radius-frame); }
 /* the Pip-Boy tip: the selected bar points at the content it opened */
@@ -63,7 +64,7 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-tree-row.is-disabled { opacity: var(--opacity-disabled); }
 /* a category groups mods when the list is long: pressed to open or close, never selected */
 .mc-cat { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) 0 var(--space-2); border-radius: var(--radius-frame); color: var(--green-muted); white-space: nowrap; }
-.mc-cat .arrow { width: 16px; flex: none; display: grid; place-items: center; }
+.mc-cat .arrow { width: 16px; flex: none; display: grid; place-items: center; margin-right: -2px; }
 .mc-cat .arrow svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
 .mc-cat .line { flex: 1; min-width: var(--space-4); height: var(--border-frame); background: var(--rule); }
 .mc-cat.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
