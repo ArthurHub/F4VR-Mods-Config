@@ -585,7 +585,17 @@ A choice can take its options from the game, as its page is shown, for a list it
 
 The list is read as the mod is selected, with the values of the session. A choice of `valueType` `int` stores the place of the option, as MCM does, and one of `valueType` `string` stores its text: a choice of another type has no options. A list that changes its order moves a stored place to another option. While the list cannot be read, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options read is invalid. The `default` is any value of the setting's type, as the options are not known before the game is read.
 
-Options supplied by native code are deferred to the native API.
+### Options from the mod's client
+
+A choice can take its options from the mod's native client, for a list only the mod's code knows:
+
+```json
+"valueOptions": { "listFromClientCallback": true }
+```
+
+The client registers a callback for the setting's id with the [native API](architecture.md#options-from-a-client), and the host calls it as the mod is selected. It returns the options in either form of `options`: texts, or values with their texts, the values in the setting's `valueType`. While no callback is registered for the setting, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options is invalid, and the `default` is any value of the setting's type, as for options from the game.
+
+Mods Config VR's own package uses it for its Package setting, whose options are the packages the menu found: until the native API is there, the menu registers that one callback itself.
 
 ## Buttons
 

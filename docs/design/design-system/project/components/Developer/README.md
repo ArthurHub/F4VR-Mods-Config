@@ -13,7 +13,7 @@ On Mods Config VR's own page, saved to `ModsConfigVR.toml`:
   - `Needing attention`: a package with an error or a warning, one read from its live copy, and one that is not loaded.
   - `All`: every package the menu found, those not available too.
   - `Only one`: the package of **Package** alone, with or without problems, for the one the author is working on.
-- **Package**, a dropdown of the packages the menu found, alphabetical. It is disabled while Show packages is not `Only one`.
+- **Package**, a dropdown of the packages the menu found, alphabetical: it stores a package's `modName` and shows its name. Its options come from the menu itself, with `listFromClientCallback`. It is disabled while Show packages is not `Only one`.
 
 An MCM mod is never listed.
 

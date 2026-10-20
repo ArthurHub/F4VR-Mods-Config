@@ -260,6 +260,25 @@ Preview events occur only when a valid value of a `live` setting changes. Slider
 
 Special gameplay side effects can use an optional binding API later.
 
+### Options from a client
+
+A choice with `listFromClientCallback` takes its options from its mod's client; see [Options from the mod's client](schema.md#options-from-the-mods-client). The client registers a callback for each such setting, by its id, scoped to its package as the other callbacks are. The host calls it only for that setting, as the mod is selected:
+
+```cpp
+struct OptionView
+{
+    SettingValue value;    // in the setting's valueType
+    std::string_view text; // what the player sees; empty shows the value
+};
+
+// returns the setting's options, in their order; the host copies them before it returns
+using OptionsCallback = std::span<const OptionView> (*)(const SettingView& setting);
+
+bool registerOptions(std::string_view settingId, OptionsCallback callback);
+```
+
+The callback gets the setting's view, so one function can serve several settings. It is called inside the guard of [A client that fails](#a-client-that-fails). Until the native API is there, the host registers the one callback of its own package, the packages it found for its Package setting, and no other setting has a callback.
+
 ### Page events
 
 A client is told when a page of its package that has an `id` is shown, and when it is left, so it can show in the world what the page sets while the player is on it: Immersive Flashlight draws its activation spheres while the page of its spheres is shown. A page is left when another page or another mod is shown, and when the menu closes.
