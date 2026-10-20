@@ -149,6 +149,37 @@
           ]
         }
       ]
+    },
+    {
+      "pageDisplayName": "Developer",
+      "help": "For a package's author: each package's problems on the menu's front page.",
+      "content": [
+        {
+          "type": "switcher", "valueType": "bool", "text": "Developer tools",
+          "help": "Shows the Developer section on the menu's front page, with each package's errors and warnings. The log has them either way.",
+          "default": false,
+          "storage": { "path": ["Developer", "bDeveloperTools"] }
+        },
+        {
+          "type": "stepper", "valueType": "string", "id": "showPackages", "text": "Show packages",
+          "help": "Which packages the front page lists: those that need attention (errors, warnings, or not loaded), all of them, or only the package below.",
+          "default": "attention",
+          "valueOptions": { "options": [
+            { "value": "attention", "text": "Needing attention" },
+            { "value": "all", "text": "All" },
+            { "value": "one", "text": "Only one" }
+          ] },
+          "storage": { "path": ["Developer", "sShowPackages"] }
+        },
+        {
+          "type": "dropdown", "valueType": "string", "id": "developerPackage", "text": "Package",
+          "help": "The package the front page lists alone while Show packages is Only one: the one you are working on, with or without problems.",
+          "default": "",
+          "valueOptions": { "listFromClientCallback": true },
+          "enabledWhen": { "setting": "showPackages", "equals": "one" },
+          "storage": { "path": ["Developer", "sPackage"] }
+        }
+      ]
     }
   ]
 }

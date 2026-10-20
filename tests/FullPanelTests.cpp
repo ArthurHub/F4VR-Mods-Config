@@ -3119,3 +3119,146 @@ TEST_CASE("FullPanel: the help line says what a folded section hides: its invali
     point(panel, pageRow(2));
     CHECK(panel.helpLine().text() == "Open: Folded: 1 unsaved change.");
 }
+
+namespace
+{
+    /**
+     * A package's mod, as the loader gives it, with its problems: an error and a warning for each count.
+     */
+    model::Mod packageWith(const std::string& name, const int errors, const int warnings, const std::string& notAvailable = {})
+    {
+        model::Mod mod{ .name = name, .displayName = name, .notAvailable = notAvailable, .source = model::Source::Package };
+        for (int i = 0; i < errors; ++i) {
+            mod.problems.push_back({ .severity = model::Severity::Error, .row = "config.json", .message = "It cannot be read: line 4.", .where = {}, .path = {} });
+        }
+        for (int i = 0; i < warnings; ++i) {
+            mod.problems.push_back({ .severity = model::Severity::Warning, .row = "A row", .message = "Unknown field.", .where = {}, .path = {} });
+        }
+        return mod;
+    }
+
+    /**
+     * The menu's front page with Developer tools on: an MCM mod, a package with an error and two warnings, one
+     * with a warning, one with none, one that cannot be read, and one whose plugin is not loaded.
+     */
+    FullPanel developerPanel(ui::DeveloperView view, std::vector<ui::DeveloperView>& written)
+    {
+        std::vector<model::Mod> mods;
+        mods.push_back(modOf("An MCM mod"));
+        mods.push_back(packageWith("Beam", 1, 2));
+        mods.push_back(packageWith("Clean", 0, 0));
+        mods.push_back(packageWith("Hands", 0, 1));
+        mods.push_back(packageWith("Holsters", 1, 0, "its package cannot be read"));
+        mods.push_back(packageWith("Settlements", 0, 0, "its plugin SS2.esm is not loaded"));
+        FullPanel panel;
+        panel.setMods(std::move(mods));
+        view.enabled = true;
+        panel.setDeveloper(view, [&written](const ui::DeveloperView& changed) {
+            written.push_back(changed);
+        });
+        return panel;
+    }
+
+    /**
+     * The place of the front page's row whose help line starts with a text, found by moving the ray down the
+     * page. None where no row has it.
+     */
+    std::optional<ImVec2> rowWithHelp(FullPanel& panel, const std::string_view start)
+    {
+        for (float y = 100.0f; y < test_panel::PANEL_HEIGHT - 120.0f; y += 6.0f) {
+            point(panel, ImVec2(640.0f, y));
+            if (panel.helpLine().text().starts_with(start)) {
+                return ImVec2(640.0f, y + 8.0f);
+            }
+        }
+        return std::nullopt;
+    }
+
+    /**
+     * The names of the packages the Developer section lists, by the rows the ray finds under its filter.
+     */
+    Names listedPackages(FullPanel& panel)
+    {
+        Names names;
+        for (const auto* name : { "An MCM mod", "Beam", "Clean", "Hands", "Holsters", "Settlements" }) {
+            if (rowWithHelp(panel, std::string(name) + ":")) {
+                names.push_back(name);
+            }
+        }
+        return names;
+    }
+}
+
+TEST_CASE("FullPanel: with Developer tools on, the front page lists the packages that need attention, with their errors and warnings")
+{
+    const test_panel::PanelContext context;
+    std::vector<ui::DeveloperView> written;
+
+    // off, there is no section
+    {
+        auto panel = developerPanel({}, written);
+        panel.setDeveloper({}, {});
+        drawFrames(panel, 2);
+        CHECK_FALSE(rowWithHelp(panel, "Developer:"));
+    }
+
+    auto panel = developerPanel({}, written);
+    drawFrames(panel, 2);
+    CHECK(rowWithHelp(panel, "Developer: The problems of each package"));
+    CHECK(rowWithHelp(panel, "Show: Which packages this section lists"));
+    CHECK(listedPackages(panel) == Names{ "Beam", "Hands", "Holsters" });
+
+    rowWithHelp(panel, "Beam:");
+    CHECK(panel.helpLine().text() == "Beam: 1 error: parts of it are left out. 2 warnings: read, and likely not what is meant.");
+    CHECK_FALSE(panel.helpLine().isInvalid());
+    rowWithHelp(panel, "Holsters:");
+    CHECK(panel.helpLine().text() == "Holsters: It cannot be read: line 4.");
+    CHECK(panel.helpLine().isInvalid());
+    CHECK(written.empty());
+}
+
+TEST_CASE("FullPanel: the Developer section's filter steps to all the packages and to the one the settings name, and its fold is written at once")
+{
+    const test_panel::PanelContext context;
+    std::vector<ui::DeveloperView> written;
+    auto panel = developerPanel({ .enabled = true, .show = ui::ShowPackages::NeedingAttention, .package = "hands", .folded = false }, written);
+    drawFrames(panel, 2);
+
+    // a press on the filter's row goes to the option after, which is written
+    const auto filter = rowWithHelp(panel, "Show:");
+    REQUIRE(filter);
+    CHECK(pressActs(panel, *filter));
+    CHECK(panel.developerView().show == ui::ShowPackages::All);
+    REQUIRE(written.size() == 1);
+    CHECK(written.back().show == ui::ShowPackages::All);
+    CHECK(listedPackages(panel) == Names{ "Beam", "Clean", "Hands", "Holsters", "Settlements" });
+    rowWithHelp(panel, "Settlements:");
+    CHECK(panel.helpLine().text() == "Settlements: Not available: its plugin SS2.esm is not loaded.");
+    rowWithHelp(panel, "Clean:");
+    CHECK(panel.helpLine().text() == "Clean: No problems.");
+
+    // the third option is the package the settings name, alone
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Show:")));
+    CHECK(panel.developerView().show == ui::ShowPackages::OnlyOne);
+    CHECK(listedPackages(panel) == Names{ "Hands" });
+
+    // a press on the heading folds it, with no rows under it, and its help counts what it hides
+    const auto heading = rowWithHelp(panel, "Developer:");
+    REQUIRE(heading);
+    CHECK(pressActs(panel, *heading));
+    CHECK(written.back().folded);
+    CHECK_FALSE(rowWithHelp(panel, "Show:"));
+    point(panel, *heading);
+    CHECK(panel.helpLine().text().ends_with(" Folded: 1 warning."));
+}
+
+TEST_CASE("FullPanel: the Developer section's filter has no option of a package the settings do not name")
+{
+    const test_panel::PanelContext context;
+    std::vector<ui::DeveloperView> written;
+    auto panel = developerPanel({ .enabled = true, .show = ui::ShowPackages::All, .package = "", .folded = false }, written);
+    drawFrames(panel, 2);
+    // from All, the option after is the first again
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Show:")));
+    CHECK(panel.developerView().show == ui::ShowPackages::NeedingAttention);
+}

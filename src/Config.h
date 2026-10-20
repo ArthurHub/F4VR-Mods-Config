@@ -7,6 +7,7 @@
 #include "common/CommonUtils.h"
 #include "config/ConfigBase.h"
 #include "imgui/ImGuiPointer.h"
+#include "ui/Developer.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
 
@@ -73,6 +74,12 @@ namespace mods_config
 
         // The pulse the hand that points gets as its press does something in the menu. Nothing for no pulse.
         std::optional<vrcf::HapticPattern> pressHaptic;
+
+        // The Developer tools, for a package's author: whether they are on, which packages the menu's front page
+        // lists, the one it lists alone, and whether its section is folded
+        ui::DeveloperView developer;
+
+        void saveDeveloper(const ui::DeveloperView& view);
 
     protected:
         virtual void loadConfigInternal(const toml::table& config) override;

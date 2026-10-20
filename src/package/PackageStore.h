@@ -32,8 +32,9 @@ namespace mods_config::package
      * reason, and Save writes nothing while it is.
      * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
      * The menu reads a TOML and an INI file: a setting of a JSON file is not available.
-     * A choice that reads its options in the game, from a FormList or a property of a script, reads them as the
-     * mod is selected, with the values they are checked against.
+     * A choice that reads its options in the game, from a FormList or a property of a script, or from its mod's
+     * client, by the callback the client registered, reads them as the mod is selected, with the values they
+     * are checked against.
      * A global and a property are read and written with `getGlobal`, `setGlobal`, `getProperty` and
      * `setProperty`. A `live` one is previewed: its pending value is written into the game as it is set, but
      * for an invalid one, which leaves the preview before it, and
@@ -48,6 +49,15 @@ namespace mods_config::package
     {
     public:
         PackageStore(std::filesystem::path dataFolder, std::filesystem::path myGamesFolder);
+
+        /**
+         * Registers the callback that gives the options of a choice of a mod that takes them from its client
+         * (`listFromClientCallback`), by the mod's name and the setting's id. It is read as the mod is selected.
+         */
+        void addClientOptions(const std::string_view modName, const std::string_view settingId, model::ClientOptions::Callback callback)
+        {
+            _clientOptions.add(modName, settingId, std::move(callback));
+        }
 
         void open(const model::Mod& mod) override;
         void close() override;
@@ -139,8 +149,10 @@ namespace mods_config::package
         // is not there is one too
         std::map<std::string, std::unique_ptr<ModFile>, std::less<>> _files;
 
-        // the options of the choices of the mod that is selected
+        // the options of the choices of the mod that is selected, and the callbacks that give the options of a choice
+        // that takes them from its mod's client
         model::ChoiceOptions _options;
+        model::ClientOptions _clientOptions;
 
         // the settings of the mod that is selected, in the order of its package
         std::vector<const model::Setting*> _settingList;

@@ -55,6 +55,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/package/TomlFile.cpp
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
+  ${SOURCE_DIR}/ui/Developer.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp
   ${SOURCE_DIR}/ui/FrontPage.cpp
   ${SOURCE_DIR}/ui/FullPanel.cpp

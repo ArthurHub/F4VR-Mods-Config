@@ -34,6 +34,9 @@ namespace
     // where the wrist buttons lie, from the framework's place on the wrist: position, then degrees around x, y and z
     const RE::NiTransform WRIST_BUTTONS_OFFSET = common::MatrixUtils::getTransform(0, 0, 0, 0, 0, 0);
 
+    // the id of the Package setting of the menu's own package, whose options the menu gives
+    constexpr auto DEVELOPER_PACKAGE_ID = "developerPackage";
+
     /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
      * for it. The function takes no arguments, which is an empty array.
@@ -54,6 +57,23 @@ namespace
 
 namespace mods_config
 {
+    /**
+     * The menu, closed. It registers the callback of its own package's Package setting, whose options are the
+     * packages the menu lists: none first, then each package, by its modName and its name, in their order.
+     */
+    ConfigMenu::ConfigMenu()
+    {
+        _packageStore.addClientOptions(Version::PROJECT, DEVELOPER_PACKAGE_ID, [this](const model::Setting&) {
+            std::vector<model::Option> options{ { .value = std::string(), .text = "None" } };
+            for (const auto& mod : _fullPanel.mods()) {
+                if (mod.source == model::Source::Package) {
+                    options.push_back({ .value = mod.name, .text = mod.displayName });
+                }
+            }
+            return options;
+        });
+    }
+
     bool ConfigMenu::isOpen() const
     {
         return _panel != nullptr;
@@ -198,6 +218,10 @@ namespace mods_config
     {
         // every frame, so a change of the config shows while the menu is open
         imgui::pointer().setStyle(g_config.pointerStyle);
+        if (_developerToSave) {
+            g_config.saveDeveloper(*_developerToSave);
+            _developerToSave.reset();
+        }
         if (isOpen() && g_config.panelChanged.exchange(false)) {
             applyPanelConfig();
         }
@@ -273,12 +297,16 @@ namespace mods_config
 
     /**
      * Gives the panel what the config has for it: its look, its size and scale, the width of its tree, its place from where it was put in
-     * front of the player, how it is moved: after a short press, where that is Back, and the controls its Help page tells. It is called when
+     * front of the player, how it is moved: after a short press, where that is Back, the controls its Help page tells, and the Developer
+     * tools, whose filter and fold a press on the front page writes back from the frame update. It is called when
      * the menu opens, and when the config is loaded again while the menu is open, so a change of the file shows at once. The place is from
      * where the panel is now, also after a hand moved it.
      */
     void ConfigMenu::applyPanelConfig()
     {
+        _fullPanel.setDeveloper(g_config.developer, [this](const ui::DeveloperView& view) {
+            _developerToSave = view;
+        });
         _fullPanel.setControls(ui::menuControls({ .openMenu = g_config.openMenuBinding,
             .back = g_config.backButton,
             .move = g_config.moveButton,

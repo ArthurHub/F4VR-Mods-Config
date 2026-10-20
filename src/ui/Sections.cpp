@@ -68,46 +68,6 @@ namespace
         }
         return std::format("{}{}Folded: {}.", help, help.empty() ? "" : " ", what);
     }
-
-    /**
-     * What a folded section hides, in the detail size, ending at a right edge: the invalid mark and the count of
-     * the invalid values in red, then the pending mark and the count of the unsaved changes in amber, each only
-     * where there is one. Returns its left edge.
-     */
-    float drawHiddenValues(const float right, const float top, const HiddenValues& hidden)
-    {
-        // the marks' boxes, as the design system draws them
-        constexpr float INVALID_MARK_WIDTH = 20.0f;
-        constexpr float PENDING_MARK_WIDTH = 10.0f;
-
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const auto invalid = hidden.invalid > 0 ? std::format("{} invalid", hidden.invalid) : std::string();
-        const auto unsaved = hidden.unsaved > 0 ? std::format("{} unsaved", hidden.unsaved) : std::string();
-        float width = 0.0f;
-        if (!invalid.empty()) {
-            width += INVALID_MARK_WIDTH + theme::SPACE_2 + ui::textWidth(invalid);
-        }
-        if (!unsaved.empty()) {
-            width += (invalid.empty() ? 0.0f : theme::SPACE_2 * 2.0f) + PENDING_MARK_WIDTH + theme::SPACE_2 + ui::textWidth(unsaved);
-        }
-
-        const float left = std::floor(right - width);
-        const float middle = top + theme::CONTROL_HEIGHT * 0.5f;
-        float x = left;
-        if (!invalid.empty()) {
-            ui::drawInvalidMark(ImVec2(x + INVALID_MARK_WIDTH * 0.5f, middle));
-            x += INVALID_MARK_WIDTH + theme::SPACE_2;
-            ui::drawText(x, right, top, theme::CONTROL_HEIGHT, theme::color::RED, invalid);
-            x += ui::textWidth(invalid) + theme::SPACE_2 * 2.0f;
-        }
-        if (!unsaved.empty()) {
-            ui::drawPendingMark(ImVec2(x + PENDING_MARK_WIDTH * 0.5f, middle));
-            x += PENDING_MARK_WIDTH + theme::SPACE_2;
-            ui::drawText(x, right, top, theme::CONTROL_HEIGHT, theme::color::AMBER, unsaved);
-        }
-        ImGui::PopFont();
-        return left;
-    }
 }
 
 namespace mods_config::ui
@@ -150,22 +110,14 @@ namespace mods_config::ui
             return folded;
         }
 
-        // the room a rule keeps at the least, as the design system has it
-        constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
-        const auto color = row.pointed || row.held ? theme::color::GREEN : theme::color::GREEN_MUTED;
-        drawFoldArrow(ImVec2(pos.x + theme::SPACE_2, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
-        float ruleRight = pos.x + width;
-        if (hidden.invalid > 0 || hidden.unsaved > 0) {
-            ruleRight = drawHiddenValues(ruleRight - theme::SPACE_3, pos.y, hidden) - theme::SPACE_2;
+        std::vector<MarkedCount> counts;
+        if (hidden.invalid > 0) {
+            counts.push_back({ .mark = CountMark::Invalid, .text = std::format("{} invalid", hidden.invalid), .color = theme::color::RED });
         }
-        const float textLeft = pos.x + theme::SPACE_2 + FOLD_ARROW_SIZE + theme::SPACE_2;
-        const float textRight = (std::min)(textLeft + textWidth(group.text), ruleRight - RULE_MIN_WIDTH - theme::SPACE_3);
-        drawText(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, group.text);
-        const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
-        if (ruleLeft < ruleRight) {
-            const float ruleTop = std::floor(pos.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);
-            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(ruleRight, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        if (hidden.unsaved > 0) {
+            counts.push_back({ .mark = CountMark::Pending, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
         }
+        drawFoldingHeading(group.text, pos, width, folded, row.pointed || row.held, counts);
         return folded;
     }
 

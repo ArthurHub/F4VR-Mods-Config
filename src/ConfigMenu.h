@@ -25,6 +25,8 @@ namespace mods_config
     class ConfigMenu
     {
     public:
+        ConfigMenu();
+
         bool isOpen() const;
         bool isMinimized() const;
 
@@ -66,6 +68,9 @@ namespace mods_config
         bool _closeRequested = false;
         bool _askToCloseRequested = false;
         bool _openFrikRequested = false;
+
+        // the Developer tools as a press on the front page changed them, which the frame update writes to the config
+        std::optional<ui::DeveloperView> _developerToSave;
 
         // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
         mcm::McmStore _store{ R"(Data\MCM)" };

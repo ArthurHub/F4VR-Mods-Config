@@ -1077,7 +1077,11 @@ TEST_CASE("PackageStore: every setting of the mod's own package is available, va
     const auto folder = myGames.path / "Mods_Config" / "ModsConfigVR";
     std::filesystem::create_directories(folder);
     std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, folder / "ModsConfigVR.toml");
+    // the menu gives the options of its Package setting: none, and the packages it lists
     PackageStore store({}, myGames.path);
+    store.addClientOptions("ModsConfigVR", "developerPackage", [](const model::Setting&) {
+        return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "MyMod"s, .text = "My Mod" } };
+    });
     store.open(mods[0]);
 
     std::size_t checked = 0;
@@ -1101,4 +1105,42 @@ TEST_CASE("PackageStore: every setting of the mod's own package is available, va
     }
     CHECK(checked >= 10);
     CHECK(store.dirtyCount() == 0);
+}
+
+TEST_CASE("PackageStore: a choice takes its options from its mod's client as its mod is selected, and is not available with no callback")
+{
+    Session session(R"(
+        { "type": "dropdown", "valueType": "string", "id": "Package", "text": "Package", "default": "", "valueOptions": { "listFromClientCallback": true },
+          "storage": { "path": ["Main", "sPackage"] } },
+        { "type": "stepper", "valueType": "int", "text": "Other", "default": 0, "valueOptions": { "listFromClientCallback": true },
+          "storage": { "path": ["Main", "iOther"] } }
+    )");
+    PackageStore store(session.data.path, session.myGames.path);
+    int calls = 0;
+    // its mod and its id in another case
+    store.addClientOptions("mymod", "package", [&calls](const model::Setting& setting) {
+        ++calls;
+        CHECK(setting.text == "Package");
+        return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "FRIK"s, .text = "FRIK" } };
+    });
+    session.myGames.write(MOD_FILE, "[Main]\r\nsPackage = \"FRIK\"\r\niOther = 0\r\n");
+    store.open(session.mod);
+    CHECK(calls == 1);
+    CHECK(store.options(session.setting(0)).size() == 2);
+    CHECK(store.value(session.setting(0)).value == model::Value("FRIK"s));
+    CHECK_FALSE(store.value(session.setting(0)).invalid);
+
+    // a value that is none of them is invalid, as one of a game's list is
+    CHECK(store.set(session.setting(0), "Other"s));
+    CHECK(store.value(session.setting(0)).invalid);
+
+    // a setting no callback is registered for has none, and is not available
+    const auto other = store.value(session.setting(1));
+    CHECK_FALSE(other.available);
+    CHECK(other.reason == "Not available: its mod's client gives no options for it.");
+
+    // a store with no callbacks gives none
+    PackageStore alone(session.data.path, session.myGames.path);
+    alone.open(session.mod);
+    CHECK_FALSE(alone.value(session.setting(0)).available);
 }

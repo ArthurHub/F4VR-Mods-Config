@@ -10,6 +10,14 @@ namespace
     const char* DEFAULT_SECTION = Version::PROJECT.data();
     const char* PANEL_SECTION = "Panel";
     const char* POINTER_SECTION = "Pointer";
+    const char* DEVELOPER_SECTION = "Developer";
+
+    // which packages the Developer section lists, by the text the config has for each
+    constexpr std::array<std::pair<std::string_view, mods_config::ui::ShowPackages>, 3> SHOW_PACKAGES{ {
+        { "attention", mods_config::ui::ShowPackages::NeedingAttention },
+        { "all", mods_config::ui::ShowPackages::All },
+        { "one", mods_config::ui::ShowPackages::OnlyOne },
+    } };
 }
 
 namespace mods_config
@@ -77,7 +85,26 @@ namespace mods_config
         // "none" is no pulse, and so is a word that is not a pattern
         pressHaptic = vrcf::parseHapticPattern(pointer["sPressHaptic"].value_or("Tick"sv));
 
+        // a word that is not one of the filter's lists the packages that need attention
+        const auto developerSection = config[DEVELOPER_SECTION];
+        developer.enabled = developerSection["bDeveloperTools"].value_or(false);
+        const auto show = std::ranges::find(SHOW_PACKAGES, developerSection["sShowPackages"].value_or("attention"sv), &std::pair<std::string_view, ui::ShowPackages>::first);
+        developer.show = show != SHOW_PACKAGES.end() ? show->second : ui::ShowPackages::NeedingAttention;
+        developer.package = developerSection["sPackage"].value_or(""s);
+        developer.folded = developerSection["bFolded"].value_or(false);
+
         // last, so the menu gives its panel the values when all of them are read
         panelChanged = true;
+    }
+
+    /**
+     * Keeps the Developer section's filter and its fold, as a press on the menu's front page changed them, and
+     * writes them to the file at once: the front page has no Save.
+     */
+    void Config::saveDeveloper(const ui::DeveloperView& view)
+    {
+        developer = view;
+        const auto show = std::ranges::find(SHOW_PACKAGES, view.show, &std::pair<std::string_view, ui::ShowPackages>::second);
+        saveConfigValues(DEVELOPER_SECTION, { { "sShowPackages", std::string(show->first) }, { "bFolded", view.folded } });
     }
 }

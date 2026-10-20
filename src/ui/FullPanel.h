@@ -6,6 +6,7 @@
 
 #include <imgui.h>
 
+#include "Developer.h"
 #include "FrontPage.h"
 #include "HelpLine.h"
 #include "MenuControls.h"
@@ -44,6 +45,7 @@ namespace mods_config::ui
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
         void setControls(std::vector<ControlHelp> controls);
         void setMenuActions(MenuActions actions);
+        void setDeveloper(DeveloperView view, std::function<void(const DeveloperView&)> write);
         void setImageDrawer(ImageDrawer drawer);
         void setStore(model::Source source, model::Store* store);
         void setThumbstickSideValue(float value);
@@ -70,6 +72,11 @@ namespace mods_config::ui
         const HelpLine& helpLine() const
         {
             return _helpLine;
+        }
+
+        const DeveloperView& developerView() const
+        {
+            return _developerView;
         }
 
         // whether the Help page is shown, over the selection, which it keeps
@@ -144,6 +151,11 @@ namespace mods_config::ui
         ModTree _modTree;
         ModPage _modPage;
         HelpLine _helpLine;
+
+        // the Developer tools as the settings have them, the front page's section of them, and what writes a change
+        DeveloperView _developerView;
+        DeveloperSection _developer;
+        std::function<void(const DeveloperView&)> _writeDeveloperView;
 
         // the design system's sizes and colors are set on ImGui's style once
         bool _styleApplied = false;

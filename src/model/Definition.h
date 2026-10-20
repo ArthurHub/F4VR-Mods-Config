@@ -85,11 +85,15 @@ namespace mods_config::model
         int minLength = 0;
         int maxLength = 0;
 
-        // in the order they are shown. None for a choice that reads them in the game
+        // in the order they are shown. None for a choice that reads them in the game or from its mod's client
         std::vector<Option> options;
 
         // where a choice reads its options in the game. None for one whose options are these
         std::optional<GameOptions> gameOptions;
+
+        // a package's choice whose options its mod's client gives, by a callback it registers for the setting's
+        // id (`listFromClientCallback`)
+        bool clientOptions = false;
     };
 
     /**

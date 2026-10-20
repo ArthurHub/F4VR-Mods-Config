@@ -615,28 +615,105 @@ namespace mods_config::ui
     }
 
     /**
-     * The width of the Restart mark: its text in the detail size, with the room inside its outline.
+     * The width of a tag: its text in the detail size, with the room inside its outline.
      */
-    float restartMarkWidth()
+    float tagWidth(const std::string_view text)
     {
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const float width = textWidth(RESTART_TEXT);
+        const float width = textWidth(text);
         ImGui::PopFont();
         return std::ceil(width + (theme::SPACE_2 + theme::BORDER_FRAME) * 2.0f);
     }
 
     /**
-     * The mark of a setting that takes effect after the game is restarted, from its left in the middle of a
-     * height: `Restart` in the detail size and the muted color, in an outline of a frame's border.
+     * A tag, from its left in the middle of a height: a short text in the detail size and the muted color, in an
+     * outline of a frame's border, as the design system's tag has it.
      */
-    void drawRestartMark(const float left, const float middle)
+    void drawTag(const float left, const float middle, const std::string_view text)
     {
         const ImVec2 min(std::floor(left), std::floor(middle - RESTART_MARK_HEIGHT * 0.5f));
-        const ImVec2 max(min.x + restartMarkWidth(), min.y + RESTART_MARK_HEIGHT);
+        const ImVec2 max(min.x + tagWidth(text), min.y + RESTART_MARK_HEIGHT);
         drawOutline(min, max, theme::color::FRAME_BORDER);
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        drawText(min.x + theme::BORDER_FRAME + theme::SPACE_2, max.x, min.y, RESTART_MARK_HEIGHT, theme::color::GREEN_MUTED, RESTART_TEXT);
+        drawText(min.x + theme::BORDER_FRAME + theme::SPACE_2, max.x, min.y, RESTART_MARK_HEIGHT, theme::color::GREEN_MUTED, text);
         ImGui::PopFont();
+    }
+
+    /**
+     * The width of the Restart mark, the tag of a setting that takes effect after the game is restarted.
+     */
+    float restartMarkWidth()
+    {
+        return tagWidth(RESTART_TEXT);
+    }
+
+    void drawRestartMark(const float left, const float middle)
+    {
+        drawTag(left, middle, RESTART_TEXT);
+    }
+
+    /**
+     * Counts that each have their mark before them, as `2 errors` after the invalid mark, ending at a right edge
+     * in the current font and in the middle of a control's height from a top. Returns their left edge.
+     */
+    float drawMarkedCounts(const float right, const float top, const std::span<const MarkedCount> counts)
+    {
+        // the boxes of the marks, as the design system draws them
+        constexpr float WIDE_MARK = 20.0f;
+        constexpr float PENDING_MARK = 10.0f;
+        const auto markWidth = [](const CountMark mark) {
+            return mark == CountMark::Pending ? PENDING_MARK : WIDE_MARK;
+        };
+
+        float width = 0.0f;
+        for (const auto& count : counts) {
+            width += (width > 0.0f ? theme::SPACE_2 * 2.0f : 0.0f) + markWidth(count.mark) + theme::SPACE_2 + textWidth(count.text);
+        }
+        const float left = std::floor(right - width);
+        const float middle = top + theme::CONTROL_HEIGHT * 0.5f;
+        float x = left;
+        for (const auto& count : counts) {
+            const ImVec2 center(x + markWidth(count.mark) * 0.5f, middle);
+            if (count.mark == CountMark::Invalid) {
+                drawInvalidMark(center);
+            } else if (count.mark == CountMark::Warning) {
+                drawWarningMark(center);
+            } else {
+                drawPendingMark(center);
+            }
+            x += markWidth(count.mark) + theme::SPACE_2;
+            drawText(x, right, top, theme::CONTROL_HEIGHT, count.color, count.text);
+            x += textWidth(count.text) + theme::SPACE_2 * 2.0f;
+        }
+        return left;
+    }
+
+    /**
+     * A heading that folds, in a row at a place and in a width: an arrow that points right while it is folded
+     * and down while it is open, its text, and a rule from it to the right edge, as a heading has. Its text and
+     * its arrow are muted, and brighter where it is emphasized, as under the ray. The counts of what it hides
+     * end the rule, in the detail size.
+     */
+    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const bool emphasized, const std::span<const MarkedCount> counts)
+    {
+        // the room a rule keeps at the least, as the design system has it
+        constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
+        const auto color = emphasized ? theme::color::GREEN : theme::color::GREEN_MUTED;
+        drawFoldArrow(ImVec2(pos.x + theme::SPACE_2, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
+        float ruleRight = pos.x + width;
+        if (!counts.empty()) {
+            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+            ruleRight = drawMarkedCounts(ruleRight - theme::SPACE_3, pos.y, counts) - theme::SPACE_2;
+            ImGui::PopFont();
+        }
+        const float textLeft = pos.x + theme::SPACE_2 + FOLD_ARROW_SIZE + theme::SPACE_2;
+        const float textRight = (std::min)(textLeft + textWidth(text), ruleRight - RULE_MIN_WIDTH - theme::SPACE_3);
+        drawText(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, text);
+        const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
+        if (ruleLeft < ruleRight) {
+            const float ruleTop = std::floor(pos.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);
+            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(ruleRight, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        }
     }
 
     /**

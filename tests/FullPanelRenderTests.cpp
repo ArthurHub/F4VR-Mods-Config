@@ -1484,3 +1484,38 @@ TEST_CASE("FullPanel render: a wider tree and a page in the rest of the panel", 
     panel.setTreeWidth(theme::NAV_WIDTH * 1.5f);
     WARN("Saved " << renderToFile(panel, "wide-tree", POINTER_AWAY));
 }
+
+TEST_CASE("FullPanel render: the front page's Developer section, open with the ray on a package, folded, and listing all", "[.render]")
+{
+    const auto package = [](const std::string& name, const int errors, const int warnings, const std::string& notAvailable = {}) {
+        model::Mod mod{ .name = name, .displayName = name, .notAvailable = notAvailable, .source = model::Source::Package };
+        for (int i = 0; i < errors; ++i) {
+            mod.problems.push_back({ .severity = model::Severity::Error, .row = "config.json", .message = "It cannot be read: line 41, column 7.", .where = {}, .path = {} });
+        }
+        for (int i = 0; i < warnings; ++i) {
+            mod.problems.push_back({ .severity = model::Severity::Warning, .row = "A row", .message = "Unknown field.", .where = {}, .path = {} });
+        }
+        return mod;
+    };
+    const auto panelWith = [&package](const ui::DeveloperView& view) {
+        std::vector<model::Mod> mods;
+        mods.push_back(modOf("Baka Fullscreen Pip-Boy"));
+        mods.push_back(package("Immersive Flashlight VR", 2, 5));
+        mods.push_back(package("Mods Config VR", 0, 0));
+        mods.push_back(package("Showcase", 0, 3));
+        mods.push_back(package("Virtual Holsters", 1, 0, "its package cannot be read"));
+        mods.push_back(package("Sim Settlements 2", 0, 0, "its plugin SS2.esm is not loaded"));
+        FullPanel panel;
+        panel.setMods(std::move(mods));
+        panel.setDeveloper(view, {});
+        return panel;
+    };
+
+    auto open = panelWith({ .enabled = true, .show = ui::ShowPackages::NeedingAttention, .package = "Showcase", .folded = false });
+    // the ray on the first package's row, under the page's text, its notices, the heading and the filter
+    WARN("Saved " << renderToFile(open, "front-page-developer", ImVec2(700.0f, 425.0f)));
+    auto folded = panelWith({ .enabled = true, .show = ui::ShowPackages::NeedingAttention, .package = {}, .folded = true });
+    WARN("Saved " << renderToFile(folded, "front-page-developer-folded", POINTER_AWAY));
+    auto all = panelWith({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false });
+    WARN("Saved " << renderToFile(all, "front-page-developer-all", POINTER_AWAY));
+}

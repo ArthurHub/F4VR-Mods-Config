@@ -1606,3 +1606,19 @@ TEST_CASE("PackageLoader: the mod's own package has no problems, and the package
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }
+
+TEST_CASE("PackageLoader: a choice with listFromClientCallback takes its options from its mod's client, with any default of its type")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "dropdown", "valueType": "string", "text": "Package", "default": "anything", "valueOptions": { "listFromClientCallback": true },
+          "storage": { "path": ["a"] } },
+        { "type": "stepper", "valueType": "int", "text": "Not true", "default": 0, "valueOptions": { "listFromClientCallback": false },
+          "storage": { "path": ["b"] } }
+    )"));
+    const auto& client = std::get<model::Setting>(mod.frontPage.items[0]);
+    CHECK(client.valueOptions.clientOptions);
+    CHECK(client.valueOptions.options.empty());
+    CHECK(client.defaultValue == model::Value("anything"s));
+    CHECK_FALSE(std::get<model::Setting>(mod.frontPage.items[1]).valueOptions.clientOptions);
+    CHECK(problemLines(mod) == Lines{ "E Not true: It has no list of options, or names no shared list of its package: it has no options. [Not true] content[1].valueOptions" });
+}

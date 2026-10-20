@@ -3,19 +3,20 @@
 #include <format>
 
 #include "GameValues.h"
+#include "common/CommonUtils.h"
 
 using namespace mods_config;
 
 namespace
 {
     /**
-     * Adds the choices among the items that read their options in the game, with those of the groups among
-     * them.
+     * Adds the choices among the items that read their options in the game or from their mod's client, with
+     * those of the groups among them.
      */
     void addChoices(const std::vector<model::Item>& items, std::vector<const model::Setting*>& choices)
     {
         for (const auto& item : items) {
-            if (const auto* setting = std::get_if<model::Setting>(&item); setting && setting->valueOptions.gameOptions) {
+            if (const auto* setting = std::get_if<model::Setting>(&item); setting && (setting->valueOptions.gameOptions || setting->valueOptions.clientOptions)) {
                 choices.push_back(setting);
             } else if (const auto* group = std::get_if<model::Group>(&item)) {
                 addChoices(group->items, choices);
@@ -38,15 +39,34 @@ namespace
 namespace mods_config::model
 {
     /**
-     * Reads the options of the choices of a mod that read them in the game, as the mod is selected. It forgets
-     * those of the mod before it.
+     * Registers the callback that gives the options of a setting of a mod, in place of one it had.
      */
-    void ChoiceOptions::read(const Mod& mod)
+    void ClientOptions::add(const std::string_view modName, const std::string_view settingId, Callback callback)
+    {
+        _callbacks.insert_or_assign({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(settingId)) }, std::move(callback));
+    }
+
+    /**
+     * The callback of a setting of a mod. None for a setting no callback is registered for.
+     */
+    const ClientOptions::Callback* ClientOptions::find(const std::string_view modName, const std::string_view settingId) const
+    {
+        const auto found = _callbacks.find({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(settingId)) });
+        return found != _callbacks.end() ? &found->second : nullptr;
+    }
+
+    /**
+     * Reads the options of the choices of a mod that read them in the game or from its client, as the mod is
+     * selected. It forgets those of the mod before it.
+     */
+    void ChoiceOptions::read(const Mod& mod, const ClientOptions* clients)
     {
         std::vector<const Setting*> choices;
         addChoices(mod.frontPage.items, choices);
         addChoices(mod.pages, choices);
         _read.clear();
+        _modName = mod.name;
+        _clients = clients;
         for (const auto* setting : choices) {
             _read.try_emplace(setting);
         }
@@ -54,12 +74,12 @@ namespace mods_config::model
     }
 
     /**
-     * Reads the options of the choices of the mod in the game again, as a script can change its list.
+     * Reads the options of the choices of the mod again, as a script can change its list.
      */
     void ChoiceOptions::readAgain()
     {
         for (auto& [setting, read] : _read) {
-            read = readList(*setting->valueOptions.gameOptions);
+            read = setting->valueOptions.gameOptions ? readList(*setting->valueOptions.gameOptions) : readClient(*setting);
         }
     }
 
@@ -69,6 +89,8 @@ namespace mods_config::model
     void ChoiceOptions::clear()
     {
         _read.clear();
+        _modName.clear();
+        _clients = nullptr;
     }
 
     /**
@@ -108,5 +130,18 @@ namespace mods_config::model
             read.options.push_back({ .value = list.storesText ? Value(text) : Value(static_cast<int>(read.options.size())), .text = text });
         }
         return read;
+    }
+
+    /**
+     * The options a choice's mod's client gives, by the callback it registered for the setting. None for a
+     * setting with no callback, with the reason.
+     */
+    ChoiceOptions::Read ChoiceOptions::readClient(const Setting& setting) const
+    {
+        const auto* callback = _clients ? _clients->find(_modName, setting.id) : nullptr;
+        if (!callback) {
+            return { .options = {}, .notAvailable = "Not available: its mod's client gives no options for it." };
+        }
+        return { .options = (*callback)(setting), .notAvailable = {} };
     }
 }

@@ -773,8 +773,9 @@ namespace
     /**
      * The `valueOptions` of a setting: the least, the most and the step of a number, the fewest and the most
      * characters of a text input of a text, and the options of a choice: its own `options`, the shared list
-     * its `sharedOptions` names, or where it reads them in the game. An `allowEmpty` of false is a least of
-     * one character. A length that is no whole number above 0 is none.
+     * its `sharedOptions` names, where it reads them in the game, or that its mod's client gives them, with a
+     * `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
+     * is no whole number above 0 is none.
      * A choice with none of them has no options, and is reported, so it is disabled.
      */
     model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, PackageReading& reading)
@@ -819,6 +820,8 @@ namespace
         }
         if (hasOptions && (found->contains("listFromForm") || found->contains("listFromProperty"))) {
             valueOptions.gameOptions = loadGameOptions(*found, valueType, reading);
+        } else if (hasOptions && getBool(*found, "listFromClientCallback")) {
+            valueOptions.clientOptions = true;
         } else {
             reading.report(model::Severity::Error, "It has no list of options, or names no shared list of its package: it has no options.");
         }
@@ -839,13 +842,13 @@ namespace
     /**
      * Whether a value of a setting's type is one of its values: an option of a choice, a number inside
      * the limits of a setting that has them, its least and its most among them, and a text of the length its
-     * setting allows. Any value is one of a choice that reads its options in the game, which are not known
-     * until then.
+     * setting allows. Any value is one of a choice that reads its options in the game or from its mod's client,
+     * which are not known until then.
      */
     bool isValueOf(const model::Value& value, const model::SettingType type, const model::ValueOptions& options)
     {
         if (isChoice(type)) {
-            return options.gameOptions || std::ranges::any_of(options.options, [&value](const model::Option& option) {
+            return options.gameOptions || options.clientOptions || std::ranges::any_of(options.options, [&value](const model::Option& option) {
                 return isSameValue(option.value, value);
             });
         }
@@ -873,7 +876,7 @@ namespace
         auto value = getValue(row, "default", valueType);
         if (!value) {
             reading.report(model::Severity::Error, "It has no default of the type of its value: it has no Reset.");
-        } else if (isChoice(type) && options.options.empty() && !options.gameOptions) {
+        } else if (isChoice(type) && options.options.empty() && !options.gameOptions && !options.clientOptions) {
             // a choice with no options is reported already, and no default is one of its values
             value.reset();
         } else if (!isValueOf(*value, type, options)) {

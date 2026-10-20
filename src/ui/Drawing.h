@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 
 #include <imgui.h>
@@ -32,6 +33,26 @@ namespace mods_config::ui
         std::string_view text;
         ImU32 color = 0;
         TextMark mark = TextMark::None;
+    };
+
+    /**
+     * The mark before a count: the invalid mark, the warning mark, or the pending mark.
+     */
+    enum class CountMark : std::uint8_t
+    {
+        Invalid,
+        Warning,
+        Pending,
+    };
+
+    /**
+     * A count with its mark, as `2 errors` in red after the invalid mark.
+     */
+    struct MarkedCount
+    {
+        CountMark mark = CountMark::Invalid;
+        std::string text;
+        ImU32 color = 0;
     };
 
     /**
@@ -96,8 +117,12 @@ namespace mods_config::ui
     bool button(const char* label, const ImRect& box, ButtonLook look);
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
     ImU32 valueColor(ValueLook look);
+    float tagWidth(std::string_view text);
+    void drawTag(float left, float middle, std::string_view text);
     float restartMarkWidth();
     void drawRestartMark(float left, float middle);
+    float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);
+    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, bool emphasized, std::span<const MarkedCount> counts);
     void drawPendingMark(const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);
     void drawWarningMark(const ImVec2& center);

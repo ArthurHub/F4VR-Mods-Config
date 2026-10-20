@@ -54,6 +54,18 @@ namespace mods_config::ui
     }
 
     /**
+     * The Developer tools as Mods Config VR's settings have them, and what writes a change of their filter or
+     * their fold to the settings at once, which the menu does: the panel does not know the config. With the
+     * tools on, the menu's front page has its Developer section. The view the panel has changes at once, so
+     * the next frame shows the change before the menu writes it.
+     */
+    void FullPanel::setDeveloper(DeveloperView view, std::function<void(const DeveloperView&)> write)
+    {
+        _developerView = std::move(view);
+        _writeDeveloperView = std::move(write);
+    }
+
+    /**
      * What the title bar's Minimize and Close do. With none, as in a test, a press on them does nothing.
      */
     void FullPanel::setMenuActions(MenuActions actions)
@@ -403,6 +415,16 @@ namespace mods_config::ui
                 if (drawn.pressed) {
                     _quickLaunch[*drawn.pressed].open();
                     _pressActed = true;
+                }
+                if (_developerView.enabled) {
+                    auto developer = _developer.draw(_mods, _developerView, _thumbstickSideValue);
+                    if (developer.pointed) {
+                        pointed = std::move(developer.pointed);
+                    }
+                    if (developer.changed && _writeDeveloperView) {
+                        _writeDeveloperView(_developerView);
+                    }
+                    _pressActed = _pressActed || developer.pressActed;
                 }
             }
         }
