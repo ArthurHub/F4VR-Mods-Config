@@ -1,0 +1,322 @@
+#include "SettingRow.h"
+
+#include <array>
+#include <format>
+#include <initializer_list>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <variant>
+#include <vector>
+
+#include <imgui.h>
+
+#include "Drawing.h"
+#include "Numbers.h"
+#include "Theme.h"
+#include "common/CommonUtils.h"
+#include "model/Conditions.h"
+
+namespace
+{
+    using namespace mods_config;
+
+    /**
+     * The Reset icon around a point: most of a circle, open at its left, with an arrowhead at its upper end.
+     */
+    void drawResetIcon(const ImVec2& center)
+    {
+        // as the design system draws it, in a box of 24: the circle from its lower left end around its
+        // right to its upper left end, in radians
+        constexpr float HALF_BOX = 12.0f;
+        constexpr float RADIUS = 7.5f;
+        constexpr float ARC_START = 2.744f;
+        constexpr float ARC_END = -2.396f;
+        const ImVec2 origin(center.x - HALF_BOX, center.y - HALF_BOX);
+        const auto at = [&origin](const float x, const float y) {
+            return ImVec2(origin.x + x, origin.y + y);
+        };
+        const auto color = ImGui::GetColorU32(theme::color::GREEN);
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathArcTo(at(12.1f, 12.1f), RADIUS, ARC_START, ARC_END);
+        drawList->PathLineTo(at(4.0f, 10.0f));
+        drawList->PathStroke(color, ui::ICON_THICKNESS);
+        const std::array head{ at(4.0f, 5.0f), at(4.0f, 10.0f), at(9.0f, 10.0f) };
+        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ui::ICON_THICKNESS);
+    }
+
+    /**
+     * Whether two values of a setting are the same one. Two numbers are, when they are as near as a number
+     * and the text of it in a file.
+     */
+    bool isSameValue(const model::Value& value, const model::Value& other)
+    {
+        const auto* number = std::get_if<float>(&value);
+        const auto* otherNumber = std::get_if<float>(&other);
+        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
+    }
+
+    /**
+     * Returns the store's default when the setting's control can display it.
+     * Unsupported values, unmatched choices and sliders without a range have no Reset.
+     */
+    std::optional<model::Value> defaultOf(const model::Setting& setting, model::Store& store)
+    {
+        auto value = store.defaultValue(setting);
+        if (!value) {
+            return std::nullopt;
+        }
+        bool shown = false;
+        switch (setting.type) {
+        case model::SettingType::Switcher:
+            shown = std::holds_alternative<bool>(*value);
+            break;
+        case model::SettingType::Slider:
+            shown = std::holds_alternative<float>(*value) && setting.valueOptions.max > setting.valueOptions.min;
+            break;
+        case model::SettingType::Stepper:
+        case model::SettingType::Dropdown:
+            shown = ui::chosenOption(store.options(setting), { .value = *value, .available = true, .reason = {} }).has_value();
+            break;
+        case model::SettingType::TextInput:
+            shown = std::holds_alternative<std::string>(*value);
+            break;
+        }
+        return shown ? value : std::nullopt;
+    }
+
+    /**
+     * A default of a setting as the help line names it: on and off for a switcher, the number of a slider
+     * as its display writes it, with its unit, and the text of the option of a stepper and a dropdown. The
+     * text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
+     */
+    std::string defaultName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
+    {
+        if (setting.type == model::SettingType::TextInput) {
+            const auto& text = std::get<std::string>(value);
+            return setting.valueType == model::StoredType::String ? std::format("\"{}\"", text) : ui::fieldText(setting, text);
+        }
+        if (const auto* on = std::get_if<bool>(&value)) {
+            return *on ? "on" : "off";
+        }
+        if (const auto* number = std::get_if<float>(&value)) {
+            return ui::numberText(setting, *number);
+        }
+        const auto option = ui::chosenOption(options, { .value = value, .available = true, .reason = {} });
+        return option ? options[*option].text : std::string();
+    }
+
+    /**
+     * What the help line says of when a setting's change takes effect, after the row's help: nothing for one
+     * that takes effect as it is made, and for one whose store does not know.
+     */
+    std::string_view takesEffect(const std::optional<model::Applies> applies)
+    {
+        if (applies == model::Applies::Save) {
+            return "Takes effect after Save.";
+        }
+        return applies == model::Applies::Restart ? "Takes effect after the game is restarted." : std::string_view();
+    }
+
+    /**
+     * The parts of a help that are not empty, with a space between each two.
+     */
+    std::string joinHelp(const std::initializer_list<std::string_view> parts)
+    {
+        std::string help;
+        for (const auto part : parts) {
+            if (!part.empty()) {
+                help += help.empty() ? "" : " ";
+                help += part;
+            }
+        }
+        return help;
+    }
+
+    /**
+     * What the help line says of the number of a slider and of a text input after the row's help: a
+     * percentage with the number it is of, and a number whose unit the box of a slider has no room for, with
+     * its unit. Empty for any other value, and for one that is not available.
+     */
+    std::string numberDetail(const model::Setting& setting, const model::StoredValue& stored, const float sliderValue)
+    {
+        if (!stored.available) {
+            return {};
+        }
+        std::optional<float> number;
+        const auto* text = std::get_if<std::string>(&stored.value);
+        if (setting.type == model::SettingType::Slider && std::holds_alternative<float>(stored.value)) {
+            number = sliderValue;
+        } else if (setting.type == model::SettingType::TextInput && setting.valueType != model::StoredType::String && text) {
+            number = ui::fieldNumber(*text);
+        }
+        if (!number) {
+            return {};
+        }
+        if (ui::isPercent(setting)) {
+            return ui::percentDetail(setting, *number) + ".";
+        }
+        if (setting.type == model::SettingType::Slider && !ui::valueBoxText(setting, *number).withUnit) {
+            return ui::numberText(setting, *number) + ".";
+        }
+        return {};
+    }
+
+}
+
+namespace mods_config::ui
+{
+    /**
+     * Draws and edits a setting row, including Reset, validation marks and help.
+     * Editing continues for clipped rows so drags, text edits and dropdowns remain active.
+     * Returns hover help and whether an input changed a value or began an interaction.
+     */
+    SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context, const Gutter& gutter)
+    {
+        SettingRowDrawn drawn;
+        std::string help;
+        std::string_view warning;
+        bool invalid = false;
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float width = rowWidth();
+        const bool enabled = !setting.enabledWhen || model::holds(*setting.enabledWhen, context.store);
+        const auto row = addRow(enabled && !setting.readOnly && !context.textInputs.isEdited(setting));
+        if ((!enabled || setting.readOnly) && row.shown) {
+            drawRowState();
+        }
+        const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
+
+        auto stored = context.store ? context.store->value(setting) : model::StoredValue{};
+        const bool editable = stored.available && enabled && !setting.readOnly;
+
+        // a read-only setting whose storage has no value shows none
+        const bool showsValue = stored.available || !setting.readOnly;
+
+        // Reset is pressed a little beside it too, as a button of a stepper is. A press is its own when it
+        // began there: a slider that is dragged and let go on it is not reset
+        const auto& io = ImGui::GetIO();
+        const auto resetBox = controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
+        const auto defaultValue = stored.available ? defaultOf(setting, *context.store) : std::nullopt;
+        const bool onReset = defaultValue && row.pointed && io.MousePos.x >= resetBox.Min.x - theme::SPACE_1;
+        const bool resetHeld = onReset && io.MouseClickedPos[ImGuiMouseButton_Left].x >= resetBox.Min.x - theme::SPACE_1;
+        bool resets = editable && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
+        if (resets && resetHeld && row.pressed && context.store->set(setting, *defaultValue)) {
+            stored = context.store->value(setting);
+            resets = false;
+            drawn.pressActed = true;
+        }
+        const bool rowPressed = row.pressed && !onReset;
+
+        const auto& options = setting.valueOptions;
+        const auto& choiceOptions = context.store ? context.store->options(setting) : options.options;
+        const auto* on = std::get_if<bool>(&stored.value);
+        const auto* number = std::get_if<float>(&stored.value);
+        const bool isSwitcher = editable && setting.type == model::SettingType::Switcher && on;
+        const bool isSlider = editable && setting.type == model::SettingType::Slider && number && options.max > options.min;
+        const bool isChoice = editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !choiceOptions.empty();
+        const bool isText = editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(stored.value);
+
+        // before the row is known to be shown: a slider that is dragged out of the page is still held
+        float value = number ? *number : options.min;
+        if (isSlider) {
+            bool write = false;
+            bool pulse = false;
+            const SliderRow sliderRow{ .pointed = row.pointed, .started = row.started, .held = row.held };
+            const float edited = context.sliders.edit(setting, right, pos.y, sliderRow, value, write, pulse);
+            if (!write || context.store->set(setting, edited)) {
+                value = edited;
+            }
+            drawn.pressActed = drawn.pressActed || pulse;
+        }
+        if (isSwitcher && rowPressed && context.store->set(setting, !*on)) {
+            drawn.pressActed = true;
+        }
+        // before the row is known to be shown too: the list of a dropdown is not a part of its row
+        auto chosen = chosenOption(choiceOptions, stored);
+        const ChoiceRow choiceRow{ .pointed = isChoice && row.pointed, .held = isChoice && row.held, .pressed = isChoice && rowPressed };
+        if (isChoice) {
+            bool pulse = false;
+            const auto picked = context.choices.edit(setting, choiceOptions, right, pos.y, choiceRow, chosen, pulse);
+            if (picked && picked != chosen && context.store->set(setting, choiceOptions[*picked].value)) {
+                chosen = picked;
+                pulse = true;
+            }
+            drawn.pressActed = drawn.pressActed || pulse;
+        }
+        // before the row is known to be shown too: the edit lasts while the row is scrolled out of the page
+        if (isText) {
+            bool pulse = false;
+            const auto typed = context.textInputs.edit(setting, right, pos.y, rowPressed, std::get<std::string>(stored.value), pulse);
+            if (typed && context.store->set(setting, *typed)) {
+                stored = context.store->value(setting);
+                resets = editable && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
+            }
+            drawn.pressActed = drawn.pressActed || pulse;
+        }
+        // on the pending value, as it is after a press in this frame
+        const auto warns = stored.invalid ? std::string_view() : warningOf(setting.warnings, context.store);
+        const auto applies = context.store ? context.store->applies(setting) : std::nullopt;
+
+        // the ray is on the list then, and the help line keeps the row of its dropdown
+        const bool listOpen = context.choices.isListOpen(setting);
+        if (row.pointed || listOpen) {
+            warning = warns;
+            if (!stored.available && !stored.reason.empty()) {
+                help = std::move(stored.reason);
+            } else if (resets && onReset) {
+                help = std::format("Reset to {}", defaultName(setting, choiceOptions, *defaultValue));
+            } else if (!stored.reason.empty()) {
+                help = std::move(stored.reason);
+                invalid = stored.invalid;
+            } else {
+                const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, choiceOptions, *defaultValue)) : std::string();
+                const auto ownHelp = setting.readOnly ? readOnlyHelp({}, setting.help) : setting.help;
+                help = joinHelp({ ownHelp, numberDetail(setting, stored, value), takesEffect(applies), defaultText });
+            }
+            drawn.pointed = PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid };
+        }
+        if (!row.shown) {
+            return drawn;
+        }
+
+        const bool dirty = stored.available && context.store->isDirty(setting);
+        const auto look = stored.invalid ? ValueLook::Invalid : dirty ? ValueLook::Pending : ValueLook::Saved;
+        float left = right;
+        ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice && !isText);
+        const ImVec2 gutterMiddle(pos.x + gutter.mark, pos.y + theme::CONTROL_HEIGHT * 0.5f);
+        if (look == ValueLook::Invalid) {
+            drawInvalidMark(gutterMiddle);
+        } else if (look == ValueLook::Pending) {
+            drawPendingMark(gutterMiddle);
+        }
+        switch (setting.type) {
+        case model::SettingType::Switcher:
+            left = drawSwitcher(right, pos.y, showsValue ? std::optional(on && *on) : std::nullopt, look);
+            break;
+        case model::SettingType::Slider:
+            left = context.sliders.draw(setting, right, pos.y, showsValue ? std::optional(value) : std::nullopt, look);
+            break;
+        case model::SettingType::Stepper:
+        case model::SettingType::Dropdown:
+            left = context.choices.draw(setting, choiceOptions, right, pos.y, choiceRow, showsValue ? chosen : std::nullopt, look);
+            break;
+        case model::SettingType::TextInput: {
+            // one whose value is not available has an empty box
+            const auto* text = std::get_if<std::string>(&stored.value);
+            left = context.textInputs.draw(setting, right, pos.y, stored.available && text ? fieldText(setting, *text) : std::string(), look);
+            break;
+        }
+        }
+        drawLabel(pos, gutter, left - theme::SPACE_3, setting.text, setting.textRuns, !warns.empty(), applies == model::Applies::Restart);
+        ImGui::EndDisabled();
+        if (defaultValue) {
+            ImGui::BeginDisabled(!resets);
+            drawButtonFrame(resetBox, resets && onReset, resets && onReset && resetHeld && row.held);
+            drawResetIcon(resetBox.GetCenter());
+            ImGui::EndDisabled();
+        }
+        return drawn;
+    }
+
+}

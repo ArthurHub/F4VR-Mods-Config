@@ -64,7 +64,9 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/ModPage.cpp
   ${SOURCE_DIR}/ui/Numbers.cpp
   ${SOURCE_DIR}/ui/PageImages.cpp
+  ${SOURCE_DIR}/ui/PageRows.cpp
   ${SOURCE_DIR}/ui/Sections.cpp
+  ${SOURCE_DIR}/ui/SettingRow.cpp
   ${SOURCE_DIR}/ui/Sliders.cpp
   ${SOURCE_DIR}/ui/TextInputs.cpp
   ${SOURCE_DIR}/ui/TitleBar.cpp
