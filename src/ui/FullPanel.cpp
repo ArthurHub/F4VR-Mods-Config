@@ -42,6 +42,9 @@ namespace
     // and of a mod whose changes wait for a Save, while none does
     constexpr auto NO_UNSAVED = "No unsaved changes";
 
+    // and after a Save that wrote no change that takes effect after a restart, until the next change
+    constexpr auto SAVED = "Saved";
+
     // The panel's sizes that are not tokens of the design system, in the panel's pixels.
     // A button of the footer:
     constexpr float BUTTON_WIDTH = 160.0f;
@@ -144,6 +147,23 @@ namespace
     }
 
     /**
+     * A notice of the menu's front page at the cursor that the game has to be restarted: the Restart mark, and
+     * after it the text in green, wrapped in the rest of the page's width. It is in from the edges of the page,
+     * as its texts are.
+     */
+    void restartNotice(const std::string_view text)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        ui::drawRestartMark(pos.x + theme::SPACE_2, pos.y + ImGui::GetFontSize() * 0.5f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2 + ui::restartMarkWidth() + theme::SPACE_2);
+        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
+        ImGui::TextUnformatted(text.data(), text.data() + text.size());
+        ImGui::PopTextWrapPos();
+        ImGui::PopStyleColor();
+    }
+
+    /**
      * A row of the quick launch section, laid out as a setting's row: the mod's name after the gutter, and an
      * Open button in the control column. The whole row is pressed, so the button is only drawn.
      * Tells whether the ray is on the row.
@@ -237,7 +257,9 @@ namespace mods_config::ui
     /**
      * Gives the help line the status of the selected mod's editing session: that its changes are saved as
      * they are made, how many changes are invalid, which block Save, why the last Save failed, until the next
-     * change, or how many wait for a Save. Nothing with no mod, and with no store.
+     * change, how many wait for a Save, with how many of them take effect after a restart, or the last Save,
+     * until the next change, with how many of the changes it wrote take effect after a restart. Nothing with
+     * no mod, and with no store.
      */
     void FullPanel::updateStatus()
     {
@@ -250,10 +272,16 @@ namespace mods_config::ui
             _helpLine.setStatus(std::format("{} invalid value{}", invalid, invalid == 1 ? "" : "s"), StatusLook::Invalid);
         } else if (const auto failure = store->saveFailure(); !failure.empty()) {
             _helpLine.setStatus(std::format("Not saved: {}.", failure), StatusLook::Invalid);
-        } else if (const auto dirty = store->dirtyCount(); dirty == 0) {
-            _helpLine.setStatus(NO_UNSAVED);
+        } else if (const auto dirty = store->dirtyCount(); dirty > 0) {
+            auto status = std::format("{} unsaved change{}", dirty, dirty == 1 ? "" : "s");
+            if (const auto restarts = store->dirtyRestartCount(); restarts > 0) {
+                status += std::format(", {} take{} effect after a restart", restarts, restarts == 1 ? "s" : "");
+            }
+            _helpLine.setStatus(status, StatusLook::Pending);
+        } else if (const auto saved = store->lastSave(); saved && *saved > 0) {
+            _helpLine.setStatus(std::format("Saved. {} change{} effect after the game is restarted.", *saved, *saved == 1 ? " takes" : "s take"), StatusLook::Restart);
         } else {
-            _helpLine.setStatus(std::format("{} unsaved change{}", dirty, dirty == 1 ? "" : "s"), StatusLook::Pending);
+            _helpLine.setStatus(saved ? SAVED : NO_UNSAVED);
         }
     }
 
@@ -704,8 +732,10 @@ namespace mods_config::ui
 
     /**
      * The menu's front page, which is what the menu shows while no mod is selected: what the menu is, with its
-     * version, the quick launch section, and the notices: a line for each mod that is not available, with the
-     * reason its row in the tree has. A section is left out while it has nothing in it.
+     * version, the quick launch section, and the notices: first a line for each mod whose Saves wrote changes
+     * that take effect after the game is restarted, in this run of the game, after the Restart mark, and then
+     * a line for each mod that is not available, with the reason its row in the tree has. A section is left
+     * out while it has nothing in it.
      * Returns the quick launch entry the ray is on, for the help line.
      */
     std::optional<PointedRow> FullPanel::drawFrontPage()
@@ -729,15 +759,25 @@ namespace mods_config::ui
         }
 
         bool hasNotices = false;
-        for (const auto& mod : _mods) {
-            if (mod.notAvailable.empty()) {
-                continue;
-            }
+        const auto notices = [&hasNotices] {
             if (!hasNotices) {
                 ImGui::SeparatorText("Notices");
                 hasNotices = true;
             }
-            pageText(std::format("{} is not available: {}.", mod.displayName, mod.notAvailable));
+        };
+        for (const auto& mod : _mods) {
+            const auto* store = storeOf(mod);
+            const auto restarts = store ? store->savedRestartCount(mod) : 0;
+            if (restarts > 0) {
+                notices();
+                restartNotice(std::format("Restart the game: {} has {} saved change{} effect then.", mod.displayName, restarts, restarts == 1 ? " that takes" : "s that take"));
+            }
+        }
+        for (const auto& mod : _mods) {
+            if (!mod.notAvailable.empty()) {
+                notices();
+                pageText(std::format("{} is not available: {}.", mod.displayName, mod.notAvailable));
+            }
         }
         return pointed;
     }

@@ -800,6 +800,45 @@ TEST_CASE("FullPanel render: a Save that failed, with a short reason and with on
     WARN("Saved " << renderToFile(panel, "package-save-failed-long", POINTER_AWAY));
 }
 
+TEST_CASE("FullPanel render: settings that take effect after a restart, their status before and after the Save, and the notice of the menu's front page", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "Immersive Flashlight VR", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "stepper", "valueType": "int", "id": "shadowSize", "text": "Shadow size", "help": "How sharp the beam's shadows are. Larger costs frame time.",
+              "default": 2048, "applies": "restart", "valueOptions": { "options": [ { "value": 1024, "text": "1024" }, { "value": 2048, "text": "2048" },
+              { "value": 4096, "text": "4096" } ] }, "storage": { "path": ["Main", "iShadowSize"] } },
+            { "type": "slider", "valueType": "float", "text": "Brightness", "default": 1.0, "valueOptions": { "min": 0.0, "max": 2.0, "step": 0.05 },
+              "storage": { "path": ["Main", "fBrightness"] } },
+            { "type": "switcher", "text": "A long name of a setting that needs a restart and warns", "default": false, "applies": "restart",
+              "warnings": [ { "when": { "setting": "shadowSize", "equals": 4096 }, "text": "Costly." } ], "storage": { "path": ["Main", "bLong"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    std::vector<model::Mod> mods;
+    mods.push_back(std::move(*mod));
+    mods.push_back(model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .frontPage = {}, .pages = {}, .notAvailable = "its plugin SS2.esm is not loaded" });
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods(std::move(mods));
+    panel.select({ .mod = 0, .page = {} });
+    const auto& items = panel.mods()[0].frontPage.items;
+    store.set(std::get<model::Setting>(items[0]), 4096);
+    store.set(std::get<model::Setting>(items[1]), 1.25f);
+
+    WARN("Saved " << renderToFile(panel, "package-restart-row", pageRow(0)));
+    WARN("Saved " << renderToFile(panel, "package-restart-pending", POINTER_AWAY));
+    REQUIRE(store.save());
+    WARN("Saved " << renderToFile(panel, "package-restart-saved", POINTER_AWAY));
+    panel.select({});
+    WARN("Saved " << renderToFile(panel, "front-page-restart-notice", POINTER_AWAY));
+}
+
 TEST_CASE("FullPanel render: values the player typed that are not valid, which disable Save, and a text with a most of characters as it is typed", "[.render]")
 {
     const test_files::TempFolder myGames;

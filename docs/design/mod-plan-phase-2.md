@@ -58,7 +58,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M55 | mod  | Validation                                                                                | in review |
 | M116 | mod | The save summary                                                                          | rejected |
 | M57 | mod  | The unsaved-changes prompt                                                                | in review |
-| M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | todo   |
+| M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | in review |
 | M60 | mod  | A package whose requirements are missing is not available                                 | todo   |
 | M61 | mod  | A package's errors are reported                                                           | todo   |
 
@@ -87,7 +87,7 @@ M116 is rejected: Save has no summary of the invalid values. Save is disabled wh
 
 M57 asks before a mod with unsaved changes is left: for another mod, for the menu's front page, and as the menu is closed by the title bar, the wrist or the gesture, which shows a minimized panel again. The dialog is the design system's ConfirmDialog. Save and Discard then do what the player was about to do, and Cancel and Back stay on the mod. A Save that fails stays too, with its reason in the status, and Save is disabled while a change is invalid.
 
-M58 shows a package's `applies`. The help line says when the change of the pointed row takes effect, a row that needs a restart is marked, and a Save that wrote one says that the game has to be restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 8 there is no client, so a `live` setting is handled as `save`.
+M58 shows a package's `applies`, as the design system's RestartNotice has it. The help line says when the change of the pointed row takes effect, a row that needs a restart has the Restart mark, and the status counts the pending changes that need one. A Save that wrote one says that the game has to be restarted until the next change, a Save that wrote none says Saved, and the menu's front page has a notice for each mod with such a change until the game is restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 8 there is no client, so a `live` setting of a file is handled as `save`: a `live` global or property is previewed by the store itself.
 
 M61 reports a package's errors in the log. It also weighs a page in the menu with each package's errors, for its author, as DearModdingUI's Health page has them.
 

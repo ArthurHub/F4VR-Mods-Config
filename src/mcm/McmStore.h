@@ -91,6 +91,27 @@ namespace mods_config::mcm
             return 0;
         }
 
+        // an MCM config does not say when a change takes effect
+        std::optional<model::Applies> applies(const model::Setting&) const override
+        {
+            return std::nullopt;
+        }
+
+        std::size_t dirtyRestartCount() const override
+        {
+            return 0;
+        }
+
+        std::optional<std::size_t> lastSave() const override
+        {
+            return std::nullopt;
+        }
+
+        std::size_t savedRestartCount(const model::Mod&) const override
+        {
+            return 0;
+        }
+
         std::expected<void, std::string> save() override
         {
             return {};

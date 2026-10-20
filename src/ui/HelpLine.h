@@ -23,14 +23,16 @@ namespace mods_config::ui
 
     /**
      * How the status of the help line looks: plain in the muted color, in amber after the pending mark while
-     * changes wait for a Save, or in red after the invalid mark while a change is invalid and for a Save that
-     * failed.
+     * changes wait for a Save, in red after the invalid mark while a change is invalid and for a Save that
+     * failed, or in green after the Restart mark for a Save that wrote a change that takes effect after a
+     * restart.
      */
     enum class StatusLook : std::uint8_t
     {
         Plain,
         Pending,
         Invalid,
+        Restart,
     };
 
     /**

@@ -86,6 +86,8 @@ namespace mods_config::ui
     bool button(const char* label, const ImRect& box, ButtonLook look);
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
     ImU32 valueColor(ValueLook look);
+    float restartMarkWidth();
+    void drawRestartMark(float left, float middle);
     void drawPendingMark(const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);
     void drawWarningMark(const ImVec2& center);

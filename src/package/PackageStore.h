@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -38,6 +39,9 @@ namespace mods_config::package
      * for an invalid one, which leaves the preview before it, and
      * its baseline is written back as it is set back, discarded, or its session ends. Save writes them after
      * the files, and then runs the action of each setting it wrote.
+     * A setting takes effect as its `applies` says, but a `live` one of a file, which has no native client to
+     * preview it, takes effect after Save. The store keeps the ones that take effect after a restart that a
+     * Save wrote, for each mod, until the game is restarted.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
     class PackageStore : public model::Store
@@ -66,6 +70,15 @@ namespace mods_config::package
         bool isDirty(const model::Setting& setting) const override;
         std::size_t dirtyCount() const override;
         std::size_t invalidCount() const override;
+        std::optional<model::Applies> applies(const model::Setting& setting) const override;
+        std::size_t dirtyRestartCount() const override;
+
+        std::optional<std::size_t> lastSave() const override
+        {
+            return _lastSave;
+        }
+
+        std::size_t savedRestartCount(const model::Mod& mod) const override;
         std::expected<void, std::string> save() override;
 
         std::string_view saveFailure() const override
@@ -143,5 +156,13 @@ namespace mods_config::package
 
         // why the last Save did not write every dirty setting, until the next change, Save or Discard
         std::string _saveFailure;
+
+        // how many settings that take effect after a restart the last Save wrote, until the next change or
+        // Discard. None while there is no such Save
+        std::optional<std::size_t> _lastSave;
+
+        // the ids of the settings that take effect after a restart that a Save wrote in this run of the game,
+        // by the name of their mod. It outlives the session
+        std::map<std::string, std::set<std::string, std::less<>>, std::less<>> _savedForRestart;
     };
 }

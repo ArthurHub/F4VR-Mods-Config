@@ -2079,7 +2079,7 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": "As it is changed",
-                  "help": "It has its own applies, live.",
+                  "help": "It has its own applies, live. It is kept in a file, so it takes effect after Save until the mod has a native client.",
                   "applies": "live",
                   "default": true,
                   "storage": { "path": ["Applies", "bLive"] }

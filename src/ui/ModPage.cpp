@@ -189,13 +189,22 @@ namespace
 
     /**
      * The text of a row at a place, after the gutter and up to a right edge. A text whose tags give it pieces
-     * is drawn in their sizes and colors, and any other as its plain text. A row that warns has the warning
-     * mark after its text, which shortens with an ellipsis before the mark does, so the mark always shows.
+     * is drawn in their sizes and colors, and any other as its plain text. A setting that takes effect after
+     * a restart has the Restart mark after its text, and a row that warns the warning mark after that. The
+     * text shortens with an ellipsis before a mark does, so the marks always show.
      */
-    void drawLabel(const ImVec2& pos, const Gutter& gutter, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const bool warned = false)
+    void drawLabel(const ImVec2& pos, const Gutter& gutter, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const bool warned = false,
+        const bool restart = false)
     {
         const float left = pos.x + gutter.width + theme::SPACE_3;
-        const float textRight = warned ? right - theme::SPACE_2 - ui::WARNING_MARK_WIDTH : right;
+        const float restartWidth = restart ? ui::restartMarkWidth() : 0.0f;
+        float textRight = right;
+        if (restart) {
+            textRight -= theme::SPACE_2 + restartWidth;
+        }
+        if (warned) {
+            textRight -= theme::SPACE_2 + ui::WARNING_MARK_WIDTH;
+        }
         float width = 0.0f;
         if (runs.empty()) {
             ui::drawText(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
@@ -203,9 +212,14 @@ namespace
         } else {
             width = ui::drawTextRuns(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, runs);
         }
+        const float middle = pos.y + theme::CONTROL_HEIGHT * 0.5f;
+        float markLeft = left + width + (width > 0.0f ? theme::SPACE_2 : 0.0f);
+        if (restart) {
+            ui::drawRestartMark(markLeft, middle);
+            markLeft += restartWidth + theme::SPACE_2;
+        }
         if (warned) {
-            const float markLeft = left + width + (width > 0.0f ? theme::SPACE_2 : 0.0f);
-            ui::drawWarningMark(ImVec2(markLeft + ui::WARNING_MARK_WIDTH * 0.5f, pos.y + theme::CONTROL_HEIGHT * 0.5f));
+            ui::drawWarningMark(ImVec2(markLeft + ui::WARNING_MARK_WIDTH * 0.5f, middle));
         }
     }
 
@@ -365,6 +379,18 @@ namespace
     constexpr std::string_view READ_ONLY = "(Read-only)";
 
     /**
+     * What the help line says of when a setting's change takes effect, after the row's help: nothing for one
+     * that takes effect as it is made, and for one whose store does not know.
+     */
+    std::string_view takesEffect(const std::optional<model::Applies> applies)
+    {
+        if (applies == model::Applies::Save) {
+            return "Takes effect after Save.";
+        }
+        return applies == model::Applies::Restart ? "Takes effect after the game is restarted." : std::string_view();
+    }
+
+    /**
      * The parts of a help that are not empty, with a space between each two.
      */
     std::string joinHelp(const std::initializer_list<std::string_view> parts)
@@ -442,11 +468,13 @@ namespace
      * control has its value in their colors.
      * A read-only setting is drawn as its control with its value, disabled, with the look of a row under the
      * ray and none of a press, and no Reset. One whose storage has no value shows none in its control.
-     * A setting whose warning holds has the warning mark after its text, and one that is invalid has none:
-     * what is wrong comes first.
+     * A setting that takes effect after the game is restarted has the Restart mark after its text, whether it
+     * is changed or not. A setting whose warning holds has the warning mark after its text, and one that is
+     * invalid has none: what is wrong comes first.
      * Returns whether the ray is on the row or on its open list, and tells the help of the row: why a value
      * is not available, what Reset gives while the ray is on it, why a value is invalid, and else the row's
-     * own, after `(Read-only)` for a read-only setting, with a percentage's number and its default. And the
+     * own, after `(Read-only)` for a read-only setting, with a percentage's number, when it takes effect but
+     * as it is made, and its default. And the
      * warning of a row that has the mark, and whether the help is why the value is invalid.
      */
     bool drawSetting(const model::Setting& setting, const PageDrawing& page, const Gutter& gutter, std::string& help, std::string_view& warning, bool& invalid)
@@ -529,6 +557,7 @@ namespace
         }
         // on the pending value, as it is after a press in this frame
         const auto warns = stored.invalid ? std::string_view() : warningOf(setting.warnings, page.store);
+        const auto applies = page.store ? page.store->applies(setting) : std::nullopt;
 
         // the ray is on the list then, and the help line keeps the row of its dropdown
         const bool listOpen = page.choices.isListOpen(setting);
@@ -543,7 +572,7 @@ namespace
                 invalid = stored.invalid;
             } else {
                 const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, choiceOptions, *defaultValue)) : std::string();
-                help = joinHelp({ setting.readOnly ? READ_ONLY : std::string_view(), setting.help, numberDetail(setting, stored, value), defaultText });
+                help = joinHelp({ setting.readOnly ? READ_ONLY : std::string_view(), setting.help, numberDetail(setting, stored, value), takesEffect(applies), defaultText });
             }
         }
         if (!row.shown) {
@@ -578,7 +607,7 @@ namespace
             break;
         }
         }
-        drawLabel(pos, gutter, left - theme::SPACE_3, setting.text, setting.textRuns, !warns.empty());
+        drawLabel(pos, gutter, left - theme::SPACE_3, setting.text, setting.textRuns, !warns.empty(), applies == model::Applies::Restart);
         ImGui::EndDisabled();
         if (defaultValue) {
             ImGui::BeginDisabled(!resets);

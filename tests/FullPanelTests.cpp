@@ -2250,6 +2250,72 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     CHECK(panel.helpLine().statusLook() == ui::StatusLook::Plain);
 }
 
+TEST_CASE("FullPanel: a package's setting says when its change takes effect, and the status counts the ones that take effect after a restart, until the next change")
+{
+    const test_panel::PanelContext context;
+    const test_globals::TestGlobals globals = someGlobals();
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "switcher", "text": "Shadows", "help": "Draws shadows.", "default": false, "applies": "restart",
+              "storage": { "path": ["Main", "bShadows"] } },
+            { "type": "switcher", "text": "Beam", "default": false, "storage": { "path": ["Main", "bBeam"] } },
+            { "type": "switcher", "text": "Glow", "default": false, "applies": "restart", "storage": { "path": ["Main", "bGlow"] } },
+            { "type": "switcher", "text": "Live", "default": false, "applies": "live", "storage": { "global": "MyMod.esp|800" } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // the help says it before the default, but for one that takes effect as it is made
+    test_panel::drawFrame(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. Takes effect after the game is restarted. (Default: off)");
+    test_panel::drawFrame(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Beam: Takes effect after Save. (Default: off)");
+    test_panel::drawFrame(panel, pageRow(3));
+    CHECK(panel.helpLine().text() == "Live: (Default: off)");
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "2 unsaved changes, 1 takes effect after a restart");
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Pending);
+    CHECK(pressActs(panel, pageRow(2)));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "3 unsaved changes, 2 take effect after a restart");
+
+    CHECK(pressActs(panel, saveButton()));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "Saved. 2 changes take effect after the game is restarted.");
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Restart);
+    // the next change ends it
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "1 unsaved change");
+
+    // a Save of none says so
+    CHECK(pressActs(panel, saveButton()));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "Saved");
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Plain);
+
+    // the mod keeps its changes for a restart as it is left
+    panel.select({});
+    CHECK(store.savedRestartCount(panel.mods()[0]) == 2);
+    panel.select(selectionOf(0));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+}
+
 TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them back, and both are disabled while none waits")
 {
     const test_panel::PanelContext context;
@@ -2282,7 +2348,7 @@ TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them bac
     CHECK(pressActs(panel, pageRow(0)));
     CHECK(pressActs(panel, saveButton()));
     CHECK(store.dirtyCount() == 0);
-    CHECK(panel.helpLine().status() == "No unsaved changes");
+    CHECK(panel.helpLine().status() == "Saved");
     std::ostringstream text;
     text << std::ifstream(file, std::ios::binary).rdbuf();
     CHECK(text.str() == "[Main]\r\nbEnable = true\r\n");
@@ -2372,7 +2438,7 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
 
     // the row the ray is on has its help over it, and the status is there again as the ray leaves
     test_panel::drawFrame(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Other: (Default: off)");
+    CHECK(panel.helpLine().text() == "Other: Takes effect after Save. (Default: off)");
     drawFrames(panel, 1);
     CHECK(panel.helpLine().status() == "Not saved: MyMod.toml cannot be written.");
 
@@ -2397,7 +2463,7 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
     }
     CHECK(pressActs(panel, saveButton()));
     drawFrames(panel, 1);
-    CHECK(panel.helpLine().status() == "No unsaved changes");
+    CHECK(panel.helpLine().status() == "Saved");
     CHECK(store.dirtyCount() == 0);
 }
 
@@ -2673,14 +2739,14 @@ TEST_CASE("FullPanel: a package's setting and button tell the first warning that
     drawFrames(panel, 2);
 
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. Takes effect after Save. (Default: off)");
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Rebuild");
 
     // a pending value warns, and blocks nothing
     CHECK(pressActs(panel, pageRow(0)));
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Shadows: Costly. Draws shadows. (Default: off)");
+    CHECK(panel.helpLine().text() == "Shadows: Costly. Draws shadows. Takes effect after Save. (Default: off)");
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Rebuild: Load the save again.");
     point(panel, pageRow(2));
@@ -2690,7 +2756,7 @@ TEST_CASE("FullPanel: a package's setting and button tell the first warning that
     // and is gone with the value
     CHECK(pressActs(panel, pageRow(0)));
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. Takes effect after Save. (Default: off)");
 }
 
 TEST_CASE("FullPanel: the help line writes a number as its display does, with a percentage's number, and a unit its box has no room for")
@@ -2720,13 +2786,13 @@ TEST_CASE("FullPanel: the help line writes a number as its display does, with a 
     drawFrames(panel, 2);
 
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Ray opacity: How solid the ray is. 85% (217 of 255). (Default: 100%)");
+    CHECK(panel.helpLine().text() == "Ray opacity: How solid the ray is. 85% (217 of 255). Takes effect after Save. (Default: 100%)");
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Ray opacity: Reset to 100%");
     point(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Draw distance: How far it is drawn. 250000 meters. (Default: 1000 meters)");
+    CHECK(panel.helpLine().text() == "Draw distance: How far it is drawn. 250000 meters. Takes effect after Save. (Default: 1000 meters)");
     point(panel, pageRow(2));
-    CHECK(panel.helpLine().text() == "Height: (Default: 1.75 m)");
+    CHECK(panel.helpLine().text() == "Height: Takes effect after Save. (Default: 1.75 m)");
 }
 
 TEST_CASE("FullPanel: a package's Reset is a change as any other, which Save writes and Discard takes back")
@@ -2973,15 +3039,15 @@ TEST_CASE("FullPanel: a section that folds starts as its collapsed says, and a p
 
     // Advanced is folded, and Open is open
     point(panel, pageRow(3));
-    CHECK(panel.helpLine().text() == "Shown: In the open section.");
+    CHECK(panel.helpLine().text() == "Shown: In the open section. Takes effect after Save.");
 
     CHECK(pressActs(panel, pageRow(1)));
     point(panel, pageRow(3));
-    CHECK(panel.helpLine().text() == "Inner: In the folded section.");
+    CHECK(panel.helpLine().text() == "Inner: In the folded section. Takes effect after Save.");
 
     CHECK(pressActs(panel, pageRow(1)));
     point(panel, pageRow(3));
-    CHECK(panel.helpLine().text() == "Shown: In the open section.");
+    CHECK(panel.helpLine().text() == "Shown: In the open section. Takes effect after Save.");
 
     // the heading of Open, with no help, and the one that does not fold, where its row was
     CHECK(pressActs(panel, pageRow(2)));
@@ -3008,7 +3074,7 @@ TEST_CASE("FullPanel: a section that folds starts as its collapsed says each tim
         point(panel, pageRow(2));
         CHECK(panel.helpLine().text() == "Open");
         point(panel, pageRow(3));
-        CHECK(panel.helpLine().text() == "Shown: In the open section.");
+        CHECK(panel.helpLine().text() == "Shown: In the open section. Takes effect after Save.");
     };
 
     // after another page

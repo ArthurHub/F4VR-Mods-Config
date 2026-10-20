@@ -47,7 +47,8 @@ namespace mods_config::ui
     /**
      * What the line says while the ray is on no row: the status of the mod's editing session, and nothing
      * where there is none, as on the menu's front page. A status of changes that wait for a Save is pending,
-     * and one of changes that are invalid, or of a Save that failed, is invalid.
+     * one of changes that are invalid, or of a Save that failed, is invalid, and one of a Save that wrote a
+     * change that takes effect after a restart is the Restart one.
      */
     void HelpLine::setStatus(const std::string_view status, const StatusLook look)
     {
@@ -61,18 +62,25 @@ namespace mods_config::ui
      * three lines fit, and a longer one ends in an ellipsis. A warning is in amber after the warning mark,
      * and why a row is invalid in red after the invalid mark.
      * With no row it is the status, in the muted color, in amber after the pending mark while changes wait
-     * for a Save, or in red after the invalid mark while a change is invalid and for a Save that failed,
+     * for a Save, in green after the Restart mark for a Save that wrote a change that takes effect after a
+     * restart, or in red after the invalid mark while a change is invalid and for a Save that failed,
      * wrapped as a help is.
      */
     void HelpLine::draw(const ImVec2& pos, const float width) const
     {
         const bool hasRow = !_name.empty() || !_warning.empty() || !_help.empty();
+        const float middle = pos.y + theme::FOOTER_HEIGHT * 0.5f;
         if (!hasRow && _look == StatusLook::Pending) {
             constexpr float MARK_WIDTH = 10.0f;
-            const float middle = pos.y + theme::FOOTER_HEIGHT * 0.5f;
             drawPendingMark(ImVec2(pos.x + MARK_WIDTH * 0.5f, middle));
             const float left = pos.x + MARK_WIDTH + theme::SPACE_2;
             drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::AMBER, _status);
+            return;
+        }
+        if (!hasRow && _look == StatusLook::Restart) {
+            drawRestartMark(pos.x, middle);
+            const float left = pos.x + restartMarkWidth() + theme::SPACE_2;
+            drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::GREEN, _status);
             return;
         }
         const bool invalid = hasRow ? _invalid : _look == StatusLook::Invalid;

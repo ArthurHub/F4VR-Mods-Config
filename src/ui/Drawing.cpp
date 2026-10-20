@@ -23,6 +23,11 @@ namespace
     constexpr float UNDERLINE_OFFSET = 0.0625f;
     constexpr float UNDERLINE_THICKNESS = 0.042f;
 
+    // the text of the Restart mark, and its height: a line of the detail size of 22 inside its outline, as the
+    // design system's tag has it
+    constexpr auto RESTART_TEXT = "Restart";
+    constexpr float RESTART_MARK_HEIGHT = 22.0f + theme::BORDER_FRAME * 2.0f;
+
     /**
      * How a piece of text looks: its font size, its color, and its face.
      */
@@ -482,6 +487,31 @@ namespace mods_config::ui
             break;
         }
         return theme::color::GREEN;
+    }
+
+    /**
+     * The width of the Restart mark: its text in the detail size, with the room inside its outline.
+     */
+    float restartMarkWidth()
+    {
+        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+        const float width = textWidth(RESTART_TEXT);
+        ImGui::PopFont();
+        return std::ceil(width + (theme::SPACE_2 + theme::BORDER_FRAME) * 2.0f);
+    }
+
+    /**
+     * The mark of a setting that takes effect after the game is restarted, from its left in the middle of a
+     * height: `Restart` in the detail size and the muted color, in an outline of a frame's border.
+     */
+    void drawRestartMark(const float left, const float middle)
+    {
+        const ImVec2 min(std::floor(left), std::floor(middle - RESTART_MARK_HEIGHT * 0.5f));
+        const ImVec2 max(min.x + restartMarkWidth(), min.y + RESTART_MARK_HEIGHT);
+        drawOutline(min, max, theme::color::FRAME_BORDER);
+        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+        drawText(min.x + theme::BORDER_FRAME + theme::SPACE_2, max.x, min.y, RESTART_MARK_HEIGHT, theme::color::GREEN_MUTED, RESTART_TEXT);
+        ImGui::PopFont();
     }
 
     /**

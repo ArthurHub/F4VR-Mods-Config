@@ -355,6 +355,23 @@ namespace
     }
 
     /**
+     * Where a setting that is saved keeps its value, as a key that stays the same as its package is read
+     * again: the name of its file in the package with its path, or its global or its property.
+     */
+    std::string storageKey(const model::Setting& setting)
+    {
+        const auto* file = std::get_if<model::FileStorage>(&setting.storage);
+        if (!file) {
+            return gameName(setting.storage);
+        }
+        auto key = file->file;
+        for (const auto& name : file->path) {
+            key += '/' + name;
+        }
+        return key;
+    }
+
+    /**
      * A value of the game in the type of a setting's value: a bool is on at any number but 0, as Papyrus casts
      * a number to a bool, a whole number is the nearest one, and a bool is 1 and 0 as a number. None for a
      * text as a number, and for a number as a text.
@@ -605,8 +622,9 @@ namespace mods_config::package
     }
 
     /**
-     * Ends the session of the mod: its values are forgotten, also the pending ones and why a Save failed, and
-     * the game has the baseline of each setting that is previewed again.
+     * Ends the session of the mod: its values are forgotten, also the pending ones, why a Save failed and the
+     * last Save, and the game has the baseline of each setting that is previewed again. The settings that take
+     * effect after a restart that its Saves wrote are kept.
      * It does not read the mod, which can be gone by now: the menu's mods are replaced before it is called.
      */
     void PackageStore::close()
@@ -619,6 +637,7 @@ namespace mods_config::package
         _settings.clear();
         _entries.clear();
         _saveFailure.clear();
+        _lastSave.reset();
     }
 
     /**
@@ -668,7 +687,7 @@ namespace mods_config::package
      * does not write it. One that is no value of the setting, as a number outside its limits or a text that is
      * no number, is pending and invalid, with the reason, and Save writes nothing while it is. A `live` setting
      * of the game is previewed: the game has its value at once, but for an invalid one, which leaves the
-     * preview before it. A value that is set ends the failure of the last Save.
+     * preview before it. A value that is set ends the last Save, and its failure.
      * Returns false for a value that is not set: one of a setting that is read-only or not available, and one
      * that is not of the type its control shows.
      */
@@ -685,6 +704,7 @@ namespace mods_config::package
         }
         auto& entry = found->second;
         _saveFailure.clear();
+        _lastSave.reset();
         if (entry.baseline && isSameValue(*typed, *entry.baseline)) {
             entry.pending.reset();
             entry.pendingInvalid.clear();
@@ -692,7 +712,7 @@ namespace mods_config::package
             entry.pendingInvalid = typedReason(setting, _options.of(setting), *typed);
             entry.pending = std::move(*typed);
         }
-        if (isInGame(setting.storage) && setting.applies == model::Applies::Live && entry.pendingInvalid.empty()) {
+        if (applies(setting) == model::Applies::Live && entry.pendingInvalid.empty()) {
             preview(setting, entry);
         }
         return true;
@@ -727,11 +747,41 @@ namespace mods_config::package
     }
 
     /**
+     * When a change of a setting takes effect, as its `applies` says. A `live` one of a file takes effect
+     * after Save: the mod has no native client yet, so its preview has nowhere to go, and the store previews
+     * only a global and a property. None for a read-only setting, which is not set.
+     */
+    std::optional<model::Applies> PackageStore::applies(const model::Setting& setting) const
+    {
+        if (setting.readOnly) {
+            return std::nullopt;
+        }
+        if (setting.applies == model::Applies::Live && !isInGame(setting.storage)) {
+            return model::Applies::Save;
+        }
+        return setting.applies;
+    }
+
+    std::size_t PackageStore::dirtyRestartCount() const
+    {
+        return static_cast<std::size_t>(std::ranges::count_if(_entries, [this](const auto& entry) {
+            return entry.second.pending && applies(*entry.first) == model::Applies::Restart;
+        }));
+    }
+
+    std::size_t PackageStore::savedRestartCount(const model::Mod& mod) const
+    {
+        const auto found = _savedForRestart.find(mod.name);
+        return found != _savedForRestart.end() ? found->second.size() : 0;
+    }
+
+    /**
      * Writes the dirty settings into their files, each file in one write, in the order of the package, and a
      * setting then has the value written as its baseline. A file is read again as it is written, so a value
      * that changed in it since the session started stays, but for one the player changed too, and a file that
      * is not there is created. The dirty settings of the game are written after every file, and the action of
-     * each setting that was written runs then, in the order of the package, with the value written.
+     * each setting that was written runs then, in the order of the package, with the value written. The ones
+     * written that take effect after a restart are kept for the mod, and how many they are is the last Save.
      * Nothing is written before every file has its new text, checked to read back, and every global and
      * property is in the game, and the files already written are put back when a write fails: a Save that
      * fails changes no file and no value of the game, and keeps every setting dirty.
@@ -746,6 +796,7 @@ namespace mods_config::package
             return std::unexpected(std::format("{} value{} not valid", invalid, invalid == 1 ? " is" : "s are"));
         }
         _saveFailure.clear();
+        _lastSave.reset();
         const auto failed = [this](const std::string& reason) {
             _saveFailure = reason;
             return std::unexpected(reason);
@@ -829,12 +880,19 @@ namespace mods_config::package
             wrote(setting);
         }
 
+        std::size_t restarts = 0;
         for (const auto* setting : _settingList) {
-            if (written.contains(setting)) {
-                runAction(*setting, *_entries.at(setting).baseline);
+            if (!written.contains(setting)) {
+                continue;
+            }
+            runAction(*setting, *_entries.at(setting).baseline);
+            if (applies(*setting) == model::Applies::Restart) {
+                _savedForRestart[_modName].insert(storageKey(*setting));
+                ++restarts;
             }
         }
-        logger::info("Saved {} changes of '{}'", written.size(), _modName);
+        _lastSave = restarts;
+        logger::info("Saved {} changes of '{}', {} of them take effect after a restart", written.size(), _modName, restarts);
         if (!saved) {
             return failed(saved.error());
         }
@@ -843,12 +901,14 @@ namespace mods_config::package
 
     /**
      * Takes back the pending values: each setting has its baseline again, also an invalid one of its file,
-     * and the game has the baseline of each setting that is previewed again. A Save that failed is over.
+     * and the game has the baseline of each setting that is previewed again. The last Save is over, also one
+     * that failed.
      */
     void PackageStore::discard()
     {
         rollBack();
         _saveFailure.clear();
+        _lastSave.reset();
         for (auto& entry : _entries | std::views::values) {
             entry.pending.reset();
             entry.pendingInvalid.clear();

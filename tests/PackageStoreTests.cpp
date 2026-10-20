@@ -975,6 +975,100 @@ TEST_CASE("PackageStore: a read-only setting has its file's value as it is, none
     CHECK(session.value(0).value == model::Value(1.78f));
 }
 
+namespace
+{
+    // a setting of each applies, of a file and of the game, and a read-only one
+    constexpr auto APPLIES_SETTINGS = R"(
+        { "type": "switcher", "valueType": "bool", "text": "Live", "default": true, "storage": { "path": ["Main", "bLive"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Save", "default": true, "applies": "save", "storage": { "path": ["Main", "bSave"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Restart", "default": true, "applies": "restart", "storage": { "path": ["Main", "bRestart"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Also restart", "default": true, "applies": "restart", "storage": { "path": ["Main", "bAlso"] } },
+        { "type": "slider", "valueType": "float", "text": "Time of day", "default": 12.0, "valueOptions": { "min": 0, "max": 24, "step": 0.5 },
+          "storage": { "global": "Fallout4.esm|38" } },
+        { "type": "switcher", "valueType": "bool", "text": "Read", "readOnly": true, "applies": "restart", "storage": { "path": ["Main", "bRead"] } }
+    )";
+}
+
+TEST_CASE("PackageStore: a setting takes effect as its applies says, but a live one of a file after Save, and a read-only one never")
+{
+    TestGame game;
+    Session session(APPLIES_SETTINGS);
+    session.open("[Main]\r\n");
+    CHECK(session.store.applies(session.setting(0)) == model::Applies::Save);
+    CHECK(session.store.applies(session.setting(1)) == model::Applies::Save);
+    CHECK(session.store.applies(session.setting(2)) == model::Applies::Restart);
+    CHECK(session.store.applies(session.setting(4)) == model::Applies::Live);
+    CHECK_FALSE(session.store.applies(session.setting(5)));
+
+    // a live one of a file is not in the game, so a change of it is only pending
+    CHECK(session.store.set(session.setting(0), false));
+    CHECK(session.store.isDirty(session.setting(0)));
+}
+
+TEST_CASE("PackageStore: the changes that take effect after a restart are counted while pending, by the last Save, and for the mod until the game is restarted")
+{
+    TestGame game;
+    Session session(APPLIES_SETTINGS);
+    session.open("[Main]\r\n");
+    CHECK_FALSE(session.store.lastSave());
+    CHECK(session.store.savedRestartCount(session.mod) == 0);
+
+    CHECK(session.store.set(session.setting(1), false));
+    CHECK(session.store.set(session.setting(2), false));
+    CHECK(session.store.dirtyCount() == 2);
+    CHECK(session.store.dirtyRestartCount() == 1);
+
+    CHECK(session.store.save());
+    CHECK(session.store.dirtyRestartCount() == 0);
+    CHECK(session.store.lastSave() == 1u);
+    CHECK(session.store.savedRestartCount(session.mod) == 1);
+
+    // the next change ends the last Save, and a Save of no restart says none
+    CHECK(session.store.set(session.setting(1), true));
+    CHECK_FALSE(session.store.lastSave());
+    CHECK(session.store.save());
+    CHECK(session.store.lastSave() == 0u);
+
+    // a setting that is set back and saved again counts once, and still counts
+    CHECK(session.store.set(session.setting(2), true));
+    CHECK(session.store.set(session.setting(3), false));
+    CHECK(session.store.save());
+    CHECK(session.store.lastSave() == 2u);
+    CHECK(session.store.savedRestartCount(session.mod) == 2);
+
+    // Discard ends the last Save, and so does the end of the session, which keeps the mod's count
+    CHECK(session.store.set(session.setting(1), false));
+    session.store.discard();
+    CHECK_FALSE(session.store.lastSave());
+    CHECK(session.store.set(session.setting(1), false));
+    CHECK(session.store.save());
+    session.store.close();
+    CHECK_FALSE(session.store.lastSave());
+    CHECK(session.store.savedRestartCount(session.mod) == 2);
+    session.store.open(session.mod);
+    CHECK(session.store.savedRestartCount(session.mod) == 2);
+
+    // a mod of another name has none
+    auto other = session.mod;
+    other.name = "OtherMod";
+    CHECK(session.store.savedRestartCount(other) == 0);
+}
+
+TEST_CASE("PackageStore: a Save that fails is no last Save, and counts no change for a restart")
+{
+    TestGame game;
+    Session session(APPLIES_SETTINGS);
+    session.open("[Main]\r\n");
+    CHECK(session.store.set(session.setting(2), false));
+    {
+        const test_files::ReadOnly readOnly(session.myGames.path / MOD_FILE);
+        CHECK_FALSE(session.store.save());
+    }
+    CHECK_FALSE(session.store.lastSave());
+    CHECK(session.store.savedRestartCount(session.mod) == 0);
+    CHECK(session.store.dirtyRestartCount() == 1);
+}
+
 TEST_CASE("PackageStore: every setting of the mod's own package is available, valid and clean with the shipped config")
 {
     const auto mods = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);

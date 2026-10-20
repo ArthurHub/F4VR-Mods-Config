@@ -109,6 +109,30 @@ namespace mods_config::model
         virtual std::size_t invalidCount() const = 0;
 
         /**
+         * When a change of a setting takes effect in its running mod, as the store makes it. None for a setting
+         * whose store does not know, as an MCM mod's, and for one that is not set, as a read-only one.
+         */
+        virtual std::optional<Applies> applies(const Setting& setting) const = 0;
+
+        /**
+         * How many dirty settings take effect after the game is restarted.
+         */
+        virtual std::size_t dirtyRestartCount() const = 0;
+
+        /**
+         * The last Save, until the next change, Discard or the end of the session: how many of the settings it
+         * wrote take effect after the game is restarted. None while there is no such Save.
+         */
+        virtual std::optional<std::size_t> lastSave() const = 0;
+
+        /**
+         * How many settings of a mod that take effect after the game is restarted the Saves of this run of the
+         * game wrote. Each counts once, also one that was set back and saved again: the store does not know
+         * what the mod has read.
+         */
+        virtual std::size_t savedRestartCount(const Mod& mod) const = 0;
+
+        /**
          * Writes the dirty settings, which are then clean: the values written are their new baseline. Returns
          * why, for a Save that does not write every one, as `showcase.toml cannot be written`. Nothing is
          * written while a dirty setting is invalid. Nothing for a store that saves a change as it is made.
