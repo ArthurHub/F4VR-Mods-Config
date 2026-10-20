@@ -75,77 +75,6 @@ namespace
     }
 
     /**
-     * An image at the cursor, in the middle of the room the rows' width leaves it. It is as large as in MCM's
-     * menu beside the rows' text, and smaller where that room is not as wide. The row is as high as the image.
-     */
-    void drawImage(const model::Image& image, const ui::ImageDrawer& drawer, const Gutter& gutter)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        const float width = rowWidth();
-        const float room = width - gutter.inset - theme::SPACE_2;
-        const float scale = (std::min)(ui::mcmScale(), room / image.width);
-        const ImVec2 size(std::round(image.width * scale), std::round(image.height * scale));
-        ImGui::Dummy(ImVec2(width, size.y));
-        if (drawer.draw && ImGui::IsItemVisible()) {
-            const ImVec2 topLeft(pos.x + gutter.inset + std::floor((room - size.x) * 0.5f), pos.y);
-            drawer.draw(image, topLeft, ImVec2(topLeft.x + size.x, topLeft.y + size.y));
-        }
-    }
-
-    /**
-     * The size a package's texture is drawn at: the size its package gives, or the texture's own where it
-     * gives none, and the texture's aspect for a side it does not give. A texture the game does not load is
-     * as wide as the room and a control high, for a side its package does not give. One wider than the room
-     * is as wide as it is, with its aspect.
-     */
-    ImVec2 textureSize(const model::Image& image, const std::optional<ImVec2>& own, const float room)
-    {
-        ImVec2 size(image.width, image.height);
-        if (!own) {
-            size = ImVec2(size.x > 0.0f ? size.x : room, size.y > 0.0f ? size.y : theme::CONTROL_HEIGHT);
-        } else if (size.x <= 0.0f && size.y <= 0.0f) {
-            size = *own;
-        } else if (size.x <= 0.0f) {
-            size.x = size.y * own->x / own->y;
-        } else if (size.y <= 0.0f) {
-            size.y = size.x * own->y / own->x;
-        }
-        if (size.x > room) {
-            size = ImVec2(room, size.y * room / size.x);
-        }
-        return ImVec2(std::round(size.x), std::round(size.y));
-    }
-
-    /**
-     * A package's texture at the cursor, in the middle of the room the rows' width leaves it, with room above
-     * and below it. A texture the game does not load is a box of its size with a dashed outline, that names it.
-     */
-    void drawTexture(const model::Image& image, const ui::ImageDrawer& drawer, const Gutter& gutter)
-    {
-        const auto own = drawer.textureSize ? drawer.textureSize(image.texture) : std::nullopt;
-        const auto pos = ImGui::GetCursorScreenPos();
-        const float width = rowWidth();
-        const float room = width - gutter.inset - theme::SPACE_2;
-        const auto size = textureSize(image, own, room);
-        ImGui::Dummy(ImVec2(width, size.y + theme::SPACE_1 * 2.0f));
-        if (!ImGui::IsItemVisible()) {
-            return;
-        }
-        const ImVec2 topLeft(pos.x + gutter.inset + std::floor((room - size.x) * 0.5f), pos.y + theme::SPACE_1);
-        const ImVec2 bottomRight(topLeft.x + size.x, topLeft.y + size.y);
-        if (own && drawer.draw) {
-            drawer.draw(image, topLeft, bottomRight);
-            return;
-        }
-        ui::drawDashedOutline(topLeft, bottomRight, theme::color::FRAME_BORDER);
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const auto text = "Missing: " + image.texture;
-        const float left = (std::max)(topLeft.x + theme::SPACE_2, std::floor((topLeft.x + bottomRight.x - ui::textWidth(text)) * 0.5f));
-        ui::drawText(left, bottomRight.x - theme::SPACE_2, topLeft.y, size.y, theme::color::GREEN_MUTED, text);
-        ImGui::PopFont();
-    }
-
-    /**
      * What a row that was added tells.
      */
     struct Row
@@ -804,9 +733,9 @@ namespace
         void operator()(const model::Image& image) const
         {
             if (image.pixels) {
-                drawImage(image, page.imageDrawer, gutterAt(depth));
+                ui::drawImage(image, page.imageDrawer, rowWidth(), gutterAt(depth).inset);
             } else if (!image.texture.empty()) {
-                drawTexture(image, page.imageDrawer, gutterAt(depth));
+                ui::drawTexture(image, page.imageDrawer, rowWidth(), gutterAt(depth).inset);
             } else {
                 drawRow({}, {}, "image", false, gutterAt(depth));
             }

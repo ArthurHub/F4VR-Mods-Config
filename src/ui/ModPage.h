@@ -1,13 +1,10 @@
 #pragma once
 
-#include <functional>
 #include <optional>
-#include <string>
-
-#include <imgui.h>
 
 #include "Choices.h"
 #include "HelpLine.h"
+#include "PageImages.h"
 #include "Sections.h"
 #include "Sliders.h"
 #include "TextInputs.h"
@@ -16,20 +13,6 @@
 
 namespace mods_config::ui
 {
-    /**
-     * What draws the images of a page. The panel knows nothing of the game, whose renderer an image is drawn
-     * by and which loads a package's texture, so the menu gives the panel what draws one.
-     */
-    struct ImageDrawer
-    {
-        // the size of a package's texture, by its path under `Data/Textures`, in its pixels. None for one the
-        // game does not load, as one that is not there
-        std::function<std::optional<ImVec2>(const std::string& texture)> textureSize;
-
-        // draws an image in a rectangle of the current ImGui window: its pixels, or else its texture
-        std::function<void(const model::Image& image, const ImVec2& min, const ImVec2& max)> draw;
-    };
-
     /**
      * What the drawing of a page tells.
      */
