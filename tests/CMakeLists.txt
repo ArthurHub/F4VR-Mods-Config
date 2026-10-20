@@ -65,6 +65,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/Sliders.cpp
   ${SOURCE_DIR}/ui/TextInputs.cpp
   ${SOURCE_DIR}/ui/ModTree.cpp
+  ${SOURCE_DIR}/ui/UnsavedDialog.cpp
 )
 
 # No link-time optimization: the tests don't need it, and it makes their link slow

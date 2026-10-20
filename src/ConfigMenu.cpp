@@ -81,6 +81,7 @@ namespace mods_config
     {
         _minimizeRequested = false;
         _closeRequested = false;
+        _askToCloseRequested = false;
         _openFrikRequested = false;
         if (!isOpen()) {
             return;
@@ -96,6 +97,23 @@ namespace mods_config
         // the mod that is shown is left, which its scripts are told before they are told of the menu
         _fullPanel.reset();
         _store.menuClosed();
+    }
+
+    /**
+     * Closes the menu as the player does, with the gesture or Close on the wrist: while the mod that is shown
+     * has unsaved changes the panel's dialog asks first, and its Save and Discard close the menu. A panel that
+     * is minimized is shown again for it.
+     */
+    void ConfigMenu::askToClose()
+    {
+        if (!isOpen()) {
+            return;
+        }
+        // with nothing to ask the panel closes the menu with its action, which this frame update does
+        _fullPanel.close();
+        if (_fullPanel.isAsking()) {
+            setMinimized(false);
+        }
     }
 
     /**
@@ -168,7 +186,8 @@ namespace mods_config
     }
 
     /**
-     * Applies what a press asked for: closing the menu, minimizing it, or minimizing it and opening FRIK's config.
+     * Applies what a press asked for: closing the menu, which Close on the wrist asks first, minimizing it, or
+     * minimizing it and opening FRIK's config.
      * It is done here, in the mod's frame update, and not where the press is seen: a wrist button's handler
      * runs while the UI manager iterates its elements, and the panel's content while its frame is built.
      * Back is seen here too. It is a short press of a button of the hand that points at the panel, either hand,
@@ -191,6 +210,10 @@ namespace mods_config
             back();
         }
 
+        if (_askToCloseRequested) {
+            _askToCloseRequested = false;
+            askToClose();
+        }
         if (_openFrikRequested) {
             _openFrikRequested = false;
             setMinimized(true);
@@ -374,7 +397,7 @@ namespace mods_config
         closeButton->setTopText("CLICK");
         closeButton->setMiddleText("CLOSE");
         closeButton->setOnPressHandler([this](UIButtonPanel*) {
-            _closeRequested = true;
+            _askToCloseRequested = true;
         });
 
         _wristButtons = std::make_shared<UIContainer>("ModsConfigVR_WristButtons", UIContainerLayout::HorizontalCenter, WRIST_BUTTON_GAP);

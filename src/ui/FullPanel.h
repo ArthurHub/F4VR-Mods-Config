@@ -13,6 +13,7 @@
 #include "ModPage.h"
 #include "ModTree.h"
 #include "Selection.h"
+#include "UnsavedDialog.h"
 #include "model/Definition.h"
 #include "model/Store.h"
 
@@ -22,7 +23,8 @@ namespace mods_config::ui
      * The content of the Full panel, drawn with ImGui as the design system has it: the title bar with its
      * breadcrumbs and its Help, Minimize and Close, the tree of the mods, beside it the menu's front page, a
      * page of the selected mod or the Help page, and the footer with the help line, and Discard and Save.
-     * It knows nothing of the game, so a test draws it too.
+     * Before a mod with unsaved changes is left, or the menu is closed from it, a dialog asks to Save, Discard
+     * or Cancel. It knows nothing of the game, so a test draws it too.
      */
     class FullPanel
     {
@@ -57,6 +59,7 @@ namespace mods_config::ui
         void setThumbstickSideValue(float value);
         void setTreeWidth(float width);
         bool select(const Selection& selection);
+        bool close();
         bool showHelp(bool shown);
         bool back();
         void reset();
@@ -83,6 +86,13 @@ namespace mods_config::ui
         bool isHelpShown() const
         {
             return _helpShown;
+        }
+
+        // whether the dialog asks what to do with the selected mod's unsaved changes, before the mod is left or
+        // the menu is closed
+        bool isAsking() const
+        {
+            return _leaving.has_value();
         }
 
         /**
@@ -120,7 +130,20 @@ namespace mods_config::ui
             std::optional<PointedRow> pointed;
         };
 
+        /**
+         * What the player was about to do as the dialog asks what to do with the unsaved changes: show
+         * another selection, or close the menu.
+         */
+        struct Leave
+        {
+            Selection to;
+            bool closeMenu = false;
+        };
+
         model::Store* storeOf(const model::Mod& mod) const;
+        bool hasUnsavedChanges() const;
+        bool show(const Selection& shown);
+        bool leave();
         void updateStatus();
         void pageShown();
         bool pressButton(TitleButton button);
@@ -128,6 +151,7 @@ namespace mods_config::ui
         std::optional<PointedRow> drawFrontPage();
         void drawHelpPage() const;
         void drawFooter(const ImVec2& pos);
+        void drawDialog();
 
         // the mods the menu lists, in order of their display names
         std::vector<model::Mod> _mods;
@@ -142,6 +166,9 @@ namespace mods_config::ui
 
         // the Help page is shown in place of the selection's page, which Back shows again
         bool _helpShown = false;
+
+        // what the dialog asks before, while it is shown
+        std::optional<Leave> _leaving;
 
         // the values of a selected mod, by the source of its menu: not the panel's own, and none in a test that
         // has no values

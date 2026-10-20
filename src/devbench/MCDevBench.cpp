@@ -44,6 +44,9 @@ namespace mods_config::devbench
             std::vector<std::size_t> selectedPage;
             bool helpShown = false;
 
+            // the dialog asks what to do with the unsaved changes
+            bool asking = false;
+
             // the selected mod's editing session: none on the menu's front page
             bool hasSession = false;
             bool savesAtOnce = false;
@@ -59,7 +62,8 @@ namespace mods_config::devbench
                    "mods: count (the mods the menu lists; the mods action has each of them); "
                    "selection: mod and page (what the panel shows: the mod as its place from 0 in the mods action's answer, and the page as "
                    "its place in the mod's pages, then in the pages of each page on the way to it; a null mod is the menu's front page, and "
-                   "an empty page the mod's front page), helpShown (the Help page is shown over it); "
+                   "an empty page the mod's front page), helpShown (the Help page is shown over it), asking (the dialog asks to Save, Discard "
+                   "or Cancel the unsaved changes before the mod is left or the menu is closed); "
                    "session: the selected mod's editing session, null on the menu's front page: savesAtOnce (an MCM mod's changes are written as "
                    "they are made), dirty (the changes that wait for a Save), invalid (the changes that are not valid, which block Save); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
@@ -85,6 +89,7 @@ namespace mods_config::devbench
             state.selectedMod = selection.mod ? static_cast<int>(*selection.mod) : -1;
             state.selectedPage = selection.page;
             state.helpShown = menu.isOpen() && g_modsConfig.menu().fullPanel().isHelpShown();
+            state.asking = menu.isOpen() && g_modsConfig.menu().fullPanel().isAsking();
 
             const auto* const store = menu.isOpen() ? g_modsConfig.menu().fullPanel().selectedStore() : nullptr;
             state.hasSession = store != nullptr;
@@ -113,7 +118,7 @@ namespace mods_config::devbench
                         { "down", state.pointerDown },
                         { "wanted", state.pointerWanted } } },
                 { "mods", { { "count", state.modCount } } },
-                { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", state.selectedPage }, { "helpShown", state.helpShown } } },
+                { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", state.selectedPage }, { "helpShown", state.helpShown }, { "asking", state.asking } } },
                 { "session", state.hasSession ? json{ { "savesAtOnce", state.savesAtOnce }, { "dirty", state.dirtyCount }, { "invalid", state.invalidCount } } : json(nullptr) },
                 { "frik", { { "gestureTaken", state.frikGestureTaken } } },
             };

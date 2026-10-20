@@ -79,7 +79,7 @@ namespace mods_config
 
         if (vrcf::VRControllers.check(g_config.openMenuBinding)) {
             if (_menu.isOpen()) {
-                _menu.close();
+                _menu.askToClose();
             } else {
                 _menu.open();
             }

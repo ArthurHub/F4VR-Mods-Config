@@ -740,6 +740,34 @@ TEST_CASE("FullPanel render: the front page of the package showcase with values 
     change(panel.mods()[0].frontPage.items, change);
     REQUIRE(store.dirtyCount() > 0);
     WARN("Saved " << renderToFile(panel, "package-showcase-pending", POINTER_AWAY));
+
+    // the dialog that asks before the menu is closed, with the ray on Discard
+    panel.close();
+    REQUIRE(panel.isAsking());
+    WARN("Saved " << renderToFile(panel, "package-showcase-close-dialog", ImVec2(test_panel::PANEL_WIDTH * 0.5f + 140.0f, test_panel::PANEL_HEIGHT * 0.5f + 60.0f)));
+
+    // and one with an invalid change, which disables Save, before the menu's front page
+    const auto numberInput = [](const std::vector<model::Item>& items, const auto& self) -> const model::Setting* {
+        for (const auto& item : items) {
+            if (const auto* group = std::get_if<model::Group>(&item)) {
+                if (const auto* found = self(group->items, self)) {
+                    return found;
+                }
+            } else if (const auto* setting = std::get_if<model::Setting>(&item);
+                       setting && setting->type == model::SettingType::TextInput && setting->valueType != model::StoredType::String) {
+                return setting;
+            }
+        }
+        return nullptr;
+    };
+    const auto* input = numberInput(panel.mods()[0].frontPage.items, numberInput);
+    REQUIRE(input);
+    store.set(*input, "not a number"s);
+    REQUIRE(store.invalidCount() > 0);
+    panel.back();
+    panel.select({});
+    REQUIRE(panel.isAsking());
+    WARN("Saved " << renderToFile(panel, "package-showcase-leave-dialog-invalid", POINTER_AWAY));
 }
 
 TEST_CASE("FullPanel render: a Save that failed, with a short reason and with one that wraps", "[.render]")

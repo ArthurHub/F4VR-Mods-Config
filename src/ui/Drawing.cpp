@@ -432,6 +432,30 @@ namespace mods_config::ui
     }
 
     /**
+     * A button of the footer or of the dialog, in its box. The primary button is a solid green, with its text
+     * in the color on green, a lighter green under the ray, and an outline while it is pressed. The others
+     * have the look of a button that is a part of a row, and a quiet one has no outline while the ray is not
+     * on it. Inside `BeginDisabled` it is faded and is not pressed. Returns whether it was pressed.
+     */
+    bool button(const char* label, const ImRect& box, const ButtonLook look)
+    {
+        ImGui::SetCursorScreenPos(box.Min);
+        const bool pressed = ImGui::InvisibleButton(label, box.GetSize());
+        const bool pointed = ImGui::IsItemHovered();
+        const bool held = ImGui::IsItemActive();
+        if (look == ButtonLook::Primary) {
+            ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed && !held ? theme::color::GLOW : theme::color::GREEN), theme::RADIUS_FRAME);
+            if (held) {
+                drawOutline(box.Min, box.Max, theme::color::GLOW);
+            }
+        } else if (look == ButtonLook::Secondary || pointed || held) {
+            drawButtonFrame(box, pointed, held);
+        }
+        drawTextIn(box, label, look == ButtonLook::Primary ? theme::color::ON_GREEN : theme::color::GREEN, 0.5f);
+        return pressed;
+    }
+
+    /**
      * One line of text in a box, in from its sides by a padding. The align sets it in that room: 0 at the
      * left, 0.5 in the middle and 1 at the right. A text that is wider than the room ends in an ellipsis.
      */

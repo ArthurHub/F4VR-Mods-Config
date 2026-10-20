@@ -43,6 +43,19 @@ namespace mods_config::ui
         Invalid,
     };
 
+    /**
+     * How a button of the footer and of the dialog looks, as the design system's Button has it.
+     */
+    enum class ButtonLook : std::uint8_t
+    {
+        // Save: a solid green
+        Primary,
+        // Discard: an outline
+        Secondary,
+        // Cancel: no outline until the ray is on it
+        Quiet,
+    };
+
     // the track of a slider, and the box of a stepper's option, in the panel's pixels: not a token of the
     // design system
     constexpr float TRACK_WIDTH = 280.0f;
@@ -70,6 +83,7 @@ namespace mods_config::ui
     ImRect controlBox(float left, float top, float width);
     void drawFrame(const ImRect& box, ValueLook look = ValueLook::Saved);
     void drawButtonFrame(const ImRect& box, bool pointed, bool held);
+    bool button(const char* label, const ImRect& box, ButtonLook look);
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
     ImU32 valueColor(ValueLook look);
     void drawPendingMark(const ImVec2& center);

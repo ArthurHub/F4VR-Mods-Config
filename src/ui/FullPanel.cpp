@@ -43,7 +43,7 @@ namespace
     constexpr auto NO_UNSAVED = "No unsaved changes";
 
     // The panel's sizes that are not tokens of the design system, in the panel's pixels.
-    // A button with a word on it:
+    // A button of the footer:
     constexpr float BUTTON_WIDTH = 160.0f;
     // and the least the mod's breadcrumb is shortened to, beside the long name of a page:
     constexpr float MOD_CRUMB_MIN_WIDTH = theme::CONTROL_HEIGHT * 2.0f;
@@ -167,28 +167,6 @@ namespace
         return pressed;
     }
 
-    /**
-     * A button of the footer, in its box. Save is the primary button: a solid green, with its text in the color
-     * on green, a lighter green under the ray, and an outline while it is pressed. Discard is an outline.
-     * Inside `BeginDisabled` it is faded and is not pressed. Returns whether it was pressed.
-     */
-    bool footerButton(const char* label, const ImRect& box, const bool primary)
-    {
-        ImGui::SetCursorScreenPos(box.Min);
-        const bool pressed = ImGui::InvisibleButton(label, box.GetSize());
-        const bool pointed = ImGui::IsItemHovered();
-        const bool held = ImGui::IsItemActive();
-        if (primary) {
-            ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed && !held ? theme::color::GLOW : theme::color::GREEN), theme::RADIUS_FRAME);
-            if (held) {
-                ui::drawOutline(box.Min, box.Max, theme::color::GLOW);
-            }
-        } else {
-            ui::drawButtonFrame(box, pointed, held);
-        }
-        ui::drawTextIn(box, label, primary ? theme::color::ON_GREEN : theme::color::GREEN, 0.5f);
-        return pressed;
-    }
 }
 
 namespace mods_config::ui
@@ -302,11 +280,10 @@ namespace mods_config::ui
      * Shows a mod's front page or one of its pages, or the menu's front page with no mod. A selection of
      * what is not there shows the nearest that is: for a page, the deepest page on the way to it that is there,
      * or the mod's front page, and the menu's front page for a mod, and for a mod that is not available.
-     * Another mod than before starts its editing session in its store, which ends the session it had. A mod
-     * that is left for no mod, or for a mod of another store, ends its session in its store. Another page of
-     * the same mod is told to its store, which reads the values it keeps in files again.
+     * A mod with unsaved changes is not left for another or for the menu's front page at once: the dialog asks
+     * first, and its Save and Discard show the selection.
      * It leaves the Help page: the selection under it is shown again, as Back shows it, with its session kept.
-     * Returns whether it shows another page than before.
+     * Returns whether it did something: it shows another page than before, or the dialog asks.
      */
     bool FullPanel::select(const Selection& selection)
     {
@@ -325,6 +302,21 @@ namespace mods_config::ui
         if (shown == _selection) {
             return showHelp(false);
         }
+        if (shown.mod != _selection.mod && hasUnsavedChanges()) {
+            _leaving = Leave{ .to = shown };
+            return true;
+        }
+        return show(shown);
+    }
+
+    /**
+     * Shows a selection of what is there. Another mod than before starts its editing session in its store,
+     * which ends the session it had. A mod that is left for no mod, or for a mod of another store, ends its
+     * session in its store. Another page of the same mod is told to its store, which reads the values it keeps
+     * in files again. Returns true: it shows another page than before.
+     */
+    bool FullPanel::show(const Selection& shown)
+    {
         _helpShown = false;
         auto* const storeBefore = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
         auto* const store = shown.mod ? storeOf(_mods[*shown.mod]) : nullptr;
@@ -340,6 +332,52 @@ namespace mods_config::ui
         }
         _selection = shown;
         pageShown();
+        return true;
+    }
+
+    /**
+     * Closes the menu with the menu's action, as Close of the title bar and of the wrist do. While the selected
+     * mod has unsaved changes the dialog asks first, and its Save and Discard close the menu.
+     * Returns whether it did something: it closed the menu, or the dialog asks. With no action, as in a test,
+     * a menu with nothing to ask is not closed.
+     */
+    bool FullPanel::close()
+    {
+        if (hasUnsavedChanges()) {
+            _leaving = Leave{ .to = {}, .closeMenu = true };
+            return true;
+        }
+        if (!_menuActions.close) {
+            return false;
+        }
+        _menuActions.close();
+        return true;
+    }
+
+    /**
+     * Whether the selected mod has changes that wait for a Save, which the dialog asks about before the mod is
+     * left. An MCM mod has none: its changes are saved as they are made.
+     */
+    bool FullPanel::hasUnsavedChanges() const
+    {
+        const auto* store = selectedStore();
+        return store && store->dirtyCount() > 0;
+    }
+
+    /**
+     * Does what the player was about to do as the dialog asked, after its Save or its Discard: shows the
+     * selection, or closes the menu. The dialog is closed. Returns true: it did something.
+     */
+    bool FullPanel::leave()
+    {
+        const auto leave = *_leaving;
+        _leaving.reset();
+        if (!leave.closeMenu) {
+            return show(leave.to);
+        }
+        if (_menuActions.close) {
+            _menuActions.close();
+        }
         return true;
     }
 
@@ -390,14 +428,19 @@ namespace mods_config::ui
     }
 
     /**
-     * Goes one step back: a slider that is dragged has the value it had before the drag, the list of a
-     * dropdown that is open is closed, and a text input that is edited keeps its value. With none of them, from
-     * the Help page to the page it was shown over, from a page of a mod to the page it is under or to the mod's
-     * front page, and from there to the menu's front page.
+     * Goes one step back: the dialog is cancelled, with nothing saved or discarded, a slider that is dragged
+     * has the value it had before the drag, the list of a dropdown that is open is closed, and a text input that
+     * is edited keeps its value. With none of them, from the Help page to the page it was shown over, from a
+     * page of a mod to the page it is under or to the mod's front page, and from there to the menu's front page,
+     * which asks first while the mod has unsaved changes.
      * Returns false on the menu's front page, which has nothing before it: Back closes the menu there.
      */
     bool FullPanel::back()
     {
+        if (_leaving) {
+            _leaving.reset();
+            return true;
+        }
         if (_modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || showHelp(false)) {
             return true;
         }
@@ -425,6 +468,7 @@ namespace mods_config::ui
         }
         _selection = {};
         _helpShown = false;
+        _leaving.reset();
         _pageChanged = true;
         _pressActed = false;
         _thumbstickSideValue = 0.0f;
@@ -509,11 +553,12 @@ namespace mods_config::ui
         if (pressed ? select(*pressed) : pressButton(titleBar.pressedButton)) {
             _pressActed = true;
         }
+        drawDialog();
     }
 
     /**
      * Does what a button of the title bar does: Help shows the Help page, and Minimize and Close are the
-     * menu's. Returns whether it did something.
+     * menu's, and Close asks first while the selected mod has unsaved changes. Returns whether it did something.
      */
     bool FullPanel::pressButton(const TitleButton button)
     {
@@ -527,11 +572,7 @@ namespace mods_config::ui
             }
             return false;
         case TitleButton::Close:
-            if (_menuActions.close) {
-                _menuActions.close();
-                return true;
-            }
-            return false;
+            return close();
         default:
             return false;
         }
@@ -743,12 +784,12 @@ namespace mods_config::ui
             const auto save = controlBox(helpRight - BUTTON_WIDTH, top, BUTTON_WIDTH);
             const auto discard = controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
             ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
-            if (footerButton("Discard", discard, false)) {
+            if (button("Discard", discard, ButtonLook::Secondary)) {
                 store->discard();
                 _pressActed = true;
             }
             ImGui::BeginDisabled(store && store->invalidCount() > 0);
-            if (footerButton("Save", save, true)) {
+            if (button("Save", save, ButtonLook::Primary)) {
                 // the status has the reason of a Save that failed, which the store keeps
                 std::ignore = store->save();
                 _pressActed = true;
@@ -762,5 +803,43 @@ namespace mods_config::ui
         _helpLine.draw(ImVec2(pos.x + theme::SPACE_4, pos.y), helpRight - pos.x - theme::SPACE_4);
         ImGui::SetCursorScreenPos(pos);
         ImGui::Dummy(ImVec2(width, theme::FOOTER_HEIGHT));
+    }
+
+    /**
+     * The dialog that asks what to do with the selected mod's unsaved changes, while it asks, and what its
+     * answer does. Save writes the changes and then does what the player was about to do, and a Save that
+     * fails keeps the player on the mod, with the reason in the status. Discard takes the changes back and does
+     * it. Cancel closes the dialog with nothing done, as Back does.
+     */
+    void FullPanel::drawDialog()
+    {
+        auto* const store = selectedStore();
+        if (!store) {
+            _leaving.reset();
+        }
+        std::optional<UnsavedChanges> changes;
+        if (_leaving) {
+            changes = UnsavedChanges{ .mod = _mods[*_selection.mod].displayName,
+                .count = store->dirtyCount(),
+                .invalid = store->invalidCount(),
+                .next = _leaving->closeMenu ? std::string("close the menu")
+                        : _leaving->to.mod  ? std::format("open {}", _mods[*_leaving->to.mod].displayName)
+                                            : std::string("go to the menu's front page") };
+        }
+        const auto answer = drawUnsavedDialog(changes ? &*changes : nullptr);
+        if (answer == DialogAnswer::None) {
+            return;
+        }
+        _pressActed = true;
+        if (answer == DialogAnswer::Cancel || (answer == DialogAnswer::Save && !store->save())) {
+            // a Save that failed has its reason in the status, which the store keeps
+            _leaving.reset();
+        } else {
+            if (answer == DialogAnswer::Discard) {
+                store->discard();
+            }
+            leave();
+        }
+        updateStatus();
     }
 }

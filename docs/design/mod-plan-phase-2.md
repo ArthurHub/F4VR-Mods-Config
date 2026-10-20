@@ -57,7 +57,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M54 | mod  | Save creates a file that is missing                                                       | in review |
 | M55 | mod  | Validation                                                                                | in review |
 | M116 | mod | The save summary                                                                          | rejected |
-| M57 | mod  | The unsaved-changes prompt                                                                | todo   |
+| M57 | mod  | The unsaved-changes prompt                                                                | in review |
 | M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | todo   |
 | M60 | mod  | A package whose requirements are missing is not available                                 | todo   |
 | M61 | mod  | A package's errors are reported                                                           | todo   |
@@ -84,6 +84,8 @@ M53 and M54 are the rest of the Save steps, and are made in one commit. M53 is t
 M55 checks the values the player sets. A value of the type its control shows is set, also one that is no value of its setting: a text of a number that is none, a number outside its limits, or a text whose length its `minLength` and `maxLength` do not allow. It is pending and invalid, as a value of the file is shown: the invalid mark, the value in red, and the reason in the help line while the ray is on its row, with no message under its name. A `live` setting is not previewed with it, so the last valid preview stays. While a changed value is invalid the footer's status says how many there are, in red after the invalid mark, and Save is disabled: an invalid value that was in the file and was not changed does not block it. A text with a `maxLength` takes no character past it as it is typed, and shows the count, `12 / 16`. The package showcase's text inputs page has a section of limits.
 
 M116 is rejected: Save has no summary of the invalid values. Save is disabled while a changed value is invalid, the status says how many there are, and each has its mark on its row and in the heading of a folded section.
+
+M57 asks before a mod with unsaved changes is left: for another mod, for the menu's front page, and as the menu is closed by the title bar, the wrist or the gesture, which shows a minimized panel again. The dialog is the design system's ConfirmDialog. Save and Discard then do what the player was about to do, and Cancel and Back stay on the mod. A Save that fails stays too, with its reason in the status, and Save is disabled while a change is invalid.
 
 M58 shows a package's `applies`. The help line says when the change of the pointed row takes effect, a row that needs a restart is marked, and a Save that wrote one says that the game has to be restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 8 there is no client, so a `live` setting is handled as `save`.
 

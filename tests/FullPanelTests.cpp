@@ -417,6 +417,78 @@ namespace
         return { saveButton().x - BUTTON_WIDTH - theme::SPACE_3, saveButton().y };
     }
 
+    // the buttons of the dialog that asks what to do with the unsaved changes, by their places from its right
+    constexpr int DIALOG_SAVE = 0;
+    constexpr int DIALOG_DISCARD = 1;
+    constexpr int DIALOG_CANCEL = 2;
+
+    /**
+     * The dialog's window, which is shown while it is active.
+     */
+    const ImGuiWindow* dialogWindow()
+    {
+        return ImGui::FindWindowByName("Unsaved changes");
+    }
+
+    bool isDialogShown()
+    {
+        const auto* window = dialogWindow();
+        return window && window->Active;
+    }
+
+    /**
+     * A place in a button of the dialog, by its place from the right, while the dialog is shown: near the
+     * right of the button, as a button is 112 wide or a little more for a longer word.
+     */
+    ImVec2 dialogButton(const int place)
+    {
+        constexpr float BUTTON_MIN_WIDTH = 112.0f;
+        const auto* window = dialogWindow();
+        REQUIRE(window);
+        const float right = window->Pos.x + window->Size.x - theme::SPACE_6;
+        const float bottom = window->Pos.y + window->Size.y - theme::SPACE_6;
+        return { right - static_cast<float>(place) * (BUTTON_MIN_WIDTH + theme::SPACE_2) - theme::SPACE_4, bottom - theme::CONTROL_HEIGHT * 0.5f };
+    }
+
+    // the file of the mod of `twoPackages`, under the folder of My Games
+    constexpr auto MY_MOD_FILE = R"(Mods_Config\MyMod\MyMod.toml)";
+
+    /**
+     * A panel with two packages, shown on the front page of the first, with their values in a store: My Mod
+     * with a switcher of its file and a text input of a number from 0.5 to 2.5, and Other Mod with a text.
+     */
+    FullPanel twoPackages(package::PackageStore& store)
+    {
+        auto mod = package::loadPackage(R"({
+            "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+            "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+            "defaultFile": "main",
+            "content": [
+                { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } },
+                { "type": "textinput", "valueType": "float", "text": "Height", "default": 1.5, "valueOptions": { "min": 0.5, "max": 2.5 },
+                  "storage": { "path": ["Main", "fHeight"] } }
+            ]
+        })");
+        auto other = package::loadPackage(R"({
+            "modName": "OtherMod", "displayName": "Other Mod", "applies": "save",
+            "content": [ { "type": "text", "text": "Nothing to set." } ]
+        })");
+        REQUIRE(mod);
+        REQUIRE(other);
+        FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
+        panel.setMods({ std::move(*mod), std::move(*other) });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+
+    std::string fileText(const std::filesystem::path& file)
+    {
+        std::ostringstream text;
+        text << std::ifstream(file, std::ios::binary).rdbuf();
+        return text.str();
+    }
+
     /**
      * The width of a breadcrumb, which is its text in the title's size with its padding.
      */
@@ -2172,6 +2244,7 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     CHECK(panel.helpLine().status() == "1 unsaved change");
 
     // the menu's front page has no session
+    CHECK(pressActs(panel, discardButton()));
     panel.select({});
     CHECK(panel.helpLine().status().empty());
     CHECK(panel.helpLine().statusLook() == ui::StatusLook::Plain);
@@ -2326,6 +2399,173 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
     drawFrames(panel, 1);
     CHECK(panel.helpLine().status() == "No unsaved changes");
     CHECK(store.dirtyCount() == 0);
+}
+
+TEST_CASE("FullPanel: a mod with unsaved changes asks before another mod or the menu's front page is shown, and Cancel and Back stay on it")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto panel = twoPackages(store);
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, pageRow(0)));
+
+    // another mod
+    CHECK(pressActs(panel, treeRow(1)));
+    drawFrames(panel, 2);
+    CHECK(panel.isAsking());
+    CHECK(isDialogShown());
+    CHECK(panel.selection() == selectionOf(0));
+
+    // a press on the panel behind it does nothing
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+    CHECK(store.dirtyCount() == 1);
+
+    CHECK(pressActs(panel, dialogButton(DIALOG_CANCEL)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(panel.isAsking());
+    CHECK_FALSE(isDialogShown());
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(store.dirtyCount() == 1);
+
+    // the menu's front page, by Back, and Back again stays
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK(isDialogShown());
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(panel.isAsking());
+    CHECK_FALSE(isDialogShown());
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(store.dirtyCount() == 1);
+
+    // the Help page over the mod does not leave it
+    CHECK(panel.showHelp(true));
+    CHECK_FALSE(panel.isAsking());
+    CHECK(panel.back());
+    CHECK_FALSE(panel.isAsking());
+}
+
+TEST_CASE("FullPanel: the dialog's Discard takes the changes back and its Save writes them, and both then show what was selected")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / MY_MOD_FILE;
+    myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto panel = twoPackages(store);
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(panel.select(selectionOf(1)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, dialogButton(DIALOG_DISCARD)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown());
+    CHECK(panel.selection() == selectionOf(1));
+    CHECK(fileText(file) == "[Main]\r\nbEnable = false\r\n");
+
+    // a mod with no changes is left at once
+    CHECK(panel.select(selectionOf(0)));
+    CHECK_FALSE(panel.isAsking());
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(panel.select({}));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, dialogButton(DIALOG_SAVE)));
+    CHECK_FALSE(panel.isAsking());
+    CHECK(panel.selection() == Selection{});
+    CHECK(fileText(file) == "[Main]\r\nbEnable = true\r\n");
+}
+
+TEST_CASE("FullPanel: Close asks first while the mod has unsaved changes, and the dialog's Save and Discard close the menu")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / MY_MOD_FILE;
+    myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto panel = twoPackages(store);
+    int closed = 0;
+    panel.setMenuActions({ .minimize = {}, .close = [&closed] {
+                              ++closed;
+                          } });
+    drawFrames(panel, 2);
+
+    // with nothing to ask it closes at once
+    CHECK(panel.close());
+    CHECK(closed == 1);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(pressActs(panel, titleButton(CLOSE_BUTTON)));
+    drawFrames(panel, 2);
+    CHECK(panel.isAsking());
+    CHECK(closed == 1);
+    CHECK(pressActs(panel, dialogButton(DIALOG_CANCEL)));
+    CHECK(closed == 1);
+
+    CHECK(panel.close());
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, dialogButton(DIALOG_DISCARD)));
+    CHECK(closed == 2);
+    CHECK(store.dirtyCount() == 0);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(panel.close());
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, dialogButton(DIALOG_SAVE)));
+    CHECK(closed == 3);
+    CHECK(fileText(file) == "[Main]\r\nbEnable = true\r\n");
+}
+
+TEST_CASE("FullPanel: the dialog's Save that fails stays on the mod with the reason, and an invalid change disables it")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / MY_MOD_FILE;
+    myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\nfHeight = 1.5\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto panel = twoPackages(store);
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(panel.select(selectionOf(1)));
+    drawFrames(panel, 2);
+    {
+        const test_files::ReadOnly readOnly(file);
+        CHECK(pressActs(panel, dialogButton(DIALOG_SAVE)));
+    }
+    drawFrames(panel, 2);
+    CHECK_FALSE(panel.isAsking());
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(store.dirtyCount() == 1);
+    CHECK(panel.helpLine().status() == "Not saved: MyMod.toml cannot be written.");
+
+    const auto& height = std::get<model::Setting>(panel.mods()[0].frontPage.items[1]);
+    CHECK(store.set(height, "3"s));
+    CHECK(panel.select(selectionOf(1)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(pressActs(panel, dialogButton(DIALOG_SAVE)));
+    CHECK(panel.isAsking());
+    CHECK(pressActs(panel, dialogButton(DIALOG_DISCARD)));
+    CHECK(panel.selection() == selectionOf(1));
+    CHECK(fileText(file) == "[Main]\r\nbEnable = false\r\nfHeight = 1.5\r\n");
+}
+
+TEST_CASE("FullPanel: an MCM mod's changes are saved as they are made, so it is left with nothing to ask")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    mcm::McmStore store;
+    auto panel = modWithValues(store);
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(panel.select(selectionOf(1)));
+    CHECK_FALSE(panel.isAsking());
+    CHECK(panel.selection() == selectionOf(1));
 }
 
 TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, and its Reset sets the default")
