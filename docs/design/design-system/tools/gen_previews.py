@@ -301,7 +301,7 @@ sb_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 <span class="t-detail mc-muted">Pending</span>
 {footer(DOT + '<span class="mc-amber">1 unsaved change</span>', btn('Discard') + btn('Save', 'is-primary'))}
 <span class="t-detail mc-muted">Blocked by an invalid value</span>
-{footer(WARN + '<span class="mc-red">Brightness is invalid. Save shows what to fix.</span>', btn('Discard') + btn('Save'))}
+{footer(WARN + '<span class="mc-red">2 invalid values</span>', btn('Discard') + btn('Save', 'is-primary', 'is-disabled'))}
 <span class="t-detail mc-muted">Not saved: a Save that failed</span>
 {footer(WARN + '<span class="mc-red">Not saved: showcase.toml cannot be written.</span>', btn('Discard') + btn('Save', 'is-primary'))}
 <span class="t-detail mc-muted">An MCM mod: no Save bar</span>
@@ -1466,38 +1466,6 @@ br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:90
 </div>"""
 write('ButtonRow', page('<!-- @dsCard group="Actions" height=760 width=1800 subtitle="A row that runs an action: Run or its text, running, its result under the name; a confirmation, and a dangerous one" -->', 'Button row', br_body))
 print('ok button row')
-
-# ---------------- SaveSummary: Save pressed while a value is invalid ----------------
-def issue(name, where, msg, state='', mark=None, reset=True):
-    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    return (f'<div class="mc-issue{" " + state if state else ""}">{WARN}<div class="what"><span class="t-body">{name}</span>'
-            f'<span class="where t-detail">{where}</span><span class="msg t-detail">{msg}</span></div>{reset_btn(reset)}{mk}</div>')
-
-ss_rows = ''.join([
-    section('Holsters'),
-    row('Enable holsters', toggle(True)),
-    row('Holster size', slider('2.40', 100, 'is-invalid', 'is-invalid', True), 'is-invalid is-focus', gutter=WARN),
-    row('Draw with the grip', toggle(True)),
-    section('Left hip'),
-    row('Forward', slider('4.0', 40)),
-    row('Down', slider('12.0', 60, 'is-pending', 'is-pending', True), gutter=DOT),
-])
-ss_pop = f"""<div class="mc-summary" style="right:24px;bottom:12px">
-<div class="head">{WARN}<span class="grow t-body mc-red">3 values are not valid. Save is blocked until they are.</span></div>
-{issue('Holster size', 'Holsters', '2.40 is not from 0.50 to 2.00')}
-{issue('Snap distance', 'Weapons » Advanced, folded', '2.50 is not from 0.05 to 1.00', 'is-hover', (380, 26))}
-{issue('Sling offset', 'Weapons, hidden while Sling is off', '35.0 is not from -20.0 to 20.0', 'is-hidden')}
-<div class="foot">{btn('Close', 'is-quiet')}</div>
-</div>"""
-ss_body = f"""<div class="mc-world mc-stack" style="gap:0">
-<div class="mc-sheet" style="width:1120px;height:540px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
-<div style="width:772px">{ss_rows}</div>
-{ss_pop}
-</div>
-<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 0 8px 8px">{footer(WARN + '<span class="mc-red">3 invalid values</span>', btn('Discard') + btn('Save', '', 'is-active'))}</div>
-</div>"""
-write('SaveSummary', page('<!-- @dsCard group="Actions" height=680 width=1170 subtitle="Save pressed while values are invalid: every one named, the first that shows focused, each reset from here" -->', 'Save summary', ss_body))
-print('ok save summary')
 
 # ---------------- RestartNotice: a setting that needs a restart, and the Save that wrote one ----------------
 RTAG = '<span class="mc-tag t-detail">Restart</span>'

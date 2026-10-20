@@ -278,9 +278,8 @@ Additional feedback:
 
 - An invalid row has the invalid mark in its gutter and its value in red, and the help line has the reason while the ray is on it.
 - A row whose warning holds has a warning mark, and the help line shows the warning before its help. A warning does not block Save. Its mark is a hollow amber triangle after the name, apart from the invalid mark in the gutter. See [Warnings](schema.md#warnings), and the design system's [RowWarning](design-system/project/components/RowWarning/README.md).
-- Save is blocked while a dirty setting is invalid. An invalid value that was already in the file does not block it.
-- Attempting Save shows a summary and moves focus to the first invalid setting that is visible.
-- The summary names every invalid setting, including one that a condition currently hides or disables. Such a setting can be reset from the summary. The look is the design system's [SaveSummary](design-system/project/components/SaveSummary/README.md).
+- Save is disabled while a dirty setting is invalid, and the footer's status says how many there are. An invalid value that was already in the file does not block it.
+- A folded section's heading says how many invalid values it hides.
 - Validation must not rely on color alone.
 
 ## Defaults and reset
