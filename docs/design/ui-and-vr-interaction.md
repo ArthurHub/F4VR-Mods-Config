@@ -132,7 +132,7 @@ What the Full panel shows while no mod is selected. It is what the menu opens on
 - The page has no row in the tree. The first breadcrumb, `MODS CONFIG VR`, is its entry, and is shown selected while the page is open. No mod is selected or expanded.
 - The player comes back to it with that breadcrumb, and with Back from a mod's front page.
 - It starts with a text: what the menu is, how to start, and the version of Mods Config VR.
-- The [quick launch](#quick-launch) section and the [notices](#notices) follow. A section with nothing in it is left out.
+- The [quick launch](#quick-launch) section and the [notices](#notices) follow, and, with Developer tools on, the [Developer](#developer-tools) section. A section with nothing in it is left out.
 - Nothing is edited here, so the page has no editing session. The help line shows the help of the quick launch entry the ray is on.
 - Back closes the menu; see [Back behavior](#back-behavior).
 
@@ -162,6 +162,29 @@ The player is told in two places:
 The reason is in the log too.
 
 A mod with a saved change that takes effect only after the game is restarted has a line under `Notices` too, from its Save until the game is restarted: `Restart the game: Immersive Flashlight VR has 1 saved change that takes effect then.` These lines come first. See the design system's [RestartNotice](design-system/project/components/RestartNotice/README.md).
+
+### Developer tools
+
+For a package's author. `Developer tools` is a switch in Mods Config VR's own settings, off as shipped: while it is off none of this is drawn. The log has every diagnostic either way.
+
+```text
+▾ Developer ──────────────────────────────────────────────────
+Show [3 of 12]          ◂ [ Needing attention ] ▸
+Immersive Flashlight VR   [Live copy] ▲ 2 errors △ 5 warnings ▸
+Showcase                                      △ 3 warnings ▸
+Virtual Holsters                              ▲ Not loaded ▸
+```
+
+- The menu's front page has a Developer section after the notices. Its heading folds, and folded it says the errors and the warnings of the packages it lists. It stays folded as the author leaves it.
+- Its first row is a filter, a stepper that is written to the config at once: the packages that need attention (an error, a warning, a live copy, or not loaded), all of them, or the one package named in the settings, with or without problems. The filter is in Mods Config VR's own settings too, with the dropdown that names that package.
+- A row for each package the filter lists, alphabetical: its name, its live copy, and its errors and warnings, or that it has none, is not loaded or is not available. An MCM mod is never listed.
+- A press on the row opens the package's report, `MODS CONFIG VR » Developer » <mod>`. Back, and the `Developer` crumb, go back to the front page.
+- The report says where `config.json` is read from, and has its live copy and its problems:
+  - `Read the live copy` copies the package's `config.json` to `My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\<folder>\config.json`, where there is none, and reads it in place of the installed file. The copy is read again each time it is saved, and Reload reads it at once. A read drops the mod's unsaved changes, and keeps the page that is open while it is still there. A copy that cannot be read is an error, and the mod keeps what it read last. Off reads the installed file again, and keeps the copy.
+  - `Open` opens the copy in the desktop's editor for `.json`, and `Show` its folder.
+  - The errors, then the warnings, each under a heading that folds. A problem is a row with its mark and message, and the help line says where it is: the page and the row, and the path in `config.json`. A press on one that names a row goes to the row.
+
+See the design system's [Developer](design-system/project/components/Developer/README.md), [FullPanelDeveloper](design-system/project/components/FullPanelDeveloper/README.md) and [FullPanelPackageReport](design-system/project/components/FullPanelPackageReport/README.md).
 
 ### What differs from MCM's
 

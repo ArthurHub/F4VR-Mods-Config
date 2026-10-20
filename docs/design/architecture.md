@@ -6,7 +6,7 @@ Mods Config VR is a shared, VR-first configuration menu for Fallout 4 VR mods. I
 
 The host is an F4SE plugin built on F4VR-CommonFramework. Most of its UI is one Dear ImGui panel, placed in the framework's vrui layout and operated with a controller ray. What the panel needed from the framework is done; see the [Framework work plan](framework-plan.md). The framework work that is left is made with the mod's milestones.
 
-The host owns navigation, interaction, persistence coordination, diagnostics, and the shared visual language. Each mod continues to own the meaning and runtime application of its settings. A diagnostic, in these documents, is a line in the mod's log. The menu itself shows only that a mod is not available, and why; see [Notices](ui-and-vr-interaction.md#notices).
+The host owns navigation, interaction, persistence coordination, diagnostics, and the shared visual language. Each mod continues to own the meaning and runtime application of its settings. A diagnostic, in these documents, is a line in the mod's log. To a player the menu shows only that a mod is not available, and why; see [Notices](ui-and-vr-interaction.md#notices). To a package's author, who turns on Developer tools in the menu's own settings, it shows each package's diagnostics too; see [Developer tools](ui-and-vr-interaction.md#developer-tools).
 
 ## Integration sources
 

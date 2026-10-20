@@ -60,7 +60,8 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M57 | mod  | The unsaved-changes prompt                                                                | in review |
 | M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | in review |
 | M60 | mod  | A package whose requirements are missing is not available                                 | in review |
-| M61 | mod  | A package's errors are reported                                                           | todo   |
+| M61 | mod  | A package's errors are reported, in the log and to its author in the menu                 | todo   |
+| M117 | mod | A live copy of a package's config.json, read again as it is saved                         | todo   |
 
 M108, M109, M111 and M112 draw what M103 added to the page and the tree:
 
@@ -91,7 +92,11 @@ M58 shows a package's `applies`, as the design system's RestartNotice has it. Th
 
 M60 reads a package's `pluginRequirements` and `f4sePluginRequirements`. While a game plugin or an F4SE plugin of them is not loaded the package's mod is not available, as an MCM mod whose `pluginRequirements` are not met is, and the reason names each that is not: `its plugin SS2.esm and its F4SE plugin MyMod are not loaded`. The rest of the package is not read. A plugin is checked as a condition on a `plugin` or an `f4sePlugin` is. A package's `minSchemaVersion` is required, as its `applies` is, and a package whose `minSchemaVersion` is above the schema version the menu reads is not available too, before its plugins are checked, and the reason names the version it needs. The package showcase requires `Fallout4.esm` and the mod's own F4SE plugin, which are always loaded.
 
-M61 reports a package's errors in the log. It also weighs a page in the menu with each package's errors, for its author, as DearModdingUI's Health page has them.
+M61 reports a package's problems to its author. Each is a line of the log with the package's name first, `Package 'Immersive Flashlight VR': …`, and the log has a count of each package's errors and warnings once the packages are read. An error leaves something out: the whole package, when it cannot be read, or a part of it. A warning is read, but is likely not what the author meant. It adds what the schema promises and the loader does not report yet: a field the menu does not know, which needs the known fields of each kind of object, and a `$` token with no translation and no fallback. The others the schema names are checked to be reported: a condition that names no setting or compares another type, and two settings with one id.
+
+With `Developer tools` on, a switch in Mods Config VR's own settings that is off as shipped, the menu's front page has a Developer section after its notices, which folds. Its filter, a stepper written at once, lists the packages that need attention, all of them, or the one the settings name, and a package's row has its errors and warnings. A press on the row opens the package's report: its problems, errors first, under headings that fold, each a row whose help line says where it is, and which goes to the row it names. See the design system's [Developer](design-system/project/components/Developer/README.md), [FullPanelDeveloper](design-system/project/components/FullPanelDeveloper/README.md) and [FullPanelPackageReport](design-system/project/components/FullPanelPackageReport/README.md), and [Developer tools](ui-and-vr-interaction.md#developer-tools). The package showcase's Mistakes page has one of each problem.
+
+M117 lets a package's author edit its `config.json` while the game runs. On the package's report, `Read the live copy` copies its `config.json` to `My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\<folder>\config.json` and reads the copy in its place. The copy is watched and read again each time it is saved, as the mod's own TOML is, and Reload reads it at once. A read drops the mod's unsaved changes, and the page that is open stays while it is still there. A copy that cannot be read is an error of the report, and the mod keeps what it read last. Only `config.json` is copied. `Open` and `Show` open the copy and its folder on the desktop. It is for packages alone: MCM reads its own copy of an MCM config, so a live copy of one would show what MCM does not.
 
 ## 7. Actions and handoff
 

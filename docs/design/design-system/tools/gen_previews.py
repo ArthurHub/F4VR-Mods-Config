@@ -1745,3 +1745,171 @@ as_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:77
 </div>"""
 write('ActivationSphere', page('<!-- @dsCard group="Settings" height=830 width=1620 subtitle="An activation sphere: a section of the mod&#39;s TOML as one group, its zone, actions and haptics, its look folded; lit in the world while the ray is on it" -->', 'Activation sphere', as_body))
 print('ok sphere')
+
+# ---------------- Developer: what a package's author sees with Developer tools on ----------------
+GO = f'<span class="mc-go">{ARROW_R}</span>'
+CAUTION_D = ('<svg class="mc-caution" viewBox="0 0 20 18"><path class="tri" d="M10 1.5 L18.5 16.5 H1.5 Z"/>'
+             '<rect class="bang" x="9" y="6" width="2" height="6"/><rect class="bang" x="9" y="13" width="2" height="2"/></svg>')
+INFO = ('<svg class="mc-done" viewBox="0 0 20 20"><circle class="ring" cx="10" cy="10" r="8.5"/>'
+        '<rect class="i" x="9" y="8.5" width="2" height="6.5"/><circle class="i" cx="10" cy="5.8" r="1.3"/></svg>')
+
+def problem_counts(errors=0, warnings=0):
+    out = ''
+    if errors:
+        out += f'{WARN}<span class="mc-red">{errors} error{"s" if errors > 1 else ""}</span>'
+    if warnings:
+        out += f'{CAUTION_D}<span class="mc-amber">{warnings} warning{"s" if warnings > 1 else ""}</span>'
+    return out
+
+def counts(errors=0, warnings=0, live=False, status=None):
+    """What a package row says in the control column: its live copy, then its errors and its warnings, each by its
+    mark and in words; or that it is not loaded, or not available."""
+    out = '<span class="mc-tag t-detail">Live copy</span>' if live else ''
+    if status == 'not-loaded':
+        out += f'{WARN}<span class="mc-red">Not loaded</span>'
+    elif status == 'not-available':
+        out += '<span class="mc-muted">Not available</span>'
+    elif not errors and not warnings:
+        out += '<span class="mc-muted">No problems</span>'
+    else:
+        out += problem_counts(errors, warnings)
+    return f'<div class="main"><span class="mc-counts t-body">{out}</span></div>{GO}'
+
+def pkg_row(name, state='', mark=None, **kw):
+    return row(name, counts(**kw), state, mark=mark)
+
+def dev_fold(title, open_=True, errors=0, warnings=0, hover=False, mark=None):
+    """A heading that folds, as SectionHeader's: folded, it says at the end of its rule the problems it hides."""
+    marks = f'<span class="marks t-detail mc-counts">{problem_counts(errors, warnings)}</span>' if not open_ and (errors or warnings) else ''
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-collapse t-body{" is-hover" if hover else ""}">{ARROW_D if open_ else ARROW_R}'
+            f'<span>{title}</span><span class="line"></span>{marks}{mk}</div>')
+
+def show_row(label, shown, total, state='', mark=None):
+    """The filter of the Developer section, its first row: a stepper that is written at once."""
+    return row(f'Show<span class="mc-tag t-detail">{shown} of {total}</span>', choice_stepper(label), state, mark=mark)
+
+def diag(kind, msg, go=True, state='', mark=None):
+    """A problem of the package: its mark and its message on one line. Where it is, is in the help line.
+    One that names a row is pressed to go to it."""
+    m = WARN if kind == 'error' else (CAUTION_D if kind == 'warning' else INFO)
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-diag{" " + state if state else ""}"><span class="gutter">{m}</span>'
+            f'<span class="msg t-body">{msg}</span><span class="go">{ARROW_R if go else ""}</span>{mk}</div>')
+
+D_DUP = ('error', 'Two settings have the id beamAngle: the second is left out.')
+D_STORE = ('error', 'Flicker has no storage: the row is left out.')
+D_FIELD = ('warning', 'Unknown field "visibleWen": it is not read. Did you mean "visibleWhen"?')
+D_COND = ('warning', 'The condition of Warm tint names "tint", which no setting has: the row is shown as if it had none.')
+D_TOKEN = ('warning', '$IFVR_BeamHelp has no translation and no fallback: it is shown as written.')
+D_PARSE = ('error', "The live copy cannot be read: expected ',' or '}'. The menu shows the copy it read last.")
+H_DUP = ('Beam angle', 'Two settings have the id beamAngle: the second is left out. Beam › Beam angle · pages[0].content[4]. Goes to the row.')
+
+def footer_help(name, text, **kw):
+    return f'<div class="mc-footer">{helpline(name, text, **kw)}</div>'
+
+dv_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">Mods Config VR's own page: the switch, which packages the front page lists, and the one package it can list alone</span>
+{h_sheet([
+    ('Off as shipped', row('Developer tools', toggle(False))),
+    ('On', row('Developer tools', toggle(True))),
+    ('Show', row('Show packages', choice_stepper('Only one'))),
+    ('Package', row('Package', combo('Immersive Flashlight VR'))),
+    ('Not only one', row('Package', combo('Immersive Flashlight VR'), 'is-disabled')),
+])}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+{footer_help('Show packages', 'Which packages the front page lists: those that need attention (errors, warnings, a live copy, or not loaded), all of them, or only the package below.')}
+{footer_help('Package', 'The package the front page lists alone while Show packages is Only one: the one you are working on, with or without problems.')}
+</div>
+<span class="t-detail mc-caption">The Developer section's heading and its filter: a stepper that is written at once, as a view's preference</span>
+{h_sheet([
+    ('Open', dev_fold('Developer')),
+    ('Folded', dev_fold('Developer', False, errors=2, warnings=8)),
+    ('Needing attention', show_row('Needing attention', 3, 12)),
+    ('All', show_row('All', 12, 12)),
+    ('Only one', show_row('Immersive Flashlight VR', 1, 12)),
+])}
+<span class="t-detail mc-caption">A package's row: a press opens its report</span>
+{h_sheet([
+    ('No problems', pkg_row('Mods Config VR')),
+    ('Warnings', pkg_row('Showcase', warnings=3)),
+    ('Both', pkg_row('Immersive Flashlight VR', errors=2, warnings=5)),
+    ('Live copy', pkg_row('Immersive Flashlight VR', errors=2, warnings=5, live=True)),
+    ('Under the ray', pkg_row('Immersive Flashlight VR', 'is-hover', mark=(200, 22), errors=2, warnings=5, live=True)),
+    ('Not loaded', pkg_row('Virtual Holsters', status='not-loaded')),
+    ('Not available', pkg_row('Sim Settlements 2', status='not-available')),
+])}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+{footer_help('Immersive Flashlight VR', 'Read from its live copy. 2 errors: parts of it are left out. 5 warnings. Opens its report.')}
+{footer_help('Virtual Holsters', "config.json cannot be read: line 41, column 7: expected ',' or '}'. Opens its report.", error=True)}
+</div>
+<span class="t-detail mc-caption">A problem in the report: its mark and its message on one line. Where it is, is in the help line. One that names a row goes to it</span>
+<div class="mc-sheet" style="width:908px">
+{diag(*D_DUP, state='is-hover', mark=(560, 22))}
+{diag(*D_FIELD)}
+{diag(*D_COND)}
+{diag(*D_PARSE, go=False)}
+{diag('info', 'Reloaded at 10:42:05: 2 unsaved changes were dropped.', go=False)}
+</div>
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+{footer_help(*H_DUP)}
+{footer_help('config.json', "The live copy cannot be read: expected ',' or '}'. The menu shows the copy it read last. Line 41, column 7.", error=True)}
+</div>
+</div>"""
+write('Developer', page('<!-- @dsCard group="Developer" height=2080 width=1170 subtitle="For a package&#39;s author: the switch and the filter, the front page&#39;s Developer section, a package&#39;s row, and a problem in its report" -->', 'Developer tools', dv_body))
+
+# ---------------- FullPanelDeveloper: the menu's front page with Developer tools on ----------------
+fd_rows = ''.join([
+    pagehelp('Settings for the mods you have installed. Pick a mod on the left to see its settings.<br>Version 1.0.0'),
+    section('Quick launch'),
+    launch_row('FRIK'),
+    section('Notices'),
+    pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.'),
+    dev_fold('Developer'),
+    show_row('Needing attention', 3, 12),
+    pkg_row('Immersive Flashlight VR', 'is-hover', mark=(200, 22), errors=2, warnings=5, live=True),
+    pkg_row('Showcase', warnings=3),
+    pkg_row('Virtual Holsters', status='not-loaded'),
+])
+fd_body = f'''<div class="mc-world">
+<div class="mc-panel">
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG VR</span></div>
+<span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
+<div class="mc-body">
+{nav(flat_mods(), '', 11)}
+<div class="mc-content">
+<div class="mc-scroll"><div class="rows" style="margin-top:-178px">{fd_rows}</div><div class="mc-scrollbar"><i style="top:24%;height:76%"></i></div></div>
+</div>
+</div>
+<div class="mc-footer">{helpline('Immersive Flashlight VR', 'Read from its live copy. 2 errors: parts of it are left out. 5 warnings. Opens its report.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+</div>
+</div>'''
+write('FullPanelDeveloper', page('<!-- @dsCard group="Developer" height=768 width=1200 subtitle="The menu&#39;s front page with Developer tools on: a Developer section that folds, its filter, and a row for each package it lists" -->', 'Full panel, Developer section', fd_body))
+
+# ---------------- FullPanelPackageReport: a package's report, with its live copy ----------------
+fr_rows = ''.join([
+    pagehelp('Read from the live copy, My Games\\Fallout4VR\\Mods_Config\\ModsConfigVR\\Dev\\ImmersiveFlashlightVR\\config.json. It is read again each time it is saved.'),
+    section('Live copy'),
+    row('Read the live copy', toggle(True)),
+    row('Reload', run_btn('Reload'), gutter=INFO),
+    row('Edit config.json', run_btn('Open')),
+    row('Its folder', run_btn('Show')),
+    dev_fold('2 errors'),
+    diag(*D_DUP, state='is-hover', mark=(560, 22)),
+    diag(*D_STORE),
+    dev_fold('5 warnings', False),
+])
+fr_body = f'''<div class="mc-world">
+<div class="mc-panel">
+{crumbs([R, ('Developer', ''), ('Immersive Flashlight VR', 'current')], alone=False)}
+<div class="mc-body">
+{nav(flat_mods(), '', 11)}
+<div class="mc-content">
+<div class="mc-scroll"><div class="rows" style="margin-top:-84px">{fr_rows}</div><div class="mc-scrollbar"><i style="top:13%;height:87%"></i></div></div>
+</div>
+</div>
+<div class="mc-footer">{helpline(*H_DUP)}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+</div>
+</div>'''
+write('FullPanelPackageReport', page('<!-- @dsCard group="Developer" height=768 width=1200 subtitle="A package&#39;s report: its live copy, Reload, the file and its folder, then its errors and its warnings, which fold" -->', 'Full panel, package report', fr_body))
+print('ok developer')

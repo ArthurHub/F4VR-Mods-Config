@@ -724,7 +724,7 @@ Choice values must be members of their declared options.
 
 These limits are the whole validation. The mod's code is not asked, and expressions across settings are not planned.
 
-Package/schema errors disable only the affected content where safe and appear in diagnostics. A package that cannot be read at all is [not available](ui-and-vr-interaction.md#notices). Player input errors disable Save until corrected.
+Package/schema errors disable only the affected content where safe and appear in diagnostics: in the log, and to the package's author in [Developer tools](ui-and-vr-interaction.md#developer-tools). A package that cannot be read at all is [not available](ui-and-vr-interaction.md#notices). Player input errors disable Save until corrected.
 
 ## Localization
 
