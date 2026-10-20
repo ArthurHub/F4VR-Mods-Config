@@ -128,6 +128,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - Invalid: a filled `red` triangle 20 x 18 with `!` in `on-red`.
 - A warning: a hollow triangle 20 x 18, a 2 px `amber` outline with `!` in `amber`, after the row's name (see `RowWarning`).
 - Running: a three-quarter arc that turns, 20 px, in a button (see `ButtonRow`).
+- A result to read: an info mark, a 2 px `green` circle 17 px across with an `i` in `green`, 20 px, in the gutter of a button's row until its result is read (see `ButtonRow`).
 - A text field's pencil, 18 px, in `green-muted` (see `TextInput`).
 - A texture's thumbnail: the texture itself, 32 px in a row and 40 px in a list, on black (see `FileChoice`).
 - An activation sphere's mark: a 20 px ring over a glow, with a halo while its sphere is lit (see `ActivationSphere`).

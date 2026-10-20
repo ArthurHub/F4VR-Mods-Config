@@ -128,7 +128,7 @@ Primary use: an operation that does not directly edit a stored value.
 - A button runs what an MCM button runs, such as a function of a script, a console command, or a function that the mod's native client registered, by its name and with typed parameters if needed.
 - Its button says `Run`, or the button text its package gives it.
 - Potentially destructive actions require explicit confirmation. A package's `confirmation` opens a dialog first, and a `dangerous` one is red.
-- While its action runs, the button says `Running` and is not pressed again. Its result, when the action gives one, is a line under the row's name: muted when it worked, red when it failed.
+- While its action runs, the button says `Running` and is not pressed again. Its result, when the action gives one, is in the help line while the ray is on the row, with a mark in the gutter: an info mark until the player has read it, and the invalid mark while it failed.
 - Cancelling an action that runs, and its progress, remain open design work.
 
 The look is the design system's [ButtonRow](design-system/project/components/ButtonRow/README.md).

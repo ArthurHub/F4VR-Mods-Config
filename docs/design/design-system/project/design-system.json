@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-20T16:00:00Z",
-    "via": "Claude Code",
-    "note": "SaveSummary removed: Save is disabled while a changed value is invalid, and the status counts them."
+    "at": "2026-10-20T15:20:00Z",
+    "via": "Claude (Cowork)",
+    "note": "ButtonRow: an unread result is the info mark in the gutter, and its text is in the help line; a failed one is the invalid mark."
   },
   "layout": "files",
   "libraries": [],

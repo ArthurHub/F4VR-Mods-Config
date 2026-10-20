@@ -386,8 +386,12 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .mc-btn.is-danger.is-hover { box-shadow: 0 0 0 var(--border-frame) var(--red); }
 .mc-btn.is-running { background: var(--pressed); border-color: var(--glow); }
 svg.mc-ico.spin { width: 20px; height: 20px; }
-.mc-row .name small.ok { color: var(--green-muted); }
 .mc-dialog.is-danger { border-color: var(--red); }
+.mc-done { width: 20px; height: 20px; }
+.mc-done .ring { fill: none; stroke: var(--green); stroke-width: 2; }
+.mc-done .i { fill: var(--green); }
+.help .mc-done { display: inline-block; vertical-align: -3px; margin-right: var(--space-2); }
+.help .done { color: var(--green); }
 
 /* ---------- restart: the notice of a saved change that needs one ---------- */
 .mc-footer .status .mc-tag { margin-left: 0; }

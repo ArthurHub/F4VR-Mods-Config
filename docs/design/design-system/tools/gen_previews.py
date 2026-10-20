@@ -1433,19 +1433,22 @@ SPIN = '<svg class="mc-ico spin" viewBox="0 0 24 24"><path d="M12 3 A9 9 0 1 1 3
 def run_btn(label='Run', state=''):
     return f'<div class="main"><span class="mc-btn t-body is-run{" " + state if state else ""}">{label}</span></div>{reset_btn(False)}'
 
-def result_row(name, label, text, ok=True, state=''):
-    cls = 'ok' if ok else 'mc-red'
-    return (f'<div class="mc-row {state}"><span class="gutter">{"" if ok else WARN}</span>'
-            f'<span class="name t-body" style="line-height:22px">{name}<small class="t-detail {cls}">{text}</small></span>'
-            f'<div class="ctl t-body">{run_btn(label)}</div></div>')
+DONE = ('<svg class="mc-done" viewBox="0 0 20 20"><circle class="ring" cx="10" cy="10" r="8.5"/>'
+        '<rect class="i" x="9" y="8.5" width="2" height="6.5"/><circle class="i" cx="10" cy="5.8" r="1.3"/></svg>')
+
+def doneline(name, result, help_):
+    """The help line of a button whose action worked: the info mark and the result in green, then the row's help."""
+    return f'<div class="help t-body"><span class="name">{name}:</span> {DONE}<span class="done">{result}</span> {help_}</div>'
 
 br_states = h_sheet([
     ('Run', row('Hide the HUD', run_btn())),
     ('buttonText', row('Calibrate height', run_btn('Calibrate'))),
     ('Under the ray', row('Calibrate height', run_btn('Calibrate'), 'is-hover', mark=(620, 22))),
     ('Running', row('Calibrate height', run_btn(f'{SPIN}Running', 'is-running'))),
-    ('Done', result_row('Calibrate height', 'Calibrate', 'Done: 1.78 m')),
-    ('Failed', result_row('Calibrate height', 'Calibrate', 'Stand still, then try again', ok=False)),
+    ('Done, not seen', row('Calibrate height', run_btn('Calibrate'), gutter=DONE)),
+    ('Done, ray on it', row('Calibrate height', run_btn('Calibrate'), 'is-hover', gutter=DONE, mark=(620, 22))),
+    ('Done, seen', row('Calibrate height', run_btn('Calibrate'))),
+    ('Failed', row('Calibrate height', run_btn('Calibrate'), gutter=WARN)),
     ('No client', row('Rebuild the holsters', run_btn('Rebuild'), 'is-disabled')),
 ])
 dlg = lambda title, msg, ok, danger: (f'<div class="mc-sheet mc-scrim" style="width:820px;height:300px;padding:0">'
@@ -1453,9 +1456,13 @@ dlg = lambda title, msg, ok, danger: (f'<div class="mc-sheet mc-scrim" style="wi
     f'<div class="actions">{btn("Cancel", "is-quiet")}{btn(ok, "is-danger" if danger else "is-primary")}</div></div></div>')
 br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 820px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The row: Run, or the button's text, in the control column; running; the result under the name</span>
+<span class="t-detail mc-caption">The row: Run, or the button's text, in the control column; running; a mark in the gutter for its result, which is in the help line</span>
 {br_states}
-<div class="mc-sheet" style="width:908px;padding:0"><div class="mc-footer">{helpline('Calibrate height', 'Measures your height and updates the calibration. Stand straight first.')}</div></div>
+<div class="mc-sheet mc-stack" style="width:908px;padding:0;gap:0">
+<div class="mc-footer">{helpline('Calibrate height', 'Measures your height and updates the calibration. Stand straight first.')}</div>
+<div class="mc-footer">{doneline('Calibrate height', 'Done: 1.78 m.', 'Measures your height and updates the calibration. Stand straight first.')}</div>
+<div class="mc-footer">{helpline('Calibrate height', 'Stand still, then try again.', error=True)}</div>
+</div>
 </div>
 <div class="mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">A confirmation, as the package writes it</span>
@@ -1464,7 +1471,7 @@ br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:90
 {dlg('Delete every holster?', 'Every holster you placed is removed, with the weapons in them returned to your inventory. This cannot be undone.', 'Delete', True)}
 </div>
 </div>"""
-write('ButtonRow', page('<!-- @dsCard group="Actions" height=760 width=1800 subtitle="A row that runs an action: Run or its text, running, its result under the name; a confirmation, and a dangerous one" -->', 'Button row', br_body))
+write('ButtonRow', page('<!-- @dsCard group="Actions" height=850 width=1800 subtitle="A row that runs an action: Run or its text, running, its result marked in the gutter and said in the help line; a confirmation, and a dangerous one" -->', 'Button row', br_body))
 print('ok button row')
 
 # ---------------- RestartNotice: a setting that needs a restart, and the Save that wrote one ----------------
