@@ -20,9 +20,6 @@ namespace
     constexpr float ARROW_SIZE = 14.0f;
     // the box of a dropdown, which fills the room of a control in its row: the control column without the room of Reset
     constexpr float DROPDOWN_WIDTH = theme::CONTROL_WIDTH - theme::CONTROL_HEIGHT - theme::SPACE_2;
-    // the room of the mark of the chosen option, before the text of every option of a list
-    constexpr float CHECK_SIZE = 20.0f;
-    constexpr float CHECK_THICKNESS = 2.5f;
     // the options of a list are this far from each other, and from the edge of the list
     constexpr float LIST_GAP = theme::SPACE_1;
     constexpr float LIST_PADDING = theme::SPACE_2;
@@ -55,19 +52,6 @@ namespace
             return ImVec2(origin.x + corner.x, origin.y + corner.y);
         };
         ImGui::GetWindowDrawList()->AddTriangleFilled(at(corners[0]), at(corners[1]), at(corners[2]), ImGui::GetColorU32(theme::color::GREEN));
-    }
-
-    /**
-     * The mark of the chosen option of a list, in a box of its size from a corner.
-     */
-    void drawCheck(const ImVec2& min, const ImU32 color)
-    {
-        // as the design system draws it, in a box of 24
-        constexpr float SCALE = CHECK_SIZE / 24.0f;
-        const std::array points{ ImVec2(min.x + 4.0f * SCALE, min.y + 12.5f * SCALE),
-            ImVec2(min.x + 9.5f * SCALE, min.y + 18.0f * SCALE),
-            ImVec2(min.x + 20.0f * SCALE, min.y + 6.5f * SCALE) };
-        ImGui::GetWindowDrawList()->AddPolyline(points.data(), static_cast<int>(points.size()), ImGui::GetColorU32(color), CHECK_THICKNESS);
     }
 
     /**
@@ -138,27 +122,6 @@ namespace
         return { box.Min.x, top, box.Max.x, top + height };
     }
 
-    /**
-     * An option of the list that is open, at the cursor: the mark of the chosen one, and its text. The
-     * chosen option is a solid fill, and any other has the look of a row under the ray.
-     * Returns whether it was pressed.
-     */
-    bool listOption(const std::string_view text, const bool chosen, const float width)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        const ImVec2 max(pos.x + width, pos.y + theme::CONTROL_HEIGHT);
-        const bool pressed = ImGui::InvisibleButton("option", ImVec2(width, theme::CONTROL_HEIGHT));
-        auto color = theme::color::GREEN;
-        if (chosen) {
-            ImGui::GetWindowDrawList()->AddRectFilled(pos, max, ImGui::GetColorU32(theme::color::GREEN), theme::RADIUS_FRAME);
-            drawCheck(ImVec2(pos.x + theme::SPACE_3, pos.y + (theme::CONTROL_HEIGHT - CHECK_SIZE) * 0.5f), theme::color::ON_GREEN);
-            color = theme::color::ON_GREEN;
-        } else {
-            ui::drawRowState();
-        }
-        ui::drawText(pos.x + theme::SPACE_3 + CHECK_SIZE + theme::SPACE_3, max.x - theme::SPACE_4, pos.y, theme::CONTROL_HEIGHT, color, text);
-        return pressed;
-    }
 }
 
 namespace mods_config::ui

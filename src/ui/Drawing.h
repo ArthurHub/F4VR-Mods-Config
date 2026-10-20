@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -69,6 +70,9 @@ namespace mods_config::ui
     // the box of the warning mark and of the invalid mark, as the design system draws them
     constexpr float WARNING_MARK_WIDTH = 20.0f;
 
+    // how far the selected-row bar's tip extends past its right edge
+    constexpr float SELECTED_BAR_TIP_DEPTH = 20.0f;
+
     float mcmScale();
     float textWidth(std::string_view text);
     void drawPageText(std::string_view text);
@@ -78,12 +82,17 @@ namespace mods_config::ui
     int countTextLines(std::span<const TextPiece> pieces, float width);
     void drawTextPieces(std::span<const TextPiece> pieces, const ImVec2& pos, float width, int maxLines);
     void sectionHeading(std::string_view text, float right);
+    void drawSectionLine(float left, float top, float bottom);
     void drawOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawDashedOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
+    void drawSelectedBar(const ImVec2& min, const ImVec2& max);
     void drawRowState();
+    bool listOption(std::string_view text, bool chosen, float width);
     ImRect controlBox(float left, float top, float width);
     void drawFrame(const ImRect& box, ValueLook look = ValueLook::Saved);
+    float drawSwitcher(float right, float top, std::optional<bool> on, ValueLook look);
     void drawButtonFrame(const ImRect& box, bool pointed, bool held);
+    bool iconButton(const char* id, const ImRect& box, bool& pointed);
     bool button(const char* label, const ImRect& box, ButtonLook look);
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
     ImU32 valueColor(ValueLook look);

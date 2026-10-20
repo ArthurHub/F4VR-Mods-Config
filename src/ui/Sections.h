@@ -26,8 +26,6 @@ namespace mods_config::ui
         bool pressed = false;
     };
 
-    void drawSectionLine(float left, float top, float bottom);
-
     /**
      * The sections that fold of the page that is shown: how the heading of one is drawn, and whether each is
      * folded. A press on its heading folds or opens it, and it starts as its `collapsed` says each time its

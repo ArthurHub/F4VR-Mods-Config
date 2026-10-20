@@ -18,10 +18,8 @@ namespace
     // The tree's sizes that are not tokens of the design system, in the panel's pixels.
     // Its header:
     constexpr float HEADER_HEIGHT = 40.0f;
-    // the tip its selected row ends in, which points at the content:
-    constexpr float TIP_DEPTH = 20.0f;
     // the room it keeps on its right, for that tip and for its scroll bar:
-    constexpr float RIGHT_ROOM = TIP_DEPTH + theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
+    constexpr float RIGHT_ROOM = ui::SELECTED_BAR_TIP_DEPTH + theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
     // the column the arrow of a row is in the middle of, which every row keeps:
     constexpr float ARROW_COLUMN = 16.0f;
     // and the gap from it to the name, 2 px less than space-2:
@@ -60,21 +58,6 @@ namespace
     }
 
     /**
-     * The bar of the selected row: a solid fill that ends in a tip, in the room the tree keeps beside its rows.
-     * It is one shape, so no seam shows between the bar and its tip.
-     */
-    void drawSelectedBar(const ImVec2& min, const ImVec2& max)
-    {
-        auto* drawList = ImGui::GetWindowDrawList();
-        drawList->PathArcToFast(ImVec2(min.x + theme::RADIUS_FRAME, min.y + theme::RADIUS_FRAME), theme::RADIUS_FRAME, 6, 9);
-        drawList->PathLineTo(ImVec2(max.x, min.y));
-        drawList->PathLineTo(ImVec2(max.x + TIP_DEPTH, (min.y + max.y) * 0.5f));
-        drawList->PathLineTo(max);
-        drawList->PathArcToFast(ImVec2(min.x + theme::RADIUS_FRAME, max.y - theme::RADIUS_FRAME), theme::RADIUS_FRAME, 3, 6);
-        drawList->PathFillConvex(theme::color::GREEN);
-    }
-
-    /**
      * A row of the tree at the cursor, in the width of every row: a mod's at level 0, and a page's a level
      * further in than the mod or the page it is under. Its name is set in by its level, after the column of its
      * arrow, which every row keeps, so the names of a level line up whether or not they have one. The selected
@@ -98,7 +81,7 @@ namespace
         }
 
         if (selected) {
-            drawSelectedBar(min, max);
+            ui::drawSelectedBar(min, max);
         } else {
             ui::drawRowState();
         }

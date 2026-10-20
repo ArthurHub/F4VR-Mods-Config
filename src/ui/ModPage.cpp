@@ -261,33 +261,6 @@ namespace
         return row.pointed;
     }
 
-    // a cell of a switcher, which has two, in the panel's pixels: not a token of the design system
-    constexpr float TOGGLE_CELL_WIDTH = 88.0f;
-
-    /**
-     * A switcher that ends at the right: an Off and an On cell, with the one of its value marked in the color
-     * of its value's look. On is a solid fill, and Off a ring, so a solid fill always says on. One with no
-     * value has neither marked. Returns its left edge.
-     */
-    float drawSwitcher(const float right, const float top, const std::optional<bool> on, const ui::ValueLook look)
-    {
-        const auto box = ui::controlBox(right - TOGGLE_CELL_WIDTH * 2.0f, top, TOGGLE_CELL_WIDTH * 2.0f);
-        const auto offCell = ui::controlBox(box.Min.x, top, TOGGLE_CELL_WIDTH);
-        const auto onCell = ui::controlBox(offCell.Max.x, top, TOGGLE_CELL_WIDTH);
-        const auto color = ui::valueColor(look);
-        ui::drawFrame(box);
-        if (on == true) {
-            ImGui::GetWindowDrawList()->AddRectFilled(onCell.Min, onCell.Max, ImGui::GetColorU32(color), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersRight);
-        } else if (on == false) {
-            ImGui::GetWindowDrawList()->AddRectFilled(offCell.Min, offCell.Max, ImGui::GetColorU32(theme::color::PRESSED), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersLeft);
-            ui::drawOutline(offCell.Min, offCell.Max, color);
-        }
-        const auto onText = look == ui::ValueLook::Pending ? theme::color::ON_AMBER : look == ui::ValueLook::Invalid ? theme::color::ON_RED : theme::color::ON_GREEN;
-        ui::drawTextIn(offCell, "Off", on == false ? color : theme::color::GREEN_MUTED, 0.5f);
-        ui::drawTextIn(onCell, "On", on == true ? onText : theme::color::GREEN_MUTED, 0.5f);
-        return box.Min.x;
-    }
-
     /**
      * The Reset icon around a point: most of a circle, open at its left, with an arrowhead at its upper end.
      */
@@ -591,7 +564,7 @@ namespace
         }
         switch (setting.type) {
         case model::SettingType::Switcher:
-            left = drawSwitcher(right, pos.y, showsValue ? std::optional(on && *on) : std::nullopt, look);
+            left = ui::drawSwitcher(right, pos.y, showsValue ? std::optional(on && *on) : std::nullopt, look);
             break;
         case model::SettingType::Slider:
             left = page.sliders.draw(setting, right, pos.y, showsValue ? std::optional(value) : std::nullopt, look);

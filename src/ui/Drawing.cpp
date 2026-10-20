@@ -14,6 +14,26 @@ namespace
 {
     using namespace mods_config;
 
+    // the room of the mark of the chosen option, before the text of every option of a list
+    constexpr float CHECK_SIZE = 20.0f;
+    constexpr float CHECK_THICKNESS = 2.5f;
+
+    /**
+     * The mark of the chosen option of a list, in a box of its size from a corner.
+     */
+    void drawCheck(const ImVec2& min, const ImU32 color)
+    {
+        // as the design system draws it, in a box of 24
+        constexpr float SCALE = CHECK_SIZE / 24.0f;
+        const std::array points{ ImVec2(min.x + 4.0f * SCALE, min.y + 12.5f * SCALE),
+            ImVec2(min.x + 9.5f * SCALE, min.y + 18.0f * SCALE),
+            ImVec2(min.x + 20.0f * SCALE, min.y + 6.5f * SCALE) };
+        ImGui::GetWindowDrawList()->AddPolyline(points.data(), static_cast<int>(points.size()), ImGui::GetColorU32(color), CHECK_THICKNESS);
+    }
+
+    // a cell of a switcher, which has two, in the panel's pixels: not a token of the design system
+    constexpr float TOGGLE_CELL_WIDTH = 88.0f;
+
     // The size of a font tag that is drawn as the panel's body text. A config's sizes are those of MCM's menu,
     // where the ordinary text is about this size, so a text is as much larger or smaller than the rows as there.
     constexpr float MARKUP_BODY_SIZE = 20.0f;
@@ -365,6 +385,24 @@ namespace mods_config::ui
     }
 
     /**
+     * The line of a section in a section, along the left of its rows: from under its heading down to the
+     * bottom of its last row, where it turns toward the rows in a short foot with a rounded corner. It shows
+     * what the section covers, so a row after it is seen to be the outer section's.
+     */
+    void drawSectionLine(const float left, const float top, const float bottom)
+    {
+        // the length of the foot, as the design system draws it: not a token
+        constexpr float FOOT_WIDTH = 14.0f;
+        const float x = left + theme::BORDER_FRAME * 0.5f;
+        const float y = bottom - theme::BORDER_FRAME * 0.5f;
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathLineTo(ImVec2(x, top));
+        drawList->PathArcTo(ImVec2(x + theme::RADIUS_FRAME, y - theme::RADIUS_FRAME), theme::RADIUS_FRAME, IM_PI, IM_PI * 0.5f);
+        drawList->PathLineTo(ImVec2(left + FOOT_WIDTH, y));
+        drawList->PathStroke(ImGui::GetColorU32(theme::color::RULE), ImDrawFlags_None, theme::BORDER_FRAME);
+    }
+
+    /**
      * An outline along the inside of a rectangle's edge, as a control and a row under the ray have.
      */
     void drawOutline(const ImVec2& min, const ImVec2& max, const ImU32 color)
@@ -403,6 +441,21 @@ namespace mods_config::ui
     }
 
     /**
+     * The bar of the selected row: a solid fill that ends in a tip, in the room the tree keeps beside its rows.
+     * It is one shape, so no seam shows between the bar and its tip.
+     */
+    void drawSelectedBar(const ImVec2& min, const ImVec2& max)
+    {
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathArcToFast(ImVec2(min.x + theme::RADIUS_FRAME, min.y + theme::RADIUS_FRAME), theme::RADIUS_FRAME, 6, 9);
+        drawList->PathLineTo(ImVec2(max.x, min.y));
+        drawList->PathLineTo(ImVec2(max.x + SELECTED_BAR_TIP_DEPTH, (min.y + max.y) * 0.5f));
+        drawList->PathLineTo(max);
+        drawList->PathArcToFast(ImVec2(min.x + theme::RADIUS_FRAME, max.y - theme::RADIUS_FRAME), theme::RADIUS_FRAME, 3, 6);
+        drawList->PathFillConvex(theme::color::GREEN);
+    }
+
+    /**
      * How the row that was just added looks while the ray is on it: a tint with an outline, and a stronger one
      * while it is pressed. Call it before the row's content is drawn, which then lies over it.
      */
@@ -416,6 +469,28 @@ namespace mods_config::ui
         const auto max = ImGui::GetItemRectMax();
         ImGui::GetWindowDrawList()->AddRectFilled(min, max, ImGui::GetColorU32(pressed ? theme::color::PRESSED : theme::color::HOVER), theme::RADIUS_FRAME);
         drawOutline(min, max, pressed ? theme::color::GLOW : theme::color::FRAME_BORDER);
+    }
+
+    /**
+     * An option of the list that is open, at the cursor: the mark of the chosen one, and its text. The
+     * chosen option is a solid fill, and any other has the look of a row under the ray.
+     * Returns whether it was pressed.
+     */
+    bool listOption(const std::string_view text, const bool chosen, const float width)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const ImVec2 max(pos.x + width, pos.y + theme::CONTROL_HEIGHT);
+        const bool pressed = ImGui::InvisibleButton("option", ImVec2(width, theme::CONTROL_HEIGHT));
+        auto color = theme::color::GREEN;
+        if (chosen) {
+            ImGui::GetWindowDrawList()->AddRectFilled(pos, max, ImGui::GetColorU32(theme::color::GREEN), theme::RADIUS_FRAME);
+            drawCheck(ImVec2(pos.x + theme::SPACE_3, pos.y + (theme::CONTROL_HEIGHT - CHECK_SIZE) * 0.5f), theme::color::ON_GREEN);
+            color = theme::color::ON_GREEN;
+        } else {
+            drawRowState();
+        }
+        drawText(pos.x + theme::SPACE_3 + CHECK_SIZE + theme::SPACE_3, max.x - theme::SPACE_4, pos.y, theme::CONTROL_HEIGHT, color, text);
+        return pressed;
     }
 
     /**
@@ -436,6 +511,30 @@ namespace mods_config::ui
     }
 
     /**
+     * A switcher that ends at the right: an Off and an On cell, with the one of its value marked in the color
+     * of its value's look. On is a solid fill, and Off a ring, so a solid fill always says on. One with no
+     * value has neither marked. Returns its left edge.
+     */
+    float drawSwitcher(const float right, const float top, const std::optional<bool> on, const ValueLook look)
+    {
+        const auto box = controlBox(right - TOGGLE_CELL_WIDTH * 2.0f, top, TOGGLE_CELL_WIDTH * 2.0f);
+        const auto offCell = controlBox(box.Min.x, top, TOGGLE_CELL_WIDTH);
+        const auto onCell = controlBox(offCell.Max.x, top, TOGGLE_CELL_WIDTH);
+        const auto color = valueColor(look);
+        drawFrame(box);
+        if (on == true) {
+            ImGui::GetWindowDrawList()->AddRectFilled(onCell.Min, onCell.Max, ImGui::GetColorU32(color), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersRight);
+        } else if (on == false) {
+            ImGui::GetWindowDrawList()->AddRectFilled(offCell.Min, offCell.Max, ImGui::GetColorU32(theme::color::PRESSED), theme::RADIUS_FRAME, ImDrawFlags_RoundCornersLeft);
+            drawOutline(offCell.Min, offCell.Max, color);
+        }
+        const auto onText = look == ValueLook::Pending ? theme::color::ON_AMBER : look == ValueLook::Invalid ? theme::color::ON_RED : theme::color::ON_GREEN;
+        drawTextIn(offCell, "Off", on == false ? color : theme::color::GREEN_MUTED, 0.5f);
+        drawTextIn(onCell, "On", on == true ? onText : theme::color::GREEN_MUTED, 0.5f);
+        return box.Min.x;
+    }
+
+    /**
      * The frame of a button that is a part of a row, as a button of a stepper: an outline, and the look of a
      * control under the ray while the ray is on it, with a stronger one while the trigger is held on it.
      */
@@ -447,6 +546,19 @@ namespace mods_config::ui
         } else {
             drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
         }
+    }
+
+    /**
+     * Adds an icon button in its box and draws its frame; the caller draws the icon.
+     * Returns whether it was pressed and tells whether the ray is on it.
+     */
+    bool iconButton(const char* id, const ImRect& box, bool& pointed)
+    {
+        ImGui::SetCursorScreenPos(box.Min);
+        const bool pressed = ImGui::InvisibleButton(id, box.GetSize());
+        pointed = ImGui::IsItemHovered();
+        drawButtonFrame(box, pointed, ImGui::IsItemActive());
+        return pressed;
     }
 
     /**

@@ -113,24 +113,6 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * The line of a section in a section, along the left of its rows: from under its heading down to the
-     * bottom of its last row, where it turns toward the rows in a short foot with a rounded corner. It shows
-     * what the section covers, so a row after it is seen to be the outer section's.
-     */
-    void drawSectionLine(const float left, const float top, const float bottom)
-    {
-        // the length of the foot, as the design system draws it: not a token
-        constexpr float FOOT_WIDTH = 14.0f;
-        const float x = left + theme::BORDER_FRAME * 0.5f;
-        const float y = bottom - theme::BORDER_FRAME * 0.5f;
-        auto* drawList = ImGui::GetWindowDrawList();
-        drawList->PathLineTo(ImVec2(x, top));
-        drawList->PathArcTo(ImVec2(x + theme::RADIUS_FRAME, y - theme::RADIUS_FRAME), theme::RADIUS_FRAME, IM_PI, IM_PI * 0.5f);
-        drawList->PathLineTo(ImVec2(left + FOOT_WIDTH, y));
-        drawList->PathStroke(ImGui::GetColorU32(theme::color::RULE), ImDrawFlags_None, theme::BORDER_FRAME);
-    }
-
-    /**
      * Whether a section that folds is folded: as the player left it on the page that is shown, or else as its
      * `collapsed` says.
      */

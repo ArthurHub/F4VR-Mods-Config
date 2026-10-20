@@ -82,20 +82,6 @@ namespace
     }
 
     /**
-     * A 48 px button of the title bar in its box, which its caller draws the icon of: the outline of a button,
-     * and its look under the ray and while it is pressed. Tells whether the ray is on it. Returns whether it
-     * was pressed.
-     */
-    bool iconButton(const char* id, const ImRect& box, bool& pointed)
-    {
-        ImGui::SetCursorScreenPos(box.Min);
-        const bool pressed = ImGui::InvisibleButton(id, box.GetSize());
-        pointed = ImGui::IsItemHovered();
-        ui::drawButtonFrame(box, pointed, ImGui::IsItemActive());
-        return pressed;
-    }
-
-    /**
      * The Minimize icon around a point: a line at the bottom of a box of 24, as the design system draws it.
      */
     void drawMinimizeIcon(const ImVec2& center)
