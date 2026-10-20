@@ -27,7 +27,7 @@ namespace mods_config::theme
         constexpr ImU32 ON_GREEN     = IM_COL32(  4,  23,  12, 255); // Text and drawn icons on a solid green fill: the selected tree row, the selected half of a toggle, the current option, the Save button
         constexpr ImU32 AMBER        = IM_COL32(255, 191,  51, 255); // Pending: a setting that differs from its saved value
         constexpr ImU32 ON_AMBER     = IM_COL32( 31,  20,   0, 255); // Text on an amber fill, if one is ever needed
-        constexpr ImU32 RED          = IM_COL32(255, 149, 133, 255); // Invalid: the value text, the inline message and the gutter mark of a setting that cannot be saved, and the error in the help line
+        constexpr ImU32 RED          = IM_COL32(255, 149, 133, 255); // Invalid: the value text and the gutter mark of a setting that cannot be saved, and the error in the help line
         constexpr ImU32 ON_RED       = IM_COL32( 36,   8,   5, 255); // The "!" inside the drawn warning triangle, which is filled red
         constexpr ImU32 DISABLED     = IM_COL32( 10, 250, 120, 102); // Text and outlines of a disabled row or control, which is ImGui's DisabledAlpha 0.4 applied to green
         constexpr ImU32 RAY          = IM_COL32(190, 255, 190, 200); // The pointer ray: cRayColor = { rgb = [190, 255, 190], alpha = 200 } in [Pointer] of ModsConfigVR.toml

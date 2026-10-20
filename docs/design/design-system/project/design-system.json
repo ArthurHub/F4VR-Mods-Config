@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-19T23:30:00Z",
+    "at": "2026-10-20T00:30:00Z",
     "via": "Claude Code",
-    "note": "In review: SaveBar's Not saved state, the status after a Save that failed."
+    "note": "In review: an invalid row has no message under its name; why it is invalid is in the help line."
   },
   "layout": "files",
   "libraries": [],

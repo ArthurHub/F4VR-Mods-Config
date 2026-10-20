@@ -12,7 +12,7 @@ A pattern of the framework's haptic library, picked from a dropdown that draws e
 - Pointing at an option plays nothing. The help line shows the option's help from the table.
 - A press that plays a pattern gives no press pulse of the menu. Reset does not play.
 - Pending: the label and the shape in `amber`, and the dot in the gutter.
-- Invalid: a name the library does not have. The label is the text as the file has it, in `red` with a `red` outline, and the row's message is "Not a haptic pattern". The help line reads "Tik is not a haptic pattern, so none plays. Pick one, or Reset it to Tick."
+- Invalid: a name the library does not have. The label is the text as the file has it, in `red` with a `red` outline, and the invalid mark in the gutter. The help line reads "Tik is not a haptic pattern, so none plays. Pick one, or Reset it to Tick."
 - **Focused panel:** a choice stepper. The label box holds the text and the shape, then Play, then Reset. Each step plays the pattern it steps to.
 
 | Stored        | Text         | Length | Help                                                         |

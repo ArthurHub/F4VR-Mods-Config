@@ -2220,6 +2220,50 @@ TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them bac
     CHECK_FALSE(pressActs(panel, saveButton()));
 }
 
+TEST_CASE("FullPanel: a change that is invalid disables Save, and the status says how many there are")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfHeight = 1.5\r\nbEnable = false\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "textinput", "valueType": "float", "text": "Height", "default": 1.5, "valueOptions": { "min": 0.5, "max": 2.5 },
+              "storage": { "path": ["Main", "fHeight"] } },
+            { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& height = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(store.set(height, "3"s));
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "1 invalid value");
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Invalid);
+
+    // the row has the reason as its help
+    test_panel::drawFrame(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Height: Invalid: 3 is not from 0.5 to 2.5.");
+    CHECK(panel.helpLine().isInvalid());
+
+    // Save writes nothing, and Discard takes the changes back
+    CHECK_FALSE(pressActs(panel, saveButton()));
+    CHECK(store.dirtyCount() == 2);
+    CHECK(pressActs(panel, discardButton()));
+    drawFrames(panel, 1);
+    CHECK(store.dirtyCount() == 0);
+    CHECK(panel.helpLine().status() == "No unsaved changes");
+}
+
 TEST_CASE("FullPanel: a Save that fails says why in the help line, until the next change, and Save is still enabled")
 {
     const test_panel::PanelContext context;
@@ -2251,7 +2295,7 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
     }
     CHECK(store.dirtyCount() == 1);
     CHECK(panel.helpLine().status() == "Not saved: MyMod.toml cannot be written.");
-    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Failed);
+    CHECK(panel.helpLine().statusLook() == ui::StatusLook::Invalid);
 
     // the row the ray is on has its help over it, and the status is there again as the ray leaves
     test_panel::drawFrame(panel, pageRow(1));
@@ -2307,10 +2351,12 @@ TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, 
 
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == R"(Enable: Invalid: Main.bEnable is "yes" in MyMod.toml, which is not true or false.)");
+    CHECK(panel.helpLine().isInvalid());
 
     // it shows the default, and its Reset still sets it, which replaces the file's value
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Enable: Reset to on");
+    CHECK_FALSE(panel.helpLine().isInvalid());
     CHECK(pressActs(panel, resetButton(0)));
     CHECK_FALSE(store.value(setting).invalid);
     CHECK(store.isDirty(setting));

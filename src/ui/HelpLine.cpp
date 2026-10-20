@@ -17,7 +17,8 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Shows a row's text, its warning and its help. A row with neither is its text alone, which a row that
+     * Shows a row's text, its warning and its help, and whether the help is why its value is invalid. A row
+     * with neither is its text alone, which a row that
      * ends in an ellipsis has in full here. A mod sets a row in by spaces before its text: they are the page's.
      */
     void HelpLine::show(const PointedRow& row)
@@ -32,6 +33,7 @@ namespace mods_config::ui
             _warning += ' ';
         }
         _help = row.help;
+        _invalid = row.invalid && !_help.empty();
     }
 
     void HelpLine::clear()
@@ -39,12 +41,13 @@ namespace mods_config::ui
         _name.clear();
         _warning.clear();
         _help.clear();
+        _invalid = false;
     }
 
     /**
      * What the line says while the ray is on no row: the status of the mod's editing session, and nothing
      * where there is none, as on the menu's front page. A status of changes that wait for a Save is pending,
-     * and one of a Save that failed has its look.
+     * and one of changes that are invalid, or of a Save that failed, is invalid.
      */
     void HelpLine::setStatus(const std::string_view status, const StatusLook look)
     {
@@ -55,9 +58,11 @@ namespace mods_config::ui
     /**
      * Draws the line from a place at the top of the footer, in the middle of the footer's height.
      * It is two lines of body text at most. A help that needs a third is drawn in the detail size, where
-     * three lines fit, and a longer one ends in an ellipsis. A warning is in amber after the warning mark.
+     * three lines fit, and a longer one ends in an ellipsis. A warning is in amber after the warning mark,
+     * and why a row is invalid in red after the invalid mark.
      * With no row it is the status, in the muted color, in amber after the pending mark while changes wait
-     * for a Save, or in red after the invalid mark for a Save that failed, wrapped as a help is.
+     * for a Save, or in red after the invalid mark while a change is invalid and for a Save that failed,
+     * wrapped as a help is.
      */
     void HelpLine::draw(const ImVec2& pos, const float width) const
     {
@@ -70,12 +75,12 @@ namespace mods_config::ui
             drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::AMBER, _status);
             return;
         }
-        const bool failed = !hasRow && _look == StatusLook::Failed;
-        const auto mark = failed ? TextMark::Invalid : !_warning.empty() ? TextMark::Warning : TextMark::None;
+        const bool invalid = hasRow ? _invalid : _look == StatusLook::Invalid;
+        const auto mark = invalid ? TextMark::Invalid : !_warning.empty() ? TextMark::Warning : TextMark::None;
         const std::array pieces{ TextPiece{ .text = _name, .color = theme::color::GREEN },
             TextPiece{ .text = {}, .color = theme::color::AMBER, .mark = mark },
             TextPiece{ .text = _warning, .color = theme::color::AMBER },
-            TextPiece{ .text = hasRow ? _help : _status, .color = failed ? theme::color::RED : theme::color::GREEN_MUTED } };
+            TextPiece{ .text = hasRow ? _help : _status, .color = invalid ? theme::color::RED : theme::color::GREEN_MUTED } };
         int lines = countTextLines(pieces, width);
         if (lines == 0) {
             return;

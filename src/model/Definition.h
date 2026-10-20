@@ -1,11 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -68,7 +70,8 @@ namespace mods_config::model
     };
 
     /**
-     * What the value of a setting can be: the range of a slider, or the options of a stepper and a dropdown.
+     * What the value of a setting can be: the range of a slider and of a text input of a number, the length of
+     * a text input of a text, or the options of a stepper and a dropdown.
      */
     struct ValueOptions
     {
@@ -77,12 +80,28 @@ namespace mods_config::model
         float max = 0.0f;
         float step = 1.0f;
 
+        // the fewest and the most characters of a text input of a text, and 0 for no limit. A package's
+        // `allowEmpty` of false is a least of 1
+        int minLength = 0;
+        int maxLength = 0;
+
         // in the order they are shown. None for a choice that reads them in the game
         std::vector<Option> options;
 
         // where a choice reads its options in the game. None for one whose options are these
         std::optional<GameOptions> gameOptions;
     };
+
+    /**
+     * The length of a text in characters, as the limits of a text input count it: a character of UTF-8 is
+     * one, whatever its bytes.
+     */
+    inline int textLength(const std::string_view text)
+    {
+        return static_cast<int>(std::ranges::count_if(text, [](const char c) {
+            return (static_cast<unsigned char>(c) & 0xC0) != 0x80;
+        }));
+    }
 
     /**
      * A setting that is kept nowhere: the store holds its value by itself, while the mod is selected.

@@ -10,30 +10,33 @@ namespace mods_config::ui
 {
     /**
      * The row the ray is on: what the row says, which is the model's own text, and its help. A row whose
-     * value is not available has the reason as its help. A row that warns has the text of its warning, the
-     * model's own too.
+     * value is not available has the reason as its help, and one whose value is invalid has why as its help,
+     * which is an error. A row that warns has the text of its warning, the model's own too.
      */
     struct PointedRow
     {
         std::string_view text;
         std::string help;
         std::string_view warning;
+        bool invalid = false;
     };
 
     /**
      * How the status of the help line looks: plain in the muted color, in amber after the pending mark while
-     * changes wait for a Save, or in red after the invalid mark for a Save that failed.
+     * changes wait for a Save, or in red after the invalid mark while a change is invalid and for a Save that
+     * failed.
      */
     enum class StatusLook : std::uint8_t
     {
         Plain,
         Pending,
-        Failed,
+        Invalid,
     };
 
     /**
      * The help line, on the left of the Full panel's footer: the help of the row the ray is on, as
-     * `Name: help`, with the warning of a row that warns before its help. It keeps the row it was last given, so the line does not change while the ray is in the
+     * `Name: help`, with the warning of a row that warns before its help, and why a row is invalid in red
+     * after the invalid mark. It keeps the row it was last given, so the line does not change while the ray is in the
      * gap between two rows. With no row it has the status of the editing session, where there is one.
      */
     class HelpLine
@@ -55,12 +58,20 @@ namespace mods_config::ui
             return _look;
         }
 
+        bool isInvalid() const
+        {
+            return _invalid;
+        }
+
     private:
         // the row's text, with the colon and the space that stand before a help, the row's warning, with the
         // space before a help, and the row's help
         std::string _name;
         std::string _warning;
         std::string _help;
+
+        // whether the row's help is why its value is invalid
+        bool _invalid = false;
 
         // what the line says with no row: empty for nothing
         std::string _status;

@@ -447,9 +447,9 @@ namespace
      * Returns whether the ray is on the row or on its open list, and tells the help of the row: why a value
      * is not available, what Reset gives while the ray is on it, why a value is invalid, and else the row's
      * own, after `(Read-only)` for a read-only setting, with a percentage's number and its default. And the
-     * warning of a row that has the mark.
+     * warning of a row that has the mark, and whether the help is why the value is invalid.
      */
-    bool drawSetting(const model::Setting& setting, const PageDrawing& page, const Gutter& gutter, std::string& help, std::string_view& warning)
+    bool drawSetting(const model::Setting& setting, const PageDrawing& page, const Gutter& gutter, std::string& help, std::string_view& warning, bool& invalid)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
@@ -540,6 +540,7 @@ namespace
                 help = std::format("Reset to {}", defaultName(setting, choiceOptions, *defaultValue));
             } else if (!stored.reason.empty()) {
                 help = std::move(stored.reason);
+                invalid = stored.invalid;
             } else {
                 const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, choiceOptions, *defaultValue)) : std::string();
                 help = joinHelp({ setting.readOnly ? READ_ONLY : std::string_view(), setting.help, numberDetail(setting, stored, value), defaultText });
@@ -765,8 +766,9 @@ namespace
         {
             std::string reason;
             std::string_view warning;
-            if (drawSetting(setting, page, gutterAt(depth), reason, warning)) {
-                page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = std::move(reason), .warning = warning };
+            bool invalid = false;
+            if (drawSetting(setting, page, gutterAt(depth), reason, warning, invalid)) {
+                page.drawn.pointed = ui::PointedRow{ .text = setting.text, .help = std::move(reason), .warning = warning, .invalid = invalid };
             }
         }
 

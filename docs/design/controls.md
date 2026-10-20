@@ -276,7 +276,7 @@ The full and focused layouts reserve a stable place for the help of the item the
 
 Additional feedback:
 
-- Invalid rows receive a clear marker and concise inline message.
+- An invalid row has the invalid mark in its gutter and its value in red, and the help line has the reason while the ray is on it.
 - A row whose warning holds has a warning mark, and the help line shows the warning before its help. A warning does not block Save. Its mark is a hollow amber triangle after the name, apart from the invalid mark in the gutter. See [Warnings](schema.md#warnings), and the design system's [RowWarning](design-system/project/components/RowWarning/README.md).
 - Save is blocked while a dirty setting is invalid. An invalid value that was already in the file does not block it.
 - Attempting Save shows a summary and moves focus to the first invalid setting that is visible.

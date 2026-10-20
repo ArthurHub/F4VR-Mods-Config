@@ -116,7 +116,6 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-row.is-focus { box-shadow: inset 0 0 0 var(--border-frame) var(--green); }
 .mc-row.is-active { background: var(--pressed); box-shadow: inset 0 0 0 var(--border-frame) var(--glow); }
 .mc-row.is-disabled { opacity: var(--opacity-disabled); }
-.mc-row.is-invalid .name { line-height: 22px; }
 /* the mark of a setting that takes effect after the game is restarted */
 .mc-tag { display: inline-block; margin-left: var(--space-2); padding: 0 var(--space-2); line-height: 22px; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); color: var(--green-muted); vertical-align: 2px; }
 .mc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--amber); }

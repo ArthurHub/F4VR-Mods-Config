@@ -62,6 +62,9 @@ sText = "Hello"
 sEmpty = ""
 iNumber = 42
 fNumber = 1.5
+sCode = "ABC"
+sNotEmpty = "Sanctuary"
+iLimited = 5
 
 [Numbers]
 fStepDecimals = 1.25

@@ -206,23 +206,102 @@ TEST_CASE("PackageStore: a set value is pending and dirty, and a value set back 
     CHECK(session.store.dirtyCount() == 2);
 }
 
-TEST_CASE("PackageStore: a value that is not one of its setting is not set")
+TEST_CASE("PackageStore: a value the player sets that is not one of its setting is pending and invalid, with the reason")
 {
     Session session;
     session.open(MOD_TOML);
-    // outside the limits of a slider and of a text input of a number
-    CHECK_FALSE(session.store.set(session.setting(1), 2.0f));
-    CHECK_FALSE(session.store.set(session.setting(6), "10"s));
-    // a text that is no number of its field
-    CHECK_FALSE(session.store.set(session.setting(6), "4.5"s));
-    CHECK_FALSE(session.store.set(session.setting(7), "fast"s));
-    CHECK_FALSE(session.store.set(session.setting(7), ""s));
-    // no option of a choice, and a value of another type
-    CHECK_FALSE(session.store.set(session.setting(3), 2));
-    CHECK_FALSE(session.store.set(session.setting(4), "elbow"s));
+    // outside the limits of a slider and of a text input of a number, which is written as short as it can be
+    CHECK(session.store.set(session.setting(1), 2.0f));
+    CHECK(session.store.set(session.setting(6), "010"s));
+    // a text that is no number of its field, as it is typed
+    CHECK(session.store.set(session.setting(7), "fast"s));
+    // no option of a choice
+    CHECK(session.store.set(session.setting(4), "elbow"s));
+
+    CHECK(session.value(1).invalid);
+    CHECK(session.value(1).value == model::Value(2.0f));
+    CHECK(session.value(1).reason == "Invalid: 2 is not from 0.5 to 1.5.");
+    CHECK(session.value(6).value == model::Value("10"s));
+    CHECK(session.value(6).reason == "Invalid: 10 is not from 1 to 9.");
+    CHECK(session.value(7).value == model::Value("fast"s));
+    CHECK(session.value(7).reason == R"(Invalid: "fast" is not a number.)");
+    CHECK(session.value(4).reason == R"(Invalid: "elbow" is none of its options.)");
+    CHECK(session.store.set(session.setting(6), "4.5"s));
+    CHECK(session.value(6).reason == R"(Invalid: "4.5" is not a whole number.)");
+
+    // each is dirty, and counted as invalid
+    CHECK(session.store.isDirty(session.setting(1)));
+    CHECK(session.store.dirtyCount() == 4);
+    CHECK(session.store.invalidCount() == 4);
+
+    // a valid value makes it valid, and the file's value makes it clean
+    CHECK(session.store.set(session.setting(1), 1.0f));
+    CHECK_FALSE(session.value(1).invalid);
+    CHECK(session.value(1).reason.empty());
+    CHECK(session.store.set(session.setting(6), "5"s));
+    CHECK_FALSE(session.store.isDirty(session.setting(6)));
+    CHECK_FALSE(session.value(6).invalid);
+    CHECK(session.store.invalidCount() == 2);
+
+    // a value of another type than its control shows is not set
     CHECK_FALSE(session.store.set(session.setting(0), 1));
+    CHECK_FALSE(session.store.set(session.setting(3), "Left"s));
+    CHECK_FALSE(session.store.set(session.setting(1), "1.0"s));
+    CHECK(session.store.dirtyCount() == 3);
+
+    // Discard takes them back
+    session.store.discard();
+    CHECK(session.store.invalidCount() == 0);
+    CHECK_FALSE(session.value(7).invalid);
+}
+
+TEST_CASE("PackageStore: a text input of a text has the length its package allows")
+{
+    Session session(R"(
+        { "type": "textinput", "valueType": "string", "text": "Name", "default": "Me",
+          "valueOptions": { "allowEmpty": false, "maxLength": 4 }, "storage": { "path": ["Main", "sName"] } },
+        { "type": "textinput", "valueType": "string", "text": "Code", "default": "abc",
+          "valueOptions": { "minLength": 3 }, "storage": { "path": ["Main", "sCode"] } }
+    )");
+    session.open("[Main]\r\nsName = \"Preston\"\r\nsCode = \"abc\"\r\n");
+
+    // a value of the file that is too long is invalid and clean, and does not block Save
+    CHECK(session.value(0).invalid);
+    CHECK(session.value(0).value == model::Value("Preston"s));
+    CHECK(session.value(0).reason == R"(Invalid: Main.sName is "Preston" in MyMod.toml, which has 7 characters, and can have at most 4.)");
+    CHECK(session.store.invalidCount() == 0);
+
+    // an empty text where a text is needed, and one that is too short; a character of UTF-8 is one
+    CHECK(session.store.set(session.setting(0), ""s));
+    CHECK(session.value(0).reason == "Invalid: the text has 0 characters, and needs at least 1.");
+    CHECK(session.store.set(session.setting(1), "\xC3\xA9t\xC3\xA9"s));
+    CHECK_FALSE(session.value(1).invalid);
+    CHECK(session.store.set(session.setting(1), "\xC3\xA9t"s));
+    CHECK(session.value(1).reason == "Invalid: the text has 2 characters, and needs at least 3.");
+    CHECK(session.store.invalidCount() == 2);
+
+    CHECK(session.store.set(session.setting(0), "Nick"s));
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(session.store.invalidCount() == 1);
+}
+
+TEST_CASE("PackageStore: Save writes nothing while a value the player set is invalid")
+{
+    Session session;
+    session.open(MOD_TOML);
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.set(session.setting(7), "fast"s));
+    const auto saved = session.store.save();
+    REQUIRE_FALSE(saved);
+    CHECK(saved.error() == "1 value is not valid");
+    CHECK(readFile(session.myGames.path / MOD_FILE) == MOD_TOML);
+    CHECK(session.store.dirtyCount() == 2);
+    // it is no failure of the Save, which the footer would tell
+    CHECK(session.store.saveFailure().empty());
+
+    CHECK(session.store.set(session.setting(7), "3"s));
+    CHECK(session.store.save());
     CHECK(session.store.dirtyCount() == 0);
-    CHECK(session.value(1).value == model::Value(1.25f));
 }
 
 TEST_CASE("PackageStore: a value in the file that is not one of its setting is invalid, with the reason, and is clean")
@@ -682,6 +761,18 @@ TEST_CASE("PackageStore: a live setting of the game is previewed, and has its ba
     session.store.close();
     CHECK(common::fEqual(game.hour(), 8.5f));
 
+    // an invalid value is not previewed: the game keeps the last valid one, and has the baseline again as it ends
+    session.store.open(session.mod);
+    CHECK(session.store.set(session.setting(0), 6.0f));
+    CHECK(session.store.set(session.setting(0), 30.0f));
+    CHECK(session.value(0).invalid);
+    CHECK(common::fEqual(game.hour(), 6.0f));
+    session.store.discard();
+    CHECK(common::fEqual(game.hour(), 8.5f));
+    CHECK(session.store.set(session.setting(0), 30.0f));
+    CHECK(common::fEqual(game.hour(), 8.5f));
+    session.store.close();
+
     // a setting that is not live waits for a Save
     session.store.open(session.mod);
     CHECK(session.store.set(session.setting(1), true));
@@ -782,11 +873,13 @@ TEST_CASE("PackageStore: a choice reads its options in the game as its mod is se
     CHECK(session.store.options(session.setting(1)) == Options{ { "Nate"s, "Nate" }, { "Nora"s, "Nora" } });
     CHECK(session.value(0).value == model::Value(1));
 
-    // a value of the file that is none of the options read is invalid, and only an option is set
+    // a value of the file that is none of the options read is invalid, and so is one that is set
     CHECK(session.value(1).invalid);
     CHECK(session.value(1).reason == "Invalid: Main.sName is \"Shaun\" in MyMod.toml, which is none of its options.");
     CHECK(session.store.set(session.setting(1), "Nora"s));
-    CHECK_FALSE(session.store.set(session.setting(0), 2));
+    CHECK_FALSE(session.value(1).invalid);
+    CHECK(session.store.set(session.setting(0), 2));
+    CHECK(session.value(0).invalid);
 
     CHECK_FALSE(session.value(2).available);
     CHECK(session.value(2).reason == "Not available: the FormList MyMod.esp|901 of its options is not in the game.");

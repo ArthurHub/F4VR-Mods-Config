@@ -214,8 +214,9 @@
               "type": "textinput",
               "valueType": "string",
               "text": "Profile name",
-              "help": "Type a name with the keyboard.",
+              "help": "Type a name with the keyboard, of 1 to 16 characters.",
               "default": "Standing",
+              "valueOptions": { "allowEmpty": false, "maxLength": 16 },
               "storage": { "path": ["Simple", "sProfile"] }
             },
             {
@@ -1131,6 +1132,40 @@
                   "storage": { "path": ["TextInputs", "fNumber"] }
                 }
               ]
+            },
+            {
+              "type": "section",
+              "text": "Limits",
+              "help": "A value that is typed outside its limits is invalid, and Save is disabled until it is fixed.",
+              "content": [
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "Code of 3 to 8 characters",
+                  "help": "Typing stops at 8 characters, and fewer than 3 is invalid.",
+                  "default": "ABC",
+                  "valueOptions": { "minLength": 3, "maxLength": 8 },
+                  "storage": { "path": ["TextInputs", "sCode"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "Not empty",
+                  "help": "An empty text is invalid.",
+                  "default": "Sanctuary",
+                  "valueOptions": { "allowEmpty": false },
+                  "storage": { "path": ["TextInputs", "sNotEmpty"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "int",
+                  "text": "Whole number from 1 to 10",
+                  "help": "A number outside 1 to 10 is invalid.",
+                  "default": 5,
+                  "valueOptions": { "min": 1, "max": 10 },
+                  "storage": { "path": ["TextInputs", "iLimited"] }
+                }
+              ]
             }
           ]
         },
@@ -1961,6 +1996,15 @@
                     ]
                   },
                   "storage": { "path": ["Invalid", "sPlace"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "Longer than its most",
+                  "help": "The file has a text of 22 characters, and the setting has at most 8.",
+                  "default": "Short",
+                  "valueOptions": { "maxLength": 8 },
+                  "storage": { "path": ["Invalid", "sTooLong"] }
                 }
               ]
             }

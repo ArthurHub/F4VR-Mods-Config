@@ -4,7 +4,7 @@ Mods Config VR is one settings panel for every Fallout 4 VR mod, drawn with Dear
 
 - **One hue.** Draw text, borders, fills and focus in `green` (#0afa78, the framework's `F4VR_PANEL_STYLE` color) at full value or as a tint. The only other hues are `amber` for pending and `red` for invalid, and both always come with a drawn mark.
 - **Solid green means chosen.** Use a solid `green` fill only for the selected tree row, the first breadcrumb while the menu's front page is open, the current option, the On half of a toggle, and the primary button, with `on-green` text on it. Everything else is outline or tint.
-- **Never color alone.** A pending setting has the amber dot, an invalid one has the warning triangle and a message, a setting that needs a restart has the Restart mark, and a toggle says Off or On in words.
+- **Never color alone.** A pending setting has the amber dot, an invalid one has the warning triangle and its reason in the help line, a setting that needs a restart has the Restart mark, and a toggle says Off or On in words.
 - **Nothing moves.** The help line, the reset slot of every row, Discard and Save, and the control column keep their place whether they are in use or not. Only text changes; nothing pressable appears or disappears under the ray.
 - **Big enough for a ray.** Every pressable thing is at least `control-height` (48 px, one vrui unit) tall.
 
@@ -26,7 +26,7 @@ Every text color below is checked with a white world behind the glass, the worst
 | `green` | 9.0:1 | 6.8:1 | 5.6:1 | All primary text and every value |
 | `green-muted` | 8.3:1 | 6.3:1 | 5.2:1 | Descriptions, units, counts, status |
 | `amber` | 7.7:1 | 5.8:1 | 4.8:1 | A pending value and the unsaved count |
-| `red` | 6.0:1 | 4.5:1 | — | An invalid value and its message; never on `pressed` |
+| `red` | 6.0:1 | 4.5:1 | — | An invalid value and its reason; never on `pressed` |
 | `on-green` on `green` | 13:1 | | | Text on any solid green fill |
 
 - Tint with green, never with gray: `plate` (6%) for fixed regions, `track` (10%) for the empty part of a control, `hover` (12%) under the ray, `pressed` (20%) while the trigger is held.
@@ -56,7 +56,7 @@ Every interactive item has these states, each told apart by more than color:
 | Active | Trigger held, or a drag | `pressed` fill, 2 px `glow` outline, grab in `glow` | `IsItemActive()`; `ButtonActive`, `SliderGrabActive` |
 | Selected | The open page, the current option | Solid `green`, `on-green` text; a tree row ends in a 20 px tip | Push `ImGuiCol_Text` = `on-green` before the item |
 | Pending | Differs from the saved value | `amber` dot in the gutter; the value, fill and grab in `amber`; Reset shown | Store state; nothing in ImGui |
-| Invalid | Cannot be saved | Warning triangle in the gutter; value in `red` with a `red` outline; a one-line `t-detail` message under the name | Store state |
+| Invalid | Cannot be saved | Warning triangle in the gutter; value in `red` with a `red` outline; the reason in the help line | Store state |
 | Disabled | Condition off, plugin missing | The whole row at `opacity-disabled` and no hover | `BeginDisabled()` with `DisabledAlpha` 0.4 |
 
 ImGui draws a label in `ImGuiCol_Text` whatever the item's state, so a solid fill can only be used for a state that is known before the item is drawn. That is why a press is a stronger tint and not an inverted bar.

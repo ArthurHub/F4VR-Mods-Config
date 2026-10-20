@@ -10,7 +10,7 @@ A list of texts, a CommonFramework `a` key: a frame that shows the entries, and 
 - An empty list says `None` in `green-muted`, with no count.
 - A press anywhere on the row opens the editor.
 - Pending: the entries in `amber`, the dot in the gutter, Reset shown.
-- Invalid: a value the framework cannot read as an array of strings, as `"AddOnNode"`. The frame has a `red` outline, the file's text in `red`, no count, and the row's message is "Not a list". The help line gives the framework's reason.
+- Invalid: a value the framework cannot read as an array of strings, as `"AddOnNode"`. The frame has a `red` outline, the file's text in `red`, no count, and the invalid mark in the gutter. The help line gives the framework's reason.
 
 ## The editor
 

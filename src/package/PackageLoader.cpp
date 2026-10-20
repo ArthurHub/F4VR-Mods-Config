@@ -64,6 +64,15 @@ namespace
     }
 
     /**
+     * A length of a key: a whole number above 0, or else 0, which is no limit.
+     */
+    int getLength(const Json& value, const char* key)
+    {
+        const auto found = value.find(key);
+        return found != value.end() && found->is_number_integer() ? (std::max)(found->get<int>(), 0) : 0;
+    }
+
+    /**
      * Whether a key is true. False for a value with no such key, or with one that holds something else than a bool.
      */
     bool getBool(const Json& value, const char* key)
@@ -499,8 +508,10 @@ namespace
     }
 
     /**
-     * The `valueOptions` of a setting: the least, the most and the step of a number, and the options of a
-     * choice: its own `options`, the shared list its `sharedOptions` names, or where it reads them in the game.
+     * The `valueOptions` of a setting: the least, the most and the step of a number, the fewest and the most
+     * characters of a text input of a text, and the options of a choice: its own `options`, the shared list
+     * its `sharedOptions` names, or where it reads them in the game. An `allowEmpty` of false is a least of
+     * one character. A length that is no whole number above 0 is none.
      * A choice with none of them has no options, with the reason in the log, so it is disabled.
      */
     model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, const PackageReading& reading)
@@ -512,6 +523,14 @@ namespace
             valueOptions.min = getNumber(*found, "min", valueOptions.min);
             valueOptions.max = getNumber(*found, "max", valueOptions.max);
             valueOptions.step = getNumber(*found, "step", valueOptions.step);
+        }
+        if (hasOptions && type == model::SettingType::TextInput && valueType == model::StoredType::String) {
+            valueOptions.minLength = getLength(*found, "minLength");
+            valueOptions.maxLength = getLength(*found, "maxLength");
+            const auto allowEmpty = found->find("allowEmpty");
+            if (allowEmpty != found->end() && allowEmpty->is_boolean() && !allowEmpty->get<bool>()) {
+                valueOptions.minLength = (std::max)(valueOptions.minLength, 1);
+            }
         }
         if (!isChoice(type)) {
             return valueOptions;
@@ -547,9 +566,10 @@ namespace
     }
 
     /**
-     * Whether a value of a setting's type is one of its values: an option of a choice, and a number inside
-     * the limits of a setting that has them, its least and its most among them. Any value is one of a choice
-     * that reads its options in the game, which are not known until then.
+     * Whether a value of a setting's type is one of its values: an option of a choice, a number inside
+     * the limits of a setting that has them, its least and its most among them, and a text of the length its
+     * setting allows. Any value is one of a choice that reads its options in the game, which are not known
+     * until then.
      */
     bool isValueOf(const model::Value& value, const model::SettingType type, const model::ValueOptions& options)
     {
@@ -557,6 +577,10 @@ namespace
             return options.gameOptions || std::ranges::any_of(options.options, [&value](const model::Option& option) {
                 return isSameValue(option.value, value);
             });
+        }
+        if (const auto* text = std::get_if<std::string>(&value)) {
+            const int length = model::textLength(*text);
+            return length >= options.minLength && (options.maxLength == 0 || length <= options.maxLength);
         }
         const auto* whole = std::get_if<int>(&value);
         const auto* point = std::get_if<float>(&value);
@@ -569,8 +593,8 @@ namespace
 
     /**
      * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
-     * with one that is not one of its values: outside its limits, or none of its options. Both are errors
-     * of the package that the log has, and the setting then has no Reset.
+     * with one that is not one of its values: outside its limits, of a length it does not allow, or none of
+     * its options. Both are errors of the package that the log has, and the setting then has no Reset.
      */
     std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& options)
     {
@@ -578,7 +602,8 @@ namespace
         if (!value) {
             logger::warn("The setting '{}' has no default of the type of its value", getText(row, "text"));
         } else if (!isValueOf(*value, type, options)) {
-            logger::warn("The default of the setting '{}' is not one of its values: it is outside its limits, or none of its options", getText(row, "text"));
+            logger::warn("The default of the setting '{}' is not one of its values: it is outside its limits, of a length it does not allow, or none of its options",
+                getText(row, "text"));
             value.reset();
         }
         return value;

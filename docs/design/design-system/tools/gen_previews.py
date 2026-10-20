@@ -60,11 +60,10 @@ def choice_stepper(label, pending=False, show_reset=False):
             f'<span class="label{" is-pending" if pending else ""}">{label}</span>'
             f'<span class="mc-btn is-icon">{TRI_R}</span></span></div>{reset_btn(show_reset)}')
 
-def row(name, ctl, state='', gutter='', message='', mark=None):
-    msg = f'<small class="t-detail mc-red">{message}</small>' if message else ''
+def row(name, ctl, state='', gutter='', mark=None):
     mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
     return (f'<div class="mc-row {state}"><span class="gutter">{gutter}</span>'
-            f'<span class="name t-body">{name}{msg}</span><div class="ctl t-body">{ctl}</div>{mk}</div>')
+            f'<span class="name t-body">{name}</span><div class="ctl t-body">{ctl}</div>{mk}</div>')
 
 def setin(depth):
     """A section in a section is set in with its rows by IndentSpacing (space-8) a level, up to the third."""
@@ -183,7 +182,7 @@ write('SettingRow', page('<!-- @dsCard group="Settings" height=660 width=940 sub
     ('Focused', row('Brightness', slider('1.00', 50), 'is-focus')),
     ('Active (drag)', row('Brightness', slider('1.10', 60, 'is-active'), 'is-active')),
     ('Pending', row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=DOT)),
-    ('Invalid', row('Brightness', slider('2.00', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN, message='Must be 0.50 to 1.50')),
+    ('Invalid', row('Brightness', slider('2.00', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Beam shadows', toggle(False), 'is-disabled')),
     ('Needs a restart', row('Shadow resolution<span class="mc-tag t-detail">Restart</span>', choice_stepper('2048'))),
 ])))
@@ -202,7 +201,7 @@ write('Slider', page('<!-- @dsCard group="Settings" height=360 width=940 subtitl
     ('Float', row('Brightness', slider('1.00', 50))),
     ('Dragging', row('Brightness', slider('1.10', 60, 'is-active'), 'is-active')),
     ('Int with unit', row('Beam angle', slider('40°', 30, 'is-pending', 'is-pending', True), gutter=DOT)),
-    ('Out of range', row('Beam angle', slider('140°', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN, message='Must be 10° to 90°')),
+    ('Out of range', row('Beam angle', slider('140°', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN)),
 ])))
 
 # ---------------- Stepper ----------------
@@ -270,7 +269,7 @@ sh_page = ''.join([
     row('Draw with the grip', toggle(True)),
     sub(collapse('Advanced', open_=True), ''.join([
         row('Draw angle', slider('35°', 35)),
-        row('Snap distance', slider('2.50', 95, '', 'is-invalid', True), 'is-invalid', gutter=WARN, message='Must be 0.05 to 1.00'),
+        row('Snap distance', slider('2.50', 95, '', 'is-invalid', True), 'is-invalid', gutter=WARN),
     ])),
 ])
 sh_body = f'''<div class="mc-world" style="display:flex;gap:24px;align-items:flex-start">
@@ -672,7 +671,7 @@ h_states = h_sheet([
     ('Ray on Play', row('Press haptic', haptic('Tick', play='is-hover'), 'is-hover', mark=(656, 20))),
     ('Pending', row('Press haptic', haptic('DoubleClick', 'is-pending', show_reset=True), gutter=DOT)),
     ('None', row('Press haptic', haptic('none', play='is-disabled', show_reset=True), gutter=DOT)),
-    ('Invalid', row('Press haptic', haptic('none', 'is-invalid', 'is-disabled', True, text='Tik'), 'is-invalid', gutter=WARN, message='Not a haptic pattern')),
+    ('Invalid', row('Press haptic', haptic('none', 'is-invalid', 'is-disabled', True, text='Tik'), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Entry haptic', haptic('Heartbeat2'), 'is-disabled')),
 ])
 h_popup = (f'<div class="mc-popup has-scroll t-body" style="position:absolute;right:128px;top:68px;width:336px;z-index:2">'
@@ -784,7 +783,7 @@ c_states = h_sheet([
     ('Pending', row('Ray color', color_ctl(RAY_NEW, 'is-pending', True), gutter=DOT)),
     ('Low alpha', row('Mark border color', color_ctl((215, 255, 215, 40), 'is-pending', True), gutter=DOT)),
     ('RGB only', row('Light color', color_ctl(LIGHT))),
-    ('Invalid', row('Ray color', color_ctl(RAY, 'is-invalid', True, text='{ rgb = [300, 0, 0] }'), 'is-invalid', gutter=WARN, message='Not a color')),
+    ('Invalid', row('Ray color', color_ctl(RAY, 'is-invalid', True, text='{ rgb = [300, 0, 0] }'), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Icon color', color_ctl((255, 255, 255, 255)), 'is-disabled')),
 ])
 c_page_rows = ''.join([
@@ -991,7 +990,7 @@ b_states = h_sheet([
     ('Push', row('Scroll up', binding_ctl(SCROLL))),
     ('Push, off hand', row('Previous page', binding_ctl({'hand': 'offhand', 'type': 'axis', 'direction': 'left'}))),
     ('None', row('Secondary binding', binding_ctl(NONE_B, show_reset=True), gutter=DOT)),
-    ('Invalid', row('Grab binding', binding_ctl(GRAB, 'is-invalid', True, text='{ hand = "offhand", type = "tap", button = "thumbstik" }'), 'is-invalid', gutter=WARN, message='Not a binding')),
+    ('Invalid', row('Grab binding', binding_ctl(GRAB, 'is-invalid', True, text='{ hand = "offhand", type = "tap", button = "thumbstik" }'), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Recenter binding', binding_ctl({'hand': 'offhand', 'type': 'longpress', 'button': 'thumbstick'}), 'is-disabled')),
 ])
 b_page_rows = ''.join([
@@ -1086,7 +1085,7 @@ l_states = h_sheet([
     ('Hover', row('Allow list', list_ctl(ALLOW), 'is-hover', mark=(520, 22))),
     ('Pending', row('Deny list', list_ctl(['0316D4|Fallout4.esm', '0A506D|SS2.esm'], 'is-pending', True), gutter=DOT)),
     ('Empty', row('Debug draw channels to skip', list_ctl([]))),
-    ('Invalid', row('Mesh nodes', list_ctl([], 'is-invalid', True, text='"AddOnNode"'), 'is-invalid', gutter=WARN, message='Not a list')),
+    ('Invalid', row('Mesh nodes', list_ctl([], 'is-invalid', True, text='"AddOnNode"'), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Auto-detect plugins', list_ctl(['VRCP_DOOMMerged.esp', 'TacticalMods.esp']), 'is-disabled')),
 ])
 l_ordered = list_editor('Mesh nodes', NODES, ordered=True, pending=(2,), hover=0, mark=(470, 20), style=' style="position:static"')
@@ -1196,7 +1195,7 @@ hp_states = h_sheet([
     ('Idle', row('Forward grip pose', pose_ctl(POSE))),
     ('Hover', row('Overhand grip pose', pose_ctl(POSE_OVER), 'is-hover', mark=(560, 22))),
     ('Pending', row('Forward grip pose', pose_ctl(POSE_NEW, 'is-pending', True), gutter=DOT)),
-    ('Invalid', row('Forward grip pose', pose_ctl(POSE, 'is-invalid', True, text='{ thumb = [0.48, 1.14], index = …'), 'is-invalid', gutter=WARN, message='Not a hand pose')),
+    ('Invalid', row('Forward grip pose', pose_ctl(POSE, 'is-invalid', True, text='{ thumb = [0.48, 1.14], index = …'), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Power armor grip pose', pose_ctl(POSE), 'is-disabled')),
 ])
 hp_palm = pose_editor('Overhand grip pose', POSE_OVER, dict(POSE_OVER, palm=[10.0, 0.0]), sel='Palm', changed=('Palm',), style=' style="position:static"')
@@ -1335,7 +1334,7 @@ rw_body = f"""<div class="mc-world mc-stack" style="gap:16px">
     ('Under the ray', row(f'Player height{CAUTION}', slider('1.45 m', 76, 'is-pending', 'is-pending', True), 'is-hover', gutter=DOT, mark=(560, 22))),
     ('With Restart', row(f'Shadow size<span class="mc-tag t-detail">Restart</span>{CAUTION}', choice_stepper('4096', True, True), gutter=DOT)),
     ('A button', row(f'Rebuild the holsters{CAUTION}', '<div class="main"><span class="mc-btn t-body">Run</span></div>' + reset_btn(False))),
-    ('Invalid wins', row('Player height', slider('1.60 m', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN, message='Must be 0.50 to 1.50')),
+    ('Invalid wins', row('Player height', slider('1.60 m', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN)),
 ])}
 <div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{warnline('Player height', 'Above 1.4 m your view can be in the ceiling.', 'Adjusts the estimated player height.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
 </div>"""
@@ -1477,7 +1476,7 @@ def issue(name, where, msg, state='', mark=None, reset=True):
 ss_rows = ''.join([
     section('Holsters'),
     row('Enable holsters', toggle(True)),
-    row('Holster size', slider('2.40', 100, 'is-invalid', 'is-invalid', True), 'is-invalid is-focus', gutter=WARN, message='Must be 0.50 to 2.00'),
+    row('Holster size', slider('2.40', 100, 'is-invalid', 'is-invalid', True), 'is-invalid is-focus', gutter=WARN),
     row('Draw with the grip', toggle(True)),
     section('Left hip'),
     row('Forward', slider('4.0', 40)),
@@ -1485,9 +1484,9 @@ ss_rows = ''.join([
 ])
 ss_pop = f"""<div class="mc-summary" style="right:24px;bottom:12px">
 <div class="head">{WARN}<span class="grow t-body mc-red">3 values are not valid. Save is blocked until they are.</span></div>
-{issue('Holster size', 'Holsters', 'Must be 0.50 to 2.00')}
-{issue('Snap distance', 'Weapons » Advanced, folded', 'Must be 0.05 to 1.00', 'is-hover', (380, 26))}
-{issue('Sling offset', 'Weapons, hidden while Sling is off', 'Must be -20.0 to 20.0', 'is-hidden')}
+{issue('Holster size', 'Holsters', '2.40 is not from 0.50 to 2.00')}
+{issue('Snap distance', 'Weapons » Advanced, folded', '2.50 is not from 0.05 to 1.00', 'is-hover', (380, 26))}
+{issue('Sling offset', 'Weapons, hidden while Sling is off', '35.0 is not from -20.0 to 20.0', 'is-hidden')}
 <div class="foot">{btn('Close', 'is-quiet')}</div>
 </div>"""
 ss_body = f"""<div class="mc-world mc-stack" style="gap:0">
@@ -1535,9 +1534,9 @@ ti_states = h_sheet([
     ('Typing', row('Settlement name', field('Sanctuary Hil', 'is-editing', length='12 / 32'), 'is-active')),
     ('Pending', row('Settlement name', field('Red Rocket', 'is-pending', show_reset=True), gutter=DOT)),
     ('Empty', row('Greeting', field(''))),
-    ('Too long', row('Settlement name', field('The Commonwealth Minutemen headquarters', 'is-invalid', show_reset=True), 'is-invalid', gutter=WARN, message='At most 32 characters')),
+    ('Too long', row('Settlement name', field('The Commonwealth Minutemen headquarters', 'is-invalid', show_reset=True), 'is-invalid', gutter=WARN)),
     ('A number', row('Max settlers', field('20', num=True))),
-    ('Number, out of range', row('Max settlers', field('250', 'is-invalid', num=True, show_reset=True), 'is-invalid', gutter=WARN, message='Must be 1 to 100')),
+    ('Number, out of range', row('Max settlers', field('250', 'is-invalid', num=True, show_reset=True), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Settlement name', field('Sanctuary Hills'), 'is-disabled')),
 ])
 ti_body = f"""<div class="mc-world mc-stack" style="gap:16px">
@@ -1602,7 +1601,7 @@ fc_states = h_sheet([
     ('Under the ray', row('Gobo in the hand', file_ctl('6_Incandescent', 'incandescent'), 'is-hover', mark=(560, 22))),
     ('Pending', row('Gobo on the head', file_ctl('2_LED_Array', 'led', 'is-pending', True), gutter=DOT)),
     ('Not a texture', row('Voice pack', file_ctl('Codsworth', None, ext='.json'))),
-    ('Not in the folder', row('Gobo on a weapon', file_ctl('9_Laser', None, 'is-invalid', True), 'is-invalid', gutter=WARN, message='Not in Gobos')),
+    ('Not in the folder', row('Gobo on a weapon', file_ctl('9_Laser', None, 'is-invalid', True), 'is-invalid', gutter=WARN)),
     ('Empty folder', row('Gobo in power armor', file_ctl('No files', None, ext=''), 'is-disabled')),
 ])
 fc_pop = (f'<div class="mc-popup has-scroll t-body" style="position:absolute;left:390px;top:112px;width:392px;z-index:2">'
@@ -1676,7 +1675,7 @@ xf_states = h_sheet([
     ('Keys left out', row('Head light tilt', xform_ctl({'rot': [0.0, -5.0, 0.0]}))),
     ('Under the ray', row('Flashlight mesh', xform_ctl(MESH), 'is-hover', mark=(560, 22))),
     ('Pending', row('Flashlight mesh', xform_ctl(MESH_NEW, 'is-pending', True), gutter=DOT)),
-    ('Invalid', row('Weapon mount', xform_ctl({}, 'is-invalid', True, text='{ pos = [0, 0], scale = 1 }'), 'is-invalid', gutter=WARN, message='Not a transform')),
+    ('Invalid', row('Weapon mount', xform_ctl({}, 'is-invalid', True, text='{ pos = [0, 0], scale = 1 }'), 'is-invalid', gutter=WARN)),
 ])
 xf_rows = ''.join([
     section('Hand mount'),

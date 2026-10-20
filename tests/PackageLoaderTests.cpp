@@ -1047,6 +1047,33 @@ TEST_CASE("PackageLoader: a default that is not one of its setting's values is n
     }
 }
 
+TEST_CASE("PackageLoader: a text input of a text has its least and its most characters, and a default of a length it allows")
+{
+    const auto mod = loaded(packageOf(R"(
+        { "type": "textinput", "text": "Limits", "default": "abc", "valueOptions": { "minLength": 2, "maxLength": 8 }, "storage": { "path": ["Main", "a"] } },
+        { "type": "textinput", "text": "Not empty", "default": "a", "valueOptions": { "allowEmpty": false }, "storage": { "path": ["Main", "b"] } },
+        { "type": "textinput", "text": "Not a length", "default": "", "valueOptions": { "minLength": -1, "maxLength": "8" }, "storage": { "path": ["Main", "c"] } },
+        { "type": "textinput", "valueType": "int", "text": "A number", "default": 5, "valueOptions": { "maxLength": 2 }, "storage": { "path": ["Main", "d"] } },
+        { "type": "textinput", "text": "Empty", "default": "", "valueOptions": { "allowEmpty": false }, "storage": { "path": ["Main", "e"] } },
+        { "type": "textinput", "text": "Too long", "default": "abc", "valueOptions": { "maxLength": 2 }, "storage": { "path": ["Main", "f"] } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 6);
+    CHECK(settings[0].valueOptions.minLength == 2);
+    CHECK(settings[0].valueOptions.maxLength == 8);
+    // allowEmpty of false is a least of one
+    CHECK(settings[1].valueOptions.minLength == 1);
+    CHECK(settings[1].valueOptions.maxLength == 0);
+    CHECK(settings[2].valueOptions.minLength == 0);
+    CHECK(settings[2].valueOptions.maxLength == 0);
+    // a text input of a number has its least and its most instead
+    CHECK(settings[3].valueOptions.maxLength == 0);
+    for (std::size_t i = 0; i < settings.size(); ++i) {
+        INFO(settings[i].text);
+        CHECK(settings[i].defaultValue.has_value() == (i < 4));
+    }
+}
+
 TEST_CASE("PackageLoader: a read-only setting has no default, as it has no Reset")
 {
     const auto mod = loaded(packageOf(R"(

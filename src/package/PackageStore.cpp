@@ -200,11 +200,12 @@ namespace
     }
 
     /**
-     * A value the player sets, as its control has it, if it is one of its setting: inside the limits of a
-     * number, and one of the options of a choice. A number of a whole number setting is the nearest whole
-     * number, and the text of a number is written as short as it can be. None for a value that is not one.
+     * A value the player sets, as its control has it, if it is of the type its control shows: a bool of a
+     * switcher, a number of a slider, a value of its type of a choice, and a text of a text input. A number of
+     * a whole number setting is the nearest whole number, and the text of a number is written as short as it
+     * can be. None for a value of another type. It can still be no value of its setting (`problemOf`).
      */
-    std::optional<model::Value> acceptedValue(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
+    std::optional<model::Value> typedValue(const model::Setting& setting, const model::Value& value)
     {
         switch (setting.type) {
         case model::SettingType::Switcher:
@@ -214,30 +215,80 @@ namespace
             break;
         case model::SettingType::Slider:
             if (const auto* number = std::get_if<float>(&value)) {
-                const float stored = setting.valueType == model::StoredType::Int ? std::round(*number) : *number;
-                if (inLimits(setting, stored)) {
-                    return stored;
-                }
+                return setting.valueType == model::StoredType::Int ? std::round(*number) : *number;
             }
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
-            if (isOption(options, value)) {
+            if (value.index() == zeroOf(setting.valueType).index()) {
                 return value;
             }
             break;
         case model::SettingType::TextInput:
-            if (const auto* text = std::get_if<std::string>(&value); text && !isNumberField(setting)) {
-                return value;
-            } else if (text) {
-                const auto number = fieldNumber(setting, *text);
-                if (number && inLimits(setting, *number)) {
+            if (const auto* text = std::get_if<std::string>(&value); text && isNumberField(setting)) {
+                if (const auto number = fieldNumber(setting, *text)) {
                     return setting.valueType == model::StoredType::Int ? std::format("{}", static_cast<int>(*number)) : std::format("{}", *number);
                 }
+                return value;
+            } else if (text) {
+                return value;
             }
             break;
         }
         return std::nullopt;
+    }
+
+    /**
+     * What is wrong with a value of a setting, as its control has it, that is no value of it, as the end of a
+     * sentence of the value: `is not from 0.5 to 1.5`. A text of a number that is none, a number outside the
+     * limits, a text of a length its setting does not allow, and none of the options of a choice. Empty for a
+     * value that is one.
+     */
+    std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
+    {
+        const auto& limits = setting.valueOptions;
+        std::optional<float> number;
+        if (setting.type == model::SettingType::Slider) {
+            number = std::get<float>(value);
+        } else if (isNumberField(setting)) {
+            number = fieldNumber(setting, std::get<std::string>(value));
+            if (!number) {
+                return setting.valueType == model::StoredType::Int ? "is not a whole number" : "is not a number";
+            }
+        }
+        if (number && !inLimits(setting, *number)) {
+            return std::format("is not from {} to {}", limits.min, limits.max);
+        }
+        if (isChoice(setting) && !isOption(options, value)) {
+            return "is none of its options";
+        }
+        if (setting.type == model::SettingType::TextInput && !isNumberField(setting)) {
+            const int length = model::textLength(std::get<std::string>(value));
+            if (length < limits.minLength) {
+                return std::format("has {} character{}, and needs at least {}", length, length == 1 ? "" : "s", limits.minLength);
+            }
+            if (limits.maxLength > 0 && length > limits.maxLength) {
+                return std::format("has {} characters, and can have at most {}", length, limits.maxLength);
+            }
+        }
+        return {};
+    }
+
+    /**
+     * Why a value the player set is no value of its setting, for the help line: the value and what is wrong
+     * with it, as `Invalid: 12 is not from 1 to 9.` A text of a text input is `the text`, as it can be long.
+     * Empty for a value that is one.
+     */
+    std::string typedReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
+    {
+        const auto problem = problemOf(setting, options, value);
+        if (problem.empty()) {
+            return {};
+        }
+        const auto* text = std::get_if<std::string>(&value);
+        const bool isText = setting.type == model::SettingType::TextInput && !isNumberField(setting);
+        const auto shown = isText ? std::string("the text") : isNumberField(setting) && fieldNumber(setting, *text) ? *text : valueText(value);
+        return std::format("Invalid: {} {}.", shown, problem);
     }
 
     /**
@@ -265,22 +316,13 @@ namespace
     }
 
     /**
-     * Why a value in a file, as its control has it, is not one of its setting: a number outside the limits,
-     * or none of the options of a choice. Empty for a value that is one. It names the value by its path and its
-     * file, as a reason of its file does.
+     * Why a value in a file, as its control has it, is not one of its setting, as `problemOf` says. Empty for
+     * a value that is one. It names the value by its path and its file, as a reason of its file does.
      */
     std::string invalidReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const std::string& path, const std::string& file)
     {
-        const auto number = setting.type == model::SettingType::Slider ? std::optional(std::get<float>(value))
-                            : isNumberField(setting)                   ? fieldNumber(setting, std::get<std::string>(value))
-                                                                       : std::nullopt;
-        if (number && !inLimits(setting, *number)) {
-            return std::format("Invalid: {} is {} in {}, which is not from {} to {}.", path, valueText(value), file, setting.valueOptions.min, setting.valueOptions.max);
-        }
-        if (isChoice(setting) && !isOption(options, value)) {
-            return std::format("Invalid: {} is {} in {}, which is none of its options.", path, valueText(value), file);
-        }
-        return {};
+        const auto problem = problemOf(setting, options, value);
+        return problem.empty() ? std::string() : std::format("Invalid: {} is {} in {}, which {}.", path, valueText(value), file, problem);
     }
 
     /**
@@ -588,9 +630,9 @@ namespace mods_config::package
 
     /**
      * The value of a setting: its pending value, or else its baseline. One that is not available has the
-     * reason, and so has one that is invalid, which is the setting's default where the file's value is not of
-     * its type. A read-only setting whose file has no value of it is not available, with no reason: it has
-     * no value to show.
+     * reason, and so has one that is invalid: a pending value the player set so, or the file's value, which is
+     * the setting's default where it is not of its type. A read-only setting whose file has no value of it is
+     * not available, with no reason: it has no value to show.
      */
     model::StoredValue PackageStore::value(const model::Setting& setting)
     {
@@ -604,7 +646,7 @@ namespace mods_config::package
             return { .value = none, .available = false, .invalid = false, .reason = entry.notAvailable };
         }
         if (entry.pending) {
-            return { .value = *entry.pending, .available = true, .invalid = false, .reason = {} };
+            return { .value = *entry.pending, .available = true, .invalid = !entry.pendingInvalid.empty(), .reason = entry.pendingInvalid };
         }
         if (setting.readOnly && !entry.baseline) {
             return { .value = none, .available = false, .invalid = false, .reason = {} };
@@ -623,10 +665,12 @@ namespace mods_config::package
 
     /**
      * Sets the pending value of a setting. A value that is the baseline leaves the setting clean, so the Save
-     * does not write it. A `live` setting of the game is previewed: the game has its value at once. A value
-     * that is set ends the failure of the last Save.
+     * does not write it. One that is no value of the setting, as a number outside its limits or a text that is
+     * no number, is pending and invalid, with the reason, and Save writes nothing while it is. A `live` setting
+     * of the game is previewed: the game has its value at once, but for an invalid one, which leaves the
+     * preview before it. A value that is set ends the failure of the last Save.
      * Returns false for a value that is not set: one of a setting that is read-only or not available, and one
-     * that is not a value of the setting, as a number outside its limits.
+     * that is not of the type its control shows.
      */
     bool PackageStore::set(const model::Setting& setting, const model::Value& value)
     {
@@ -634,19 +678,21 @@ namespace mods_config::package
         if (setting.readOnly || found == _entries.end() || !found->second.notAvailable.empty()) {
             return false;
         }
-        auto accepted = acceptedValue(setting, _options.of(setting), value);
-        if (!accepted) {
-            logger::debug("A value that is not one of '{}' is not set", setting.text);
+        auto typed = typedValue(setting, value);
+        if (!typed) {
+            logger::debug("A value of another type than '{}' has is not set", setting.text);
             return false;
         }
         auto& entry = found->second;
         _saveFailure.clear();
-        if (entry.baseline && isSameValue(*accepted, *entry.baseline)) {
+        if (entry.baseline && isSameValue(*typed, *entry.baseline)) {
             entry.pending.reset();
+            entry.pendingInvalid.clear();
         } else {
-            entry.pending = std::move(*accepted);
+            entry.pendingInvalid = typedReason(setting, _options.of(setting), *typed);
+            entry.pending = std::move(*typed);
         }
-        if (isInGame(setting.storage) && setting.applies == model::Applies::Live) {
+        if (isInGame(setting.storage) && setting.applies == model::Applies::Live && entry.pendingInvalid.empty()) {
             preview(setting, entry);
         }
         return true;
@@ -673,6 +719,13 @@ namespace mods_config::package
         }));
     }
 
+    std::size_t PackageStore::invalidCount() const
+    {
+        return static_cast<std::size_t>(std::ranges::count_if(_entries, [](const auto& entry) {
+            return entry.second.pending && !entry.second.pendingInvalid.empty();
+        }));
+    }
+
     /**
      * Writes the dirty settings into their files, each file in one write, in the order of the package, and a
      * setting then has the value written as its baseline. A file is read again as it is written, so a value
@@ -683,10 +736,15 @@ namespace mods_config::package
      * property is in the game, and the files already written are put back when a write fails: a Save that
      * fails changes no file and no value of the game, and keeps every setting dirty.
      * Returns the reason, which is in the log too, for a Save that does not write every dirty setting, as
-     * `showcase.toml cannot be written`.
+     * `showcase.toml cannot be written`. While a dirty setting is invalid nothing is written, and the reason
+     * is not a failure of the Save: the UI does not save then.
      */
     std::expected<void, std::string> PackageStore::save()
     {
+        if (const auto invalid = invalidCount(); invalid > 0) {
+            logger::warn("The changes of '{}' are not saved, as {} of them are not valid", _modName, invalid);
+            return std::unexpected(std::format("{} value{} not valid", invalid, invalid == 1 ? " is" : "s are"));
+        }
         _saveFailure.clear();
         const auto failed = [this](const std::string& reason) {
             _saveFailure = reason;
@@ -793,6 +851,7 @@ namespace mods_config::package
         _saveFailure.clear();
         for (auto& entry : _entries | std::views::values) {
             entry.pending.reset();
+            entry.pendingInvalid.clear();
         }
     }
 

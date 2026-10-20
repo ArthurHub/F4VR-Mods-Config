@@ -30,7 +30,7 @@ A binding is said as one sentence, the same in the row, the editor and the help 
 - The full sentence is in the help line while the ray is on the row: "Open the menu: Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand."
 - Pending: the sentence and the icon in `amber`, the dot in the gutter.
 - None: "None", with no icon.
-- Invalid: a table the framework cannot read. No icon, the file's text in `red` with a `red` outline, and the row's message "Not a binding". The help line gives the framework's reason: "'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system. Change the binding, or Reset it to Tap the trigger on the off hand."
+- Invalid: a table the framework cannot read. No icon, the file's text in `red` with a `red` outline, and the invalid mark in the gutter. The help line gives the framework's reason: "'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system. Change the binding, or Reset it to Tap the trigger on the off hand."
 - Where another binding setting of the same mod is the same press, the help line says so after the help: "Also the press of Secondary binding." It does not block Save.
 
 ## The editor

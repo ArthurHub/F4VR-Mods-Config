@@ -718,6 +718,8 @@ The limits in `valueOptions` cover ordinary scalar validation:
 }
 ```
 
+`allowEmpty` of false is a `minLength` of 1. A length is counted in characters, not bytes. A text input takes no character past its `maxLength` as it is typed.
+
 Choice values must be members of their declared options.
 
 These limits are the whole validation. The mod's code is not asked, and expressions across settings are not planned.

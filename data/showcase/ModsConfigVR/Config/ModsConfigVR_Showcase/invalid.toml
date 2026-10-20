@@ -5,6 +5,7 @@
 fPastMost = 2.0
 bText = "yes"
 sPlace = "elbow"
+sTooLong = "Much longer than eight"
 
 # a setting whose warning holds: the invalid value is told, and not the warning
 [Warnings]

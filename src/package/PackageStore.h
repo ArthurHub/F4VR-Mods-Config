@@ -25,14 +25,17 @@ namespace mods_config::package
      * value is not its baseline is dirty: it waits for a Save, which writes it and makes it the baseline, or a
      * Discard, which takes it back. A change back to the baseline leaves the setting clean.
      * A value the file does not have, as in a file that is not there, is the setting's default, and is clean.
-     * One that is not of its setting's type, outside its limits or no option of its choice is invalid: it is
-     * shown and edited, and is clean until the player changes it.
+     * One that is not of its setting's type, outside its limits, of a length its text input does not allow or
+     * no option of its choice is invalid: it is shown and edited, and is clean until the player changes it.
+     * The player can set such a value too, as a text that is no number: it is pending and invalid, with the
+     * reason, and Save writes nothing while it is.
      * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
      * The menu reads a TOML and an INI file: a setting of a JSON file is not available.
      * A choice that reads its options in the game, from a FormList or a property of a script, reads them as the
      * mod is selected, with the values they are checked against.
      * A global and a property are read and written with `getGlobal`, `setGlobal`, `getProperty` and
-     * `setProperty`. A `live` one is previewed: its pending value is written into the game as it is set, and
+     * `setProperty`. A `live` one is previewed: its pending value is written into the game as it is set, but
+     * for an invalid one, which leaves the preview before it, and
      * its baseline is written back as it is set back, discarded, or its session ends. Save writes them after
      * the files, and then runs the action of each setting it wrote.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
@@ -62,6 +65,7 @@ namespace mods_config::package
 
         bool isDirty(const model::Setting& setting) const override;
         std::size_t dirtyCount() const override;
+        std::size_t invalidCount() const override;
         std::expected<void, std::string> save() override;
 
         std::string_view saveFailure() const override
@@ -91,6 +95,9 @@ namespace mods_config::package
 
             // the player's value, which waits for a Save. None for a setting that is clean
             std::optional<model::Value> pending;
+
+            // why the player's value is invalid, and empty for a valid one: it blocks Save
+            std::string pendingInvalid;
         };
 
         /**

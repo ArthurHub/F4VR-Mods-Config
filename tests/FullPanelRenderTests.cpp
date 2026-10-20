@@ -772,6 +772,54 @@ TEST_CASE("FullPanel render: a Save that failed, with a short reason and with on
     WARN("Saved " << renderToFile(panel, "package-save-failed-long", POINTER_AWAY));
 }
 
+TEST_CASE("FullPanel render: values the player typed that are not valid, which disable Save, and a text with a most of characters as it is typed", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nsName = \"Standing\"\r\nfHeight = 1.78\r\niCount = 3\r\n");
+    package::PackageStore store({}, myGames.path);
+    auto mod = package::loadPackage(R"({
+        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "textinput", "text": "Profile name", "help": "Type a name with the keyboard.", "default": "Standing",
+              "valueOptions": { "allowEmpty": false, "maxLength": 16 }, "storage": { "path": ["Main", "sName"] } },
+            { "type": "textinput", "valueType": "float", "text": "Player height", "help": "A numeric input between 0.5 and 2.5 meters.", "default": 1.78,
+              "valueOptions": { "min": 0.5, "max": 2.5 }, "display": { "decimals": 2, "unit": "m" }, "storage": { "path": ["Main", "fHeight"] } },
+            { "type": "textinput", "valueType": "int", "text": "Count", "default": 3, "storage": { "path": ["Main", "iCount"] } }
+        ]
+    })");
+    REQUIRE(mod);
+
+    // the ray on a row that is invalid, which has the reason, and away, where the status counts them
+    for (const bool onRow : { true, false }) {
+        FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
+        panel.setMods({ *mod });
+        panel.select({ .mod = 0, .page = {} });
+        const auto& items = panel.mods()[0].frontPage.items;
+        store.set(std::get<model::Setting>(items[0]), ""s);
+        store.set(std::get<model::Setting>(items[1]), "3"s);
+        store.set(std::get<model::Setting>(items[2]), "4.5"s);
+        REQUIRE(store.invalidCount() == 3);
+        WARN("Saved " << renderToFile(panel, onRow ? "package-invalid-typed" : "package-invalid-typed-status", onRow ? pageRow(1) : POINTER_AWAY));
+        store.discard();
+    }
+
+    // the name is typed past its most, which keeps only what fits
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods({ *mod });
+    panel.select({ .mod = 0, .page = {} });
+    const auto edit = [&panel] {
+        for (const bool held : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, pageRow(0), held);
+        }
+        ImGui::GetIO().AddInputCharactersUTF8(" and seated");
+    };
+    WARN("Saved " << renderToFile(panel, "package-text-input-most", POINTER_AWAY, false, edit));
+}
+
 TEST_CASE("FullPanel render: the values of the package showcase's file that are not the settings'", "[.render]")
 {
     const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);

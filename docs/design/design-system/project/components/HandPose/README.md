@@ -11,7 +11,7 @@ A hand pose, a CommonFramework `h` key: a frame that shows how each finger bends
 - **The palm** is `t-body`: "palm 15°, 0°", its pitch and yaw.
 - A press anywhere on the row opens the editor.
 - Pending: the bars and the text in `amber`, the dot in the gutter, Reset shown.
-- Invalid: a value the framework cannot read as a hand pose, as a finger with two numbers. The frame has no glyph and a `red` outline, the file's text in `red` with an ellipsis, and the row's message is "Not a hand pose". The help line gives the framework's reason: "thumb is not an array of four numbers, [prox, mid, dist, splay]".
+- Invalid: a value the framework cannot read as a hand pose, as a finger with two numbers. The frame has no glyph and a `red` outline, the file's text in `red` with an ellipsis, and the invalid mark in the gutter. The help line gives the framework's reason: "thumb is not an array of four numbers, [prox, mid, dist, splay]".
 
 ## The editor
 

@@ -48,6 +48,7 @@ namespace mods_config::devbench
             bool hasSession = false;
             bool savesAtOnce = false;
             std::size_t dirtyCount = 0;
+            std::size_t invalidCount = 0;
         };
 
         const char* stateDescription()
@@ -60,7 +61,7 @@ namespace mods_config::devbench
                    "its place in the mod's pages, then in the pages of each page on the way to it; a null mod is the menu's front page, and "
                    "an empty page the mod's front page), helpShown (the Help page is shown over it); "
                    "session: the selected mod's editing session, null on the menu's front page: savesAtOnce (an MCM mod's changes are written as "
-                   "they are made), dirty (the changes that wait for a Save); "
+                   "they are made), dirty (the changes that wait for a Save), invalid (the changes that are not valid, which block Save); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
         }
 
@@ -89,6 +90,7 @@ namespace mods_config::devbench
             state.hasSession = store != nullptr;
             state.savesAtOnce = store && store->savesAtOnce();
             state.dirtyCount = store ? store->dirtyCount() : 0;
+            state.invalidCount = store ? store->invalidCount() : 0;
         }
 
         /**
@@ -112,7 +114,7 @@ namespace mods_config::devbench
                         { "wanted", state.pointerWanted } } },
                 { "mods", { { "count", state.modCount } } },
                 { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", state.selectedPage }, { "helpShown", state.helpShown } } },
-                { "session", state.hasSession ? json{ { "savesAtOnce", state.savesAtOnce }, { "dirty", state.dirtyCount } } : json(nullptr) },
+                { "session", state.hasSession ? json{ { "savesAtOnce", state.savesAtOnce }, { "dirty", state.dirtyCount }, { "invalid", state.invalidCount } } : json(nullptr) },
                 { "frik", { { "gestureTaken", state.frikGestureTaken } } },
             };
         }
@@ -176,7 +178,7 @@ namespace mods_config::devbench
          */
         json sessionToJson(const model::Store& store)
         {
-            return { { "savesAtOnce", store.savesAtOnce() }, { "dirty", store.dirtyCount() } };
+            return { { "savesAtOnce", store.savesAtOnce() }, { "dirty", store.dirtyCount() }, { "invalid", store.invalidCount() } };
         }
 
         /**

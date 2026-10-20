@@ -19,7 +19,7 @@ A color whose opacity means nothing, as a light's, is RGB only: `"valueOptions":
 - **The numbers** are `t-body`, as the file writes them: "190, 255, 190, alpha 200".
 - A press anywhere on the row opens the editor.
 - Pending: the numbers in `amber`, the dot in the gutter, the swatch in the new color.
-- Invalid: a value the framework cannot read, as `{ rgb = [300, 0, 0] }`. The frame has no swatch and a `red` outline, the numbers are the file's text in `red`, ending in an ellipsis where it is long, and the row's message is "Not a color". The help line gives the framework's reason: "Ray color: rgb has a number that is not a whole number in 0..255. Pick a color, or Reset it to 190, 255, 190, alpha 200."
+- Invalid: a value the framework cannot read, as `{ rgb = [300, 0, 0] }`. The frame has no swatch and a `red` outline, the numbers are the file's text in `red`, ending in an ellipsis where it is long, and the invalid mark is in the gutter. The help line gives the framework's reason: "Ray color: rgb has a number that is not a whole number in 0..255. Pick a color, or Reset it to 190, 255, 190, alpha 200."
 
 ## The editor
 

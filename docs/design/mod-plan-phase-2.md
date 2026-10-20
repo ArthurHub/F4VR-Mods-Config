@@ -30,7 +30,7 @@ M47 ships the first package, which is this mod's own, for `ModsConfigVR.toml`. T
 
 The milestone is TOML only. A CommonFramework mod keeps its config in a TOML file, as this mod does, and reloads it by itself, so it needs no native API.
 
-M51 is the package store: the [editing session](architecture.md#editing-session) and the [values at session start](architecture.md#values-at-session-start) of a TOML file. A pending value has the design system's pending look, and the footer counts the unsaved changes. An invalid value of the file has its mark, its color and its reason in the help line: the message under the row's name is M55's, with the values the player types. Until M55 a value the player sets outside its limits is not set.
+M51 is the package store: the [editing session](architecture.md#editing-session) and the [values at session start](architecture.md#values-at-session-start) of a TOML file. A pending value has the design system's pending look, and the footer counts the unsaved changes. An invalid value of the file has its mark, its color and its reason in the help line. Until M55 a value the player sets outside its limits is not set.
 
 M52 follows the Save steps of [Architecture and lifecycle](architecture.md#save-lifecycle), for the Save that goes well. Save and Discard are in the footer, as in the design system's `SaveBar`: enabled while a change waits, disabled on the menu's front page, and not there for an MCM mod. Each file is written in one write, and its settings are then clean with the values written as their baseline. Until M53 a file that cannot be written keeps its settings dirty, and the other files are still written.
 
@@ -55,7 +55,8 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | in review |
 | M53 | mod  | A Save that fails leaves every file as it was                                             | in review |
 | M54 | mod  | Save creates a file that is missing                                                       | in review |
-| M55 | mod  | Validation                                                                                | todo   |
+| M55 | mod  | Validation                                                                                | in review |
+| M116 | mod | The save summary                                                                          | todo   |
 | M57 | mod  | The unsaved-changes prompt                                                                | todo   |
 | M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | todo   |
 | M60 | mod  | A package whose requirements are missing is not available                                 | todo   |
@@ -79,6 +80,10 @@ M110 reads MCM's `listFromForm` and `listFromProperty`, for an MCM config and a 
 M50 is for the many F4SE mods that keep their config in an INI file, and for a CommonFramework mod on an older framework. It settles how an INI file is read and how its values are spelled, in [Persistence model](architecture.md#persistence-model): as SimpleIni reads it, with a key's last value and a whole number in hex, and a boolean written in the words the file has. The package showcase's INI section gets a number and a text with a `;` in it.
 
 M53 and M54 are the rest of the Save steps, and are made in one commit. M53 is the checks before the write, and the rollback of a write that fails: every file gets its new text, checked to read back, and every global and property is checked to be in the game, before anything is written, and a write that fails puts back the files written before it. A Save that fails keeps every setting dirty. M54 creates a file that is not there, with the folders on the way to it, as the package showcase's `player.toml` in My Games is, and a Save that fails after it removes the file. The footer's status says why a Save failed, in red after the invalid mark, until the next change, and Save stays enabled. A write that fails is tried in the headset with a file of the package showcase made read-only.
+
+M55 checks the values the player sets. A value of the type its control shows is set, also one that is no value of its setting: a text of a number that is none, a number outside its limits, or a text whose length its `minLength` and `maxLength` do not allow. It is pending and invalid, as a value of the file is shown: the invalid mark, the value in red, and the reason in the help line while the ray is on its row, with no message under its name. A `live` setting is not previewed with it, so the last valid preview stays. While a changed value is invalid the footer's status says how many there are, in red after the invalid mark, and Save is disabled: an invalid value that was in the file and was not changed does not block it. A text with a `maxLength` takes no character past it as it is typed, and shows the count, `12 / 16`. The package showcase's text inputs page has a section of limits.
+
+M116 is the design system's [SaveSummary](design-system/project/components/SaveSummary/README.md): while a changed value is invalid Save is secondary, and a press on it shows every invalid setting, with Reset, and goes to the first that shows, with the focus ring.
 
 M58 shows a package's `applies`. The help line says when the change of the pointed row takes effect, a row that needs a restart is marked, and a Save that wrote one says that the game has to be restarted. The loader reads `applies` from M47 on, as a package's root requires it. Until milestone 8 there is no client, so a `live` setting is handled as `save`.
 

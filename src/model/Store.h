@@ -27,8 +27,9 @@ namespace mods_config::model
         bool available = false;
 
         // the value is shown and edited, but is no value of its setting: one in a file that is not of its type,
-        // outside its limits, or no option of its choice. It is the value as it is read where that is of its
-        // type, and the setting's default where it is not
+        // outside its limits, of a length its text input does not allow, or no option of its choice, or one the
+        // player set so, as a text that is no number. It is the value as it is read where that is of its type,
+        // and the setting's default where it is not
         bool invalid = false;
 
         // why it is not available or is invalid, for the player. Empty for a storage the menu does not read yet
@@ -68,7 +69,8 @@ namespace mods_config::model
         virtual StoredValue valueById(std::string_view id) = 0;
 
         /**
-         * Sets the value of a setting. Returns whether it is set.
+         * Sets the value of a setting. Returns whether it is set. A store that keeps a change for a Save sets a
+         * value of the setting's type that is no value of it, as invalid.
          */
         virtual bool set(const Setting& setting, const Value& value) = 0;
 
@@ -101,9 +103,15 @@ namespace mods_config::model
         virtual std::size_t dirtyCount() const = 0;
 
         /**
+         * How many dirty settings are invalid: the player set them to no value of theirs, and Save writes
+         * nothing while there is one. An invalid value that was read, and not changed, is not counted.
+         */
+        virtual std::size_t invalidCount() const = 0;
+
+        /**
          * Writes the dirty settings, which are then clean: the values written are their new baseline. Returns
-         * why, for a Save that does not write every one, as `showcase.toml cannot be written`. Nothing for a
-         * store that saves a change as it is made.
+         * why, for a Save that does not write every one, as `showcase.toml cannot be written`. Nothing is
+         * written while a dirty setting is invalid. Nothing for a store that saves a change as it is made.
          */
         virtual std::expected<void, std::string> save() = 0;
 

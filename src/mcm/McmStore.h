@@ -86,6 +86,11 @@ namespace mods_config::mcm
             return 0;
         }
 
+        std::size_t invalidCount() const override
+        {
+            return 0;
+        }
+
         std::expected<void, std::string> save() override
         {
             return {};

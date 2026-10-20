@@ -1,5 +1,7 @@
 #include "TextInputs.h"
 
+#include <format>
+#include <string>
 #include <string_view>
 
 #include <imgui.h>
@@ -28,15 +30,28 @@ namespace
     }
 
     /**
-     * The characters a text input that takes a number keeps, as MCM's field: digits and a minus, and a point
-     * for a number that is no whole one. Returns 1 for one it drops.
+     * What ImGui's field asks of a text input as it is typed. A text input that takes a number keeps only the
+     * characters of one, as MCM's field: digits and a minus, and a point for a number that is no whole one,
+     * and returns 1 for one it drops. A text with a most of characters is cut after its last character that
+     * fits, as it is edited, so neither a key nor a paste takes it past its most.
      */
-    int numberFilter(ImGuiInputTextCallbackData* data)
+    int fieldCallback(ImGuiInputTextCallbackData* data)
     {
         const auto* setting = static_cast<const model::Setting*>(data->UserData);
-        const auto c = data->EventChar;
-        const bool kept = (c >= '0' && c <= '9') || c == '-' || (c == '.' && setting->valueType == model::StoredType::Float);
-        return kept ? 0 : 1;
+        if (data->EventFlag == ImGuiInputTextFlags_CallbackCharFilter) {
+            const auto c = data->EventChar;
+            const bool kept = (c >= '0' && c <= '9') || c == '-' || (c == '.' && setting->valueType == model::StoredType::Float);
+            return kept ? 0 : 1;
+        }
+        int length = 0;
+        for (int place = 0; place < data->BufTextLen; ++place) {
+            // a byte that starts a character of UTF-8
+            if ((static_cast<unsigned char>(data->Buf[place]) & 0xC0) != 0x80 && ++length > setting->valueOptions.maxLength) {
+                data->DeleteChars(place, data->BufTextLen - place);
+                break;
+            }
+        }
+        return 0;
     }
 }
 
@@ -45,8 +60,9 @@ namespace mods_config::ui
     /**
      * Edits a text input whose box ends at the right: a press on its row starts the edit, and the field is
      * ImGui's from the next frame, with the caret at the end of its text, as MCM's field has it. A text input
-     * that takes a number keeps only the characters of one. It is drawn while its row is scrolled out of the
-     * page too, so the edit lasts.
+     * that takes a number keeps only the characters of one, and one with a most of characters takes none
+     * past it, with the count of its characters at the right of its box, as `12 / 32`. It is drawn while its
+     * row is scrolled out of the page too, so the edit lasts.
      * The edit ends as ImGui leaves the field: on Done of the keyboard, Enter, or a press beside it, with the
      * text it has then, and on the keyboard's close button or Escape, with the text it started with. Back ends
      * it with nothing written.
@@ -87,17 +103,28 @@ namespace mods_config::ui
         ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(theme::SPACE_4, (theme::CONTROL_HEIGHT - ImGui::GetFontSize()) * 0.5f));
-        ImGui::SetNextItemWidth(FIELD_WIDTH);
+        // the count of a text with a most of characters is at the right of the box, where the field ends: the
+        // field has the room of the widest count
+        const int most = setting.valueOptions.maxLength;
+        float countWidth = 0.0f;
+        if (most > 0) {
+            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+            countWidth = textWidth(std::format("{} / {}", most, most)) + theme::SPACE_4;
+            ImGui::PopFont();
+        }
+        ImGui::SetNextItemWidth(FIELD_WIDTH - countWidth);
         const bool isNumber = setting.valueType != model::StoredType::String;
-        ImGui::InputText(FIELD_ID,
-            &_text,
-            isNumber ? ImGuiInputTextFlags_CallbackCharFilter : ImGuiInputTextFlags_None,
-            isNumber ? numberFilter : nullptr,
-            const_cast<model::Setting*>(&setting));
+        const auto flags = isNumber ? ImGuiInputTextFlags_CallbackCharFilter : most > 0 ? ImGuiInputTextFlags_CallbackEdit : ImGuiInputTextFlags_None;
+        ImGui::InputText(FIELD_ID, &_text, flags, flags != ImGuiInputTextFlags_None ? fieldCallback : nullptr, const_cast<model::Setting*>(&setting));
         const bool activated = ImGui::IsItemActivated();
         const bool active = ImGui::IsItemActive();
         ImGui::PopStyleVar(2);
         ImGui::PopStyleColor();
+        if (most > 0) {
+            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+            drawTextIn(box, std::format("{} / {}", model::textLength(_text), most), theme::color::GREEN_MUTED, 1.0f, theme::SPACE_4);
+            ImGui::PopFont();
+        }
         // not with SetCursorScreenPos: ImGui takes a cursor that is set and followed by no item, as after the
         // last row of a page, for one that grows the page past its items, which is an error
         ImGui::GetCurrentWindow()->DC.CursorPos = cursor;

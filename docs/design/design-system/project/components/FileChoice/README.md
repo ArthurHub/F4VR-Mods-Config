@@ -10,7 +10,7 @@ A choice of the files in a folder, MCM's `dropdownFiles`, and a package's: a dro
 - **The thumbnail** is the texture itself, 32 x 32 on black, outlined in `frame-border`: a gobo shows how the light falls through it. A file that is not a texture (`.json`, `.nif`) has none, and its name starts at the left.
 - A press anywhere on the row opens the list.
 - Pending: the name in `amber`, the dot in the gutter, the thumbnail of the new file.
-- **Not in the folder:** a value that names a file the folder does not have. The frame has a `red` outline and the name as the file has it in `red`, with no thumbnail, and the row's message is "Not in Gobos", the folder's last name. Reset sets the default; picking a file fixes it.
+- **Not in the folder:** a value that names a file the folder does not have. The frame has a `red` outline and the name as the file has it in `red`, with no thumbnail, and the help line says the folder has no such file: "9_Laser is not in Gobos." Reset sets the default; picking a file fixes it.
 - **An empty folder**, or one that is missing: the row is disabled and says `No files`. The help line says where it looked: "No *.dds files in Textures\ImmersiveFlashlightVR\Gobos."
 
 ## The list
