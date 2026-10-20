@@ -38,8 +38,7 @@ On the menu's front page, after Notices; see [FullPanelDeveloper](../FullPanelDe
 
 A row of the report, as any other row: one line.
 
-- `control-height` tall, across the content: the mark in the `space-6` gutter, and the message in `t-body` `green`, which shortens with an ellipsis.
-- The mark is the invalid mark for an error, the warning mark for a warning, and the info mark for something the menu did, as a reload.
+- `control-height` tall, set in under its heading as a row is, a level (`space-3`): the message in `t-body` `green`, `space-3` inside the row's frame, which shortens with an ellipsis. It has no mark: the heading it is under says errors or warnings.
   - An **error** leaves something out: the whole package, when `config.json` cannot be read, or a part of it, as the second of two settings with one id, or a setting with no storage.
   - A **warning** is read but likely not meant: an unknown field (a typo, or a field of a newer schema), a condition that names no setting, a `$` token with no translation and no fallback.
   - The message says what the menu did with it: "it is not read", "the row is left out", "the row is shown as if it had none".

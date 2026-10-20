@@ -4,7 +4,7 @@ An MCM hotkey: the key MCM has bound to it, shown in a box and not edited.
 
 **Provides:** the row's text and help, the name of its key as MCM's menu names it (`Ctrl-Shift-F5`) or `None`, and the reason for a hotkey that is not available.
 
-- Laid out as a setting's row: the text after the `space-6` gutter, and the key in a box that ends where a control ends, before the Reset slot. The Reset slot is kept empty, so the box lines up with the other controls: a hotkey has no default here.
+- Laid out as a setting's row: the text, and the key in a box that ends where a control ends, before the Reset slot. The Reset slot is kept empty, so the box lines up with the other controls: a hotkey has no default here.
 - The box is `control-height` tall, `track` with a `frame-border` outline, and has the key's name in `t-body` `green` in its middle. It is as wide as the name with `space-3` on each side, and at least 96 px (`KEY_MIN_WIDTH` in `ModPage.cpp`, not a token), so a single key such as `F` is not a small square.
 - A hotkey with no key says `None`.
 - The whole row is always disabled (`BeginDisabled`, `opacity-disabled`): MCM binds the key, in its own menu, and runs the hotkey. A press does nothing, and the row has no pressed look.

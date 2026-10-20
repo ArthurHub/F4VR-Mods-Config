@@ -9,7 +9,7 @@ A `textinput` setting: a field that shows its text, typed on SteamVR's keyboard.
 - The field is 392 x 48, as wide as a dropdown's: `track` with a `frame-border` outline. The text in `t-body`, `space-4` in, left-aligned and ending in an ellipsis where it is long; a number right-aligned in tabular digits, written as its `display` says. A drawn pencil, 18 px in `green-muted`, at the right says it is typed. Then the Reset slot.
 - An empty text says `Empty` in `green-muted`.
 - A press anywhere on the row starts typing.
-- Pending: the text in `amber`, the dot in the gutter. Invalid: a `red` outline, the text in `red`, the invalid mark in the gutter, and the reason in the help line ("Invalid: the text has 40 characters, and can have at most 32.", "Invalid: 250 is not from 1 to 100.").
+- Pending: the text in `amber`, the pending dot after the name. Invalid: a `red` outline, the text in `red`, the invalid mark after the name, and the reason in the help line ("Invalid: the text has 40 characters, and can have at most 32.", "Invalid: 250 is not from 1 to 100.").
 
 ## Typing
 

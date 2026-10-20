@@ -128,7 +128,7 @@ Primary use: an operation that does not directly edit a stored value.
 - A button runs what an MCM button runs, such as a function of a script, a console command, or a function that the mod's native client registered, by its name and with typed parameters if needed.
 - Its button says `Run`, or the button text its package gives it.
 - Potentially destructive actions require explicit confirmation. A package's `confirmation` opens a dialog first, and a `dangerous` one is red.
-- While its action runs, the button says `Running` and is not pressed again. Its result, when the action gives one, is in the help line while the ray is on the row, with a mark in the gutter: an info mark until the player has read it, and the invalid mark while it failed.
+- While its action runs, the button says `Running` and is not pressed again. Its result, when the action gives one, is in the help line while the ray is on the row, with a mark after its name: an info mark until the player has read it, and the invalid mark while it failed.
 - Cancelling an action that runs, and its progress, remain open design work.
 
 The look is the design system's [ButtonRow](design-system/project/components/ButtonRow/README.md).
@@ -276,8 +276,8 @@ The full and focused layouts reserve a stable place for the help of the item the
 
 Additional feedback:
 
-- An invalid row has the invalid mark in its gutter and its value in red, and the help line has the reason while the ray is on it.
-- A row whose warning holds has a warning mark, and the help line shows the warning before its help. A warning does not block Save. Its mark is a hollow amber triangle after the name, apart from the invalid mark in the gutter. See [Warnings](schema.md#warnings), and the design system's [RowWarning](design-system/project/components/RowWarning/README.md).
+- An invalid row has the invalid mark after its name and its value in red, and the help line has the reason while the ray is on it.
+- A row whose warning holds has a warning mark, and the help line shows the warning before its help. A warning does not block Save. Its mark is a hollow amber triangle after the name and its pending dot. While the value is invalid, the invalid mark takes its place. See [Warnings](schema.md#warnings), and the design system's [RowWarning](design-system/project/components/RowWarning/README.md).
 - Save is disabled while a dirty setting is invalid, and the footer's status says how many there are. An invalid value that was already in the file does not block it.
 - A folded section's heading says how many invalid values it hides.
 - Validation must not rely on color alone.

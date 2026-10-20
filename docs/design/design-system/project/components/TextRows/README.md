@@ -6,7 +6,7 @@ The rows of a page that hold no value: a `text`, a `spacer` and an `image`. The 
 
 ## Text
 
-- A paragraph in `t-body` `green-muted`, wrapped to the width of the rows (from the gutter's left to the end of the control column), `space-2` in from the left, `space-1` above and below. `TextWrapped` between `PushTextWrapPos`.
+- A paragraph in `t-body` `green-muted`, set in as a row is, a level (`space-3`), with its text `space-3` further, under the rows' names, and wrapped to the end of the control column. `space-1` above and below. `TextWrapped` between `PushTextWrapPos`.
 - With `html`, the tags MCM configs use:
   - `<br>` a new line, `<p>` a paragraph with `space-2` after it, and its `align` `left`, `center` or `right`.
   - `<font size>` at 1.05 times its number, so 20, MCM's ordinary size, is the rows' 21 px. The font is rasterized at the sizes a page uses, as `t-title` is.

@@ -4,6 +4,7 @@ The previews are generated: change them here (and the classes in components/bund
 Usage: python tools/gen_previews.py [project dir]
 """
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -60,10 +61,20 @@ def choice_stepper(label, pending=False, show_reset=False):
             f'<span class="label{" is-pending" if pending else ""}">{label}</span>'
             f'<span class="mc-btn is-icon">{TRI_R}</span></span></div>{reset_btn(show_reset)}')
 
+MARK_RE = re.compile(r'<span class="mc-tag[^"]*"[^>]*>.*?</span>|<svg\b.*?</svg>', re.S)
+
 def row(name, ctl, state='', gutter='', mark=None):
+    """A row: its name, set in from the row's left inside its frame, and its marks after it, in this order: the Restart
+    tag, the pending dot, then the warning or the invalid mark, or a button's result. A mark in the name's text (a
+    tag or a drawn mark) is moved there; `gutter` is a state mark (the pending dot, the invalid mark, a result)."""
+    found = MARK_RE.findall(name)
+    text = MARK_RE.sub('', name)
+    tags = [m for m in found if m.startswith('<span')]
+    drawn = [m for m in found if m.startswith('<svg')]
+    marks = ''.join(tags) + gutter + ''.join(drawn)
     mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    return (f'<div class="mc-row {state}"><span class="gutter">{gutter}</span>'
-            f'<span class="name t-body">{name}</span><div class="ctl t-body">{ctl}</div>{mk}</div>')
+    return (f'<div class="mc-row {state}"><span class="name t-body"><span class="txt">{text}</span>{marks}</span>'
+            f'<div class="ctl t-body">{ctl}</div>{mk}</div>')
 
 def setin(depth):
     """A section in a section is set in with its rows by IndentSpacing (space-8) a level, up to the third."""
@@ -384,7 +395,7 @@ fo_body = f'''<div class="mc-world" style="display:flex;gap:24px;align-items:fle
 <div class="mc-focused">
 <div class="fhead"><span class="grow t-body">Immersive Flashlight VR</span><span class="mc-btn t-body" style="min-width:88px">Full</span><span class="mc-btn is-icon">{MIN}</span></div>
 <div class="mc-desc t-body"><span class="name">Brightness:</span> How bright the beam is. 1.00 is the game's own flashlight. Default 1.00.</div>
-<div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px">{DOT}<span>Brightness</span></div>
+<div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px"><span>Brightness</span>{DOT}</div>
 <div class="ctl t-body"><span class="mc-track is-pending"><i class="fill" style="width:170px"></i><i class="grab" style="left:180px"></i></span><span class="mc-value is-pending">1.25</span><span class="mc-btn is-icon">{RESET}</span></div></div>
 <div class="item"><div class="t-body">Beam mode</div>
 <div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label" style="flex:1;width:auto">Spot</span><span class="mc-btn is-icon">{TRI_R}</span></span><span class="mc-btn is-icon is-slot">{RESET}</span></div></div>
@@ -691,7 +702,7 @@ h_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="wi
 </div>"""
 h_focused = f"""<div class="mc-focused" style="height:auto">
 <div class="mc-desc t-body"><span class="name">Entry haptic:</span> Plays once when a hand enters the zone. Default Tick.</div>
-<div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px">{DOT}<span>Entry haptic</span></div>
+<div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px"><span>Entry haptic</span>{DOT}</div>
 <div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label is-haptic is-pending" style="flex:1;width:auto"><span>Success</span>{env('Success')}</span><span class="mc-btn is-icon">{TRI_R}</span></span>{play_btn()}<span class="mc-btn is-icon">{RESET}</span></div></div>
 </div>"""
 h_library = '<div class="mc-sheet mc-popup t-body" style="width:336px;border-color:var(--frame-border)">' + ''.join(h_option(n) for n in HAPTICS) + '</div>'
@@ -1327,7 +1338,7 @@ def warnline(name, warning, help_):
     return f'<div class="help t-body"><span class="name">{name}:</span> {CAUTION}<span class="caution">{warning}</span> {help_}</div>'
 
 rw_body = f"""<div class="mc-world mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The mark after the name: a hollow amber triangle. The gutter keeps the pending dot and the invalid mark</span>
+<span class="t-detail mc-caption">The mark after the name, and after the pending dot: a hollow amber triangle. The invalid mark takes its place while the value is invalid</span>
 {h_sheet([
     ('No warning', row('Player height', slider('1.30 m', 60))),
     ('Warning', row(f'Player height{CAUTION}', slider('1.45 m', 76, 'is-pending', 'is-pending', True), gutter=DOT)),
@@ -1456,7 +1467,7 @@ dlg = lambda title, msg, ok, danger: (f'<div class="mc-sheet mc-scrim" style="wi
     f'<div class="actions">{btn("Cancel", "is-quiet")}{btn(ok, "is-danger" if danger else "is-primary")}</div></div></div>')
 br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 820px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The row: Run, or the button's text, in the control column; running; a mark in the gutter for its result, which is in the help line</span>
+<span class="t-detail mc-caption">The row: Run, or the button's text, in the control column; running; a mark after the name for its result, which is in the help line</span>
 {br_states}
 <div class="mc-sheet mc-stack" style="width:908px;padding:0;gap:0">
 <div class="mc-footer">{helpline('Calibrate height', 'Measures your height and updates the calibration. Stand straight first.')}</div>
@@ -1790,12 +1801,11 @@ def show_row(label, shown, total, state='', mark=None):
     return row(f'Show<span class="mc-tag t-detail">{shown} of {total}</span>', choice_stepper(label), state, mark=mark)
 
 def diag(kind, msg, go=True, state='', mark=None):
-    """A problem of the package: its mark and its message on one line. Where it is, is in the help line.
-    One that names a row is pressed to go to it."""
-    m = WARN if kind == 'error' else (CAUTION_D if kind == 'warning' else INFO)
+    """A problem of the package, set in under its heading as a row: its message on one line. Its heading says whether
+    it is an error or a warning, and where it is, is in the help line. One that names a row is pressed to go to it."""
     mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    return (f'<div class="mc-diag{" " + state if state else ""}"><span class="gutter">{m}</span>'
-            f'<span class="msg t-body">{msg}</span><span class="go">{ARROW_R if go else ""}</span>{mk}</div>')
+    return (f'<div class="mc-diag{" " + state if state else ""}"><span class="msg t-body">{msg}</span>'
+            f'<span class="go">{ARROW_R if go else ""}</span>{mk}</div>')
 
 D_DUP = ('error', 'Two settings have the id beamAngle: the second is left out.')
 D_STORE = ('error', 'Flicker has no storage: the row is left out.')
@@ -1843,13 +1853,12 @@ dv_body = f"""<div class="mc-world mc-stack" style="gap:16px">
 {footer_help('Immersive Flashlight VR', 'Read from its live copy. 2 errors: parts of it are left out. 5 warnings. Opens its report.')}
 {footer_help('Virtual Holsters', "config.json cannot be read: line 41, column 7: expected ',' or '}'. Opens its report.", error=True)}
 </div>
-<span class="t-detail mc-caption">A problem in the report: its mark and its message on one line. Where it is, is in the help line. One that names a row goes to it</span>
+<span class="t-detail mc-caption">A problem in the report: its message on one line, set in under its heading. Where it is, is in the help line. One that names a row goes to it</span>
 <div class="mc-sheet" style="width:908px">
 {diag(*D_DUP, state='is-hover', mark=(560, 22))}
 {diag(*D_FIELD)}
 {diag(*D_COND)}
 {diag(*D_PARSE, go=False)}
-{diag('info', 'Reloaded at 10:42:05: 2 unsaved changes were dropped.', go=False)}
 </div>
 <div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
 {footer_help(*H_DUP)}

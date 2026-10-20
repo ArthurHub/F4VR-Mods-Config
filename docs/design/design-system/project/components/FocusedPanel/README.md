@@ -8,7 +8,7 @@ A smaller panel on the offhand that shows the selected page only, so the player 
 - Same chrome as Full: `glass`, `border-panel`, `radius-panel`.
 - Header: the mod name in `t-body`, then **Full** (returns to the Full panel) and Minimize.
 - A two-line help area at the top (`description-height`, on `plate`) in the "Name: help" form. The footer is too narrow to hold help here.
-- Each setting stacks: the name (with its gutter mark) on one line, the control on the next at full width with the Reset slot. A dropdown is shown as a choice `Stepper`, so no popup opens on the hand.
+- Each setting stacks: the name (with its marks after it) on one line, the control on the next at full width with the Reset slot. A dropdown is shown as a choice `Stepper`, so no popup opens on the hand.
 - Footer: the pending count and **Discard** / **Save** at 128 px.
 
 Don't drop descriptions, validation or Save here: Focused is the same session, only smaller.

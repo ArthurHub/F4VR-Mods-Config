@@ -18,8 +18,8 @@ A color whose opacity means nothing, as a light's, is RGB only: `"valueOptions":
 - **The swatch** is 64 x 32, outlined in `frame-border`. Its left half is the color opaque. Its right half is the color at its alpha over a checkerboard of 8 px squares, `rule` on `glass`, so the opacity shows. It is the only place, with the editor, where a color other than the panel's is drawn: it shows the color it edits.
 - **The numbers** are `t-body`, as the file writes them: "190, 255, 190, alpha 200".
 - A press anywhere on the row opens the editor.
-- Pending: the numbers in `amber`, the dot in the gutter, the swatch in the new color.
-- Invalid: a value the framework cannot read, as `{ rgb = [300, 0, 0] }`. The frame has no swatch and a `red` outline, the numbers are the file's text in `red`, ending in an ellipsis where it is long, and the invalid mark is in the gutter. The help line gives the framework's reason: "Ray color: rgb has a number that is not a whole number in 0..255. Pick a color, or Reset it to 190, 255, 190, alpha 200."
+- Pending: the numbers in `amber`, the pending dot after the name, the swatch in the new color.
+- Invalid: a value the framework cannot read, as `{ rgb = [300, 0, 0] }`. The frame has no swatch and a `red` outline, the numbers are the file's text in `red`, ending in an ellipsis where it is long, and the invalid mark is after the name. The help line gives the framework's reason: "Ray color: rgb has a number that is not a whole number in 0..255. Pick a color, or Reset it to 190, 255, 190, alpha 200."
 
 ## The editor
 

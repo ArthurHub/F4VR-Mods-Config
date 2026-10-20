@@ -9,7 +9,7 @@ A CommonFramework transform, a `t` key, `{ pos = [x, y, z], rot = [heading, roll
 - The frame is 392 x 48: two `t-detail` lines in tabular digits, then the drawn down arrow. The first is `pos` and the position, and `×1.5` after it when the scale is not 1; the second is `rot` and the three angles in degrees. `pos` and `rot` are `green-muted`, 30 px wide, so the numbers line up.
 - A key the value leaves out is drawn as what it means, in `green-muted`: `0, 0, 0` for no move or no rotation, and no `×` for a scale of 1.
 - A press anywhere on the row opens the editor.
-- Pending: the numbers in `amber`, the dot in the gutter. Invalid: a value the framework cannot read, its text as the file has it in `red`, a `red` outline, and the invalid mark in the gutter; the help line has the framework's reason.
+- Pending: the numbers in `amber`, the pending dot after the name. Invalid: a value the framework cannot read, its text as the file has it in `red`, a `red` outline, and the invalid mark after the name; the help line has the framework's reason.
 
 ## The editor
 

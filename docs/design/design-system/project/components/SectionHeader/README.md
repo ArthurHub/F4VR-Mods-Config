@@ -6,21 +6,21 @@ A heading that groups rows, drawn as `ImGui::SeparatorText`, a section in a sect
 
 ## A heading
 
-- `t-body` `green` text, then a 2 px `rule` line to the right edge of the rows. `space-2` above it.
+- `t-body` `green` text, `space-1` in from the content's left, then a 2 px `rule` line to the right edge of the rows. `space-2` above it. The rows under it are set in a level, `space-3`, so they are seen to be its; see [SettingRow](../SettingRow/README.md).
 - It is not pressed and has no hover look. While the ray is on it, the help line shows the section's help, when it has one.
 
 ## A section in a section
 
-- A section in a section is set in with its rows by `IndentSpacing` (`space-8`) a level: its heading, its rows and the sections in it. The rows still end where the other rows do, so the controls stay in one column and only the name narrows. `ImGui::Indent()`, with the width of a row taken from the cursor.
-- While it is open and has rows, a 2 px `rule` line runs from under the start of its heading's text (`space-2` in) down to the bottom of its last row, and turns there toward the rows in a 14 px foot with a `radius-frame` corner. It shows what the section covers, so a row after it is seen to be the outer section's. One `AddLine` down and one along, or a path with `PathArcTo` at the corner.
-- Its rows' gutter is `space-8` instead of `space-6`, and its mark sits `space-2` right of the gutter's middle, so the pending dot and the warning mark clear the line. Their names are `space-2` further in; the controls do not move.
+- A section in a section is set in a level, `space-3`, with what is in it: its heading starts where the outer section's rows do, and its rows and the sections in it are a level further. The rows still end where the other rows do, so the controls stay in one column and only the name narrows. `ImGui::Indent(theme::SPACE_3)`, with the width of a row taken from the cursor: not `IndentSpacing`, which is the tree's `space-8`.
+- While it is open and has rows, a 2 px `rule` line runs from under the start of its heading's text (`space-1` in) down to the bottom of its last row, and turns there toward the rows in a foot that stops `space-1` short of their frames, with a `radius-frame` corner. It shows what the section covers, so a row after it is seen to be the outer section's. One `AddLine` down and one along, or a path with `PathArcTo` at the corner.
+- Its rows are a level in from the line's start, so their hover frames clear it by `space-2`, and their marks are after their names, away from it.
 - A folded section has no line: it has no rows showing. A section in it has its own line, inside the outer one.
 - A level past the third is set in as the third, so a name keeps its room.
 - A section of an MCM config does not nest: its rows are the ones after it, up to the next section.
 
 ## A section that folds
 
-- Its heading is a row, a `TreeNode` as high as a row (`control-height`): a drawn arrow, a `t-body` `green-muted` label, and a 2 px `rule` line as a heading has, `space-3` after the label at the height of `SeparatorText`'s. The rule is how a heading is known, so the rows above are seen to end there. Hover: `hover` with a `frame-border` outline over the whole row, rule too, text to `green`. The arrow is what tells it from a heading that does not fold, as in the tree's category row.
+- Its heading is a row, a `TreeNode` as high as a row (`control-height`): a drawn arrow `space-1` in, where a heading's text starts, then a `t-body` `green-muted` label, and a 2 px `rule` line as a heading has, `space-3` after the label at the height of `SeparatorText`'s. The rule is how a heading is known, so the rows above are seen to end there. Hover: `hover` with a `frame-border` outline over the whole row, rule too, text to `green`. The arrow is what tells it from a heading that does not fold, as in the tree's category row.
 - The rule runs to the right edge of the rows, as a heading's does. Folded with something to say, it stops `space-2` before what it hides. One `AddLine` from the end of the label.
 - The arrow points right while it is folded and down while it is open. A press folds or opens it, as many times as the player likes. It starts as `collapsed` says each time its page is shown, closed for Advanced.
 - Its rows are set in as any section's are, by the sections it is in. Advanced is in the section it belongs to, so its heading and its rows are a level in.

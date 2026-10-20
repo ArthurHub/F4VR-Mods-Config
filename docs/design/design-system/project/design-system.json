@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-20T20:50:00Z",
+    "at": "2026-10-20T22:40:00Z",
     "via": "Claude (Cowork)",
-    "note": "Developer tools in the layout of the brand book; the design documents name them (M61, M117)."
+    "note": "Rows: no gutter, a row's marks after its name; every row set in space-3, a heading space-1 in, a section in a section a level further with its rule short of its rows; the report's problems with no mark. ExploreRowMarks and ExploreIndent removed."
   },
   "layout": "files",
   "libraries": [],

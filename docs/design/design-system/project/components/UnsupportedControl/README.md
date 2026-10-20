@@ -4,7 +4,7 @@ A row of a control the menu does not have: its text and its type, so the player 
 
 **Provides:** the row's text, and the type its config gives it, or none.
 
-- Laid out as a setting's row: the text after the `space-6` gutter, and the type in `t-body` `green-muted` where a control ends, right-aligned before the Reset slot, which is kept empty.
+- Laid out as a setting's row: the text, and the type in `t-body` `green-muted` where a control ends, right-aligned before the Reset slot, which is kept empty.
 - The type is written as the config writes it (`positioner`, `keyinput`, `customClipLoader`), and is `unknown` for a row with no type.
 - The whole row is always disabled (`BeginDisabled`, `opacity-disabled`): there is nothing to press, and a press has no look.
 - While the ray is on it, it has the hover look at full strength, `hover` with a `frame-border` outline, drawn before `BeginDisabled`, so its help is seen to be its, as a [hotkey](../Hotkey/README.md)'s row has.

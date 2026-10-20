@@ -76,15 +76,15 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .help.is-long { -webkit-line-clamp: 3; }
 .help.is-error, .help.is-error .name { color: var(--red); }
 .help .mc-warn { display: inline-block; vertical-align: -2px; margin-right: var(--space-2); }
-.mc-pagehelp { color: var(--green-muted); padding: var(--space-1) var(--space-2) var(--space-2); }
+.mc-pagehelp { color: var(--green-muted); padding: var(--space-1) var(--space-2) var(--space-2) var(--space-1); }
 /* a control of the menu on the Help page, as the help line has a row's help */
 .mc-control { color: var(--green-muted); padding: 0 var(--space-2) var(--space-2); }
 .mc-control .name { color: var(--green); }
 
 /* ---------- section heading (ImGui::SeparatorText) ---------- */
-.mc-section { height: var(--control-height); display: flex; align-items: center; gap: var(--space-3); padding-left: var(--space-2); margin-top: var(--space-2); }
+.mc-section { height: var(--control-height); display: flex; align-items: center; gap: var(--space-3); padding-left: var(--space-1); margin-top: var(--space-2); }
 .mc-section::after { content: ""; flex: 1; height: var(--border-frame); background: var(--rule); }
-.mc-collapse { height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding-left: var(--space-2); color: var(--green-muted); border-radius: var(--radius-frame); }
+.mc-collapse { height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding-left: var(--space-1); color: var(--green-muted); border-radius: var(--radius-frame); }
 .mc-collapse svg { width: 14px; height: 14px; fill: currentColor; }
 .mc-collapse.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
 .mc-collapse { position: relative; }
@@ -94,22 +94,22 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 .mc-collapse .marks { display: flex; align-items: center; gap: var(--space-2); padding-right: var(--space-3); }
 .mc-collapse .marks .mc-dot { margin-left: var(--space-2); }
 /* a section in a section is set in with its rows by IndentSpacing a level, up to the third, and ends where the rows do */
-.mc-in { margin-left: var(--space-8); }
+.mc-in { margin-left: var(--space-3); }
 /* its rows: a rule line from under the start of its heading's text down to the bottom of its last row, turning there
-   toward the rows; their gutter is space-8 and its mark sits space-2 right of its middle, clear of the line */
+   toward the rows, and stops space-1 short of their frames, which are a level (space-3) further in */
 .mc-sub { position: relative; }
-.mc-sub::before { content: ""; position: absolute; left: var(--space-2); top: 0; bottom: 0; width: 14px; border-left: var(--border-frame) solid var(--rule); border-bottom: var(--border-frame) solid var(--rule); border-bottom-left-radius: var(--radius-frame); pointer-events: none; }
-.mc-sub .mc-row { grid-template-columns: var(--space-8) minmax(0, 1fr) var(--control-width); }
-.mc-sub .mc-row .gutter { transform: translateX(var(--space-2)); }
-.mc-in-1 { margin-left: var(--space-8); }
-.mc-in-2 { margin-left: calc(2 * var(--space-8)); }
-.mc-in-3 { margin-left: calc(3 * var(--space-8)); }
+.mc-sub::before { content: ""; position: absolute; left: var(--space-1); top: 0; bottom: var(--space-2); width: var(--space-1); border-left: var(--border-frame) solid var(--rule); border-bottom: var(--border-frame) solid var(--rule); border-bottom-left-radius: var(--radius-frame); pointer-events: none; }
+.mc-in-1 { margin-left: var(--space-3); }
+.mc-in-2 { margin-left: calc(2 * var(--space-3)); }
+.mc-in-3 { margin-left: calc(3 * var(--space-3)); }
 
 /* ---------- setting row ---------- */
-.mc-row { position: relative; height: var(--control-height); display: grid; grid-template-columns: var(--space-6) minmax(0, 1fr) var(--control-width); align-items: center; column-gap: var(--space-3); border-radius: var(--radius-frame); margin-bottom: var(--space-2); }
-.mc-row .gutter { display: grid; place-items: center; height: 100%; }
-.mc-row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mc-row .name small { display: block; }
+/* every row of a page is set in a level (space-3) from the content's left, under a heading or not, and its name is
+   space-3 inside its frame; the row's marks follow the name, and the name shortens before they do */
+.mc-row { position: relative; height: var(--control-height); display: grid; grid-template-columns: minmax(0, 1fr) var(--control-width); align-items: center; column-gap: var(--space-3); border-radius: var(--radius-frame); margin: 0 0 var(--space-2) var(--space-3); padding-left: var(--space-3); }
+.mc-row .name { display: flex; align-items: center; gap: var(--space-2); min-width: 0; white-space: nowrap; }
+.mc-row .name .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mc-row .name > svg, .mc-row .name > .mc-dot, .mc-row .name > .mc-tag { flex: none; margin: 0; vertical-align: 0; }
 .mc-row .ctl { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
 .mc-row .ctl .main { width: calc(var(--control-width) - var(--control-height) - var(--space-2)); display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); }
 .mc-row.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
@@ -368,7 +368,7 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .help .mc-caution { margin: 0 var(--space-2) 0 0; }
 .help .caution { color: var(--amber); }
 /* ---------- read-only: the value the mod writes, shown in its control, the row disabled ---------- */
-.mc-row.is-readonly > .gutter, .mc-row.is-readonly > .name, .mc-row.is-readonly > .ctl { opacity: var(--opacity-disabled); }
+.mc-row.is-readonly > .name, .mc-row.is-readonly > .ctl { opacity: var(--opacity-disabled); }
 .mc-track.is-empty .fill, .mc-track.is-empty .grab { display: none; }
 .mc-textbox { width: calc(var(--control-width) - var(--control-height) - var(--space-2)); height: var(--control-height); display: flex; align-items: center; padding: 0 var(--space-3); background: var(--track); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); white-space: nowrap; overflow: hidden; }
 .mc-textbox > span { overflow: hidden; text-overflow: ellipsis; }
@@ -412,10 +412,10 @@ svg.mc-ico.spin { width: 20px; height: 20px; }
 .mc-field.is-editing .txt::after { content: ""; display: inline-block; width: 2px; height: 20px; margin-left: 1px; vertical-align: -4px; background: var(--green); }
 
 /* ---------- text, spacer and image rows: no value, not pressed ---------- */
-.mc-text { color: var(--green-muted); padding: var(--space-1) var(--space-2); }
+.mc-text { color: var(--green-muted); margin-left: var(--space-3); padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); }
 .mc-text p { margin: 0 0 var(--space-2); }
 .mc-text p:last-child { margin-bottom: 0; }
-.mc-spacer { position: relative; }
+.mc-spacer { position: relative; margin-left: var(--space-3); }
 .mc-spacer.is-shown { outline: 1px dashed var(--frame-border); outline-offset: -1px; }
 .mc-spacer.is-shown::after { content: attr(data-l); position: absolute; right: var(--space-2); top: 50%; transform: translateY(-50%); color: var(--green-muted); font-size: 15.36px; }
 .mc-image { display: flex; justify-content: center; padding: var(--space-1) 0; }
@@ -467,8 +467,7 @@ svg.mc-ico.spin { width: 20px; height: 20px; }
 .mc-counts > span + svg { margin-left: var(--space-2); }
 .mc-go { width: var(--control-height); height: var(--control-height); flex: none; display: grid; place-items: center; }
 .mc-go svg, .mc-diag .go svg { width: 14px; height: 14px; fill: var(--green); }
-.mc-diag { position: relative; height: var(--control-height); display: grid; grid-template-columns: var(--space-6) minmax(0, 1fr) var(--control-height); column-gap: var(--space-3); align-items: center; border-radius: var(--radius-frame); margin-bottom: var(--space-2); }
-.mc-diag .gutter { display: grid; place-items: center; height: 100%; }
+.mc-diag { position: relative; height: var(--control-height); display: grid; grid-template-columns: minmax(0, 1fr) var(--control-height); column-gap: var(--space-3); align-items: center; border-radius: var(--radius-frame); margin: 0 0 var(--space-2) var(--space-3); padding-left: var(--space-3); }
 .mc-diag .msg { min-width: 0; color: var(--green); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mc-diag .go { display: grid; place-items: center; }
 .mc-diag.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }

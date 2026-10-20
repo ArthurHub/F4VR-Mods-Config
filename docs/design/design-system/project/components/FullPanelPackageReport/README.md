@@ -9,7 +9,7 @@ A package's report: the file it is read from, its live copy, and its problems, e
 
 - **Read the live copy** is a switch. On copies the package's `config.json` to its live copy, when there is none, and reads the copy in its place. The installed file is not changed. Off reads the installed file again, and keeps the copy, so turning it on again keeps the author's edits.
 - The live copy is watched, and read again each time it is saved. Only `config.json` is copied: the package's other files, its images and its translations are read from where they are installed.
-- **Reload** is a [button row](../ButtonRow/README.md) that reads it again now. Each read, by the button or by a save, is the result of the button: the info mark in the gutter until it is read, and in the help line "Reloaded at 10:42:05: 2 unsaved changes were dropped."
+- **Reload** is a [button row](../ButtonRow/README.md) that reads it again now. Each read, by the button or by a save, is the result of the button: the info mark after its name until it is read, and in the help line "Reloaded at 10:42:05: 2 unsaved changes were dropped."
 - **Edit config.json** (`Open`) opens the live copy in Windows' editor for `.json`, and **Its folder** (`Show`) opens its folder in Explorer, with the file selected. Both are on the desktop, and are disabled while the switch is off: the live copy is the file to edit.
 - A read drops the mod's unsaved changes, without asking: the author is the one changing its settings.
 - The mod's row, its pages and the page that is open show the package as it was read, and that page stays open while it is still there.
