@@ -777,7 +777,7 @@ TEST_CASE("FullPanel render: a Save that failed, with a short reason and with on
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [ { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } } ]
@@ -806,7 +806,7 @@ TEST_CASE("FullPanel render: settings that take effect after a restart, their st
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "Immersive Flashlight VR", "applies": "save",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "Immersive Flashlight VR", "applies": "save",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -845,7 +845,7 @@ TEST_CASE("FullPanel render: values the player typed that are not valid, which d
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nsName = \"Standing\"\r\nfHeight = 1.78\r\niCount = 3\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -983,7 +983,7 @@ TEST_CASE("FullPanel render: the package showcase's warnings, as shipped and wit
 TEST_CASE("FullPanel render: a package's section in a section, with rows before and after it", "[.render]")
 {
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -1016,7 +1016,7 @@ TEST_CASE("FullPanel render: a package's sections that fold, folded with what th
     myGames.write("MyMod.toml", "[Holsters]\nfReach = 99.0\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -1064,7 +1064,7 @@ TEST_CASE("FullPanel render: a package's section in a section, with its line dow
     myGames.write("MyMod.toml", "[Holsters]\nfReach = 99.0\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
         "content": [

@@ -460,7 +460,7 @@ namespace
     FullPanel twoPackages(package::PackageStore& store)
     {
         auto mod = package::loadPackage(R"({
-            "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
             "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
             "defaultFile": "main",
             "content": [
@@ -470,7 +470,7 @@ namespace
             ]
         })");
         auto other = package::loadPackage(R"({
-            "modName": "OtherMod", "displayName": "Other Mod", "applies": "save",
+            "minSchemaVersion": 1, "modName": "OtherMod", "displayName": "Other Mod", "applies": "save",
             "content": [ { "type": "text", "text": "Nothing to set." } ]
         })");
         REQUIRE(mod);
@@ -1235,7 +1235,7 @@ TEST_CASE("FullPanel: a package's button runs its console command while its enab
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2213,7 +2213,7 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\nbOther = false\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2258,7 +2258,7 @@ TEST_CASE("FullPanel: a package's setting says when its change takes effect, and
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2324,7 +2324,7 @@ TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them bac
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [ { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } } ]
@@ -2366,7 +2366,7 @@ TEST_CASE("FullPanel: a change that is invalid disables Save, and the status say
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfHeight = 1.5\r\nbEnable = false\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2411,7 +2411,7 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\nbOther = false\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2641,7 +2641,7 @@ TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, 
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = \"yes\"\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [ { "type": "switcher", "text": "Enable", "help": "Turns it on.", "default": true, "storage": { "path": ["Main", "bEnable"] } } ]
@@ -2676,7 +2676,7 @@ TEST_CASE("FullPanel: a package's read-only setting is not changed by a press or
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfHeight = 1.78\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2718,7 +2718,7 @@ TEST_CASE("FullPanel: a package's setting and button tell the first warning that
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbShadows = false\r\nbBad = \"yes\"\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2766,7 +2766,7 @@ TEST_CASE("FullPanel: the help line writes a number as its display does, with a 
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\niOpacity = 217\r\nfDistance = 250000.0\r\nfHeight = 1.5\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -2803,7 +2803,7 @@ TEST_CASE("FullPanel: a package's Reset is a change as any other, which Save wri
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfScale = 1.5\r\nbEnable = false\r\n");
     package::PackageStore store({}, myGames.path);
     auto mod = package::loadPackage(R"({
-        "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -3004,7 +3004,7 @@ namespace
     {
         myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = true\r\nbInvalid = \"yes\"\r\nbInner = false\r\nbShown = false\r\n");
         auto mod = package::loadPackage(R"({
-            "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
             "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
             "defaultFile": "main",
             "content": [

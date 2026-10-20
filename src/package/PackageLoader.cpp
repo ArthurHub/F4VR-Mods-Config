@@ -1249,6 +1249,71 @@ namespace
     }
 
     /**
+     * Names as a reason says them: `A`, `A and B`, `A, B and C`.
+     */
+    std::string joinNames(const std::vector<std::string>& names)
+    {
+        std::string joined;
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            joined += (i == 0 ? "" : i + 1 == names.size() ? " and " : ", ") + names[i];
+        }
+        return joined;
+    }
+
+    /**
+     * The plugins of a list of a package's requirements that are not loaded, in its order. None with no check.
+     */
+    std::vector<std::string> findMissing(const Json& package, const char* key, const package::PluginCheck& isLoaded)
+    {
+        std::vector<std::string> missing;
+        const auto required = package.find(key);
+        if (!isLoaded || required == package.end() || !required->is_array()) {
+            return missing;
+        }
+        for (const auto& plugin : *required) {
+            if (plugin.is_string() && !isLoaded(plugin.get_ref<const std::string&>())) {
+                missing.push_back(plugin.get<std::string>());
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * Why a package's mod is not available while a plugin it requires is not loaded: a game plugin of its
+     * `pluginRequirements` or an F4SE plugin of its `f4sePluginRequirements`, as `its plugin MyMod.esp and
+     * its F4SE plugin MyMod are not loaded`. Empty while every one is, and with no checks, as in a test of a
+     * package alone.
+     */
+    std::string findMissingRequirements(const Json& package, const package::PluginChecks& plugins)
+    {
+        const auto game = findMissing(package, "pluginRequirements", plugins.isGamePluginLoaded);
+        const auto f4se = findMissing(package, "f4sePluginRequirements", plugins.isF4sePluginLoaded);
+        std::vector<std::string> parts;
+        if (!game.empty()) {
+            parts.push_back(std::format("its plugin{} {}", game.size() == 1 ? "" : "s", joinNames(game)));
+        }
+        if (!f4se.empty()) {
+            parts.push_back(std::format("its F4SE plugin{} {}", f4se.size() == 1 ? "" : "s", joinNames(f4se)));
+        }
+        if (parts.empty()) {
+            return {};
+        }
+        return std::format("{} {} not loaded", joinNames(parts), game.size() + f4se.size() == 1 ? "is" : "are");
+    }
+
+    /**
+     * The `minSchemaVersion` of a package: a whole number from 1. None for a package that has none.
+     */
+    std::optional<std::int64_t> findSchemaVersion(const Json& package)
+    {
+        const auto version = package.find("minSchemaVersion");
+        if (version == package.end() || !version->is_number_integer() || version->get<std::int64_t>() < 1) {
+            return std::nullopt;
+        }
+        return version->get<std::int64_t>();
+    }
+
+    /**
      * A mod that is not available, which has its names and the reason alone.
      */
     model::Mod notAvailableMod(std::string name, std::string displayName, std::string reason)
@@ -1270,10 +1335,13 @@ namespace mods_config::package
      * Reads the text of a package's `config.json` into the model: the mod and its help, its files, its front
      * page and its pages, which nest, with their help, and their sections, which nest and fold, with their
      * help, settings, buttons, texts, spacers and images. Every
-     * text the player sees is in the game's language. A setting has the file its value is kept in, and when
-     * its change takes effect, which the package's root has to say. A choice has its options or a list of
+     * text the player sees is in the game's language. The package's root has to say its `minSchemaVersion`. A
+     * setting has the file its value is kept in, and when its change takes effect, which the package's root has
+     * to say. A choice has its options or a list of
      * the package's `sharedLists`. A row is shown and enabled by its conditions, which are read once every
      * setting is, as a condition can name a setting after it. A condition on a plugin is answered by the checks.
+     * A mod whose package needs a newer schema than the menu reads, or whose required plugins are not all
+     * loaded, is not available, and is its names and the reason alone: the rest of its package is not read.
      * The error says why a package cannot be read. Comments are skipped, as in an MCM config.
      */
     std::expected<model::Mod, std::string> loadPackage(const std::string_view text, const model::Translations& translations, const PluginChecks& plugins)
@@ -1293,14 +1361,24 @@ namespace mods_config::package
         if (mod.name.empty()) {
             return std::unexpected("No modName"s);
         }
-        const auto applies = findApplies(package);
-        if (!applies) {
-            return std::unexpected("No applies of live, save or restart"s);
+        const auto schemaVersion = findSchemaVersion(package);
+        if (!schemaVersion) {
+            return std::unexpected("No minSchemaVersion of a whole number from 1"s);
         }
         mod.source = model::Source::Package;
         mod.displayName = getShownText(package, "displayName", translations);
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
+        }
+        // a newer schema can say anything in another way, so nothing more of it is read
+        auto reason = *schemaVersion > SCHEMA_VERSION ? std::format("its package needs a newer Mods Config VR, one that reads schema version {}", *schemaVersion)
+                                                      : findMissingRequirements(package, plugins);
+        if (!reason.empty()) {
+            return notAvailableMod(std::move(mod.name), std::move(mod.displayName), std::move(reason));
+        }
+        const auto applies = findApplies(package);
+        if (!applies) {
+            return std::unexpected("No applies of live, save or restart"s);
         }
         mod.help = getShownText(package, "help", translations);
 

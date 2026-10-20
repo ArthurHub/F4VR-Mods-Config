@@ -40,7 +40,7 @@ namespace
     std::string packageOf(const std::string& content, const std::string& applies = "live")
     {
         return std::format(R"({{
-            "modName": "MyMod", "displayName": "My Mod", "applies": "{}",
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "{}",
             "files": {{ "main": {{ "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" }} }},
             "defaultFile": "main",
             "content": [ {} ]
@@ -630,7 +630,7 @@ TEST_CASE("PackageLoader: an option that is not one of its choice's type is left
 TEST_CASE("PackageLoader: a choice has the options of the shared list it names, in any case")
 {
     const auto mod = loaded(R"({
-        "modName": "MyMod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
         "sharedLists": {
@@ -840,6 +840,98 @@ TEST_CASE("PackageLoader: a condition on a plugin is answered as the package is 
     CHECK(std::get<model::Text>(unchecked.frontPage.items[3]).visibleWhen == holds);
 }
 
+TEST_CASE("PackageLoader: a package whose required plugins are not all loaded is not available, and its reason names each that is not")
+{
+    const auto packageRequiring = [](const std::string& game, const std::string& f4se) {
+        return std::format(R"({{
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "help": "Its help.", "applies": "live",
+            "pluginRequirements": [{}], "f4sePluginRequirements": [{}],
+            "content": [ {{ "type": "spacer" }} ]
+        }})",
+            game,
+            f4se);
+    };
+    const package::PluginChecks plugins{ .isGamePluginLoaded =
+                                             [](const std::string_view plugin) {
+                                                 return plugin == "MyMod.esp";
+                                             },
+        .isF4sePluginLoaded =
+            [](const std::string_view plugin) {
+                return plugin == "F4VRBody";
+            } };
+    const auto reason = [&plugins](const std::string& text) {
+        const auto mod = package::loadPackage(text, {}, plugins);
+        REQUIRE(mod);
+        return mod->notAvailable;
+    };
+
+    // every one is loaded, and a requirement that is no text is passed over
+    const auto mod = package::loadPackage(packageRequiring(R"("MyMod.esp", 5)", R"("F4VRBody")"), {}, plugins);
+    REQUIRE(mod);
+    CHECK(mod->notAvailable.empty());
+    CHECK(mod->frontPage.items.size() == 1);
+    CHECK(reason(packageRequiring("", "")).empty());
+
+    CHECK(reason(packageRequiring(R"("MyMod.esp", "SS2.esm")", "")) == "its plugin SS2.esm is not loaded");
+    CHECK(reason(packageRequiring(R"("A.esp", "MyMod.esp", "B.esm", "C.esl")", "")) == "its plugins A.esp, B.esm and C.esl are not loaded");
+    CHECK(reason(packageRequiring("", R"("F4VRBody", "MyMod")")) == "its F4SE plugin MyMod is not loaded");
+    CHECK(reason(packageRequiring("", R"("A", "B")")) == "its F4SE plugins A and B are not loaded");
+    CHECK(reason(packageRequiring(R"("SS2.esm")", R"("MyMod")")) == "its plugin SS2.esm and its F4SE plugin MyMod are not loaded");
+
+    // one that is not available is its names and the reason alone, also one whose package is not right
+    const auto missing = package::loadPackage(packageRequiring(R"("SS2.esm")", ""), {}, plugins);
+    REQUIRE(missing);
+    CHECK(missing->name == "MyMod");
+    CHECK(missing->displayName == "My Mod");
+    CHECK(missing->help.empty());
+    CHECK(missing->frontPage.items.empty());
+    CHECK(missing->source == model::Source::Package);
+    const auto noApplies = package::loadPackage(R"({ "minSchemaVersion": 1, "modName": "MyMod", "pluginRequirements": ["SS2.esm"], "content": [] })", {}, plugins);
+    REQUIRE(noApplies);
+    CHECK(noApplies->notAvailable == "its plugin SS2.esm is not loaded");
+
+    // with no checks every plugin is loaded
+    CHECK(loaded(packageRequiring(R"("SS2.esm")", R"("MyMod")")).notAvailable.empty());
+}
+
+TEST_CASE("PackageLoader: a package's minSchemaVersion is required, and one that needs a newer schema than the menu reads is not available, with the version")
+{
+    const auto packageOfVersion = [](const std::string& version) {
+        return std::format(R"({{ "minSchemaVersion": {}, "modName": "MyMod", "displayName": "My Mod", "applies": "live", "content": [ {{ "type": "spacer" }} ] }})", version);
+    };
+    // the menu's own version and an older one are read
+    for (const auto version : { package::SCHEMA_VERSION, 1 }) {
+        INFO(version);
+        const auto mod = loaded(packageOfVersion(std::to_string(version)));
+        CHECK(mod.notAvailable.empty());
+        CHECK(mod.frontPage.items.size() == 1);
+    }
+
+    // it is required, and is a whole number from 1
+    for (const auto& version : { "0"s, "-1"s, "\"9\""s, "1.5"s, "null"s }) {
+        INFO(version);
+        CHECK(package::loadPackage(packageOfVersion(version)).error() == "No minSchemaVersion of a whole number from 1");
+    }
+    CHECK(package::loadPackage(R"({ "modName": "MyMod", "applies": "live", "content": [] })").error() == "No minSchemaVersion of a whole number from 1");
+
+    const auto newer = package::loadPackage(packageOfVersion(std::to_string(package::SCHEMA_VERSION + 1)));
+    REQUIRE(newer);
+    CHECK(newer->notAvailable == std::format("its package needs a newer Mods Config VR, one that reads schema version {}", package::SCHEMA_VERSION + 1));
+    CHECK(newer->displayName == "My Mod");
+    CHECK(newer->frontPage.items.empty());
+
+    // it is told before a plugin that is not loaded, and of a package that is not read as this version reads one
+    const auto noApplies = package::loadPackage(R"({ "minSchemaVersion": 99, "modName": "MyMod", "pluginRequirements": ["SS2.esm"] })",
+        {},
+        package::PluginChecks{ .isGamePluginLoaded =
+                                   [](std::string_view) {
+                                       return false;
+                                   },
+            .isF4sePluginLoaded = {} });
+    REQUIRE(noApplies);
+    CHECK(noApplies->notAvailable == "its package needs a newer Mods Config VR, one that reads schema version 99");
+}
+
 TEST_CASE("PackageLoader: a slider and a switcher with no valueType have the type of their control")
 {
     const auto mod = loaded(packageOf(R"(
@@ -853,7 +945,7 @@ TEST_CASE("PackageLoader: a slider and a switcher with no valueType have the typ
 TEST_CASE("PackageLoader: a setting is kept in the file its storage names, or in the nearest defaultFile above it")
 {
     const auto mod = loaded(R"({
-        "modName": "MyMod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
         "files": {
             "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" },
             "body": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/body.toml" },
@@ -931,7 +1023,7 @@ TEST_CASE("PackageLoader: a setting is kept in a global, or in a property of a s
 TEST_CASE("PackageLoader: a setting that names no file of its package, or no value, is kept where the menu does not read")
 {
     const auto mod = loaded(R"({
-        "modName": "MyMod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
         "files": {
             "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" },
             "ini": { "format": "ini", "root": "myGames", "path": "MyMod.ini" }
@@ -971,7 +1063,7 @@ TEST_CASE("PackageLoader: a setting that names no file of its package, or no val
 TEST_CASE("PackageLoader: a file that is not written as the schema has it is left out")
 {
     const auto mod = loaded(R"({
-        "modName": "MyMod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
         "files": {
             "toml": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" },
             "ini": { "format": "ini", "root": "data", "path": "F4SE/Plugins/MyMod.INI" },
@@ -1149,7 +1241,7 @@ TEST_CASE("PackageLoader: two settings whose ids are the same, in any case, are 
 TEST_CASE("PackageLoader: a setting takes its own applies, or else the nearest above it")
 {
     const auto mod = loaded(R"({
-        "modName": "MyMod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
         "content": [
@@ -1201,15 +1293,15 @@ TEST_CASE("PackageLoader: a package that cannot be read says why")
     CHECK(package::loadPackage("[]").error() == "Not a JSON object");
     CHECK(package::loadPackage(R"({ "applies": "live", "content": [] })").error() == "No modName");
     // applies is required at the root, and has to be one of the three
-    CHECK(package::loadPackage(R"({ "modName": "MyMod", "content": [] })").error() == "No applies of live, save or restart");
-    CHECK(package::loadPackage(R"({ "modName": "MyMod", "applies": "never", "content": [] })").error() == "No applies of live, save or restart");
+    CHECK(package::loadPackage(R"({ "minSchemaVersion": 1, "modName": "MyMod", "content": [] })").error() == "No applies of live, save or restart");
+    CHECK(package::loadPackage(R"({ "minSchemaVersion": 1, "modName": "MyMod", "applies": "never", "content": [] })").error() == "No applies of live, save or restart");
 }
 
 TEST_CASE("PackageLoader: a mod with no displayName is named by its modName, and comments are skipped")
 {
     const auto mod = loaded(R"({
         // a comment
-        "modName": "MyMod", "applies": "save", "content": []
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "save", "content": []
     })");
     CHECK(mod.displayName == "MyMod");
     CHECK(mod.help.empty());
@@ -1222,7 +1314,7 @@ TEST_CASE("PackageLoader: a text is plain, a token, or a token with a fallback")
     translations.add("$MyMod_Height", "Hauteur");
 
     const auto mod = loaded(R"({
-        "modName": "MyMod", "applies": "live",
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
         "displayName": "$MyMod_Name",
         "help": { "token": "$MyMod_Help", "fallback": "Body tracking." },
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
@@ -1249,9 +1341,9 @@ TEST_CASE("PackageLoader: the package of every folder in the packages' folder is
 {
     const test_files::TempFolder folder;
     folder.write("MyMod/config.json", packageOf(""));
-    folder.write("Other/config.json", R"({ "modName": "Other", "applies": "save", "content": [] })");
+    folder.write("Other/config.json", R"({ "minSchemaVersion": 1, "modName": "Other", "applies": "save", "content": [] })");
     folder.write("Broken/config.json", "{ not json");
-    folder.write("NoApplies/config.json", R"({ "modName": "NoApplies", "content": [] })");
+    folder.write("NoApplies/config.json", R"({ "minSchemaVersion": 1, "modName": "NoApplies", "content": [] })");
     folder.write("NotAPackage/readme.txt", "nothing");
     folder.write("config.json", "{}");
 
@@ -1269,9 +1361,9 @@ TEST_CASE("PackageLoader: the package of every folder in the packages' folder is
 TEST_CASE("PackageLoader: two packages with one modName, in any case, are both not available")
 {
     const test_files::TempFolder folder;
-    folder.write("First/config.json", R"({ "modName": "MyMod", "displayName": "My Mod", "applies": "live", "content": [ { "type": "spacer" } ] })");
-    folder.write("Second/config.json", R"({ "modName": "MYMOD", "displayName": "My Other Mod", "applies": "live", "content": [] })");
-    folder.write("Third/config.json", R"({ "modName": "Other", "applies": "live", "content": [] })");
+    folder.write("First/config.json", R"({ "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live", "content": [ { "type": "spacer" } ] })");
+    folder.write("Second/config.json", R"({ "minSchemaVersion": 1, "modName": "MYMOD", "displayName": "My Other Mod", "applies": "live", "content": [] })");
+    folder.write("Third/config.json", R"({ "minSchemaVersion": 1, "modName": "Other", "applies": "live", "content": [] })");
 
     auto mods = package::loadPackages(folder.path);
     std::ranges::sort(mods, {}, &model::Mod::displayName);

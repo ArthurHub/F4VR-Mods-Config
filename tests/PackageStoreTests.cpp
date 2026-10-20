@@ -71,7 +71,7 @@ namespace
     model::Mod packageOf(const std::string& content)
     {
         auto mod = package::loadPackage(std::format(R"({{
-            "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
             "files": {{
                 "main": {{ "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" }},
                 "ini": {{ "format": "ini", "root": "data", "path": "MyMod.ini" }},

@@ -12,13 +12,18 @@
 
 namespace mods_config::package
 {
+    // the version of the package schema the menu reads: a package whose `minSchemaVersion` is above it is not
+    // available. It only grows, as a version adds fields and control types
+    constexpr int SCHEMA_VERSION = 1;
+
     /**
      * Whether a plugin is loaded, by its name: the game's check, or a test's.
      */
     using PluginCheck = std::function<bool(std::string_view name)>;
 
     /**
-     * What a package's condition on a loaded plugin is answered with. With no check every plugin is loaded.
+     * What a package's requirements and its conditions on a loaded plugin are answered with. With no check every
+     * plugin is loaded.
      */
     struct PluginChecks
     {

@@ -66,7 +66,7 @@ A native client is matched to its package by the package's `modName`. A CommonFr
 
 The schema has one version number, and it only grows. A package ships with its mod and is not updated when Mods Config VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every package written for an older version.
 
-- `minSchemaVersion` is the lowest version that has everything the package uses.
+- `minSchemaVersion` is the lowest version that has everything the package uses. It is required, a whole number from 1: a package without it is not loaded, and the error is reported.
 - On a host below that version the package's mod is [not available](ui-and-vr-interaction.md#notices), and the reason names the version it needs.
 - A field or a control type added after version 1 is documented with the version that added it.
 - A field the host does not know is reported in diagnostics, and the rest of the package is read. A typo is noticed, and a package that uses a newer field than its `minSchemaVersion` says still works on an older host, without that field.
