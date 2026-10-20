@@ -657,6 +657,38 @@ namespace mods_config::model
         Package,
     };
 
+    /**
+     * How much a problem of a package matters: an error leaves something out, the whole package or a part of
+     * it, and a warning is read, but is likely not what its author meant.
+     */
+    enum class Severity : std::uint8_t
+    {
+        Error,
+        Warning,
+    };
+
+    /**
+     * A problem of a package, for its author: what is wrong, what the menu did with it, and where it is.
+     */
+    struct Problem
+    {
+        Severity severity = Severity::Error;
+
+        // the text of the row it is on, the name of its page, or `config.json` for the package itself
+        std::string row;
+
+        // what is wrong, and what the menu did with it, as `It has no storage: it is not available.`
+        std::string message;
+
+        // the pages and the row it is on, as `Beam › Beam angle`. Empty for a problem of the package itself
+        std::string where;
+
+        // where it is in config.json, as `pages[0].content[4]`. Empty for the file as a whole
+        std::string path;
+
+        bool operator==(const Problem&) const = default;
+    };
+
     struct Mod
     {
         // the mod's identity: the modName of its config
@@ -675,5 +707,8 @@ namespace mods_config::model
 
         // a package's files, by the names it gives them. None for an MCM mod
         std::map<std::string, File> files;
+
+        // a package's problems, in the order of its config.json. None for an MCM mod
+        std::vector<Problem> problems;
     };
 }

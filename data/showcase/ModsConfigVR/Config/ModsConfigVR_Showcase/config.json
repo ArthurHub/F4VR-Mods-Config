@@ -2914,6 +2914,21 @@
             },
             {
               "type": "section",
+              "text": "Fields",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "A field with a typo",
+                  "help": "Its visibleWen is not read: the menu does not know the field, and the log names the one it is near.",
+                  "default": true,
+                  "visibleWen": { "setting": "showRows", "equals": false },
+                  "storage": { "path": ["Mistakes", "bTypo"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
               "text": "Images",
               "content": [
                 {

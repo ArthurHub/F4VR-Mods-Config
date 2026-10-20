@@ -21,6 +21,12 @@ namespace mods_config::model
 
         [[nodiscard]] std::string translate(std::string text, std::string fallback = {}) const;
 
+        // whether the language has a text for a token
+        [[nodiscard]] bool has(const std::string& token) const
+        {
+            return _texts.contains(token);
+        }
+
     private:
         // a token is kept as it is written in a config, with its `$`
         std::unordered_map<std::string, std::string> _texts;

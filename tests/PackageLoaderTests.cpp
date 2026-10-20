@@ -1461,3 +1461,148 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
     CHECK(checked >= 30);
     CHECK(readOnly == 9);
 }
+
+namespace
+{
+    /**
+     * A problem as one line: E or W, its row, its message, where it is, and its path.
+     */
+    std::string problemLine(const model::Problem& problem)
+    {
+        return std::format("{} {}: {} [{}] {}", problem.severity == model::Severity::Error ? "E" : "W", problem.row, problem.message, problem.where, problem.path);
+    }
+
+    Lines problemLines(const model::Mod& mod)
+    {
+        Lines lines;
+        for (const auto& problem : mod.problems) {
+            lines.push_back(problemLine(problem));
+        }
+        return lines;
+    }
+}
+
+TEST_CASE("PackageLoader: a problem names its row, the pages and the row it is on, and its path in config.json")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" }, "bad": { "format": "yaml", "root": "data", "path": "a.yaml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "switcher", "text": "On the front page", "default": true } ],
+        "pages": [
+            {
+                "pageDisplayName": "Beam", "visibleWen": true,
+                "content": [ { "type": "section", "text": "Shape", "content": [ { "type": "slider", "text": "Beam angle", "default": 1.0 } ] } ],
+                "pages": [ { "pageDisplayName": "Color", "content": [ { "type": "spacer", "lines": 2 } ] } ]
+            }
+        ]
+    })");
+    CHECK(problemLines(mod) == Lines{ "E On the front page: It has no storage: it is not available. [On the front page] content[0]",
+                                   "E config.json: The file \"bad\" is left out: its format 'yaml' is not ini, json or toml. Its settings are not available. [] files.bad",
+                                   "E Beam angle: It has no storage: it is not available. [Beam \xE2\x80\xBA Beam angle] pages[0].content[0].content[0]",
+                                   "W spacer: Unknown field \"lines\": it is not read. [Beam \xE2\x80\xBA Color \xE2\x80\xBA spacer] pages[0].pages[0].content[0].lines",
+                                   "W Beam: Unknown field \"visibleWen\": it is not read. Did you mean \"visibleWhen\"? [Beam] pages[0].visibleWen" });
+}
+
+TEST_CASE("PackageLoader: a field the schema does not have is a warning, with the field it is near, and one the menu does not read yet is none")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "category": "Visuals", "packageVersion": 3, "Help": "Near help",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml", "encoding": "utf-8" } },
+        "defaultFile": "main",
+        "sharedLists": { "hands": [ { "value": 0, "text": "Left", "shorttext": "L" } ] },
+        "content": [
+            { "type": "stepper", "text": "Hand", "default": 0, "valueOptions": { "sharedOptions": "hands", "wrap": true }, "storage": { "path": ["a"], "fil": "main" } },
+            { "type": "dropdown", "valueType": "string", "text": "Place", "default": "hip",
+              "valueOptions": { "options": [ { "value": "hip", "text": "Hip", "shortText": "H", "help": "At the hip.", "icon": "hip.dds" } ] },
+              "display": { "decimal": 2 }, "storage": { "path": ["b"] },
+              "warnings": [ { "when": { "setting": "a", "equals": 1 }, "text": "Left-handed.", "severity": "high" } ] },
+            { "type": "button", "text": "Reset", "action": { "type": "RunConsoleCommand", "command": "tm", "comand": "tm" },
+              "confirmation": { "title": "Sure?", "dangerous": true, "dangerus": true } },
+            { "type": "text", "text": { "token": "$Missing", "fallback": "Shown", "fallbak": "x" } }
+        ]
+    })");
+    CHECK(problemLines(mod) == Lines{ "W config.json: Unknown field \"Help\": it is not read. Did you mean \"help\"? [] Help",
+                                   "W Hand: Unknown field \"fil\": it is not read. Did you mean \"file\"? [Hand] content[0].storage.fil",
+                                   "W Hand: Unknown field \"wrap\": it is not read. [Hand] content[0].valueOptions.wrap",
+                                   "W Place: Unknown field \"decimal\": it is not read. Did you mean \"decimals\"? [Place] content[1].display.decimal",
+                                   "W Place: Unknown field \"icon\": it is not read. [Place] content[1].valueOptions.options[0].icon",
+                                   "W Place: Unknown field \"severity\": it is not read. [Place] content[1].warnings[0].severity",
+                                   "W Reset: Unknown field \"comand\": it is not read. Did you mean \"command\"? [Reset] content[2].action.comand",
+                                   "W Reset: Unknown field \"dangerus\": it is not read. Did you mean \"dangerous\"? [Reset] content[2].confirmation.dangerus",
+                                   "W Shown: Unknown field \"fallbak\": it is not read. Did you mean \"fallback\"? [Shown] content[3].text.fallbak",
+                                   "W config.json: Unknown field \"encoding\": it is not read. [] files.main.encoding",
+                                   "W config.json: Unknown field \"shorttext\": it is not read. Did you mean \"shortText\"? [] sharedLists.hands[0].shorttext" });
+}
+
+TEST_CASE("PackageLoader: a token with no translation and no fallback is a warning, and is shown as it is written")
+{
+    model::Translations translations;
+    translations.add("$MyMod_Known", "Known");
+    const auto mod = loaded(packageOf(R"(
+        { "type": "text", "text": "$MyMod_Known" },
+        { "type": "text", "text": { "token": "$MyMod_Fallback", "fallback": "With a fallback" } },
+        { "type": "text", "text": "Plain" },
+        { "type": "switcher", "text": "$MyMod_Missing", "help": "$MyMod_MissingHelp", "default": true, "storage": { "path": ["a"] } }
+    )"),
+        translations);
+    CHECK(std::get<model::Setting>(mod.frontPage.items[3]).text == "$MyMod_Missing");
+    CHECK(problemLines(mod) ==
+          Lines{ "W $MyMod_Missing: The token $MyMod_MissingHelp has no translation and no fallback: it is shown as it is written. [$MyMod_Missing] content[3].help",
+              "W $MyMod_Missing: The token $MyMod_Missing has no translation and no fallback: it is shown as it is written. [$MyMod_Missing] content[3].text" });
+}
+
+TEST_CASE("PackageLoader: a package's problems are in the order of its config.json, its conditions with its rows")
+{
+    std::string rows;
+    for (int place = 0; place < 11; ++place) {
+        rows += std::format(R"({{ "type": "spacer"{} }},)", place == 2 || place == 10 ? R"(, "visibleWhen": { "setting": "none", "equals": 1 })" : "");
+    }
+    rows += R"({ "type": "spacer", "height": 1 })";
+    Lines paths;
+    for (const auto& problem : loaded(packageOf(rows)).problems) {
+        paths.push_back(problem.path);
+    }
+    CHECK(paths == Lines{ "content[2].visibleWhen", "content[10].visibleWhen", "content[11].height" });
+}
+
+TEST_CASE("PackageLoader: a package that cannot be read, and two with one modName, have their problem")
+{
+    const test_files::TempFolder folder;
+    folder.write("Broken/config.json", "{ not json");
+    folder.write("First/config.json", R"({ "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "content": [] })");
+    folder.write("Second/config.json", R"({ "minSchemaVersion": 1, "modName": "mymod", "applies": "live", "content": [] })");
+
+    auto mods = package::loadPackages(folder.path);
+    std::ranges::sort(mods, {}, &model::Mod::name);
+    REQUIRE(mods.size() == 3);
+    REQUIRE(mods[0].problems.size() == 1);
+    CHECK(mods[0].problems[0].row == "config.json");
+    CHECK(mods[0].problems[0].message.starts_with("It cannot be read: Not valid JSON: "));
+    for (const std::size_t place : { 1u, 2u }) {
+        CHECK(problemLines(mods[place]) == Lines{ std::format("E config.json: Another package has the modName \"{}\": neither is read. [] modName", mods[place].name) });
+    }
+}
+
+TEST_CASE("PackageLoader: the mod's own package has no problems, and the package showcase's are on its Mistakes page")
+{
+    const auto own = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);
+    REQUIRE(own.size() == 1);
+    CHECK(problemLines(own[0]).empty());
+
+    const auto showcase = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(showcase.size() == 1);
+    Lines elsewhere;
+    std::size_t errors = 0;
+    std::size_t warnings = 0;
+    for (const auto& problem : showcase[0].problems) {
+        if (!problem.where.starts_with("Detailed Examples \xE2\x80\xBA Mistakes \xE2\x80\xBA ")) {
+            elsewhere.push_back(problem.path);
+        }
+        (problem.severity == model::Severity::Error ? errors : warnings) += 1;
+    }
+    // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
+    CHECK(elsewhere == Lines{ "files.outside", "pages[2].pages[19].content[0].content[2].text" });
+    CHECK(errors >= 20);
+    CHECK(warnings >= 10);
+}

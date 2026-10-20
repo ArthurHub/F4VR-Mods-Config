@@ -2,14 +2,19 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <charconv>
 #include <cstdint>
 #include <format>
 #include <fstream>
 #include <map>
 #include <optional>
+#include <span>
 #include <sstream>
+#include <tuple>
 #include <unordered_map>
+#include <variant>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -81,12 +86,276 @@ namespace
         return found != value.end() && found->is_boolean() && found->get<bool>();
     }
 
+    // what a problem of the package itself names
+    constexpr auto CONFIG_FILE = "config.json";
+
+    // what stands between the pages and the row a problem is on: U+203A, as its bytes in UTF-8
+    constexpr auto WHERE_SEPARATOR = " \xE2\x80\xBA ";
+
+    // the most characters of a row's name in a problem: a text row is a paragraph
+    constexpr std::size_t MAX_ROW_NAME = 48;
+
+    /**
+     * What a condition knows of the setting it names: its id as its package has it, and what its value is.
+     */
+    struct SettingInfo
+    {
+        std::string id;
+        model::SettingType type = model::SettingType::Switcher;
+        model::StoredType valueType = model::StoredType::Bool;
+    };
+
+    /**
+     * Where the reading of a package is: the path in config.json, the names of the pages on the way to the page,
+     * and the name of the row, which a problem names.
+     */
+    struct Location
+    {
+        std::string path;
+        std::vector<std::string> pages;
+        std::string row;
+    };
+
+    /**
+     * What a package is read with: the game's translations, its files, its shared lists, the plugins its
+     * conditions ask of, and its settings so far by their ids in lower case, as ids are compared without
+     * regard to case. And what it found wrong so far, and where it is.
+     */
+    struct PackageReading
+    {
+        const model::Translations& translations;
+        std::map<std::string, model::File> files;
+
+        // the `sharedLists` of its root. None for a package with none
+        const Json* sharedLists = nullptr;
+        const package::PluginChecks& plugins;
+        std::unordered_map<std::string, SettingInfo> settings;
+        std::vector<model::Problem> problems;
+        Location at;
+
+        /**
+         * Adds a problem where the reading is: on its row, or else on its page, or else of the package itself.
+         */
+        void report(const model::Severity severity, std::string message)
+        {
+            std::string where;
+            for (const auto& page : at.pages) {
+                where += (where.empty() ? "" : WHERE_SEPARATOR) + page;
+            }
+            if (!at.row.empty()) {
+                where += (where.empty() ? "" : WHERE_SEPARATOR) + at.row;
+            }
+            auto row = !at.row.empty() ? at.row : !at.pages.empty() ? at.pages.back() : std::string(CONFIG_FILE);
+            problems.push_back({ .severity = severity, .row = std::move(row), .message = std::move(message), .where = std::move(where), .path = at.path });
+        }
+    };
+
+    /**
+     * A part of a package that is read: while it lives, the reading is at a key of config.json, or at an element
+     * of a list, of the key or of the list it is at with no key, and it is back where it was as it ends. A page or a row that is set while it lives is left
+     * as it ends too.
+     */
+    class Into
+    {
+    public:
+        Into(PackageReading& reading, const std::string_view key)
+            : _reading(reading),
+              _before(reading.at)
+        {
+            if (!key.empty()) {
+                auto& path = reading.at.path;
+                path += (path.empty() ? "" : ".") + std::string(key);
+            }
+        }
+
+        Into(PackageReading& reading, const std::string_view key, const std::size_t place)
+            : Into(reading, key)
+        {
+            reading.at.path += std::format("[{}]", place);
+        }
+
+        ~Into()
+        {
+            _reading.at = std::move(_before);
+        }
+
+        Into(const Into&) = delete;
+        Into& operator=(const Into&) = delete;
+
+    private:
+        PackageReading& _reading;
+        Location _before;
+    };
+
+    /**
+     * How many single characters have to change to make one name the other, without regard to case.
+     */
+    std::size_t editDistance(const std::string_view from, const std::string_view to)
+    {
+        std::vector<std::size_t> row(to.size() + 1);
+        for (std::size_t j = 0; j < row.size(); ++j) {
+            row[j] = j;
+        }
+        for (std::size_t i = 1; i <= from.size(); ++i) {
+            std::size_t diagonal = row[0];
+            row[0] = i;
+            for (std::size_t j = 1; j <= to.size(); ++j) {
+                const std::size_t above = row[j];
+                const bool same = std::tolower(static_cast<unsigned char>(from[i - 1])) == std::tolower(static_cast<unsigned char>(to[j - 1]));
+                row[j] = (std::min)({ row[j] + 1, row[j - 1] + 1, diagonal + (same ? 0 : 1) });
+                diagonal = above;
+            }
+        }
+        return row[to.size()];
+    }
+
+    /**
+     * Reports each field of an object that is none of the ones it can have, which is not read: a typo, or a
+     * field of a newer schema. A field near one it can have names it, as `Did you mean "visibleWhen"?`.
+     */
+    void checkFields(const Json& object, const std::span<const std::string_view> known, PackageReading& reading)
+    {
+        if (!object.is_object()) {
+            return;
+        }
+        for (const auto& [key, value] : object.items()) {
+            if (std::ranges::find(known, key) != known.end()) {
+                continue;
+            }
+            const auto nearest = (std::ranges::min)(known, {}, [&key](const std::string_view field) {
+                return editDistance(key, field);
+            });
+            const auto distance = editDistance(key, nearest);
+            auto message = std::format("Unknown field \"{}\": it is not read.", key);
+            if (distance <= 2 && distance * 2 < key.size()) {
+                message += std::format(" Did you mean \"{}\"?", nearest);
+            }
+            const Into into(reading, key);
+            reading.report(model::Severity::Warning, std::move(message));
+        }
+    }
+
+    // The fields each object of a package can have, as the schema has them (docs/design/schema.md). Any other is
+    // reported as one the menu does not know. A field the schema has and the menu does not read yet is known.
+    // A text the player sees, written as an object:
+    constexpr std::array<std::string_view, 2> TEXT_FIELDS{ "token", "fallback" };
+    // the package's root:
+    constexpr std::array<std::string_view, 14> ROOT_FIELDS{ "minSchemaVersion",
+        "modName",
+        "displayName",
+        "help",
+        "category",
+        "packageVersion",
+        "pluginRequirements",
+        "f4sePluginRequirements",
+        "files",
+        "defaultFile",
+        "applies",
+        "sharedLists",
+        "content",
+        "pages" };
+    // a file of its `files`:
+    constexpr std::array<std::string_view, 3> FILE_FIELDS{ "format", "root", "path" };
+    // a page:
+    constexpr std::array<std::string_view, 8> PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "visibleWhen" };
+    // a row, by its type:
+    constexpr std::array<std::string_view, 10>
+        SECTION_FIELDS{ "type", "text", "help", "content", "isCollapsible", "collapsed", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 16> SETTING_FIELDS{ "type",
+        "id",
+        "text",
+        "help",
+        "html",
+        "valueType",
+        "default",
+        "valueOptions",
+        "display",
+        "storage",
+        "readOnly",
+        "warnings",
+        "action",
+        "applies",
+        "visibleWhen",
+        "enabledWhen" };
+    constexpr std::array<std::string_view, 10> BUTTON_FIELDS{ "type", "text", "help", "html", "buttonText", "action", "confirmation", "warnings", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 4> TEXT_ROW_FIELDS{ "type", "text", "html", "visibleWhen" };
+    constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
+    constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
+    // a setting's parts:
+    constexpr std::array<std::string_view, 11> VALUE_OPTIONS_FIELDS{ "min",
+        "max",
+        "step",
+        "options",
+        "sharedOptions",
+        "listFromForm",
+        "listFromProperty",
+        "listFromClientCallback",
+        "allowEmpty",
+        "minLength",
+        "maxLength" };
+    constexpr std::array<std::string_view, 4> OPTION_FIELDS{ "value", "text", "help", "shortText" };
+    constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
+    constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
+    constexpr std::array<std::string_view, 8> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName" };
+    constexpr std::array<std::string_view, 2> WARNING_FIELDS{ "when", "text" };
+    // an action, of a button or a setting, and a button's confirmation:
+    constexpr std::array<std::string_view, 7> ACTION_FIELDS{ "type", "function", "params", "form", "scriptName", "script", "command" };
+    constexpr std::array<std::string_view, 4> CONFIRMATION_FIELDS{ "title", "message", "confirm", "dangerous" };
+
+    /**
+     * A text the player sees, where the reading is, as `getShownText` reads one. A token that the language has
+     * no text for, and that has no fallback, is shown as it is written, and is reported.
+     */
+    std::string readShownText(const Json& text, PackageReading& reading)
+    {
+        if (!text.is_string() && !text.is_object()) {
+            return {};
+        }
+        checkFields(text, TEXT_FIELDS, reading);
+        const auto token = text.is_string() ? text.get<std::string>() : getText(text, "token");
+        const auto fallback = text.is_object() ? getText(text, "fallback") : std::string();
+        if (token.starts_with('$') && fallback.empty() && !reading.translations.has(token)) {
+            reading.report(model::Severity::Warning, std::format("The token {} has no translation and no fallback: it is shown as it is written.", token));
+        }
+        return reading.translations.translate(token, fallback);
+    }
+
+    /**
+     * A text of a key that the player sees, which `readShownText` reads. Empty for a key that has none.
+     */
+    std::string readShownText(const Json& value, const char* key, PackageReading& reading)
+    {
+        const auto found = value.find(key);
+        if (found == value.end()) {
+            return {};
+        }
+        const Into into(reading, key);
+        return readShownText(*found, reading);
+    }
+
+    /**
+     * The name of a row as a problem names it: its text as the player sees it, on one line with no tags and
+     * shortened, or its type for a row with no text, as a spacer.
+     */
+    std::string rowName(const Json& row, const model::Translations& translations)
+    {
+        auto text = common::trim(model::removeMarkup(getShownText(row, "text", translations)));
+        if (text.empty()) {
+            text = getText(row, "type");
+            return text.empty() ? "A row"s : text;
+        }
+        if (text.size() > MAX_ROW_NAME) {
+            text = common::trim(text.substr(0, MAX_ROW_NAME - 3)) + "...";
+        }
+        return text;
+    }
+
     /**
      * A row's translated label, without tags where `html` is true, for search and the help line.
      */
-    std::string getLabel(const Json& row, const model::Translations& translations)
+    std::string getLabel(const Json& row, PackageReading& reading)
     {
-        auto text = getShownText(row, "text", translations);
+        auto text = readShownText(row, "text", reading);
         return getBool(row, "html") ? model::removeMarkup(text) : text;
     }
 
@@ -126,9 +395,9 @@ namespace
 
     /**
      * What a page, a section or a setting has for what is under it: its own `defaultFile` and `applies`, or
-     * else what it gets from above. An `applies` that is not one is passed over, with the reason in the log.
+     * else what it gets from above. An `applies` that is not one is passed over, and is reported.
      */
-    Inherited inherit(const Json& value, const Inherited& above)
+    Inherited inherit(const Json& value, const Inherited& above, PackageReading& reading)
     {
         Inherited own = above;
         if (auto file = getText(value, "defaultFile"); !file.empty()) {
@@ -137,7 +406,8 @@ namespace
         if (const auto applies = findApplies(value)) {
             own.applies = *applies;
         } else if (value.contains("applies")) {
-            logger::warn("The applies of '{}' is not live, save or restart", getText(value, "text"));
+            const Into into(reading, "applies");
+            reading.report(model::Severity::Error, std::format("Its applies {} is not live, save or restart: it has the one above it.", value["applies"].dump()));
         }
         return own;
     }
@@ -175,7 +445,7 @@ namespace
         if (std::ranges::any_of(checked, [](const std::filesystem::path& part) {
                 return part == "..";
             })) {
-            return std::unexpected(std::format("its path '{}' goes up with ..", path));
+            return std::unexpected(std::format("its path '{}' goes up out of its folder", path));
         }
         const auto extension = checked.extension().u8string();
         if (common::str_tolower(std::string(extension.begin(), extension.end())) != "." + formatText) {
@@ -186,51 +456,28 @@ namespace
 
     /**
      * The files of a package, by the names its `files` gives them. A file that is not written as one is
-     * left out, with the reason in the log, so its settings are not available.
+     * left out, and is reported, so its settings are not available.
      */
-    std::map<std::string, model::File> loadFiles(const Json& package)
+    std::map<std::string, model::File> loadFiles(const Json& package, PackageReading& reading)
     {
         std::map<std::string, model::File> files;
         const auto found = package.find("files");
         if (found == package.end() || !found->is_object()) {
             return files;
         }
+        const Into into(reading, "files");
         for (const auto& [name, declared] : found->items()) {
+            const Into intoFile(reading, name);
+            checkFields(declared, FILE_FIELDS, reading);
             auto file = declared.is_object() ? loadFile(declared) : std::unexpected("it is not an object"s);
             if (file) {
                 files.emplace(name, std::move(*file));
             } else {
-                logger::warn("The file '{}' of package '{}' is left out: {}", name, getText(package, "modName"), file.error());
+                reading.report(model::Severity::Error, std::format("The file \"{}\" is left out: {}. Its settings are not available.", name, file.error()));
             }
         }
         return files;
     }
-
-    /**
-     * What a condition knows of the setting it names: its id as its package has it, and what its value is.
-     */
-    struct SettingInfo
-    {
-        std::string id;
-        model::SettingType type = model::SettingType::Switcher;
-        model::StoredType valueType = model::StoredType::Bool;
-    };
-
-    /**
-     * What a package is read with: the game's translations, its files, its shared lists, the plugins its
-     * conditions ask of, and its settings so far by their ids in lower case, as ids are compared without
-     * regard to case.
-     */
-    struct PackageReading
-    {
-        const model::Translations& translations;
-        const std::map<std::string, model::File>& files;
-
-        // the `sharedLists` of its root. None for a package with none
-        const Json* sharedLists = nullptr;
-        const package::PluginChecks& plugins;
-        std::unordered_map<std::string, SettingInfo> settings;
-    };
 
     /**
      * The name a package gives one of its files, as the package declares it: a storage can name it in
@@ -272,21 +519,23 @@ namespace
      * file is named by its `path`, or by its `section` and its `key`, as an INI key is. A storage that is not
      * written as one, as a form that is not a plugin and an id in hex, a property with no name, or no file of
      * the package or no value of it, as a path of more than two in an INI file, is one the menu does not read,
-     * with the reason in the log.
+     * and is reported.
      */
-    model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, const PackageReading& reading)
+    model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, PackageReading& reading)
     {
         const auto storage = row.find("storage");
         if (storage == row.end() || !storage->is_object()) {
-            logger::warn("The setting '{}' has no storage", getText(row, "text"));
+            reading.report(model::Severity::Error, "It has no storage: it is not available.");
             return model::UnknownStorage{};
         }
+        const Into into(reading, "storage");
+        checkFields(*storage, STORAGE_FIELDS, reading);
         if (storage->contains("global")) {
             const auto global = getText(*storage, "global");
             if (auto form = parseForm(global)) {
                 return model::GlobalStorage{ .plugin = std::move(form->first), .formId = form->second };
             }
-            logger::warn("The global '{}' of the setting '{}' is not a plugin and an id in hex", global, getText(row, "text"));
+            reading.report(model::Severity::Error, std::format("Its global \"{}\" is not a plugin and an id in hex, as MyMod.esp|800: it is not available.", global));
             return model::UnknownStorage{ .type = "global" };
         }
         if (storage->contains("form")) {
@@ -300,7 +549,8 @@ namespace
                     .name = std::move(name),
                     .type = valueType };
             }
-            logger::warn("The property '{}' of the form '{}' of the setting '{}' is not a name, and a plugin and an id in hex", name, formText, getText(row, "text"));
+            reading.report(model::Severity::Error,
+                std::format("Its property \"{}\" of the form \"{}\" is not a name, and a plugin and an id in hex, as MyMod.esp|800: it is not available.", name, formText));
             return model::UnknownStorage{ .type = "property" };
         }
 
@@ -321,7 +571,7 @@ namespace
         auto fileName = getText(*storage, "file");
         const auto file = findFile(reading.files, fileName.empty() ? defaultFile : fileName);
         if (!file || path.empty() || (reading.files.at(*file).format == model::FileFormat::Ini && path.size() > 2)) {
-            logger::warn("The setting '{}' names no file of its package, or no value of it", getText(row, "text"));
+            reading.report(model::Severity::Error, "It names no file of its package, or no value of it: it is not available.");
             return model::UnknownStorage{ .type = "file" };
         }
         return model::FileStorage{ .file = *file, .path = std::move(path) };
@@ -441,24 +691,35 @@ namespace
     /**
      * The options of a choice, in the type of its value. A text is an option of the short form, whose value
      * is its place in the list, for a choice of an int. An object is an option with its own `value` and its
-     * `text`. Any other option, and one whose value is not of the choice's type, is left out, with the reason
-     * in the log.
+     * `text`. Any other option, and one whose value is not of the choice's type, is left out, and is reported:
+     * of a shared list, which can be another choice's, as an option of that list.
+     * An option's own fields and its texts are checked once, as its list is read: a shared list as the package's
+     * root is read.
      */
-    std::vector<model::Option> loadOptions(const Json& list, const Json& row, const model::StoredType valueType, const PackageReading& reading)
+    std::vector<model::Option> loadOptions(const Json& list, const std::string& sharedName, const model::StoredType valueType, PackageReading& reading)
     {
         std::vector<model::Option> options;
+        const bool own = sharedName.empty();
         for (std::size_t place = 0; place < list.size(); ++place) {
             const auto& option = list[place];
+            std::optional<Into> into;
+            if (own) {
+                into.emplace(reading, "options", place);
+            }
             if (option.is_string() && valueType == model::StoredType::Int) {
-                options.push_back({ .value = static_cast<int>(place), .text = reading.translations.translate(option.get<std::string>()) });
+                options.push_back({ .value = static_cast<int>(place), .text = own ? readShownText(option, reading) : reading.translations.translate(option.get<std::string>()) });
                 continue;
             }
             auto value = option.is_object() ? getValue(option, "value", valueType) : std::nullopt;
             if (!value) {
-                logger::warn("Option {} of '{}' is left out: it is not a text of a choice of an int, or an object with a value of its type", place + 1, getText(row, "text"));
+                const auto which = own ? std::format("Option {}", place + 1) : std::format("Option {} of the shared list \"{}\"", place + 1, sharedName);
+                reading.report(model::Severity::Error, std::format("{} is left out: it is not a text of a choice of an int, or an object with a value of its type.", which));
                 continue;
             }
-            options.push_back({ .value = std::move(*value), .text = getShownText(option, "text", reading.translations) });
+            if (own) {
+                checkFields(option, OPTION_FIELDS, reading);
+            }
+            options.push_back({ .value = std::move(*value), .text = own ? readShownText(option, "text", reading) : getShownText(option, "text", reading.translations) });
         }
         return options;
     }
@@ -467,10 +728,9 @@ namespace
      * Where a choice reads its options in the game: a `listFromForm` names a FormList, as `MyMod.esp|900`, and a
      * `listFromProperty` a property of a script, by its `form`, its `propertyName` and its `scriptName`, which
      * is optional. A choice of an int stores the place of an option, and one of a string its text. None for a
-     * choice with neither, and with the reason in the log for a list that is not written so, and for a choice
-     * of another type.
+     * choice with neither, and reported for a list that is not written so, and for a choice of another type.
      */
-    std::optional<model::GameOptions> loadGameOptions(const Json& valueOptions, const Json& row, const model::StoredType valueType)
+    std::optional<model::GameOptions> loadGameOptions(const Json& valueOptions, const model::StoredType valueType, PackageReading& reading)
     {
         model::GameOptions list{ .storesText = valueType == model::StoredType::String };
         const auto property = valueOptions.find("listFromProperty");
@@ -478,30 +738,33 @@ namespace
             const auto formList = getText(valueOptions, "listFromForm");
             auto form = parseForm(formList);
             if (!form) {
-                logger::warn("The FormList '{}' of the choice '{}' is not a plugin and an id in hex", formList, getText(row, "text"));
+                const Into into(reading, "listFromForm");
+                reading.report(model::Severity::Error, std::format("Its listFromForm \"{}\" is not a plugin and an id in hex, as MyMod.esp|900: it has no options.", formList));
                 return std::nullopt;
             }
             list.plugin = std::move(form->first);
             list.formId = form->second;
         } else if (property != valueOptions.end() && property->is_object()) {
+            const Into into(reading, "listFromProperty");
+            checkFields(*property, LIST_PROPERTY_FIELDS, reading);
             const auto formText = getText(*property, "form");
             auto form = parseForm(formText);
             list.property = getText(*property, "propertyName");
             if (!form || list.property.empty()) {
-                logger::warn("The property '{}' of the form '{}' that the choice '{}' lists is not a name, and a plugin and an id in hex",
-                    list.property,
-                    formText,
-                    getText(row, "text"));
+                reading.report(model::Severity::Error,
+                    std::format("Its listFromProperty \"{}\" of the form \"{}\" is not a name, and a plugin and an id in hex: it has no options.", list.property, formText));
                 return std::nullopt;
             }
             list.plugin = std::move(form->first);
             list.formId = form->second;
             list.script = getText(*property, "scriptName");
         } else {
+            const Into into(reading, "listFromProperty");
+            reading.report(model::Severity::Error, "Its listFromProperty is not an object: it has no options.");
             return std::nullopt;
         }
         if (valueType != model::StoredType::Int && valueType != model::StoredType::String) {
-            logger::warn("The choice '{}' lists its options in the game, so its valueType is int or string", getText(row, "text"));
+            reading.report(model::Severity::Error, "It lists its options in the game, so its valueType is int or string: it has no options.");
             return std::nullopt;
         }
         return list;
@@ -512,14 +775,17 @@ namespace
      * characters of a text input of a text, and the options of a choice: its own `options`, the shared list
      * its `sharedOptions` names, or where it reads them in the game. An `allowEmpty` of false is a least of
      * one character. A length that is no whole number above 0 is none.
-     * A choice with none of them has no options, with the reason in the log, so it is disabled.
+     * A choice with none of them has no options, and is reported, so it is disabled.
      */
-    model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, const PackageReading& reading)
+    model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, PackageReading& reading)
     {
         model::ValueOptions valueOptions;
         const auto found = row.find("valueOptions");
         const bool hasOptions = found != row.end() && found->is_object();
+        std::optional<Into> into;
         if (hasOptions) {
+            into.emplace(reading, "valueOptions");
+            checkFields(*found, VALUE_OPTIONS_FIELDS, reading);
             valueOptions.min = getNumber(*found, "min", valueOptions.min);
             valueOptions.max = getNumber(*found, "max", valueOptions.max);
             valueOptions.step = getNumber(*found, "step", valueOptions.step);
@@ -537,19 +803,24 @@ namespace
         }
 
         const Json* list = nullptr;
+        std::string sharedName;
         if (hasOptions) {
             const auto own = found->find("options");
-            list = own != found->end() ? &*own : findSharedList(reading.sharedLists, getText(*found, "sharedOptions"));
+            if (own != found->end()) {
+                list = &*own;
+            } else {
+                sharedName = getText(*found, "sharedOptions");
+                list = findSharedList(reading.sharedLists, sharedName);
+            }
         }
         if (list && list->is_array()) {
-            valueOptions.options = loadOptions(*list, row, valueType, reading);
+            valueOptions.options = loadOptions(*list, sharedName, valueType, reading);
             return valueOptions;
         }
-        if (hasOptions) {
-            valueOptions.gameOptions = loadGameOptions(*found, row, valueType);
-        }
-        if (!valueOptions.gameOptions) {
-            logger::warn("The choice '{}' has no list of options, or names no shared list of its package", getText(row, "text"));
+        if (hasOptions && (found->contains("listFromForm") || found->contains("listFromProperty"))) {
+            valueOptions.gameOptions = loadGameOptions(*found, valueType, reading);
+        } else {
+            reading.report(model::Severity::Error, "It has no list of options, or names no shared list of its package: it has no options.");
         }
         return valueOptions;
     }
@@ -594,16 +865,21 @@ namespace
     /**
      * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
      * with one that is not one of its values: outside its limits, of a length it does not allow, or none of
-     * its options. Both are errors of the package that the log has, and the setting then has no Reset.
+     * its options. Both are errors of the package that are reported, and the setting then has no Reset.
      */
-    std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& options)
+    std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& options,
+        PackageReading& reading)
     {
         auto value = getValue(row, "default", valueType);
         if (!value) {
-            logger::warn("The setting '{}' has no default of the type of its value", getText(row, "text"));
+            reading.report(model::Severity::Error, "It has no default of the type of its value: it has no Reset.");
+        } else if (isChoice(type) && options.options.empty() && !options.gameOptions) {
+            // a choice with no options is reported already, and no default is one of its values
+            value.reset();
         } else if (!isValueOf(*value, type, options)) {
-            logger::warn("The default of the setting '{}' is not one of its values: it is outside its limits, of a length it does not allow, or none of its options",
-                getText(row, "text"));
+            const Into into(reading, "default");
+            reading.report(model::Severity::Error,
+                "Its default is not one of its values: outside its limits, of a length it does not allow, or none of its options. It has no Reset.");
             value.reset();
         }
         return value;
@@ -614,20 +890,23 @@ namespace
 
     /**
      * The `display` of a setting: its decimals, its unit, which is a text the player sees, and whether it is a
-     * percentage. Decimals that are no whole number from 0 to 6 are none, with the reason in the log.
+     * percentage. Decimals that are no whole number from 0 to 6 are none, and are reported.
      */
-    model::NumberDisplay loadDisplay(const Json& row, const model::Translations& translations)
+    model::NumberDisplay loadDisplay(const Json& row, PackageReading& reading)
     {
         const auto found = row.find("display");
         if (found == row.end() || !found->is_object()) {
             return {};
         }
-        model::NumberDisplay display{ .decimals = {}, .unit = getShownText(*found, "unit", translations), .percent = getBool(*found, "percent") };
+        const Into into(reading, "display");
+        checkFields(*found, DISPLAY_FIELDS, reading);
+        model::NumberDisplay display{ .decimals = {}, .unit = readShownText(*found, "unit", reading), .percent = getBool(*found, "percent") };
         if (const auto decimals = found->find("decimals"); decimals != found->end()) {
             if (decimals->is_number_integer() && decimals->get<int>() >= 0 && decimals->get<int>() <= MAX_DECIMALS) {
                 display.decimals = decimals->get<int>();
             } else {
-                logger::warn("The decimals of the setting '{}' are not a whole number from 0 to {}", getText(row, "text"), MAX_DECIMALS);
+                const Into intoDecimals(reading, "decimals");
+                reading.report(model::Severity::Error, std::format("Its decimals are not a whole number from 0 to {}: it has as many as its step.", MAX_DECIMALS));
             }
         }
         return display;
@@ -706,41 +985,47 @@ namespace
 
     /**
      * An action of a button or a setting that is not written right, which the menu does not run: the help line
-     * of a button has the mistake as its reason, and the log has it too.
+     * of a button has the mistake as its reason, and it is reported.
      */
-    model::UnknownAction mistakenAction(const Json& row, std::string type, const std::string& mistake)
+    model::UnknownAction mistakenAction(std::string type, const std::string& mistake, PackageReading& reading)
     {
-        logger::warn("The action of '{}' is not run: {}", getText(row, "text"), mistake);
+        reading.report(model::Severity::Error, std::format("Its action is not run: {}.", mistake));
         return model::UnknownAction{ .type = std::move(type), .reason = std::format("Not available: {}.", mistake) };
     }
 
     /**
      * What a button runs, by the `type` of its `action`: a `CallFunction` and a `CallGlobalFunction`, with
      * their `params`, and a `RunConsoleCommand`, with its `command`. A `CallNativeFunction` runs a function
-     * that the mod's DLL gives the menu, and the menu takes none from a DLL. A button with no action, any
-     * other action, and one that is not written right are actions the menu does not run, with the reason.
+     * that the mod's DLL gives the menu, and the menu takes none from a DLL yet: it is not a mistake of the
+     * package. A button with no action, any other action, and one that is not written right are actions the
+     * menu does not run, with the reason, and are reported.
      */
-    model::Action loadAction(const Json& row)
+    model::Action loadAction(const Json& row, PackageReading& reading)
     {
         const auto action = row.find("action");
         if (action == row.end() || !action->is_object()) {
-            return mistakenAction(row, {}, "the button has no action");
+            return mistakenAction({}, "the button has no action", reading);
         }
+        const Into into(reading, "action");
+        checkFields(*action, ACTION_FIELDS, reading);
         auto type = getText(*action, "type");
         if (type == "CallFunction" || type == "CallGlobalFunction") {
             auto call = loadCall(*action, type);
-            return call ? model::Action(std::move(*call)) : mistakenAction(row, std::move(type), call.error());
+            return call ? model::Action(std::move(*call)) : mistakenAction(std::move(type), call.error(), reading);
         }
         if (type == "RunConsoleCommand") {
             auto command = getText(*action, "command");
-            return command.empty() ? model::Action(mistakenAction(row, std::move(type), "its RunConsoleCommand has no command")) : model::ConsoleCommand{ std::move(command) };
+            return command.empty() ? model::Action(mistakenAction(std::move(type), "its RunConsoleCommand has no command", reading)) : model::ConsoleCommand{ std::move(command) };
         }
         if (type.empty()) {
-            return mistakenAction(row, {}, "the action has no type");
+            return mistakenAction({}, "the action has no type", reading);
         }
-        logger::info("'{}' has an action '{}', which the menu does not run", getText(row, "text"), type);
-        auto reason =
-            type == "CallNativeFunction" ? "Not available: the mod's DLL has not given the menu its functions."s : std::format("Not available: the menu does not run a {}.", type);
+        if (type == "CallNativeFunction") {
+            logger::info("'{}' has a CallNativeFunction, which the menu does not run yet", reading.at.row);
+            return model::UnknownAction{ .type = std::move(type), .reason = "Not available: the mod's DLL has not given the menu its functions."s };
+        }
+        reading.report(model::Severity::Error, std::format("Its action \"{}\" is not one the menu runs: it is not run.", type));
+        auto reason = std::format("Not available: the menu does not run a {}.", type);
         return model::UnknownAction{ .type = std::move(type), .reason = std::move(reason) };
     }
 
@@ -748,13 +1033,17 @@ namespace
      * A button: its text, its action and the text on its button, `buttonText`, which is `Run` without one. Its
      * conditions and its warnings are read once every setting of the package is (`loadConditions`).
      */
-    model::Button loadButton(const Json& row, const PackageReading& reading)
+    model::Button loadButton(const Json& row, PackageReading& reading)
     {
-        return model::Button{ .text = getLabel(row, reading.translations),
+        if (const auto confirmation = row.find("confirmation"); confirmation != row.end()) {
+            const Into into(reading, "confirmation");
+            checkFields(*confirmation, CONFIRMATION_FIELDS, reading);
+        }
+        return model::Button{ .text = getLabel(row, reading),
             .textRuns = getLabelRuns(row, reading.translations),
-            .help = getShownText(row, "help", reading.translations),
-            .buttonText = getShownText(row, "buttonText", reading.translations),
-            .action = loadAction(row),
+            .help = readShownText(row, "help", reading),
+            .buttonText = readShownText(row, "buttonText", reading),
+            .action = loadAction(row, reading),
             .visibleWhen = {},
             .enabledWhen = {},
             .warnings = {} };
@@ -766,14 +1055,14 @@ namespace
     /**
      * What a setting runs as Save writes its value: an action as a button's, of which a parameter that is
      * exactly `"{value}"` is the value written, in the setting's `valueType`. A setting with no `action` runs
-     * nothing, and so does one whose action the menu does not run, with the reason in the log.
+     * nothing, and so does one whose action the menu does not run, which is reported.
      */
-    model::Action loadSettingAction(const Json& row, const model::StoredType valueType)
+    model::Action loadSettingAction(const Json& row, const model::StoredType valueType, PackageReading& reading)
     {
         if (!row.contains("action")) {
             return model::NoAction{};
         }
-        auto action = loadAction(row);
+        auto action = loadAction(row, reading);
         if (auto* call = std::get_if<model::CallFunction>(&action)) {
             for (std::size_t place = 0; place < call->arguments.size(); ++place) {
                 if (call->arguments[place] == model::Value(std::string(VALUE_PARAMETER))) {
@@ -789,12 +1078,12 @@ namespace
      * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, and
      * its action, which Save runs.
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
-     * package, which the log has: an author gives one of them an id of its own. Its conditions and its
-     * warnings are read once every setting of the package is (`loadConditions`).
+     * package, which is reported: a condition names the first, and an author gives one of them an id of its
+     * own. Its conditions and its warnings are read once every setting of the package is (`loadConditions`).
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, PackageReading& reading)
     {
-        const auto own = inherit(row, above);
+        const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type);
         auto storage = loadStorage(row, own.defaultFile, valueType, reading);
         auto id = getText(row, "id");
@@ -802,26 +1091,32 @@ namespace
             id = idOf(storage);
         }
         if (!id.empty() && !reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType }).second) {
-            logger::warn("Two settings have the id '{}': give one of them an id of its own", id);
+            reading.report(model::Severity::Error,
+                std::format("A setting before it has the id \"{}\": a condition names that one. Give one of them an id of its own.",
+                    reading.settings.at(common::str_tolower(id)).id));
         }
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
         const bool readOnly = getBool(row, "readOnly");
-        auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions);
+        auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions, reading);
+        auto text = getLabel(row, reading);
+        auto help = readShownText(row, "help", reading);
+        auto display = loadDisplay(row, reading);
+        auto action = loadSettingAction(row, valueType, reading);
         return model::Setting{ .id = std::move(id),
             .sourceId = {},
             .type = type,
-            .text = getLabel(row, reading.translations),
+            .text = std::move(text),
             .textRuns = getLabelRuns(row, reading.translations),
-            .help = getShownText(row, "help", reading.translations),
+            .help = std::move(help),
             .valueOptions = std::move(valueOptions),
             .storage = std::move(storage),
             .valueType = valueType,
-            .action = loadSettingAction(row, valueType),
+            .action = std::move(action),
             .visibleWhen = {},
             .enabledWhen = {},
             .applies = own.applies,
             .defaultValue = std::move(defaultValue),
-            .display = loadDisplay(row, reading.translations),
+            .display = std::move(display),
             .readOnly = readOnly,
             .warnings = {} };
     }
@@ -829,9 +1124,9 @@ namespace
     /**
      * A text row: its text in lines, and with the tags of an MCM config read where its `html` is true.
      */
-    model::Text loadText(const Json& row, const PackageReading& reading)
+    model::Text loadText(const Json& row, PackageReading& reading)
     {
-        const auto text = getShownText(row, "text", reading.translations);
+        const auto text = readShownText(row, "text", reading);
         return model::Text{ .lines = getBool(row, "html") ? model::parseMarkup(text) : model::plainLines(text), .visibleWhen = {} };
     }
 
@@ -846,14 +1141,14 @@ namespace
 
     /**
      * An image: its `texture`, a path under `Data/Textures`, and its `width` and `height` in the panel's pixels,
-     * of which a side that is not more than 0 is none. One with no texture shows that an image is there, with
-     * the reason in the log.
+     * of which a side that is not more than 0 is none. One with no texture shows that an image is there, and
+     * is reported.
      */
-    model::Image loadImage(const Json& row)
+    model::Image loadImage(const Json& row, PackageReading& reading)
     {
         auto texture = getText(row, "texture");
         if (texture.empty()) {
-            logger::warn("An image names no texture");
+            reading.report(model::Severity::Error, "It names no texture: a box is shown in its place.");
         }
         return model::Image{ .pixels = {},
             .texture = std::move(texture),
@@ -866,8 +1161,9 @@ namespace
      * The items of the `content` of a page or a section, by their `type`, one for each row. A section is a
      * group of the items of its own `content`, and passes its `defaultFile` and its `applies` down to them.
      * It folds with `isCollapsible`, and starts folded with `collapsed`: one that does not fold could not be
-     * opened, so its `collapsed` is left out, and the log says so.
-     * Any other row the menu does not have is a placeholder with its type.
+     * opened, so its `collapsed` is left out, and it is reported.
+     * Any other row the menu does not have is a placeholder with its type, and a type the schema does not have
+     * is reported. A row's fields that its type does not have are reported.
      */
     std::vector<model::Item> loadItems(const Json& container, const Inherited& above, PackageReading& reading)
     {
@@ -876,64 +1172,78 @@ namespace
         if (content == container.end() || !content->is_array()) {
             return items;
         }
-        for (const auto& row : *content) {
+        for (std::size_t place = 0; place < content->size(); ++place) {
+            const auto& row = (*content)[place];
+            const Into into(reading, "content", place);
+            reading.at.row = rowName(row, reading.translations);
             const auto type = getText(row, "type");
             if (type == "section") {
+                checkFields(row, SECTION_FIELDS, reading);
                 const bool collapsible = getBool(row, "isCollapsible");
                 if (getBool(row, "collapsed") && !collapsible) {
-                    logger::warn("The section '{}' is collapsed and does not fold, so it is open", getText(row, "text"));
+                    reading.report(model::Severity::Warning, "It is collapsed and does not fold: it is open.");
                 }
-                items.emplace_back(model::Group{ .text = getShownText(row, "text", reading.translations),
-                    .help = getShownText(row, "help", reading.translations),
-                    .items = loadItems(row, inherit(row, above), reading),
+                auto text = readShownText(row, "text", reading);
+                auto help = readShownText(row, "help", reading);
+                items.emplace_back(model::Group{ .text = std::move(text),
+                    .help = std::move(help),
+                    .items = loadItems(row, inherit(row, above, reading), reading),
                     .visibleWhen = {},
                     .collapsible = collapsible,
                     .collapsed = collapsible && getBool(row, "collapsed") });
                 continue;
             }
             if (type == "text") {
+                checkFields(row, TEXT_ROW_FIELDS, reading);
                 items.emplace_back(loadText(row, reading));
                 continue;
             }
             if (type == "spacer") {
+                checkFields(row, SPACER_FIELDS, reading);
                 items.emplace_back(loadSpacer(row));
                 continue;
             }
             if (type == "image") {
-                items.emplace_back(loadImage(row));
+                checkFields(row, IMAGE_FIELDS, reading);
+                items.emplace_back(loadImage(row, reading));
                 continue;
             }
             if (type == "button") {
+                checkFields(row, BUTTON_FIELDS, reading);
                 items.emplace_back(loadButton(row, reading));
                 continue;
             }
             if (const auto setting = std::ranges::find(SETTING_TYPES, type, &SettingTypeName::first); setting != SETTING_TYPES.end()) {
+                checkFields(row, SETTING_FIELDS, reading);
                 items.emplace_back(loadSetting(row, setting->second, above, reading));
                 continue;
             }
-            items.emplace_back(model::Placeholder{ .text = getLabel(row, reading.translations),
-                .textRuns = getLabelRuns(row, reading.translations),
-                .help = getShownText(row, "help", reading.translations),
-                .type = type,
-                .visibleWhen = {} });
+            reading.report(model::Severity::Warning,
+                type.empty() ? "It has no type: it is shown as a row the menu does not have."s
+                             : std::format("The menu has no row of the type \"{}\": it is shown as one it does not have.", type));
+            auto text = getLabel(row, reading);
+            auto help = readShownText(row, "help", reading);
+            items.emplace_back(
+                model::Placeholder{ .text = std::move(text), .textRuns = getLabelRuns(row, reading.translations), .help = std::move(help), .type = type, .visibleWhen = {} });
         }
         return items;
     }
 
     /**
      * A page of a package, with the pages under it, which get its `defaultFile` and its `applies` as its
-     * items do.
+     * items do. A problem in it is on it: the caller reads it `Into` its place, which takes the page back off.
      */
     model::Page loadPage(const Json& page, const Inherited& above, PackageReading& reading)
     {
-        const auto own = inherit(page, above);
-        model::Page loaded{ .name = getShownText(page, "pageDisplayName", reading.translations),
-            .help = getShownText(page, "help", reading.translations),
-            .items = loadItems(page, own, reading),
-            .pages = {} };
+        reading.at.pages.push_back(common::trim(getShownText(page, "pageDisplayName", reading.translations)));
+        checkFields(page, PAGE_FIELDS, reading);
+        model::Page loaded{ .name = readShownText(page, "pageDisplayName", reading), .help = readShownText(page, "help", reading), .items = {}, .pages = {} };
+        const auto own = inherit(page, above, reading);
+        loaded.items = loadItems(page, own, reading);
         if (const auto pages = page.find("pages"); pages != page.end() && pages->is_array()) {
-            for (const auto& under : *pages) {
-                loaded.pages.push_back(loadPage(under, own, reading));
+            for (std::size_t place = 0; place < pages->size(); ++place) {
+                const Into into(reading, "pages", place);
+                loaded.pages.push_back(loadPage((*pages)[place], own, reading));
             }
         }
         return loaded;
@@ -1095,10 +1405,10 @@ namespace
 
     /**
      * The condition of a key of a row, as `visibleWhen`. None for a row with none, and for one that is not a
-     * condition, with the reason in the log: the row is then shown and enabled as if it had none, so the
-     * mistake is seen and nothing is hidden by it.
+     * condition, which is reported: the row is then shown and enabled as if it had none, so the mistake is
+     * seen and nothing is hidden by it.
      */
-    std::optional<model::Condition> loadRowCondition(const Json& row, const char* key, const PackageReading& reading)
+    std::optional<model::Condition> loadRowCondition(const Json& row, const char* key, PackageReading& reading)
     {
         const auto found = row.find(key);
         if (found == row.end()) {
@@ -1106,7 +1416,8 @@ namespace
         }
         auto condition = loadCondition(*found, reading);
         if (!condition) {
-            logger::warn("The {} of '{}' is left out: {}", key, getText(row, "text"), condition.error());
+            const Into into(reading, key);
+            reading.report(model::Severity::Warning, std::format("Its {} is left out: {}. The row is shown and enabled as if it had none.", key, condition.error()));
             return std::nullopt;
         }
         return std::move(*condition);
@@ -1114,29 +1425,33 @@ namespace
 
     /**
      * The `warnings` of a setting or a button: a text each, which the row tells while its `when` holds. One
-     * with no text, and one whose `when` is not a condition, is left out, with the reason in the log.
+     * with no text, and one whose `when` is not a condition, is left out, and is reported.
      */
-    std::vector<model::Warning> loadWarnings(const Json& row, const PackageReading& reading)
+    std::vector<model::Warning> loadWarnings(const Json& row, PackageReading& reading)
     {
         std::vector<model::Warning> warnings;
         const auto found = row.find("warnings");
         if (found == row.end()) {
             return warnings;
         }
+        const Into into(reading, "warnings");
         if (!found->is_array()) {
-            logger::warn("The warnings of '{}' are left out: they are not a list", getText(row, "text"));
+            reading.report(model::Severity::Error, "Its warnings are not a list: they are left out.");
             return warnings;
         }
-        for (const auto& warning : *found) {
-            auto text = warning.is_object() ? getShownText(warning, "text", reading.translations) : std::string();
+        for (std::size_t place = 0; place < found->size(); ++place) {
+            const auto& warning = (*found)[place];
+            const Into intoWarning(reading, "", place);
+            checkFields(warning, WARNING_FIELDS, reading);
+            auto text = warning.is_object() ? readShownText(warning, "text", reading) : std::string();
             if (text.empty()) {
-                logger::warn("A warning of '{}' is left out: it has no text", getText(row, "text"));
+                reading.report(model::Severity::Error, std::format("Warning {} has no text: it is left out.", place + 1));
                 continue;
             }
             const auto when = warning.find("when");
             auto condition = when != warning.end() ? loadCondition(*when, reading) : std::unexpected("it has no when"s);
             if (!condition) {
-                logger::warn("A warning of '{}' is left out: {}", getText(row, "text"), condition.error());
+                reading.report(model::Severity::Error, std::format("Warning {} is left out: {}.", place + 1, condition.error()));
                 continue;
             }
             warnings.push_back(model::Warning{ .when = std::move(*condition), .text = std::move(text) });
@@ -1171,7 +1486,7 @@ namespace
      * The items are the rows of the content, one
      * for each, in their order, as `loadItems` reads them.
      */
-    void loadConditions(const Json& container, std::vector<model::Item>& items, const RowConditions& above, const PackageReading& reading)
+    void loadConditions(const Json& container, std::vector<model::Item>& items, const RowConditions& above, PackageReading& reading)
     {
         const auto content = container.find("content");
         if (content == container.end() || !content->is_array()) {
@@ -1180,6 +1495,8 @@ namespace
         for (std::size_t place = 0; place < content->size() && place < items.size(); ++place) {
             const auto& row = (*content)[place];
             auto& item = items[place];
+            const Into into(reading, "content", place);
+            reading.at.row = rowName(row, reading.translations);
             const RowConditions own{ .visibleWhen = join(above.visibleWhen, loadRowCondition(row, "visibleWhen", reading)),
                 .enabledWhen = join(above.enabledWhen, loadRowCondition(row, "enabledWhen", reading)) };
             std::visit(
@@ -1202,14 +1519,16 @@ namespace
     /**
      * Gives the items of a page and of the pages under it their conditions, as `loadPage` read them.
      */
-    void loadPageConditions(const Json& page, model::Page& loaded, const PackageReading& reading)
+    void loadPageConditions(const Json& page, model::Page& loaded, PackageReading& reading)
     {
+        reading.at.pages.push_back(common::trim(loaded.name));
         loadConditions(page, loaded.items, {}, reading);
         const auto pages = page.find("pages");
         if (pages == page.end() || !pages->is_array()) {
             return;
         }
         for (std::size_t place = 0; place < pages->size() && place < loaded.pages.size(); ++place) {
+            const Into into(reading, "pages", place);
             loadPageConditions((*pages)[place], loaded.pages[place], reading);
         }
     }
@@ -1314,6 +1633,91 @@ namespace
     }
 
     /**
+     * Checks the options of the package's shared lists once, as several choices can read one: the fields of an
+     * option, and its texts. An option that is not one of a choice is reported as the choice reads the list.
+     */
+    void checkSharedLists(PackageReading& reading)
+    {
+        if (!reading.sharedLists) {
+            return;
+        }
+        const Into into(reading, "sharedLists");
+        for (const auto& [name, list] : reading.sharedLists->items()) {
+            if (!list.is_array()) {
+                continue;
+            }
+            const Into intoList(reading, name);
+            for (std::size_t place = 0; place < list.size(); ++place) {
+                const Into intoOption(reading, "", place);
+                if (list[place].is_object()) {
+                    checkFields(list[place], OPTION_FIELDS, reading);
+                    std::ignore = readShownText(list[place], "text", reading);
+                } else {
+                    std::ignore = readShownText(list[place], reading);
+                }
+            }
+        }
+    }
+
+    /**
+     * Whether a problem is before another in config.json, by their paths: a place in a list is compared as a
+     * number, so `content[2]` is before `content[10]`, and a path is before the paths in it. The keys of an
+     * object have no order in the file the reader keeps, so they are in the order of their names.
+     */
+    bool isBefore(const model::Problem& problem, const model::Problem& other)
+    {
+        // the parts of a path: the names, and the places, which are numbers
+        const auto parts = [](const std::string& path) {
+            std::vector<std::variant<std::size_t, std::string>> parts;
+            std::size_t at = 0;
+            while (at < path.size()) {
+                if (path[at] == '.') {
+                    ++at;
+                } else if (path[at] == '[') {
+                    const auto end = path.find(']', at);
+                    std::size_t place = 0;
+                    std::from_chars(path.data() + at + 1, path.data() + end, place);
+                    parts.emplace_back(place);
+                    at = end + 1;
+                } else {
+                    const auto end = path.find_first_of(".[", at);
+                    parts.emplace_back(path.substr(at, end - at));
+                    at = end == std::string::npos ? path.size() : end;
+                }
+            }
+            return parts;
+        };
+        return parts(problem.path) < parts(other.path);
+    }
+
+    /**
+     * A count of a thing as the log says it: `1 error`, `2 errors`.
+     */
+    std::string countOf(const std::size_t count, const std::string_view thing)
+    {
+        return std::format("{} {}{}", count, thing, count == 1 ? "" : "s");
+    }
+
+    /**
+     * Logs each problem of a package, with the package's name first, where it is after it, and how many
+     * errors and warnings the package has.
+     */
+    void logProblems(const model::Mod& mod)
+    {
+        std::size_t errors = 0;
+        for (const auto& problem : mod.problems) {
+            const bool error = problem.severity == model::Severity::Error;
+            errors += error ? 1 : 0;
+            auto where = problem.where;
+            if (!problem.path.empty()) {
+                where += (where.empty() ? "" : ", ") + problem.path;
+            }
+            logger::warn("Package '{}': {} of {}: {}{}", mod.displayName, error ? "error" : "warning", problem.row, problem.message, where.empty() ? "" : " (" + where + ")");
+        }
+        logger::info("Package '{}' has {} and {}", mod.displayName, countOf(errors, "error"), countOf(mod.problems.size() - errors, "warning"));
+    }
+
+    /**
      * A mod that is not available, which has its names and the reason alone.
      */
     model::Mod notAvailableMod(std::string name, std::string displayName, std::string reason)
@@ -1365,8 +1769,16 @@ namespace mods_config::package
         if (!schemaVersion) {
             return std::unexpected("No minSchemaVersion of a whole number from 1"s);
         }
+        const auto sharedLists = package.find("sharedLists");
+        PackageReading reading{ .translations = translations,
+            .files = {},
+            .sharedLists = sharedLists != package.end() && sharedLists->is_object() ? &*sharedLists : nullptr,
+            .plugins = plugins,
+            .settings = {},
+            .problems = {},
+            .at = {} };
         mod.source = model::Source::Package;
-        mod.displayName = getShownText(package, "displayName", translations);
+        mod.displayName = readShownText(package, "displayName", reading);
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
         }
@@ -1380,35 +1792,37 @@ namespace mods_config::package
         if (!applies) {
             return std::unexpected("No applies of live, save or restart"s);
         }
-        mod.help = getShownText(package, "help", translations);
+        checkFields(package, ROOT_FIELDS, reading);
+        mod.help = readShownText(package, "help", reading);
+        reading.files = loadFiles(package, reading);
+        checkSharedLists(reading);
 
-        auto files = loadFiles(package);
-        const auto sharedLists = package.find("sharedLists");
-        PackageReading reading{ .translations = translations,
-            .files = files,
-            .sharedLists = sharedLists != package.end() && sharedLists->is_object() ? &*sharedLists : nullptr,
-            .plugins = plugins,
-            .settings = {} };
         const Inherited root{ .defaultFile = getText(package, "defaultFile"), .applies = *applies };
         mod.frontPage.items = loadItems(package, root, reading);
         loadConditions(package, mod.frontPage.items, {}, reading);
         if (const auto pages = package.find("pages"); pages != package.end() && pages->is_array()) {
-            for (const auto& page : *pages) {
-                mod.pages.push_back(loadPage(page, root, reading));
+            for (std::size_t place = 0; place < pages->size(); ++place) {
+                const Into into(reading, "pages", place);
+                mod.pages.push_back(loadPage((*pages)[place], root, reading));
             }
             for (std::size_t place = 0; place < pages->size(); ++place) {
+                const Into into(reading, "pages", place);
                 loadPageConditions((*pages)[place], mod.pages[place], reading);
             }
         }
-        mod.files = std::move(files);
+        mod.files = std::move(reading.files);
+        // the conditions are read after every row, and their problems are put in their places
+        std::ranges::stable_sort(reading.problems, isBefore);
+        mod.problems = std::move(reading.problems);
         return mod;
     }
 
     /**
      * Loads the `config.json` of every folder in the packages' folder, which is `Data\ModsConfigVR\Config` in
      * the game. A package that cannot be read is a mod that is not available, named by its folder, and so
-     * are two packages with one `modName`: neither is picked. A mod that is not available has the reason in
-     * the log. No such folder is no mods.
+     * are two packages with one `modName`: neither is picked. Both are a problem of the package. A mod that is
+     * not available has the reason in the log, and so has each problem of a package, with the package's name
+     * first, and how many errors and warnings each package has. No such folder is no mods.
      */
     std::vector<model::Mod> loadPackages(const std::filesystem::path& configFolder, const model::Translations& translations, const PluginChecks& plugins)
     {
@@ -1425,9 +1839,10 @@ namespace mods_config::package
 
             auto mod = loadPackage(text.str(), translations, plugins);
             if (!mod) {
-                logger::warn("Package '{}' cannot be read: {}", toLogText(file), mod.error());
                 const auto folderName = toLogText(folder->path().filename());
+                auto reason = std::format("It cannot be read: {}.", mod.error());
                 mod = notAvailableMod(folderName, folderName, "its package cannot be read");
+                mod->problems.push_back({ .severity = model::Severity::Error, .row = CONFIG_FILE, .message = std::move(reason), .where = {}, .path = {} });
             }
             mods.push_back(std::move(*mod));
         }
@@ -1439,10 +1854,16 @@ namespace mods_config::package
         for (auto& mod : mods) {
             if (mod.notAvailable.empty() && names[common::str_tolower(mod.name)] > 1) {
                 mod = notAvailableMod(mod.name, mod.displayName, "its package has the modName of another package");
+                mod.problems.push_back({ .severity = model::Severity::Error,
+                    .row = CONFIG_FILE,
+                    .message = std::format("Another package has the modName \"{}\": neither is read.", mod.name),
+                    .where = {},
+                    .path = "modName" });
             }
             if (!mod.notAvailable.empty()) {
                 logger::warn("Package mod '{}' is not available: {}", mod.name, mod.notAvailable);
             }
+            logProblems(mod);
         }
         return mods;
     }
