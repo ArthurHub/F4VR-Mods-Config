@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
@@ -13,6 +12,7 @@
 #include "ModPage.h"
 #include "ModTree.h"
 #include "Selection.h"
+#include "TitleBar.h"
 #include "UnsavedDialog.h"
 #include "model/Definition.h"
 #include "model/Store.h"
@@ -109,28 +109,6 @@ namespace mods_config::ui
 
     private:
         /**
-         * A button of the title bar, at the right of its breadcrumbs.
-         */
-        enum class TitleButton : std::uint8_t
-        {
-            None,
-            Help,
-            Minimize,
-            Close,
-        };
-
-        /**
-         * What a frame of the title bar did: the selection a breadcrumb that was pressed goes to, the button
-         * that was pressed, and the button the ray is on, for the help line.
-         */
-        struct TitleBar
-        {
-            std::optional<Selection> pressed;
-            TitleButton pressedButton = TitleButton::None;
-            std::optional<PointedRow> pointed;
-        };
-
-        /**
          * What the player was about to do as the dialog asks what to do with the unsaved changes: show
          * another selection, or close the menu.
          */
@@ -147,7 +125,6 @@ namespace mods_config::ui
         void updateStatus();
         void pageShown();
         bool pressButton(TitleButton button);
-        TitleBar drawTitleBar() const;
         std::optional<PointedRow> drawFrontPage();
         void drawHelpPage() const;
         void drawFooter(const ImVec2& pos);
