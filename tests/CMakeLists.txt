@@ -59,6 +59,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/FrontPage.cpp
   ${SOURCE_DIR}/ui/FullPanel.cpp
   ${SOURCE_DIR}/ui/HelpLine.cpp
+  ${SOURCE_DIR}/ui/HelpPage.cpp
   ${SOURCE_DIR}/ui/MenuControls.cpp
   ${SOURCE_DIR}/ui/ModPage.cpp
   ${SOURCE_DIR}/ui/Numbers.cpp

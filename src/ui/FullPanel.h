@@ -116,7 +116,6 @@ namespace mods_config::ui
         void pageShown();
         bool pressButton(TitleButton button);
         std::vector<FrontPageMod> frontPageMods() const;
-        void drawHelpPage() const;
         void drawFooter(const ImVec2& pos);
         void drawDialog();
 

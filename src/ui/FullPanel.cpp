@@ -1,7 +1,6 @@
 #include "FullPanel.h"
 
 #include <algorithm>
-#include <array>
 #include <format>
 #include <string>
 #include <tuple>
@@ -9,6 +8,7 @@
 #include <imgui.h>
 
 #include "Drawing.h"
+#include "HelpPage.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
 
@@ -392,7 +392,7 @@ namespace mods_config::ui
         if (ImGui::BeginChild("Content", ImVec2(0.0f, bodyHeight))) {
             onPage = ImGui::IsWindowHovered();
             if (_helpShown) {
-                drawHelpPage();
+                drawHelpPage(_controls);
             } else if (_selection.mod) {
                 auto drawn = _modPage.draw(*selectedPage(), storeOf(_mods[*_selection.mod]), _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);
@@ -465,28 +465,6 @@ namespace mods_config::ui
             mods.push_back({ .displayName = mod.displayName, .savedRestartCount = store ? store->savedRestartCount(mod) : 0, .notAvailable = mod.notAvailable });
         }
         return mods;
-    }
-
-    /**
-     * The Help page, which a press on Help shows over the selection's page: a text of what it is, and each
-     * control of the menu as `Name: text`, its name in green and its text in the muted color, as the help line
-     * has a row's help. Each is wrapped in the page's width, in from its edges as the front page's texts are.
-     */
-    void FullPanel::drawHelpPage() const
-    {
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
-        drawPageText("How the menu is used, with the buttons your config has.");
-        ImGui::SeparatorText("Controls");
-
-        const float width = ImGui::GetContentRegionAvail().x - theme::SPACE_2 * 2.0f;
-        for (const auto& control : _controls) {
-            const auto name = control.name + ": ";
-            const std::array pieces{ TextPiece{ .text = name, .color = theme::color::GREEN }, TextPiece{ .text = control.text, .color = theme::color::GREEN_MUTED } };
-            const int lines = countTextLines(pieces, width);
-            const auto pos = ImGui::GetCursorScreenPos();
-            drawTextPieces(pieces, ImVec2(pos.x + theme::SPACE_2, pos.y), width, lines);
-            ImGui::Dummy(ImVec2(width, static_cast<float>(lines) * ImGui::GetFontSize()));
-        }
     }
 
     /**
