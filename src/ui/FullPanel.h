@@ -2,11 +2,11 @@
 
 #include <functional>
 #include <optional>
-#include <string>
 #include <vector>
 
 #include <imgui.h>
 
+#include "FrontPage.h"
 #include "HelpLine.h"
 #include "MenuControls.h"
 #include "ModPage.h"
@@ -29,17 +29,7 @@ namespace mods_config::ui
     class FullPanel
     {
     public:
-        /**
-         * An entry of the front page's quick launch section, which opens a mod's own config UI.
-         */
-        struct QuickLaunchEntry
-        {
-            std::string name;
-
-            // what the help line says of the entry: what the mod's own UI is for
-            std::string help;
-            std::function<void()> open;
-        };
+        using QuickLaunchEntry = mods_config::ui::QuickLaunchEntry;
 
         /**
          * What the title bar's Minimize and Close do, which the menu does: the panel does not know the game.
@@ -125,7 +115,7 @@ namespace mods_config::ui
         void updateStatus();
         void pageShown();
         bool pressButton(TitleButton button);
-        std::optional<PointedRow> drawFrontPage();
+        std::vector<FrontPageMod> frontPageMods() const;
         void drawHelpPage() const;
         void drawFooter(const ImVec2& pos);
         void drawDialog();

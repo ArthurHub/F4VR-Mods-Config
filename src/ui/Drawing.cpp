@@ -210,6 +210,19 @@ namespace
 namespace mods_config::ui
 {
     /**
+     * Draws muted text at the cursor, inset from the page's edges and wrapped to its remaining width.
+     */
+    void drawPageText(const std::string_view text)
+    {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2);
+        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
+        ImGui::TextUnformatted(text.data(), text.data() + text.size());
+        ImGui::PopTextWrapPos();
+        ImGui::PopStyleColor();
+    }
+
+    /**
      * The width of a line of text in the current font size.
      */
     float textWidth(const std::string_view text)

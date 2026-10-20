@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <format>
-#include <string_view>
+#include <string>
 #include <tuple>
 
 #include <imgui.h>
@@ -25,63 +25,8 @@ namespace
     // and after a Save that wrote no change that takes effect after a restart, until the next change
     constexpr auto SAVED = "Saved";
 
-    // the width of a footer or quick launch button, in the panel's pixels
+    // the width of a footer button, in the panel's pixels
     constexpr float BUTTON_WIDTH = 160.0f;
-
-    /**
-     * A text of the menu's front page at the cursor, wrapped in the page's width, in the muted color. It is in
-     * from the edges of the page, as the texts of its rows are.
-     */
-    void pageText(const std::string_view text)
-    {
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2);
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
-        ImGui::TextUnformatted(text.data(), text.data() + text.size());
-        ImGui::PopTextWrapPos();
-        ImGui::PopStyleColor();
-    }
-
-    /**
-     * A notice of the menu's front page at the cursor that the game has to be restarted: the Restart mark, and
-     * after it the text in green, wrapped in the rest of the page's width. It is in from the edges of the page,
-     * as its texts are.
-     */
-    void restartNotice(const std::string_view text)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        ui::drawRestartMark(pos.x + theme::SPACE_2, pos.y + ImGui::GetFontSize() * 0.5f);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2 + ui::restartMarkWidth() + theme::SPACE_2);
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
-        ImGui::TextUnformatted(text.data(), text.data() + text.size());
-        ImGui::PopTextWrapPos();
-        ImGui::PopStyleColor();
-    }
-
-    /**
-     * A row of the quick launch section, laid out as a setting's row: the mod's name after the gutter, and an
-     * Open button in the control column. The whole row is pressed, so the button is only drawn.
-     * Tells whether the ray is on the row.
-     */
-    bool quickLaunchRow(const char* name, bool& pointed)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ImGui::GetContentRegionAvail().x;
-        const bool pressed = ImGui::InvisibleButton(name, ImVec2(width, theme::CONTROL_HEIGHT));
-        pointed = ImGui::IsItemHovered();
-        ui::drawRowState();
-
-        // the button ends where a setting's control does, before the room of its Reset
-        const float buttonRight = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
-        const float buttonLeft = buttonRight - BUTTON_WIDTH;
-        ui::drawOutline(ImVec2(buttonLeft, pos.y), ImVec2(buttonRight, pos.y + theme::CONTROL_HEIGHT), theme::color::FRAME_BORDER);
-        const float labelLeft = buttonLeft + (BUTTON_WIDTH - ui::textWidth("Open")) * 0.5f;
-        ui::drawText(labelLeft, buttonRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, "Open");
-
-        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
-        return pressed;
-    }
 
 }
 
@@ -453,7 +398,12 @@ namespace mods_config::ui
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
             } else {
-                pointed = drawFrontPage();
+                auto drawn = drawFrontPage(_quickLaunch, frontPageMods());
+                pointed = std::move(drawn.pointed);
+                if (drawn.pressed) {
+                    _quickLaunch[*drawn.pressed].open();
+                    _pressActed = true;
+                }
             }
         }
         ImGui::EndChild();
@@ -503,55 +453,18 @@ namespace mods_config::ui
     }
 
     /**
-     * The menu's front page, which is what the menu shows while no mod is selected: what the menu is, with its
-     * version, the quick launch section, and the notices: first a line for each mod whose Saves wrote changes
-     * that take effect after the game is restarted, in this run of the game, after the Restart mark, and then
-     * a line for each mod that is not available, with the reason its row in the tree has. A section is left
-     * out while it has nothing in it.
-     * Returns the quick launch entry the ray is on, for the help line.
+     * Reads each mod's notice data for the front page, in the order of the tree.
+     * The names and availability reasons refer to the panel's mods.
      */
-    std::optional<PointedRow> FullPanel::drawFrontPage()
+    std::vector<FrontPageMod> FullPanel::frontPageMods() const
     {
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
-        pageText(std::format("Settings for the mods you have installed. Pick a mod on the left to see its settings.\nVersion {}", Version::NAME));
-
-        std::optional<PointedRow> pointed;
-        if (!_quickLaunch.empty()) {
-            ImGui::SeparatorText("Quick launch");
-        }
-        for (const auto& entry : _quickLaunch) {
-            bool onRow = false;
-            if (quickLaunchRow(entry.name.c_str(), onRow)) {
-                entry.open();
-                _pressActed = true;
-            }
-            if (onRow) {
-                pointed = PointedRow{ .text = entry.name, .help = entry.help };
-            }
-        }
-
-        bool hasNotices = false;
-        const auto notices = [&hasNotices] {
-            if (!hasNotices) {
-                ImGui::SeparatorText("Notices");
-                hasNotices = true;
-            }
-        };
+        std::vector<FrontPageMod> mods;
+        mods.reserve(_mods.size());
         for (const auto& mod : _mods) {
             const auto* store = storeOf(mod);
-            const auto restarts = store ? store->savedRestartCount(mod) : 0;
-            if (restarts > 0) {
-                notices();
-                restartNotice(std::format("Restart the game: {} has {} saved change{} effect then.", mod.displayName, restarts, restarts == 1 ? " that takes" : "s that take"));
-            }
+            mods.push_back({ .displayName = mod.displayName, .savedRestartCount = store ? store->savedRestartCount(mod) : 0, .notAvailable = mod.notAvailable });
         }
-        for (const auto& mod : _mods) {
-            if (!mod.notAvailable.empty()) {
-                notices();
-                pageText(std::format("{} is not available: {}.", mod.displayName, mod.notAvailable));
-            }
-        }
-        return pointed;
+        return mods;
     }
 
     /**
@@ -562,7 +475,7 @@ namespace mods_config::ui
     void FullPanel::drawHelpPage() const
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
-        pageText("How the menu is used, with the buttons your config has.");
+        drawPageText("How the menu is used, with the buttons your config has.");
         ImGui::SeparatorText("Controls");
 
         const float width = ImGui::GetContentRegionAvail().x - theme::SPACE_2 * 2.0f;
