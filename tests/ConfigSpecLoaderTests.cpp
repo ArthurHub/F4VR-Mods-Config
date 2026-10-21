@@ -13,7 +13,7 @@
 #include "TestFiles.h"
 #include "common/CommonUtils.h"
 #include "model/TextMarkup.h"
-#include "package/PackageLoader.h"
+#include "spec/ConfigSpecLoader.h"
 
 using namespace mods_config;
 
@@ -22,11 +22,11 @@ namespace
     using Lines = std::vector<std::string>;
 
     /**
-     * A package that has to load.
+     * A config spec that has to load.
      */
     model::Mod loaded(const std::string_view text, const model::Translations& translations = {})
     {
-        auto mod = package::loadPackage(text, translations);
+        auto mod = spec::loadConfigSpec(text, translations);
         if (!mod) {
             FAIL(mod.error());
         }
@@ -34,10 +34,10 @@ namespace
     }
 
     /**
-     * A package with the given content as its front page, a file `main` that is its default, and the given
+     * A config spec with the given content as its front page, a file `main` that is its default, and the given
      * root `applies`.
      */
-    std::string packageOf(const std::string& content, const std::string& applies = "live")
+    std::string configSpecOf(const std::string& content, const std::string& applies = "live")
     {
         return std::format(R"({{
             "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "{}",
@@ -156,7 +156,7 @@ namespace
     }
 }
 
-TEST_CASE("PackageLoader: a package is its mod, its front page and its pages, which nest, with their help")
+TEST_CASE("ConfigSpecLoader: a config spec is its mod, its front page and its pages, which nest, with their help")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1,
@@ -178,7 +178,7 @@ TEST_CASE("PackageLoader: a package is its mod, its front page and its pages, wh
     CHECK(mod.name == "MyMod");
     CHECK(mod.displayName == "My Mod");
     CHECK(mod.help == "Body tracking and holsters for VR.");
-    CHECK(mod.source == model::Source::Package);
+    CHECK(mod.source == model::Source::ConfigSpec);
     CHECK(mod.notAvailable.empty());
 
     CHECK(mod.frontPage.items.size() == 1);
@@ -193,9 +193,9 @@ TEST_CASE("PackageLoader: a package is its mod, its front page and its pages, wh
     CHECK(mod.pages[1].pages.empty());
 }
 
-TEST_CASE("PackageLoader: a section has the rows of its own content, and a section can be in a section")
+TEST_CASE("ConfigSpecLoader: a section has the rows of its own content, and a section can be in a section")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "switcher", "text": "Enable", "storage": { "path": ["Main", "bEnable"] } },
         {
             "type": "section", "text": "Holsters",
@@ -221,9 +221,9 @@ TEST_CASE("PackageLoader: a section has the rows of its own content, and a secti
                                      });
 }
 
-TEST_CASE("PackageLoader: a section folds with isCollapsible, starts folded with collapsed, and has its help")
+TEST_CASE("ConfigSpecLoader: a section folds with isCollapsible, starts folded with collapsed, and has its help")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "section", "text": "Plain", "content": [] },
         { "type": "section", "text": "Folds", "help": "Opens and closes.", "isCollapsible": true, "content": [] },
         { "type": "section", "text": "Folded", "isCollapsible": true, "collapsed": true, "content": [] },
@@ -249,9 +249,9 @@ TEST_CASE("PackageLoader: a section folds with isCollapsible, starts folded with
     CHECK(folds == std::vector<Fold>{ {}, { .help = "Opens and closes.", .collapsible = true }, { .collapsible = true, .collapsed = true }, {}, {} });
 }
 
-TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are settings, and any other row is a placeholder with its type")
+TEST_CASE("ConfigSpecLoader: a switcher, a slider, a choice and a text input are settings, and any other row is a placeholder with its type")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "switcher", "text": "Enable", "help": "Turns it on.", "valueType": "bool", "storage": { "path": ["Main", "bEnable"] } },
         { "type": "slider", "text": "Opacity", "valueType": "int", "valueOptions": { "min": 0, "max": 255, "step": 5 }, "storage": { "path": ["Main", "iOpacity"] } },
         { "type": "textinput", "text": "Name", "storage": { "path": ["Main", "sName"] } },
@@ -294,7 +294,7 @@ TEST_CASE("PackageLoader: a switcher, a slider, a choice and a text input are se
     CHECK(std::get<model::Setting>(items[7]).valueType == model::StoredType::Int);
 }
 
-TEST_CASE("PackageLoader: HTML labels style every setting type after translation")
+TEST_CASE("ConfigSpecLoader: HTML labels style every setting type after translation")
 {
     model::Translations translations;
     translations.add("$MyMod_Label", "<font size='16' color='#FFBF33'><b><i><u>A styled &amp; label</u></i></b></font>");
@@ -302,7 +302,7 @@ TEST_CASE("PackageLoader: HTML labels style every setting type after translation
     for (const auto* type : { "switcher", "slider", "stepper", "dropdown", "textinput" }) {
         INFO(type);
         const bool switcher = std::string_view(type) == "switcher";
-        const auto mod = loaded(packageOf(std::format(R"({{
+        const auto mod = loaded(configSpecOf(std::format(R"({{
             "type": "{}", "text": {{ "token": "$MyMod_Label", "fallback": "Unused" }}, "html": true,
             "valueType": "{}", "default": {}, "storage": {{ "path": ["Main", "value"] }},
             "valueOptions": {{ "min": 0, "max": 10, "step": 1, "options": ["Low", "High"] }}
@@ -318,9 +318,9 @@ TEST_CASE("PackageLoader: HTML labels style every setting type after translation
     }
 }
 
-TEST_CASE("PackageLoader: button and unsupported labels take HTML only with a boolean true flag")
+TEST_CASE("ConfigSpecLoader: button and unsupported labels take HTML only with a boolean true flag")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "button", "text": "<p align='right'><b>First</b></p>Second<br>Third &amp; last", "html": true,
           "buttonText": "<b>Run</b>", "help": "<b>Help</b>",
           "action": { "type": "RunConsoleCommand", "command": "help showcase" } },
@@ -351,11 +351,11 @@ TEST_CASE("PackageLoader: button and unsupported labels take HTML only with a bo
     }
 }
 
-TEST_CASE("PackageLoader: a text, a spacer and an image are rows that hold no value")
+TEST_CASE("ConfigSpecLoader: a text, a spacer and an image are rows that hold no value")
 {
     model::Translations translations;
     translations.add("$MyMod_Note", "A translated note.");
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "text", "text": "A plain text with <b>a tag</b>.\nIts second line." },
         { "type": "text", "text": "<p align='center'>A <b>bold</b> word</p>", "html": true },
         { "type": "text", "text": "$MyMod_Note" },
@@ -400,11 +400,11 @@ TEST_CASE("PackageLoader: a text, a spacer and an image are rows that hold no va
     CHECK(image(11).texture.empty());
 }
 
-TEST_CASE("PackageLoader: a button calls a function with its typed params, or runs a console command, with the text on its button")
+TEST_CASE("ConfigSpecLoader: a button calls a function with its typed params, or runs a console command, with the text on its button")
 {
     model::Translations translations;
     translations.add("$MyMod_Reset", "Reset");
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "button", "text": "Reset everything", "help": "Puts every value back.", "buttonText": "$MyMod_Reset",
           "action": { "type": "CallFunction", "form": "MyMod.esp|0x800", "scriptName": "MyMod:Config", "function": "ResetAll",
                       "params": [4, -2, 4.0, 1e2, true, "a text", "{i}5", "{value}"] } },
@@ -438,9 +438,9 @@ TEST_CASE("PackageLoader: a button calls a function with its typed params, or ru
     CHECK(std::get<model::Button>(items[2]).action == model::Action(model::ConsoleCommand{ "tm" }));
 }
 
-TEST_CASE("PackageLoader: a setting's action has the value written for each parameter that is {value}")
+TEST_CASE("ConfigSpecLoader: a setting's action has the value written for each parameter that is {value}")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "switcher", "text": "Automation", "storage": { "global": "MyMod.esp|1234" },
           "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "OnChanged", "params": ["{value}", 2, "a {value}", "{value}"] } },
         { "type": "slider", "valueType": "int", "text": "Count", "storage": { "path": ["Main", "iCount"] },
@@ -468,9 +468,9 @@ TEST_CASE("PackageLoader: a setting's action has the value written for each para
     CHECK(std::holds_alternative<model::UnknownAction>(settings[4].action));
 }
 
-TEST_CASE("PackageLoader: a button whose action the menu does not run, or is not written right, has the reason")
+TEST_CASE("ConfigSpecLoader: a button whose action the menu does not run, or is not written right, has the reason")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "button", "text": "Calibrate", "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "mode": "height" } } },
         { "type": "button", "text": "Flash", "action": { "type": "CallExternalFunction", "function": "Flash" } },
         { "type": "button", "text": "No type", "action": { "function": "ResetAll" } },
@@ -506,9 +506,9 @@ TEST_CASE("PackageLoader: a button whose action the menu does not run, or is not
                      });
 }
 
-TEST_CASE("PackageLoader: a button is shown by its visibleWhen and enabled by its enabledWhen, with those of its sections")
+TEST_CASE("ConfigSpecLoader: a button is shown by its visibleWhen and enabled by its enabledWhen, with those of its sections")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "id": "a", "type": "switcher", "text": "A", "default": true, "storage": { "path": ["Main", "bA"] } },
         {
             "type": "section", "text": "Tools", "enabledWhen": { "setting": "a", "equals": true },
@@ -528,11 +528,11 @@ TEST_CASE("PackageLoader: a button is shown by its visibleWhen and enabled by it
     CHECK(button.enabledWhen == Condition{ .kind = Kind::All, .setting = {}, .conditions = { compared(Kind::Equals, true), compared(Kind::NotEquals, false) } });
 }
 
-TEST_CASE("PackageLoader: a setting and a button have their warnings, each a text with its condition, in their order")
+TEST_CASE("ConfigSpecLoader: a setting and a button have their warnings, each a text with its condition, in their order")
 {
     model::Translations translations;
     translations.add("$MyMod_TooHigh", "Trop haut");
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "id": "height", "type": "slider", "text": "Height", "default": 1.3, "valueOptions": { "min": 0.5, "max": 2.0, "step": 0.01 },
           "storage": { "path": ["Main", "fHeight"] },
           "warnings": [
@@ -558,9 +558,9 @@ TEST_CASE("PackageLoader: a setting and a button have their warnings, each a tex
     CHECK(button.warnings[0].text == "Load the save again after it.");
 }
 
-TEST_CASE("PackageLoader: a warning with no text, or whose when is not a condition, is left out")
+TEST_CASE("ConfigSpecLoader: a warning with no text, or whose when is not a condition, is left out")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "id": "on", "type": "switcher", "text": "On", "default": true, "storage": { "path": ["Main", "bOn"] },
           "warnings": [
             { "when": { "setting": "on", "equals": true } },
@@ -579,11 +579,11 @@ TEST_CASE("PackageLoader: a warning with no text, or whose when is not a conditi
     CHECK(std::get<model::Setting>(mod.frontPage.items[1]).warnings.empty());
 }
 
-TEST_CASE("PackageLoader: a choice's options are texts that store their place, or objects with the value each stores")
+TEST_CASE("ConfigSpecLoader: a choice's options are texts that store their place, or objects with the value each stores")
 {
     model::Translations translations;
     translations.add("$MyMod_Offhand", "Offhand");
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "dropdown", "valueType": "int", "text": "Location", "default": 1, "valueOptions": { "options": ["Head", "$MyMod_Offhand", "Primary hand"] },
           "storage": { "path": ["Main", "iLocation"] } },
         { "type": "dropdown", "valueType": "string", "text": "Mode", "default": "hybrid",
@@ -609,9 +609,9 @@ TEST_CASE("PackageLoader: a choice's options are texts that store their place, o
     CHECK(settings[2].valueOptions.options == Options{ { 0.5f, "Small" }, { 1.0f, "Normal" } });
 }
 
-TEST_CASE("PackageLoader: an option that is not one of its choice's type is left out")
+TEST_CASE("ConfigSpecLoader: an option that is not one of its choice's type is left out")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "dropdown", "valueType": "string", "text": "Mode", "default": "a",
           "valueOptions": { "options": [ "Short", { "value": 1, "text": "A number" }, { "text": "No value" }, 7, { "value": "a", "text": "A" } ] },
           "storage": { "path": ["Main", "sMode"] } },
@@ -627,7 +627,7 @@ TEST_CASE("PackageLoader: an option that is not one of its choice's type is left
     CHECK(settings[1].valueOptions.options == Options{ { 0, "One" }, { 2, "Two" } });
 }
 
-TEST_CASE("PackageLoader: a choice has the options of the shared list it names, in any case")
+TEST_CASE("ConfigSpecLoader: a choice has the options of the shared list it names, in any case")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -656,9 +656,9 @@ TEST_CASE("PackageLoader: a choice has the options of the shared list it names, 
     CHECK(settings[4].valueOptions.options.empty());
 }
 
-TEST_CASE("PackageLoader: a choice reads its options in the game from a FormList or a property, by their place or their text")
+TEST_CASE("ConfigSpecLoader: a choice reads its options in the game from a FormList or a property, by their place or their text")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "dropdown", "text": "Settlement", "default": 3, "valueOptions": { "listFromForm": "MyMod.esp|0x900" }, "storage": { "path": ["Main", "a"] } },
         { "type": "stepper", "valueType": "string", "text": "Name", "default": "Sanctuary",
           "valueOptions": { "listFromProperty": { "form": "MyMod.esp|800", "scriptName": "MyMod:Config", "propertyName": "Names" } }, "storage": { "path": ["Main", "b"] } },
@@ -691,9 +691,9 @@ TEST_CASE("PackageLoader: a choice reads its options in the game from a FormList
     }
 }
 
-TEST_CASE("PackageLoader: a row is shown by its visibleWhen and a setting enabled by its enabledWhen, with every operator")
+TEST_CASE("ConfigSpecLoader: a row is shown by its visibleWhen and a setting enabled by its enabledWhen, with every operator")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "id": "enable", "type": "switcher", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
         { "type": "slider", "text": "Height", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.1 }, "storage": { "path": ["Main", "fHeight"] },
           "visibleWhen": { "setting": "Enable", "equals": true }, "enabledWhen": { "setting": "mode", "notEquals": "off" } },
@@ -715,7 +715,7 @@ TEST_CASE("PackageLoader: a row is shown by its visibleWhen and a setting enable
         return Condition{ .kind = kind, .setting = std::move(id), .conditions = {}, .offWhenNotAvailable = false, .values = std::move(values) };
     };
 
-    // a setting is named by its id in any case, also one after the row, and has its id as the package gives it
+    // a setting is named by its id in any case, also one after the row, and has its id as the config spec gives it
     const auto& height = std::get<model::Setting>(items[1]);
     CHECK(height.visibleWhen == compared(Kind::Equals, "enable", { true }));
     CHECK(height.enabledWhen == compared(Kind::NotEquals, "mode", { std::string("off") }));
@@ -736,9 +736,9 @@ TEST_CASE("PackageLoader: a row is shown by its visibleWhen and a setting enable
     CHECK(std::get<model::Text>(items[8]).visibleWhen == joined);
 }
 
-TEST_CASE("PackageLoader: a section's conditions are joined with those of every row in it, at every level")
+TEST_CASE("ConfigSpecLoader: a section's conditions are joined with those of every row in it, at every level")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "id": "a", "type": "switcher", "text": "A", "default": true, "storage": { "path": ["Main", "bA"] } },
         { "id": "b", "type": "switcher", "text": "B", "default": true, "storage": { "path": ["Main", "bB"] } },
         {
@@ -777,9 +777,9 @@ TEST_CASE("PackageLoader: a section's conditions are joined with those of every 
     CHECK(inInner.enabledWhen == all(equals("b", true), equals("a", false)));
 }
 
-TEST_CASE("PackageLoader: a condition that is not one is left out as a whole, so its row is shown and enabled")
+TEST_CASE("ConfigSpecLoader: a condition that is not one is left out as a whole, so its row is shown and enabled")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "id": "on", "type": "switcher", "text": "On", "default": true, "storage": { "path": ["Main", "bOn"] } },
         { "id": "name", "type": "textinput", "text": "Name", "default": "", "storage": { "path": ["Main", "sName"] } },
         { "type": "text", "text": "No such setting", "visibleWhen": { "setting": "missing", "equals": true } },
@@ -805,23 +805,23 @@ TEST_CASE("PackageLoader: a condition that is not one is left out as a whole, so
     CHECK_FALSE(std::get<model::Setting>(items[13]).enabledWhen);
 }
 
-TEST_CASE("PackageLoader: a condition on a plugin is answered as the package is read, and holds while the plugin is loaded")
+TEST_CASE("ConfigSpecLoader: a condition on a plugin is answered as the config spec is read, and holds while the plugin is loaded")
 {
-    const auto text = packageOf(R"(
+    const auto text = configSpecOf(R"(
         { "type": "text", "text": "Game plugin", "visibleWhen": { "plugin": "MyMod - ENB Patch.esp" } },
         { "type": "text", "text": "No game plugin", "visibleWhen": { "not": { "plugin": "Missing.esp" } } },
         { "type": "text", "text": "F4SE plugin", "visibleWhen": { "f4sePlugin": "F4VRBody" } },
         { "type": "text", "text": "No F4SE plugin", "visibleWhen": { "f4sePlugin": "Missing" } }
     )");
-    const package::PluginChecks plugins{ .isGamePluginLoaded =
-                                             [](const std::string_view plugin) {
-                                                 return plugin == "MyMod - ENB Patch.esp";
-                                             },
+    const spec::PluginChecks plugins{ .isGamePluginLoaded =
+                                          [](const std::string_view plugin) {
+                                              return plugin == "MyMod - ENB Patch.esp";
+                                          },
         .isF4sePluginLoaded =
             [](const std::string_view plugin) {
                 return plugin == "F4VRBody";
             } };
-    auto mod = package::loadPackage(text, {}, plugins);
+    auto mod = spec::loadConfigSpec(text, {}, plugins);
     REQUIRE(mod);
 
     // an All of none holds, and an Any of none does not
@@ -840,9 +840,9 @@ TEST_CASE("PackageLoader: a condition on a plugin is answered as the package is 
     CHECK(std::get<model::Text>(unchecked.frontPage.items[3]).visibleWhen == holds);
 }
 
-TEST_CASE("PackageLoader: a package whose required plugins are not all loaded is not available, and its reason names each that is not")
+TEST_CASE("ConfigSpecLoader: a config spec whose required plugins are not all loaded is not available, and its reason names each that is not")
 {
-    const auto packageRequiring = [](const std::string& game, const std::string& f4se) {
+    const auto configSpecRequiring = [](const std::string& game, const std::string& f4se) {
         return std::format(R"({{
             "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "help": "Its help.", "applies": "live",
             "pluginRequirements": [{}], "f4sePluginRequirements": [{}],
@@ -851,58 +851,58 @@ TEST_CASE("PackageLoader: a package whose required plugins are not all loaded is
             game,
             f4se);
     };
-    const package::PluginChecks plugins{ .isGamePluginLoaded =
-                                             [](const std::string_view plugin) {
-                                                 return plugin == "MyMod.esp";
-                                             },
+    const spec::PluginChecks plugins{ .isGamePluginLoaded =
+                                          [](const std::string_view plugin) {
+                                              return plugin == "MyMod.esp";
+                                          },
         .isF4sePluginLoaded =
             [](const std::string_view plugin) {
                 return plugin == "F4VRBody";
             } };
     const auto reason = [&plugins](const std::string& text) {
-        const auto mod = package::loadPackage(text, {}, plugins);
+        const auto mod = spec::loadConfigSpec(text, {}, plugins);
         REQUIRE(mod);
         return mod->notAvailable;
     };
 
     // every one is loaded, and a requirement that is no text is passed over
-    const auto mod = package::loadPackage(packageRequiring(R"("MyMod.esp", 5)", R"("F4VRBody")"), {}, plugins);
+    const auto mod = spec::loadConfigSpec(configSpecRequiring(R"("MyMod.esp", 5)", R"("F4VRBody")"), {}, plugins);
     REQUIRE(mod);
     CHECK(mod->notAvailable.empty());
     CHECK(mod->frontPage.items.size() == 1);
-    CHECK(reason(packageRequiring("", "")).empty());
+    CHECK(reason(configSpecRequiring("", "")).empty());
 
-    CHECK(reason(packageRequiring(R"("MyMod.esp", "SS2.esm")", "")) == "its plugin SS2.esm is not loaded");
-    CHECK(reason(packageRequiring(R"("A.esp", "MyMod.esp", "B.esm", "C.esl")", "")) == "its plugins A.esp, B.esm and C.esl are not loaded");
-    CHECK(reason(packageRequiring("", R"("F4VRBody", "MyMod")")) == "its F4SE plugin MyMod is not loaded");
-    CHECK(reason(packageRequiring("", R"("A", "B")")) == "its F4SE plugins A and B are not loaded");
-    CHECK(reason(packageRequiring(R"("SS2.esm")", R"("MyMod")")) == "its plugin SS2.esm and its F4SE plugin MyMod are not loaded");
+    CHECK(reason(configSpecRequiring(R"("MyMod.esp", "SS2.esm")", "")) == "its plugin SS2.esm is not loaded");
+    CHECK(reason(configSpecRequiring(R"("A.esp", "MyMod.esp", "B.esm", "C.esl")", "")) == "its plugins A.esp, B.esm and C.esl are not loaded");
+    CHECK(reason(configSpecRequiring("", R"("F4VRBody", "MyMod")")) == "its F4SE plugin MyMod is not loaded");
+    CHECK(reason(configSpecRequiring("", R"("A", "B")")) == "its F4SE plugins A and B are not loaded");
+    CHECK(reason(configSpecRequiring(R"("SS2.esm")", R"("MyMod")")) == "its plugin SS2.esm and its F4SE plugin MyMod are not loaded");
 
-    // one that is not available is its names and the reason alone, also one whose package is not right
-    const auto missing = package::loadPackage(packageRequiring(R"("SS2.esm")", ""), {}, plugins);
+    // one that is not available is its names and the reason alone, also one whose config spec is not right
+    const auto missing = spec::loadConfigSpec(configSpecRequiring(R"("SS2.esm")", ""), {}, plugins);
     REQUIRE(missing);
     CHECK(missing->name == "MyMod");
     CHECK(missing->displayName == "My Mod");
     CHECK(missing->help.empty());
     CHECK(missing->frontPage.items.empty());
-    CHECK(missing->source == model::Source::Package);
-    const auto noApplies = package::loadPackage(R"({ "minSchemaVersion": 1, "modName": "MyMod", "pluginRequirements": ["SS2.esm"], "content": [] })", {}, plugins);
+    CHECK(missing->source == model::Source::ConfigSpec);
+    const auto noApplies = spec::loadConfigSpec(R"({ "minSchemaVersion": 1, "modName": "MyMod", "pluginRequirements": ["SS2.esm"], "content": [] })", {}, plugins);
     REQUIRE(noApplies);
     CHECK(noApplies->notAvailable == "its plugin SS2.esm is not loaded");
 
     // with no checks every plugin is loaded
-    CHECK(loaded(packageRequiring(R"("SS2.esm")", R"("MyMod")")).notAvailable.empty());
+    CHECK(loaded(configSpecRequiring(R"("SS2.esm")", R"("MyMod")")).notAvailable.empty());
 }
 
-TEST_CASE("PackageLoader: a package's minSchemaVersion is required, and one that needs a newer schema than the menu reads is not available, with the version")
+TEST_CASE("ConfigSpecLoader: a config spec's minSchemaVersion is required, and one that needs a newer schema than the menu reads is not available, with the version")
 {
-    const auto packageOfVersion = [](const std::string& version) {
+    const auto configSpecOfVersion = [](const std::string& version) {
         return std::format(R"({{ "minSchemaVersion": {}, "modName": "MyMod", "displayName": "My Mod", "applies": "live", "content": [ {{ "type": "spacer" }} ] }})", version);
     };
     // the menu's own version and an older one are read
-    for (const auto version : { package::SCHEMA_VERSION, 1 }) {
+    for (const auto version : { spec::SCHEMA_VERSION, 1 }) {
         INFO(version);
-        const auto mod = loaded(packageOfVersion(std::to_string(version)));
+        const auto mod = loaded(configSpecOfVersion(std::to_string(version)));
         CHECK(mod.notAvailable.empty());
         CHECK(mod.frontPage.items.size() == 1);
     }
@@ -910,31 +910,31 @@ TEST_CASE("PackageLoader: a package's minSchemaVersion is required, and one that
     // it is required, and is a whole number from 1
     for (const auto& version : { "0"s, "-1"s, "\"9\""s, "1.5"s, "null"s }) {
         INFO(version);
-        CHECK(package::loadPackage(packageOfVersion(version)).error() == "No minSchemaVersion of a whole number from 1");
+        CHECK(spec::loadConfigSpec(configSpecOfVersion(version)).error() == "No minSchemaVersion of a whole number from 1");
     }
-    CHECK(package::loadPackage(R"({ "modName": "MyMod", "applies": "live", "content": [] })").error() == "No minSchemaVersion of a whole number from 1");
+    CHECK(spec::loadConfigSpec(R"({ "modName": "MyMod", "applies": "live", "content": [] })").error() == "No minSchemaVersion of a whole number from 1");
 
-    const auto newer = package::loadPackage(packageOfVersion(std::to_string(package::SCHEMA_VERSION + 1)));
+    const auto newer = spec::loadConfigSpec(configSpecOfVersion(std::to_string(spec::SCHEMA_VERSION + 1)));
     REQUIRE(newer);
-    CHECK(newer->notAvailable == std::format("its package needs a newer Mods Config VR, one that reads schema version {}", package::SCHEMA_VERSION + 1));
+    CHECK(newer->notAvailable == std::format("its spec.json needs a newer Mods Config VR, one that reads schema version {}", spec::SCHEMA_VERSION + 1));
     CHECK(newer->displayName == "My Mod");
     CHECK(newer->frontPage.items.empty());
 
-    // it is told before a plugin that is not loaded, and of a package that is not read as this version reads one
-    const auto noApplies = package::loadPackage(R"({ "minSchemaVersion": 99, "modName": "MyMod", "pluginRequirements": ["SS2.esm"] })",
+    // it is told before a plugin that is not loaded, and of a config spec that is not read as this version reads one
+    const auto noApplies = spec::loadConfigSpec(R"({ "minSchemaVersion": 99, "modName": "MyMod", "pluginRequirements": ["SS2.esm"] })",
         {},
-        package::PluginChecks{ .isGamePluginLoaded =
-                                   [](std::string_view) {
-                                       return false;
-                                   },
+        spec::PluginChecks{ .isGamePluginLoaded =
+                                [](std::string_view) {
+                                    return false;
+                                },
             .isF4sePluginLoaded = {} });
     REQUIRE(noApplies);
-    CHECK(noApplies->notAvailable == "its package needs a newer Mods Config VR, one that reads schema version 99");
+    CHECK(noApplies->notAvailable == "its spec.json needs a newer Mods Config VR, one that reads schema version 99");
 }
 
-TEST_CASE("PackageLoader: a slider and a switcher with no valueType have the type of their control")
+TEST_CASE("ConfigSpecLoader: a slider and a switcher with no valueType have the type of their control")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "switcher", "text": "Enable", "storage": { "path": ["Main", "bEnable"] } },
         { "type": "slider", "text": "Scale", "valueType": "number", "storage": { "path": ["Main", "fScale"] } }
     )"));
@@ -942,7 +942,7 @@ TEST_CASE("PackageLoader: a slider and a switcher with no valueType have the typ
     CHECK(std::get<model::Setting>(mod.frontPage.items[1]).valueType == model::StoredType::Float);
 }
 
-TEST_CASE("PackageLoader: a setting is kept in the file its storage names, or in the nearest defaultFile above it")
+TEST_CASE("ConfigSpecLoader: a setting is kept in the file its storage names, or in the nearest defaultFile above it")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -953,7 +953,7 @@ TEST_CASE("PackageLoader: a setting is kept in the file its storage names, or in
         },
         "defaultFile": "main",
         "content": [
-            { "type": "switcher", "text": "Package's", "storage": { "path": ["Main", "a"] } },
+            { "type": "switcher", "text": "Config spec's", "storage": { "path": ["Main", "a"] } },
             { "type": "switcher", "text": "Own", "storage": { "file": "advanced", "path": ["Main", "b"] } },
             {
                 "type": "section", "text": "Body", "defaultFile": "body",
@@ -975,16 +975,16 @@ TEST_CASE("PackageLoader: a setting is kept in the file its storage names, or in
     for (const auto& setting : settingsOf(mod)) {
         files.push_back(setting.text + " " + std::get<model::FileStorage>(setting.storage).file);
     }
-    CHECK(files == Lines{ "Package's main", "Own advanced", "Section's body", "Outer section's body", "Page's advanced", "Page above's advanced" });
+    CHECK(files == Lines{ "Config spec's main", "Own advanced", "Section's body", "Outer section's body", "Page's advanced", "Page above's advanced" });
 
     REQUIRE(mod.files.size() == 3);
     CHECK(mod.files.at("main") == model::File{ .format = model::FileFormat::Toml, .root = model::FileRoot::MyGames, .path = "Mods_Config/MyMod/MyMod.toml" });
     CHECK(mod.files.at("advanced") == model::File{ .format = model::FileFormat::Toml, .root = model::FileRoot::Data, .path = "F4SE/Plugins/MyMod/advanced.toml" });
 }
 
-TEST_CASE("PackageLoader: a value is named by its path, or by its section and its key as an INI key is")
+TEST_CASE("ConfigSpecLoader: a value is named by its path, or by its section and its key as an INI key is")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "switcher", "text": "Path", "storage": { "path": ["body", "hands", "bLeft"] } },
         { "type": "switcher", "text": "Key", "storage": { "section": "Holsters", "key": "bEnabled" } },
         { "type": "switcher", "text": "Root key", "storage": { "path": ["bTop"] } },
@@ -998,9 +998,9 @@ TEST_CASE("PackageLoader: a value is named by its path, or by its section and it
     CHECK(settings[3].storage == fileValue("main", { "Main", "bCase" }));
 }
 
-TEST_CASE("PackageLoader: a setting is kept in a global, or in a property of a script in the type of its value")
+TEST_CASE("ConfigSpecLoader: a setting is kept in a global, or in a property of a script in the type of its value")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "slider", "text": "Time of day", "storage": { "global": "Fallout4.esm|38" } },
         { "type": "switcher", "text": "Global with 0x", "storage": { "global": "MyMod.esp|0x1234" } },
         { "type": "slider", "valueType": "int", "text": "Property", "storage": { "form": "MyMod.esp|800", "scriptName": "MyMod:Config", "propertyName": "iCount" } },
@@ -1020,7 +1020,7 @@ TEST_CASE("PackageLoader: a setting is kept in a global, or in a property of a s
     }
 }
 
-TEST_CASE("PackageLoader: a setting that names no file of its package, or no value, is kept where the menu does not read")
+TEST_CASE("ConfigSpecLoader: a setting that names no file of its config spec, or no value, is kept where the menu does not read")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -1060,7 +1060,7 @@ TEST_CASE("PackageLoader: a setting that names no file of its package, or no val
                           "Property with no id unknown property" });
 }
 
-TEST_CASE("PackageLoader: a file that is not written as the schema has it is left out")
+TEST_CASE("ConfigSpecLoader: a file that is not written as the schema has it is left out")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -1090,9 +1090,9 @@ TEST_CASE("PackageLoader: a file that is not written as the schema has it is lef
     CHECK(std::get<model::UnknownStorage>(onlySetting(mod).storage).type == "file");
 }
 
-TEST_CASE("PackageLoader: a setting has its default in the type of its value, and none of another type")
+TEST_CASE("ConfigSpecLoader: a setting has its default in the type of its value, and none of another type")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "switcher", "text": "Bool", "default": true, "storage": { "path": ["Main", "a"] } },
         { "type": "slider", "valueType": "int", "text": "Int", "default": 217, "storage": { "path": ["Main", "b"] } },
         { "type": "slider", "text": "Float", "default": 0.5, "storage": { "path": ["Main", "c"] } },
@@ -1116,9 +1116,9 @@ TEST_CASE("PackageLoader: a setting has its default in the type of its value, an
     }
 }
 
-TEST_CASE("PackageLoader: a default that is not one of its setting's values is none, so the setting has no Reset")
+TEST_CASE("ConfigSpecLoader: a default that is not one of its setting's values is none, so the setting has no Reset")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "slider", "text": "At the least", "default": 0.5, "valueOptions": { "min": 0.5, "max": 1.5 }, "storage": { "path": ["Main", "a"] } },
         { "type": "slider", "valueType": "int", "text": "At the most", "default": 255, "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "b"] } },
         { "type": "slider", "text": "No range", "default": 7.0, "storage": { "path": ["Main", "c"] } },
@@ -1139,9 +1139,9 @@ TEST_CASE("PackageLoader: a default that is not one of its setting's values is n
     }
 }
 
-TEST_CASE("PackageLoader: a text input of a text has its least and its most characters, and a default of a length it allows")
+TEST_CASE("ConfigSpecLoader: a text input of a text has its least and its most characters, and a default of a length it allows")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "textinput", "text": "Limits", "default": "abc", "valueOptions": { "minLength": 2, "maxLength": 8 }, "storage": { "path": ["Main", "a"] } },
         { "type": "textinput", "text": "Not empty", "default": "a", "valueOptions": { "allowEmpty": false }, "storage": { "path": ["Main", "b"] } },
         { "type": "textinput", "text": "Not a length", "default": "", "valueOptions": { "minLength": -1, "maxLength": "8" }, "storage": { "path": ["Main", "c"] } },
@@ -1166,9 +1166,9 @@ TEST_CASE("PackageLoader: a text input of a text has its least and its most char
     }
 }
 
-TEST_CASE("PackageLoader: a read-only setting has no default, as it has no Reset")
+TEST_CASE("ConfigSpecLoader: a read-only setting has no default, as it has no Reset")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "slider", "text": "Measured", "readOnly": true, "storage": { "path": ["Main", "a"] } },
         { "type": "switcher", "text": "With a default", "readOnly": true, "default": true, "storage": { "path": ["Main", "b"] } },
         { "type": "switcher", "text": "Edited", "readOnly": false, "default": true, "storage": { "path": ["Main", "c"] } }
@@ -1183,11 +1183,11 @@ TEST_CASE("PackageLoader: a read-only setting has no default, as it has no Reset
     CHECK(settings[2].defaultValue == model::Value(true));
 }
 
-TEST_CASE("PackageLoader: a number's display has its decimals from 0 to 6, its unit, which is a text, and whether it is a percentage")
+TEST_CASE("ConfigSpecLoader: a number's display has its decimals from 0 to 6, its unit, which is a text, and whether it is a percentage")
 {
     model::Translations translations;
     translations.add("$MyMod_Meters", "meters");
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "slider", "text": "Height", "default": 1.0, "display": { "decimals": 2, "unit": "m" }, "storage": { "path": ["Main", "a"] } },
         { "type": "slider", "text": "Opacity", "default": 1.0, "display": { "percent": true }, "storage": { "path": ["Main", "b"] } },
         { "type": "textinput", "valueType": "float", "text": "Reach", "default": 1.0, "display": { "unit": { "token": "$MyMod_Meters", "fallback": "m" } },
@@ -1208,9 +1208,9 @@ TEST_CASE("PackageLoader: a number's display has its decimals from 0 to 6, its u
     }
 }
 
-TEST_CASE("PackageLoader: a setting has its author's id, or one from where its value is kept")
+TEST_CASE("ConfigSpecLoader: a setting has its author's id, or one from where its value is kept")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "id": "playerHeight", "type": "slider", "text": "Height", "storage": { "path": ["Body", "fHeight"] } },
         { "type": "switcher", "text": "Two names", "storage": { "path": ["Holsters", "bEnabled"] } },
         { "type": "switcher", "text": "Key", "storage": { "section": "Holsters", "key": "bLeft" } },
@@ -1224,9 +1224,9 @@ TEST_CASE("PackageLoader: a setting has its author's id, or one from where its v
     CHECK(ids == Lines{ "playerHeight", "bEnabled:Holsters", "bLeft:Holsters", "bLeft:body.hands", "bTop" });
 }
 
-TEST_CASE("PackageLoader: two settings whose ids are the same, in any case, are both kept")
+TEST_CASE("ConfigSpecLoader: two settings whose ids are the same, in any case, are both kept")
 {
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "switcher", "text": "First", "storage": { "path": ["Main", "bOn"] } },
         { "id": "BON:MAIN", "type": "switcher", "text": "Second", "storage": { "path": ["Other", "bOn"] } },
         { "id": "own", "type": "switcher", "text": "Third", "storage": { "path": ["Main", "bOn"] } }
@@ -1238,14 +1238,14 @@ TEST_CASE("PackageLoader: two settings whose ids are the same, in any case, are 
     CHECK(ids == Lines{ "bOn:Main", "BON:MAIN", "own" });
 }
 
-TEST_CASE("PackageLoader: a setting takes its own applies, or else the nearest above it")
+TEST_CASE("ConfigSpecLoader: a setting takes its own applies, or else the nearest above it")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
         "content": [
-            { "type": "switcher", "text": "Package's", "storage": { "path": ["Main", "a"] } },
+            { "type": "switcher", "text": "Config spec's", "storage": { "path": ["Main", "a"] } },
             { "type": "switcher", "text": "Own", "applies": "restart", "storage": { "path": ["Main", "b"] } },
             {
                 "type": "section", "text": "Hooks", "applies": "save",
@@ -1283,21 +1283,22 @@ TEST_CASE("PackageLoader: a setting takes its own applies, or else the nearest a
     for (const auto& setting : settingsOf(mod)) {
         applies.push_back(setting.text + " " + name(setting.applies));
     }
-    CHECK(applies ==
-          Lines{ "Package's live", "Own restart", "Section's save", "Outer section's save", "Own in a section live", "Not one live", "Page's restart", "Page above's restart" });
+    CHECK(
+        applies ==
+        Lines{ "Config spec's live", "Own restart", "Section's save", "Outer section's save", "Own in a section live", "Not one live", "Page's restart", "Page above's restart" });
 }
 
-TEST_CASE("PackageLoader: a package that cannot be read says why")
+TEST_CASE("ConfigSpecLoader: a config spec that cannot be read says why")
 {
-    CHECK(package::loadPackage("{ not json").error().starts_with("Not valid JSON"));
-    CHECK(package::loadPackage("[]").error() == "Not a JSON object");
-    CHECK(package::loadPackage(R"({ "applies": "live", "content": [] })").error() == "No modName");
+    CHECK(spec::loadConfigSpec("{ not json").error().starts_with("Not valid JSON"));
+    CHECK(spec::loadConfigSpec("[]").error() == "Not a JSON object");
+    CHECK(spec::loadConfigSpec(R"({ "applies": "live", "content": [] })").error() == "No modName");
     // applies is required at the root, and has to be one of the three
-    CHECK(package::loadPackage(R"({ "minSchemaVersion": 1, "modName": "MyMod", "content": [] })").error() == "No applies of live, save or restart");
-    CHECK(package::loadPackage(R"({ "minSchemaVersion": 1, "modName": "MyMod", "applies": "never", "content": [] })").error() == "No applies of live, save or restart");
+    CHECK(spec::loadConfigSpec(R"({ "minSchemaVersion": 1, "modName": "MyMod", "content": [] })").error() == "No applies of live, save or restart");
+    CHECK(spec::loadConfigSpec(R"({ "minSchemaVersion": 1, "modName": "MyMod", "applies": "never", "content": [] })").error() == "No applies of live, save or restart");
 }
 
-TEST_CASE("PackageLoader: a mod with no displayName is named by its modName, and comments are skipped")
+TEST_CASE("ConfigSpecLoader: a mod with no displayName is named by its modName, and comments are skipped")
 {
     const auto mod = loaded(R"({
         // a comment
@@ -1307,7 +1308,7 @@ TEST_CASE("PackageLoader: a mod with no displayName is named by its modName, and
     CHECK(mod.help.empty());
 }
 
-TEST_CASE("PackageLoader: a text is plain, a token, or a token with a fallback")
+TEST_CASE("ConfigSpecLoader: a text is plain, a token, or a token with a fallback")
 {
     model::Translations translations;
     translations.add("$MyMod_Name", "Mon mod");
@@ -1337,54 +1338,54 @@ TEST_CASE("PackageLoader: a text is plain, a token, or a token with a fallback")
     CHECK(mod.pages[0].help == "$MyMod_Missing");
 }
 
-TEST_CASE("PackageLoader: the package of every folder in the packages' folder is loaded")
+TEST_CASE("ConfigSpecLoader: the config spec of every folder in the config specs' folder is loaded")
 {
     const test_files::TempFolder folder;
-    folder.write("MyMod/config.json", packageOf(""));
-    folder.write("Other/config.json", R"({ "minSchemaVersion": 1, "modName": "Other", "applies": "save", "content": [] })");
-    folder.write("Broken/config.json", "{ not json");
-    folder.write("NoApplies/config.json", R"({ "minSchemaVersion": 1, "modName": "NoApplies", "content": [] })");
-    folder.write("NotAPackage/readme.txt", "nothing");
-    folder.write("config.json", "{}");
+    folder.write("MyMod/spec.json", configSpecOf(""));
+    folder.write("Other/spec.json", R"({ "minSchemaVersion": 1, "modName": "Other", "applies": "save", "content": [] })");
+    folder.write("Broken/spec.json", "{ not json");
+    folder.write("NoApplies/spec.json", R"({ "minSchemaVersion": 1, "modName": "NoApplies", "content": [] })");
+    folder.write("NotAConfigSpec/readme.txt", "nothing");
+    folder.write("spec.json", "{}");
 
-    auto mods = package::loadPackages(folder.path);
+    auto mods = spec::loadConfigSpecs(folder.path);
     std::ranges::sort(mods, {}, &model::Mod::name);
     Lines names;
     for (const auto& mod : mods) {
         names.push_back(mod.name + (mod.notAvailable.empty() ? "" : ": " + mod.notAvailable));
-        CHECK(mod.source == model::Source::Package);
+        CHECK(mod.source == model::Source::ConfigSpec);
     }
     // one that cannot be read is named by its folder
-    CHECK(names == Lines{ "Broken: its package cannot be read", "MyMod", "NoApplies: its package cannot be read", "Other" });
+    CHECK(names == Lines{ "Broken: its spec.json cannot be read", "MyMod", "NoApplies: its spec.json cannot be read", "Other" });
 }
 
-TEST_CASE("PackageLoader: two packages with one modName, in any case, are both not available")
+TEST_CASE("ConfigSpecLoader: two config specs with one modName, in any case, are both not available")
 {
     const test_files::TempFolder folder;
-    folder.write("First/config.json", R"({ "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live", "content": [ { "type": "spacer" } ] })");
-    folder.write("Second/config.json", R"({ "minSchemaVersion": 1, "modName": "MYMOD", "displayName": "My Other Mod", "applies": "live", "content": [] })");
-    folder.write("Third/config.json", R"({ "minSchemaVersion": 1, "modName": "Other", "applies": "live", "content": [] })");
+    folder.write("First/spec.json", R"({ "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live", "content": [ { "type": "spacer" } ] })");
+    folder.write("Second/spec.json", R"({ "minSchemaVersion": 1, "modName": "MYMOD", "displayName": "My Other Mod", "applies": "live", "content": [] })");
+    folder.write("Third/spec.json", R"({ "minSchemaVersion": 1, "modName": "Other", "applies": "live", "content": [] })");
 
-    auto mods = package::loadPackages(folder.path);
+    auto mods = spec::loadConfigSpecs(folder.path);
     std::ranges::sort(mods, {}, &model::Mod::displayName);
     REQUIRE(mods.size() == 3);
     CHECK(mods[0].displayName == "My Mod");
-    CHECK(mods[0].notAvailable == "its package has the modName of another package");
+    CHECK(mods[0].notAvailable == "another config spec has its modName");
     CHECK(mods[0].frontPage.items.empty());
     CHECK(mods[1].displayName == "My Other Mod");
-    CHECK(mods[1].notAvailable == "its package has the modName of another package");
+    CHECK(mods[1].notAvailable == "another config spec has its modName");
     CHECK(mods[2].notAvailable.empty());
 }
 
-TEST_CASE("PackageLoader: with no packages' folder there are no mods")
+TEST_CASE("ConfigSpecLoader: with no config specs' folder there are no mods")
 {
     const test_files::TempFolder folder;
-    CHECK(package::loadPackages(folder.path / "missing").empty());
+    CHECK(spec::loadConfigSpecs(folder.path / "missing").empty());
 }
 
-TEST_CASE("PackageLoader: the mod's own package edits keys of its shipped TOML, with the defaults it ships")
+TEST_CASE("ConfigSpecLoader: the mod's own config spec edits keys of its shipped TOML, with the defaults it ships")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
     REQUIRE(mods.size() == 1);
     const auto& mod = mods[0];
     CHECK(mod.notAvailable.empty());
@@ -1406,9 +1407,9 @@ TEST_CASE("PackageLoader: the mod's own package edits keys of its shipped TOML, 
     CHECK(ids.size() >= 10);
 }
 
-TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file has the default of each of its settings")
+TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped file has the default of each of its settings")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const auto& mod = mods[0];
     CHECK(mod.notAvailable.empty());
@@ -1438,7 +1439,7 @@ TEST_CASE("PackageLoader: the package showcase is loaded, and its shipped file h
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,
     // and a read-only setting needs none
-    const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR) / "ModsConfigVR_Showcase" / "showcase.toml"));
+    const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR) / "ModsConfigVR_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
     std::size_t readOnly = 0;
@@ -1482,7 +1483,7 @@ namespace
     }
 }
 
-TEST_CASE("PackageLoader: a problem names its row, the pages and the row it is on, and its path in config.json")
+TEST_CASE("ConfigSpecLoader: a problem names its row, the pages and the row it is on, and its path in spec.json")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -1498,16 +1499,16 @@ TEST_CASE("PackageLoader: a problem names its row, the pages and the row it is o
         ]
     })");
     CHECK(problemLines(mod) == Lines{ "E On the front page: It has no storage: it is not available. [On the front page] content[0]",
-                                   "E config.json: The file \"bad\" is left out: its format 'yaml' is not ini, json or toml. Its settings are not available. [] files.bad",
+                                   "E spec.json: The file \"bad\" is left out: its format 'yaml' is not ini, json or toml. Its settings are not available. [] files.bad",
                                    "E Beam angle: It has no storage: it is not available. [Beam \xE2\x80\xBA Beam angle] pages[0].content[0].content[0]",
                                    "W spacer: Unknown field \"lines\": it is not read. [Beam \xE2\x80\xBA Color \xE2\x80\xBA spacer] pages[0].pages[0].content[0].lines",
                                    "W Beam: Unknown field \"visibleWen\": it is not read. Did you mean \"visibleWhen\"? [Beam] pages[0].visibleWen" });
 }
 
-TEST_CASE("PackageLoader: a field the schema does not have is a warning, with the field it is near, and one the menu does not read yet is none")
+TEST_CASE("ConfigSpecLoader: a field the schema does not have is a warning, with the field it is near, and one the menu does not read yet is none")
 {
     const auto mod = loaded(R"({
-        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "category": "Visuals", "packageVersion": 3, "Help": "Near help",
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "category": "Visuals", "specVersion": 3, "Help": "Near help",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml", "encoding": "utf-8" } },
         "defaultFile": "main",
         "sharedLists": { "hands": [ { "value": 0, "text": "Left", "shorttext": "L" } ] },
@@ -1522,7 +1523,7 @@ TEST_CASE("PackageLoader: a field the schema does not have is a warning, with th
             { "type": "text", "text": { "token": "$Missing", "fallback": "Shown", "fallbak": "x" } }
         ]
     })");
-    CHECK(problemLines(mod) == Lines{ "W config.json: Unknown field \"Help\": it is not read. Did you mean \"help\"? [] Help",
+    CHECK(problemLines(mod) == Lines{ "W spec.json: Unknown field \"Help\": it is not read. Did you mean \"help\"? [] Help",
                                    "W Hand: Unknown field \"fil\": it is not read. Did you mean \"file\"? [Hand] content[0].storage.fil",
                                    "W Hand: Unknown field \"wrap\": it is not read. [Hand] content[0].valueOptions.wrap",
                                    "W Place: Unknown field \"decimal\": it is not read. Did you mean \"decimals\"? [Place] content[1].display.decimal",
@@ -1531,15 +1532,15 @@ TEST_CASE("PackageLoader: a field the schema does not have is a warning, with th
                                    "W Reset: Unknown field \"comand\": it is not read. Did you mean \"command\"? [Reset] content[2].action.comand",
                                    "W Reset: Unknown field \"dangerus\": it is not read. Did you mean \"dangerous\"? [Reset] content[2].confirmation.dangerus",
                                    "W Shown: Unknown field \"fallbak\": it is not read. Did you mean \"fallback\"? [Shown] content[3].text.fallbak",
-                                   "W config.json: Unknown field \"encoding\": it is not read. [] files.main.encoding",
-                                   "W config.json: Unknown field \"shorttext\": it is not read. Did you mean \"shortText\"? [] sharedLists.hands[0].shorttext" });
+                                   "W spec.json: Unknown field \"encoding\": it is not read. [] files.main.encoding",
+                                   "W spec.json: Unknown field \"shorttext\": it is not read. Did you mean \"shortText\"? [] sharedLists.hands[0].shorttext" });
 }
 
-TEST_CASE("PackageLoader: a token with no translation and no fallback is a warning, and is shown as it is written")
+TEST_CASE("ConfigSpecLoader: a token with no translation and no fallback is a warning, and is shown as it is written")
 {
     model::Translations translations;
     translations.add("$MyMod_Known", "Known");
-    const auto mod = loaded(packageOf(R"(
+    const auto mod = loaded(configSpecOf(R"(
         { "type": "text", "text": "$MyMod_Known" },
         { "type": "text", "text": { "token": "$MyMod_Fallback", "fallback": "With a fallback" } },
         { "type": "text", "text": "Plain" },
@@ -1552,7 +1553,7 @@ TEST_CASE("PackageLoader: a token with no translation and no fallback is a warni
               "W $MyMod_Missing: The token $MyMod_Missing has no translation and no fallback: it is shown as it is written. [$MyMod_Missing] content[3].text" });
 }
 
-TEST_CASE("PackageLoader: a package's problems are in the order of its config.json, its conditions with its rows")
+TEST_CASE("ConfigSpecLoader: a config spec's problems are in the order of its spec.json, its conditions with its rows")
 {
     std::string rows;
     for (int place = 0; place < 11; ++place) {
@@ -1560,37 +1561,37 @@ TEST_CASE("PackageLoader: a package's problems are in the order of its config.js
     }
     rows += R"({ "type": "spacer", "height": 1 })";
     Lines paths;
-    for (const auto& problem : loaded(packageOf(rows)).problems) {
+    for (const auto& problem : loaded(configSpecOf(rows)).problems) {
         paths.push_back(problem.path);
     }
     CHECK(paths == Lines{ "content[2].visibleWhen", "content[10].visibleWhen", "content[11].height" });
 }
 
-TEST_CASE("PackageLoader: a package that cannot be read, and two with one modName, have their problem")
+TEST_CASE("ConfigSpecLoader: a config spec that cannot be read, and two with one modName, have their problem")
 {
     const test_files::TempFolder folder;
-    folder.write("Broken/config.json", "{ not json");
-    folder.write("First/config.json", R"({ "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "content": [] })");
-    folder.write("Second/config.json", R"({ "minSchemaVersion": 1, "modName": "mymod", "applies": "live", "content": [] })");
+    folder.write("Broken/spec.json", "{ not json");
+    folder.write("First/spec.json", R"({ "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "content": [] })");
+    folder.write("Second/spec.json", R"({ "minSchemaVersion": 1, "modName": "mymod", "applies": "live", "content": [] })");
 
-    auto mods = package::loadPackages(folder.path);
+    auto mods = spec::loadConfigSpecs(folder.path);
     std::ranges::sort(mods, {}, &model::Mod::name);
     REQUIRE(mods.size() == 3);
     REQUIRE(mods[0].problems.size() == 1);
-    CHECK(mods[0].problems[0].row == "config.json");
+    CHECK(mods[0].problems[0].row == "spec.json");
     CHECK(mods[0].problems[0].message.starts_with("It cannot be read: Not valid JSON: "));
     for (const std::size_t place : { 1u, 2u }) {
-        CHECK(problemLines(mods[place]) == Lines{ std::format("E config.json: Another package has the modName \"{}\": neither is read. [] modName", mods[place].name) });
+        CHECK(problemLines(mods[place]) == Lines{ std::format("E spec.json: Another config spec has the modName \"{}\": neither is read. [] modName", mods[place].name) });
     }
 }
 
-TEST_CASE("PackageLoader: the mod's own package has no problems, and the package showcase's are on its Mistakes page")
+TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the config spec showcase's are on its Mistakes page")
 {
-    const auto own = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);
+    const auto own = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
     REQUIRE(own.size() == 1);
     CHECK(problemLines(own[0]).empty());
 
-    const auto showcase = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto showcase = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(showcase.size() == 1);
     Lines elsewhere;
     std::size_t errors = 0;
@@ -1607,10 +1608,10 @@ TEST_CASE("PackageLoader: the mod's own package has no problems, and the package
     CHECK(warnings >= 10);
 }
 
-TEST_CASE("PackageLoader: a choice with listFromClientCallback takes its options from its mod's client, with any default of its type")
+TEST_CASE("ConfigSpecLoader: a choice with listFromClientCallback takes its options from its mod's client, with any default of its type")
 {
-    const auto mod = loaded(packageOf(R"(
-        { "type": "dropdown", "valueType": "string", "text": "Package", "default": "anything", "valueOptions": { "listFromClientCallback": true },
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "dropdown", "valueType": "string", "text": "Config spec", "default": "anything", "valueOptions": { "listFromClientCallback": true },
           "storage": { "path": ["a"] } },
         { "type": "stepper", "valueType": "int", "text": "Not true", "default": 0, "valueOptions": { "listFromClientCallback": false },
           "storage": { "path": ["b"] } }
@@ -1620,13 +1621,13 @@ TEST_CASE("PackageLoader: a choice with listFromClientCallback takes its options
     CHECK(client.valueOptions.options.empty());
     CHECK(client.defaultValue == model::Value("anything"s));
     CHECK_FALSE(std::get<model::Setting>(mod.frontPage.items[1]).valueOptions.clientOptions);
-    CHECK(problemLines(mod) == Lines{ "E Not true: It has no list of options, or names no shared list of its package: it has no options. [Not true] content[1].valueOptions" });
+    CHECK(problemLines(mod) == Lines{ "E Not true: It has no list of options, or names no shared list of its config spec: it has no options. [Not true] content[1].valueOptions" });
 }
 
-TEST_CASE("PackageLoader: a problem on a row has the row's place, by its page and its items, and the folder of a package is kept")
+TEST_CASE("ConfigSpecLoader: a problem on a row has the row's place, by its page and its items, and the folder of a config spec is kept")
 {
     const test_files::TempFolder folder;
-    folder.write("MyFolder/config.json", R"({
+    folder.write("MyFolder/spec.json", R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "Typo": 1,
         "content": [ { "type": "spacer" }, { "type": "spacer", "lines": 1 } ],
         "pages": [
@@ -1641,7 +1642,7 @@ TEST_CASE("PackageLoader: a problem on a row has the row's place, by its page an
             }
         ]
     })");
-    const auto mods = package::loadPackages(folder.path);
+    const auto mods = spec::loadConfigSpecs(folder.path);
     REQUIRE(mods.size() == 1);
     CHECK(mods[0].folder == "MyFolder");
     Lines places;

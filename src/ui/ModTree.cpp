@@ -126,7 +126,7 @@ namespace mods_config::ui
      * and so are the pages of a page of it that is open.
      * A mod that is not available is a disabled row, in its place, which says why while the ray is on it.
      * Returns what a pressed row selects, and the row the ray is on where it has something to say: the reason
-     * of a mod that is not available, or the help of a mod or a page, which a package gives them.
+     * of a mod that is not available, or the help of a mod or a page, which a config spec gives them.
      */
     TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height)
     {

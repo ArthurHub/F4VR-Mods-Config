@@ -22,8 +22,8 @@
 #include "TestProperties.h"
 #include "Theme.h"
 #include "mcm/McmStore.h"
-#include "package/PackageLoader.h"
-#include "package/PackageStore.h"
+#include "spec/ConfigSpecLoader.h"
+#include "spec/ConfigSpecStore.h"
 #include "ui/FullPanel.h"
 
 using namespace mods_config;
@@ -450,16 +450,16 @@ namespace
         return { right - static_cast<float>(place) * (BUTTON_MIN_WIDTH + theme::SPACE_2) - theme::SPACE_4, bottom - theme::CONTROL_HEIGHT * 0.5f };
     }
 
-    // the file of the mod of `twoPackages`, under the folder of My Games
+    // the file of the mod of `twoConfigSpecs`, under the folder of My Games
     constexpr auto MY_MOD_FILE = R"(Mods_Config\MyMod\MyMod.toml)";
 
     /**
-     * A panel with two packages, shown on the front page of the first, with their values in a store: My Mod
+     * A panel with two config specs, shown on the front page of the first, with their values in a store: My Mod
      * with a switcher of its file and a text input of a number from 0.5 to 2.5, and Other Mod with a text.
      */
-    FullPanel twoPackages(package::PackageStore& store)
+    FullPanel twoConfigSpecs(spec::ConfigSpecStore& store)
     {
-        auto mod = package::loadPackage(R"({
+        auto mod = spec::loadConfigSpec(R"({
             "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
             "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
             "defaultFile": "main",
@@ -469,14 +469,14 @@ namespace
                   "storage": { "path": ["Main", "fHeight"] } }
             ]
         })");
-        auto other = package::loadPackage(R"({
+        auto other = spec::loadConfigSpec(R"({
             "minSchemaVersion": 1, "modName": "OtherMod", "displayName": "Other Mod", "applies": "save",
             "content": [ { "type": "text", "text": "Nothing to set." } ]
         })");
         REQUIRE(mod);
         REQUIRE(other);
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods({ std::move(*mod), std::move(*other) });
         panel.select(selectionOf(0));
         return panel;
@@ -1270,14 +1270,14 @@ TEST_CASE("FullPanel: the help line says why a button is not run")
     CHECK(panel.helpLine().text() == "Notify: Not available: the menu has no Flash.");
 }
 
-TEST_CASE("FullPanel: a package's button runs its console command while its enabledWhen holds on the pending values")
+TEST_CASE("FullPanel: a config spec's button runs its console command while its enabledWhen holds on the pending values")
 {
     const test_panel::PanelContext context;
     test_actions::TestActions actions;
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -1290,7 +1290,7 @@ TEST_CASE("FullPanel: a package's button runs its console command while its enab
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -1712,13 +1712,13 @@ TEST_CASE("FullPanel: a row is edited while its enabledWhen holds, and is disabl
     CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
 }
 
-TEST_CASE("FullPanel: a package's row whose condition on a plugin does not hold is hidden, with no store")
+TEST_CASE("FullPanel: a config spec's row whose condition on a plugin does not hold is hidden, with no store")
 {
     const test_panel::PanelContext context;
 
     // a condition on a plugin that is not loaded is an Any of none, which does not hold
     auto mod = modOf("Alpha");
-    mod.source = model::Source::Package;
+    mod.source = model::Source::ConfigSpec;
     mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Needs a plugin", 0x800));
     std::get<model::Setting>(mod.frontPage.items.back()).visibleWhen = model::Condition{ .kind = model::Condition::Kind::Any, .setting = {}, .conditions = {} };
     mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "After", 0x801));
@@ -2249,13 +2249,13 @@ TEST_CASE("FullPanel: a mod's editing session ends as the mod is left, and as th
     CHECK(events.sent.size() == 1);
 }
 
-TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line counts while the ray is on no row")
+TEST_CASE("FullPanel: a config spec's changes wait for a Save, which the help line counts while the ray is on no row")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\nbOther = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2266,7 +2266,7 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2293,14 +2293,14 @@ TEST_CASE("FullPanel: a package's changes wait for a Save, which the help line c
     CHECK(panel.helpLine().statusLook() == ui::StatusLook::Plain);
 }
 
-TEST_CASE("FullPanel: a package's setting says when its change takes effect, and the status counts the ones that take effect after a restart, until the next change")
+TEST_CASE("FullPanel: a config spec's setting says when its change takes effect, and the status counts the ones that take effect after a restart, until the next change")
 {
     const test_panel::PanelContext context;
     const test_globals::TestGlobals globals = someGlobals();
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2314,7 +2314,7 @@ TEST_CASE("FullPanel: a package's setting says when its change takes effect, and
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2359,14 +2359,14 @@ TEST_CASE("FullPanel: a package's setting says when its change takes effect, and
     CHECK(panel.helpLine().status() == "No unsaved changes");
 }
 
-TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them back, and both are disabled while none waits")
+TEST_CASE("FullPanel: Save writes a config spec's changes and Discard takes them back, and both are disabled while none waits")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2374,7 +2374,7 @@ TEST_CASE("FullPanel: Save writes a package's changes and Discard takes them bac
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2407,8 +2407,8 @@ TEST_CASE("FullPanel: a change that is invalid disables Save, and the status say
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfHeight = 1.5\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2420,7 +2420,7 @@ TEST_CASE("FullPanel: a change that is invalid disables Save, and the status say
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2452,8 +2452,8 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
     const test_files::TempFolder myGames;
     const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\nbOther = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2464,7 +2464,7 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2515,8 +2515,8 @@ TEST_CASE("FullPanel: a mod with unsaved changes asks before another mod or the 
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto panel = twoPackages(store);
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = twoConfigSpecs(store);
     drawFrames(panel, 2);
     CHECK(pressActs(panel, pageRow(0)));
 
@@ -2562,8 +2562,8 @@ TEST_CASE("FullPanel: the dialog's Discard takes the changes back and its Save w
     const test_files::TempFolder myGames;
     const auto file = myGames.path / MY_MOD_FILE;
     myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto panel = twoPackages(store);
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = twoConfigSpecs(store);
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, pageRow(0)));
@@ -2595,8 +2595,8 @@ TEST_CASE("FullPanel: Close asks first while the mod has unsaved changes, and th
     const test_files::TempFolder myGames;
     const auto file = myGames.path / MY_MOD_FILE;
     myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto panel = twoPackages(store);
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = twoConfigSpecs(store);
     int closed = 0;
     panel.setMenuActions({ .minimize = {}, .close = [&closed] {
                               ++closed;
@@ -2635,8 +2635,8 @@ TEST_CASE("FullPanel: the dialog's Save that fails stays on the mod with the rea
     const test_files::TempFolder myGames;
     const auto file = myGames.path / MY_MOD_FILE;
     myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\nfHeight = 1.5\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto panel = twoPackages(store);
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = twoConfigSpecs(store);
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, pageRow(0)));
@@ -2677,13 +2677,13 @@ TEST_CASE("FullPanel: an MCM mod's changes are saved as they are made, so it is 
     CHECK(panel.selection() == selectionOf(1));
 }
 
-TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, and its Reset sets the default")
+TEST_CASE("FullPanel: an invalid value of a config spec has its reason as its help, and its Reset sets the default")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = \"yes\"\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2691,7 +2691,7 @@ TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, 
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2712,13 +2712,13 @@ TEST_CASE("FullPanel: an invalid value of a package has its reason as its help, 
     CHECK(store.value(setting).value == model::Value(true));
 }
 
-TEST_CASE("FullPanel: a package's read-only setting is not changed by a press or the thumbstick, and the help line says it is read-only")
+TEST_CASE("FullPanel: a config spec's read-only setting is not changed by a press or the thumbstick, and the help line says it is read-only")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfHeight = 1.78\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2730,7 +2730,7 @@ TEST_CASE("FullPanel: a package's read-only setting is not changed by a press or
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2754,13 +2754,13 @@ TEST_CASE("FullPanel: a package's read-only setting is not changed by a press or
     CHECK(store.dirtyCount() == 0);
 }
 
-TEST_CASE("FullPanel: a package's setting and button tell the first warning that holds on the pending values before their help, and an invalid value tells none")
+TEST_CASE("FullPanel: a config spec's setting and button tell the first warning that holds on the pending values before their help, and an invalid value tells none")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbShadows = false\r\nbBad = \"yes\"\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2776,7 +2776,7 @@ TEST_CASE("FullPanel: a package's setting and button tell the first warning that
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2807,8 +2807,8 @@ TEST_CASE("FullPanel: the help line writes a number as its display does, with a 
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\niOpacity = 217\r\nfDistance = 250000.0\r\nfHeight = 1.5\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2823,7 +2823,7 @@ TEST_CASE("FullPanel: the help line writes a number as its display does, with a 
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2838,14 +2838,14 @@ TEST_CASE("FullPanel: the help line writes a number as its display does, with a 
     CHECK(panel.helpLine().text() == "Height: Takes effect after Save. (Default: 1.75 m)");
 }
 
-TEST_CASE("FullPanel: a package's Reset is a change as any other, which Save writes and Discard takes back")
+TEST_CASE("FullPanel: a config spec's Reset is a change as any other, which Save writes and Discard takes back")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfScale = 1.5\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -2856,7 +2856,7 @@ TEST_CASE("FullPanel: a package's Reset is a change as any other, which Save wri
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
@@ -2897,23 +2897,23 @@ TEST_CASE("FullPanel: a package's Reset is a change as any other, which Save wri
     CHECK(panel.helpLine().status() == "No unsaved changes");
 }
 
-TEST_CASE("FullPanel: with no package store none of a package's values is available, and the MCM store's session ends for it")
+TEST_CASE("FullPanel: with no config spec store none of a config spec's values is available, and the MCM store's session ends for it")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
     test_events::TestEvents events;
     mcm::McmStore store;
-    auto package = modOf("Package");
-    package.source = model::Source::Package;
-    package.frontPage.items.push_back(model::Setting{ .type = model::SettingType::Switcher, .text = "Holsters", .help = "Draw at the body.", .valueOptions = {} });
+    auto configSpec = modOf("Config spec");
+    configSpec.source = model::Source::ConfigSpec;
+    configSpec.frontPage.items.push_back(model::Setting{ .type = model::SettingType::Switcher, .text = "Holsters", .help = "Draw at the body.", .valueOptions = {} });
     auto panel = modWithValues(store);
     auto mods = panel.mods();
-    mods.push_back(std::move(package));
+    mods.push_back(std::move(configSpec));
     panel.setMods(std::move(mods));
     panel.select(selectionOf(0));
     events.sent.clear();
 
-    // Alpha, Beta, Package
+    // Alpha, Beta, Config spec
     panel.select(selectionOf(2));
     CHECK(events.sent == Names{ "OnMCMMenuClose|Alpha" });
     CHECK(panel.helpLine().status().empty());
@@ -3038,15 +3038,15 @@ TEST_CASE("FullPanel: the help line names the default of the row the ray is on, 
 namespace
 {
     /**
-     * A package's mod with sections that fold, shown on its front page, with its values in a TOML file of a
+     * A config spec's mod with sections that fold, shown on its front page, with its values in a TOML file of a
      * My Games folder. Its rows: a switcher, the heading of Advanced, which starts folded and has a switcher
      * whose value is invalid and another in it, the heading of Open, which starts open and has a switcher in
      * it, that switcher, and the heading of a section with a help that does not fold. The mod has a page with no rows.
      */
-    FullPanel modWithFolds(package::PackageStore& store, const test_files::TempFolder& myGames)
+    FullPanel modWithFolds(spec::ConfigSpecStore& store, const test_files::TempFolder& myGames)
     {
         myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = true\r\nbInvalid = \"yes\"\r\nbInner = false\r\nbShown = false\r\n");
-        auto mod = package::loadPackage(R"({
+        auto mod = spec::loadConfigSpec(R"({
             "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
             "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
             "defaultFile": "main",
@@ -3065,7 +3065,7 @@ namespace
         })");
         REQUIRE(mod);
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods({ std::move(*mod) });
         panel.select(selectionOf(0));
         return panel;
@@ -3076,7 +3076,7 @@ TEST_CASE("FullPanel: a section that folds starts as its collapsed says, and a p
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
-    package::PackageStore store({}, myGames.path);
+    spec::ConfigSpecStore store({}, myGames.path);
     auto panel = modWithFolds(store, myGames);
     drawFrames(panel, 2);
 
@@ -3104,7 +3104,7 @@ TEST_CASE("FullPanel: a section that folds starts as its collapsed says each tim
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
-    package::PackageStore store({}, myGames.path);
+    spec::ConfigSpecStore store({}, myGames.path);
     auto panel = modWithFolds(store, myGames);
     // Advanced is opened and Open is folded, and then the page is shown again
     const auto foldBoth = [&panel] {
@@ -3137,7 +3137,7 @@ TEST_CASE("FullPanel: the help line says what a folded section hides: its invali
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
-    package::PackageStore store({}, myGames.path);
+    spec::ConfigSpecStore store({}, myGames.path);
     auto panel = modWithFolds(store, myGames);
     drawFrames(panel, 2);
 
@@ -3166,13 +3166,13 @@ TEST_CASE("FullPanel: the help line says what a folded section hides: its invali
 namespace
 {
     /**
-     * A package's mod, as the loader gives it, with its problems: an error and a warning for each count.
+     * A config spec's mod, as the loader gives it, with its problems: an error and a warning for each count.
      */
-    model::Mod packageWith(const std::string& name, const int errors, const int warnings, const std::string& notAvailable = {})
+    model::Mod configSpecWith(const std::string& name, const int errors, const int warnings, const std::string& notAvailable = {})
     {
-        model::Mod mod{ .name = name, .displayName = name, .notAvailable = notAvailable, .source = model::Source::Package };
+        model::Mod mod{ .name = name, .displayName = name, .notAvailable = notAvailable, .source = model::Source::ConfigSpec };
         for (int i = 0; i < errors; ++i) {
-            mod.problems.push_back({ .severity = model::Severity::Error, .row = "config.json", .message = "It cannot be read: line 4.", .where = {}, .path = {} });
+            mod.problems.push_back({ .severity = model::Severity::Error, .row = "spec.json", .message = "It cannot be read: line 4.", .where = {}, .path = {} });
         }
         for (int i = 0; i < warnings; ++i) {
             mod.problems.push_back({ .severity = model::Severity::Warning, .row = "A row", .message = "Unknown field.", .where = {}, .path = {} });
@@ -3181,18 +3181,18 @@ namespace
     }
 
     /**
-     * The menu's front page with Developer tools on: an MCM mod, a package with an error and two warnings, one
+     * The menu's front page with Developer tools on: an MCM mod, a config spec with an error and two warnings, one
      * with a warning, one with none, one that cannot be read, and one whose plugin is not loaded.
      */
     FullPanel developerPanel(ui::DeveloperView view, std::vector<ui::DeveloperView>& written)
     {
         std::vector<model::Mod> mods;
         mods.push_back(modOf("An MCM mod"));
-        mods.push_back(packageWith("Beam", 1, 2));
-        mods.push_back(packageWith("Clean", 0, 0));
-        mods.push_back(packageWith("Hands", 0, 1));
-        mods.push_back(packageWith("Holsters", 1, 0, "its package cannot be read"));
-        mods.push_back(packageWith("Settlements", 0, 0, "its plugin SS2.esm is not loaded"));
+        mods.push_back(configSpecWith("Beam", 1, 2));
+        mods.push_back(configSpecWith("Clean", 0, 0));
+        mods.push_back(configSpecWith("Hands", 0, 1));
+        mods.push_back(configSpecWith("Holsters", 1, 0, "its spec.json cannot be read"));
+        mods.push_back(configSpecWith("Settlements", 0, 0, "its plugin SS2.esm is not loaded"));
         FullPanel panel;
         panel.setMods(std::move(mods));
         view.enabled = true;
@@ -3218,9 +3218,9 @@ namespace
     }
 
     /**
-     * The names of the packages the Developer section lists, by the rows the ray finds under its filter.
+     * The names of the config specs the Developer section lists, by the rows the ray finds under its filter.
      */
-    Names listedPackages(FullPanel& panel)
+    Names listedConfigSpecs(FullPanel& panel)
     {
         Names names;
         for (const auto* name : { "An MCM mod", "Beam", "Clean", "Hands", "Holsters", "Settlements" }) {
@@ -3232,7 +3232,7 @@ namespace
     }
 }
 
-TEST_CASE("FullPanel: with Developer tools on, the front page lists the packages that need attention, with their errors and warnings")
+TEST_CASE("FullPanel: with Developer tools on, the front page lists the config specs that need attention, with their errors and warnings")
 {
     const test_panel::PanelContext context;
     std::vector<ui::DeveloperView> written;
@@ -3247,9 +3247,9 @@ TEST_CASE("FullPanel: with Developer tools on, the front page lists the packages
 
     auto panel = developerPanel({}, written);
     drawFrames(panel, 2);
-    CHECK(rowWithHelp(panel, "Developer: The problems of each package"));
-    CHECK(rowWithHelp(panel, "Show: Which packages this section lists"));
-    CHECK(listedPackages(panel) == Names{ "Beam", "Hands", "Holsters" });
+    CHECK(rowWithHelp(panel, "Developer: The problems of each config spec"));
+    CHECK(rowWithHelp(panel, "Show: Which config specs this section lists"));
+    CHECK(listedConfigSpecs(panel) == Names{ "Beam", "Hands", "Holsters" });
 
     rowWithHelp(panel, "Beam:");
     CHECK(panel.helpLine().text() == "Beam: 1 error: parts of it are left out. 2 warnings: read, and likely not what is meant. Opens its report.");
@@ -3260,30 +3260,30 @@ TEST_CASE("FullPanel: with Developer tools on, the front page lists the packages
     CHECK(written.empty());
 }
 
-TEST_CASE("FullPanel: the Developer section's filter steps to all the packages and to the one the settings name, and its fold is written at once")
+TEST_CASE("FullPanel: the Developer section's filter steps to all the config specs and to the one the settings name, and its fold is written at once")
 {
     const test_panel::PanelContext context;
     std::vector<ui::DeveloperView> written;
-    auto panel = developerPanel({ .enabled = true, .show = ui::ShowPackages::NeedingAttention, .package = "hands", .folded = false }, written);
+    auto panel = developerPanel({ .enabled = true, .show = ui::ShowConfigSpecs::NeedingAttention, .configSpec = "hands", .folded = false }, written);
     drawFrames(panel, 2);
 
     // a press on the filter's row goes to the option after, which is written
     const auto filter = rowWithHelp(panel, "Show:");
     REQUIRE(filter);
     CHECK(pressActs(panel, *filter));
-    CHECK(panel.developerView().show == ui::ShowPackages::All);
+    CHECK(panel.developerView().show == ui::ShowConfigSpecs::All);
     REQUIRE(written.size() == 1);
-    CHECK(written.back().show == ui::ShowPackages::All);
-    CHECK(listedPackages(panel) == Names{ "Beam", "Clean", "Hands", "Holsters", "Settlements" });
+    CHECK(written.back().show == ui::ShowConfigSpecs::All);
+    CHECK(listedConfigSpecs(panel) == Names{ "Beam", "Clean", "Hands", "Holsters", "Settlements" });
     rowWithHelp(panel, "Settlements:");
     CHECK(panel.helpLine().text() == "Settlements: Not available: its plugin SS2.esm is not loaded. Opens its report.");
     rowWithHelp(panel, "Clean:");
     CHECK(panel.helpLine().text() == "Clean: No problems. Opens its report.");
 
-    // the third option is the package the settings name, alone
+    // the third option is the config spec the settings name, alone
     CHECK(pressActs(panel, *rowWithHelp(panel, "Show:")));
-    CHECK(panel.developerView().show == ui::ShowPackages::OnlyOne);
-    CHECK(listedPackages(panel) == Names{ "Hands" });
+    CHECK(panel.developerView().show == ui::ShowConfigSpecs::OnlyOne);
+    CHECK(listedConfigSpecs(panel) == Names{ "Hands" });
 
     // a press on the heading folds it, with no rows under it, and its help counts what it hides
     const auto heading = rowWithHelp(panel, "Developer:");
@@ -3295,27 +3295,27 @@ TEST_CASE("FullPanel: the Developer section's filter steps to all the packages a
     CHECK(panel.helpLine().text().ends_with(" Folded: 1 warning."));
 }
 
-TEST_CASE("FullPanel: the Developer section's filter has no option of a package the settings do not name")
+TEST_CASE("FullPanel: the Developer section's filter has no option of a config spec the settings do not name")
 {
     const test_panel::PanelContext context;
     std::vector<ui::DeveloperView> written;
-    auto panel = developerPanel({ .enabled = true, .show = ui::ShowPackages::All, .package = "", .folded = false }, written);
+    auto panel = developerPanel({ .enabled = true, .show = ui::ShowConfigSpecs::All, .configSpec = "", .folded = false }, written);
     drawFrames(panel, 2);
     // from All, the option after is the first again
     CHECK(pressActs(panel, *rowWithHelp(panel, "Show:")));
-    CHECK(panel.developerView().show == ui::ShowPackages::NeedingAttention);
+    CHECK(panel.developerView().show == ui::ShowConfigSpecs::NeedingAttention);
 }
 
 namespace
 {
     /**
-     * The menu's front page with Developer tools on, and one package with problems: a switcher with no storage
-     * in a section of its page Beam, and an unknown field of a row of its front page, which a package store
+     * The menu's front page with Developer tools on, and one config spec with problems: a switcher with no storage
+     * in a section of its page Beam, and an unknown field of a row of its front page, which a config spec store
      * has the values of.
      */
-    FullPanel reportPanel(package::PackageStore& store)
+    FullPanel reportPanel(spec::ConfigSpecStore& store)
     {
-        auto mod = package::loadPackage(R"({
+        auto mod = spec::loadConfigSpec(R"({
             "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
             "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
             "defaultFile": "main",
@@ -3330,18 +3330,18 @@ namespace
         REQUIRE(mod);
         mod->folder = "MyFolder";
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods({ std::move(*mod) });
-        panel.setDeveloper({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false }, {});
+        panel.setDeveloper({ .enabled = true, .show = ui::ShowConfigSpecs::All, .configSpec = {}, .folded = false }, {});
         return panel;
     }
 }
 
-TEST_CASE("FullPanel: a press on a package of the Developer section opens its report, whose problems tell where they are, and Back goes back")
+TEST_CASE("FullPanel: a press on a config spec of the Developer section opens its report, whose problems tell where they are, and Back goes back")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
-    package::PackageStore store({}, myGames.path);
+    spec::ConfigSpecStore store({}, myGames.path);
     auto panel = reportPanel(store);
     drawFrames(panel, 2);
 
@@ -3374,7 +3374,7 @@ TEST_CASE("FullPanel: a press on a problem of a report shows its row's page, wit
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
-    package::PackageStore store({}, myGames.path);
+    spec::ConfigSpecStore store({}, myGames.path);
     auto panel = reportPanel(store);
     drawFrames(panel, 2);
     CHECK(panel.openReport(0));
@@ -3406,20 +3406,20 @@ TEST_CASE("FullPanel: a press on a problem of a report shows its row's page, wit
     CHECK(store.dirtyCount() == 0);
 }
 
-TEST_CASE("FullPanel: a report of a package that cannot be read tells its error as one, and has no row to go to")
+TEST_CASE("FullPanel: a report of a config spec that cannot be read tells its error as one, and has no row to go to")
 {
     const test_panel::PanelContext context;
-    model::Mod broken{ .name = "Broken", .displayName = "Broken", .notAvailable = "its package cannot be read", .source = model::Source::Package };
-    broken.problems.push_back({ .severity = model::Severity::Error, .row = "config.json", .message = "It cannot be read: line 4.", .where = {}, .path = {} });
+    model::Mod broken{ .name = "Broken", .displayName = "Broken", .notAvailable = "its spec.json cannot be read", .source = model::Source::ConfigSpec };
+    broken.problems.push_back({ .severity = model::Severity::Error, .row = "spec.json", .message = "It cannot be read: line 4.", .where = {}, .path = {} });
     FullPanel panel;
     panel.setMods({ std::move(broken) });
-    panel.setDeveloper({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false }, {});
+    panel.setDeveloper({ .enabled = true, .show = ui::ShowConfigSpecs::All, .configSpec = {}, .folded = false }, {});
     drawFrames(panel, 2);
     CHECK(panel.openReport(0));
     drawFrames(panel, 2);
-    const auto row = rowWithHelp(panel, "config.json:");
+    const auto row = rowWithHelp(panel, "spec.json:");
     REQUIRE(row);
-    CHECK(panel.helpLine().text() == "config.json: It cannot be read: line 4.");
+    CHECK(panel.helpLine().text() == "spec.json: It cannot be read: line 4.");
     CHECK(panel.helpLine().isInvalid());
     CHECK_FALSE(pressActs(panel, *row));
     CHECK(panel.report() == 0u);

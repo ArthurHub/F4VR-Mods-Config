@@ -34,8 +34,8 @@ namespace
     // where the wrist buttons lie, from the framework's place on the wrist: position, then degrees around x, y and z
     const RE::NiTransform WRIST_BUTTONS_OFFSET = common::MatrixUtils::getTransform(0, 0, 0, 0, 0, 0);
 
-    // the id of the Package setting of the menu's own package, whose options the menu gives
-    constexpr auto DEVELOPER_PACKAGE_ID = "developerPackage";
+    // the id of the Config spec setting of the menu's own config spec, whose options the menu gives
+    constexpr auto DEVELOPER_CONFIG_SPEC_ID = "developerConfigSpec";
 
     /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
@@ -58,15 +58,15 @@ namespace
 namespace mods_config
 {
     /**
-     * The menu, closed. It registers the callback of its own package's Package setting, whose options are the
-     * packages the menu lists: none first, then each package, by its modName and its name, in their order.
+     * The menu, closed. It registers the callback of its own config spec's Config spec setting, whose options are the
+     * config specs the menu lists: none first, then each config spec, by its modName and its name, in their order.
      */
     ConfigMenu::ConfigMenu()
     {
-        _packageStore.addClientOptions(Version::PROJECT, DEVELOPER_PACKAGE_ID, [this](const model::Setting&) {
+        _configSpecStore.addClientOptions(Version::PROJECT, DEVELOPER_CONFIG_SPEC_ID, [this](const model::Setting&) {
             std::vector<model::Option> options{ { .value = std::string(), .text = "None" } };
             for (const auto& mod : _fullPanel.mods()) {
-                if (mod.source == model::Source::Package) {
+                if (mod.source == model::Source::ConfigSpec) {
                     options.push_back({ .value = mod.name, .text = mod.displayName });
                 }
             }
@@ -113,7 +113,7 @@ namespace mods_config
         _wristButtons.reset();
         _minimizeButton.reset();
         _imageTextures.clear();
-        _packageTextures.clear();
+        _configSpecTextures.clear();
         // the mod that is shown is left, which its scripts are told before they are told of the menu
         _fullPanel.reset();
         _store.menuClosed();
@@ -279,7 +279,7 @@ namespace mods_config
                     _closeRequested = true;
                 } });
         _fullPanel.setStore(model::Source::Mcm, &_store);
-        _fullPanel.setStore(model::Source::Package, &_packageStore);
+        _fullPanel.setStore(model::Source::ConfigSpec, &_configSpecStore);
         _fullPanel.setImageDrawer({ .textureSize =
                                         [this](const std::string& texture) {
                                             return textureSize(texture);
@@ -367,7 +367,7 @@ namespace mods_config
 
     /**
      * Draws an image of a mod's page in the panel: an MCM image with a texture that is made from its pixels
-     * when it is first drawn, and a package's with its texture. Called while the panel's content is drawn.
+     * when it is first drawn, and a config spec's with its texture. Called while the panel's content is drawn.
      */
     void ConfigMenu::drawImage(const model::Image& image, const ImVec2& min, const ImVec2& max)
     {
@@ -384,7 +384,7 @@ namespace mods_config
     }
 
     /**
-     * The size of a package's texture in its pixels. None while the game has no view of it, as for a file
+     * The size of a config spec's texture in its pixels. None while the game has no view of it, as for a file
      * that is not there, whose reason the log has. Called while the panel's content is drawn, on the game thread.
      */
     std::optional<ImVec2> ConfigMenu::textureSize(const std::string& texture)
@@ -397,14 +397,14 @@ namespace mods_config
     }
 
     /**
-     * A package's texture, by its path under `Data/Textures`, which the game loads the first time its view is asked
+     * A config spec's texture, by its path under `Data/Textures`, which the game loads the first time its view is asked
      * for: from a loose file or a BA2 archive, as a texture of a mesh is.
      */
     render::Texture& ConfigMenu::textureOf(const std::string& texture)
     {
-        auto& loaded = _packageTextures[texture];
+        auto& loaded = _configSpecTextures[texture];
         if (!loaded) {
-            // a package's path has `/` between its folders, and the game's has `\`
+            // a config spec's path has `/` between its folders, and the game's has `\`
             auto path = R"(Data\Textures\)" + texture;
             std::ranges::replace(path, '/', '\\');
             loaded = render::Texture::load(path);

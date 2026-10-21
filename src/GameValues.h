@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
-// The values a store reads and writes in the game, for a setting of an MCM mod and of a package. The mod's are
+// The values a store reads and writes in the game, for a setting of an MCM mod and of a config spec. The mod's are
 // in GameGlobals.cpp and GameProperties.cpp, and the tests' in tests/TestGlobals.cpp and
 // tests/TestProperties.cpp, which keep them in a map.
 namespace mods_config

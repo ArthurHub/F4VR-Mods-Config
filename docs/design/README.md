@@ -7,8 +7,8 @@ These documents capture the current product and architecture decisions. The orde
 ## Documents
 
 - [Architecture and lifecycle](architecture.md) — goals, integration model, persistence, Save semantics, APIs, and MCM compatibility.
-- [The settings model](model.md) — what the UI draws and the store it asks for every value, checked against an MCM global, a value of a package, and an activation sphere.
-- [Declarative schema](schema.md) — package discovery, files, pages, settings, storage, conditions, buttons, localization, validation, and what a package has beyond MCM.
+- [The settings model](model.md) — what the UI draws and the store it asks for every value, checked against an MCM global, a value of a config spec, and an activation sphere.
+- [Declarative schema](schema.md) — config spec discovery, files, pages, settings, storage, conditions, buttons, localization, validation, and what a config spec has beyond MCM.
 - [MCM support](mcm.md) — every feature of an MCM config and of MCM VR, and how the menu handles each.
 - [Controls](controls.md) — core controls, their value semantics, and specialized CommonFramework controls reserved for later design.
 - [UI and VR interaction](ui-and-vr-interaction.md) — opening the menu; full, focused, and minimized modes; world placement; pointing; editing; and low-fidelity wireframes.
@@ -41,9 +41,9 @@ Designs that are written and published to the design system but that Arthur has 
 - [Choice of files](controls.md#choice-of-files) — a dropdown of a folder's files, with a texture's thumbnail, written in the form the value had. Design system: [FileChoice](design-system/project/components/FileChoice/README.md).
 - [Transform](controls.md#transform) — position and rotation on two lines in the row; an editor of steppers with a step size, and In the world. Open: tuning another mod's key in the world is framework work. Design system: [Transform](design-system/project/components/Transform/README.md).
 - [ActivationSphere](controls.md#activationsphere) — a section drawn as one group with the sphere's mark: zones, actions, and its look folded; the sphere lit in the world while the ray is on it. Open: the client needs a group event to light it. Design system: [ActivationSphere](design-system/project/components/ActivationSphere/README.md).
-- [Developer tools](ui-and-vr-interaction.md#developer-tools) — for a package's author, behind a switch in the menu's own settings: a Developer section on the front page that folds, with a filter (needing attention, all, or one package) and each package's errors and warnings, and a package's report with its problems, each going to its row, and a live copy of its `config.json` that is read again as it is saved. Design system: [Developer](design-system/project/components/Developer/README.md), [FullPanelDeveloper](design-system/project/components/FullPanelDeveloper/README.md) and [FullPanelPackageReport](design-system/project/components/FullPanelPackageReport/README.md).
+- [Developer tools](ui-and-vr-interaction.md#developer-tools) — for a config spec's author, behind a switch in the menu's own settings: a Developer section on the front page that folds, with a filter (needing attention, all, or one config spec) and each config spec's errors and warnings, and a config spec's report with its problems, each going to its row, and a live copy of its `spec.json` that is read again as it is saved. Design system: [Developer](design-system/project/components/Developer/README.md), [FullPanelDeveloper](design-system/project/components/FullPanelDeveloper/README.md) and [FullPanelConfigSpecReport](design-system/project/components/FullPanelConfigSpecReport/README.md).
 - [Rows and their indent](design-system/project/components/SettingRow/README.md) — no gutter: a row's marks follow its name (the Restart tag, the pending dot, then the warning or the invalid mark, or a button's result). Every row is set in `space-3` from the content's left, under a heading or not, and a heading starts `space-1` in. A section in a section is a level further, with its rule stopping short of its rows. The Developer report's problems have no mark and are set in as rows. Design system: [SettingRow](design-system/project/components/SettingRow/README.md) and [SectionHeader](design-system/project/components/SectionHeader/README.md).
-- Not designed yet, beside these: Immersive Flashlight's flags value, `sFlashlightFlagsBitmask`, which needs the package to name each flag.
+- Not designed yet, beside these: Immersive Flashlight's flags value, `sFlashlightFlagsBitmask`, which needs the config spec to name each flag.
 
 ## Not in the design system yet
 
@@ -64,16 +64,16 @@ Done in the code, and still to be drawn in the design system. A note leaves this
 - C++ namespace: `mods_config`
 - Data root: `Data/ModsConfigVR`
 
-The F4SE plugin name, the Papyrus script name, and the data root are public: other mods address messages to the first, call functions on the second, and install packages under the third.
+The F4SE plugin name, the Papyrus script name, and the data root are public: other mods address messages to the first, call functions on the second, and install config specs under the third.
 
 ## Design principles
 
 - Fallout 4 VR only. Flat Fallout 4 is not supported and not planned.
 - VR-native pointing and interaction, without exposing a desktop-style fake mouse to the player.
 - Mods own their settings and their real configuration files. Mods Config VR does not create a second settings store.
-- A declarative JSON package should be sufficient for ordinary settings menus.
+- A declarative JSON config spec should be sufficient for ordinary settings menus.
 - A restricted C++ API adds live preview, functions that buttons run, and the handoff to a mod's own UI.
-- A script-only mod needs only a package: its scripts read the saved values through Papyrus functions that Mods Config VR provides, or keep them in globals and properties, as an MCM mod does.
+- A script-only mod needs only a config spec: its scripts read the saved values through Papyrus functions that Mods Config VR provides, or keep them in globals and properties, as an MCM mod does.
 - Existing MCM menus retain their established storage and event behavior through a bridge to the installed MCM.
 - The game keeps running while the menu is open, so a change that the mod acts on at once is seen as it is made.
 - The architecture should leave room for advanced features without requiring them in the initial implementation.

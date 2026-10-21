@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 // The actions a store runs in a test, which has no game: TestActions.cpp is the tests' own `callFunction` and
 // `runConsoleCommand`, in place of the mod's.

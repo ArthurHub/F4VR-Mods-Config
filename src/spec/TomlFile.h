@@ -8,10 +8,10 @@
 
 #include "ModFile.h"
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
-     * A TOML file of a package's mod. A value is read by its path, in the type of its setting, and new values are
+     * A TOML file of a config spec's mod. A value is read by its path, in the type of its setting, and new values are
      * written into the file's text where the old ones are, with the framework's `common::TomlEditor`: its comments,
      * its blank lines, the order of its keys and how its other values are written stay as they are.
      */

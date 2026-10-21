@@ -27,8 +27,8 @@
 #include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
 #include "model/TextMarkup.h"
-#include "package/PackageLoader.h"
-#include "package/PackageStore.h"
+#include "spec/ConfigSpecLoader.h"
+#include "spec/ConfigSpecStore.h"
 #include "ui/FullPanel.h"
 
 // The Full panel drawn without the game and saved as an image, to look at a change of the UI before it is tried
@@ -261,7 +261,7 @@ namespace
     }
 
     /**
-     * A texture of the package showcase, by its path under its Textures folder, as the game loads it: read from
+     * A texture of the config spec showcase, by its path under its Textures folder, as the game loads it: read from
      * its DDS file, whose pixels are not compressed, as blue, green, red and alpha from the top row. None for a
      * file that is not there or not of that form. A file is read once.
      */
@@ -272,7 +272,7 @@ namespace
             return found->second.get();
         }
         auto& kept = textures[texture];
-        const auto file = std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path() / "Textures" / texture;
+        const auto file = std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path() / "Textures" / texture;
         std::ifstream stream(file, std::ios::binary);
         const std::vector<std::uint8_t> bytes{ std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
         const auto read = [&bytes](const std::size_t at) {
@@ -308,8 +308,8 @@ namespace
     std::string renderToFile(FullPanel& panel, const std::string& name, const ImVec2 pointer, const bool pressed = false, const std::function<void()>& before = {})
     {
         const test_panel::PanelContext context;
-        // an image is drawn with its pixels as its texture, which the rasterizer reads. A package's texture is
-        // the package showcase's, and any other is not there
+        // an image is drawn with its pixels as its texture, which the rasterizer reads. A config spec's texture is
+        // the config spec showcase's, and any other is not there
         panel.setImageDrawer({ .textureSize = [](const std::string& texture) -> std::optional<ImVec2> {
                                   const auto* pixels = showcaseTexture(texture);
                                   return pixels ? std::optional(ImVec2(static_cast<float>(pixels->width), static_cast<float>(pixels->height))) : std::nullopt;
@@ -646,57 +646,57 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     }
 }
 
-TEST_CASE("FullPanel render: the pages of the mod's own package, with the ray on the row of a page with a help", "[.render]")
+TEST_CASE("FullPanel render: the pages of the mod's own config spec, with the ray on the row of a page with a help", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
     REQUIRE(mods.size() == 1);
     // its values are the shipped config's, in a My Games folder of its own
     const test_files::TempFolder myGames;
     const auto configFolder = myGames.path / "Mods_Config" / "ModsConfigVR";
     std::filesystem::create_directories(configFolder);
     std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, configFolder / "ModsConfigVR.toml");
-    package::PackageStore store({}, myGames.path);
+    spec::ConfigSpecStore store({}, myGames.path);
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
     const auto render = [&mods, &store](std::vector<std::size_t> page, const std::string& name, const ImVec2& pointer) {
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         panel.select({ .mod = 0, .page = std::move(page) });
         WARN("Saved " << renderToFile(panel, name, pointer));
     };
-    // the second row of the tree, which is the package's first page
+    // the second row of the tree, which is the config spec's first page
     const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
     const ImVec2 onPage(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, rowsTop + theme::CONTROL_HEIGHT + theme::SPACE_1 + theme::CONTROL_HEIGHT * 0.5f);
-    render({}, "package-front-page", onPage);
+    render({}, "config-spec-front-page", onPage);
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
-        render({ page }, std::format("package-page-{}", page + 1), POINTER_AWAY);
+        render({ page }, std::format("config-spec-page-{}", page + 1), POINTER_AWAY);
     }
 }
 
-TEST_CASE("FullPanel render: the pages of the package showcase", "[.render]")
+TEST_CASE("FullPanel render: the pages of the config spec showcase", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     // its files are in the Data folder it is, and its file of My Games is not there
     const test_files::TempFolder myGames;
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
     const auto render = [&mods, &store](const std::vector<std::size_t>& page, const std::string& name) {
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         panel.select({ .mod = 0, .page = page });
         WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
     };
-    render({}, "package-showcase-front-page");
-    // each page, and the pages under it, as package-showcase-page-7-1-1
+    render({}, "config-spec-showcase-front-page");
+    // each page, and the pages under it, as config-spec-showcase-page-7-1-1
     std::vector<std::size_t> page;
     const auto renderPages = [&render, &page](this const auto& self, const std::vector<model::Page>& pages) -> void {
         for (std::size_t place = 0; place < pages.size(); ++place) {
             page.push_back(place);
-            std::string name = "package-showcase-page";
+            std::string name = "config-spec-showcase-page";
             for (const auto at : page) {
                 name += std::format("-{}", at + 1);
             }
@@ -708,14 +708,14 @@ TEST_CASE("FullPanel render: the pages of the package showcase", "[.render]")
     renderPages(mods[0].pages);
 }
 
-TEST_CASE("FullPanel render: the front page of the package showcase with values that wait for a Save", "[.render]")
+TEST_CASE("FullPanel render: the front page of the config spec showcase with values that wait for a Save", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
     panel.select({ .mod = 0, .page = {} });
 
@@ -750,12 +750,12 @@ TEST_CASE("FullPanel render: the front page of the package showcase with values 
     };
     change(panel.mods()[0].frontPage.items, change);
     REQUIRE(store.dirtyCount() > 0);
-    WARN("Saved " << renderToFile(panel, "package-showcase-pending", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-showcase-pending", POINTER_AWAY));
 
     // the dialog that asks before the menu is closed, with the ray on Discard
     panel.close();
     REQUIRE(panel.isAsking());
-    WARN("Saved " << renderToFile(panel, "package-showcase-close-dialog", ImVec2(test_panel::PANEL_WIDTH * 0.5f + 140.0f, test_panel::PANEL_HEIGHT * 0.5f + 60.0f)));
+    WARN("Saved " << renderToFile(panel, "config-spec-showcase-close-dialog", ImVec2(test_panel::PANEL_WIDTH * 0.5f + 140.0f, test_panel::PANEL_HEIGHT * 0.5f + 60.0f)));
 
     // and one with an invalid change, which disables Save, before the menu's front page
     const auto numberInput = [](const std::vector<model::Item>& items, const auto& self) -> const model::Setting* {
@@ -778,7 +778,7 @@ TEST_CASE("FullPanel render: the front page of the package showcase with values 
     panel.back();
     panel.select({});
     REQUIRE(panel.isAsking());
-    WARN("Saved " << renderToFile(panel, "package-showcase-leave-dialog-invalid", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-showcase-leave-dialog-invalid", POINTER_AWAY));
 }
 
 TEST_CASE("FullPanel render: a Save that failed, with a short reason and with one that wraps", "[.render]")
@@ -786,8 +786,8 @@ TEST_CASE("FullPanel render: a Save that failed, with a short reason and with on
     const test_files::TempFolder myGames;
     const auto file = myGames.path / "Mods_Config" / "MyMod" / "MyMod.toml";
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbEnable = false\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -795,7 +795,7 @@ TEST_CASE("FullPanel render: a Save that failed, with a short reason and with on
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select({ .mod = 0, .page = {} });
     store.set(std::get<model::Setting>(panel.mods()[0].frontPage.items[0]), true);
@@ -804,19 +804,19 @@ TEST_CASE("FullPanel render: a Save that failed, with a short reason and with on
         const test_files::ReadOnly readOnly(file);
         REQUIRE_FALSE(store.save());
     }
-    WARN("Saved " << renderToFile(panel, "package-save-failed", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-save-failed", POINTER_AWAY));
 
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main\r\nbEnable = false\r\n");
     REQUIRE_FALSE(store.save());
-    WARN("Saved " << renderToFile(panel, "package-save-failed-long", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-save-failed-long", POINTER_AWAY));
 }
 
 TEST_CASE("FullPanel render: settings that take effect after a restart, their status before and after the Save, and the notice of the menu's front page", "[.render]")
 {
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "Immersive Flashlight VR", "applies": "save",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -835,17 +835,17 @@ TEST_CASE("FullPanel render: settings that take effect after a restart, their st
     mods.push_back(std::move(*mod));
     mods.push_back(model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .frontPage = {}, .pages = {}, .notAvailable = "its plugin SS2.esm is not loaded" });
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(std::move(mods));
     panel.select({ .mod = 0, .page = {} });
     const auto& items = panel.mods()[0].frontPage.items;
     store.set(std::get<model::Setting>(items[0]), 4096);
     store.set(std::get<model::Setting>(items[1]), 1.25f);
 
-    WARN("Saved " << renderToFile(panel, "package-restart-row", pageRow(0)));
-    WARN("Saved " << renderToFile(panel, "package-restart-pending", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-restart-row", pageRow(0)));
+    WARN("Saved " << renderToFile(panel, "config-spec-restart-pending", POINTER_AWAY));
     REQUIRE(store.save());
-    WARN("Saved " << renderToFile(panel, "package-restart-saved", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-restart-saved", POINTER_AWAY));
     panel.select({});
     WARN("Saved " << renderToFile(panel, "front-page-restart-notice", POINTER_AWAY));
 
@@ -862,8 +862,8 @@ TEST_CASE("FullPanel render: values the player typed that are not valid, which d
 {
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nsName = \"Standing\"\r\nfHeight = 1.78\r\niCount = 3\r\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
         "defaultFile": "main",
@@ -880,7 +880,7 @@ TEST_CASE("FullPanel render: values the player typed that are not valid, which d
     // the ray on a row that is invalid, which has the reason, and away, where the status counts them
     for (const bool onRow : { true, false }) {
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods({ *mod });
         panel.select({ .mod = 0, .page = {} });
         const auto& items = panel.mods()[0].frontPage.items;
@@ -888,13 +888,13 @@ TEST_CASE("FullPanel render: values the player typed that are not valid, which d
         store.set(std::get<model::Setting>(items[1]), "3"s);
         store.set(std::get<model::Setting>(items[2]), "4.5"s);
         REQUIRE(store.invalidCount() == 3);
-        WARN("Saved " << renderToFile(panel, onRow ? "package-invalid-typed" : "package-invalid-typed-status", onRow ? pageRow(1) : POINTER_AWAY));
+        WARN("Saved " << renderToFile(panel, onRow ? "config-spec-invalid-typed" : "config-spec-invalid-typed-status", onRow ? pageRow(1) : POINTER_AWAY));
         store.discard();
     }
 
     // the name is typed past its most, which keeps only what fits
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ *mod });
     panel.select({ .mod = 0, .page = {} });
     const auto edit = [&panel] {
@@ -903,17 +903,17 @@ TEST_CASE("FullPanel render: values the player typed that are not valid, which d
         }
         ImGui::GetIO().AddInputCharactersUTF8(" and seated");
     };
-    WARN("Saved " << renderToFile(panel, "package-text-input-most", POINTER_AWAY, false, edit));
+    WARN("Saved " << renderToFile(panel, "config-spec-text-input-most", POINTER_AWAY, false, edit));
 }
 
-TEST_CASE("FullPanel render: the values of the package showcase's file that are not the settings'", "[.render]")
+TEST_CASE("FullPanel render: the values of the config spec showcase's file that are not the settings'", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
     select(panel, "Mods Config VR: Showcase", { "Detailed Examples", "Files" });
 
@@ -925,20 +925,21 @@ TEST_CASE("FullPanel render: the values of the package showcase's file that are 
         test_panel::drawFrame(panel, pageRow(3));
         test_panel::drawFrame(panel, pageRow(7));
     };
-    WARN("Saved " << renderToFile(panel, "package-showcase-invalid", POINTER_AWAY, false, scrollToEnd));
+    WARN("Saved " << renderToFile(panel, "config-spec-showcase-invalid", POINTER_AWAY, false, scrollToEnd));
 }
 
-TEST_CASE("FullPanel render: the ends of the package showcase's pages of rows that hold no value, and of its textures that are not there", "[.render]")
+TEST_CASE("FullPanel render: the ends of the config spec showcase's pages of rows that hold no value, and of its textures that are not there", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
 
     // the images are at the end of each page: the thumbstick scrolls the page the ray is on
-    for (const auto& [pageName, name] : { std::pair{ "Text, spacers and images", "package-showcase-images" }, std::pair{ "Mistakes", "package-showcase-missing-textures" } }) {
+    for (const auto& [pageName, name] :
+        { std::pair{ "Text, spacers and images", "config-spec-showcase-images" }, std::pair{ "Mistakes", "config-spec-showcase-missing-textures" } }) {
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         select(panel, "Mods Config VR: Showcase", { "Detailed Examples", pageName });
         const auto scrollToEnd = [&panel] {
@@ -951,20 +952,20 @@ TEST_CASE("FullPanel render: the ends of the package showcase's pages of rows th
     }
 }
 
-TEST_CASE("FullPanel render: the ends of the package showcase's pages of numbers, of read-only settings and of buttons, with the ray on a row", "[.render]")
+TEST_CASE("FullPanel render: the ends of the config spec showcase's pages of numbers, of read-only settings and of buttons, with the ray on a row", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
 
     // the percentages and the numbers too wide for their box, with the help line of the last, the read-only
     // settings with no value, with the help line of one, and the button the menu does not run, with its reason
-    for (const auto& [pageName, name, row] : { std::tuple{ "Numbers", "package-showcase-numbers-end", 8 },
-             std::tuple{ "Read-only", "package-showcase-read-only-end", 6 },
-             std::tuple{ "Buttons", "package-showcase-buttons-end", 8 } }) {
+    for (const auto& [pageName, name, row] : { std::tuple{ "Numbers", "config-spec-showcase-numbers-end", 8 },
+             std::tuple{ "Read-only", "config-spec-showcase-read-only-end", 6 },
+             std::tuple{ "Buttons", "config-spec-showcase-buttons-end", 8 } }) {
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         select(panel, "Mods Config VR: Showcase", { "Detailed Examples", pageName });
         const auto scrollToEnd = [&panel] {
@@ -977,15 +978,15 @@ TEST_CASE("FullPanel render: the ends of the package showcase's pages of numbers
     }
 }
 
-TEST_CASE("FullPanel render: the package showcase's warnings, as shipped and with Shadows on, with the ray on a row that warns", "[.render]")
+TEST_CASE("FullPanel render: the config spec showcase's warnings, as shipped and with Shadows on, with the ray on a row that warns", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
     for (const bool shadows : { false, true }) {
         FullPanel panel;
-        panel.setStore(model::Source::Package, &store);
+        panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         select(panel, "Mods Config VR: Showcase", { "Detailed Examples", "Warnings" });
         // Shadows is set once its session is open, which the page's first frame opens
@@ -994,14 +995,14 @@ TEST_CASE("FullPanel render: the package showcase's warnings, as shipped and wit
             const auto& page = findPage(panel.mods()[0], { "Detailed Examples", "Warnings" });
             store.set(std::get<model::Setting>(std::get<model::Group>(page.items[0]).items[1]), true);
         };
-        const auto name = shadows ? "package-showcase-warnings-shadows" : "package-showcase-warnings";
+        const auto name = shadows ? "config-spec-showcase-warnings-shadows" : "config-spec-showcase-warnings";
         WARN("Saved " << renderToFile(panel, name, pageRow(shadows ? 4 : 1), false, shadows ? std::function<void()>(turnOn) : std::function<void()>()));
     }
 }
 
-TEST_CASE("FullPanel render: a package's section in a section, with rows before and after it", "[.render]")
+TEST_CASE("FullPanel render: a config spec's section in a section, with rows before and after it", "[.render]")
 {
-    auto mod = package::loadPackage(R"({
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
@@ -1026,15 +1027,15 @@ TEST_CASE("FullPanel render: a package's section in a section, with rows before 
     FullPanel panel;
     panel.setMods({ std::move(*mod) });
     panel.select({ .mod = 0, .page = {} });
-    WARN("Saved " << renderToFile(panel, "package-nested-sections", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-nested-sections", POINTER_AWAY));
 }
 
-TEST_CASE("FullPanel render: a package's sections that fold, folded with what they hide and open, with the ray on one", "[.render]")
+TEST_CASE("FullPanel render: a config spec's sections that fold, folded with what they hide and open, with the ray on one", "[.render]")
 {
     const test_files::TempFolder myGames;
     myGames.write("MyMod.toml", "[Holsters]\nfReach = 99.0\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
@@ -1062,7 +1063,7 @@ TEST_CASE("FullPanel render: a package's sections that fold, folded with what th
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select({ .mod = 0, .page = {} });
 
@@ -1074,15 +1075,15 @@ TEST_CASE("FullPanel render: a package's sections that fold, folded with what th
 
     // the heading of Advanced, after the heading of Holsters, which is not as high as a row, and its first row
     const ImVec2 advancedHeading(pageRow(2).x, pageRow(2).y + 45.0f);
-    WARN("Saved " << renderToFile(panel, "package-folding-sections", advancedHeading));
+    WARN("Saved " << renderToFile(panel, "config-spec-folding-sections", advancedHeading));
 }
 
-TEST_CASE("FullPanel render: a package's section in a section, with its line down its rows, their marks, and a folded section in it", "[.render]")
+TEST_CASE("FullPanel render: a config spec's section in a section, with its line down its rows, their marks, and a folded section in it", "[.render]")
 {
     const test_files::TempFolder myGames;
     myGames.write("MyMod.toml", "[Holsters]\nfReach = 99.0\n");
-    package::PackageStore store({}, myGames.path);
-    auto mod = package::loadPackage(R"({
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
         "defaultFile": "main",
@@ -1109,7 +1110,7 @@ TEST_CASE("FullPanel render: a package's section in a section, with its line dow
     })");
     REQUIRE(mod);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
     panel.select({ .mod = 0, .page = {} });
 
@@ -1118,7 +1119,7 @@ TEST_CASE("FullPanel render: a package's section in a section, with its line dow
     const auto& leftHip = std::get<model::Group>(holsters.items[1]);
     REQUIRE(store.set(std::get<model::Setting>(leftHip.items[2]), 20.0f));
     REQUIRE(store.set(std::get<model::Setting>(std::get<model::Group>(leftHip.items[3]).items[0]), true));
-    WARN("Saved " << renderToFile(panel, "package-section-lines", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-section-lines", POINTER_AWAY));
 }
 
 TEST_CASE("FullPanel render: the rows of a group of the MCM showcase, while the switcher that controls it is on", "[.render]")
@@ -1185,17 +1186,17 @@ TEST_CASE("FullPanel render: the dropdowns of files of the MCM showcase", "[.ren
     WARN("Saved " << renderToFile(panel, "mcm-showcase-dropdown-files", POINTER_AWAY, false, scrollToEnd));
 }
 
-TEST_CASE("FullPanel render: the choices of the package showcase that read their options in the game", "[.render]")
+TEST_CASE("FullPanel render: the choices of the config spec showcase that read their options in the game", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
     test_properties::TestProperties lists;
     lists.lists[{ "Fallout4.esm", 0x1D98E2, "", "" }] = { "Abernathy Farm", "Cabot House", "The Castle", "Covenant", "Diamond City", "Drumlin Diner" };
     lists.lists[{ "Fallout4.esm", 0x78591, "", "" }] = { "Cait", "Codsworth", "Curie", "Paladin Danse", "Deacon", "John Hancock" };
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
     const auto& examples = panel.mods()[0].pages;
     const auto detailed = std::ranges::find(examples, "Detailed Examples", &model::Page::name);
@@ -1211,7 +1212,7 @@ TEST_CASE("FullPanel render: the choices of the package showcase that read their
         ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
         test_panel::drawFrame(panel, pageRow(3));
     };
-    WARN("Saved " << renderToFile(panel, "package-showcase-game-options", POINTER_AWAY, false, scrollToEnd));
+    WARN("Saved " << renderToFile(panel, "config-spec-showcase-game-options", POINTER_AWAY, false, scrollToEnd));
 }
 
 TEST_CASE("FullPanel render: the values of a page's settings, and the status of the mod", "[.render]")
@@ -1504,54 +1505,54 @@ TEST_CASE("FullPanel render: a wider tree and a page in the rest of the panel", 
     WARN("Saved " << renderToFile(panel, "wide-tree", POINTER_AWAY));
 }
 
-TEST_CASE("FullPanel render: the front page's Developer section, open with the ray on a package, folded, and listing all", "[.render]")
+TEST_CASE("FullPanel render: the front page's Developer section, open with the ray on a config spec, folded, and listing all", "[.render]")
 {
-    const auto package = [](const std::string& name, const int errors, const int warnings, const std::string& notAvailable = {}) {
-        model::Mod mod{ .name = name, .displayName = name, .notAvailable = notAvailable, .source = model::Source::Package };
+    const auto configSpec = [](const std::string& name, const int errors, const int warnings, const std::string& notAvailable = {}) {
+        model::Mod mod{ .name = name, .displayName = name, .notAvailable = notAvailable, .source = model::Source::ConfigSpec };
         for (int i = 0; i < errors; ++i) {
-            mod.problems.push_back({ .severity = model::Severity::Error, .row = "config.json", .message = "It cannot be read: line 41, column 7.", .where = {}, .path = {} });
+            mod.problems.push_back({ .severity = model::Severity::Error, .row = "spec.json", .message = "It cannot be read: line 41, column 7.", .where = {}, .path = {} });
         }
         for (int i = 0; i < warnings; ++i) {
             mod.problems.push_back({ .severity = model::Severity::Warning, .row = "A row", .message = "Unknown field.", .where = {}, .path = {} });
         }
         return mod;
     };
-    const auto panelWith = [&package](const ui::DeveloperView& view) {
+    const auto panelWith = [&configSpec](const ui::DeveloperView& view) {
         std::vector<model::Mod> mods;
         mods.push_back(modOf("Baka Fullscreen Pip-Boy"));
-        mods.push_back(package("Immersive Flashlight VR", 2, 5));
-        mods.push_back(package("Mods Config VR", 0, 0));
-        mods.push_back(package("Showcase", 0, 3));
-        mods.push_back(package("Virtual Holsters", 1, 0, "its package cannot be read"));
-        mods.push_back(package("Sim Settlements 2", 0, 0, "its plugin SS2.esm is not loaded"));
+        mods.push_back(configSpec("Immersive Flashlight VR", 2, 5));
+        mods.push_back(configSpec("Mods Config VR", 0, 0));
+        mods.push_back(configSpec("Showcase", 0, 3));
+        mods.push_back(configSpec("Virtual Holsters", 1, 0, "its spec.json cannot be read"));
+        mods.push_back(configSpec("Sim Settlements 2", 0, 0, "its plugin SS2.esm is not loaded"));
         FullPanel panel;
         panel.setMods(std::move(mods));
         panel.setDeveloper(view, {});
         return panel;
     };
 
-    auto open = panelWith({ .enabled = true, .show = ui::ShowPackages::NeedingAttention, .package = "Showcase", .folded = false });
-    // the ray on the first package's row, under the page's text, its notices, the heading and the filter
+    auto open = panelWith({ .enabled = true, .show = ui::ShowConfigSpecs::NeedingAttention, .configSpec = "Showcase", .folded = false });
+    // the ray on the first config spec's row, under the page's text, its notices, the heading and the filter
     WARN("Saved " << renderToFile(open, "front-page-developer", ImVec2(700.0f, 425.0f)));
-    auto folded = panelWith({ .enabled = true, .show = ui::ShowPackages::NeedingAttention, .package = {}, .folded = true });
+    auto folded = panelWith({ .enabled = true, .show = ui::ShowConfigSpecs::NeedingAttention, .configSpec = {}, .folded = true });
     WARN("Saved " << renderToFile(folded, "front-page-developer-folded", POINTER_AWAY));
-    auto all = panelWith({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false });
+    auto all = panelWith({ .enabled = true, .show = ui::ShowConfigSpecs::All, .configSpec = {}, .folded = false });
     WARN("Saved " << renderToFile(all, "front-page-developer-all", POINTER_AWAY));
 }
 
-TEST_CASE("FullPanel render: the package showcase's report, with the ray on a problem, and the row a problem shows in its focus ring", "[.render]")
+TEST_CASE("FullPanel render: the config spec showcase's report, with the ray on a problem, and the row a problem shows in its focus ring", "[.render]")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
-    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
     FullPanel panel;
-    panel.setStore(model::Source::Package, &store);
+    panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
-    panel.setDeveloper({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false }, {});
+    panel.setDeveloper({ .enabled = true, .show = ui::ShowConfigSpecs::All, .configSpec = {}, .folded = false }, {});
     REQUIRE(panel.openReport(0));
     // the ray on the second error, under the page's text and the heading of the errors
-    WARN("Saved " << renderToFile(panel, "package-report", ImVec2(900.0f, 345.0f)));
+    WARN("Saved " << renderToFile(panel, "config-spec-report", ImVec2(900.0f, 345.0f)));
 
     // the first problem with a row on the Mistakes page: its row in the ring, in a section that was folded or not
     const auto& problems = panel.mods()[0].problems;
@@ -1560,5 +1561,5 @@ TEST_CASE("FullPanel render: the package showcase's report, with the ray on a pr
     });
     REQUIRE(onRow != problems.end());
     REQUIRE(panel.showProblem(0, static_cast<std::size_t>(onRow - problems.begin())));
-    WARN("Saved " << renderToFile(panel, "package-report-focused-row", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "config-spec-report-focused-row", POINTER_AWAY));
 }

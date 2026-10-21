@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "SwfImages.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 namespace mods_config::mcm
 {

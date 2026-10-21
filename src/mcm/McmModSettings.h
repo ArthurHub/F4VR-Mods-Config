@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 namespace mods_config::mcm
 {

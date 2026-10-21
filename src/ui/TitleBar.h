@@ -6,7 +6,7 @@
 
 #include "HelpLine.h"
 #include "Selection.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 namespace mods_config::ui
 {
@@ -25,7 +25,7 @@ namespace mods_config::ui
         // the selection a pressed breadcrumb goes to
         std::optional<Selection> pressed;
 
-        // the Developer crumb of a package's report was pressed: it goes to the front page's Developer section
+        // the Developer crumb of a config spec's report was pressed: it goes to the front page's Developer section
         bool developerPressed = false;
 
         // the button that was pressed, and the button the ray is on, for the help line

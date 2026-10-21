@@ -80,7 +80,7 @@ namespace mods_config::model
         float max = 0.0f;
         float step = 1.0f;
 
-        // the fewest and the most characters of a text input of a text, and 0 for no limit. A package's
+        // the fewest and the most characters of a text input of a text, and 0 for no limit. A config spec's
         // `allowEmpty` of false is a least of 1
         int minLength = 0;
         int maxLength = 0;
@@ -91,7 +91,7 @@ namespace mods_config::model
         // where a choice reads its options in the game. None for one whose options are these
         std::optional<GameOptions> gameOptions;
 
-        // a package's choice whose options its mod's client gives, by a callback it registers for the setting's
+        // a config spec's choice whose options its mod's client gives, by a callback it registers for the setting's
         // id (`listFromClientCallback`)
         bool clientOptions = false;
     };
@@ -156,7 +156,7 @@ namespace mods_config::model
 
     /**
      * A property of a script: a value a Papyrus script keeps, on a form of a game plugin the script is
-     * attached to. The game keeps it in the save. A package's is in the type of its setting's value.
+     * attached to. The game keeps it in the save. A config spec's is in the type of its setting's value.
      */
     struct PropertyStorage
     {
@@ -179,11 +179,11 @@ namespace mods_config::model
     };
 
     /**
-     * A value in a file of a package's mod: a key of an INI file, or a value of a TOML or a JSON file.
+     * A value in a file of a config spec's mod: a key of an INI file, or a value of a TOML or a JSON file.
      */
     struct FileStorage
     {
-        // the name its package gives the file, which is a file of its mod
+        // the name its config spec gives the file, which is a file of its mod
         std::string file;
 
         // the names that lead to the value: its section and its key in an INI file, and in a TOML or a JSON
@@ -210,7 +210,7 @@ namespace mods_config::model
     using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, UnknownStorage>;
 
     /**
-     * When a change of a package's setting takes effect in the running mod.
+     * When a change of a config spec's setting takes effect in the running mod.
      */
     enum class Applies : std::uint8_t
     {
@@ -290,7 +290,7 @@ namespace mods_config::model
     };
 
     /**
-     * An argument of a call that has the value of its row in it: the value a setting is set to. A package's is
+     * An argument of a call that has the value of its row in it: the value a setting is set to. A config spec's is
      * a parameter that is exactly `{value}`, which is the value itself, in its setting's type.
      */
     struct ValueArgument
@@ -431,7 +431,7 @@ namespace mods_config::model
         // number or a number: the value of every other is of its type of control
         StoredType valueType = StoredType::String;
 
-        // what runs after its value is set, with the value: an MCM row's as it is set, and a package's as Save
+        // what runs after its value is set, with the value: an MCM row's as it is set, and a config spec's as Save
         // writes it. Most have none
         Action action;
 
@@ -441,21 +441,21 @@ namespace mods_config::model
         // the row is edited while it holds, and is disabled while it does not. A row with none is always edited
         std::optional<Condition> enabledWhen;
 
-        // when its change takes effect: its own, or else the nearest its package gives above it. None for an
+        // when its change takes effect: its own, or else the nearest its config spec gives above it. None for an
         // MCM row
         std::optional<Applies> applies;
 
-        // the value Reset gives it, in its value's type: a package's setting has it. None for an MCM row,
+        // the value Reset gives it, in its value's type: a config spec's setting has it. None for an MCM row,
         // whose default is its store's to answer
         std::optional<Value> defaultValue;
 
-        // how its number is shown: a package's slider and text input of a number can have it
+        // how its number is shown: a config spec's slider and text input of a number can have it
         NumberDisplay display;
 
-        // its value is shown and not edited, and it has no Reset: a package's setting can be
+        // its value is shown and not edited, and it has no Reset: a config spec's setting can be
         bool readOnly = false;
 
-        // the row warns of the first whose condition holds: a package's setting can have them
+        // the row warns of the first whose condition holds: a config spec's setting can have them
         std::vector<Warning> warnings;
     };
 
@@ -468,15 +468,15 @@ namespace mods_config::model
         std::vector<TextRun> textRuns;
         std::string help;
 
-        // the text on its button: a package's button can have one. Empty for `Run`
+        // the text on its button: a config spec's button can have one. Empty for `Run`
         std::string buttonText;
         Action action;
         std::optional<Condition> visibleWhen;
 
-        // it runs while it holds, and is disabled while it does not: a package's button can have it
+        // it runs while it holds, and is disabled while it does not: a config spec's button can have it
         std::optional<Condition> enabledWhen;
 
-        // as a setting's: a package's button can have them
+        // as a setting's: a config spec's button can have them
         std::vector<Warning> warnings;
     };
 
@@ -535,21 +535,21 @@ namespace mods_config::model
 
     /**
      * A row that shows a picture, in the middle of the rows' width: the pixels an MCM image is read into, or a
-     * package's texture, which the game loads.
+     * config spec's texture, which the game loads.
      */
     struct Image
     {
-        // the pixels of an MCM image. None for a package's, and for an image that could not be read and has no
+        // the pixels of an MCM image. None for a config spec's, and for an image that could not be read and has no
         // texture: the row then says that an image is there
         std::shared_ptr<const ImagePixels> pixels;
 
-        // a package's texture, by its path under `Data/Textures`, as `MyMod/config/logo.dds`. Empty for an MCM
+        // a config spec's texture, by its path under `Data/Textures`, as `MyMod/config/logo.dds`. Empty for an MCM
         // image
         std::string texture;
 
         // the size it is shown at. Of pixels in the pixels of MCM's menu, which the drawing scales to the
         // panel's as it does the size of a text. Of a texture in the panel's pixels, and 0 for a side its
-        // package does not give
+        // config spec does not give
         float width = 0.0f;
         float height = 0.0f;
         std::optional<Condition> visibleWhen;
@@ -583,8 +583,8 @@ namespace mods_config::model
     using Item = std::variant<Setting, Group, Button, Hotkey, Text, Image, Spacer, Placeholder>;
 
     /**
-     * A section: its heading and the items under it. A package's sections nest: a group can be an item of a
-     * group, and a package's section can fold.
+     * A section: its heading and the items under it. A config spec's sections nest: a group can be an item of a
+     * group, and a config spec's section can fold.
      */
     struct Group
     {
@@ -613,12 +613,12 @@ namespace mods_config::model
         std::string help;
         std::vector<Item> items;
 
-        // the pages under it, which a package's page can have
+        // the pages under it, which a config spec's page can have
         std::vector<Page> pages;
     };
 
     /**
-     * What a file of a package is written in.
+     * What a file of a config spec is written in.
      */
     enum class FileFormat : std::uint8_t
     {
@@ -628,7 +628,7 @@ namespace mods_config::model
     };
 
     /**
-     * The folder a path of a package's file is from.
+     * The folder a path of a config spec's file is from.
      */
     enum class FileRoot : std::uint8_t
     {
@@ -639,14 +639,14 @@ namespace mods_config::model
     };
 
     /**
-     * A file a package's settings are kept in.
+     * A file a config spec's settings are kept in.
      */
     struct File
     {
         FileFormat format = FileFormat::Toml;
         FileRoot root = FileRoot::MyGames;
 
-        // from its root, with `/` between its folders, as its package writes it
+        // from its root, with `/` between its folders, as its config spec writes it
         std::string path;
 
         bool operator==(const File&) const = default;
@@ -658,11 +658,11 @@ namespace mods_config::model
     enum class Source : std::uint8_t
     {
         Mcm,
-        Package,
+        ConfigSpec,
     };
 
     /**
-     * How much a problem of a package matters: an error leaves something out, the whole package or a part of
+     * How much a problem of a config spec matters: an error leaves something out, the whole config spec or a part of
      * it, and a warning is read, but is likely not what its author meant.
      */
     enum class Severity : std::uint8_t
@@ -684,25 +684,25 @@ namespace mods_config::model
     };
 
     /**
-     * A problem of a package, for its author: what is wrong, what the menu did with it, and where it is.
+     * A problem of a config spec, for its author: what is wrong, what the menu did with it, and where it is.
      */
     struct Problem
     {
         Severity severity = Severity::Error;
 
-        // the text of the row it is on, the name of its page, or `config.json` for the package itself
+        // the text of the row it is on, the name of its page, or `spec.json` for the config spec itself
         std::string row;
 
         // what is wrong, and what the menu did with it, as `It has no storage: it is not available.`
         std::string message;
 
-        // the pages and the row it is on, as `Beam › Beam angle`. Empty for a problem of the package itself
+        // the pages and the row it is on, as `Beam › Beam angle`. Empty for a problem of the config spec itself
         std::string where;
 
-        // where it is in config.json, as `pages[0].content[4]`. Empty for the file as a whole
+        // where it is in spec.json, as `pages[0].content[4]`. Empty for the file as a whole
         std::string path;
 
-        // the row it is on, which the menu can show. None for a problem of a page or of the package itself
+        // the row it is on, which the menu can show. None for a problem of a page or of the config spec itself
         std::optional<RowPlace> place;
 
         bool operator==(const Problem&) const = default;
@@ -724,14 +724,14 @@ namespace mods_config::model
         std::string help;
         Source source = Source::Mcm;
 
-        // a package's files, by the names it gives them. None for an MCM mod
+        // a config spec's files, by the names it gives them. None for an MCM mod
         std::map<std::string, File> files;
 
-        // a package's problems, in the order of its config.json. None for an MCM mod
+        // a config spec's problems, in the order of its spec.json. None for an MCM mod
         std::vector<Problem> problems;
 
-        // the folder of a package's config.json, in `Data\ModsConfigVR\Config`. Empty for an MCM mod, and for a
-        // package that was read alone
+        // the folder of a config spec's spec.json, in `Data\ModsConfigVR\Config`. Empty for an MCM mod, and for a
+        // config spec that was read alone
         std::string folder;
     };
 }

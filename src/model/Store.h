@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-#include "Definition.h"
+#include "ConfigDefinition.h"
 
 // The store of the settings model: the values of the mod that is selected, which the UI asks for and sets.
 // See docs/design/model.md.

@@ -22,7 +22,7 @@ The rows of a page that hold no value: a `text`, a `spacer` and an `image`. The 
 
 ## Image
 
-- A texture under `Data/Textures`, drawn at its `width` and `height` in layout px, or at the texture's own size when the package gives none, centered in the width of the rows, `space-1` above and below.
+- A texture under `Data/Textures`, drawn at its `width` and `height` in layout px, or at the texture's own size when the config spec gives none, centered in the width of the rows, `space-1` above and below.
 - One wider than the rows is scaled down to their width, keeping its aspect.
 - Its colors are its own, as a swatch's are.
 - A texture that cannot be loaded is a box of its size, with a 2 px dashed `frame-border` outline, that names it in `t-detail` `green-muted`: "Missing: MyMod/config/banner.dds". The log has the reason.

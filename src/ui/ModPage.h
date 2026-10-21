@@ -9,7 +9,7 @@
 #include "Sections.h"
 #include "Sliders.h"
 #include "TextInputs.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 #include "model/Store.h"
 
 namespace mods_config::ui

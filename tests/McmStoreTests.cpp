@@ -12,7 +12,7 @@
 #include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
 #include "model/Conditions.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 using namespace mods_config;
 using mcm::McmStore;

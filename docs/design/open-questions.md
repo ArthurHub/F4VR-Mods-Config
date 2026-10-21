@@ -10,7 +10,7 @@ Every control is designed: see [Haptic](controls.md#haptic), [Color](controls.md
 
 - A transform is edited in the panel, and its In the world hands it to the framework's live tuning. The framework tunes only its own mod's keys today: tuning another mod's key, and handing the value back, is framework work.
 - An activation sphere is lit in the world while the ray is on its rows. That needs the client to be told which group the ray is in, an event beside the page events.
-- How a package names a section that is an activation sphere.
+- How a config spec names a section that is an activation sphere.
 
 The framework already defines how each is stored in its TOML config, which is the starting point; see [Controls](controls.md#commonframework-specific-controls) for the full forms:
 
@@ -20,13 +20,13 @@ The framework already defines how each is stored in its TOML config, which is th
 - A transform is an inline table, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, each key optional.
 - An activation sphere is a whole section: a zone transform with an optional power-armor variant, two bindings, three haptics, and the keys for its icon and sphere.
 
-A setting is stored in one key, and a table is one value of it: a string setting whose value is the TOML text of the table. An activation sphere spans a section, so it is a group of per-key settings with a role; see [The settings model](model.md#a-group-with-a-role). How a package names such a section is still to be designed.
+A setting is stored in one key, and a table is one value of it: a string setting whose value is the TOML text of the table. An activation sphere spans a section, so it is a group of per-key settings with a role; see [The settings model](model.md#a-group-with-a-role). How a config spec names such a section is still to be designed.
 
 Whether InputBinding warns of two bindings that collide, of one mod or of two: FRIK, Immersive Flashlight and this mod all use the thumbsticks.
 
 ## Storage edge cases
 
-- Whether a package can forbid creating a missing file, for a mod that cannot load a file that holds only some of its settings
+- Whether a config spec can forbid creating a missing file, for a mod that cannot load a file that holds only some of its settings
 - JSON representation choices for colors and complex values. In a TOML file they are the framework's tables
 - Whether the game's own INI files under `My Games/Fallout4VR` are valid targets
 - What to do when an external edit changes a value currently being previewed but not yet saved
@@ -45,7 +45,7 @@ The settled baseline remains: on Save, re-read each affected file, write only di
 - Whether asset paths can vary by locale
 - Tooling that finds missing or unused tokens
 
-The form is settled: a package's text is plain, a `$` token as in MCM, or a token with a fallback, and the translations are the game's translation files. See [Localization](schema.md#localization).
+The form is settled: a config spec's text is plain, a `$` token as in MCM, or a token with a fallback, and the translations are the game's translation files. See [Localization](schema.md#localization).
 
 ## Native API details
 
@@ -99,4 +99,4 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 
 Profiles are considered advanced; a global model is preferred initially if they are pursued.
 
-An author's presets are profiles too: a file the author ships beside the package, as `Presets/<name>.json`, in the same form as a player's profile. A profile maps setting ids to values, so it covers a package whose settings are in several files, globals and properties. Applying one sets pending values, which Save writes, and a setting it does not name stays as it is.
+An author's presets are profiles too: a file the author ships beside the config spec, as `Presets/<name>.json`, in the same form as a player's profile. A profile maps setting ids to values, so it covers a config spec whose settings are in several files, globals and properties. Applying one sets pending values, which Save writes, and a setting it does not name stays as it is.

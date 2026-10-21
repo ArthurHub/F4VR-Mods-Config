@@ -75,7 +75,7 @@ namespace mods_config
         // The pulse the hand that points gets as its press does something in the menu. Nothing for no pulse.
         std::optional<vrcf::HapticPattern> pressHaptic;
 
-        // The Developer tools, for a package's author: whether they are on, which packages the menu's front page
+        // The Developer tools, for a config spec's author: whether they are on, which config specs the menu's front page
         // lists, the one it lists alone, and whether its section is folded
         ui::DeveloperView developer;
 

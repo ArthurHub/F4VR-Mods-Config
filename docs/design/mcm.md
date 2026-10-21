@@ -109,10 +109,10 @@ What a row has beside its type:
 
 ## What MCM's authors work around
 
-MCM has no field for some things a mod needs, and its authors get them from what it has. A package has each in a field of its own; see [A package and MCM](schema.md#a-package-and-mcm):
+MCM has no field for some things a mod needs, and its authors get them from what it has. A config spec has each in a field of its own; see [A config spec and MCM](schema.md#a-config-spec-and-mcm):
 
-- A row that is shown while something holds: a `hiddenSwitcher` that a script sets. The author's lists have three uses of it. JOURNEY's script sets two from its mode dropdown, to show rows for one mode and for two of them: a package's condition on the dropdown's value. Global Stash and NAC X show a row while another mod is installed: a condition on a loaded plugin. Global Stash also shows a warning while it is busy, which follows the game as it plays: that waits for the native API.
-- The groups of conditions are numbers, shared by a whole page, and a group is on while a switcher is: a package's condition names the setting, and compares its value.
-- The type of a parameter is written in its text, as `{i}42`: a package's parameter is a JSON value with its type.
-- An action gets the value of its row from `{value}` in the text of a parameter: a package's setting has an action that Save runs as it writes the value, and its parameter `"{value}"` is that value, in the type of the setting.
-- A switcher with no storage shows rows that are hidden, as FallUI's "Unfold settings": a package's section folds.
+- A row that is shown while something holds: a `hiddenSwitcher` that a script sets. The author's lists have three uses of it. JOURNEY's script sets two from its mode dropdown, to show rows for one mode and for two of them: a config spec's condition on the dropdown's value. Global Stash and NAC X show a row while another mod is installed: a condition on a loaded plugin. Global Stash also shows a warning while it is busy, which follows the game as it plays: that waits for the native API.
+- The groups of conditions are numbers, shared by a whole page, and a group is on while a switcher is: a config spec's condition names the setting, and compares its value.
+- The type of a parameter is written in its text, as `{i}42`: a config spec's parameter is a JSON value with its type.
+- An action gets the value of its row from `{value}` in the text of a parameter: a config spec's setting has an action that Save runs as it writes the value, and its parameter `"{value}"` is that value, in the type of the setting.
+- A switcher with no storage shows rows that are hidden, as FallUI's "Unfold settings": a config spec's section folds.

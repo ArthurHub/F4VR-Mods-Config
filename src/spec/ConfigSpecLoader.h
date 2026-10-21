@@ -7,12 +7,12 @@
 #include <string_view>
 #include <vector>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 #include "model/Translations.h"
 
-namespace mods_config::package
+namespace mods_config::spec
 {
-    // the version of the package schema the menu reads: a package whose `minSchemaVersion` is above it is not
+    // the version of the config spec schema the menu reads: a config spec whose `minSchemaVersion` is above it is not
     // available. It only grows, as a version adds fields and control types
     constexpr int SCHEMA_VERSION = 1;
 
@@ -22,7 +22,7 @@ namespace mods_config::package
     using PluginCheck = std::function<bool(std::string_view name)>;
 
     /**
-     * What a package's requirements and its conditions on a loaded plugin are answered with. With no check every
+     * What a config spec's requirements and its conditions on a loaded plugin are answered with. With no check every
      * plugin is loaded.
      */
     struct PluginChecks
@@ -34,7 +34,7 @@ namespace mods_config::package
         PluginCheck isF4sePluginLoaded;
     };
 
-    std::expected<model::Mod, std::string> loadPackage(std::string_view text, const model::Translations& translations = {}, const PluginChecks& plugins = {});
-    std::vector<model::Mod> loadPackages(const std::filesystem::path& configFolder, const model::Translations& translations = {}, const PluginChecks& plugins = {});
-    std::vector<model::Mod> loadInstalledPackages(const model::Translations& translations = {});
+    std::expected<model::Mod, std::string> loadConfigSpec(std::string_view text, const model::Translations& translations = {}, const PluginChecks& plugins = {});
+    std::vector<model::Mod> loadConfigSpecs(const std::filesystem::path& configFolder, const model::Translations& translations = {}, const PluginChecks& plugins = {});
+    std::vector<model::Mod> loadInstalledConfigSpecs(const model::Translations& translations = {});
 }

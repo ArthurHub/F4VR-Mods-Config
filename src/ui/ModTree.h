@@ -6,7 +6,7 @@
 #include "HelpLine.h"
 #include "Selection.h"
 #include "Theme.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 namespace mods_config::ui
 {

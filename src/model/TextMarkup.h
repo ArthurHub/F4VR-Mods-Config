@@ -4,7 +4,7 @@
 #include <string_view>
 #include <vector>
 
-#include "Definition.h"
+#include "ConfigDefinition.h"
 
 // The tags a text of a config can have, as MCM configs use them. See "Text, spacers and images" in
 // docs/design/schema.md.

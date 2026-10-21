@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 namespace mods_config::mcm
 {

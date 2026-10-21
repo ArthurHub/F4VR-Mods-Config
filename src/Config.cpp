@@ -12,11 +12,11 @@ namespace
     const char* POINTER_SECTION = "Pointer";
     const char* DEVELOPER_SECTION = "Developer";
 
-    // which packages the Developer section lists, by the text the config has for each
-    constexpr std::array<std::pair<std::string_view, mods_config::ui::ShowPackages>, 3> SHOW_PACKAGES{ {
-        { "attention", mods_config::ui::ShowPackages::NeedingAttention },
-        { "all", mods_config::ui::ShowPackages::All },
-        { "one", mods_config::ui::ShowPackages::OnlyOne },
+    // which config specs the Developer section lists, by the text the config has for each
+    constexpr std::array<std::pair<std::string_view, mods_config::ui::ShowConfigSpecs>, 3> SHOW_CONFIG_SPECS{ {
+        { "attention", mods_config::ui::ShowConfigSpecs::NeedingAttention },
+        { "all", mods_config::ui::ShowConfigSpecs::All },
+        { "one", mods_config::ui::ShowConfigSpecs::OnlyOne },
     } };
 }
 
@@ -85,12 +85,13 @@ namespace mods_config
         // "none" is no pulse, and so is a word that is not a pattern
         pressHaptic = vrcf::parseHapticPattern(pointer["sPressHaptic"].value_or("Tick"sv));
 
-        // a word that is not one of the filter's lists the packages that need attention
+        // a word that is not one of the filter's lists the config specs that need attention
         const auto developerSection = config[DEVELOPER_SECTION];
         developer.enabled = developerSection["bDeveloperTools"].value_or(false);
-        const auto show = std::ranges::find(SHOW_PACKAGES, developerSection["sShowPackages"].value_or("attention"sv), &std::pair<std::string_view, ui::ShowPackages>::first);
-        developer.show = show != SHOW_PACKAGES.end() ? show->second : ui::ShowPackages::NeedingAttention;
-        developer.package = developerSection["sPackage"].value_or(""s);
+        const auto show =
+            std::ranges::find(SHOW_CONFIG_SPECS, developerSection["sShowConfigSpecs"].value_or("attention"sv), &std::pair<std::string_view, ui::ShowConfigSpecs>::first);
+        developer.show = show != SHOW_CONFIG_SPECS.end() ? show->second : ui::ShowConfigSpecs::NeedingAttention;
+        developer.configSpec = developerSection["sConfigSpec"].value_or(""s);
         developer.folded = developerSection["bFolded"].value_or(false);
 
         // last, so the menu gives its panel the values when all of them are read
@@ -104,7 +105,7 @@ namespace mods_config
     void Config::saveDeveloper(const ui::DeveloperView& view)
     {
         developer = view;
-        const auto show = std::ranges::find(SHOW_PACKAGES, view.show, &std::pair<std::string_view, ui::ShowPackages>::second);
-        saveConfigValues(DEVELOPER_SECTION, { { "sShowPackages", std::string(show->first) }, { "bFolded", view.folded } });
+        const auto show = std::ranges::find(SHOW_CONFIG_SPECS, view.show, &std::pair<std::string_view, ui::ShowConfigSpecs>::second);
+        saveConfigValues(DEVELOPER_SECTION, { { "sShowConfigSpecs", std::string(show->first) }, { "bFolded", view.folded } });
     }
 }

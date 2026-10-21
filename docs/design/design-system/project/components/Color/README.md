@@ -39,7 +39,7 @@ A popup inside the content pane, 717 x 414: `popup` background, a 2 px `green` b
 ## Writing the value
 
 - A changed color is written as whole numbers, with the keys the file had, and a key added for the part that changed: `{ alpha = 60 }` with a new hue is written `{ rgb = [255, 190, 120], alpha = 60 }`.
-- Reset sets the default as the package gives it.
+- Reset sets the default as the config spec gives it.
 
 ## Focused panel
 

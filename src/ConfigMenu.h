@@ -9,9 +9,9 @@
 #include "common/CommonUtils.h"
 #include "imgui/UIImGuiPanel.h"
 #include "mcm/McmStore.h"
-#include "model/Definition.h"
-#include "package/PackageStore.h"
+#include "model/ConfigDefinition.h"
 #include "render/Texture.h"
+#include "spec/ConfigSpecStore.h"
 #include "ui/FullPanel.h"
 #include "vrui/UIButtonPanel.h"
 #include "vrui/UIContainer.h"
@@ -75,8 +75,8 @@ namespace mods_config
         // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
         mcm::McmStore _store{ R"(Data\MCM)" };
 
-        // and a package's mod's, in its files, from the game's Data folder and the game's folder of My Games
-        package::PackageStore _packageStore{ "Data", common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
+        // and a config spec's mod's, in its files, from the game's Data folder and the game's folder of My Games
+        spec::ConfigSpecStore _configSpecStore{ "Data", common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
 
         // what the panel shows
         ui::FullPanel _fullPanel;
@@ -85,8 +85,8 @@ namespace mods_config
         // on the GPU while the menu is open, and are made again from the pixels when it is opened again
         std::unordered_map<const model::ImagePixels*, std::shared_ptr<render::Texture>> _imageTextures;
 
-        // the textures of packages that were drawn, by their paths under `Data/Textures`, which the game loads
+        // the textures of config specs that were drawn, by their paths under `Data/Textures`, which the game loads
         // as they are first drawn. They are given back to the game as the menu closes
-        std::unordered_map<std::string, std::shared_ptr<render::Texture>> _packageTextures;
+        std::unordered_map<std::string, std::shared_ptr<render::Texture>> _configSpecTextures;
     };
 }

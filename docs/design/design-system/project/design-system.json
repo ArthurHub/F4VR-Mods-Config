@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-20T22:40:00Z",
-    "via": "Claude (Cowork)",
-    "note": "Rows: no gutter, a row's marks after its name; every row set in space-3, a heading space-1 in, a section in a section a level further with its rule short of its rows; the report's problems with no mark. ExploreRowMarks and ExploreIndent removed."
+    "at": "2026-10-21T12:00:00Z",
+    "via": "Claude Code",
+    "note": "A package is now a config spec, in spec.json: the texts and mocks say so, and FullPanelPackageReport is FullPanelConfigSpecReport."
   },
   "layout": "files",
   "libraries": [],

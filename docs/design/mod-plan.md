@@ -2,9 +2,9 @@
 
 The milestones that build the mod, in the order they are made, in three phases. The commits of each milestone are in the file of its phase. It follows the [Framework work plan](framework-plan.md), which made the panel the menu is drawn on.
 
-The menu supports everything MCM has before it gains anything new. It is built so that packages and the native API are added later without redoing the UI: the UI draws one model, and MCM is the first source that fills it.
+The menu supports everything MCM has before it gains anything new. It is built so that config specs and the native API are added later without redoing the UI: the UI draws one model, and MCM is the first source that fills it.
 
-A package is the new config format of [Declarative schema](schema.md): a mod's `config.json` under `Data\ModsConfigVR\Config`.
+A config spec is the new config format of [Declarative schema](schema.md): a mod's `spec.json` under `Data\ModsConfigVR\Config`.
 
 ## How the work is done
 
@@ -53,7 +53,7 @@ Two mods of the author's other mod lists have some of these, and are installed b
 The milestones are in three phases, each in a file of its own with the commits of its milestones:
 
 - [Phase 1: MCM support](mod-plan-phase-1.md), milestones 1 to 4: the menu supports everything MCM has. It is done.
-- [Phase 2: First release](mod-plan-phase-2.md), milestones 5 to 11: packages and the native API, up to the first release.
+- [Phase 2: First release](mod-plan-phase-2.md), milestones 5 to 11: config specs and the native API, up to the first release.
 - [Phase 3: After the first release](mod-plan-phase-3.md), milestones 12 to 15.
 
 | #   | Milestone                | Done when                                                                                                     | Status |
@@ -62,13 +62,13 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 2   | Edit MCM values          | A global, a ModSetting and a script property are changed from the panel, and the mod reacts as it does to MCM | done   |
 | 3   | MCM complete             | Every MCM feature is supported, shown read-only, or shown as unsupported with the reason                      | done   |
 | 4   | VR keyboard              | An MCM text row is typed in the headset                                                                       | done   |
-| 5   | Packages with Save       | This mod's own TOML is edited from its package and saved, and the mod reloads its file                        | done   |
-| 6   | Packages complete        | FRIK's TOML, an INI file and a script mod's globals are edited from packages and saved, and a Save that fails changes no file | todo   |
+| 5   | Config specs with Save       | This mod's own TOML is edited from its config spec and saved, and the mod reloads its file                        | done   |
+| 6   | Config specs complete        | FRIK's TOML, an INI file and a script mod's globals are edited from config specs and saved, and a Save that fails changes no file | todo   |
 | 7   | Actions and handoff      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | todo   |
-| 8   | Live preview             | A CommonFramework mod with a package previews a slider live, with no code of its own                          | todo   |
-| 9   | CommonFramework controls | Every setting of Immersive Flashlight VR is edited from its package                                           | todo   |
+| 8   | Live preview             | A CommonFramework mod with a config spec previews a slider live, with no code of its own                          | todo   |
+| 9   | CommonFramework controls | Every setting of Immersive Flashlight VR is edited from its config spec                                           | todo   |
 | 10  | Focused view             | A setting is changed on the offhand panel while the player looks at its effect                                | todo   |
-| 11  | First release            | The mod is published, with the author's guide and a sample package                                            | todo   |
+| 11  | First release            | The mod is published, with the author's guide and a sample config spec                                            | todo   |
 | 12  | Localization and search  | A mod with no game plugin is shown in another language, and a setting is found by typing its name             | todo   |
 | 13  | Papyrus API              | A script-only mod reads its saved settings and is told of a Save                                              | todo   |
 | 14  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |

@@ -88,7 +88,7 @@ namespace mods_config::ui
      */
     void FullPanel::setStore(const model::Source source, model::Store* store)
     {
-        (source == model::Source::Mcm ? _mcmStore : _packageStore) = store;
+        (source == model::Source::Mcm ? _mcmStore : _configSpecStore) = store;
     }
 
     /**
@@ -96,7 +96,7 @@ namespace mods_config::ui
      */
     model::Store* FullPanel::storeOf(const model::Mod& mod) const
     {
-        return mod.source == model::Source::Mcm ? _mcmStore : _packageStore;
+        return mod.source == model::Source::Mcm ? _mcmStore : _configSpecStore;
     }
 
     /**
@@ -164,7 +164,7 @@ namespace mods_config::ui
      * A mod with unsaved changes is not left for another or for the menu's front page at once: the dialog asks
      * first, and its Save and Discard show the selection.
      * It leaves the Help page: the selection under it is shown again, as Back shows it, with its session kept.
-     * And it leaves a package's report.
+     * And it leaves a config spec's report.
      * Returns whether it did something: it shows another page than before, or the dialog asks.
      */
     bool FullPanel::select(const Selection& selection)
@@ -252,7 +252,7 @@ namespace mods_config::ui
 
     /**
      * Does what the player was about to do as the dialog asked, after its Save or its Discard: shows the
-     * selection or a package's report, or closes the menu. The dialog is closed. Returns true: it did something.
+     * selection or a config spec's report, or closes the menu. The dialog is closed. Returns true: it did something.
      */
     bool FullPanel::leave()
     {
@@ -317,7 +317,7 @@ namespace mods_config::ui
     }
 
     /**
-     * Shows the report of a package over the menu's front page, as a press on its row of the Developer section
+     * Shows the report of a config spec over the menu's front page, as a press on its row of the Developer section
      * does. A mod that is selected is left, and the dialog asks first while it has unsaved changes. Returns
      * whether it did something: it shows the report, or the dialog asks.
      */
@@ -341,7 +341,7 @@ namespace mods_config::ui
     }
 
     /**
-     * Leaves a package's report for the menu's front page, scrolled to its Developer section, as Back and the
+     * Leaves a config spec's report for the menu's front page, scrolled to its Developer section, as Back and the
      * Developer crumb do, or from its top, as the menu's crumb does. Returns true: it shows another page.
      */
     bool FullPanel::leaveReport(const bool toDeveloper)
@@ -354,7 +354,7 @@ namespace mods_config::ui
     }
 
     /**
-     * Shows the row of a problem of a package's report, as a press on the problem does: the mod at the row's
+     * Shows the row of a problem of a config spec's report, as a press on the problem does: the mod at the row's
      * page, with the row scrolled into view in the focus ring, and the sections it is in opened. Back then
      * shows the report again. A row the page does not have is not focused. Returns whether it shows the page.
      */
@@ -398,7 +398,7 @@ namespace mods_config::ui
      * Goes one step back: the dialog is cancelled, with nothing saved or discarded, a slider that is dragged
      * has the value it had before the drag, the list of a dropdown that is open is closed, and a text input that
      * is edited keeps its value. With none of them, from the Help page to the page it was shown over, from a
-     * package's report to the Developer section of the menu's front page, from the page a problem of a report
+     * config spec's report to the Developer section of the menu's front page, from the page a problem of a report
      * showed back to the report, from a page of a mod to the page it is under or to the mod's front page, and
      * from there to the menu's front page, which asks first while the mod has unsaved changes.
      * Returns false on the menu's front page, which has nothing before it: Back closes the menu there.
@@ -444,7 +444,7 @@ namespace mods_config::ui
         _helpShown = false;
         _report.reset();
         _returnToReport.reset();
-        _packageReport.reset();
+        _configSpecReport.reset();
         _frontPage.reset();
         _scrollToDeveloper = false;
         _leaving.reset();
@@ -500,7 +500,7 @@ namespace mods_config::ui
         std::optional<PointedRow> pointed;
         bool onPage = false;
 
-        // a problem of a report whose row a press asks to show, and a package whose report a press opens: after
+        // a problem of a report whose row a press asks to show, and a config spec whose report a press opens: after
         // the panel is drawn, as a press on a row of the tree is
         struct ReportProblem
         {
@@ -515,7 +515,7 @@ namespace mods_config::ui
             if (_helpShown) {
                 drawHelpPage(_controls);
             } else if (_report) {
-                auto drawn = _packageReport.draw(_mods[*_report]);
+                auto drawn = _configSpecReport.draw(_mods[*_report]);
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
                 if (drawn.pressed) {

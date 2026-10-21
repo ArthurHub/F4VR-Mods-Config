@@ -17,20 +17,20 @@ namespace
 
     // the texts of the section's heading and of its filter, and what the help line says of them
     constexpr auto HEADING = "Developer";
-    constexpr auto HEADING_HELP = "The problems of each package, for its author: what the menu left out of it, and what it read that is likely not meant.";
+    constexpr auto HEADING_HELP = "The problems of each config spec, for its author: what the menu left out of it, and what it read that is likely not meant.";
     constexpr auto FILTER = "Show";
     constexpr auto FILTER_HELP =
-        "Which packages this section lists: those that need attention, with an error or a warning or not loaded, all of them, or only the Package of Mods Config VR's "
+        "Which config specs this section lists: those that need attention, with an error or a warning or not loaded, all of them, or only the Config spec of Mods Config VR's "
         "settings.";
 
-    // the options of the filter, as Mods Config VR's settings have them: the third is the name of its Package
+    // the options of the filter, as Mods Config VR's settings have them: the third is the name of its Config spec
     constexpr std::array FILTER_OPTIONS{ "Needing attention", "All" };
 
     /**
-     * What a package's row tells: how many errors and warnings it has, and whether it is not loaded, as one that
+     * What a config spec's row tells: how many errors and warnings it has, and whether it is not loaded, as one that
      * cannot be read is, or not available, as one whose required plugins are not loaded is.
      */
-    struct PackageState
+    struct ConfigSpecState
     {
         std::size_t errors = 0;
         std::size_t warnings = 0;
@@ -38,9 +38,9 @@ namespace
         bool notAvailable = false;
     };
 
-    PackageState stateOf(const model::Mod& mod)
+    ConfigSpecState stateOf(const model::Mod& mod)
     {
-        PackageState state;
+        ConfigSpecState state;
         for (const auto& problem : mod.problems) {
             (problem.severity == model::Severity::Error ? state.errors : state.warnings) += 1;
         }
@@ -58,24 +58,24 @@ namespace
     }
 
     /**
-     * The places of the packages the filter lists, among the mods, in their order, and how many packages there
-     * are. A package needs attention while it has an error or a warning, or is not loaded.
+     * The places of the config specs the filter lists, among the mods, in their order, and how many config specs there
+     * are. A config spec needs attention while it has an error or a warning, or is not loaded.
      */
-    std::vector<std::size_t> listedPackages(const std::vector<model::Mod>& mods, const ui::DeveloperView& view, std::size_t& packages)
+    std::vector<std::size_t> listedConfigSpecs(const std::vector<model::Mod>& mods, const ui::DeveloperView& view, std::size_t& configSpecs)
     {
         std::vector<std::size_t> listed;
-        packages = 0;
-        const auto package = common::str_tolower(view.package);
+        configSpecs = 0;
+        const auto configSpec = common::str_tolower(view.configSpec);
         for (std::size_t place = 0; place < mods.size(); ++place) {
             const auto& mod = mods[place];
-            if (mod.source != model::Source::Package) {
+            if (mod.source != model::Source::ConfigSpec) {
                 continue;
             }
-            ++packages;
+            ++configSpecs;
             const auto state = stateOf(mod);
-            const bool shown = view.show == ui::ShowPackages::All ||
-                               (view.show == ui::ShowPackages::NeedingAttention && (state.errors > 0 || state.warnings > 0 || state.notLoaded)) ||
-                               (view.show == ui::ShowPackages::OnlyOne && common::str_tolower(mod.name) == package);
+            const bool shown = view.show == ui::ShowConfigSpecs::All ||
+                               (view.show == ui::ShowConfigSpecs::NeedingAttention && (state.errors > 0 || state.warnings > 0 || state.notLoaded)) ||
+                               (view.show == ui::ShowConfigSpecs::OnlyOne && common::str_tolower(mod.name) == configSpec);
             if (shown) {
                 listed.push_back(place);
             }
@@ -84,13 +84,13 @@ namespace
     }
 
     /**
-     * The mod the settings name as their Package. None for a name of no package.
+     * The mod the settings name as their Config spec. None for a name of no config spec.
      */
-    const model::Mod* namedPackage(const std::vector<model::Mod>& mods, const std::string& name)
+    const model::Mod* namedConfigSpec(const std::vector<model::Mod>& mods, const std::string& name)
     {
         const auto lower = common::str_tolower(name);
         for (const auto& mod : mods) {
-            if (mod.source == model::Source::Package && !name.empty() && common::str_tolower(mod.name) == lower) {
+            if (mod.source == model::Source::ConfigSpec && !name.empty() && common::str_tolower(mod.name) == lower) {
                 return &mod;
             }
         }
@@ -113,10 +113,10 @@ namespace
     }
 
     /**
-     * What the help line says of a package's row: why it is not loaded, as an error is told, why it is not
+     * What the help line says of a config spec's row: why it is not loaded, as an error is told, why it is not
      * available, or its errors and its warnings.
      */
-    ui::PointedRow packageHelp(const model::Mod& mod, const PackageState& state)
+    ui::PointedRow configSpecHelp(const model::Mod& mod, const ConfigSpecState& state)
     {
         if (state.notLoaded) {
             const auto error = std::ranges::find(mod.problems, model::Severity::Error, &model::Problem::severity);
@@ -145,14 +145,14 @@ namespace mods_config::ui
 
     /**
      * Draws the section at the cursor, as the design system's Developer has it.
-     * Its heading folds, and folded it says the errors and the warnings of the packages it lists. A press on it
+     * Its heading folds, and folded it says the errors and the warnings of the config specs it lists. A press on it
      * folds or opens it, which changes the view.
-     * Its first row is the filter: `Show`, with how many of the packages it lists, and a stepper of Needing
-     * attention, All and the name of the settings' Package, for Only one, which a press or the thumbstick
-     * steps, as any stepper. A Package that names no package has no option.
-     * Then a row for each package the filter lists, in the order of the mods: its name, and its errors and its
+     * Its first row is the filter: `Show`, with how many of the config specs it lists, and a stepper of Needing
+     * attention, All and the name of the settings' Config spec, for Only one, which a press or the thumbstick
+     * steps, as any stepper. A Config spec that names no config spec has no option.
+     * Then a row for each config spec the filter lists, in the order of the mods: its name, and its errors and its
      * warnings, `No problems`, `Not loaded` in red after the invalid mark for one that cannot be read, or `Not
-     * available`, and an arrow in the room of a Reset: a press on it tells its package, whose report it opens.
+     * available`, and an arrow in the room of a Reset: a press on it tells its config spec, whose report it opens.
      * Scrolled to, the page is scrolled to put the section's heading at its top.
      */
     DeveloperDrawn DeveloperSection::draw(const std::vector<model::Mod>& mods, DeveloperView& view, const float thumbstickSideValue, const bool scrollTo)
@@ -171,8 +171,8 @@ namespace mods_config::ui
         if (scrollTo) {
             ImGui::SetScrollHereY(0.0f);
         }
-        std::size_t packages = 0;
-        auto listed = listedPackages(mods, view, packages);
+        std::size_t configSpecs = 0;
+        auto listed = listedConfigSpecs(mods, view, configSpecs);
         std::size_t errors = 0;
         std::size_t warnings = 0;
         for (const auto place : listed) {
@@ -205,8 +205,8 @@ namespace mods_config::ui
         for (const auto* text : FILTER_OPTIONS) {
             options.push_back({ .value = static_cast<int>(options.size()), .text = text });
         }
-        if (const auto* package = namedPackage(mods, view.package)) {
-            options.push_back({ .value = static_cast<int>(options.size()), .text = package->displayName });
+        if (const auto* configSpec = namedConfigSpec(mods, view.configSpec)) {
+            options.push_back({ .value = static_cast<int>(options.size()), .text = configSpec->displayName });
         }
         const auto shown = static_cast<std::size_t>(view.show);
         auto chosen = shown < options.size() ? std::optional(shown) : std::nullopt;
@@ -218,27 +218,27 @@ namespace mods_config::ui
         bool pulse = false;
         if (const auto picked = _filter.edit(_filterSetting, options, right, filterPos.y, row, chosen, pulse); picked && picked != chosen) {
             chosen = picked;
-            view.show = static_cast<ShowPackages>(*picked);
-            listed = listedPackages(mods, view, packages);
+            view.show = static_cast<ShowConfigSpecs>(*picked);
+            listed = listedConfigSpecs(mods, view, configSpecs);
             drawn.changed = true;
             pulse = true;
         }
         drawn.pressActed = drawn.pressActed || pulse;
         const float stepperLeft = _filter.draw(_filterSetting, options, right, filterPos.y, row, chosen, ValueLook::Saved);
         drawText(textLeft, stepperLeft - theme::SPACE_3, filterPos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, FILTER);
-        drawTag(textLeft + textWidth(FILTER) + theme::SPACE_2, filterPos.y + theme::CONTROL_HEIGHT * 0.5f, std::format("{} of {}", listed.size(), packages));
+        drawTag(textLeft + textWidth(FILTER) + theme::SPACE_2, filterPos.y + theme::CONTROL_HEIGHT * 0.5f, std::format("{} of {}", listed.size(), configSpecs));
         if (row.pointed) {
             drawn.pointed = PointedRow{ .text = FILTER, .help = FILTER_HELP, .warning = {}, .invalid = false };
         }
         _filter.endFrame();
 
-        // a row for each package
+        // a row for each config spec
         for (const auto place : listed) {
             const auto& mod = mods[place];
             const auto state = stateOf(mod);
             ImGui::PushID(static_cast<int>(place));
             const auto pos = ImGui::GetCursorScreenPos();
-            if (ImGui::InvisibleButton("package", ImVec2(rowWidth, theme::CONTROL_HEIGHT))) {
+            if (ImGui::InvisibleButton("configSpec", ImVec2(rowWidth, theme::CONTROL_HEIGHT))) {
                 drawn.opened = place;
                 drawn.pressActed = true;
             }
@@ -262,7 +262,7 @@ namespace mods_config::ui
             }
             drawText(textLeft, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, mod.displayName);
             if (onRow) {
-                drawn.pointed = packageHelp(mod, state);
+                drawn.pointed = configSpecHelp(mod, state);
             }
             ImGui::PopID();
         }

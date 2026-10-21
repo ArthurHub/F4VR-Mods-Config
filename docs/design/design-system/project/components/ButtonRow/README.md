@@ -1,13 +1,13 @@
 # ButtonRow
 
-A `button` item: a row that runs an action, a function of a script, a console command, or a function of the mod's native client, and the confirmation a package can ask for first.
+A `button` item: a row that runs an action, a function of a script, a console command, or a function of the mod's native client, and the confirmation a config spec can ask for first.
 
 **Provides:** the row's text and help, its `buttonText`, whether it can run (a `CallNativeFunction` needs the mod's client), its `confirmation`, and the result of its last run.
 
 ## The row
 
 - A setting row with no Reset: the name, and in the control column a secondary button, 160 x 48, right-aligned where the controls end. The Reset slot is kept empty, so it lines up with the other rows.
-- The button says `Run`, or the package's `buttonText`. A press anywhere on the row runs it, as a press on a toggle's row toggles it.
+- The button says `Run`, or the config spec's `buttonText`. A press anywhere on the row runs it, as a press on a toggle's row toggles it.
 - Hover: the row's hover look. The button is only drawn, as the Open of a quick launch row is: the row is what is pressed.
 - **Running:** while the action has not returned, the button is `pressed` with a `glow` outline, and says `Running` after a drawn arc that turns (`PathArcTo`, 20 px, a turn a second). A press on it does nothing. A Papyrus call returns when the script's function does; a console command at once.
 - **The result**, when the action gives one, is a mark after the name and its text in the help line, as an invalid setting's reason is. Nothing is written under the name.

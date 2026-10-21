@@ -5,7 +5,7 @@
 
 #include <imgui.h>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 #include "model/Store.h"
 
 namespace mods_config::ui

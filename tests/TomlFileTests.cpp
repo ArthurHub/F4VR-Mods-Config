@@ -9,11 +9,11 @@
 
 #include "TestFiles.h"
 #include "common/CommonUtils.h"
-#include "package/TomlFile.h"
+#include "spec/TomlFile.h"
 
 using namespace mods_config;
 using model::StoredType;
-using package::TomlFile;
+using spec::TomlFile;
 using Path = std::vector<std::string>;
 
 namespace
@@ -43,7 +43,7 @@ namespace
     /**
      * Writes values into a file as a Save does: its new text is made, and then written.
      */
-    std::expected<void, std::string> writeChanges(package::ModFile& file, const std::vector<package::ModFile::Change>& changes)
+    std::expected<void, std::string> writeChanges(spec::ModFile& file, const std::vector<spec::ModFile::Change>& changes)
     {
         if (auto prepared = file.prepare(changes); !prepared) {
             return prepared;

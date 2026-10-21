@@ -2,21 +2,21 @@
 
 This document describes the current direction of the Mods Config VR declarative JSON format. It is a design specification, not a frozen versioned schema.
 
-A package has what an MCM config has, by MCM's names wherever MCM has the same thing, and more. [A package and MCM](#a-package-and-mcm) lists the differences.
+A config spec has what an MCM config has, by MCM's names wherever MCM has the same thing, and more. [A config spec and MCM](#a-config-spec-and-mcm) lists the differences.
 
 The examples use a made-up mod, My Mod, that keeps its settings where a CommonFramework mod does.
 
-## Package location
+## Config spec location
 
 ```text
-Data/ModsConfigVR/Config/<PackageFolder>/config.json
+Data/ModsConfigVR/Config/<ConfigSpecFolder>/spec.json
 ```
 
-The folder name is organizational. The package's `modName` is its machine identity.
+The folder name is organizational. The config spec's `modName` is its machine identity.
 
-One `config.json` is supported per package: a package has no includes or fragments. A list of options that several choices use is written once, as a [shared list](#shared-lists).
+One `spec.json` is supported per config spec: a config spec has no includes or fragments. A list of options that several choices use is written once, as a [shared list](#shared-lists).
 
-## Package structure
+## Config spec structure
 
 ```json
 {
@@ -25,7 +25,7 @@ One `config.json` is supported per package: a package has no includes or fragmen
   "displayName": "My Mod",
   "help": "Body tracking and holsters for VR.",
   "category": "Gameplay",
-  "packageVersion": 1,
+  "specVersion": 1,
 
   "pluginRequirements": ["MyMod.esp"],
   "f4sePluginRequirements": ["MyMod"],
@@ -41,10 +41,10 @@ One `config.json` is supported per package: a package has no includes or fragmen
 
 ### Required metadata
 
-- `minSchemaVersion`: the lowest version of the Mods Config VR package schema that can read the package, as `minMcmVersion` is in an MCM config. See [Schema version](#schema-version).
-- `modName`: the stable, unique identity of the package, named as in an MCM config.
+- `minSchemaVersion`: the lowest version of the Mods Config VR config spec schema that can read the config spec, as `minMcmVersion` is in an MCM config. See [Schema version](#schema-version).
+- `modName`: the stable, unique identity of the config spec, named as in an MCM config.
 - `displayName`: the mod's name as the player sees it, a localized text.
-- `files`: named settings-file declarations when the package has file-backed settings.
+- `files`: named settings-file declarations when the config spec has file-backed settings.
 - `applies`: when a change to a setting takes effect in the running mod: `live`, `save` or `restart`. See [When a change takes effect](#when-a-change-takes-effect).
 - `content`: the items of the mod's front page, which is shown when the mod is selected. It is not empty. It has no row of its own in the navigation tree: the mod's row is its row.
 
@@ -52,24 +52,24 @@ One `config.json` is supported per package: a package has no includes or fragmen
 
 `help` is optional: what the mod is, shown in the help line while the ray is on the mod's row in the tree.
 
-`packageVersion` is useful for diagnostics and package evolution but does not represent the installed mod's marketing version.
+`specVersion` is useful for diagnostics and config spec evolution but does not represent the installed mod's marketing version.
 
 Author, website, Nexus ID, and mod version may be optional metadata later.
 
-Two packages with the same `modName` are both [not available](ui-and-vr-interaction.md#notices). The host does not pick one of them.
+Two config specs with the same `modName` are both [not available](ui-and-vr-interaction.md#notices). The host does not pick one of them.
 
-IDs are compared without regard to case, both a package's `modName` and the ids inside a package: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
+IDs are compared without regard to case, both a config spec's `modName` and the ids inside a config spec: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
 
-A native client is matched to its package by the package's `modName`. A CommonFramework mod's client registers under the mod's own name, so its package uses that name as its `modName`. The F4SE plugin name, when it differs, goes only in `f4sePluginRequirements`.
+A native client is matched to its config spec by the config spec's `modName`. A CommonFramework mod's client registers under the mod's own name, so its config spec uses that name as its `modName`. The F4SE plugin name, when it differs, goes only in `f4sePluginRequirements`.
 
 ### Schema version
 
-The schema has one version number, and it only grows. A package ships with its mod and is not updated when Mods Config VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every package written for an older version.
+The schema has one version number, and it only grows. A config spec ships with its mod and is not updated when Mods Config VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every config spec written for an older version.
 
-- `minSchemaVersion` is the lowest version that has everything the package uses. It is required, a whole number from 1: a package without it is not loaded, and the error is reported.
-- On a host below that version the package's mod is [not available](ui-and-vr-interaction.md#notices), and the reason names the version it needs.
+- `minSchemaVersion` is the lowest version that has everything the config spec uses. It is required, a whole number from 1: a config spec without it is not loaded, and the error is reported.
+- On a host below that version the config spec's mod is [not available](ui-and-vr-interaction.md#notices), and the reason names the version it needs.
 - A field or a control type added after version 1 is documented with the version that added it.
-- A field the host does not know is reported in diagnostics, and the rest of the package is read. A typo is noticed, and a package that uses a newer field than its `minSchemaVersion` says still works on an older host, without that field.
+- A field the host does not know is reported in diagnostics, and the rest of the config spec is read. A typo is noticed, and a config spec that uses a newer field than its `minSchemaVersion` says still works on an older host, without that field.
 
 ### Category
 
@@ -101,18 +101,18 @@ Data/ModsConfigVR/Categories.json
 
 ### Requirements
 
-Requirements keep a menu from being opened while the mod that owns it is not loaded. With a missing requirement the package's mod is [not available](ui-and-vr-interaction.md#notices): its row in the tree is disabled, and the reason names what is missing.
+Requirements keep a menu from being opened while the mod that owns it is not loaded. With a missing requirement the config spec's mod is [not available](ui-and-vr-interaction.md#notices): its row in the tree is disabled, and the reason names what is missing.
 
 - `pluginRequirements` lists game plugin files (`.esp`, `.esm`, `.esl`) by file name, as in an MCM config.
 - `f4sePluginRequirements` lists F4SE plugins by the name each registers with F4SE, not by DLL file name. The two can differ: FRIK's DLL is `FRIK.dll` and its F4SE plugin name is `F4VRBody`. The host sends the native save notification to these names.
 
 A script-only mod lists its game plugin and names no F4SE plugin.
 
-A part of a package that needs another mod is shown or enabled by a condition on a loaded plugin; see [Conditions](#conditions).
+A part of a config spec that needs another mod is shown or enabled by a condition on a loaded plugin; see [Conditions](#conditions).
 
 ## Files
 
-Packages may bind settings to multiple real files:
+Config specs may bind settings to multiple real files:
 
 ```json
 {
@@ -143,11 +143,11 @@ Rules:
 - `root` initially supports `data`, the game's `Data` directory, and `myGames`, which is `Documents/My Games/Fallout4VR`. The Documents folder is located through Windows, as CommonFramework does, so a redirected Documents folder is followed.
 - A path is checked as written: absolute paths and `..` segments are rejected. Links are not resolved.
 - The file does not have to exist. The host creates it on the first Save that changes one of its settings.
-- A package may contain only informational content and buttons, or keep its settings in globals and script properties alone, and therefore need no file declaration.
+- A config spec may contain only informational content and buttons, or keep its settings in globals and script properties alone, and therefore need no file declaration.
 
 ## Pages
 
-A page is a row in the navigation tree, under the mod or under another page. It has a `pageDisplayName`, its own `content`, and can have a `help` and `pages` of its own, so the tree has as many levels as the package gives it:
+A page is a row in the navigation tree, under the mod or under another page. It has a `pageDisplayName`, its own `content`, and can have a `help` and `pages` of its own, so the tree has as many levels as the config spec gives it:
 
 ```json
 {
@@ -166,7 +166,7 @@ A page is a row in the navigation tree, under the mod or under another page. It 
 
 - A page's `content` is required and is not empty. A page with pages under it has rows of its own too.
 - A page's `help` is shown in the help line while the ray is on its row in the tree.
-- A page can have an `id`, unique among the package's pages. The mod's native client is told it as the page is shown and left, to show in the world what the page sets; see [Page events](architecture.md#page-events). A page with no `id` sends none.
+- A page can have an `id`, unique among the config spec's pages. The mod's native client is told it as the page is shown and left, to show in the world what the page sets; see [Page events](architecture.md#page-events). A page with no `id` sends none.
 - A page's pages are rows under it in the tree, shown while it or one of them is selected, as a mod's pages are shown while the mod is selected. The breadcrumbs name every level, as `MODS CONFIG VR » My Mod » Body » Hands`. See [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior).
 - What a page has goes down to the pages under it: its `defaultFile`, its `applies`, and its `visibleWhen`, which hides them with it.
 - An MCM config has one level of pages.
@@ -180,7 +180,7 @@ Repetitive file references are avoided through inherited `defaultFile` values. A
 1. Explicit `storage.file`
 2. The `defaultFile` of the nearest section it is in
 3. The `defaultFile` of the nearest page it is on: its own page, then the pages above it
-4. Package-level `defaultFile`
+4. Config spec-level `defaultFile`
 
 ```json
 {
@@ -198,7 +198,7 @@ Repetitive file references are avoided through inherited `defaultFile` values. A
 
 ## When a change takes effect
 
-A mod does not show every change as it is made. Some mods read their file again after a Save, and some values are read once, when the game starts. Only the mod's author knows which, so the package says it, with `applies`:
+A mod does not show every change as it is made. Some mods read their file again after a Save, and some values are read once, when the game starts. Only the mod's author knows which, so the config spec says it, with `applies`:
 
 | Value     | The change takes effect     | What the host does                                                                    |
 | --------- | --------------------------- | ------------------------------------------------------------------------------------- |
@@ -206,12 +206,12 @@ A mod does not show every change as it is made. Some mods read their file again 
 | `save`    | After Save                  | No preview                                                                            |
 | `restart` | After the game is restarted | No preview. The row is marked, and a Save that wrote it says that a restart is needed |
 
-`applies` is required at the package's root: a package without it is not loaded, and the error is reported. Below the root it is optional, and a setting takes the nearest one:
+`applies` is required at the config spec's root: a config spec without it is not loaded, and the error is reported. Below the root it is optional, and a setting takes the nearest one:
 
 1. The setting's own `applies`
 2. The `applies` of the nearest section it is in
 3. The `applies` of the nearest page it is on: its own page, then the pages above it
-4. Package-level `applies`
+4. Config spec-level `applies`
 
 ```json
 {
@@ -227,7 +227,7 @@ A mod does not show every change as it is made. Some mods read their file again 
 }
 ```
 
-A row of the mod's front page has no page above it, so it goes from its sections to the package.
+A row of the mod's front page has no page above it, so it goes from its sections to the config spec.
 
 Which value a mod uses:
 
@@ -238,7 +238,7 @@ Which value a mod uses:
 
 A `live` setting kept in a file, of a mod with no native client, is handled as `save`, as a preview has nowhere to go.
 
-The host does not check what a package says. A setting that is `live` in a mod that ignores the change looks broken to the player.
+The host does not check what a config spec says. A setting that is `live` in a mod that ignores the change looks broken to the player.
 
 ## Ordering
 
@@ -308,9 +308,9 @@ A setting's `id` is optional. A setting without one gets its id from its storage
 
 An author gives an id to a setting that something names, a condition or a script, when the name should stay the same after its key is renamed or moved.
 
-Setting IDs are unique across the package, given or made. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Two settings whose ids come out the same are an error of the package, and giving one of them an id resolves it. Only a setting and a page have an id: nothing names a section or a button.
+Setting IDs are unique across the config spec, given or made. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Two settings whose ids come out the same are an error of the config spec, and giving one of them an id resolves it. Only a setting and a page have an id: nothing names a section or a button.
 
-Scripts read a setting kept in a file by the package's `modName` and the setting's `id`, so renaming either breaks the scripts that use it; see [Papyrus API](architecture.md#papyrus-api). For a setting with no `id` of its own, that is renaming its section or its key.
+Scripts read a setting kept in a file by the config spec's `modName` and the setting's `id`, so renaming either breaks the scripts that use it; see [Papyrus API](architecture.md#papyrus-api). For a setting with no `id` of its own, that is renaming its section or its key.
 
 ### Read-only
 
@@ -365,7 +365,7 @@ A setting that Save does not write runs nothing: one the player did not change, 
 
 ## Storage
 
-A setting's `storage` says where its value is kept: a key of one of the package's files, a global, or a property of a script. It is apart from the setting's `id`.
+A setting's `storage` says where its value is kept: a key of one of the config spec's files, a global, or a property of a script. It is apart from the setting's `id`.
 
 ### INI
 
@@ -398,10 +398,10 @@ An array represents an unambiguous path without dotted-key escaping rules:
 
 - A path has any depth, so a value inside a table is a setting of its own. A CommonFramework TOML is `[Section] key`, a path of two.
 - A table that is a CommonFramework value, as a color or a binding, is one value in one key, edited whole by its control; see [CommonFramework-specific controls](controls.md#commonframework-specific-controls). The path names its key.
-- Any other table is not a value: the package names each of its keys.
+- Any other table is not a value: the config spec names each of its keys.
 - An array is one value, and a path does not name an element of it. Its control is still to be designed.
 
-The resolved storage is included in native `SettingView` data so generic adapters do not parse this package themselves.
+The resolved storage is included in native `SettingView` data so generic adapters do not parse this config spec themselves.
 
 ### Global and script property
 
@@ -421,11 +421,11 @@ A form is named as in an MCM config, by its plugin and its id in that plugin. `s
 
 - A mod with no DLL keeps its settings where its scripts and the game read them, as an MCM mod does. The game's own conditions read a global, so a plugin with no scripts is configured too.
 - The value is in the save game, not in a file. A new game starts with the plugin's value, and each save has its own. The setting still has its `default`, for Reset.
-- It has a package's lifecycle, as a key of a file has: a change is pending until Save, and Discard drops it. The host previews a `live` one itself, by writing the pending value into the game, and writes the value from before back on Discard. See [Editing session](architecture.md#editing-session).
+- It has a config spec's lifecycle, as a key of a file has: a change is pending until Save, and Discard drops it. The host previews a `live` one itself, by writing the pending value into the game, and writes the value from before back on Discard. See [Editing session](architecture.md#editing-session).
 - A script reads it itself, so the [Papyrus API](architecture.md#papyrus-api) is for a setting kept in a file.
 - A global or a property that is not in the game is not available, and its row says why, as an MCM row does.
 
-A package has no MCM ModSetting storage: it does not need MCM, and a key of its own file, read through the Papyrus API, is what a ModSetting is for an MCM mod.
+A config spec has no MCM ModSetting storage: it does not need MCM, and a key of its own file, read through the Papyrus API, is what a ModSetting is for an MCM mod.
 
 ## Sections
 
@@ -558,7 +558,7 @@ A choice is a `dropdown` or a `stepper`, as in MCM. The host may select a more c
 
 ### Shared lists
 
-A list of options that several choices use is written once, as in an MCM config. `sharedLists` at the package's root holds each list by its name, in either form of `options`, and a choice names one with `sharedOptions` in place of its own `options`:
+A list of options that several choices use is written once, as in an MCM config. `sharedLists` at the config spec's root holds each list by its name, in either form of `options`, and a choice names one with `sharedOptions` in place of its own `options`:
 
 ```json
 {
@@ -595,7 +595,7 @@ A choice can take its options from the mod's native client, for a list only the 
 
 The client registers a callback for the setting's id with the [native API](architecture.md#options-from-a-client), and the host calls it as the mod is selected. It returns the options in either form of `options`: texts, or values with their texts, the values in the setting's `valueType`. While no callback is registered for the setting, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options is invalid, and the `default` is any value of the setting's type, as for options from the game.
 
-Mods Config VR's own package uses it for its Package setting, whose options are the packages the menu found: until the native API is there, the menu registers that one callback itself.
+Mods Config VR's own config spec uses it for its Config spec setting, whose options are the config specs the menu found: until the native API is there, the menu registers that one callback itself.
 
 ## Buttons
 
@@ -625,11 +625,11 @@ Its `action` is an object with a `type`, as in an MCM config:
 }
 ```
 
-The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON values, each given to the script in its own type: a number written with no point is an int, one with a point or an exponent is a float, `true` and `false` are bools, and a text is a string. A text is never read for a type: the `{i}`, `{f}` and `{b}` of an MCM config are not a package's. `"{value}"` is the value of a setting's action; see [A setting's action](#a-settings-action).
+The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON values, each given to the script in its own type: a number written with no point is an int, one with a point or an exponent is a float, `true` and `false` are bools, and a text is a string. A text is never read for a type: the `{i}`, `{f}` and `{b}` of an MCM config are not a config spec's. `"{value}"` is the value of a setting's action; see [A setting's action](#a-settings-action).
 
 `buttonText` is the text on the button, in place of `Run`. It is a localized text.
 
-`CallNativeFunction` is the package's own action:
+`CallNativeFunction` is the config spec's own action:
 
 ```json
 {
@@ -645,7 +645,7 @@ The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON v
 }
 ```
 
-Its `params` are named, typed JSON values, where the `params` of MCM's actions are a list. The function can also read the current pending settings snapshot. In a package without a native client, such a button is shown disabled.
+Its `params` are named, typed JSON values, where the `params` of MCM's actions are a list. The function can also read the current pending settings snapshot. In a config spec without a native client, such a button is shown disabled.
 
 A button can use ordinary visibility and enablement conditions, and [warnings](#warnings).
 
@@ -694,7 +694,7 @@ A `spacer` is empty space, one line high or `numLines`:
 { "type": "spacer", "numLines": 2 }
 ```
 
-An MCM `image` names a picture inside the mod's SWF, which a package does not have. A package's `image` names a texture file by its path under `Data/Textures`, and can give the size it is drawn at, in the panel's pixels:
+An MCM `image` names a picture inside the mod's SWF, which a config spec does not have. A config spec's `image` names a texture file by its path under `Data/Textures`, and can give the size it is drawn at, in the panel's pixels:
 
 ```json
 { "type": "image", "texture": "MyMod/config/logo.dds", "width": 512, "height": 128 }
@@ -734,7 +734,7 @@ Choice values must be members of their declared options.
 
 These limits are the whole validation. The mod's code is not asked, and expressions across settings are not planned.
 
-Package/schema errors disable only the affected content where safe and appear in diagnostics: in the log, and to the package's author in [Developer tools](ui-and-vr-interaction.md#developer-tools). A package that cannot be read at all is [not available](ui-and-vr-interaction.md#notices). Player input errors disable Save until corrected.
+Config spec/schema errors disable only the affected content where safe and appear in diagnostics: in the log, and to the config spec's author in [Developer tools](ui-and-vr-interaction.md#developer-tools). A config spec that cannot be read at all is [not available](ui-and-vr-interaction.md#notices). Player input errors disable Save until corrected.
 
 ## Localization
 
@@ -755,7 +755,7 @@ A text that starts with `$` is a token, as in an MCM config:
 }
 ```
 
-A token with a fallback keeps the English text in the package:
+A token with a fallback keeps the English text in the config spec:
 
 ```json
 {
@@ -779,18 +779,18 @@ Each line of a file is a token, a tab, and its text. A file is UTF-16 LE with a 
 Rules:
 
 - F4SE loads one file for every enabled game plugin, named `<plugin>_<language>.txt`, for the language the game is set to. It does not fall back to English. The host looks a token up among them, as it does for an MCM config.
-- A mod with no game plugin has no file loaded by F4SE. The host reads `<modName>_<language>.txt` for its package itself.
-- The fallback is shown when no file has the token: the game is set to a language the mod has no file for, or the file misses the token. So a package whose fallbacks are English needs no English file.
+- A mod with no game plugin has no file loaded by F4SE. The host reads `<modName>_<language>.txt` for its config spec itself.
+- The fallback is shown when no file has the token: the game is set to a language the mod has no file for, or the file misses the token. So a config spec whose fallbacks are English needs no English file.
 - A token with no fallback is shown as it is written when no file has it, as in MCM, with a diagnostic.
 - Every text the player sees takes these forms: the name of a mod and of a page, a section, a setting, a help, an option and its short text, the text on a button, a confirmation, and a unit.
 
 A language can be shown only if the UI font has its characters. The font covers Western European languages today; wider coverage is an open question.
 
-This is what an MCM config does, with the fallback added. The texts of an MCM config therefore carry over to a package as they are.
+This is what an MCM config does, with the fallback added. The texts of an MCM config therefore carry over to a config spec as they are.
 
-## A package and MCM
+## A config spec and MCM
 
-A package has what an MCM config has, by MCM's names, and more:
+A config spec has what an MCM config has, by MCM's names, and more:
 
 - Its settings are kept in the mod's own INI, TOML and JSON files, and in globals and properties of its scripts, and are saved together with Save.
 - Every setting has a `default`, for Reset, and can be read-only. A number has its `display`.
@@ -803,9 +803,9 @@ A package has what an MCM config has, by MCM's names, and more:
 - The mod and each page have a help, and the mod's DLL is told which of its pages is shown.
 - A text can have a fallback, and an image is a texture file.
 
-What an MCM config has that a package does not, and what the package has in its place:
+What an MCM config has that a config spec does not, and what the config spec has in its place:
 
-| MCM                                                    | A package                                                                                          |
+| MCM                                                    | A config spec                                                                                          |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `hiddenSwitcher`, set by a script to show rows         | A condition on a value, as a dropdown's, or on a loaded plugin. A row shown by game state that changes, as a mod's busy warning, waits for the native API |
 | `groupControl` and `groupCondition`, groups by number  | `visibleWhen` and `enabledWhen`, which name settings by their ids                                  |
@@ -813,8 +813,8 @@ What an MCM config has that a package does not, and what the package has in its 
 | `{value}` in the text of a parameter                   | A parameter that is exactly `"{value}"`, in the setting's type                                     |
 | A switcher with no storage that shows hidden rows      | A section that folds                                                                               |
 | `textinputInt`, `textinputFloat`                       | A `textinput` whose `valueType` is `int` or `float`                                                |
-| ModSetting storage                                     | A key of the package's file, which scripts read through the Papyrus API                            |
+| ModSetting storage                                     | A key of the config spec's file, which scripts read through the Papyrus API                            |
 | `hotkey`, `keyinput`                                   | The [InputBinding](controls.md#commonframework-specific-controls) control, for a CommonFramework mod |
 | `dropdownFiles`                                        | A choice of the files of a folder; see [Choice of files](controls.md#choice-of-files)              |
 | `positioner`, `CallExternalFunction`                   | None: they are of MCM's own Flash menu                                                             |
-| `ownerModName`, pages under another mod                | None: a package's pages are its mod's alone                                                        |
+| `ownerModName`, pages under another mod                | None: a config spec's pages are its mod's alone                                                        |

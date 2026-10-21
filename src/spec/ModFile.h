@@ -7,12 +7,12 @@
 #include <string>
 #include <vector>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
-     * A file of a package's mod, a TOML or an INI file, which the package store reads its values from and
+     * A file of a config spec's mod, a TOML or an INI file, which the config spec store reads its values from and
      * writes them into. A value is named by its path: the tables it is in and its key, or its section and its
      * key. A write changes the values alone, and keeps the rest of the file as it is.
      * A Save writes its files in three steps, so one that fails leaves every file as it was: `prepare` makes

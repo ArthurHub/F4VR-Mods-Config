@@ -1,4 +1,4 @@
-#include "PackageStore.h"
+#include "ConfigSpecStore.h"
 
 #include <algorithm>
 #include <charconv>
@@ -92,7 +92,7 @@ namespace
     }
 
     /**
-     * The path of a package's file from its root, as written in its package.
+     * The path of a config spec's file from its root, as written in its config spec.
      */
     std::filesystem::path filePath(const model::File& file)
     {
@@ -100,7 +100,7 @@ namespace
     }
 
     /**
-     * The name of a package's file, which names it in a reason, as a reason of its file does.
+     * The name of a config spec's file, which names it in a reason, as a reason of its file does.
      */
     std::string fileName(const model::File& file)
     {
@@ -335,7 +335,7 @@ namespace
     }
 
     /**
-     * A form as a package names it, by its plugin and its id in hex: `Fallout4.esm|38`.
+     * A form as a config spec names it, by its plugin and its id in hex: `Fallout4.esm|38`.
      */
     std::string formText(const std::string& plugin, const std::uint32_t formId)
     {
@@ -355,8 +355,8 @@ namespace
     }
 
     /**
-     * Where a setting that is saved keeps its value, as a key that stays the same as its package is read
-     * again: the name of its file in the package with its path, or its global or its property.
+     * Where a setting that is saved keeps its value, as a key that stays the same as its config spec is read
+     * again: the name of its file in the config spec with its path, or its global or its property.
      */
     std::string storageKey(const model::Setting& setting)
     {
@@ -479,13 +479,13 @@ namespace
     }
 
     /**
-     * A file of a package as the session read it. A file that is not there has neither its values nor a
+     * A file of a config spec as the session read it. A file that is not there has neither its values nor a
      * reason: its settings have their defaults.
      */
     struct FileOfSession
     {
         // the file, read. None for a file that is not there or is not available
-        const package::ModFile* file = nullptr;
+        const spec::ModFile* file = nullptr;
 
         // why its settings are not available, and empty for a file that is read or is not there
         std::string notAvailable;
@@ -502,13 +502,13 @@ namespace
         if (storage.type == "property") {
             return "Not available: its property names no form as a plugin and an id in hex, as MyMod.esp|800, or has no propertyName.";
         }
-        return storage.type == "file" ? "Not available: the setting names no file of its package, or no value of it." : "Not available: the setting has no storage.";
+        return storage.type == "file" ? "Not available: the setting names no file of its config spec, or no value of it." : "Not available: the setting has no storage.";
     }
 }
 
-namespace mods_config::package
+namespace mods_config::spec
 {
-    PackageStore::PackageStore(std::filesystem::path dataFolder, std::filesystem::path myGamesFolder)
+    ConfigSpecStore::ConfigSpecStore(std::filesystem::path dataFolder, std::filesystem::path myGamesFolder)
         : _dataFolder(std::move(dataFolder)),
           _myGamesFolder(std::move(myGamesFolder))
     {}
@@ -527,7 +527,7 @@ namespace mods_config::package
      * A read-only setting is never invalid: it has the value of its file as it is, none where the file has
      * none, and is not available where the file's value is not of its type.
      */
-    void PackageStore::open(const model::Mod& mod)
+    void ConfigSpecStore::open(const model::Mod& mod)
     {
         close();
         _modName = mod.name;
@@ -589,7 +589,7 @@ namespace mods_config::package
             const auto& storage = std::get<model::FileStorage>(setting->storage);
             const auto file = files.find(storage.file);
             if (file == files.end() || !file->second.notAvailable.empty()) {
-                entry.notAvailable = file != files.end() ? file->second.notAvailable : "Not available: the setting names no file of its package.";
+                entry.notAvailable = file != files.end() ? file->second.notAvailable : "Not available: the setting names no file of its config spec.";
                 continue;
             }
             const auto* modFile = file->second.file;
@@ -598,7 +598,7 @@ namespace mods_config::package
                     continue;
                 }
                 if (!setting->defaultValue) {
-                    entry.notAvailable = "Not available: the file has no value of the setting, and its package gives it no default.";
+                    entry.notAvailable = "Not available: the file has no value of the setting, and its config spec gives it no default.";
                     continue;
                 }
                 entry.baseline = controlValue(*setting, *setting->defaultValue);
@@ -627,7 +627,7 @@ namespace mods_config::package
      * effect after a restart that its Saves wrote are kept.
      * It does not read the mod, which can be gone by now: the menu's mods are replaced before it is called.
      */
-    void PackageStore::close()
+    void ConfigSpecStore::close()
     {
         rollBack();
         _modName.clear();
@@ -644,7 +644,7 @@ namespace mods_config::package
      * Nothing: the session's baseline is read as the mod is selected, and a value that changed in a file since
      * is kept by the next Save, unless the player changed the same setting.
      */
-    void PackageStore::pageShown()
+    void ConfigSpecStore::pageShown()
     {}
 
     /**
@@ -653,7 +653,7 @@ namespace mods_config::package
      * the setting's default where it is not of its type. A read-only setting whose file has no value of it is
      * not available, with no reason: it has no value to show.
      */
-    model::StoredValue PackageStore::value(const model::Setting& setting)
+    model::StoredValue ConfigSpecStore::value(const model::Setting& setting)
     {
         const auto none = noneValue(setting, _options.of(setting));
         const auto found = _entries.find(&setting);
@@ -676,7 +676,7 @@ namespace mods_config::package
     /**
      * The value of the setting of an id, which a condition names its setting by.
      */
-    model::StoredValue PackageStore::valueById(const std::string_view id)
+    model::StoredValue ConfigSpecStore::valueById(const std::string_view id)
     {
         const auto found = _settings.find(id);
         return found != _settings.end() ? value(*found->second) : model::StoredValue{};
@@ -691,7 +691,7 @@ namespace mods_config::package
      * Returns false for a value that is not set: one of a setting that is read-only or not available, and one
      * that is not of the type its control shows.
      */
-    bool PackageStore::set(const model::Setting& setting, const model::Value& value)
+    bool ConfigSpecStore::set(const model::Setting& setting, const model::Value& value)
     {
         const auto found = _entries.find(&setting);
         if (setting.readOnly || found == _entries.end() || !found->second.notAvailable.empty()) {
@@ -719,27 +719,27 @@ namespace mods_config::package
     }
 
     /**
-     * The default of a setting, as its package gives it, as its control has it.
+     * The default of a setting, as its config spec gives it, as its control has it.
      */
-    std::optional<model::Value> PackageStore::defaultValue(const model::Setting& setting)
+    std::optional<model::Value> ConfigSpecStore::defaultValue(const model::Setting& setting)
     {
         return setting.defaultValue ? controlValue(setting, *setting.defaultValue) : std::nullopt;
     }
 
-    bool PackageStore::isDirty(const model::Setting& setting) const
+    bool ConfigSpecStore::isDirty(const model::Setting& setting) const
     {
         const auto found = _entries.find(&setting);
         return found != _entries.end() && found->second.pending.has_value();
     }
 
-    std::size_t PackageStore::dirtyCount() const
+    std::size_t ConfigSpecStore::dirtyCount() const
     {
         return static_cast<std::size_t>(std::ranges::count_if(_entries, [](const auto& entry) {
             return entry.second.pending.has_value();
         }));
     }
 
-    std::size_t PackageStore::invalidCount() const
+    std::size_t ConfigSpecStore::invalidCount() const
     {
         return static_cast<std::size_t>(std::ranges::count_if(_entries, [](const auto& entry) {
             return entry.second.pending && !entry.second.pendingInvalid.empty();
@@ -751,7 +751,7 @@ namespace mods_config::package
      * after Save: the mod has no native client yet, so its preview has nowhere to go, and the store previews
      * only a global and a property. None for a read-only setting, which is not set.
      */
-    std::optional<model::Applies> PackageStore::applies(const model::Setting& setting) const
+    std::optional<model::Applies> ConfigSpecStore::applies(const model::Setting& setting) const
     {
         if (setting.readOnly) {
             return std::nullopt;
@@ -762,25 +762,25 @@ namespace mods_config::package
         return setting.applies;
     }
 
-    std::size_t PackageStore::dirtyRestartCount() const
+    std::size_t ConfigSpecStore::dirtyRestartCount() const
     {
         return static_cast<std::size_t>(std::ranges::count_if(_entries, [this](const auto& entry) {
             return entry.second.pending && applies(*entry.first) == model::Applies::Restart;
         }));
     }
 
-    std::size_t PackageStore::savedRestartCount(const model::Mod& mod) const
+    std::size_t ConfigSpecStore::savedRestartCount(const model::Mod& mod) const
     {
         const auto found = _savedForRestart.find(mod.name);
         return found != _savedForRestart.end() ? found->second.size() : 0;
     }
 
     /**
-     * Writes the dirty settings into their files, each file in one write, in the order of the package, and a
+     * Writes the dirty settings into their files, each file in one write, in the order of the config spec, and a
      * setting then has the value written as its baseline. A file is read again as it is written, so a value
      * that changed in it since the session started stays, but for one the player changed too, and a file that
      * is not there is created. The dirty settings of the game are written after every file, and the action of
-     * each setting that was written runs then, in the order of the package, with the value written. The ones
+     * each setting that was written runs then, in the order of the config spec, with the value written. The ones
      * written that take effect after a restart are kept for the mod, and how many they are is the last Save.
      * Nothing is written before every file has its new text, checked to read back, and every global and
      * property is in the game, and the files already written are put back when a write fails: a Save that
@@ -789,7 +789,7 @@ namespace mods_config::package
      * `showcase.toml cannot be written`. While a dirty setting is invalid nothing is written, and the reason
      * is not a failure of the Save: the UI does not save then.
      */
-    std::expected<void, std::string> PackageStore::save()
+    std::expected<void, std::string> ConfigSpecStore::save()
     {
         if (const auto invalid = invalidCount(); invalid > 0) {
             logger::warn("The changes of '{}' are not saved, as {} of them are not valid", _modName, invalid);
@@ -802,7 +802,7 @@ namespace mods_config::package
             return std::unexpected(reason);
         };
 
-        // the files that have dirty settings, with their names in the package and the settings
+        // the files that have dirty settings, with their names in the config spec and the settings
         struct FileSave
         {
             std::string_view name;
@@ -904,7 +904,7 @@ namespace mods_config::package
      * and the game has the baseline of each setting that is previewed again. The last Save is over, also one
      * that failed.
      */
-    void PackageStore::discard()
+    void ConfigSpecStore::discard()
     {
         rollBack();
         _saveFailure.clear();
@@ -916,11 +916,11 @@ namespace mods_config::package
     }
 
     /**
-     * A package has no hotkeys.
+     * A config spec has no hotkeys.
      */
-    model::StoredValue PackageStore::hotkey(const model::Hotkey&)
+    model::StoredValue ConfigSpecStore::hotkey(const model::Hotkey&)
     {
-        return { .value = std::string(), .available = false, .invalid = false, .reason = "Not available: a package has no hotkeys." };
+        return { .value = std::string(), .available = false, .invalid = false, .reason = "Not available: a config spec has no hotkeys." };
     }
 
     /**
@@ -929,7 +929,7 @@ namespace mods_config::package
      * Returns false for a row with no action, for an action the store does not run, and for a function whose
      * form or script is not in the game.
      */
-    bool PackageStore::run(const model::Action& action)
+    bool ConfigSpecStore::run(const model::Action& action)
     {
         if (const auto* call = std::get_if<model::CallFunction>(&action)) {
             return callFunction(*call);
@@ -943,7 +943,7 @@ namespace mods_config::package
      * or its baseline, as it is set back. The baseline of one that is previewed is kept, which a Discard
      * writes back, and so does the end of the session.
      */
-    void PackageStore::preview(const model::Setting& setting, const Entry& entry)
+    void ConfigSpecStore::preview(const model::Setting& setting, const Entry& entry)
     {
         const auto& shown = entry.pending ? *entry.pending : *entry.baseline;
         if (!writeGame(setting.storage, storedValue(setting, shown))) {
@@ -961,7 +961,7 @@ namespace mods_config::package
      * Writes the baseline of each setting that is previewed back into the game, so no preview outlives the
      * change it shows.
      */
-    void PackageStore::rollBack()
+    void ConfigSpecStore::rollBack()
     {
         for (const auto& preview : _previews | std::views::values) {
             writeGame(preview.storage, preview.baseline);

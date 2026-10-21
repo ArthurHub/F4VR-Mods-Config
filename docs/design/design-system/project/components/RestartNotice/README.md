@@ -1,6 +1,6 @@
 # RestartNotice
 
-A package setting whose change takes effect only after the game is restarted (`applies: restart`): its mark, its help, what the footer says after a Save that wrote one, and the notice on the menu's front page.
+A config spec setting whose change takes effect only after the game is restarted (`applies: restart`): its mark, its help, what the footer says after a Save that wrote one, and the notice on the menu's front page.
 
 **Provides:** each setting's `applies`; after a Save, how many of the settings it wrote are `restart`; for the menu's front page, the mods whose saved changes wait for a restart in this run of the game.
 

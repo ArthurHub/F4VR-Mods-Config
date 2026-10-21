@@ -1,4 +1,4 @@
-#include "PackageLoader.h"
+#include "ConfigSpecLoader.h"
 
 #include <algorithm>
 #include <array>
@@ -27,10 +27,10 @@ namespace
 {
     using Json = nlohmann::json;
 
-    // where the packages are, from the game's folder: a folder each, with its `config.json`
-    constexpr auto PACKAGE_CONFIG_FOLDER = R"(Data\ModsConfigVR\Config)";
+    // where the config specs are, from the game's folder: a folder each, with its `spec.json`
+    constexpr auto CONFIG_SPEC_FOLDER = R"(Data\ModsConfigVR\Config)";
 
-    // the most lines a spacer is high, whatever its package says, as in an MCM config
+    // the most lines a spacer is high, whatever its config spec says, as in an MCM config
     constexpr float MAX_SPACER_LINES = 20.0f;
 
     /**
@@ -86,8 +86,8 @@ namespace
         return found != value.end() && found->is_boolean() && found->get<bool>();
     }
 
-    // what a problem of the package itself names
-    constexpr auto CONFIG_FILE = "config.json";
+    // what a problem of the config spec itself names
+    constexpr auto SPEC_FILE = "spec.json";
 
     // what stands between the pages and the row a problem is on: U+203A, as its bytes in UTF-8
     constexpr auto WHERE_SEPARATOR = " \xE2\x80\xBA ";
@@ -96,7 +96,7 @@ namespace
     constexpr std::size_t MAX_ROW_NAME = 48;
 
     /**
-     * What a condition knows of the setting it names: its id as its package has it, and what its value is.
+     * What a condition knows of the setting it names: its id as its config spec has it, and what its value is.
      */
     struct SettingInfo
     {
@@ -106,7 +106,7 @@ namespace
     };
 
     /**
-     * Where the reading of a package is: the path in config.json, the names of the pages on the way to the page,
+     * Where the reading of a config spec is: the path in spec.json, the names of the pages on the way to the page,
      * and the name of the row, which a problem names.
      */
     struct Location
@@ -121,25 +121,25 @@ namespace
     };
 
     /**
-     * What a package is read with: the game's translations, its files, its shared lists, the plugins its
+     * What a config spec is read with: the game's translations, its files, its shared lists, the plugins its
      * conditions ask of, and its settings so far by their ids in lower case, as ids are compared without
      * regard to case. And what it found wrong so far, and where it is.
      */
-    struct PackageReading
+    struct ConfigSpecReading
     {
         const model::Translations& translations;
         std::map<std::string, model::File> files;
 
-        // the `sharedLists` of its root. None for a package with none
+        // the `sharedLists` of its root. None for a config spec with none
         const Json* sharedLists = nullptr;
-        const package::PluginChecks& plugins;
+        const spec::PluginChecks& plugins;
         std::unordered_map<std::string, SettingInfo> settings;
         std::vector<model::Problem> problems;
         Location at;
 
         /**
          * Adds a problem where the reading is: on its row, with the row's place, or else on its page, or else of the
-         * package itself.
+         * config spec itself.
          */
         void report(const model::Severity severity, std::string message)
         {
@@ -150,7 +150,7 @@ namespace
             if (!at.row.empty()) {
                 where += (where.empty() ? "" : WHERE_SEPARATOR) + at.row;
             }
-            auto row = !at.row.empty() ? at.row : !at.pages.empty() ? at.pages.back() : std::string(CONFIG_FILE);
+            auto row = !at.row.empty() ? at.row : !at.pages.empty() ? at.pages.back() : std::string(SPEC_FILE);
             auto place = !at.row.empty() ? std::optional(model::RowPlace{ .page = at.pagePlaces, .item = at.itemPlaces }) : std::nullopt;
             problems.push_back(
                 { .severity = severity, .row = std::move(row), .message = std::move(message), .where = std::move(where), .path = at.path, .place = std::move(place) });
@@ -158,14 +158,14 @@ namespace
     };
 
     /**
-     * A part of a package that is read: while it lives, the reading is at a key of config.json, or at an element
+     * A part of a config spec that is read: while it lives, the reading is at a key of spec.json, or at an element
      * of a list, of the key or of the list it is at with no key, and it is back where it was as it ends. A page or a row that is set while it lives is left
      * as it ends too.
      */
     class Into
     {
     public:
-        Into(PackageReading& reading, const std::string_view key)
+        Into(ConfigSpecReading& reading, const std::string_view key)
             : _reading(reading),
               _before(reading.at)
         {
@@ -175,7 +175,7 @@ namespace
             }
         }
 
-        Into(PackageReading& reading, const std::string_view key, const std::size_t place)
+        Into(ConfigSpecReading& reading, const std::string_view key, const std::size_t place)
             : Into(reading, key)
         {
             reading.at.path += std::format("[{}]", place);
@@ -190,7 +190,7 @@ namespace
         Into& operator=(const Into&) = delete;
 
     private:
-        PackageReading& _reading;
+        ConfigSpecReading& _reading;
         Location _before;
     };
 
@@ -220,7 +220,7 @@ namespace
      * Reports each field of an object that is none of the ones it can have, which is not read: a typo, or a
      * field of a newer schema. A field near one it can have names it, as `Did you mean "visibleWhen"?`.
      */
-    void checkFields(const Json& object, const std::span<const std::string_view> known, PackageReading& reading)
+    void checkFields(const Json& object, const std::span<const std::string_view> known, ConfigSpecReading& reading)
     {
         if (!object.is_object()) {
             return;
@@ -242,17 +242,17 @@ namespace
         }
     }
 
-    // The fields each object of a package can have, as the schema has them (docs/design/schema.md). Any other is
+    // The fields each object of a config spec can have, as the schema has them (docs/design/schema.md). Any other is
     // reported as one the menu does not know. A field the schema has and the menu does not read yet is known.
     // A text the player sees, written as an object:
     constexpr std::array<std::string_view, 2> TEXT_FIELDS{ "token", "fallback" };
-    // the package's root:
+    // the config spec's root:
     constexpr std::array<std::string_view, 14> ROOT_FIELDS{ "minSchemaVersion",
         "modName",
         "displayName",
         "help",
         "category",
-        "packageVersion",
+        "specVersion",
         "pluginRequirements",
         "f4sePluginRequirements",
         "files",
@@ -313,7 +313,7 @@ namespace
      * A text the player sees, where the reading is, as `getShownText` reads one. A token that the language has
      * no text for, and that has no fallback, is shown as it is written, and is reported.
      */
-    std::string readShownText(const Json& text, PackageReading& reading)
+    std::string readShownText(const Json& text, ConfigSpecReading& reading)
     {
         if (!text.is_string() && !text.is_object()) {
             return {};
@@ -330,7 +330,7 @@ namespace
     /**
      * A text of a key that the player sees, which `readShownText` reads. Empty for a key that has none.
      */
-    std::string readShownText(const Json& value, const char* key, PackageReading& reading)
+    std::string readShownText(const Json& value, const char* key, ConfigSpecReading& reading)
     {
         const auto found = value.find(key);
         if (found == value.end()) {
@@ -360,7 +360,7 @@ namespace
     /**
      * A row's translated label, without tags where `html` is true, for search and the help line.
      */
-    std::string getLabel(const Json& row, PackageReading& reading)
+    std::string getLabel(const Json& row, ConfigSpecReading& reading)
     {
         auto text = readShownText(row, "text", reading);
         return getBool(row, "html") ? model::removeMarkup(text) : text;
@@ -375,7 +375,7 @@ namespace
     }
 
     /**
-     * The `applies` of a package, a page, a section or a setting. None for one that has none, and for one
+     * The `applies` of a config spec, a page, a section or a setting. None for one that has none, and for one
      * that is not `live`, `save` or `restart`.
      */
     std::optional<model::Applies> findApplies(const Json& value)
@@ -404,7 +404,7 @@ namespace
      * What a page, a section or a setting has for what is under it: its own `defaultFile` and `applies`, or
      * else what it gets from above. An `applies` that is not one is passed over, and is reported.
      */
-    Inherited inherit(const Json& value, const Inherited& above, PackageReading& reading)
+    Inherited inherit(const Json& value, const Inherited& above, ConfigSpecReading& reading)
     {
         Inherited own = above;
         if (auto file = getText(value, "defaultFile"); !file.empty()) {
@@ -421,7 +421,7 @@ namespace
 
     using FormatName = std::pair<std::string_view, model::FileFormat>;
 
-    // what a file of a package is written in, by its `format`, which is also its extension
+    // what a file of a config spec is written in, by its `format`, which is also its extension
     constexpr std::array FILE_FORMATS{
         FormatName{ "ini", model::FileFormat::Ini },
         FormatName{ "json", model::FileFormat::Json },
@@ -429,7 +429,7 @@ namespace
     };
 
     /**
-     * A file of a package's `files`, or the reason it is not one: a `format` of `ini`, `json` or `toml`,
+     * A file of a config spec's `files`, or the reason it is not one: a `format` of `ini`, `json` or `toml`,
      * which its extension is, a `root` of `data` or `myGames`, and a `path` from that root. The path is
      * checked as it is written: one that is absolute, or goes up with `..`, could be any file of the system.
      */
@@ -462,14 +462,14 @@ namespace
     }
 
     /**
-     * The files of a package, by the names its `files` gives them. A file that is not written as one is
+     * The files of a config spec, by the names its `files` gives them. A file that is not written as one is
      * left out, and is reported, so its settings are not available.
      */
-    std::map<std::string, model::File> loadFiles(const Json& package, PackageReading& reading)
+    std::map<std::string, model::File> loadFiles(const Json& configSpec, ConfigSpecReading& reading)
     {
         std::map<std::string, model::File> files;
-        const auto found = package.find("files");
-        if (found == package.end() || !found->is_object()) {
+        const auto found = configSpec.find("files");
+        if (found == configSpec.end() || !found->is_object()) {
             return files;
         }
         const Into into(reading, "files");
@@ -487,7 +487,7 @@ namespace
     }
 
     /**
-     * The name a package gives one of its files, as the package declares it: a storage can name it in
+     * The name a config spec gives one of its files, as the config spec declares it: a storage can name it in
      * another case. None for a name of no file.
      */
     std::optional<std::string> findFile(const std::map<std::string, model::File>& files, const std::string& name)
@@ -525,10 +525,10 @@ namespace
      * or a value of the file its `storage` names, or else of the nearest `defaultFile` above it. The value of a
      * file is named by its `path`, or by its `section` and its `key`, as an INI key is. A storage that is not
      * written as one, as a form that is not a plugin and an id in hex, a property with no name, or no file of
-     * the package or no value of it, as a path of more than two in an INI file, is one the menu does not read,
+     * the config spec or no value of it, as a path of more than two in an INI file, is one the menu does not read,
      * and is reported.
      */
-    model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, PackageReading& reading)
+    model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, ConfigSpecReading& reading)
     {
         const auto storage = row.find("storage");
         if (storage == row.end() || !storage->is_object()) {
@@ -578,7 +578,7 @@ namespace
         auto fileName = getText(*storage, "file");
         const auto file = findFile(reading.files, fileName.empty() ? defaultFile : fileName);
         if (!file || path.empty() || (reading.files.at(*file).format == model::FileFormat::Ini && path.size() > 2)) {
-            reading.report(model::Severity::Error, "It names no file of its package, or no value of it: it is not available.");
+            reading.report(model::Severity::Error, "It names no file of its config spec, or no value of it: it is not available.");
             return model::UnknownStorage{ .type = "file" };
         }
         return model::FileStorage{ .file = *file, .path = std::move(path) };
@@ -678,7 +678,7 @@ namespace
     }
 
     /**
-     * The shared list of a package by its name, which a choice can name in another case. None for a name of
+     * The shared list of a config spec by its name, which a choice can name in another case. None for a name of
      * no list.
      */
     const Json* findSharedList(const Json* sharedLists, const std::string& name)
@@ -700,10 +700,10 @@ namespace
      * is its place in the list, for a choice of an int. An object is an option with its own `value` and its
      * `text`. Any other option, and one whose value is not of the choice's type, is left out, and is reported:
      * of a shared list, which can be another choice's, as an option of that list.
-     * An option's own fields and its texts are checked once, as its list is read: a shared list as the package's
+     * An option's own fields and its texts are checked once, as its list is read: a shared list as the config spec's
      * root is read.
      */
-    std::vector<model::Option> loadOptions(const Json& list, const std::string& sharedName, const model::StoredType valueType, PackageReading& reading)
+    std::vector<model::Option> loadOptions(const Json& list, const std::string& sharedName, const model::StoredType valueType, ConfigSpecReading& reading)
     {
         std::vector<model::Option> options;
         const bool own = sharedName.empty();
@@ -737,7 +737,7 @@ namespace
      * is optional. A choice of an int stores the place of an option, and one of a string its text. None for a
      * choice with neither, and reported for a list that is not written so, and for a choice of another type.
      */
-    std::optional<model::GameOptions> loadGameOptions(const Json& valueOptions, const model::StoredType valueType, PackageReading& reading)
+    std::optional<model::GameOptions> loadGameOptions(const Json& valueOptions, const model::StoredType valueType, ConfigSpecReading& reading)
     {
         model::GameOptions list{ .storesText = valueType == model::StoredType::String };
         const auto property = valueOptions.find("listFromProperty");
@@ -785,7 +785,7 @@ namespace
      * is no whole number above 0 is none.
      * A choice with none of them has no options, and is reported, so it is disabled.
      */
-    model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, PackageReading& reading)
+    model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, ConfigSpecReading& reading)
     {
         model::ValueOptions valueOptions;
         const auto found = row.find("valueOptions");
@@ -830,7 +830,7 @@ namespace
         } else if (hasOptions && getBool(*found, "listFromClientCallback")) {
             valueOptions.clientOptions = true;
         } else {
-            reading.report(model::Severity::Error, "It has no list of options, or names no shared list of its package: it has no options.");
+            reading.report(model::Severity::Error, "It has no list of options, or names no shared list of its config spec: it has no options.");
         }
         return valueOptions;
     }
@@ -875,10 +875,10 @@ namespace
     /**
      * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
      * with one that is not one of its values: outside its limits, of a length it does not allow, or none of
-     * its options. Both are errors of the package that are reported, and the setting then has no Reset.
+     * its options. Both are errors of the config spec that are reported, and the setting then has no Reset.
      */
     std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& options,
-        PackageReading& reading)
+        ConfigSpecReading& reading)
     {
         auto value = getValue(row, "default", valueType);
         if (!value) {
@@ -902,7 +902,7 @@ namespace
      * The `display` of a setting: its decimals, its unit, which is a text the player sees, and whether it is a
      * percentage. Decimals that are no whole number from 0 to 6 are none, and are reported.
      */
-    model::NumberDisplay loadDisplay(const Json& row, PackageReading& reading)
+    model::NumberDisplay loadDisplay(const Json& row, ConfigSpecReading& reading)
     {
         const auto found = row.find("display");
         if (found == row.end() || !found->is_object()) {
@@ -997,7 +997,7 @@ namespace
      * An action of a button or a setting that is not written right, which the menu does not run: the help line
      * of a button has the mistake as its reason, and it is reported.
      */
-    model::UnknownAction mistakenAction(std::string type, const std::string& mistake, PackageReading& reading)
+    model::UnknownAction mistakenAction(std::string type, const std::string& mistake, ConfigSpecReading& reading)
     {
         reading.report(model::Severity::Error, std::format("Its action is not run: {}.", mistake));
         return model::UnknownAction{ .type = std::move(type), .reason = std::format("Not available: {}.", mistake) };
@@ -1007,10 +1007,10 @@ namespace
      * What a button runs, by the `type` of its `action`: a `CallFunction` and a `CallGlobalFunction`, with
      * their `params`, and a `RunConsoleCommand`, with its `command`. A `CallNativeFunction` runs a function
      * that the mod's DLL gives the menu, and the menu takes none from a DLL yet: it is not a mistake of the
-     * package. A button with no action, any other action, and one that is not written right are actions the
+     * config spec. A button with no action, any other action, and one that is not written right are actions the
      * menu does not run, with the reason, and are reported.
      */
-    model::Action loadAction(const Json& row, PackageReading& reading)
+    model::Action loadAction(const Json& row, ConfigSpecReading& reading)
     {
         const auto action = row.find("action");
         if (action == row.end() || !action->is_object()) {
@@ -1041,9 +1041,9 @@ namespace
 
     /**
      * A button: its text, its action and the text on its button, `buttonText`, which is `Run` without one. Its
-     * conditions and its warnings are read once every setting of the package is (`loadConditions`).
+     * conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
      */
-    model::Button loadButton(const Json& row, PackageReading& reading)
+    model::Button loadButton(const Json& row, ConfigSpecReading& reading)
     {
         if (const auto confirmation = row.find("confirmation"); confirmation != row.end()) {
             const Into into(reading, "confirmation");
@@ -1067,7 +1067,7 @@ namespace
      * exactly `"{value}"` is the value written, in the setting's `valueType`. A setting with no `action` runs
      * nothing, and so does one whose action the menu does not run, which is reported.
      */
-    model::Action loadSettingAction(const Json& row, const model::StoredType valueType, PackageReading& reading)
+    model::Action loadSettingAction(const Json& row, const model::StoredType valueType, ConfigSpecReading& reading)
     {
         if (!row.contains("action")) {
             return model::NoAction{};
@@ -1084,14 +1084,14 @@ namespace
     }
 
     /**
-     * A setting of a package: its author's `id`, or one it gets from where its value is kept, its own
+     * A setting of a config spec: its author's `id`, or one it gets from where its value is kept, its own
      * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, and
      * its action, which Save runs.
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
-     * package, which is reported: a condition names the first, and an author gives one of them an id of its
-     * own. Its conditions and its warnings are read once every setting of the package is (`loadConditions`).
+     * config spec, which is reported: a condition names the first, and an author gives one of them an id of its
+     * own. Its conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
      */
-    model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, PackageReading& reading)
+    model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type);
@@ -1134,7 +1134,7 @@ namespace
     /**
      * A text row: its text in lines, and with the tags of an MCM config read where its `html` is true.
      */
-    model::Text loadText(const Json& row, PackageReading& reading)
+    model::Text loadText(const Json& row, ConfigSpecReading& reading)
     {
         const auto text = readShownText(row, "text", reading);
         return model::Text{ .lines = getBool(row, "html") ? model::parseMarkup(text) : model::plainLines(text), .visibleWhen = {} };
@@ -1154,7 +1154,7 @@ namespace
      * of which a side that is not more than 0 is none. One with no texture shows that an image is there, and
      * is reported.
      */
-    model::Image loadImage(const Json& row, PackageReading& reading)
+    model::Image loadImage(const Json& row, ConfigSpecReading& reading)
     {
         auto texture = getText(row, "texture");
         if (texture.empty()) {
@@ -1175,7 +1175,7 @@ namespace
      * Any other row the menu does not have is a placeholder with its type, and a type the schema does not have
      * is reported. A row's fields that its type does not have are reported.
      */
-    std::vector<model::Item> loadItems(const Json& container, const Inherited& above, PackageReading& reading)
+    std::vector<model::Item> loadItems(const Json& container, const Inherited& above, ConfigSpecReading& reading)
     {
         std::vector<model::Item> items;
         const auto content = container.find("content");
@@ -1241,11 +1241,11 @@ namespace
     }
 
     /**
-     * A page of a package, with the pages under it, which get its `defaultFile` and its `applies` as its
+     * A page of a config spec, with the pages under it, which get its `defaultFile` and its `applies` as its
      * items do. A problem in it is on it: the caller reads it `Into` its place, with its place among the pages,
      * which takes the page back off.
      */
-    model::Page loadPage(const Json& page, const Inherited& above, PackageReading& reading)
+    model::Page loadPage(const Json& page, const Inherited& above, ConfigSpecReading& reading)
     {
         reading.at.pages.push_back(common::trim(getShownText(page, "pageDisplayName", reading.translations)));
         checkFields(page, PAGE_FIELDS, reading);
@@ -1314,12 +1314,12 @@ namespace
 
     /**
      * A condition on the value of a setting: its `setting` and one operator, as `{ "setting": "iMode",
-     * "oneOf": [1, 2] }`. It names the setting by its id in any case, and has the id as the package gives it.
-     * Or the reason it is not one: a setting the package does not have, a value of another type than the
+     * "oneOf": [1, 2] }`. It names the setting by its id in any case, and has the id as the config spec gives it.
+     * Or the reason it is not one: a setting the config spec does not have, a value of another type than the
      * setting's, an order of a value that is no number, and a `oneOf` or a `notOneOf` of a setting that is
      * neither a text nor a choice.
      */
-    std::expected<model::Condition, std::string> loadComparison(const Json& condition, const PackageReading& reading)
+    std::expected<model::Condition, std::string> loadComparison(const Json& condition, const ConfigSpecReading& reading)
     {
         const auto named = getText(condition, "setting");
         const auto found = reading.settings.find(common::str_tolower(named));
@@ -1360,13 +1360,13 @@ namespace
     }
 
     /**
-     * A condition of a package, or the reason it is not one: a comparison of a setting's value, `all` and
+     * A condition of a config spec, or the reason it is not one: a comparison of a setting's value, `all` and
      * `any` of a list of conditions, `not` of one, or whether a `plugin` or an `f4sePlugin` is loaded.
      * Whether a plugin is loaded does not change while the game runs, so it is answered here, as an `all` of
      * none, which holds, or an `any` of none, which does not.
      * A condition with a part that is not one is not one as a whole.
      */
-    std::expected<model::Condition, std::string> loadCondition(const Json& condition, const PackageReading& reading)
+    std::expected<model::Condition, std::string> loadCondition(const Json& condition, const ConfigSpecReading& reading)
     {
         if (!condition.is_object()) {
             return std::unexpected("a condition is not an object"s);
@@ -1421,7 +1421,7 @@ namespace
      * condition, which is reported: the row is then shown and enabled as if it had none, so the mistake is
      * seen and nothing is hidden by it.
      */
-    std::optional<model::Condition> loadRowCondition(const Json& row, const char* key, PackageReading& reading)
+    std::optional<model::Condition> loadRowCondition(const Json& row, const char* key, ConfigSpecReading& reading)
     {
         const auto found = row.find(key);
         if (found == row.end()) {
@@ -1440,7 +1440,7 @@ namespace
      * The `warnings` of a setting or a button: a text each, which the row tells while its `when` holds. One
      * with no text, and one whose `when` is not a condition, is left out, and is reported.
      */
-    std::vector<model::Warning> loadWarnings(const Json& row, PackageReading& reading)
+    std::vector<model::Warning> loadWarnings(const Json& row, ConfigSpecReading& reading)
     {
         std::vector<model::Warning> warnings;
         const auto found = row.find("warnings");
@@ -1499,7 +1499,7 @@ namespace
      * The items are the rows of the content, one
      * for each, in their order, as `loadItems` reads them.
      */
-    void loadConditions(const Json& container, std::vector<model::Item>& items, const RowConditions& above, PackageReading& reading)
+    void loadConditions(const Json& container, std::vector<model::Item>& items, const RowConditions& above, ConfigSpecReading& reading)
     {
         const auto content = container.find("content");
         if (content == container.end() || !content->is_array()) {
@@ -1533,7 +1533,7 @@ namespace
     /**
      * Gives the items of a page and of the pages under it their conditions, as `loadPage` read them.
      */
-    void loadPageConditions(const Json& page, model::Page& loaded, PackageReading& reading)
+    void loadPageConditions(const Json& page, model::Page& loaded, ConfigSpecReading& reading)
     {
         reading.at.pages.push_back(common::trim(loaded.name));
         loadConditions(page, loaded.items, {}, reading);
@@ -1595,13 +1595,13 @@ namespace
     }
 
     /**
-     * The plugins of a list of a package's requirements that are not loaded, in its order. None with no check.
+     * The plugins of a list of a config spec's requirements that are not loaded, in its order. None with no check.
      */
-    std::vector<std::string> findMissing(const Json& package, const char* key, const package::PluginCheck& isLoaded)
+    std::vector<std::string> findMissing(const Json& configSpec, const char* key, const spec::PluginCheck& isLoaded)
     {
         std::vector<std::string> missing;
-        const auto required = package.find(key);
-        if (!isLoaded || required == package.end() || !required->is_array()) {
+        const auto required = configSpec.find(key);
+        if (!isLoaded || required == configSpec.end() || !required->is_array()) {
             return missing;
         }
         for (const auto& plugin : *required) {
@@ -1613,15 +1613,15 @@ namespace
     }
 
     /**
-     * Why a package's mod is not available while a plugin it requires is not loaded: a game plugin of its
+     * Why a config spec's mod is not available while a plugin it requires is not loaded: a game plugin of its
      * `pluginRequirements` or an F4SE plugin of its `f4sePluginRequirements`, as `its plugin MyMod.esp and
      * its F4SE plugin MyMod are not loaded`. Empty while every one is, and with no checks, as in a test of a
-     * package alone.
+     * config spec alone.
      */
-    std::string findMissingRequirements(const Json& package, const package::PluginChecks& plugins)
+    std::string findMissingRequirements(const Json& configSpec, const spec::PluginChecks& plugins)
     {
-        const auto game = findMissing(package, "pluginRequirements", plugins.isGamePluginLoaded);
-        const auto f4se = findMissing(package, "f4sePluginRequirements", plugins.isF4sePluginLoaded);
+        const auto game = findMissing(configSpec, "pluginRequirements", plugins.isGamePluginLoaded);
+        const auto f4se = findMissing(configSpec, "f4sePluginRequirements", plugins.isF4sePluginLoaded);
         std::vector<std::string> parts;
         if (!game.empty()) {
             parts.push_back(std::format("its plugin{} {}", game.size() == 1 ? "" : "s", joinNames(game)));
@@ -1636,22 +1636,22 @@ namespace
     }
 
     /**
-     * The `minSchemaVersion` of a package: a whole number from 1. None for a package that has none.
+     * The `minSchemaVersion` of a config spec: a whole number from 1. None for a config spec that has none.
      */
-    std::optional<std::int64_t> findSchemaVersion(const Json& package)
+    std::optional<std::int64_t> findSchemaVersion(const Json& configSpec)
     {
-        const auto version = package.find("minSchemaVersion");
-        if (version == package.end() || !version->is_number_integer() || version->get<std::int64_t>() < 1) {
+        const auto version = configSpec.find("minSchemaVersion");
+        if (version == configSpec.end() || !version->is_number_integer() || version->get<std::int64_t>() < 1) {
             return std::nullopt;
         }
         return version->get<std::int64_t>();
     }
 
     /**
-     * Checks the options of the package's shared lists once, as several choices can read one: the fields of an
+     * Checks the options of the config spec's shared lists once, as several choices can read one: the fields of an
      * option, and its texts. An option that is not one of a choice is reported as the choice reads the list.
      */
-    void checkSharedLists(PackageReading& reading)
+    void checkSharedLists(ConfigSpecReading& reading)
     {
         if (!reading.sharedLists) {
             return;
@@ -1675,7 +1675,7 @@ namespace
     }
 
     /**
-     * Whether a problem is before another in config.json, by their paths: a place in a list is compared as a
+     * Whether a problem is before another in spec.json, by their paths: a place in a list is compared as a
      * number, so `content[2]` is before `content[10]`, and a path is before the paths in it. The keys of an
      * object have no order in the file the reader keeps, so they are in the order of their names.
      */
@@ -1714,8 +1714,8 @@ namespace
     }
 
     /**
-     * Logs each problem of a package, with the package's name first, where it is after it, and how many
-     * errors and warnings the package has.
+     * Logs each problem of a config spec, with the config spec's name first, where it is after it, and how many
+     * errors and warnings the config spec has.
      */
     void logProblems(const model::Mod& mod)
     {
@@ -1727,9 +1727,9 @@ namespace
             if (!problem.path.empty()) {
                 where += (where.empty() ? "" : ", ") + problem.path;
             }
-            logger::warn("Package '{}': {} of {}: {}{}", mod.displayName, error ? "error" : "warning", problem.row, problem.message, where.empty() ? "" : " (" + where + ")");
+            logger::warn("Config spec '{}': {} of {}: {}{}", mod.displayName, error ? "error" : "warning", problem.row, problem.message, where.empty() ? "" : " (" + where + ")");
         }
-        logger::info("Package '{}' has {} and {}", mod.displayName, countOf(errors, "error"), countOf(mod.problems.size() - errors, "warning"));
+        logger::info("Config spec '{}' has {} and {}", mod.displayName, countOf(errors, "error"), countOf(mod.problems.size() - errors, "warning"));
     }
 
     /**
@@ -1743,79 +1743,79 @@ namespace
             .pages = {},
             .notAvailable = std::move(reason),
             .help = {},
-            .source = model::Source::Package,
+            .source = model::Source::ConfigSpec,
             .files = {} };
     }
 }
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
-     * Reads the text of a package's `config.json` into the model: the mod and its help, its files, its front
+     * Reads the text of a config spec's `spec.json` into the model: the mod and its help, its files, its front
      * page and its pages, which nest, with their help, and their sections, which nest and fold, with their
      * help, settings, buttons, texts, spacers and images. Every
-     * text the player sees is in the game's language. The package's root has to say its `minSchemaVersion`. A
-     * setting has the file its value is kept in, and when its change takes effect, which the package's root has
+     * text the player sees is in the game's language. The config spec's root has to say its `minSchemaVersion`. A
+     * setting has the file its value is kept in, and when its change takes effect, which the config spec's root has
      * to say. A choice has its options or a list of
-     * the package's `sharedLists`. A row is shown and enabled by its conditions, which are read once every
+     * the config spec's `sharedLists`. A row is shown and enabled by its conditions, which are read once every
      * setting is, as a condition can name a setting after it. A condition on a plugin is answered by the checks.
-     * A mod whose package needs a newer schema than the menu reads, or whose required plugins are not all
-     * loaded, is not available, and is its names and the reason alone: the rest of its package is not read.
-     * The error says why a package cannot be read. Comments are skipped, as in an MCM config.
+     * A mod whose config spec needs a newer schema than the menu reads, or whose required plugins are not all
+     * loaded, is not available, and is its names and the reason alone: the rest of its config spec is not read.
+     * The error says why a config spec cannot be read. Comments are skipped, as in an MCM config.
      */
-    std::expected<model::Mod, std::string> loadPackage(const std::string_view text, const model::Translations& translations, const PluginChecks& plugins)
+    std::expected<model::Mod, std::string> loadConfigSpec(const std::string_view text, const model::Translations& translations, const PluginChecks& plugins)
     {
-        Json package;
+        Json configSpec;
         try {
-            package = Json::parse(text, nullptr, true, true);
+            configSpec = Json::parse(text, nullptr, true, true);
         } catch (const Json::parse_error& e) {
             return std::unexpected(std::format("Not valid JSON: {}", e.what()));
         }
-        if (!package.is_object()) {
+        if (!configSpec.is_object()) {
             return std::unexpected("Not a JSON object"s);
         }
 
         model::Mod mod;
-        mod.name = getText(package, "modName");
+        mod.name = getText(configSpec, "modName");
         if (mod.name.empty()) {
             return std::unexpected("No modName"s);
         }
-        const auto schemaVersion = findSchemaVersion(package);
+        const auto schemaVersion = findSchemaVersion(configSpec);
         if (!schemaVersion) {
             return std::unexpected("No minSchemaVersion of a whole number from 1"s);
         }
-        const auto sharedLists = package.find("sharedLists");
-        PackageReading reading{ .translations = translations,
+        const auto sharedLists = configSpec.find("sharedLists");
+        ConfigSpecReading reading{ .translations = translations,
             .files = {},
-            .sharedLists = sharedLists != package.end() && sharedLists->is_object() ? &*sharedLists : nullptr,
+            .sharedLists = sharedLists != configSpec.end() && sharedLists->is_object() ? &*sharedLists : nullptr,
             .plugins = plugins,
             .settings = {},
             .problems = {},
             .at = {} };
-        mod.source = model::Source::Package;
-        mod.displayName = readShownText(package, "displayName", reading);
+        mod.source = model::Source::ConfigSpec;
+        mod.displayName = readShownText(configSpec, "displayName", reading);
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
         }
         // a newer schema can say anything in another way, so nothing more of it is read
-        auto reason = *schemaVersion > SCHEMA_VERSION ? std::format("its package needs a newer Mods Config VR, one that reads schema version {}", *schemaVersion)
-                                                      : findMissingRequirements(package, plugins);
+        auto reason = *schemaVersion > SCHEMA_VERSION ? std::format("its spec.json needs a newer Mods Config VR, one that reads schema version {}", *schemaVersion)
+                                                      : findMissingRequirements(configSpec, plugins);
         if (!reason.empty()) {
             return notAvailableMod(std::move(mod.name), std::move(mod.displayName), std::move(reason));
         }
-        const auto applies = findApplies(package);
+        const auto applies = findApplies(configSpec);
         if (!applies) {
             return std::unexpected("No applies of live, save or restart"s);
         }
-        checkFields(package, ROOT_FIELDS, reading);
-        mod.help = readShownText(package, "help", reading);
-        reading.files = loadFiles(package, reading);
+        checkFields(configSpec, ROOT_FIELDS, reading);
+        mod.help = readShownText(configSpec, "help", reading);
+        reading.files = loadFiles(configSpec, reading);
         checkSharedLists(reading);
 
-        const Inherited root{ .defaultFile = getText(package, "defaultFile"), .applies = *applies };
-        mod.frontPage.items = loadItems(package, root, reading);
-        loadConditions(package, mod.frontPage.items, {}, reading);
-        if (const auto pages = package.find("pages"); pages != package.end() && pages->is_array()) {
+        const Inherited root{ .defaultFile = getText(configSpec, "defaultFile"), .applies = *applies };
+        mod.frontPage.items = loadItems(configSpec, root, reading);
+        loadConditions(configSpec, mod.frontPage.items, {}, reading);
+        if (const auto pages = configSpec.find("pages"); pages != configSpec.end() && pages->is_array()) {
             for (std::size_t place = 0; place < pages->size(); ++place) {
                 const Into into(reading, "pages", place);
                 reading.at.pagePlaces.push_back(place);
@@ -1835,18 +1835,18 @@ namespace mods_config::package
     }
 
     /**
-     * Loads the `config.json` of every folder in the packages' folder, which is `Data\ModsConfigVR\Config` in
-     * the game. A package that cannot be read is a mod that is not available, named by its folder, and so
-     * are two packages with one `modName`: neither is picked. Both are a problem of the package. A mod that is
-     * not available has the reason in the log, and so has each problem of a package, with the package's name
-     * first, and how many errors and warnings each package has. No such folder is no mods.
+     * Loads the `spec.json` of every folder in the config specs' folder, which is `Data\ModsConfigVR\Config` in
+     * the game. A config spec that cannot be read is a mod that is not available, named by its folder, and so
+     * are two config specs with one `modName`: neither is picked. Both are a problem of the config spec. A mod that is
+     * not available has the reason in the log, and so has each problem of a config spec, with the config spec's name
+     * first, and how many errors and warnings each config spec has. No such folder is no mods.
      */
-    std::vector<model::Mod> loadPackages(const std::filesystem::path& configFolder, const model::Translations& translations, const PluginChecks& plugins)
+    std::vector<model::Mod> loadConfigSpecs(const std::filesystem::path& configFolder, const model::Translations& translations, const PluginChecks& plugins)
     {
         std::vector<model::Mod> mods;
         std::error_code error;
         for (std::filesystem::directory_iterator folder(configFolder, error), end; !error && folder != end; folder.increment(error)) {
-            const auto file = folder->path() / "config.json";
+            const auto file = folder->path() / "spec.json";
             std::error_code noFile;
             if (!std::filesystem::is_regular_file(file, noFile)) {
                 continue;
@@ -1854,12 +1854,12 @@ namespace mods_config::package
             std::ostringstream text;
             text << std::ifstream(file, std::ios::binary).rdbuf();
 
-            auto mod = loadPackage(text.str(), translations, plugins);
+            auto mod = loadConfigSpec(text.str(), translations, plugins);
             const auto folderName = toLogText(folder->path().filename());
             if (!mod) {
                 auto reason = std::format("It cannot be read: {}.", mod.error());
-                mod = notAvailableMod(folderName, folderName, "its package cannot be read");
-                mod->problems.push_back({ .severity = model::Severity::Error, .row = CONFIG_FILE, .message = std::move(reason), .where = {}, .path = {} });
+                mod = notAvailableMod(folderName, folderName, "its spec.json cannot be read");
+                mod->problems.push_back({ .severity = model::Severity::Error, .row = SPEC_FILE, .message = std::move(reason), .where = {}, .path = {} });
             }
             mod->folder = folderName;
             mods.push_back(std::move(*mod));
@@ -1872,16 +1872,16 @@ namespace mods_config::package
         for (auto& mod : mods) {
             if (mod.notAvailable.empty() && names[common::str_tolower(mod.name)] > 1) {
                 auto folder = std::move(mod.folder);
-                mod = notAvailableMod(mod.name, mod.displayName, "its package has the modName of another package");
+                mod = notAvailableMod(mod.name, mod.displayName, "another config spec has its modName");
                 mod.folder = std::move(folder);
                 mod.problems.push_back({ .severity = model::Severity::Error,
-                    .row = CONFIG_FILE,
-                    .message = std::format("Another package has the modName \"{}\": neither is read.", mod.name),
+                    .row = SPEC_FILE,
+                    .message = std::format("Another config spec has the modName \"{}\": neither is read.", mod.name),
                     .where = {},
                     .path = "modName" });
             }
             if (!mod.notAvailable.empty()) {
-                logger::warn("Package mod '{}' is not available: {}", mod.name, mod.notAvailable);
+                logger::warn("Config spec '{}' is not available: {}", mod.name, mod.notAvailable);
             }
             logProblems(mod);
         }
@@ -1889,13 +1889,13 @@ namespace mods_config::package
     }
 
     /**
-     * The packages of the running game, from `Data\ModsConfigVR\Config` in the game's folder, with their
+     * The config specs of the running game, from `Data\ModsConfigVR\Config` in the game's folder, with their
      * conditions on a plugin answered by the plugins the game loaded.
      */
-    std::vector<model::Mod> loadInstalledPackages(const model::Translations& translations)
+    std::vector<model::Mod> loadInstalledConfigSpecs(const model::Translations& translations)
     {
-        auto mods = loadPackages(PACKAGE_CONFIG_FOLDER, translations, PluginChecks{ .isGamePluginLoaded = isGamePluginLoaded, .isF4sePluginLoaded = isF4sePluginLoaded });
-        logger::info("Loaded {} packages from '{}'", mods.size(), PACKAGE_CONFIG_FOLDER);
+        auto mods = loadConfigSpecs(CONFIG_SPEC_FOLDER, translations, PluginChecks{ .isGamePluginLoaded = isGamePluginLoaded, .isF4sePluginLoaded = isF4sePluginLoaded });
+        logger::info("Loaded {} config specs from '{}'", mods.size(), CONFIG_SPEC_FOLDER);
         return mods;
     }
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
-// The actions a store runs in the game, for a button of an MCM mod and of a package. The mod's are in
+// The actions a store runs in the game, for a button of an MCM mod and of a config spec. The mod's are in
 // GameActions.cpp, and the tests' in tests/TestActions.cpp, which keeps what is run.
 namespace mods_config
 {

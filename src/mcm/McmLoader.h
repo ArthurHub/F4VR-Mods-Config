@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 #include "model/Translations.h"
 
 namespace mods_config::mcm

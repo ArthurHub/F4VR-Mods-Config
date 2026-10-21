@@ -596,7 +596,7 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "setValue",
-            .description = "set a setting of the selected mod in its store, as its control does: a package's change waits for a Save, an MCM mod's is written at once",
+            .description = "set a setting of the selected mod in its store, as its control does: a config spec's change waits for a Save, an MCM mod's is written at once",
             .arguments = { { "id", { { "type", "string" }, { "description", "setValue, reset: the setting's id, as the page action has it" } } },
                 { "value",
                     { { "description", "setValue: true or false for a switcher, a number for a slider, a text for a text input, an option's value or text for a choice" } } } },

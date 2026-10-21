@@ -14,7 +14,7 @@
 #include "McmKeybinds.h"
 #include "McmModSettings.h"
 #include "model/ChoiceOptions.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 #include "model/Store.h"
 
 namespace mods_config::mcm

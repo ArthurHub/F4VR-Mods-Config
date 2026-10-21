@@ -1,4 +1,4 @@
-#include "PackageReport.h"
+#include "ConfigSpecReport.h"
 
 #include <cmath>
 #include <format>
@@ -14,7 +14,7 @@ namespace
 {
     using namespace mods_config;
 
-    // what stands between where a problem is on its page and in config.json: U+00B7, as its bytes in UTF-8
+    // what stands between where a problem is on its page and in spec.json: U+00B7, as its bytes in UTF-8
     constexpr auto WHERE_PATH_SEPARATOR = " \xC2\xB7 ";
 
     /**
@@ -26,7 +26,7 @@ namespace
     }
 
     /**
-     * What the help line says of a problem: its message, then where it is, on its page and in config.json, and
+     * What the help line says of a problem: its message, then where it is, on its page and in spec.json, and
      * that a press shows its row, for one that has a row the menu shows.
      */
     std::string problemHelp(const model::Problem& problem, const bool goes)
@@ -66,18 +66,18 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Draws the report of a package's mod into the content pane, from its top: a text of where its config.json
-     * is read from, and `No problems` for a package with none. Then its errors and its warnings, each under its
+     * Draws the report of a config spec's mod into the content pane, from its top: a text of where its spec.json
+     * is read from, and `No problems` for a config spec with none. Then its errors and its warnings, each under its
      * heading, which says how many there are and is left out with none. A problem is a row set in a level
      * under its heading, of the name of its row and its message, and an arrow where the room of a Reset is for one on a row the menu
      * shows: a row of a mod that is available. A press on such a row tells its problem.
-     * Only the problem of a package that cannot be read has its help line in red after the invalid mark.
+     * Only the problem of a config spec that cannot be read has its help line in red after the invalid mark.
      */
-    ReportDrawn PackageReport::draw(const model::Mod& mod)
+    ReportDrawn ConfigSpecReport::draw(const model::Mod& mod)
     {
         ReportDrawn drawn;
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
-        const auto file = mod.folder.empty() ? std::string("its config.json") : std::format(R"(Data\ModsConfigVR\Config\{}\config.json)", mod.folder);
+        const auto file = mod.folder.empty() ? std::string("its spec.json") : std::format(R"(Data\ModsConfigVR\Config\{}\spec.json)", mod.folder);
         std::size_t errors = 0;
         for (const auto& problem : mod.problems) {
             errors += problem.severity == model::Severity::Error ? 1 : 0;
@@ -97,7 +97,7 @@ namespace mods_config::ui
             const auto heading = countOf(count, isError ? "error" : "warning");
             if (foldingHeading(isError ? "errors" : "warnings", heading, folded, drawn.pressActed)) {
                 drawn.pointed = PointedRow{ .text = isError ? "Errors" : "Warnings",
-                    .help = isError ? "What the menu left out of the package: all of it, or a part." : "What the menu read that is likely not what is meant.",
+                    .help = isError ? "What the menu left out of the config spec: all of it, or a part." : "What the menu read that is likely not what is meant.",
                     .warning = {},
                     .invalid = false };
             }
@@ -144,7 +144,7 @@ namespace mods_config::ui
     /**
      * Opens both headings again, as the menu is closed.
      */
-    void PackageReport::reset()
+    void ConfigSpecReport::reset()
     {
         _errorsFolded = false;
         _warningsFolded = false;

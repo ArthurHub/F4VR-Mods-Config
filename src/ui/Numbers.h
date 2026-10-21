@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 // How the number of a setting is written, in its control and in the help line, as its display says: the
 // design system's NumberDisplay.

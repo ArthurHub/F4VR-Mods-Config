@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Definition.h"
+#include "ConfigDefinition.h"
 #include "Store.h"
 
 namespace mods_config::model

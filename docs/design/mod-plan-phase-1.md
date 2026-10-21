@@ -36,7 +36,7 @@ M11 is [The menu's front page](ui-and-vr-interaction.md#the-menus-front-page), w
 - It has the notices. A mod that the menu found and cannot show is in the tree as a disabled row, and the page says why.
 - Back on it closes the menu.
 
-M12 is [The settings model](model.md): what the UI draws, and the store it asks for every value. It is checked there against an MCM global, a value of a package, and an activation sphere, so the model of the first code commit also fits the milestones after MCM.
+M12 is [The settings model](model.md): what the UI draws, and the store it asks for every value. It is checked there against an MCM global, a value of a config spec, and an activation sphere, so the model of the first code commit also fits the milestones after MCM.
 
 M13 adds that model, with the MCM store still empty:
 
@@ -70,12 +70,12 @@ M18 does what FallUI's own code does in MCM's menu, for FallUI and FallUI Workbe
 
 M19 draws the tags of a text row and removes those of a help, with one parser, as in [Text, spacers and images](schema.md#text-spacers-and-images). It runs after the translation of M17 and M18, because FallUI's `${Key}` tokens are inside the tags. The loader reads a help in M21, which then removes its tags.
 
-M101 adds an MCM config of our own, `data/showcase/MCM/Config/ModsConfigVR_McmShowcase/`, with every kind of row an MCM config has, in every look: the sizes, colors and aligns of a text, the options of each control, and what a config can get wrong. It has only what works in MCM too, so the two menus are compared on it: what the package schema adds to MCM would be a showcase of its own. It is tried in the headset as each commit draws a row, and grows with them. It is packaged with the other showcase in one optional archive, to show a mod's author how an MCM menu looks in the mod. It has no game plugin, so what needs one stays with the test mod of M37.
+M101 adds an MCM config of our own, `data/showcase/MCM/Config/ModsConfigVR_McmShowcase/`, with every kind of row an MCM config has, in every look: the sizes, colors and aligns of a text, the options of each control, and what a config can get wrong. It has only what works in MCM too, so the two menus are compared on it: what the config spec schema adds to MCM would be a showcase of its own. It is tried in the headset as each commit draws a row, and grows with them. It is packaged with the other showcase in one optional archive, to show a mod's author how an MCM menu looks in the mod. It has no game plugin, so what needs one stays with the test mod of M37.
 
 M20 draws the four controls, and disabled, as they change nothing yet:
 
 - The menu has no values before M25, so a control shows what it is with none: a switcher is off, a slider is at its least, and a stepper and a dropdown show their first option.
-- The loader reads a slider's `min`, `max` and `step`, and the options of a choice. An MCM option is a text whose value is its place in the list: in the model it is an option with that number as its typed value, as a package's option has its own.
+- The loader reads a slider's `min`, `max` and `step`, and the options of a choice. An MCM option is a text whose value is its place in the list: in the model it is an option with that number as its typed value, as a config spec's option has its own.
 - A row's text has the room up to its own control, so a switcher's name is longer than a slider's before it ends in an ellipsis.
 
 M21 shows the `help` text of the row the ray is on in the help line, on the left of the footer, as in [UI and VR interaction](ui-and-vr-interaction.md#help-line):
@@ -115,7 +115,7 @@ M23 is the look of M100 as it was tried in the headset:
 
 - The sizes of the design system stay as they are. The player sets the panel's size and place in `[Panel]` of the INI: `fScale`, `fDistance`, `fHeight` and `fTilt`, and how much its background hides the world in `iBackgroundOpacity`, which ships at the design system's `glass`. A change shows at once while the menu is open. The scale makes the text and the rows larger together, so the layout is the same at any size, and the panel's curve follows its distance.
 - A row of a page has the look of a row under the ray, and the stronger one while the trigger is held on it, as a row of the tree has. A row with no text of its own has neither: a section, a text row, an image and a spacer.
-- A setting's control is still drawn disabled until M25. The other states come with the commits that give them a meaning: disabled with conditions (M28) and a mod that is not available (M41), and pending and invalid with packages (milestone 5).
+- A setting's control is still drawn disabled until M25. The other states come with the commits that give them a meaning: disabled with conditions (M28) and a mod that is not available (M41), and pending and invalid with config specs (milestone 5).
 
 M24 adds Back and the haptics of [UI and VR interaction](ui-and-vr-interaction.md):
 

@@ -11,7 +11,7 @@ One setting: the name with its marks after it, and its control with a Reset slot
 - An invalid row is drawn as any other, with its marks: why it is invalid is in the help line while the ray is on it, as its help is.
 - Reset is there for a setting that has a default, and is disabled (`BeginDisabled`) while the value is the default. It is an icon button; the help line names what it resets to while the ray is on it.
 
-- A package setting whose change takes effect only after the game is restarted (`applies: restart`) has a `t-detail` **Restart** mark after its name, outlined in `frame-border`. Its help says so too.
+- A config spec setting whose change takes effect only after the game is restarted (`applies: restart`) has a `t-detail` **Restart** mark after its name, outlined in `frame-border`. Its help says so too.
 
 - A setting with a warning that holds has a hollow `amber` mark after its name and its pending dot; see [RowWarning](../RowWarning/README.md). A read-only setting is a disabled row with no Reset; see [ReadOnly](../ReadOnly/README.md). An MCM hotkey is laid out as a setting's row, with its key in a box; see [Hotkey](../Hotkey/README.md). A control the menu does not have is its text and its type; see [UnsupportedControl](../UnsupportedControl/README.md).
 

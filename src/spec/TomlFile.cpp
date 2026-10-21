@@ -85,7 +85,7 @@ namespace
     }
 }
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
      * Takes the values of a text as the file's. A text that is no TOML has none, and the reason is returned: a

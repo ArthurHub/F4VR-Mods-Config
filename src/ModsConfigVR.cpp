@@ -4,7 +4,7 @@
 #include "api/FRIKApi.h"
 #include "devbench/MCDevBench.h"
 #include "mcm/McmLoader.h"
-#include "package/PackageLoader.h"
+#include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersManager.h"
 
 // This is the entry point to the mod.
@@ -55,7 +55,7 @@ namespace mods_config
         // once: what a mod's menu holds does not change while the game runs
         const auto translations = loadGameTranslations();
         auto mods = mcm::loadInstalledMods(translations);
-        std::ranges::move(package::loadInstalledPackages(translations), std::back_inserter(mods));
+        std::ranges::move(spec::loadInstalledConfigSpecs(translations), std::back_inserter(mods));
         _menu.setMods(std::move(mods));
     }
 

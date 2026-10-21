@@ -29,7 +29,7 @@ namespace
     // the breadcrumb of the Help page, after the menu's
     constexpr auto HELP_CRUMB = "Help";
 
-    // the breadcrumb of the front page's Developer section, before a package's report
+    // the breadcrumb of the front page's Developer section, before a config spec's report
     constexpr auto DEVELOPER_CRUMB = "Developer";
 
     // what the help line says of the title bar's buttons
@@ -113,8 +113,8 @@ namespace mods_config::ui
 {
     /**
      * Draws the breadcrumbs and Help, Minimize and Close buttons, with overflowing pages collapsed to an
-     * ellipsis and long names shortened. A package's report, shown over the menu's front page, has the crumbs
-     * of the menu, of the Developer section, and of the package's name. Returns the pressed selection,
+     * ellipsis and long names shortened. A config spec's report, shown over the menu's front page, has the crumbs
+     * of the menu, of the Developer section, and of the config spec's name. Returns the pressed selection,
      * Developer crumb or button and the hovered help.
      */
     TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const model::Mod* report)

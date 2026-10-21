@@ -1,6 +1,6 @@
 # ModTree
 
-The navigation: every mod in one alphabetical list, with the selected mod expanded to its pages, and a package's page that has pages of its own expanded to them.
+The navigation: every mod in one alphabetical list, with the selected mod expanded to its pages, and a config spec's page that has pages of its own expanded to them.
 
 **Provides:** each mod's display name, page names (with the pages under each) and availability; what is selected: a mod's front page, a page, or nothing while the menu's front page is open.
 
@@ -14,7 +14,7 @@ The navigation: every mod in one alphabetical list, with the selected mod expand
 
 ## Levels
 
-- Each level is set in by `space-4`, up to the third: a mod's pages are a level in, a package's page's pages a level further. A level past the third is set in as the third, so a name keeps its room.
+- Each level is set in by `space-4`, up to the third: a mod's pages are a level in, a config spec's page's pages a level further. A level past the third is set in as the third, so a name keeps its room.
 - Every row keeps a 16 px column for a drawn 14 px arrow before its name, and the name starts 6 px after it, so the names of a level line up whether or not they have one.
 - A mod always has its arrow: down while its pages are the rows under it, right otherwise. A mod with no pages has nothing to open, so its arrow stays right when it is selected.
 - A page has an arrow only when it has pages of its own: down while it or one of its pages is selected, and its pages are the rows under it, and right otherwise. Of the selected mod's pages, only the ones on the way to the selected page are expanded.
@@ -40,4 +40,4 @@ About nine rows fit in the Full panel's tree, so most lists scroll: a flat list 
 - In ImGui: the rows in a child window, each drawn at that fixed width rather than `GetContentRegionAvail().x`, which narrows by `ScrollbarSize` when the bar appears. Not `ImGuiWindowFlags_AlwaysVerticalScrollbar`: it draws a full-length grab when nothing scrolls.
 - A row selected from outside the tree (a breadcrumb, Back, the panel shown again) is scrolled into view: `SetScrollHereY()` on it when it is outside the visible rows. A category opened near the bottom scrolls to show its first mods.
 
-Don't group, badge or color mods by where their menu comes from (MCM or a package).
+Don't group, badge or color mods by where their menu comes from (MCM or a config spec).

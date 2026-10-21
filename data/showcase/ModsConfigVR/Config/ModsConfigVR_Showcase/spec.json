@@ -2,8 +2,8 @@
   "minSchemaVersion": 1,
   "modName": "ModsConfigVR_Showcase",
   "displayName": "Mods Config VR: Showcase",
-  "help": "Every kind of row and setting a package has, to see how each looks and works. Each page is one kind.",
-  "packageVersion": 1,
+  "help": "Every kind of row and setting a config spec has, to see how each looks and works. Each page is one kind.",
+  "specVersion": 1,
   "pluginRequirements": ["Fallout4.esm"],
   "f4sePluginRequirements": ["ModsConfigVR"],
   "files": {
@@ -42,7 +42,7 @@
   "content": [
     {
       "type": "text",
-      "text": "Every kind of row a package has, to see how each looks and works in Mods Config VR. Each page is one kind."
+      "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config VR. Each page is one kind."
     },
     { "type": "image", "texture": "ModsConfigVR_Showcase/swatches.dds" },
     { "type": "spacer" },
@@ -289,7 +289,7 @@
               "type": "stepper",
               "valueType": "int",
               "text": "Activation hand",
-              "help": "Uses the package's shared hands list and stores the option's position.",
+              "help": "Uses the config spec's shared hands list and stores the option's position.",
               "default": 1,
               "valueOptions": { "sharedOptions": "hands" },
               "storage": { "path": ["Advanced", "iHand"] }
@@ -298,7 +298,7 @@
               "type": "dropdown",
               "valueType": "string",
               "text": "Holster position",
-              "help": "Uses the package's shared places list and stores the option's text value.",
+              "help": "Uses the config spec's shared places list and stores the option's text value.",
               "default": "hip",
               "valueOptions": { "sharedOptions": "places" },
               "storage": { "path": ["Advanced", "sPlace"] }
@@ -364,7 +364,7 @@
         {
           "type": "section",
           "text": "Player-specific file",
-          "help": "This section overrides the package's file. Its values go to Mods_Config/ModsConfigVR_Showcase/player.toml under My Games/Fallout4VR, created on the first Save that changes them.",
+          "help": "This section overrides the config spec's file. Its values go to Mods_Config/ModsConfigVR_Showcase/player.toml under My Games/Fallout4VR, created on the first Save that changes them.",
           "defaultFile": "player",
           "content": [
             {
@@ -401,7 +401,7 @@
       "content": [
         {
           "type": "text",
-          "text": "Every kind of row a package has, to see how each looks and works in Mods Config VR. Each page is one kind."
+          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config VR. Each page is one kind."
         }
       ],
       "pages": [
@@ -971,7 +971,7 @@
                 {
                   "type": "stepper",
                   "text": "A shared list",
-                  "help": "The options of the package's shared list hands. With no valueType it stores a place.",
+                  "help": "The options of the config spec's shared list hands. With no valueType it stores a place.",
                   "default": 0,
                   "valueOptions": { "sharedOptions": "hands" },
                   "storage": { "path": ["Choices", "iHand"] }
@@ -1013,7 +1013,7 @@
                   "type": "dropdown",
                   "valueType": "string",
                   "text": "A shared list",
-                  "help": "The options of the package's shared list places, with the text each stores.",
+                  "help": "The options of the config spec's shared list places, with the text each stores.",
                   "default": "hip",
                   "valueOptions": { "sharedOptions": "places" },
                   "storage": { "path": ["Choices", "sPlace"] }
@@ -1871,7 +1871,7 @@
         },
         {
           "pageDisplayName": "Files",
-          "help": "Settings of three files: the package's default, the page's, and a section's.",
+          "help": "Settings of three files: the config spec's default, the page's, and a section's.",
           "defaultFile": "player",
           "content": [
             {
@@ -1940,7 +1940,7 @@
             },
             {
               "type": "section",
-              "text": "Its own file: the package's default",
+              "text": "Its own file: the config spec's default",
               "content": [
                 {
                   "type": "switcher",
@@ -2555,7 +2555,7 @@
         },
         {
           "pageDisplayName": "Mistakes",
-          "help": "What a package can get wrong: each row says what, and the log has the error.",
+          "help": "What a config spec can get wrong: each row says what, and the log has the error.",
           "content": [
             {
               "type": "section",
@@ -2565,7 +2565,7 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": "No such file",
-                  "help": "Its storage names a file the package does not have.",
+                  "help": "Its storage names a file the config spec does not have.",
                   "default": true,
                   "storage": {
                     "file": "missing",
@@ -2661,7 +2661,7 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": "An applies that is not one",
-                  "help": "Its applies is not live, save or restart, so it has the package's.",
+                  "help": "Its applies is not live, save or restart, so it has the config spec's.",
                   "applies": "never",
                   "default": true,
                   "storage": { "path": ["Mistakes", "bApplies"] }
@@ -2693,7 +2693,7 @@
                   "type": "stepper",
                   "valueType": "int",
                   "text": "No such shared list",
-                  "help": "It names a shared list the package does not have, so it has no options.",
+                  "help": "It names a shared list the config spec does not have, so it has no options.",
                   "default": 0,
                   "valueOptions": { "sharedOptions": "feet" },
                   "storage": { "path": ["Mistakes", "iNoList"] }
@@ -2747,7 +2747,7 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": "No such setting",
-                  "help": "Its condition names a setting the package does not have, so it is shown.",
+                  "help": "Its condition names a setting the config spec does not have, so it is shown.",
                   "default": true,
                   "storage": { "path": ["Mistakes", "bNoSetting"] },
                   "visibleWhen": { "setting": "missing", "equals": true }
@@ -2862,7 +2862,7 @@
                 {
                   "type": "button",
                   "text": "An action of MCM's menu",
-                  "help": "A CallExternalFunction calls a Flash function, which a package does not have.",
+                  "help": "A CallExternalFunction calls a Flash function, which a config spec does not have.",
                   "action": {
                     "type": "CallExternalFunction",
                     "function": "OnPress"

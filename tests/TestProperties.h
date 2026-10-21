@@ -6,7 +6,7 @@
 #include <tuple>
 #include <vector>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 // The properties of scripts of a test, in place of the game's: TestProperties.cpp is the tests' own
 // `getProperty`, `setProperty` and `getOptionTexts`, in place of the mod's.

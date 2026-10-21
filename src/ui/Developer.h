@@ -8,15 +8,15 @@
 
 #include "Choices.h"
 #include "HelpLine.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 namespace mods_config::ui
 {
     /**
-     * Which packages the Developer section of the menu's front page lists: those that need attention, all of
+     * Which config specs the Developer section of the menu's front page lists: those that need attention, all of
      * them, or the one Mods Config VR's settings name.
      */
-    enum class ShowPackages : std::uint8_t
+    enum class ShowConfigSpecs : std::uint8_t
     {
         NeedingAttention,
         All,
@@ -24,14 +24,14 @@ namespace mods_config::ui
     };
 
     /**
-     * The Developer tools as Mods Config VR's settings have them: whether they are on, which packages the front
-     * page's section lists, the package it lists alone, by its modName, and whether the section is folded.
+     * The Developer tools as Mods Config VR's settings have them: whether they are on, which config specs the front
+     * page's section lists, the config spec it lists alone, by its modName, and whether the section is folded.
      */
     struct DeveloperView
     {
         bool enabled = false;
-        ShowPackages show = ShowPackages::NeedingAttention;
-        std::string package;
+        ShowConfigSpecs show = ShowConfigSpecs::NeedingAttention;
+        std::string configSpec;
         bool folded = false;
 
         bool operator==(const DeveloperView&) const = default;
@@ -48,13 +48,13 @@ namespace mods_config::ui
         bool changed = false;
         bool pressActed = false;
 
-        // the package whose row was pressed, which opens its report, by its place among the mods
+        // the config spec whose row was pressed, which opens its report, by its place among the mods
         std::optional<std::size_t> opened;
     };
 
     /**
-     * The Developer section of the menu's front page, for a package's author, while the Developer tools are on:
-     * a heading that folds, its filter, and a row for each package the filter lists, with its errors and its
+     * The Developer section of the menu's front page, for a config spec's author, while the Developer tools are on:
+     * a heading that folds, its filter, and a row for each config spec the filter lists, with its errors and its
      * warnings, which a press opens the report of. An MCM mod is never listed.
      */
     class DeveloperSection

@@ -1,6 +1,6 @@
 # FileChoice
 
-A choice of the files in a folder, MCM's `dropdownFiles`, and a package's: a dropdown whose options are the files that match a mask, with a thumbnail when they are textures, as Immersive Flashlight's gobos.
+A choice of the files in a folder, MCM's `dropdownFiles`, and a config spec's: a dropdown whose options are the files that match a mask, with a thumbnail when they are textures, as Immersive Flashlight's gobos.
 
 **Provides:** the folder (`path`, under `Data`), the `mask` (`*.dds`), the value, its default and its state, and the files the folder has when the page is shown.
 

@@ -15,13 +15,13 @@
 
 #include "ModFile.h"
 #include "model/ChoiceOptions.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 #include "model/Store.h"
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
-     * The store of a package's mod: its editing session. As the mod is selected its files, its globals and its
+     * The store of a config spec's mod: its editing session. As the mod is selected its files, its globals and its
      * properties of scripts are read, and the value of each setting then is its baseline. A change is a pending value, and a setting whose pending
      * value is not its baseline is dirty: it waits for a Save, which writes it and makes it the baseline, or a
      * Discard, which takes it back. A change back to the baseline leaves the setting clean.
@@ -45,10 +45,10 @@ namespace mods_config::package
      * Save wrote, for each mod, until the game is restarted.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
-    class PackageStore : public model::Store
+    class ConfigSpecStore : public model::Store
     {
     public:
-        PackageStore(std::filesystem::path dataFolder, std::filesystem::path myGamesFolder);
+        ConfigSpecStore(std::filesystem::path dataFolder, std::filesystem::path myGamesFolder);
 
         /**
          * Registers the callback that gives the options of a choice of a mod that takes them from its client
@@ -137,7 +137,7 @@ namespace mods_config::package
         void preview(const model::Setting& setting, const Entry& entry);
         void rollBack();
 
-        // the folders a path of a package's file is from: the game's Data folder, and
+        // the folders a path of a config spec's file is from: the game's Data folder, and
         // `Documents\My Games\Fallout4VR`
         std::filesystem::path _dataFolder;
         std::filesystem::path _myGamesFolder;
@@ -145,7 +145,7 @@ namespace mods_config::package
         // the name of the mod that is selected, for the log
         std::string _modName;
 
-        // the files of the mod that is selected that the menu reads, by their names in its package. A file that
+        // the files of the mod that is selected that the menu reads, by their names in its config spec. A file that
         // is not there is one too
         std::map<std::string, std::unique_ptr<ModFile>, std::less<>> _files;
 
@@ -154,7 +154,7 @@ namespace mods_config::package
         model::ChoiceOptions _options;
         model::ClientOptions _clientOptions;
 
-        // the settings of the mod that is selected, in the order of its package
+        // the settings of the mod that is selected, in the order of its config spec
         std::vector<const model::Setting*> _settingList;
 
         // and by their ids

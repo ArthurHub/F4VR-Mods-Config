@@ -1,6 +1,6 @@
 # The settings model
 
-The menu draws one model, whatever a mod's menu comes from. A loader fills it: the MCM loader first, the package loader later. This document says what the model holds, and shows it on three examples: an MCM mod, a package, and an activation sphere.
+The menu draws one model, whatever a mod's menu comes from. A loader fills it: the MCM loader first, the config spec loader later. This document says what the model holds, and shows it on three examples: an MCM mod, a config spec, and an activation sphere.
 
 ## Two parts
 
@@ -12,7 +12,7 @@ The UI reads the definition to know what to draw, and asks the store for every v
 ## The definition
 
 ```text
-Mod      a name, a help, its front page, its pages, a category if it has one, and a package's files
+Mod      a name, a help, its front page, its pages, a category if it has one, and a config spec's files
 Page     a name, an id if it has one, a help, its items, and its pages. The front page is the mod's own, and has no name
 Item     one of:
            Setting
@@ -25,7 +25,7 @@ Item     one of:
 
 A mod that is [not available](ui-and-vr-interaction.md#notices) has its name and the reason, and nothing else.
 
-A setting, a button, and any other item that is a row has a `text` and can have a `help`. The text is what the row says. The help of the row the ray is on is shown in the help line, on the left of the footer. Both names are MCM's, and a package uses them too. In the test set 376 rows have a help: most switchers, sliders, steppers and buttons, and every hotkey.
+A setting, a button, and any other item that is a row has a `text` and can have a `help`. The text is what the row says. The help of the row the ray is on is shown in the help line, on the left of the footer. Both names are MCM's, and a config spec uses them too. In the test set 376 rows have a help: most switchers, sliders, steppers and buttons, and every hotkey.
 
 A setting has:
 
@@ -38,25 +38,25 @@ A setting has:
 | text         | What the row says                                                                                     |
 | help         | Its help text, shown in the help line while the ray is on the row                                     |
 | valueOptions | The least, the most and the step of a number, the length limits of a text, the options of a choice or where it reads them in the game, whether a color has an alpha, or whether a binding offers `suppress` |
-| display      | How a number is shown: its decimals, a unit, or a percentage of its range. A package's only           |
-| readOnly     | The value is shown and not edited. A package's only                                                   |
-| warnings     | Texts with a condition each: while one holds, the row is marked and the help line shows it. A package's only |
+| display      | How a number is shown: its decimals, a unit, or a percentage of its range. A config spec's only           |
+| readOnly     | The value is shown and not edited. A config spec's only                                                   |
+| warnings     | Texts with a condition each: while one holds, the row is marked and the help line shows it. A config spec's only |
 | visibleWhen  | A condition on the values of other settings. The row is shown while it holds                          |
 | enabledWhen  | A condition of the same kind. The row can be edited while it holds                                    |
 | storage      | Where the value is kept. Only the store reads it                                                      |
-| default      | The value Reset gives it. A package's only: an MCM row's is its store's to answer                     |
-| applies      | When a change takes effect in the running mod: live, save or restart. A package's only                |
-| action       | What runs after the value is written: at once for an MCM row, and by Save for a package's setting     |
+| default      | The value Reset gives it. A config spec's only: an MCM row's is its store's to answer                     |
+| applies      | When a change takes effect in the running mod: live, save or restart. A config spec's only                |
+| action       | What runs after the value is written: at once for an MCM row, and by Save for a config spec's setting     |
 
 Three things are as they are because of MCM:
 
-- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so a setting keeps that text too, as its `sourceId`. A package's setting has its author's id, or one made from its storage, as the key and the section: see [Declarative schema](schema.md#settings).
-- **The default is the store's to answer.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A package's setting always has a default: the schema requires it, and a setting without one is an error of the package. The package loader reads it into the setting, and the package store answers it from there. A read-only setting is the one that needs none, as it has no Reset.
-- **The storage has several forms.** A global, a script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A package's setting always has a storage: a key of a file, a global or a script property.
+- **The loader makes an id where MCM has none.** In the MCM test set 33 of the 393 value rows have no id, and three ids are each on two rows. Such a row gets an id from its place in the config: `main` for the front page, or `page` and the number of its page, and the place of the row in the page, as `main/2` and `page1/1`. It is the same on every run and in every language. MCM's event carries the id as the config has it, so a setting keeps that text too, as its `sourceId`. A config spec's setting has its author's id, or one made from its storage, as the key and the section: see [Declarative schema](schema.md#settings).
+- **The default is the store's to answer.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A config spec's setting always has a default: the schema requires it, and a setting without one is an error of the config spec. The config spec loader reads it into the setting, and the config spec store answers it from there. A read-only setting is the one that needs none, as it has no Reset.
+- **The storage has several forms.** A global, a script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A config spec's setting always has a storage: a key of a file, a global or a script property.
 
-`applies` is a package's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else the nearest group's it is in, the nearest page's, its mod's. An MCM mod has none: an MCM config has no field for it.
+`applies` is a config spec's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else the nearest group's it is in, the nearest page's, its mod's. An MCM mod has none: an MCM config has no field for it.
 
-Pages and groups nest in a package: a page can have pages, and a group can hold groups. An MCM mod has one level of pages, and its groups do not nest.
+Pages and groups nest in a config spec: a page can have pages, and a group can hold groups. An MCM mod has one level of pages, and its groups do not nest.
 
 ## The store
 
@@ -75,16 +75,16 @@ What the UI asks of the store:
 There are two stores, and what happens around a change is theirs:
 
 - **The MCM store** writes a value where its storage says, at once. It then runs the row's action and sends MCM's event. It has no Save.
-- **The package store** reads the files, and the globals and properties, when the mod is selected. A set changes the pending value, and that of a `live` setting is previewed: to the mod's client for a key of a file, and into the game by the store itself for a global or a property. Save writes the values and then runs the actions of the settings it wrote. Save and Discard are as in [Architecture and lifecycle](architecture.md#editing-session).
+- **The config spec store** reads the files, and the globals and properties, when the mod is selected. A set changes the pending value, and that of a `live` setting is previewed: to the mod's client for a key of a file, and into the game by the store itself for a global or a property. Save writes the values and then runs the actions of the settings it wrote. Save and Discard are as in [Architecture and lifecycle](architecture.md#editing-session).
 
-Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's. The second is the mod's, and a package says it with `applies`:
+Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's. The second is the mod's, and a config spec says it with `applies`:
 
 | The setting        | Saved            | The mod acts on it                                     |
 | ------------------ | ---------------- | ------------------------------------------------------ |
 | MCM                | As it is changed | Not known to the menu                                  |
-| Package, `live`    | On Save          | As it is changed, as a preview that Discard takes back |
-| Package, `save`    | On Save          | After Save                                             |
-| Package, `restart` | On Save          | After the game is restarted                            |
+| Config spec, `live`    | On Save          | As it is changed, as a preview that Discard takes back |
+| Config spec, `save`    | On Save          | After Save                                             |
+| Config spec, `restart` | On Save          | After the game is restarted                            |
 
 So a `live` setting is never saved by being previewed. And an MCM change that is saved is not always in effect: Unlimited Survival Mode's DLL reads MCM's settings file itself, and its page says in a text row that its settings need a restart. The menu shows such a text as MCM does, and claims no more than that the change is saved.
 
@@ -96,14 +96,14 @@ A value has a state, and a row whose value is not ready says why:
 
 ## Conditions
 
-A condition compares the value of one setting, named by its id, or joins other conditions with all, any and not. It is evaluated on the store's values, which for a package are the pending ones, so a row shows and hides as the player edits.
+A condition compares the value of one setting, named by its id, or joins other conditions with all, any and not. It is evaluated on the store's values, which for a config spec are the pending ones, so a row shows and hides as the player edits.
 
 - The MCM loader turns `groupControl` and `groupCondition` into `visibleWhen`: a group is on when the row that controls it is on. A group's number belongs to its page: the test set uses the same numbers again on other pages. Each of its 23 groups has one controlling row, a switcher, on the group's own page.
 - A `groupCondition` is a number, a list of numbers, or `AND`, `OR` or `ONLY` with a list, as MCM's menu reads it. A list is `OR`. `ONLY` holds with all of its groups while no other group of the page is on. A group that no row controls is never on.
 - A condition that a value which is not available leaves open holds, so its row is shown: nothing is hidden for a reason the player cannot change. A value that is available still settles it: a row that needs two groups is hidden while one of them is off.
 - The value of a setting that no row shows, as MCM's hidden switcher, is off while it is not available, as MCM's menu reads it. A script sets it to show a row while something of the game holds, so its rows stay hidden while it cannot be read.
-- A package has `visibleWhen` and `enabledWhen`, as in [Declarative schema](schema.md#conditions). A section's conditions cover everything in it there, at every level. The package loader gives each row the conditions of the sections it is in, joined with the row's own, so in the model a condition is always a row's. An MCM section's condition stays on its header row alone, as in MCM.
-- A package's condition can ask whether a plugin is loaded. That does not change while the game runs, so the package loader answers it as it reads the package, and the condition holds or does not.
+- A config spec has `visibleWhen` and `enabledWhen`, as in [Declarative schema](schema.md#conditions). A section's conditions cover everything in it there, at every level. The config spec loader gives each row the conditions of the sections it is in, joined with the row's own, so in the model a condition is always a row's. An MCM section's condition stays on its header row alone, as in MCM.
+- A config spec's condition can ask whether a plugin is loaded. That does not change while the game runs, so the config spec loader answers it as it reads the config spec, and the condition holds or does not.
 
 ## A group with a role
 
@@ -220,9 +220,9 @@ A press on "Enable the feature":
 
 Nothing is dirty. When the ray leaves the rows, the help line goes back to the status, which says that changes are saved as they are made.
 
-### A package
+### A config spec
 
-The mod's package. It has the same shape: `content` is the front page, and `pages` has the other pages:
+The mod's config spec. It has the same shape: `content` is the front page, and `pages` has the other pages:
 
 ```json
 {
@@ -260,11 +260,11 @@ The mod's package. It has the same shape: `content` is the front page, and `page
 }
 ```
 
-The definition the package loader makes of it:
+The definition the config spec loader makes of it:
 
 ```text
 Mod "My Mod"
-├─ Front page                           the package's content; the mod's row in the tree
+├─ Front page                           the config spec's content; the mod's row in the tree
 │  └─ Setting bEnableHolsters:MyMod     "Holsters"        bool, switcher
 │        help         Draw and holster weapons at the body.
 │        storage      bEnableHolsters of [MyMod] in MyMod.ini
@@ -282,7 +282,7 @@ Mod "My Mod"
 - `bEnableHolsters:MyMod` is an id the loader made, from the key and the section, as MCM names a ModSetting. `playerHeight` is its author's.
 - `playerHeight` has no `applies`, and neither has its page, so it takes the mod's: `live`. The Holsters switcher has its own, `restart`. It is not previewed, and a Save that writes it says that the game has to be restarted.
 
-The file holds `fPlayerHeight = 1.1` and has no `bEnableHolsters` key. What the package store answers after the player dragged the slider:
+The file holds `fPlayerHeight = 1.1` and has no `bEnableHolsters` key. What the config spec store answers after the player dragged the slider:
 
 ```text
 Setting                 In the file   Pending   Dirty   State
@@ -311,7 +311,7 @@ sEntryHaptic = "Tick"
 fIconSize = 2.0
 ```
 
-The package names the section once, and the loader makes a group of it, with a setting for each key:
+The config spec names the section once, and the loader makes a group of it, with a setting for each key:
 
 ```text
 Group "Body grab"                                         role: activation sphere

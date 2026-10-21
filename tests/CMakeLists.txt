@@ -17,8 +17,8 @@ add_executable(${PROJECT_NAME}_tests
   MenuControlsTests.cpp
   ModFileTests.cpp
   NumbersTests.cpp
-  PackageLoaderTests.cpp
-  PackageStoreTests.cpp
+  ConfigSpecLoaderTests.cpp
+  ConfigSpecStoreTests.cpp
   SwfImagesTests.cpp
   TextMarkupTests.cpp
   TomlFileTests.cpp
@@ -48,11 +48,11 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
-  ${SOURCE_DIR}/package/IniFile.cpp
-  ${SOURCE_DIR}/package/ModFile.cpp
-  ${SOURCE_DIR}/package/PackageLoader.cpp
-  ${SOURCE_DIR}/package/PackageStore.cpp
-  ${SOURCE_DIR}/package/TomlFile.cpp
+  ${SOURCE_DIR}/spec/IniFile.cpp
+  ${SOURCE_DIR}/spec/ModFile.cpp
+  ${SOURCE_DIR}/spec/ConfigSpecLoader.cpp
+  ${SOURCE_DIR}/spec/ConfigSpecStore.cpp
+  ${SOURCE_DIR}/spec/TomlFile.cpp
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
   ${SOURCE_DIR}/ui/Developer.cpp
@@ -64,7 +64,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/MenuControls.cpp
   ${SOURCE_DIR}/ui/ModPage.cpp
   ${SOURCE_DIR}/ui/Numbers.cpp
-  ${SOURCE_DIR}/ui/PackageReport.cpp
+  ${SOURCE_DIR}/ui/ConfigSpecReport.cpp
   ${SOURCE_DIR}/ui/PageImages.cpp
   ${SOURCE_DIR}/ui/PageRows.cpp
   ${SOURCE_DIR}/ui/Sections.cpp
@@ -85,11 +85,11 @@ target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE
   MODS_CONFIG_TEST_OUTPUT_DIR="${CMAKE_CURRENT_BINARY_DIR}/render"
   # the MCM showcase, which is an optional file of the mod
   MODS_CONFIG_MCM_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/MCM/Config"
-  # the mod's own package, and the config file it edits as the mod ships it
-  MODS_CONFIG_PACKAGES_DIR="${ROOT_DIR}/data/mod/ModsConfigVR/Config"
+  # the mod's own config spec, and the config file it edits as the mod ships it
+  MODS_CONFIG_SPECS_DIR="${ROOT_DIR}/data/mod/ModsConfigVR/Config"
   MODS_CONFIG_SHIPPED_CONFIG="${ROOT_DIR}/data/config/ModsConfigVR.toml"
-  # the package showcase, which is an optional file of the mod
-  MODS_CONFIG_PACKAGE_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/ModsConfigVR/Config"
+  # the config spec showcase, which is an optional file of the mod
+  MODS_CONFIG_SPEC_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/ModsConfigVR/Config"
 )
 target_include_directories(${PROJECT_NAME}_tests PRIVATE ${BUILD_DIR}/include ${SOURCE_DIR})
 target_precompile_headers(${PROJECT_NAME}_tests PRIVATE ${SOURCE_DIR}/PCH.h)

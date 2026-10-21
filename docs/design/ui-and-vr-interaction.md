@@ -50,11 +50,11 @@ The primary browsing and editing state.
 
 - Navigation is on the left and selected mod content is on the right.
 - The navigation is a tree of the mods. [The menu's front page](#the-menus-front-page), which is what the menu opens on, has no row in it: no mod is selected. The first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
-- Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page. A package's page can have pages of its own, which it shows under it the same way when it is selected.
+- Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page. A config spec's page can have pages of its own, which it shows under it the same way when it is selected.
 - The mod's front page has no row of its own in the tree: the mod's row is its row.
 - The tree keeps its place and its width, with or without a selected mod.
 - The player can select another mod at any time, without going to the front page first.
-- The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a package. A long list is grouped by category; see [Mod categories](#mod-categories).
+- The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a config spec. A long list is grouped by category; see [Mod categories](#mod-categories).
 - The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the pages between the mod and the page become one `…`, which is not pressed, and then the mod's name is shortened with an ellipsis. The first crumb and the last are not shortened.
 - The title bar has Help, Minimize and Close on its right, and the crumbs end before them. Help shows the [Help page](#the-help-page). Minimize and Close do what the wrist's buttons do: Minimize hides the panel as it is, and `Resume` on the wrist shows it again; Close closes the menu. The help line says what each does while the ray is on it.
 - The content pane has no heading of its own, so its height goes to settings.
@@ -141,7 +141,7 @@ What the Full panel shows while no mod is selected. It is what the menu opens on
 An entry of the section opens a mod's own config UI, such as FRIK's.
 
 - A row has the mod's name and an `Open` button, and the whole row is pressed.
-- A mod registers its entry through the native API, with a help text that says what its UI is for. It needs no package for it, and a mod that has a package is in the tree as well.
+- A mod registers its entry through the native API, with a help text that says what its UI is for. It needs no config spec for it, and a mod that has a config spec is in the tree as well.
 - Until the native API is made, the menu adds one entry itself: FRIK, when FRIK is installed. The menu took the opening gesture from FRIK, so FRIK's config is opened from here.
 - The entries are listed alphabetically, as the mods are.
 - Pressing an entry minimizes the menu and opens the mod's UI; see [Bespoke UI handoff](#bespoke-ui-handoff). Until the handoff is made the menu does not come back by itself, and `Resume` on the wrist shows it again.
@@ -150,9 +150,9 @@ An entry of the section opens a mod's own config UI, such as FRIK's.
 
 A mod that the menu found and cannot show is not available:
 
-- A plugin it requires is not loaded: a game plugin of an MCM config or of a package, or an F4SE plugin of a package.
-- Its config or its package cannot be read. It is then named by its folder, as in MCM.
-- Its package needs a newer Mods Config VR, or has the `modName` of another package.
+- A plugin it requires is not loaded: a game plugin of an MCM config or of a config spec, or an F4SE plugin of a config spec.
+- Its MCM config or its spec.json cannot be read. It is then named by its folder, as in MCM.
+- Its spec.json needs a newer Mods Config VR, or another config spec has its `modName`.
 
 The player is told in two places:
 
@@ -165,7 +165,7 @@ A mod with a saved change that takes effect only after the game is restarted has
 
 ### Developer tools
 
-For a package's author. `Developer tools` is a switch in Mods Config VR's own settings, off as shipped: while it is off none of this is drawn. The log has every diagnostic either way.
+For a config spec's author. `Developer tools` is a switch in Mods Config VR's own settings, off as shipped: while it is off none of this is drawn. The log has every diagnostic either way.
 
 ```text
 ▾ Developer ──────────────────────────────────────────────────
@@ -175,16 +175,16 @@ Showcase                                      △ 3 warnings ▸
 Virtual Holsters                              ▲ Not loaded ▸
 ```
 
-- The menu's front page has a Developer section after the notices. Its heading folds, and folded it says the errors and the warnings of the packages it lists. It stays folded as the author leaves it.
-- Its first row is a filter, a stepper that is written to the config at once: the packages that need attention (an error, a warning, a live copy, or not loaded), all of them, or the one package named in the settings, with or without problems. The filter is in Mods Config VR's own settings too, with the dropdown that names that package.
-- A row for each package the filter lists, alphabetical: its name, its live copy, and its errors and warnings, or that it has none, is not loaded or is not available. An MCM mod is never listed.
-- A press on the row opens the package's report, `MODS CONFIG VR » Developer » <mod>`. Back, and the `Developer` crumb, go back to the front page.
-- The report says where `config.json` is read from, and has its live copy and its problems:
-  - `Read the live copy` copies the package's `config.json` to `My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\<folder>\config.json`, where there is none, and reads it in place of the installed file. The copy is read again each time it is saved, and Reload reads it at once. A read drops the mod's unsaved changes, and keeps the page that is open while it is still there. A copy that cannot be read is an error, and the mod keeps what it read last. Off reads the installed file again, and keeps the copy.
+- The menu's front page has a Developer section after the notices. Its heading folds, and folded it says the errors and the warnings of the config specs it lists. It stays folded as the author leaves it.
+- Its first row is a filter, a stepper that is written to the config at once: the config specs that need attention (an error, a warning, a live copy, or not loaded), all of them, or the one config spec named in the settings, with or without problems. The filter is in Mods Config VR's own settings too, with the dropdown that names that config spec.
+- A row for each config spec the filter lists, alphabetical: its name, its live copy, and its errors and warnings, or that it has none, is not loaded or is not available. An MCM mod is never listed.
+- A press on the row opens the config spec's report, `MODS CONFIG VR » Developer » <mod>`. Back, and the `Developer` crumb, go back to the front page.
+- The report says where `spec.json` is read from, and has its live copy and its problems:
+  - `Read the live copy` copies the config spec's `spec.json` to `My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\<folder>\spec.json`, where there is none, and reads it in place of the installed file. The copy is read again each time it is saved, and Reload reads it at once. A read drops the mod's unsaved changes, and keeps the page that is open while it is still there. A copy that cannot be read is an error, and the mod keeps what it read last. Off reads the installed file again, and keeps the copy.
   - `Open` opens the copy in the desktop's editor for `.json`, and `Show` its folder.
-  - The errors, then the warnings, each under a heading that folds. A problem is a row with its mark and message, and the help line says where it is: the page and the row, and the path in `config.json`. A press on one that names a row goes to the row.
+  - The errors, then the warnings, each under a heading that folds. A problem is a row with its mark and message, and the help line says where it is: the page and the row, and the path in `spec.json`. A press on one that names a row goes to the row.
 
-See the design system's [Developer](design-system/project/components/Developer/README.md), [FullPanelDeveloper](design-system/project/components/FullPanelDeveloper/README.md) and [FullPanelPackageReport](design-system/project/components/FullPanelPackageReport/README.md).
+See the design system's [Developer](design-system/project/components/Developer/README.md), [FullPanelDeveloper](design-system/project/components/FullPanelDeveloper/README.md) and [FullPanelConfigSpecReport](design-system/project/components/FullPanelConfigSpecReport/README.md).
 
 ### What differs from MCM's
 
@@ -312,9 +312,9 @@ The help line has room for two lines. Help that needs a third is drawn in a smal
 
 Help is one size and one color. An MCM config can have the tags of a [text row](schema.md#text-spacers-and-images) in a help, with or without `html`. They are removed, and a line break becomes a space, so the help keeps to its lines.
 
-The help of a package's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
+The help of a config spec's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
 
-A package's mod and its pages can have a help of their own, which the help line shows while the ray is on their row in the tree. An MCM mod and its pages have none. A mod that is [not available](#notices) has the reason there instead: the help line says why while the ray is on its row. A page that explains itself at length does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
+A config spec's mod and its pages can have a help of their own, which the help line shows while the ray is on their row in the tree. An MCM mod and its pages have none. A mod that is [not available](#notices) has the reason there instead: the help line says why while the ray is on its row. A page that explains itself at length does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
 
 Keeping the help in one place avoids layout movement and makes it discoverable without pop-up tooltips floating at uncomfortable depths. The Focused panel's footer is too narrow for it, so there the help is a two-line area at the top.
 
@@ -323,8 +323,8 @@ Keeping the help in one place avoids layout movement and makes it discoverable w
 - Mods are listed alphabetically by display name; page and setting order follow their JSON arrays.
 - A mod that is not available is in the list too, as a disabled row; see [Notices](#notices).
 - The mods are the top level of a tree, unless the list is grouped by category, and only the selected mod is expanded. Its pages are the rows under it, without the front page.
-- A package's page that has pages of its own is expanded while it or one of its pages is selected, and its pages are the rows under it, a step further in. Each level is set in by the same small step, up to the third, so a deep tree still fits the tree's width. A page that has pages has an arrow, as a mod has, and the names of a level line up whether or not they have one. See the design system's [ModTree](design-system/project/components/ModTree/README.md).
-- A mod's front page is its root `content`, in an MCM config and in a package alike, and its `pages` are the rows under it. A mod with no pages has no rows under it.
+- A config spec's page that has pages of its own is expanded while it or one of its pages is selected, and its pages are the rows under it, a step further in. Each level is set in by the same small step, up to the third, so a deep tree still fits the tree's width. A page that has pages has an arrow, as a mod has, and the names of a level line up whether or not they have one. See the design system's [ModTree](design-system/project/components/ModTree/README.md).
+- A mod's front page is its root `content`, in an MCM config and in a config spec alike, and its `pages` are the rows under it. A mod with no pages has no rows under it.
 - A list longer than its area scrolls with the thumbstick while the ray is on it, and shows a scroll bar: the tree, a page's rows, and the list of a dropdown. About nine rows fit in the Full panel's tree, so most lists of mods scroll.
 - The tree always keeps room for its scroll bar, so its rows do not narrow when the bar appears, as when a category or a mod is opened near the bottom.
 - A row that is selected from outside the tree, from a breadcrumb, with Back, or when the panel is shown again, is scrolled into view. A category that is opened near the bottom scrolls to show its first mods.
@@ -336,7 +336,7 @@ Keeping the help in one place avoids layout movement and makes it discoverable w
 The tree's header is a search field, which finds a setting by its name in every mod. It comes after the first release, with the localization ([Mod work plan](mod-plan.md), M91). Until then the header says `Mods` and the count.
 
 - Idle the field says what it searches: "Search 11 mods". A press on it shows the keyboard, as a text input does, and each key filters as it is typed.
-- It finds the names as the player sees them: a mod's display name, a page's, a section's heading and a setting's text, of a package and of an MCM mod alike. Not the help. Each word of the query starts a word of the name, in any order, with case and accents ignored, so "hol siz" finds "Holster size".
+- It finds the names as the player sees them: a mod's display name, a page's, a section's heading and a setting's text, of a config spec and of an MCM mod alike. Not the help. Each word of the query starts a word of the name, in any order, with case and accents ignored, so "hol siz" finds "Holster size".
 - A setting that a condition hides is not found. One that a condition disables is found, and is disabled in the results.
 - While the query has text, the tree has only the mods with a match, flat, each expanded to its pages that have a setting that matches, with how many. A mod whose name matches is there with its pages closed. The match is underlined in each name.
 - The content is the results, with the crumbs `MODS CONFIG VR » Search`: the settings that match, under a heading for each mod and page. Each is the setting's own row, changed here as on its page, and Save saves it.
@@ -377,7 +377,7 @@ A mod is hard to find in a list of many mods, so a long list is grouped by categ
 The player can give a mod another category, to arrange the list as they like. Mods Config VR's own entry has a `Categories` page that the menu fills: a row for every mod, with a dropdown of category names.
 
 - The dropdown has the names Mods Config VR ships and the names that are in use. `No category` is one of them, and takes a mod out of the category its author gave it. The last entry, `Type a new name`, opens the keyboard to type a name that is not in the list.
-- A row is an ordinary setting of Mods Config VR's own package. It is saved with Save, Discard takes it back, and Reset gives the mod the category it has without the player's choice.
+- A row is an ordinary setting of Mods Config VR's own config spec. It is saved with Save, Discard takes it back, and Reset gives the mod the category it has without the player's choice.
 - The tree is grouped again after Save.
 - The choices are kept in `Categories.toml` beside `ModsConfigVR.toml`, one key for each mod, named by its `modName`. A key whose text is empty is `No category`. `ModsConfigVR.toml` holds only the keys the mod ships.
 - Only a choice that differs from the category the mod has without it is kept, and Save removes the key of any other. So a mod that the player did not move, or that was reset, follows its own category and the table when they change.
@@ -395,7 +395,7 @@ MCM-backed entries should feel integrated without concealing their different lif
 - Do not offer a misleading Save contract for changes the original MCM has already saved.
 - Preserve MCM-specific help, option state, and event behavior where possible.
 
-What the menu shows for a mod follows what the mod supports, not where its menu comes from: changes that are saved as they are made, or a Save bar, with live preview where the mod has it. A package says when a change takes effect, for the mod and for any page, section or setting that differs.
+What the menu shows for a mod follows what the mod supports, not where its menu comes from: changes that are saved as they are made, or a Save bar, with live preview where the mod has it. A config spec says when a change takes effect, for the mod and for any page, section or setting that differs.
 
 ## Bespoke UI handoff
 

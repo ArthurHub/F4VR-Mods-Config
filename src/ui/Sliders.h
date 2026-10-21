@@ -4,7 +4,7 @@
 #include <string>
 
 #include "Drawing.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 namespace mods_config::ui
 {

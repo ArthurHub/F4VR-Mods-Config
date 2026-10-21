@@ -8,14 +8,14 @@
 #include <utility>
 #include <vector>
 
-#include "Definition.h"
+#include "ConfigDefinition.h"
 
 namespace mods_config::model
 {
     /**
      * The callbacks that give the options of the choices that take them from their mod's client
      * (`listFromClientCallback`), each for one setting, by its mod's name and its id. The native API registers a
-     * client's: until it is there the menu registers the one of its own package.
+     * client's: until it is there the menu registers the one of its own config spec.
      */
     class ClientOptions
     {

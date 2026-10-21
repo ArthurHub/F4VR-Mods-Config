@@ -37,7 +37,7 @@ A popup inside the content pane, 717 wide, placed as the Color editor is. `popup
 ## Writing the value
 
 - A changed value is written with the keys the file had, and the key of the part that changed: `{ rot = [0.0, -5.0, 0.0] }` with a new Y is `{ pos = [0.0, 1.0, 0.0], rot = [0.0, -5.0, 0.0] }`. Numbers are written as the framework writes them, with `.0` on a whole number.
-- Reset sets the default as the package gives it.
+- Reset sets the default as the config spec gives it.
 
 ## Focused panel
 

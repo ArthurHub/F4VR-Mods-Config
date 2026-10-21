@@ -6,17 +6,17 @@
 
 #include <imgui.h>
 
+#include "ConfigSpecReport.h"
 #include "Developer.h"
 #include "FrontPage.h"
 #include "HelpLine.h"
 #include "MenuControls.h"
 #include "ModPage.h"
 #include "ModTree.h"
-#include "PackageReport.h"
 #include "Selection.h"
 #include "TitleBar.h"
 #include "UnsavedDialog.h"
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 #include "model/Store.h"
 
 namespace mods_config::ui
@@ -80,7 +80,7 @@ namespace mods_config::ui
             return _developerView;
         }
 
-        // the package whose report is shown over the menu's front page, by its place among the mods, and none
+        // the config spec whose report is shown over the menu's front page, by its place among the mods, and none
         std::optional<std::size_t> report() const
         {
             return _report;
@@ -124,7 +124,7 @@ namespace mods_config::ui
             Selection to;
             bool closeMenu = false;
 
-            // the package whose report is shown over the menu's front page, which it goes to
+            // the config spec whose report is shown over the menu's front page, which it goes to
             std::optional<std::size_t> report;
         };
 
@@ -153,12 +153,12 @@ namespace mods_config::ui
         // the Help page is shown in place of the selection's page, which Back shows again
         bool _helpShown = false;
 
-        // the package whose report is shown over the menu's front page, by its place among the mods, and none.
+        // the config spec whose report is shown over the menu's front page, by its place among the mods, and none.
         // And the one Back shows again, from the page a press on one of its problems showed
         std::optional<std::size_t> _report;
         std::optional<std::size_t> _returnToReport;
         FrontPage _frontPage;
-        PackageReport _packageReport;
+        ConfigSpecReport _configSpecReport;
 
         // the front page is scrolled to its Developer section as it is drawn next, as it is left a report for
         bool _scrollToDeveloper = false;
@@ -169,7 +169,7 @@ namespace mods_config::ui
         // the values of a selected mod, by the source of its menu: not the panel's own, and none in a test that
         // has no values
         model::Store* _mcmStore = nullptr;
-        model::Store* _packageStore = nullptr;
+        model::Store* _configSpecStore = nullptr;
 
         ModTree _modTree;
         ModPage _modPage;

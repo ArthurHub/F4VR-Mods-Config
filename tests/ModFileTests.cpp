@@ -7,14 +7,14 @@
 #include <vector>
 
 #include "TestFiles.h"
-#include "package/IniFile.h"
-#include "package/TomlFile.h"
+#include "spec/IniFile.h"
+#include "spec/TomlFile.h"
 
 using namespace mods_config;
 using model::StoredType;
-using package::IniFile;
-using package::ModFile;
-using package::TomlFile;
+using spec::IniFile;
+using spec::ModFile;
+using spec::TomlFile;
 using Path = std::vector<std::string>;
 
 namespace

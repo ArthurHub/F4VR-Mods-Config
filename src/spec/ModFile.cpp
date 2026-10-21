@@ -5,7 +5,7 @@
 
 #include "config/ConfigFile.h"
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
      * Reads the file's values. A file that is not there, cannot be read or is not written right has none, and

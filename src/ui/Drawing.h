@@ -9,7 +9,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "model/Definition.h"
+#include "model/ConfigDefinition.h"
 
 // What the parts of the panel draw with, in the look of the design system.
 

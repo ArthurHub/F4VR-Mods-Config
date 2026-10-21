@@ -13,11 +13,11 @@
 #include "TestGlobals.h"
 #include "TestProperties.h"
 #include "common/CommonUtils.h"
-#include "package/PackageLoader.h"
-#include "package/PackageStore.h"
+#include "spec/ConfigSpecLoader.h"
+#include "spec/ConfigSpecStore.h"
 
 using namespace mods_config;
-using package::PackageStore;
+using spec::ConfigSpecStore;
 
 namespace
 {
@@ -65,12 +65,12 @@ namespace
     }
 
     /**
-     * A package with the given content as its front page, a TOML file `main` in My Games that is its default,
+     * A config spec with the given content as its front page, a TOML file `main` in My Games that is its default,
      * an INI file `ini` in Data, and a JSON file `json` in Data.
      */
-    model::Mod packageOf(const std::string& content)
+    model::Mod configSpecOf(const std::string& content)
     {
-        auto mod = package::loadPackage(std::format(R"({{
+        auto mod = spec::loadConfigSpec(std::format(R"({{
             "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
             "files": {{
                 "main": {{ "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" }},
@@ -88,7 +88,7 @@ namespace
     }
 
     /**
-     * A package's mod and its store, with a Data folder and a My Games folder of their own, which have no files
+     * A config spec's mod and its store, with a Data folder and a My Games folder of their own, which have no files
      * until a test writes one.
      */
     struct Session
@@ -96,10 +96,10 @@ namespace
         test_files::TempFolder data;
         test_files::TempFolder myGames;
         model::Mod mod;
-        PackageStore store{ data.path, myGames.path };
+        ConfigSpecStore store{ data.path, myGames.path };
 
         explicit Session(const std::string& content = SETTINGS)
-            : mod(packageOf(content))
+            : mod(configSpecOf(content))
         {}
 
         /**
@@ -123,7 +123,7 @@ namespace
     };
 }
 
-TEST_CASE("PackageStore: a value is the file's, in the type of its control, and is clean")
+TEST_CASE("ConfigSpecStore: a value is the file's, in the type of its control, and is clean")
 {
     Session session;
     session.open(MOD_TOML);
@@ -152,7 +152,7 @@ TEST_CASE("PackageStore: a value is the file's, in the type of its control, and 
     CHECK_FALSE(session.store.valueById("missing").available);
 }
 
-TEST_CASE("PackageStore: a value the file does not have is its default, and is clean, as is every value of a file that is not there")
+TEST_CASE("ConfigSpecStore: a value the file does not have is its default, and is clean, as is every value of a file that is not there")
 {
     Session session;
     session.open("[Main]\r\nbEnable = false\r\n");
@@ -177,7 +177,7 @@ TEST_CASE("PackageStore: a value the file does not have is its default, and is c
     CHECK(noFile.store.dirtyCount() == 0);
 }
 
-TEST_CASE("PackageStore: a set value is pending and dirty, and a value set back to the file's is clean")
+TEST_CASE("ConfigSpecStore: a set value is pending and dirty, and a value set back to the file's is clean")
 {
     Session session;
     session.open(MOD_TOML);
@@ -206,7 +206,7 @@ TEST_CASE("PackageStore: a set value is pending and dirty, and a value set back 
     CHECK(session.store.dirtyCount() == 2);
 }
 
-TEST_CASE("PackageStore: a value the player sets that is not one of its setting is pending and invalid, with the reason")
+TEST_CASE("ConfigSpecStore: a value the player sets that is not one of its setting is pending and invalid, with the reason")
 {
     Session session;
     session.open(MOD_TOML);
@@ -255,7 +255,7 @@ TEST_CASE("PackageStore: a value the player sets that is not one of its setting 
     CHECK_FALSE(session.value(7).invalid);
 }
 
-TEST_CASE("PackageStore: a text input of a text has the length its package allows")
+TEST_CASE("ConfigSpecStore: a text input of a text has the length its config spec allows")
 {
     Session session(R"(
         { "type": "textinput", "valueType": "string", "text": "Name", "default": "Me",
@@ -285,7 +285,7 @@ TEST_CASE("PackageStore: a text input of a text has the length its package allow
     CHECK(session.store.invalidCount() == 1);
 }
 
-TEST_CASE("PackageStore: Save writes nothing while a value the player set is invalid")
+TEST_CASE("ConfigSpecStore: Save writes nothing while a value the player set is invalid")
 {
     Session session;
     session.open(MOD_TOML);
@@ -304,7 +304,7 @@ TEST_CASE("PackageStore: Save writes nothing while a value the player set is inv
     CHECK(session.store.dirtyCount() == 0);
 }
 
-TEST_CASE("PackageStore: a value in the file that is not one of its setting is invalid, with the reason, and is clean")
+TEST_CASE("ConfigSpecStore: a value in the file that is not one of its setting is invalid, with the reason, and is clean")
 {
     Session session;
     session.open(
@@ -348,7 +348,7 @@ TEST_CASE("PackageStore: a value in the file that is not one of its setting is i
     CHECK(session.store.dirtyCount() == 2);
 }
 
-TEST_CASE("PackageStore: a setting of a file that cannot be read, of a file the menu does not read, or of no file is not available, with the reason")
+TEST_CASE("ConfigSpecStore: a setting of a file that cannot be read, of a file the menu does not read, or of no file is not available, with the reason")
 {
     // a game with no globals
     const test_globals::TestGlobals globals;
@@ -373,7 +373,7 @@ TEST_CASE("PackageStore: a setting of a file that cannot be read, of a file the 
     CHECK(session.store.dirtyCount() == 0);
 }
 
-TEST_CASE("PackageStore: a session that ends forgets its pending values, and the next reads the file again")
+TEST_CASE("ConfigSpecStore: a session that ends forgets its pending values, and the next reads the file again")
 {
     Session session;
     session.open(MOD_TOML);
@@ -394,7 +394,7 @@ TEST_CASE("PackageStore: a session that ends forgets its pending values, and the
     CHECK(session.store.isDirty(session.setting(1)));
 }
 
-TEST_CASE("PackageStore: Save writes the dirty settings in the types of the file, with its layout kept, and they are clean with the value written")
+TEST_CASE("ConfigSpecStore: Save writes the dirty settings in the types of the file, with its layout kept, and they are clean with the value written")
 {
     Session session;
     session.open(MOD_TOML);
@@ -429,7 +429,7 @@ TEST_CASE("PackageStore: Save writes the dirty settings in the types of the file
     CHECK(session.store.dirtyCount() == 0);
 }
 
-TEST_CASE("PackageStore: Save keeps a value that changed in the file since the session started, but for one the player changed, and adds a key the file does not have")
+TEST_CASE("ConfigSpecStore: Save keeps a value that changed in the file since the session started, but for one the player changed, and adds a key the file does not have")
 {
     Session session;
     session.open("[Main]\r\nbEnable = false\r\nfScale = 1.25\r\n");
@@ -449,7 +449,7 @@ TEST_CASE("PackageStore: Save keeps a value that changed in the file since the s
     CHECK(invalid.value(1).reason.empty());
 }
 
-TEST_CASE("PackageStore: a file that is not written right keeps its settings dirty, and Save says so")
+TEST_CASE("ConfigSpecStore: a file that is not written right keeps its settings dirty, and Save says so")
 {
     Session session;
     session.open(MOD_TOML);
@@ -474,7 +474,7 @@ namespace
     )";
 }
 
-TEST_CASE("PackageStore: a Save that fails leaves every file as it was, and keeps every setting dirty")
+TEST_CASE("ConfigSpecStore: a Save that fails leaves every file as it was, and keeps every setting dirty")
 {
     SECTION("a file that cannot have its values writes no other file")
     {
@@ -530,7 +530,7 @@ TEST_CASE("PackageStore: a Save that fails leaves every file as it was, and keep
     }
 }
 
-TEST_CASE("PackageStore: Save creates a file that is not there, with the folders on the way to it, and with only the settings it changed")
+TEST_CASE("ConfigSpecStore: Save creates a file that is not there, with the folders on the way to it, and with only the settings it changed")
 {
     Session session;
     session.store.open(session.mod);
@@ -560,7 +560,7 @@ TEST_CASE("PackageStore: Save creates a file that is not there, with the folders
     CHECK(readFile(ini.data.path / "MyMod.ini") == "[Main]\r\nbOn=1\r\n");
 }
 
-TEST_CASE("PackageStore: a setting of an INI file has the file's value or is invalid, and Save writes it with the file's layout kept")
+TEST_CASE("ConfigSpecStore: a setting of an INI file has the file's value or is invalid, and Save writes it with the file's layout kept")
 {
     Session session(R"(
         { "type": "switcher", "valueType": "bool", "text": "On", "default": false, "storage": { "file": "ini", "section": "Main", "key": "bOn" } },
@@ -592,16 +592,16 @@ TEST_CASE("PackageStore: a setting of an INI file has the file's value or is inv
     CHECK_FALSE(session.value(1).invalid);
 }
 
-TEST_CASE("PackageStore: every setting of the package showcase's INI file is available, valid and clean with the shipped file")
+TEST_CASE("ConfigSpecStore: every setting of the config spec showcase's INI file is available, valid and clean with the shipped file")
 {
     const test_globals::TestGlobals globals;
     const test_properties::TestProperties properties;
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
 
     // the showcase's game Data folder, which has its INI file
     const test_files::TempFolder myGames;
-    PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
     store.open(mods[0]);
 
     std::size_t checked = 0;
@@ -635,7 +635,7 @@ TEST_CASE("PackageStore: every setting of the package showcase's INI file is ava
     CHECK(store.dirtyCount() == 0);
 }
 
-TEST_CASE("PackageStore: Discard takes back every pending value, and writes nothing")
+TEST_CASE("ConfigSpecStore: Discard takes back every pending value, and writes nothing")
 {
     Session session;
     session.open("[Main]\r\nbEnable = false\r\nfScale = 2.0\r\n");
@@ -698,7 +698,7 @@ namespace
     };
 }
 
-TEST_CASE("PackageStore: a setting of a global or a property has the game's value as its baseline, and one that is not in the game is not available")
+TEST_CASE("ConfigSpecStore: a setting of a global or a property has the game's value as its baseline, and one that is not in the game is not available")
 {
     TestGame game;
     Session session(GAME_SETTINGS);
@@ -733,7 +733,7 @@ TEST_CASE("PackageStore: a setting of a global or a property has the game's valu
     CHECK_FALSE(session.store.set(session.setting(1), true));
 }
 
-TEST_CASE("PackageStore: a live setting of the game is previewed, and has its baseline again as it is set back, discarded, or its session ends")
+TEST_CASE("ConfigSpecStore: a live setting of the game is previewed, and has its baseline again as it is set back, discarded, or its session ends")
 {
     TestGame game;
     Session session(GAME_SETTINGS);
@@ -781,7 +781,7 @@ TEST_CASE("PackageStore: a live setting of the game is previewed, and has its ba
     CHECK(game.actions.called.empty());
 }
 
-TEST_CASE("PackageStore: Save writes the game's values after the files, then runs the action of each setting it wrote, with its value")
+TEST_CASE("ConfigSpecStore: Save writes the game's values after the files, then runs the action of each setting it wrote, with its value")
 {
     TestGame game;
     Session session(std::string(GAME_SETTINGS) + "," + R"(
@@ -806,7 +806,7 @@ TEST_CASE("PackageStore: Save writes the game's values after the files, then run
     CHECK(session.store.dirtyCount() == 0);
     CHECK(session.value(1).value == model::Value(true));
 
-    // in the order of the package, with the value in its type
+    // in the order of the config spec, with the value in its type
     REQUIRE(game.actions.called.size() == 2);
     CHECK(game.actions.called[0].function == "OnAutomationChanged");
     CHECK(game.actions.called[0].arguments == std::vector<model::Value>{ true, 1 });
@@ -820,7 +820,7 @@ TEST_CASE("PackageStore: Save writes the game's values after the files, then run
     CHECK(game.actions.called.size() == 2);
 }
 
-TEST_CASE("PackageStore: a Save whose file cannot be written writes nothing into the game")
+TEST_CASE("ConfigSpecStore: a Save whose file cannot be written writes nothing into the game")
 {
     TestGame game;
     Session session(std::string(GAME_SETTINGS) + "," + R"(
@@ -844,7 +844,7 @@ TEST_CASE("PackageStore: a Save whose file cannot be written writes nothing into
     CHECK(game.actions.called.empty());
 }
 
-TEST_CASE("PackageStore: the default of a setting is its package's, in the type of its control")
+TEST_CASE("ConfigSpecStore: the default of a setting is its config spec's, in the type of its control")
 {
     Session session;
     session.open(MOD_TOML);
@@ -854,7 +854,7 @@ TEST_CASE("PackageStore: the default of a setting is its package's, in the type 
     CHECK_FALSE(session.store.hotkey({}).available);
 }
 
-TEST_CASE("PackageStore: a choice reads its options in the game as its mod is selected, and is not available while its list is not in the game")
+TEST_CASE("ConfigSpecStore: a choice reads its options in the game as its mod is selected, and is not available while its list is not in the game")
 {
     test_properties::TestProperties lists;
     lists.lists[{ "MyMod.esp", 0x900, "", "" }] = { "Sanctuary", "Red Rocket" };
@@ -894,7 +894,7 @@ TEST_CASE("PackageStore: a choice reads its options in the game as its mod is se
     CHECK(session.store.options(session.setting(0)).size() == 3);
 }
 
-TEST_CASE("PackageStore: a button calls its function or runs its console command at once")
+TEST_CASE("ConfigSpecStore: a button calls its function or runs its console command at once")
 {
     test_actions::TestActions actions;
     Session session(R"(
@@ -926,7 +926,7 @@ TEST_CASE("PackageStore: a button calls its function or runs its console command
     CHECK(session.store.dirtyCount() == 0);
 }
 
-TEST_CASE("PackageStore: a read-only setting has its file's value as it is, none where the file has none, and is not set")
+TEST_CASE("ConfigSpecStore: a read-only setting has its file's value as it is, none where the file has none, and is not set")
 {
     Session session(R"(
         { "type": "slider", "valueType": "float", "text": "Height", "readOnly": true, "valueOptions": { "min": 1.0, "max": 2.5, "step": 0.01 },
@@ -989,7 +989,7 @@ namespace
     )";
 }
 
-TEST_CASE("PackageStore: a setting takes effect as its applies says, but a live one of a file after Save, and a read-only one never")
+TEST_CASE("ConfigSpecStore: a setting takes effect as its applies says, but a live one of a file after Save, and a read-only one never")
 {
     TestGame game;
     Session session(APPLIES_SETTINGS);
@@ -1005,7 +1005,7 @@ TEST_CASE("PackageStore: a setting takes effect as its applies says, but a live 
     CHECK(session.store.isDirty(session.setting(0)));
 }
 
-TEST_CASE("PackageStore: the changes that take effect after a restart are counted while pending, by the last Save, and for the mod until the game is restarted")
+TEST_CASE("ConfigSpecStore: the changes that take effect after a restart are counted while pending, by the last Save, and for the mod until the game is restarted")
 {
     TestGame game;
     Session session(APPLIES_SETTINGS);
@@ -1054,7 +1054,7 @@ TEST_CASE("PackageStore: the changes that take effect after a restart are counte
     CHECK(session.store.savedRestartCount(other) == 0);
 }
 
-TEST_CASE("PackageStore: a Save that fails is no last Save, and counts no change for a restart")
+TEST_CASE("ConfigSpecStore: a Save that fails is no last Save, and counts no change for a restart")
 {
     TestGame game;
     Session session(APPLIES_SETTINGS);
@@ -1069,17 +1069,17 @@ TEST_CASE("PackageStore: a Save that fails is no last Save, and counts no change
     CHECK(session.store.dirtyRestartCount() == 1);
 }
 
-TEST_CASE("PackageStore: every setting of the mod's own package is available, valid and clean with the shipped config")
+TEST_CASE("ConfigSpecStore: every setting of the mod's own config spec is available, valid and clean with the shipped config")
 {
-    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGES_DIR);
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
     const auto folder = myGames.path / "Mods_Config" / "ModsConfigVR";
     std::filesystem::create_directories(folder);
     std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, folder / "ModsConfigVR.toml");
-    // the menu gives the options of its Package setting: none, and the packages it lists
-    PackageStore store({}, myGames.path);
-    store.addClientOptions("ModsConfigVR", "developerPackage", [](const model::Setting&) {
+    // the menu gives the options of its Config spec setting: none, and the config specs it lists
+    ConfigSpecStore store({}, myGames.path);
+    store.addClientOptions("ModsConfigVR", "developerConfigSpec", [](const model::Setting&) {
         return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "MyMod"s, .text = "My Mod" } };
     });
     store.open(mods[0]);
@@ -1107,23 +1107,23 @@ TEST_CASE("PackageStore: every setting of the mod's own package is available, va
     CHECK(store.dirtyCount() == 0);
 }
 
-TEST_CASE("PackageStore: a choice takes its options from its mod's client as its mod is selected, and is not available with no callback")
+TEST_CASE("ConfigSpecStore: a choice takes its options from its mod's client as its mod is selected, and is not available with no callback")
 {
     Session session(R"(
-        { "type": "dropdown", "valueType": "string", "id": "Package", "text": "Package", "default": "", "valueOptions": { "listFromClientCallback": true },
-          "storage": { "path": ["Main", "sPackage"] } },
+        { "type": "dropdown", "valueType": "string", "id": "ConfigSpec", "text": "Config spec", "default": "", "valueOptions": { "listFromClientCallback": true },
+          "storage": { "path": ["Main", "sConfigSpec"] } },
         { "type": "stepper", "valueType": "int", "text": "Other", "default": 0, "valueOptions": { "listFromClientCallback": true },
           "storage": { "path": ["Main", "iOther"] } }
     )");
-    PackageStore store(session.data.path, session.myGames.path);
+    ConfigSpecStore store(session.data.path, session.myGames.path);
     int calls = 0;
     // its mod and its id in another case
-    store.addClientOptions("mymod", "package", [&calls](const model::Setting& setting) {
+    store.addClientOptions("mymod", "configspec", [&calls](const model::Setting& setting) {
         ++calls;
-        CHECK(setting.text == "Package");
+        CHECK(setting.text == "Config spec");
         return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "FRIK"s, .text = "FRIK" } };
     });
-    session.myGames.write(MOD_FILE, "[Main]\r\nsPackage = \"FRIK\"\r\niOther = 0\r\n");
+    session.myGames.write(MOD_FILE, "[Main]\r\nsConfigSpec = \"FRIK\"\r\niOther = 0\r\n");
     store.open(session.mod);
     CHECK(calls == 1);
     CHECK(store.options(session.setting(0)).size() == 2);
@@ -1140,7 +1140,7 @@ TEST_CASE("PackageStore: a choice takes its options from its mod's client as its
     CHECK(other.reason == "Not available: its mod's client gives no options for it.");
 
     // a store with no callbacks gives none
-    PackageStore alone(session.data.path, session.myGames.path);
+    ConfigSpecStore alone(session.data.path, session.myGames.path);
     alone.open(session.mod);
     CHECK_FALSE(alone.value(session.setting(0)).available);
 }

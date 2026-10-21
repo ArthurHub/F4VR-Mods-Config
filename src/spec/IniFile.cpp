@@ -217,7 +217,7 @@ namespace
     }
 }
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
      * Takes the values of a text as the file's. Any text is an INI file: a line that is no section and no value

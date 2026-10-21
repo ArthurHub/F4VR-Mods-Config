@@ -328,7 +328,7 @@ namespace
     /**
      * Whether an item is shown: one with a condition is, while it holds on the values of the store. With no
      * store no value is available, so a condition on a value holds, and one that is settled without a value,
-     * as a package's condition on a plugin, is asked as any other.
+     * as a config spec's condition on a plugin, is asked as any other.
      */
     bool isShown(const model::Item& item, model::Store* store)
     {

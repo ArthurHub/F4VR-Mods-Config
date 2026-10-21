@@ -6,10 +6,10 @@ This document defines the initial control vocabulary and interaction rules. The 
 
 Every setting has four distinct concepts:
 
-- **Type**: the value stored by the target mod. A package's `valueType`.
-- **Control**: how Mods Config VR presents and edits that value. A package's `type`, as in an MCM config.
-- **Storage**: where the value is read from and written to. A package's `storage`.
-- **Application policy**: when a change takes effect in the running mod: as it is made, after Save, or after a restart. A package's `applies`.
+- **Type**: the value stored by the target mod. A config spec's `valueType`.
+- **Control**: how Mods Config VR presents and edits that value. A config spec's `type`, as in an MCM config.
+- **Storage**: where the value is read from and written to. A config spec's `storage`.
+- **Application policy**: when a change takes effect in the running mod: as it is made, after Save, or after a restart. A config spec's `applies`.
 
 Keeping these separate prevents the file format, widget, and runtime behavior from becoming unnecessarily coupled.
 
@@ -126,8 +126,8 @@ The look is the design system's [Color](design-system/project/components/Color/R
 Primary use: an operation that does not directly edit a stored value.
 
 - A button runs what an MCM button runs, such as a function of a script, a console command, or a function that the mod's native client registered, by its name and with typed parameters if needed.
-- Its button says `Run`, or the button text its package gives it.
-- Potentially destructive actions require explicit confirmation. A package's `confirmation` opens a dialog first, and a `dangerous` one is red.
+- Its button says `Run`, or the button text its config spec gives it.
+- Potentially destructive actions require explicit confirmation. A config spec's `confirmation` opens a dialog first, and a `dangerous` one is red.
 - While its action runs, the button says `Running` and is not pressed again. Its result, when the action gives one, is in the help line while the ray is on the row, with a mark after its name: an info mark until the player has read it, and the invalid mark while it failed.
 - Cancelling an action that runs, and its progress, remain open design work.
 
@@ -152,7 +152,7 @@ These elements do not directly store values:
 - Spacer
 - Image or preview asset
 
-A package's section can hold sections, and can fold. A press on the heading of a section that folds hides its rows and shows them again, and its heading has a mark of which it is. A folded section with an invalid value or an unsaved change inside it marks its heading too, with how many of each. A section in a section is set in with its rows, with a line from under its heading down to its last row. See [Sections](schema.md#sections), and the design system's [SectionHeader](design-system/project/components/SectionHeader/README.md) for the look.
+A config spec's section can hold sections, and can fold. A press on the heading of a section that folds hides its rows and shows them again, and its heading has a mark of which it is. A folded section with an invalid value or an unsaved change inside it marks its heading too, with how many of each. A section in a section is set in with its rows, with a line from under its heading down to its last row. See [Sections](schema.md#sections), and the design system's [SectionHeader](design-system/project/components/SectionHeader/README.md) for the look.
 
 Detailed settings are a folded section right after the settings they belong to, so they do not overwhelm ordinary players.
 
@@ -192,7 +192,7 @@ These should not be flattened into `vec2` or `vec3`, because their meaning, vali
 
 Primary use: the pattern a mod plays on a controller when something happens, as an activation sphere's `sEntryHaptic`, or the menu's own `sPressHaptic`.
 
-- The value is one of None and the 18 patterns of the framework's library (`vrcf::HapticPattern`), in the library's order. The menu knows the list, with a text and a help for each; a package names only the setting's key and its default.
+- The value is one of None and the 18 patterns of the framework's library (`vrcf::HapticPattern`), in the library's order. The menu knows the list, with a text and a help for each; a config spec names only the setting's key and its default.
 - It is a dropdown in the Full panel, and a choice stepper in the Focused panel, as any choice. Each option shows its pattern's shape, drawn from the framework's keyframes (`VRControllersHaptic::getPattern`), so patterns can be told apart before one is felt.
 - A pattern is felt and not seen, so the control plays it on the hand that points: once when an option is picked, at each step of the stepper, and when the Play button beside the control is pressed. A press that plays a pattern gets no press pulse of the menu: the pattern is its feedback.
 - Pointing at an option plays nothing, as hover has no haptic. The help line shows the option's help: how it feels, its length, and what it is for.

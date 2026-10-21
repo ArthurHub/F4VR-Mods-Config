@@ -10,10 +10,10 @@
 
 #include "ModFile.h"
 
-namespace mods_config::package
+namespace mods_config::spec
 {
     /**
-     * An INI file of a package's mod, read as CommonFramework mods and SimpleIni read one. A value is named by
+     * An INI file of a config spec's mod, read as CommonFramework mods and SimpleIni read one. A value is named by
      * its section and its key, or by its key alone before the first section, with no regard to case, and is the
      * text after its `=`, with no spaces around it. A line that starts with `;` or `#` is a comment, so a value
      * can have either. A key the file has more than once has the value of its last, and a write sets each of

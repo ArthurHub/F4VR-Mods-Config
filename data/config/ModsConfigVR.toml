@@ -112,16 +112,17 @@ sPressHaptic = "Tick"
 
 [Developer]
 
-# For a package's author: the menu's front page shows each package's problems, what the menu left out of it
-# and what it read that is likely not meant, with a report for each package. The log has them either way.
+# For a config spec's author: the menu's front page shows each config spec's problems, what the menu left
+# out of it and what it read that is likely not meant, with a report for each config spec. The log has them
+# either way.
 bDeveloperTools = false
 
-# Which packages the front page lists: "attention" for those with an error or a warning, or that are not
-# loaded, "all" for every package, and "one" for sPackage alone. The front page writes it too.
-sShowPackages = "attention"
+# Which config specs the front page lists: "attention" for those with an error or a warning, or that are not
+# loaded, "all" for every config spec, and "one" for sConfigSpec alone. The front page writes it too.
+sShowConfigSpecs = "attention"
 
-# The package that "one" lists, by its modName.
-sPackage = ""
+# The config spec that "one" lists, by its modName.
+sConfigSpec = ""
 
 # Whether the front page's Developer section is folded, as you left it.
 bFolded = false

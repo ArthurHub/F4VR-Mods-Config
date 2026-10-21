@@ -13,7 +13,7 @@ namespace
     using namespace mods_config;
 
     /**
-     * Resolves package and texture dimensions, preserving the aspect ratio for an unspecified side.
+     * Resolves config spec and texture dimensions, preserving the aspect ratio for an unspecified side.
      * Missing textures use the available width and a control's height; wider images shrink to fit.
      */
     ImVec2 textureSize(const model::Image& image, const std::optional<ImVec2>& own, const float room)
@@ -55,7 +55,7 @@ namespace mods_config::ui
     }
 
     /**
-     * A package's texture at the cursor, in the middle of a row's width, with room above and below it. A
+     * A config spec's texture at the cursor, in the middle of a row's width, with room above and below it. A
      * texture the game does not load is a box of its size with a dashed outline, that names it.
      */
     void drawTexture(const model::Image& image, const ImageDrawer& drawer, const float width)

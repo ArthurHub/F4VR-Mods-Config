@@ -1,6 +1,6 @@
-"""Writes the textures of the package showcase: the images of its "Text, spacers and images" page.
+"""Writes the textures of the config spec showcase: the images of its "Text, spacers and images" page.
 
-    python tools/gen_package_showcase_textures.py
+    python tools/gen_config_spec_showcase_textures.py
 
 They are the images of the MCM showcase's lib.swf, so the two showcases show the same pictures. Each is a DDS
 file of uncompressed 32-bit pixels, with the header the framework's vrui_atlas.py writes for its RGBA atlas,
