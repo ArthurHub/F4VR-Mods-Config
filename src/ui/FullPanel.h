@@ -1,7 +1,10 @@
 #pragma once
 
 #include <functional>
+#include <map>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include <imgui.h>
@@ -47,6 +50,10 @@ namespace mods_config::ui
         void setControls(std::vector<ControlHelp> controls);
         void setMenuActions(MenuActions actions);
         void setDeveloper(DeveloperView view, std::function<void(const DeveloperView&)> write);
+        void setLiveCopyAction(std::function<void(const std::string& folder, LiveCopyAction action)> act);
+        std::size_t replaceMod(model::Mod mod, std::string_view time);
+        void liveCopyNotRead(std::string_view folder, std::string_view liveCopy, std::string_view time, std::string_view reason);
+        void setLiveCopyStale(std::string_view folder, bool stale);
         void setImageDrawer(ImageDrawer drawer);
         void setStore(model::Source source, model::Store* store);
         void setThumbstickSideValue(float value);
@@ -89,6 +96,13 @@ namespace mods_config::ui
         bool openReport(std::size_t mod);
         bool showProblem(std::size_t mod, std::size_t problem);
 
+        // the last read of the live copy of the config spec of a folder, and none while it was not read
+        const LiveCopyRead* liveCopyRead(const std::string_view folder) const
+        {
+            const auto read = _liveCopyReads.find(folder);
+            return read != _liveCopyReads.end() ? &read->second : nullptr;
+        }
+
         // whether the Help page is shown, over the selection, which it keeps
         bool isHelpShown() const
         {
@@ -129,6 +143,7 @@ namespace mods_config::ui
         };
 
         model::Store* storeOf(const model::Mod& mod) const;
+        Selection existing(const Selection& selection) const;
         bool hasUnsavedChanges() const;
         bool show(const Selection& shown);
         bool leave();
@@ -163,6 +178,11 @@ namespace mods_config::ui
         // the front page is scrolled to its Developer section as it is drawn next, as it is left a report for
         bool _scrollToDeveloper = false;
 
+        // where the report was scrolled to as it was drawn last, and where the page that is shown next is scrolled
+        // to: Back from the row of a problem shows its report where it was. None is its top
+        float _reportScroll = 0.0f;
+        std::optional<float> _scrollTo;
+
         // what the dialog asks before, while it is shown
         std::optional<Leave> _leaving;
 
@@ -179,6 +199,11 @@ namespace mods_config::ui
         DeveloperView _developerView;
         DeveloperSection _developer;
         std::function<void(const DeveloperView&)> _writeDeveloperView;
+
+        // what does what a press on a row of a report's live copy asks, which the menu does, and the last read of each
+        // config spec's live copy, by its folder
+        std::function<void(const std::string&, LiveCopyAction)> _liveCopyAction;
+        std::map<std::string, LiveCopyRead, std::less<>> _liveCopyReads;
 
         // the design system's sizes and colors are set on ImGui's style once
         bool _styleApplied = false;

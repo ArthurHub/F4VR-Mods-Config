@@ -11,7 +11,8 @@ namespace mods_config::ui
     /**
      * The row the ray is on: what the row says, which is the model's own text, and its help. A row whose
      * value is not available has the reason as its help, and one whose value is invalid has why as its help,
-     * which is an error. A row that warns has the text of its warning, the model's own too.
+     * which is an error. A row that warns has the text of its warning, the model's own too. A row whose action
+     * gave a result has it, which is told before its help.
      */
     struct PointedRow
     {
@@ -19,6 +20,7 @@ namespace mods_config::ui
         std::string help;
         std::string_view warning;
         bool invalid = false;
+        std::string_view result = {};
     };
 
     /**
@@ -71,6 +73,9 @@ namespace mods_config::ui
         std::string _name;
         std::string _warning;
         std::string _help;
+
+        // the result of the row's action, with the space before a help
+        std::string _result;
 
         // whether the row's help is why its value is invalid
         bool _invalid = false;

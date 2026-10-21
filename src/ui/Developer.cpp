@@ -23,6 +23,9 @@ namespace
         "Which config specs this section lists: those that need attention, with an error or a warning or not loaded, all of them, or only the Config spec of Mods Config VR's "
         "settings.";
 
+    // the tag of a config spec's row while it is read from its live copy
+    constexpr auto LIVE_COPY_TAG = "Live copy";
+
     // the options of the filter, as Mods Config VR's settings have them: the third is the name of its Config spec
     constexpr std::array FILTER_OPTIONS{ "Needing attention", "All" };
 
@@ -59,7 +62,8 @@ namespace
 
     /**
      * The places of the config specs the filter lists, among the mods, in their order, and how many config specs there
-     * are. A config spec needs attention while it has an error or a warning, or is not loaded.
+     * are. A config spec needs attention while it has an error or a warning, is not loaded, or is read from its live
+     * copy.
      */
     std::vector<std::size_t> listedConfigSpecs(const std::vector<model::Mod>& mods, const ui::DeveloperView& view, std::size_t& configSpecs)
     {
@@ -74,7 +78,7 @@ namespace
             ++configSpecs;
             const auto state = stateOf(mod);
             const bool shown = view.show == ui::ShowConfigSpecs::All ||
-                               (view.show == ui::ShowConfigSpecs::NeedingAttention && (state.errors > 0 || state.warnings > 0 || state.notLoaded)) ||
+                               (view.show == ui::ShowConfigSpecs::NeedingAttention && (state.errors > 0 || state.warnings > 0 || state.notLoaded || !mod.liveCopy.empty())) ||
                                (view.show == ui::ShowConfigSpecs::OnlyOne && common::str_tolower(mod.name) == configSpec);
             if (shown) {
                 listed.push_back(place);
@@ -113,17 +117,18 @@ namespace
     }
 
     /**
-     * What the help line says of a config spec's row: why it is not loaded, as an error is told, why it is not
-     * available, or its errors and its warnings.
+     * What the help line says of a config spec's row: that it is read from its live copy, then why it is not loaded,
+     * as an error is told, why it is not available, or its errors and its warnings.
      */
     ui::PointedRow configSpecHelp(const model::Mod& mod, const ConfigSpecState& state)
     {
+        const std::string live = mod.liveCopy.empty() ? "" : "Read from its live copy. ";
         if (state.notLoaded) {
             const auto error = std::ranges::find(mod.problems, model::Severity::Error, &model::Problem::severity);
-            return { .text = mod.displayName, .help = error->message + " Opens its report.", .warning = {}, .invalid = true };
+            return { .text = mod.displayName, .help = live + error->message + " Opens its report.", .warning = {}, .invalid = true };
         }
         if (state.notAvailable) {
-            return { .text = mod.displayName, .help = std::format("Not available: {}. Opens its report.", mod.notAvailable), .warning = {}, .invalid = false };
+            return { .text = mod.displayName, .help = std::format("{}Not available: {}. Opens its report.", live, mod.notAvailable), .warning = {}, .invalid = false };
         }
         std::string help;
         if (state.errors > 0) {
@@ -132,7 +137,7 @@ namespace
         if (state.warnings > 0) {
             help += (help.empty() ? "" : " ") + countOf(state.warnings, "warning") + ": read, and likely not what is meant.";
         }
-        return { .text = mod.displayName, .help = (help.empty() ? "No problems." : help) + " Opens its report.", .warning = {}, .invalid = false };
+        return { .text = mod.displayName, .help = live + (help.empty() ? "No problems." : help) + " Opens its report.", .warning = {}, .invalid = false };
     }
 }
 
@@ -150,8 +155,8 @@ namespace mods_config::ui
      * Its first row is the filter: `Show`, with how many of the config specs it lists, and a stepper of Needing
      * attention, All and the name of the settings' Config spec, for Only one, which a press or the thumbstick
      * steps, as any stepper. A Config spec that names no config spec has no option.
-     * Then a row for each config spec the filter lists, in the order of the mods: its name, and its errors and its
-     * warnings, `No problems`, `Not loaded` in red after the invalid mark for one that cannot be read, or `Not
+     * Then a row for each config spec the filter lists, in the order of the mods: its name, the `Live copy` tag while
+     * it is read from its live copy, and its errors and its warnings, `No problems`, `Not loaded` in red after the invalid mark for one that cannot be read, or `Not
      * available`, and an arrow in the room of a Reset: a press on it tells its config spec, whose report it opens.
      * Scrolled to, the page is scrolled to put the section's heading at its top.
      */
@@ -259,6 +264,10 @@ namespace mods_config::ui
                 const auto* text = state.notAvailable ? "Not available" : "No problems";
                 left = std::floor(right - textWidth(text));
                 drawText(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, text);
+            }
+            if (!mod.liveCopy.empty()) {
+                left -= tagWidth(LIVE_COPY_TAG) + theme::SPACE_3;
+                drawTag(left, pos.y + theme::CONTROL_HEIGHT * 0.5f, LIVE_COPY_TAG);
             }
             drawText(textLeft, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, mod.displayName);
             if (onRow) {

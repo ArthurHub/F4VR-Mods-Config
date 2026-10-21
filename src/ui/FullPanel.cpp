@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <format>
+#include <numeric>
 #include <string>
 #include <tuple>
 
@@ -28,6 +29,8 @@ namespace
     // the width of a footer button, in the panel's pixels
     constexpr float BUTTON_WIDTH = 160.0f;
 
+    // how the error of a live copy that cannot be read starts, which tells it from the config spec's other problems
+    constexpr std::string_view LIVE_COPY_NOT_READ = "The live copy cannot be read";
 }
 
 namespace mods_config::ui
@@ -63,6 +66,132 @@ namespace mods_config::ui
     {
         _developerView = std::move(view);
         _writeDeveloperView = std::move(write);
+    }
+
+    /**
+     * What does what a press on a row of a config spec's live copy in its report asks, by the config spec's folder:
+     * the menu, which reads the config spec again with `replaceMod` and `liveCopyNotRead` after the panel is drawn. With
+     * none, as in a test, a press on them does nothing.
+     */
+    void FullPanel::setLiveCopyAction(std::function<void(const std::string& folder, LiveCopyAction action)> act)
+    {
+        _liveCopyAction = std::move(act);
+    }
+
+    /**
+     * Puts a config spec's mod that was read again in place of the one of its folder, as its live copy is read or
+     * its switch is turned off. The selected mod's editing session ends, which drops its unsaved changes, and starts
+     * again with the mod read now, on the page that was shown while the mod still has it, or the nearest that is
+     * there, and the menu's front page for a mod that is not available now. The dialog that asked about the changes
+     * it dropped is closed. The mods are kept in order of their display names, and the selection, a report, Back and
+     * the dialog keep their mods. The last read of its live copy says when it was read, as `10:42:05`, and how many
+     * unsaved changes it dropped. Not called while the panel is drawn. Returns how many unsaved changes it dropped,
+     * and none for a mod of no folder that is listed, which is not put in.
+     */
+    std::size_t FullPanel::replaceMod(model::Mod mod, const std::string_view time)
+    {
+        const auto found = std::ranges::find_if(_mods, [&mod](const model::Mod& each) {
+            return each.source == model::Source::ConfigSpec && each.folder == mod.folder;
+        });
+        if (mod.folder.empty() || found == _mods.end()) {
+            return 0;
+        }
+        const auto folder = mod.folder;
+        const bool selected = _selection.mod == static_cast<std::size_t>(found - _mods.begin());
+        auto* const store = storeOf(*found);
+        std::size_t dropped = 0;
+        if (selected && store) {
+            dropped = store->dirtyCount();
+            store->close();
+        }
+        *found = std::move(mod);
+
+        // the order of the display names again, as the mod's can be another now
+        std::vector<std::size_t> order(_mods.size());
+        std::iota(order.begin(), order.end(), std::size_t{ 0 });
+        std::ranges::stable_sort(order, common::CaseInsensitiveComparator(), [this](const std::size_t place) -> const std::string& {
+            return _mods[place].displayName;
+        });
+        std::vector<std::size_t> placeOf(_mods.size());
+        std::vector<model::Mod> sorted;
+        sorted.reserve(_mods.size());
+        for (std::size_t place = 0; place < order.size(); ++place) {
+            placeOf[order[place]] = place;
+            sorted.push_back(std::move(_mods[order[place]]));
+        }
+        _mods = std::move(sorted);
+        const auto keep = [&placeOf](std::optional<std::size_t>& place) {
+            if (place) {
+                place = placeOf[*place];
+            }
+        };
+        keep(_selection.mod);
+        keep(_report);
+        keep(_returnToReport);
+        if (_leaving) {
+            keep(_leaving->to.mod);
+            keep(_leaving->report);
+        }
+
+        if (selected) {
+            _leaving.reset();
+            const auto shown = existing(_selection);
+            if (shown.mod && store) {
+                store->open(_mods[*shown.mod]);
+            }
+            // the page that stays keeps where it was scrolled to
+            _pageChanged = shown != _selection;
+            _selection = shown;
+            _modPage.reset();
+            _helpLine.clear();
+            updateStatus();
+            _modTree.showSelection();
+        }
+        _liveCopyReads[folder] =
+            LiveCopyRead{ .result = dropped == 0 ? std::format("Reloaded at {}.", time)
+                                                 : std::format("Reloaded at {}: {} unsaved change{} dropped.", time, dropped, dropped == 1 ? " was" : "s were"),
+                .failed = false };
+        return dropped;
+    }
+
+    /**
+     * Tells that the live copy of the config spec of a folder cannot be read, with the reason: its mod keeps what it
+     * read last, with its unsaved changes, and is read from the copy, where the report says it is. The reason is an
+     * error before its problems, in place of the one of a read before, and the last read of its live copy says that
+     * it failed, and when, as `10:42:05`.
+     */
+    void FullPanel::liveCopyNotRead(const std::string_view folder, const std::string_view liveCopy, const std::string_view time, const std::string_view reason)
+    {
+        const auto found = std::ranges::find_if(_mods, [folder](const model::Mod& each) {
+            return each.source == model::Source::ConfigSpec && each.folder == folder;
+        });
+        if (folder.empty() || found == _mods.end()) {
+            return;
+        }
+        found->liveCopy = liveCopy;
+        std::erase_if(found->problems, [](const model::Problem& problem) {
+            return problem.message.starts_with(LIVE_COPY_NOT_READ);
+        });
+        found->problems.insert(found->problems.begin(),
+            model::Problem{ .severity = model::Severity::Error,
+                .row = "spec.json",
+                .message = std::format("{}: {}. The menu shows the copy it read last.", LIVE_COPY_NOT_READ, reason),
+                .where = {},
+                .path = {},
+                .place = {} });
+        _liveCopyReads[std::string(folder)] =
+            LiveCopyRead{ .result = std::format("Read at {}: the live copy cannot be read. The menu shows the copy it read last.", time), .failed = true };
+    }
+
+    /**
+     * Tells whether the installed spec.json of the config spec of a folder is newer than its live copy, as the copy
+     * was just read, which the last read keeps until the next: Overwrite warns of it.
+     */
+    void FullPanel::setLiveCopyStale(const std::string_view folder, const bool stale)
+    {
+        if (const auto read = _liveCopyReads.find(folder); read != _liveCopyReads.end()) {
+            read->second.stale = stale;
+        }
     }
 
     /**
@@ -169,6 +298,24 @@ namespace mods_config::ui
      */
     bool FullPanel::select(const Selection& selection)
     {
+        const auto shown = existing(selection);
+        if (shown == _selection) {
+            // the menu's front page, which a report is shown over, from the report
+            return _report ? leaveReport(false) : showHelp(false);
+        }
+        if (shown.mod != _selection.mod && hasUnsavedChanges()) {
+            _leaving = Leave{ .to = shown };
+            return true;
+        }
+        return show(shown);
+    }
+
+    /**
+     * The nearest a selection names that is there: for a page, the deepest page on the way to it that is there, or
+     * the mod's front page, and the menu's front page for a mod, and for a mod that is not available.
+     */
+    Selection FullPanel::existing(const Selection& selection) const
+    {
         Selection shown;
         if (selection.mod && *selection.mod < _mods.size() && _mods[*selection.mod].notAvailable.empty()) {
             shown.mod = selection.mod;
@@ -181,15 +328,7 @@ namespace mods_config::ui
                 pages = &(*pages)[place].pages;
             }
         }
-        if (shown == _selection) {
-            // the menu's front page, which a report is shown over, from the report
-            return _report ? leaveReport(false) : showHelp(false);
-        }
-        if (shown.mod != _selection.mod && hasUnsavedChanges()) {
-            _leaving = Leave{ .to = shown };
-            return true;
-        }
-        return show(shown);
+        return shown;
     }
 
     /**
@@ -318,8 +457,9 @@ namespace mods_config::ui
 
     /**
      * Shows the report of a config spec over the menu's front page, as a press on its row of the Developer section
-     * does. A mod that is selected is left, and the dialog asks first while it has unsaved changes. Returns
-     * whether it did something: it shows the report, or the dialog asks.
+     * does. A mod that is selected is left, and the dialog asks first while it has unsaved changes. Back from the row
+     * of one of its problems shows it where it was scrolled to, and any other from its top. Returns whether it did
+     * something: it shows the report, or the dialog asks.
      */
     bool FullPanel::openReport(const std::size_t mod)
     {
@@ -330,6 +470,8 @@ namespace mods_config::ui
             _leaving = Leave{ .to = {}, .closeMenu = false, .report = mod };
             return true;
         }
+        // back from the row of one of its problems, where it was scrolled to
+        const bool returning = _returnToReport == mod;
         if (_selection.mod) {
             show({});
         }
@@ -337,6 +479,9 @@ namespace mods_config::ui
         _report = mod;
         _returnToReport.reset();
         pageShown();
+        if (returning) {
+            _scrollTo = _reportScroll;
+        }
         return true;
     }
 
@@ -447,6 +592,7 @@ namespace mods_config::ui
         _configSpecReport.reset();
         _frontPage.reset();
         _scrollToDeveloper = false;
+        _scrollTo.reset();
         _leaving.reset();
         _pageChanged = true;
         _pressActed = false;
@@ -494,7 +640,7 @@ namespace mods_config::ui
         ImGui::SameLine(0.0f, theme::SPACE_4);
         if (_pageChanged) {
             // the pages share the pane, which would keep the place the page before was scrolled to
-            ImGui::SetNextWindowScroll(ImVec2(0.0f, 0.0f));
+            ImGui::SetNextWindowScroll(ImVec2(0.0f, _scrollTo.value_or(0.0f)));
             _pageChanged = false;
         }
         std::optional<PointedRow> pointed;
@@ -515,12 +661,24 @@ namespace mods_config::ui
             if (_helpShown) {
                 drawHelpPage(_controls);
             } else if (_report) {
-                auto drawn = _configSpecReport.draw(_mods[*_report]);
+                const auto& mod = _mods[*_report];
+                const auto read = _liveCopyReads.find(mod.folder);
+                auto drawn = _configSpecReport.draw(mod, read != _liveCopyReads.end() ? &read->second : nullptr);
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
                 if (drawn.pressed) {
                     problem = ReportProblem{ .mod = *_report, .problem = *drawn.pressed };
                 }
+                if (drawn.liveCopy != LiveCopyAction::None && _liveCopyAction) {
+                    _liveCopyAction(mod.folder, drawn.liveCopy);
+                }
+                // a place the pane is scrolled to is set again once the report is laid out in it, as ImGui keeps it
+                // within the height of the page the pane had before
+                if (_scrollTo) {
+                    ImGui::SetScrollY(*_scrollTo);
+                    _scrollTo.reset();
+                }
+                _reportScroll = ImGui::GetScrollY();
             } else if (_selection.mod) {
                 auto drawn = _modPage.draw(*selectedPage(), storeOf(_mods[*_selection.mod]), _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);

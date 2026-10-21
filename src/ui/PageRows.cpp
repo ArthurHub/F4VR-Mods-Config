@@ -90,12 +90,7 @@ namespace mods_config::ui
             drawPendingMark(ImVec2(markLeft + PENDING_MARK_WIDTH * 0.5f, middle));
             markLeft += PENDING_MARK_WIDTH + theme::SPACE_2;
         }
-        const ImVec2 markCenter(markLeft + WARNING_MARK_WIDTH * 0.5f, middle);
-        if (marks.mark == TextMark::Warning) {
-            drawWarningMark(markCenter);
-        } else if (marks.mark == TextMark::Invalid) {
-            drawInvalidMark(markCenter);
-        }
+        drawMark(marks.mark, ImVec2(markLeft + WARNING_MARK_WIDTH * 0.5f, middle));
     }
 
     /**

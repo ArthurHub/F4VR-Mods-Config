@@ -1662,3 +1662,51 @@ TEST_CASE("ConfigSpecLoader: a problem on a row has the row's place, by its page
     }
     CHECK(places == Lines{ "Typo: none", "content[1].lines: i1", "pages[1].pages[0].content[1].content[1]: p1 p0 i1 i1", "pages[1].visibleWen: none" });
 }
+
+TEST_CASE("ConfigSpecLoader: a valueType that is no type is a warning, and the setting has the type of its control")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "textinput", "valueType": "flot", "text": "Height", "default": "1.5", "storage": { "path": ["Main", "fHeight"] } },
+        { "type": "slider", "valueType": 2, "text": "Scale", "default": 1.0, "storage": { "path": ["Main", "fScale"] } }
+    )"));
+    CHECK(problemLines(mod) == Lines{ "W Height: Its valueType \"flot\" is not bool, int, float or string: it is read as string. [Height] content[0].valueType",
+                                   "W Scale: Its valueType 2 is not bool, int, float or string: it is read as float. [Scale] content[1].valueType" });
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 2);
+    CHECK(settings[0].valueType == model::StoredType::String);
+    CHECK(settings[1].valueType == model::StoredType::Float);
+}
+
+TEST_CASE("ConfigSpecLoader: with the folders of its files, a setting whose path its file does not have is a warning")
+{
+    const test_files::TempFolder folder;
+    folder.write("MyGames/Mods_Config/MyMod/MyMod.toml", "[Main]\nfScale = 1.0\n");
+    folder.write("Data/MyMod.ini", "[Main]\nbOn=1\n");
+    const auto text = R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "save",
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" },
+            "ini": { "format": "ini", "root": "data", "path": "MyMod.ini" },
+            "later": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/later.toml" }
+        },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "text": "Scale", "default": 1.0, "storage": { "path": ["Main", "fScale"] } },
+            { "type": "slider", "text": "Typo", "default": 1.0, "storage": { "path": ["Mian", "fScale"] } },
+            { "type": "slider", "text": "Shown", "readOnly": true, "storage": { "path": ["Main", "fShown"] } },
+            { "type": "switcher", "text": "On", "default": true, "storage": { "file": "ini", "section": "Main", "key": "bOn" } },
+            { "type": "switcher", "text": "Off", "default": true, "storage": { "file": "ini", "section": "Main", "key": "bOff" } },
+            { "type": "switcher", "text": "Not there yet", "default": true, "storage": { "file": "later", "path": ["bOn"] } }
+        ]
+    })";
+    const auto mod = spec::loadConfigSpec(text, {}, {}, { .data = folder.path / "Data", .myGames = folder.path / "MyGames" });
+    REQUIRE(mod);
+    CHECK(problemLines(*mod) == Lines{ "W Typo: Its file \"main\" has no value Mian.fScale: it shows its default, and a Save adds it. [Typo] content[1].storage",
+                                    "W Shown: Its file \"main\" has no value Main.fShown: it shows none. [Shown] content[2].storage",
+                                    "W Off: Its file \"ini\" has no value bOff of [Main]: it shows its default, and a Save adds it. [Off] content[4].storage" });
+
+    // with no folders, the files are not read
+    const auto alone = spec::loadConfigSpec(text);
+    REQUIRE(alone);
+    CHECK(alone->problems.empty());
+}

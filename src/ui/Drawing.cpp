@@ -187,7 +187,7 @@ namespace
             const auto& look = word.look;
             if (word.mark != ui::TextMark::None) {
                 const ImVec2 center(x + ui::WARNING_MARK_WIDTH * 0.5f, pos.y + height * 0.5f);
-                word.mark == ui::TextMark::Warning ? ui::drawWarningMark(center) : ui::drawInvalidMark(center);
+                ui::drawMark(word.mark, center);
                 x += word.width;
                 continue;
             }
@@ -692,13 +692,18 @@ namespace mods_config::ui
      * A heading that folds, in a row at a place and in a width: an arrow that points right while it is folded
      * and down while it is open, its text, and a rule from it to the right edge, as a heading has. Its text and
      * its arrow are muted, and brighter where it is emphasized, as under the ray. The counts of what it hides
-     * end the rule, in the detail size.
+     * end the rule, in the detail size. A heading with the invalid mark or the warning mark has it before its text,
+     * and its text and its arrow are red or amber.
      */
-    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const bool emphasized, const std::span<const MarkedCount> counts)
+    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const bool emphasized, const std::span<const MarkedCount> counts,
+        const TextMark mark)
     {
         // the room a rule keeps at the least, as the design system has it
         constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
-        const auto color = emphasized ? theme::color::GREEN : theme::color::GREEN_MUTED;
+        auto color = emphasized ? theme::color::GREEN : theme::color::GREEN_MUTED;
+        if (mark == TextMark::Invalid || mark == TextMark::Warning) {
+            color = mark == TextMark::Invalid ? theme::color::RED : theme::color::AMBER;
+        }
         // where a heading's text starts
         drawFoldArrow(ImVec2(pos.x + theme::SPACE_1, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
         float ruleRight = pos.x + width;
@@ -707,7 +712,11 @@ namespace mods_config::ui
             ruleRight = drawMarkedCounts(ruleRight - theme::SPACE_3, pos.y, counts) - theme::SPACE_2;
             ImGui::PopFont();
         }
-        const float textLeft = pos.x + theme::SPACE_1 + FOLD_ARROW_SIZE + theme::SPACE_2;
+        float textLeft = pos.x + theme::SPACE_1 + FOLD_ARROW_SIZE + theme::SPACE_2;
+        if (mark != TextMark::None) {
+            drawMark(mark, ImVec2(textLeft + WARNING_MARK_WIDTH * 0.5f, pos.y + theme::CONTROL_HEIGHT * 0.5f));
+            textLeft += WARNING_MARK_WIDTH + theme::SPACE_2;
+        }
         const float textRight = (std::min)(textLeft + textWidth(text), ruleRight - RULE_MIN_WIDTH - theme::SPACE_3);
         drawText(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, text);
         const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
@@ -759,6 +768,43 @@ namespace mods_config::ui
         drawList->AddTriangle(at(10.0f, 1.5f), at(18.5f, 16.5f), at(1.5f, 16.5f), color, THICKNESS);
         drawList->AddRectFilled(at(9.0f, 6.0f), at(11.0f, 12.0f), color);
         drawList->AddRectFilled(at(9.0f, 13.0f), at(11.0f, 15.0f), color);
+    }
+
+    /**
+     * The mark of a result that is there, around a point: a green ring with an `i` in it, as the design system
+     * draws it in a box of 20.
+     */
+    void drawInfoMark(const ImVec2& center)
+    {
+        const ImVec2 origin(std::floor(center.x - 10.0f), std::floor(center.y - 10.0f));
+        const auto at = [&origin](const float x, const float y) {
+            return ImVec2(origin.x + x, origin.y + y);
+        };
+        auto* drawList = ImGui::GetWindowDrawList();
+        const auto color = ImGui::GetColorU32(theme::color::GREEN);
+        drawList->AddCircle(at(10.0f, 10.0f), 8.5f, color, 0, 2.0f);
+        drawList->AddRectFilled(at(9.0f, 8.5f), at(11.0f, 15.0f), color);
+        drawList->AddCircleFilled(at(10.0f, 5.8f), 1.3f, color);
+    }
+
+    /**
+     * A mark of a text around a point: the warning mark, the invalid mark or the info mark, and nothing for none.
+     */
+    void drawMark(const TextMark mark, const ImVec2& center)
+    {
+        switch (mark) {
+        case TextMark::Warning:
+            drawWarningMark(center);
+            break;
+        case TextMark::Invalid:
+            drawInvalidMark(center);
+            break;
+        case TextMark::Info:
+            drawInfoMark(center);
+            break;
+        default:
+            break;
+        }
     }
 
     /**

@@ -56,7 +56,7 @@ namespace mods_config
         const auto translations = loadGameTranslations();
         auto mods = mcm::loadInstalledMods(translations);
         std::ranges::move(spec::loadInstalledConfigSpecs(translations), std::back_inserter(mods));
-        _menu.setMods(std::move(mods));
+        _menu.setMods(std::move(mods), translations);
     }
 
     /**

@@ -61,7 +61,7 @@ The milestone builds on milestone 5 to complete config specs: the rows that are 
 | M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | in review |
 | M60 | mod  | A config spec whose requirements are missing is not available                                 | in review |
 | M61 | mod  | A config spec's errors are reported, in the log and to its author in the menu                 | in review |
-| M117 | mod | A live copy of a config spec's spec.json, read again as it is saved                         | todo   |
+| M117 | mod | A live copy of a config spec's spec.json, read again as it is saved                         | in review |
 
 M108, M109, M111 and M112 draw what M103 added to the page and the tree:
 

@@ -18,6 +18,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "IniFile.h"
+#include "TomlFile.h"
 #include "common/CommonUtils.h"
 #include "model/TextMarkup.h"
 
@@ -27,8 +29,7 @@ namespace
 {
     using Json = nlohmann::json;
 
-    // where the config specs are, from the game's folder: a folder each, with its `spec.json`
-    constexpr auto CONFIG_SPEC_FOLDER = R"(Data\ModsConfigVR\Config)";
+    using spec::CONFIG_SPEC_FOLDER;
 
     // the most lines a spacer is high, whatever its config spec says, as in an MCM config
     constexpr float MAX_SPACER_LINES = 20.0f;
@@ -133,6 +134,10 @@ namespace
         // the `sharedLists` of its root. None for a config spec with none
         const Json* sharedLists = nullptr;
         const spec::PluginChecks& plugins;
+
+        // the files of the config spec that are there, read as they are now, by their names: a setting's path that
+        // one of them does not have is reported
+        std::map<std::string, std::unique_ptr<spec::ModFile>> fileValues;
         std::unordered_map<std::string, SettingInfo> settings;
         std::vector<model::Problem> problems;
         Location at;
@@ -487,6 +492,39 @@ namespace
     }
 
     /**
+     * The values of a config spec's TOML and INI files that are there, read from the folders of their roots, by
+     * their names, which tell a setting whose path its file does not have. A file that cannot be read is left out,
+     * as its settings are not available then. With no folders, as for a config spec read alone, none is read.
+     */
+    std::map<std::string, std::unique_ptr<spec::ModFile>> readFiles(const std::map<std::string, model::File>& files, const spec::FileFolders& folders)
+    {
+        std::map<std::string, std::unique_ptr<spec::ModFile>> read;
+        if (folders.data.empty() && folders.myGames.empty()) {
+            return read;
+        }
+        for (const auto& [name, file] : files) {
+            if (file.format == model::FileFormat::Json) {
+                continue;
+            }
+            const auto path = (file.root == model::FileRoot::Data ? folders.data : folders.myGames) / std::u8string(file.path.begin(), file.path.end());
+            std::error_code error;
+            if (!std::filesystem::is_regular_file(path, error)) {
+                continue;
+            }
+            std::unique_ptr<spec::ModFile> values;
+            if (file.format == model::FileFormat::Toml) {
+                values = std::make_unique<spec::TomlFile>(path);
+            } else {
+                values = std::make_unique<spec::IniFile>(path);
+            }
+            if (values->read()) {
+                read.emplace(name, std::move(values));
+            }
+        }
+        return read;
+    }
+
+    /**
      * The name a config spec gives one of its files, as the config spec declares it: a storage can name it in
      * another case. None for a name of no file.
      */
@@ -635,21 +673,29 @@ namespace
     /**
      * What a setting's value is, by its `valueType`. One with none, or with one that is not a type, has the
      * type of its control: a bool for a switcher, a number for a slider, the place of an option for a choice,
-     * and a text for a text input.
+     * and a text for a text input. One that is not a type is a warning.
      */
-    model::StoredType loadValueType(const Json& row, const model::SettingType type)
+    model::StoredType loadValueType(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
     {
-        const auto found = std::ranges::find(VALUE_TYPES, getText(row, "valueType"), &ValueTypeName::first);
+        const auto name = getText(row, "valueType");
+        const auto found = std::ranges::find(VALUE_TYPES, name, &ValueTypeName::first);
         if (found != VALUE_TYPES.end()) {
             return found->second;
         }
+        auto valueType = model::StoredType::String;
         if (type == model::SettingType::Switcher) {
-            return model::StoredType::Bool;
+            valueType = model::StoredType::Bool;
+        } else if (isChoice(type)) {
+            valueType = model::StoredType::Int;
+        } else if (type == model::SettingType::Slider) {
+            valueType = model::StoredType::Float;
         }
-        if (isChoice(type)) {
-            return model::StoredType::Int;
+        if (row.contains("valueType")) {
+            const Into into(reading, "valueType");
+            const auto read = std::ranges::find(VALUE_TYPES, valueType, &ValueTypeName::second)->first;
+            reading.report(model::Severity::Warning, std::format("Its valueType {} is not bool, int, float or string: it is read as {}.", row["valueType"].dump(), read));
         }
-        return type == model::SettingType::Slider ? model::StoredType::Float : model::StoredType::String;
+        return valueType;
     }
 
     /**
@@ -1094,8 +1140,19 @@ namespace
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
         const auto own = inherit(row, above, reading);
-        const auto valueType = loadValueType(row, type);
+        const auto valueType = loadValueType(row, type, reading);
         auto storage = loadStorage(row, own.defaultFile, valueType, reading);
+        const bool readOnly = getBool(row, "readOnly");
+        if (const auto* file = std::get_if<model::FileStorage>(&storage)) {
+            if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
+                const Into into(reading, "storage");
+                reading.report(model::Severity::Warning,
+                    std::format("Its file \"{}\" has no value {}: {}.",
+                        file->file,
+                        values->second->pathName(file->path),
+                        readOnly ? "it shows none" : "it shows its default, and a Save adds it"));
+            }
+        }
         auto id = getText(row, "id");
         if (id.empty()) {
             id = idOf(storage);
@@ -1106,7 +1163,6 @@ namespace
                     reading.settings.at(common::str_tolower(id)).id));
         }
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
-        const bool readOnly = getBool(row, "readOnly");
         auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions, reading);
         auto text = getLabel(row, reading);
         auto help = readShownText(row, "help", reading);
@@ -1762,8 +1818,11 @@ namespace mods_config::spec
      * A mod whose config spec needs a newer schema than the menu reads, or whose required plugins are not all
      * loaded, is not available, and is its names and the reason alone: the rest of its config spec is not read.
      * The error says why a config spec cannot be read. Comments are skipped, as in an MCM config.
+     * With the folders of its files, the files that are there are read, and a setting whose path its file does not
+     * have is a warning.
      */
-    std::expected<model::Mod, std::string> loadConfigSpec(const std::string_view text, const model::Translations& translations, const PluginChecks& plugins)
+    std::expected<model::Mod, std::string> loadConfigSpec(const std::string_view text, const model::Translations& translations, const PluginChecks& plugins,
+        const FileFolders& folders)
     {
         Json configSpec;
         try {
@@ -1810,6 +1869,7 @@ namespace mods_config::spec
         checkFields(configSpec, ROOT_FIELDS, reading);
         mod.help = readShownText(configSpec, "help", reading);
         reading.files = loadFiles(configSpec, reading);
+        reading.fileValues = readFiles(reading.files, folders);
         checkSharedLists(reading);
 
         const Inherited root{ .defaultFile = getText(configSpec, "defaultFile"), .applies = *applies };
@@ -1839,27 +1899,84 @@ namespace mods_config::spec
      * the game. A config spec that cannot be read is a mod that is not available, named by its folder, and so
      * are two config specs with one `modName`: neither is picked. Both are a problem of the config spec. A mod that is
      * not available has the reason in the log, and so has each problem of a config spec, with the config spec's name
+     * Reads a config spec's `spec.json` from its file, as `loadConfigSpec` reads its text. The error says why it
+     * cannot be read, also for a file that cannot be opened.
+     */
+    std::expected<model::Mod, std::string> loadConfigSpecFile(const std::filesystem::path& file, const model::Translations& translations, const PluginChecks& plugins,
+        const FileFolders& folders)
+    {
+        std::ifstream stream(file, std::ios::binary);
+        if (!stream) {
+            return std::unexpected("The file cannot be opened"s);
+        }
+        std::ostringstream text;
+        text << stream.rdbuf();
+        return loadConfigSpec(text.str(), translations, plugins, folders);
+    }
+
+    /**
+     * The mod of a config spec whose `spec.json` cannot be read: not available, named by its folder, with the
+     * reason as its error.
+     */
+    model::Mod notLoadedConfigSpec(const std::string& folder, const std::string& reason)
+    {
+        auto mod = notAvailableMod(folder, folder, "its spec.json cannot be read");
+        mod.problems.push_back({ .severity = model::Severity::Error, .row = SPEC_FILE, .message = std::format("It cannot be read: {}.", reason), .where = {}, .path = {} });
+        mod.folder = folder;
+        return mod;
+    }
+
+    /**
+     * Logs why a config spec's mod is not available, each of its problems, with the config spec's name first, and
+     * how many errors and warnings it has.
+     */
+    void logConfigSpec(const model::Mod& mod)
+    {
+        if (!mod.notAvailable.empty()) {
+            logger::warn("Config spec '{}' is not available: {}", mod.name, mod.notAvailable);
+        }
+        logProblems(mod);
+    }
+
+    /**
+     * The folders of the running game a config spec's files are read from: the game's Data folder, and
+     * `Documents\My Games\Fallout4VR`.
+     */
+    FileFolders gameFileFolders()
+    {
+        return { .data = "Data", .myGames = common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
+    }
+
+    /**
+     * The checks of the running game: a game plugin it loaded, and an F4SE plugin F4SE loaded.
+     */
+    PluginChecks gamePluginChecks()
+    {
+        return { .isGamePluginLoaded = isGamePluginLoaded, .isF4sePluginLoaded = isF4sePluginLoaded };
+    }
+
+    /**
+     * Loads the `spec.json` of every folder in the config specs' folder, which is `Data\ModsConfigVR\Config` in
+     * the game. A config spec that cannot be read is a mod that is not available, named by its folder, and so
+     * are two config specs with one `modName`: neither is picked. Both are a problem of the config spec. A mod that is
+     * not available has the reason in the log, and so has each problem of a config spec, with the config spec's name
      * first, and how many errors and warnings each config spec has. No such folder is no mods.
      */
-    std::vector<model::Mod> loadConfigSpecs(const std::filesystem::path& configFolder, const model::Translations& translations, const PluginChecks& plugins)
+    std::vector<model::Mod> loadConfigSpecs(const std::filesystem::path& configFolder, const model::Translations& translations, const PluginChecks& plugins,
+        const FileFolders& folders)
     {
         std::vector<model::Mod> mods;
         std::error_code error;
         for (std::filesystem::directory_iterator folder(configFolder, error), end; !error && folder != end; folder.increment(error)) {
-            const auto file = folder->path() / "spec.json";
+            const auto file = folder->path() / SPEC_FILE;
             std::error_code noFile;
             if (!std::filesystem::is_regular_file(file, noFile)) {
                 continue;
             }
-            std::ostringstream text;
-            text << std::ifstream(file, std::ios::binary).rdbuf();
-
-            auto mod = loadConfigSpec(text.str(), translations, plugins);
+            auto mod = loadConfigSpecFile(file, translations, plugins, folders);
             const auto folderName = toLogText(folder->path().filename());
             if (!mod) {
-                auto reason = std::format("It cannot be read: {}.", mod.error());
-                mod = notAvailableMod(folderName, folderName, "its spec.json cannot be read");
-                mod->problems.push_back({ .severity = model::Severity::Error, .row = SPEC_FILE, .message = std::move(reason), .where = {}, .path = {} });
+                mod = notLoadedConfigSpec(folderName, mod.error());
             }
             mod->folder = folderName;
             mods.push_back(std::move(*mod));
@@ -1880,10 +1997,7 @@ namespace mods_config::spec
                     .where = {},
                     .path = "modName" });
             }
-            if (!mod.notAvailable.empty()) {
-                logger::warn("Config spec '{}' is not available: {}", mod.name, mod.notAvailable);
-            }
-            logProblems(mod);
+            logConfigSpec(mod);
         }
         return mods;
     }
@@ -1894,7 +2008,7 @@ namespace mods_config::spec
      */
     std::vector<model::Mod> loadInstalledConfigSpecs(const model::Translations& translations)
     {
-        auto mods = loadConfigSpecs(CONFIG_SPEC_FOLDER, translations, PluginChecks{ .isGamePluginLoaded = isGamePluginLoaded, .isF4sePluginLoaded = isF4sePluginLoaded });
+        auto mods = loadConfigSpecs(CONFIG_SPEC_FOLDER, translations, gamePluginChecks(), gameFileFolders());
         logger::info("Loaded {} config specs from '{}'", mods.size(), CONFIG_SPEC_FOLDER);
         return mods;
     }

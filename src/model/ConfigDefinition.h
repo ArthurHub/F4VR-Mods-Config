@@ -733,5 +733,9 @@ namespace mods_config::model
         // the folder of a config spec's spec.json, in `Data\ModsConfigVR\Config`. Empty for an MCM mod, and for a
         // config spec that was read alone
         std::string folder;
+
+        // the live copy a config spec's spec.json is read from, as its author's report says where it is. Empty
+        // while it is read from its folder in `Data\ModsConfigVR\Config`
+        std::string liveCopy;
     };
 }

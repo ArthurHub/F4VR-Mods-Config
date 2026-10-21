@@ -1,5 +1,12 @@
 #include "ConfigMenu.h"
 
+#include <chrono>
+#include <ctime>
+#include <filesystem>
+#include <format>
+
+#include <shellapi.h>
+
 #include "Config.h"
 #include "Theme.h"
 #include "api/FRIKApi.h"
@@ -9,6 +16,7 @@
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
 #include "imgui/ImGuiSettings.h"
+#include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
 #include "vrui/UIManager.h"
@@ -37,6 +45,31 @@ namespace
     // the id of the Config spec setting of the menu's own config spec, whose options the menu gives
     constexpr auto DEVELOPER_CONFIG_SPEC_ID = "developerConfigSpec";
 
+    // the folder of the live copies of the config specs' spec.json, in the mod's folder of My Games
+    const auto LIVE_COPIES_FOLDER = mods_config::BASE_MOD_PATH + R"(\Dev)";
+
+    // how often the frame update looks for a live copy that was saved
+    constexpr auto LIVE_COPIES_CHECK = std::chrono::milliseconds(500);
+
+    /**
+     * Where the live copy of the config spec of a folder is, as its report says it: from `My Games`.
+     */
+    std::string shownLiveCopy(const std::string& folder)
+    {
+        return std::format(R"(My Games\Fallout4VR\Mods_Config\{}\Dev\{}\spec.json)", Version::PROJECT, folder);
+    }
+
+    /**
+     * The time of day now, as a read of a live copy says when it was: `10:42:05`.
+     */
+    std::string timeOfDay()
+    {
+        const auto now = std::time(nullptr);
+        std::tm local{};
+        localtime_s(&local, &now);
+        return std::format("{:02}:{:02}:{:02}", local.tm_hour, local.tm_min, local.tm_sec);
+    }
+
     /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
      * for it. The function takes no arguments, which is an empty array.
@@ -60,8 +93,10 @@ namespace mods_config
     /**
      * The menu, closed. It registers the callback of its own config spec's Config spec setting, whose options are the
      * config specs the menu lists: none first, then each config spec, by its modName and its name, in their order.
+     * A config spec is read from its live copy while its author's report turns it on.
      */
     ConfigMenu::ConfigMenu()
+        : _liveCopies(spec::CONFIG_SPEC_FOLDER, LIVE_COPIES_FOLDER)
     {
         _configSpecStore.addClientOptions(Version::PROJECT, DEVELOPER_CONFIG_SPEC_ID, [this](const model::Setting&) {
             std::vector<model::Option> options{ { .value = std::string(), .text = "None" } };
@@ -71,6 +106,9 @@ namespace mods_config
                 }
             }
             return options;
+        });
+        _fullPanel.setLiveCopyAction([this](const std::string& folder, const ui::LiveCopyAction action) {
+            _liveCopyRequest = LiveCopyRequest{ .folder = folder, .action = action };
         });
     }
 
@@ -152,11 +190,16 @@ namespace mods_config
         _minimizeButton->setMiddleText(minimized ? "RESUME" : "MINIMIZE");
     }
 
-    void ConfigMenu::setMods(std::vector<model::Mod> mods)
+    /**
+     * The mods the menu lists, and the texts of the game's language they were read with, which a config spec is read
+     * again with from its live copy.
+     */
+    void ConfigMenu::setMods(std::vector<model::Mod> mods, model::Translations translations)
     {
         // the textures are kept by the pixels of the mods that are replaced
         _imageTextures.clear();
         _fullPanel.setMods(std::move(mods));
+        _translations = std::move(translations);
     }
 
     const std::vector<model::Mod>& ConfigMenu::mods() const
@@ -206,8 +249,9 @@ namespace mods_config
     }
 
     /**
-     * Applies what a press asked for: closing the menu, which Close on the wrist asks first, minimizing it, or
-     * minimizing it and opening FRIK's config.
+     * Applies what a press asked for: closing the menu, which Close on the wrist asks first, minimizing it,
+     * minimizing it and opening FRIK's config, or what a row of a config spec's live copy asks. And reads the live
+     * copies that were saved, also while the menu is closed.
      * It is done here, in the mod's frame update, and not where the press is seen: a wrist button's handler
      * runs while the UI manager iterates its elements, and the panel's content while its frame is built.
      * Back is seen here too. It is a short press of a button of the hand that points at the panel, either hand,
@@ -222,6 +266,12 @@ namespace mods_config
             g_config.saveDeveloper(*_developerToSave);
             _developerToSave.reset();
         }
+        if (_liveCopyRequest) {
+            const auto request = std::move(*_liveCopyRequest);
+            _liveCopyRequest.reset();
+            doLiveCopy(request.folder, request.action);
+        }
+        readChangedLiveCopies();
         if (isOpen() && g_config.panelChanged.exchange(false)) {
             applyPanelConfig();
         }
@@ -433,6 +483,118 @@ namespace mods_config
         _wristButtons->addElement(closeButton);
 
         g_uiManager->attachPresetToOffhandWrist(_wristButtons, WRIST_BUTTONS_OFFSET);
+    }
+
+    /**
+     * Does what a row of a config spec's live copy in its report asks: on copies its spec.json where there is no
+     * copy, and reads the copy, off reads its installed spec.json again, Reload reads the copy again, Overwrite copies
+     * the installed spec.json over the copy and reads it, Open opens it in the desktop's editor for `.json`, and Show
+     * opens its folder in Explorer, with the copy selected. A copy that cannot be made leaves the switch off, and one
+     * that cannot be overwritten is as it was, with the reason in the log.
+     */
+    void ConfigMenu::doLiveCopy(const std::string& folder, const ui::LiveCopyAction action)
+    {
+        const auto copy = _liveCopies.copyOf(folder);
+        switch (action) {
+        case ui::LiveCopyAction::TurnOn:
+            if (const auto on = _liveCopies.turnOn(folder); !on) {
+                logger::warn("Config spec '{}': its live copy is not read: {}", folder, on.error());
+                return;
+            }
+            logger::info("Config spec '{}' is read from its live copy '{}'", folder, shownLiveCopy(folder));
+            readLiveCopy(folder);
+            break;
+        case ui::LiveCopyAction::TurnOff:
+            _liveCopies.turnOff(folder);
+            logger::info("Config spec '{}' is read from its installed spec.json", folder);
+            readInstalled(folder);
+            break;
+        case ui::LiveCopyAction::Reload:
+            if (_liveCopies.isOn(folder)) {
+                readLiveCopy(folder);
+            }
+            break;
+        case ui::LiveCopyAction::Overwrite:
+            if (!_liveCopies.isOn(folder)) {
+                break;
+            }
+            if (const auto copied = _liveCopies.overwrite(folder); !copied) {
+                logger::warn("Config spec '{}': its live copy is not overwritten: {}", folder, copied.error());
+                break;
+            }
+            logger::info("Config spec '{}': its live copy is overwritten with its installed spec.json", folder);
+            readLiveCopy(folder);
+            break;
+        case ui::LiveCopyAction::Open:
+            ShellExecuteW(nullptr, L"open", copy.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+            break;
+        case ui::LiveCopyAction::Show: {
+            const auto select = L"/select,\"" + copy.wstring() + L"\"";
+            ShellExecuteW(nullptr, L"open", L"explorer.exe", select.c_str(), nullptr, SW_SHOWNORMAL);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    /**
+     * Reads a config spec from its live copy in place of the mod the menu has of it, which drops its unsaved
+     * changes. A copy that cannot be read leaves the mod as it was read last, with the reason as its error. Either
+     * way the panel is told whether the installed spec.json is newer than the copy.
+     */
+    void ConfigMenu::readLiveCopy(const std::string& folder)
+    {
+        _liveCopies.markRead(folder);
+        auto mod = spec::loadConfigSpecFile(_liveCopies.copyOf(folder), _translations, spec::gamePluginChecks(), spec::gameFileFolders());
+        if (!mod) {
+            logger::warn("Config spec '{}': its live copy cannot be read: {}", folder, mod.error());
+            _fullPanel.liveCopyNotRead(folder, shownLiveCopy(folder), timeOfDay(), mod.error());
+        } else {
+            mod->folder = folder;
+            mod->liveCopy = shownLiveCopy(folder);
+            spec::logConfigSpec(*mod);
+            const auto dropped = _fullPanel.replaceMod(std::move(*mod), timeOfDay());
+            logger::info("Config spec '{}' is read from its live copy, which dropped {} unsaved changes", folder, dropped);
+        }
+        const bool stale = _liveCopies.isStale(folder);
+        if (stale) {
+            logger::warn("Config spec '{}': its installed spec.json is newer than its live copy", folder);
+        }
+        _fullPanel.setLiveCopyStale(folder, stale);
+    }
+
+    /**
+     * Reads a config spec from its installed spec.json again, in place of the mod the menu has of it, which drops its
+     * unsaved changes. One that cannot be read is a mod that is not available, as it is when the game starts.
+     */
+    void ConfigMenu::readInstalled(const std::string& folder)
+    {
+        const auto file = std::filesystem::path(spec::CONFIG_SPEC_FOLDER) / std::u8string(folder.begin(), folder.end()) / "spec.json";
+        auto mod = spec::loadConfigSpecFile(file, _translations, spec::gamePluginChecks(), spec::gameFileFolders());
+        if (!mod) {
+            mod = spec::notLoadedConfigSpec(folder, mod.error());
+        }
+        mod->folder = folder;
+        spec::logConfigSpec(*mod);
+        _fullPanel.replaceMod(std::move(*mod), timeOfDay());
+    }
+
+    /**
+     * Reads the live copies that were saved since they were read, every little while: a look at each copy that is
+     * read is a check of the time it was written.
+     */
+    void ConfigMenu::readChangedLiveCopies()
+    {
+        const auto now = std::chrono::steady_clock::now();
+        if (now - _liveCopiesChecked < LIVE_COPIES_CHECK) {
+            return;
+        }
+        _liveCopiesChecked = now;
+        for (const auto& folder : _liveCopies.changed()) {
+            logger::info("Config spec '{}': its live copy was saved", folder);
+            readLiveCopy(folder);
+        }
     }
 
     /**

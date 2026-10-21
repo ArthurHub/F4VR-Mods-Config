@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}_tests
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   IniFileTests.cpp
+  LiveCopiesTests.cpp
   McmLoaderTests.cpp
   McmStoreTests.cpp
   MenuControlsTests.cpp
@@ -49,6 +50,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/spec/IniFile.cpp
+  ${SOURCE_DIR}/spec/LiveCopies.cpp
   ${SOURCE_DIR}/spec/ModFile.cpp
   ${SOURCE_DIR}/spec/ConfigSpecLoader.cpp
   ${SOURCE_DIR}/spec/ConfigSpecStore.cpp

@@ -3356,9 +3356,13 @@ TEST_CASE("FullPanel: a press on a config spec of the Developer section opens it
     rowWithHelp(panel, "Angle:");
     CHECK(panel.helpLine().text() == "Angle: It has no storage: it is not available. Beam \xE2\x80\xBA Angle \xC2\xB7 pages[0].content[1].content[0]. Goes to the row.");
     CHECK_FALSE(panel.helpLine().isInvalid());
+    CHECK(rowWithHelp(panel, "Errors: What the menu left out"));
+    // the warnings are under the errors, at the end of the page, which is scrolled to them
+    point(panel, ImVec2(640.0f, 400.0f));
+    ImGui::GetIO().AddMouseWheelEvent(0.0f, -10.0f);
+    point(panel, ImVec2(640.0f, 400.0f));
     rowWithHelp(panel, "spacer:");
     CHECK(panel.helpLine().text() == "spacer: Unknown field \"lines\": it is not read. spacer \xC2\xB7 content[0].lines. Goes to the row.");
-    CHECK(rowWithHelp(panel, "Errors: What the menu left out"));
 
     // Back goes to the menu's front page, and so does its crumb
     CHECK(panel.back());
@@ -3423,4 +3427,308 @@ TEST_CASE("FullPanel: a report of a config spec that cannot be read tells its er
     CHECK(panel.helpLine().isInvalid());
     CHECK_FALSE(pressActs(panel, *row));
     CHECK(panel.report() == 0u);
+}
+
+namespace
+{
+    // where the report says the live copy of the config spec of `reportPanel` is
+    constexpr auto LIVE_COPY = R"(My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\MyFolder\spec.json)";
+
+    /**
+     * The config spec of `reportPanel` as its live copy is read, by its name, with its page Beam or with no page.
+     */
+    model::Mod liveCopyOf(const std::string& displayName, const bool withPage = true)
+    {
+        auto mod = spec::loadConfigSpec(std::format(R"({{
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "{}", "applies": "save",
+            "files": {{ "main": {{ "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" }} }},
+            "defaultFile": "main",
+            "pages": [ {} ]
+        }})",
+            displayName,
+            withPage ? R"({ "pageDisplayName": "Beam", "content": [ { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } } ] })"
+                     : ""));
+        REQUIRE(mod);
+        mod->folder = "MyFolder";
+        mod->liveCopy = LIVE_COPY;
+        return std::move(*mod);
+    }
+
+    /**
+     * Opens the sub-section of the live copy of the report that is shown, which starts folded.
+     */
+    void openLiveSpec(FullPanel& panel)
+    {
+        // the help line keeps the row it had until the ray is on another, so the ray is on the row before first
+        CHECK(rowWithHelp(panel, "Read the live copy:"));
+        const auto heading = rowWithHelp(panel, "Live spec.json:");
+        REQUIRE(heading);
+        CHECK(pressActs(panel, *heading));
+    }
+}
+
+TEST_CASE("FullPanel: a report's live copy switch asks the menu, and Reload, Open and Show wait for it")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    std::vector<std::pair<std::string, ui::LiveCopyAction>> asked;
+    panel.setLiveCopyAction([&asked](const std::string& folder, const ui::LiveCopyAction action) {
+        asked.emplace_back(folder, action);
+    });
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+    openLiveSpec(panel);
+
+    // off, the rows of the copy are disabled, and say why
+    const auto reload = rowWithHelp(panel, "Reload:");
+    REQUIRE(reload);
+    CHECK(panel.helpLine().text() == "Reload: Reads the live copy again now. Read the live copy first.");
+    CHECK_FALSE(pressActs(panel, *reload));
+    CHECK(rowWithHelp(panel, "Edit on desktop:"));
+    CHECK(rowWithHelp(panel, "Reveal in file explorer:"));
+    CHECK(asked.empty());
+
+    const auto toggle = rowWithHelp(panel, "Read the live copy:");
+    REQUIRE(toggle);
+    CHECK(pressActs(panel, *toggle));
+    REQUIRE(asked.size() == 1);
+    CHECK(asked.back() == std::pair{ std::string("MyFolder"), ui::LiveCopyAction::TurnOn });
+
+    // read from the copy, a press on each asks it
+    panel.replaceMod(liveCopyOf("My Mod"), "10:42:05");
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Reload:")));
+    CHECK(asked.back().second == ui::LiveCopyAction::Reload);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Re-copy the installed spec.json:")));
+    CHECK(asked.back().second == ui::LiveCopyAction::Overwrite);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Edit on desktop:")));
+    CHECK(asked.back().second == ui::LiveCopyAction::Open);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Reveal in file explorer:")));
+    CHECK(asked.back().second == ui::LiveCopyAction::Show);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Read the live copy:")));
+    CHECK(asked.back().second == ui::LiveCopyAction::TurnOff);
+}
+
+TEST_CASE("FullPanel: a config spec read again drops its unsaved changes and keeps the page that is shown while it is there")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    panel.select(pageOf({ 0 }));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Enable:")));
+    CHECK(store.dirtyCount() == 1);
+
+    CHECK(panel.replaceMod(liveCopyOf("My Mod"), "10:42:05") == 1);
+    CHECK(panel.selection() == pageOf({ 0 }));
+    CHECK(store.dirtyCount() == 0);
+    CHECK(panel.mods()[0].liveCopy == LIVE_COPY);
+    REQUIRE(panel.liveCopyRead("MyFolder"));
+    CHECK(panel.liveCopyRead("MyFolder")->result == "Reloaded at 10:42:05: 1 unsaved change was dropped.");
+
+    // the session is the new mod's: its row is set as before
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Enable:")));
+    CHECK(store.dirtyCount() == 1);
+
+    // a page that is gone shows the mod's front page
+    CHECK(panel.replaceMod(liveCopyOf("My Mod", false), "10:43:00") == 1);
+    CHECK(panel.selection() == Selection{ .mod = 0 });
+    CHECK(panel.liveCopyRead("MyFolder")->result == "Reloaded at 10:43:00: 1 unsaved change was dropped.");
+
+    // a mod that is not available now shows the menu's front page
+    auto missing = liveCopyOf("My Mod");
+    missing.notAvailable = "its plugin SS2.esm is not loaded";
+    CHECK(panel.replaceMod(std::move(missing), "10:44:00") == 0);
+    CHECK(panel.selection() == Selection{});
+    CHECK(panel.liveCopyRead("MyFolder")->result == "Reloaded at 10:44:00.");
+
+    // a folder the panel has no config spec of is not put in
+    auto other = liveCopyOf("Other");
+    other.folder = "OtherFolder";
+    CHECK(panel.replaceMod(std::move(other), "10:45:00") == 0);
+    CHECK(panel.mods().size() == 1);
+    CHECK_FALSE(panel.liveCopyRead("OtherFolder"));
+}
+
+TEST_CASE("FullPanel: a config spec read again keeps its place among the mods by its name, and its report stays")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mine = liveCopyOf("My Mod");
+    mine.liveCopy.clear();
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ modOf("Beta"), std::move(mine) });
+    CHECK(namesOf(panel) == Names{ "Beta", "My Mod" });
+    CHECK(panel.openReport(1));
+
+    panel.replaceMod(liveCopyOf("Alpha"), "10:42:05");
+    CHECK(namesOf(panel) == Names{ "Alpha", "Beta" });
+    CHECK(panel.report() == 0u);
+}
+
+TEST_CASE("FullPanel: a live copy that cannot be read keeps what was read last, with its error first, and Reload tells it")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    const auto problems = panel.mods()[0].problems.size();
+    panel.liveCopyNotRead("MyFolder", LIVE_COPY, "10:42:05", "Not valid JSON: line 4");
+    panel.liveCopyNotRead("MyFolder", LIVE_COPY, "10:42:09", "Not valid JSON: line 5");
+
+    const auto& mod = panel.mods()[0];
+    CHECK(mod.liveCopy == LIVE_COPY);
+    REQUIRE(mod.problems.size() == problems + 1);
+    CHECK(mod.problems[0].message == "The live copy cannot be read: Not valid JSON: line 5. The menu shows the copy it read last.");
+    CHECK(mod.pages.size() == 1);
+
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+    CHECK(rowWithHelp(panel, "spec.json: The live copy cannot be read"));
+    CHECK(panel.helpLine().isInvalid());
+    openLiveSpec(panel);
+    CHECK(rowWithHelp(panel, "Reload:"));
+    CHECK(panel.helpLine().text() == "Reload: Read at 10:42:09: the live copy cannot be read. The menu shows the copy it read last.");
+    CHECK(panel.helpLine().isInvalid());
+
+    // the Developer section says it is read from its copy
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK(rowWithHelp(panel, "My Mod: Read from its live copy. 2 errors"));
+}
+
+TEST_CASE("FullPanel: Reload has the info mark of a read until the ray leaves it, and the result in the help line")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    CHECK(panel.openReport(0));
+    panel.replaceMod(liveCopyOf("My Mod"), "10:42:05");
+    drawFrames(panel, 2);
+    openLiveSpec(panel);
+    CHECK_FALSE(panel.liveCopyRead("MyFolder")->seen);
+
+    CHECK(rowWithHelp(panel, "Reload:"));
+    CHECK(panel.helpLine().text() == "Reload: Reloaded at 10:42:05. Reads the live copy again now.");
+    CHECK_FALSE(panel.liveCopyRead("MyFolder")->seen);
+    CHECK(rowWithHelp(panel, "Edit on desktop:"));
+    CHECK(panel.liveCopyRead("MyFolder")->seen);
+}
+
+TEST_CASE("FullPanel: Overwrite warns while the installed spec.json is newer than the live copy")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    CHECK(panel.openReport(0));
+    panel.replaceMod(liveCopyOf("My Mod"), "10:42:05");
+    drawFrames(panel, 2);
+    openLiveSpec(panel);
+    CHECK(rowWithHelp(panel, "Re-copy the installed spec.json:"));
+    CHECK(panel.helpLine().text() == "Re-copy the installed spec.json: Copies the installed spec.json over the live copy, which loses the copy's edits, and reads it.");
+
+    panel.setLiveCopyStale("MyFolder", true);
+    // the help line keeps the row it had until the ray is on another
+    CHECK(rowWithHelp(panel, "Reload:"));
+    CHECK(rowWithHelp(panel, "Re-copy the installed spec.json:"));
+    CHECK(panel.helpLine().text() ==
+          "Re-copy the installed spec.json: The installed spec.json is newer than the live copy. Copies the installed spec.json over the live copy, which loses the copy's "
+          "edits, and reads it.");
+
+    // the next read says it again, or not
+    panel.replaceMod(liveCopyOf("My Mod"), "10:43:00");
+    CHECK_FALSE(panel.liveCopyRead("MyFolder")->stale);
+}
+
+TEST_CASE("FullPanel: the sub-section of the live copy starts folded, and says while it is folded that the copy is stale")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    CHECK(panel.openReport(0));
+    panel.replaceMod(liveCopyOf("My Mod"), "10:42:05");
+    panel.setLiveCopyStale("MyFolder", true);
+    drawFrames(panel, 2);
+    CHECK_FALSE(rowWithHelp(panel, "Reload:"));
+    CHECK(rowWithHelp(panel, "Live spec.json:"));
+    CHECK(panel.helpLine().text() == "Live spec.json: The installed spec.json is newer than the live copy. Reload, overwrite, edit and reveal the live copy.");
+
+    openLiveSpec(panel);
+    CHECK(rowWithHelp(panel, "Reload:"));
+    CHECK(rowWithHelp(panel, "Live spec.json:"));
+    CHECK(panel.helpLine().text() == "Live spec.json: Reload, overwrite, edit and reveal the live copy.");
+
+    // it stays open while the menu is, and is folded again as it opens
+    CHECK(panel.back());
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+    CHECK(rowWithHelp(panel, "Reload:"));
+    panel.reset();
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+    CHECK_FALSE(rowWithHelp(panel, "Reload:"));
+}
+
+namespace
+{
+    /**
+     * The pane of the pages, which a page and a report are scrolled in.
+     */
+    const ImGuiWindow& contentWindow()
+    {
+        const auto& windows = ImGui::GetCurrentContext()->Windows;
+        const auto found = std::ranges::find_if(windows, [](const ImGuiWindow* window) {
+            return std::strstr(window->Name, "/Content") != nullptr;
+        });
+        REQUIRE(found != windows.end());
+        return **found;
+    }
+}
+
+TEST_CASE("FullPanel: Back from the row of a problem shows its report where it was scrolled to")
+{
+    const test_panel::PanelContext context;
+    auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods(std::move(mods));
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+
+    // the report scrolled down a little, and a press on a problem there
+    point(panel, ImVec2(640.0f, 400.0f));
+    ImGui::GetIO().AddMouseWheelEvent(0.0f, -3.0f);
+    point(panel, ImVec2(640.0f, 400.0f));
+    const float scrolled = contentWindow().Scroll.y;
+    REQUIRE(scrolled > 100.0f);
+    const auto& problems = panel.mods()[0].problems;
+    const auto onRow = std::ranges::find_if(problems, [](const model::Problem& problem) {
+        return problem.place.has_value();
+    });
+    REQUIRE(onRow != problems.end());
+    REQUIRE(panel.showProblem(0, static_cast<std::size_t>(onRow - problems.begin())));
+    drawFrames(panel, 3);
+
+    CHECK(panel.back());
+    CHECK(panel.report() == 0u);
+    drawFrames(panel, 3);
+    CHECK(contentWindow().Scroll.y == Catch::Approx(scrolled));
+
+    // opened from the Developer section, it is at its top
+    CHECK(panel.back());
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 3);
+    CHECK(contentWindow().Scroll.y == Catch::Approx(0.0f));
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <string>
@@ -10,8 +11,10 @@
 #include "imgui/UIImGuiPanel.h"
 #include "mcm/McmStore.h"
 #include "model/ConfigDefinition.h"
+#include "model/Translations.h"
 #include "render/Texture.h"
 #include "spec/ConfigSpecStore.h"
+#include "spec/LiveCopies.h"
 #include "ui/FullPanel.h"
 #include "vrui/UIButtonPanel.h"
 #include "vrui/UIContainer.h"
@@ -38,7 +41,7 @@ namespace mods_config
         void back();
         void onFrameUpdate();
 
-        void setMods(std::vector<model::Mod> mods);
+        void setMods(std::vector<model::Mod> mods, model::Translations translations);
         const std::vector<model::Mod>& mods() const;
 
         void select(const ui::Selection& selection);
@@ -60,6 +63,10 @@ namespace mods_config
         std::optional<ImVec2> textureSize(const std::string& texture);
         render::Texture& textureOf(const std::string& texture);
         std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();
+        void doLiveCopy(const std::string& folder, ui::LiveCopyAction action);
+        void readLiveCopy(const std::string& folder);
+        void readInstalled(const std::string& folder);
+        void readChangedLiveCopies();
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
@@ -71,6 +78,25 @@ namespace mods_config
 
         // the Developer tools as a press on the front page changed them, which the frame update writes to the config
         std::optional<ui::DeveloperView> _developerToSave;
+
+        /**
+         * What a press on a row of a config spec's live copy in its report asked, by the config spec's folder, which
+         * the frame update does.
+         */
+        struct LiveCopyRequest
+        {
+            std::string folder;
+            ui::LiveCopyAction action = ui::LiveCopyAction::None;
+        };
+
+        std::optional<LiveCopyRequest> _liveCopyRequest;
+
+        // the texts of the game's language, which a config spec is read again with
+        model::Translations _translations;
+
+        // the live copies of the config specs' spec.json, and when the frame update last looked for a copy that was saved
+        spec::LiveCopies _liveCopies;
+        std::chrono::steady_clock::time_point _liveCopiesChecked;
 
         // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
         mcm::McmStore _store{ R"(Data\MCM)" };

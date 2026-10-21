@@ -16,6 +16,9 @@ namespace mods_config::spec
     // available. It only grows, as a version adds fields and control types
     constexpr int SCHEMA_VERSION = 1;
 
+    // where the config specs are, from the game's folder: a folder each, with its `spec.json`
+    constexpr auto CONFIG_SPEC_FOLDER = R"(Data\ModsConfigVR\Config)";
+
     /**
      * Whether a plugin is loaded, by its name: the game's check, or a test's.
      */
@@ -34,7 +37,26 @@ namespace mods_config::spec
         PluginCheck isF4sePluginLoaded;
     };
 
-    std::expected<model::Mod, std::string> loadConfigSpec(std::string_view text, const model::Translations& translations = {}, const PluginChecks& plugins = {});
-    std::vector<model::Mod> loadConfigSpecs(const std::filesystem::path& configFolder, const model::Translations& translations = {}, const PluginChecks& plugins = {});
+    /**
+     * The folders a config spec's files are read from, by their roots: the game's Data folder and
+     * `Documents\My Games\Fallout4VR`. With none, as in a test of a config spec alone, its files are not read as
+     * it is read, and a setting's path a file does not have is not reported.
+     */
+    struct FileFolders
+    {
+        std::filesystem::path data;
+        std::filesystem::path myGames;
+    };
+
+    std::expected<model::Mod, std::string> loadConfigSpec(std::string_view text, const model::Translations& translations = {}, const PluginChecks& plugins = {},
+        const FileFolders& folders = {});
+    std::expected<model::Mod, std::string> loadConfigSpecFile(const std::filesystem::path& file, const model::Translations& translations = {}, const PluginChecks& plugins = {},
+        const FileFolders& folders = {});
+    model::Mod notLoadedConfigSpec(const std::string& folder, const std::string& reason);
+    void logConfigSpec(const model::Mod& mod);
+    PluginChecks gamePluginChecks();
+    FileFolders gameFileFolders();
+    std::vector<model::Mod> loadConfigSpecs(const std::filesystem::path& configFolder, const model::Translations& translations = {}, const PluginChecks& plugins = {},
+        const FileFolders& folders = {});
     std::vector<model::Mod> loadInstalledConfigSpecs(const model::Translations& translations = {});
 }

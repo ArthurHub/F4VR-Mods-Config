@@ -1551,8 +1551,8 @@ TEST_CASE("FullPanel render: the config spec showcase's report, with the ray on 
     panel.setMods(mods);
     panel.setDeveloper({ .enabled = true, .show = ui::ShowConfigSpecs::All, .configSpec = {}, .folded = false }, {});
     REQUIRE(panel.openReport(0));
-    // the ray on the second error, under the page's text and the heading of the errors
-    WARN("Saved " << renderToFile(panel, "config-spec-report", ImVec2(900.0f, 345.0f)));
+    // the ray on the first error, under the page's text, the live copy and the heading of the errors
+    WARN("Saved " << renderToFile(panel, "config-spec-report", ImVec2(900.0f, 575.0f)));
 
     // the first problem with a row on the Mistakes page: its row in the ring, in a section that was folded or not
     const auto& problems = panel.mods()[0].problems;
@@ -1562,4 +1562,66 @@ TEST_CASE("FullPanel render: the config spec showcase's report, with the ray on 
     REQUIRE(onRow != problems.end());
     REQUIRE(panel.showProblem(0, static_cast<std::size_t>(onRow - problems.begin())));
     WARN("Saved " << renderToFile(panel, "config-spec-report-focused-row", POINTER_AWAY));
+}
+
+TEST_CASE("FullPanel render: the config spec showcase read from its live copy: its report with Reload's result, a copy that cannot be read, and its Developer row", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    const auto folder = mods[0].folder;
+    const auto copy = std::format(R"(My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\{}\spec.json)", folder);
+
+    // a panel of its own for each image, as its style is set on the ImGui of its first draw: the showcase read
+    // from its live copy, and the copy that cannot be read after it
+    const auto panelWith = [&](const bool notRead) {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods(mods);
+        panel.setDeveloper({ .enabled = true, .show = ui::ShowConfigSpecs::NeedingAttention, .configSpec = {}, .folded = false }, {});
+        auto live = mods[0];
+        live.liveCopy = copy;
+        panel.replaceMod(std::move(live), "10:42:05");
+        if (notRead) {
+            panel.liveCopyNotRead(folder,
+                copy,
+                "10:43:12",
+                "Not valid JSON: [json.exception.parse_error.101] parse error at line 41, column 7: syntax error while parsing object separator - unexpected string "
+                "literal; expected '}'");
+        }
+        // and its installed spec.json is newer than the copy, which Overwrite warns of, as the menu tells it after a read
+        panel.setLiveCopyStale(folder, true);
+        return panel;
+    };
+
+    // the ray on the heading of the sub-section of the copy, which is folded as the report opens and says the copy is stale
+    constexpr ImVec2 LIVE_SPEC_HEADING(900.0f, 293.0f);
+    auto folded = panelWith(false);
+    REQUIRE(folded.openReport(0));
+    WARN("Saved " << renderToFile(folded, "config-spec-report-live-copy-folded", LIVE_SPEC_HEADING));
+
+    // opened by a press on its heading, the ray on Overwrite, which warns, under Reload with its info mark
+    auto read = panelWith(false);
+    REQUIRE(read.openReport(0));
+    const auto open = [&read, LIVE_SPEC_HEADING] {
+        for (const bool pressed : { false, false, true, false }) {
+            test_panel::drawFrame(read, LIVE_SPEC_HEADING, pressed);
+        }
+    };
+    WARN("Saved " << renderToFile(read, "config-spec-report-live-copy", ImVec2(900.0f, 398.0f), false, open));
+
+    auto notRead = panelWith(true);
+    REQUIRE(notRead.openReport(0));
+    // the ray on the error of the copy, the first under the heading of the errors, which are scrolled into view
+    const auto scrollToErrors = [&notRead] {
+        test_panel::drawFrame(notRead, ImVec2(900.0f, 400.0f));
+        test_panel::drawFrame(notRead, ImVec2(900.0f, 400.0f));
+        ImGui::GetIO().AddMouseWheelEvent(0.0f, -2.0f);
+        test_panel::drawFrame(notRead, ImVec2(900.0f, 400.0f));
+    };
+    WARN("Saved " << renderToFile(notRead, "config-spec-report-live-copy-not-read", ImVec2(900.0f, 400.0f), false, scrollToErrors));
+
+    auto developer = panelWith(false);
+    WARN("Saved " << renderToFile(developer, "front-page-developer-live-copy", ImVec2(900.0f, 270.0f)));
 }

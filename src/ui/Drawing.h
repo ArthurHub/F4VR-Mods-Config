@@ -16,13 +16,15 @@
 namespace mods_config::ui
 {
     /**
-     * A mark that is a piece of a text, with no text: the warning mark, or the invalid mark.
+     * A mark that is a piece of a text, with no text: the warning mark, the invalid mark, or the info mark of a
+     * result.
      */
     enum class TextMark : std::uint8_t
     {
         None,
         Warning,
         Invalid,
+        Info,
     };
 
     /**
@@ -125,9 +127,12 @@ namespace mods_config::ui
     float restartMarkWidth();
     void drawRestartMark(float left, float middle);
     float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);
-    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, bool emphasized, std::span<const MarkedCount> counts);
+    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, bool emphasized, std::span<const MarkedCount> counts,
+        TextMark mark = TextMark::None);
     void drawPendingMark(const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);
     void drawWarningMark(const ImVec2& center);
+    void drawInfoMark(const ImVec2& center);
+    void drawMark(TextMark mark, const ImVec2& center);
     void drawFoldArrow(const ImVec2& topLeft, bool open, ImU32 color);
 }
