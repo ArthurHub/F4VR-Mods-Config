@@ -2026,6 +2026,7 @@
               "content": [
                 {
                   "type": "slider",
+                  "id": "timeOfDay",
                   "valueType": "float",
                   "text": "Time of day",
                   "help": "The game's global GameHour, live: the time changes as the slider moves.",

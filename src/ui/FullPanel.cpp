@@ -814,10 +814,8 @@ namespace mods_config::ui
     }
 
     /**
-     * The dialog that asks what to do with the selected mod's unsaved changes, while it asks, and what its
-     * answer does. Save writes the changes and then does what the player was about to do, and a Save that
-     * fails keeps the player on the mod, with the reason in the status. Discard takes the changes back and does
-     * it. Cancel closes the dialog with nothing done, as Back does.
+     * The dialog that asks what to do with the selected mod's unsaved changes, while it asks, and what a press on
+     * one of its buttons does, with `answerDialog`.
      */
     void FullPanel::drawDialog()
     {
@@ -836,10 +834,24 @@ namespace mods_config::ui
                                             : std::string("go to the menu's front page") };
         }
         const auto answer = drawUnsavedDialog(changes ? &*changes : nullptr);
-        if (answer == DialogAnswer::None) {
-            return;
+        if (answer != DialogAnswer::None) {
+            _pressActed = answerDialog(answer);
         }
-        _pressActed = true;
+    }
+
+    /**
+     * Does what a button of the dialog that asks about the selected mod's unsaved changes does, as a press on it:
+     * Save writes the changes and then does what the player was about to do, and a Save that fails keeps the player
+     * on the mod, with the reason in the status. Discard takes the changes back and does it. Cancel closes the dialog
+     * with nothing done. The dialog closes as it is drawn next. Returns whether it did something: nothing while the
+     * dialog does not ask, and nothing for Save while a change is invalid, as Save is disabled then.
+     */
+    bool FullPanel::answerDialog(const DialogAnswer answer)
+    {
+        auto* const store = selectedStore();
+        if (!_leaving || !store || answer == DialogAnswer::None || (answer == DialogAnswer::Save && store->invalidCount() > 0)) {
+            return false;
+        }
         if (answer == DialogAnswer::Cancel || (answer == DialogAnswer::Save && !store->save())) {
             // a Save that failed has its reason in the status, which the store keeps
             _leaving.reset();
@@ -850,5 +862,6 @@ namespace mods_config::ui
             leave();
         }
         updateStatus();
+        return true;
     }
 }

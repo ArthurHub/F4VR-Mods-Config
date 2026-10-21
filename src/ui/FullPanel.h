@@ -95,6 +95,7 @@ namespace mods_config::ui
 
         bool openReport(std::size_t mod);
         bool showProblem(std::size_t mod, std::size_t problem);
+        bool answerDialog(DialogAnswer answer);
 
         // the last read of the live copy of the config spec of a folder, and none while it was not read
         const LiveCopyRead* liveCopyRead(const std::string_view folder) const

@@ -415,6 +415,93 @@ namespace mods_config::devbench
         }
 
         /**
+         * The button of a text among items and the sections in them, that is shown: a row the panel gives no room is
+         * not pressed. None where there is no such button.
+         */
+        const model::Button* findButton(const std::vector<model::Item>& items, const std::string_view text, model::Store& store)
+        {
+            for (const auto& item : items) {
+                const bool shown = std::visit(
+                    [&store](const auto& it) {
+                        return !it.visibleWhen || model::holds(*it.visibleWhen, &store);
+                    },
+                    item);
+                if (!shown) {
+                    continue;
+                }
+                if (const auto* button = std::get_if<model::Button>(&item); button && button->text == text) {
+                    return button;
+                }
+                if (const auto* group = std::get_if<model::Group>(&item)) {
+                    if (const auto* found = findButton(group->items, text, store)) {
+                        return found;
+                    }
+                }
+            }
+            return nullptr;
+        }
+
+        /**
+         * Runs the action of a button of the page that is shown, by its text, as a press on its row does. A button
+         * whose action the menu does not run, or whose enabledWhen does not hold, is disabled, and is not run.
+         */
+        json runButton(const json& args)
+        {
+            auto& store = selectedStore();
+            const auto text = args.value("text", std::string());
+            if (text.empty()) {
+                throw std::runtime_error("no text is given");
+            }
+            const auto* button = findButton(g_modsConfig.menu().fullPanel().selectedPage()->items, text, store);
+            if (!button) {
+                throw std::runtime_error("the page that is shown has no button '" + text + "'");
+            }
+            if (const auto* unknown = std::get_if<model::UnknownAction>(&button->action)) {
+                throw std::runtime_error("the menu does not run its action: " + unknown->reason);
+            }
+            if (std::holds_alternative<model::NoAction>(button->action)) {
+                throw std::runtime_error("the button has no action");
+            }
+            if (button->enabledWhen && !model::holds(*button->enabledWhen, &store)) {
+                throw std::runtime_error("the button is disabled: its enabledWhen does not hold");
+            }
+            return { { "ran", store.run(button->action) }, { "session", sessionToJson(store) } };
+        }
+
+        /**
+         * Presses a button of the dialog that asks what to do with the selected mod's unsaved changes: Save,
+         * Discard or Cancel. The answer has whether the dialog still asks, and what the panel shows then.
+         */
+        json runAnswer(const json& args)
+        {
+            auto& menu = g_modsConfig.menu();
+            if (!menu.isOpen()) {
+                throw std::runtime_error("the menu is not open");
+            }
+            auto& panel = menu.fullPanel();
+            if (!panel.isAsking()) {
+                throw std::runtime_error("the dialog does not ask");
+            }
+            const auto name = args.value("button", std::string());
+            const auto answer = name == "save"      ? ui::DialogAnswer::Save
+                                : name == "discard" ? ui::DialogAnswer::Discard
+                                : name == "cancel"  ? ui::DialogAnswer::Cancel
+                                                    : ui::DialogAnswer::None;
+            if (answer == ui::DialogAnswer::None) {
+                throw std::runtime_error("the button is save, discard or cancel");
+            }
+            const bool pressed = panel.answerDialog(answer);
+            const auto& selection = panel.selection();
+            auto* store = panel.selectedStore();
+            return { { "pressed", pressed },
+                { "asking", panel.isAsking() },
+                { "mod", selection.mod ? json(*selection.mod) : json(nullptr) },
+                { "page", selection.page },
+                { "session", store ? sessionToJson(*store) : json(nullptr) },
+                { "saveFailure", store ? json(std::string(store->saveFailure())) : json(nullptr) } };
+        }
+
+        /**
          * Shows the Help page over what is selected, as the title bar's Help does, or the selection's page again.
          */
         json runHelp(const json& args)
@@ -504,6 +591,7 @@ namespace mods_config::devbench
          * Shows a mod's front page or one of its pages, as a press on its row does: the mod by its name, and
          * the page by its name, or a page under a page by the names of the pages on the way to it. With no mod
          * it is the menu's front page. A mod that is not available is not shown, as its row is not pressed.
+         * The answer has what the panel shows then, and whether the dialog asks about unsaved changes first.
          */
         json runSelect(const json& args)
         {
@@ -540,7 +628,9 @@ namespace mods_config::devbench
                 }
             }
             menu.select(selection);
-            return { { "mod", selection.mod ? json(*selection.mod) : json(nullptr) }, { "page", selection.page } };
+            // what the panel shows: the dialog can ask first, and keep the mod that has unsaved changes
+            const auto& shown = menu.selection();
+            return { { "mod", shown.mod ? json(*shown.mod) : json(nullptr) }, { "page", shown.page }, { "asking", menu.fullPanel().isAsking() } };
         }
     }
 
@@ -548,7 +638,8 @@ namespace mods_config::devbench
     {
         f4cf::devbench::setToolDescription(
             "Mods Config VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state and the mods it lists, show a mod, one of "
-            "its pages or the Help page, go back, read the rows of the page with their values, set a value or its default, and Save or Discard the changes");
+            "its pages or the Help page, go back, read the rows of the page with their values, set a value or its default, run a button, Save or Discard the "
+            "changes, and answer the dialog that asks about unsaved changes");
 
         f4cf::devbench::setStateProvider<MCDevState>(stateDescription(), &captureState, &stateToJson);
 
@@ -616,6 +707,19 @@ namespace mods_config::devbench
             .name = "discard",
             .description = "take back the selected mod's changes, as the footer's Discard does",
             .handler = &runDiscard,
+        });
+        f4cf::devbench::addAction({
+            .name = "run",
+            .description = "run the action of a button of the page that is shown, by its text, as a press on its row does: a disabled button is not run",
+            .arguments = { { "text", { { "type", "string" }, { "description", "run: the button's text, as the page action has it" } } } },
+            .handler = &runButton,
+        });
+        f4cf::devbench::addAction({
+            .name = "answer",
+            .description = "press a button of the dialog that asks what to do with the selected mod's unsaved changes before it is left or the menu is closed: "
+                           "save writes them and then does what was asked, discard drops them and does it, cancel stays; Save is not pressed while a change is invalid",
+            .arguments = { { "button", { { "type", "string" }, { "enum", { "save", "discard", "cancel" } }, { "description", "answer: the dialog's button" } } } },
+            .handler = &runAnswer,
         });
         f4cf::devbench::addAction({
             .name = "help",

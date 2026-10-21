@@ -3732,3 +3732,38 @@ TEST_CASE("FullPanel: Back from the row of a problem shows its report where it w
     drawFrames(panel, 3);
     CHECK(contentWindow().Scroll.y == Catch::Approx(0.0f));
 }
+
+TEST_CASE("FullPanel: the dialog is answered as a press on its button does, and only while it asks")
+{
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / MY_MOD_FILE;
+    myGames.write(MY_MOD_FILE, "[Main]\r\nbEnable = false\r\nfHeight = 1.5\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = twoConfigSpecs(store);
+    CHECK_FALSE(panel.answerDialog(ui::DialogAnswer::Cancel));
+
+    const auto& enable = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    const auto& height = std::get<model::Setting>(panel.mods()[0].frontPage.items[1]);
+    CHECK(store.set(enable, true));
+    CHECK(panel.select(selectionOf(1)));
+    CHECK(panel.isAsking());
+
+    // Cancel stays on the mod, with its changes
+    CHECK(panel.answerDialog(ui::DialogAnswer::Cancel));
+    CHECK_FALSE(panel.isAsking());
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(store.dirtyCount() == 1);
+
+    // Save is not pressed while a change is invalid
+    CHECK(store.set(height, "3"s));
+    CHECK(panel.select(selectionOf(1)));
+    CHECK_FALSE(panel.answerDialog(ui::DialogAnswer::Save));
+    CHECK(panel.isAsking());
+
+    // Save writes the changes and shows what was selected
+    CHECK(store.set(height, "2"s));
+    CHECK(panel.answerDialog(ui::DialogAnswer::Save));
+    CHECK_FALSE(panel.isAsking());
+    CHECK(panel.selection() == selectionOf(1));
+    CHECK(fileText(file) == "[Main]\r\nbEnable = true\r\nfHeight = 2.0\r\n");
+}
