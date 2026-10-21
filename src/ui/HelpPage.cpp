@@ -17,7 +17,7 @@ namespace mods_config::ui
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
         drawPageText("How the menu is used, with the buttons your config has.");
-        ImGui::SeparatorText("Controls");
+        sectionHeading("Controls", ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x);
 
         const float width = ImGui::GetContentRegionAvail().x - theme::SPACE_2 * 2.0f;
         for (const auto& control : controls) {

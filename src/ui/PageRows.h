@@ -7,18 +7,19 @@
 
 #include <imgui.h>
 
-#include "Theme.h"
+#include "Drawing.h"
 #include "model/Definition.h"
 #include "model/Store.h"
 
 namespace mods_config::ui
 {
-    // A row's gutter: its width, the mark's center, and the inset for text and images without a label.
-    struct Gutter
+    // The marks after a row's name, in this order: the Restart tag, the pending dot, then the warning mark or
+    // the invalid mark.
+    struct RowMarks
     {
-        float width = theme::SPACE_6;
-        float mark = theme::SPACE_6 * 0.5f;
-        float inset = theme::SPACE_2;
+        bool restart = false;
+        bool pending = false;
+        TextMark mark = TextMark::None;
     };
 
     // Visibility and pointer interactions for a row added to the page.
@@ -32,9 +33,8 @@ namespace mods_config::ui
     };
 
     float rowWidth();
-    Gutter gutterAt(int depth);
     Row addRow(bool pressable);
-    void drawLabel(const ImVec2& pos, const Gutter& gutter, float right, std::string_view text, std::span<const model::TextRun> runs, bool warned = false, bool restart = false);
+    void drawLabel(const ImVec2& pos, float right, std::string_view text, std::span<const model::TextRun> runs, const RowMarks& marks = {});
     std::string_view warningOf(const std::vector<model::Warning>& warnings, model::Store* store);
     std::string readOnlyHelp(std::string reason, const std::string& help);
 }

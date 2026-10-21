@@ -91,6 +91,9 @@ namespace mods_config::ui
     // the box of the warning mark and of the invalid mark, as the design system draws them
     constexpr float WARNING_MARK_WIDTH = 20.0f;
 
+    // the box of the pending mark, a dot, as the design system draws it
+    constexpr float PENDING_MARK_WIDTH = 10.0f;
+
     // how far the selected-row bar's tip extends past its right edge
     constexpr float SELECTED_BAR_TIP_DEPTH = 20.0f;
 
@@ -103,7 +106,7 @@ namespace mods_config::ui
     int countTextLines(std::span<const TextPiece> pieces, float width);
     void drawTextPieces(std::span<const TextPiece> pieces, const ImVec2& pos, float width, int maxLines);
     void sectionHeading(std::string_view text, float right);
-    void drawSectionLine(float left, float top, float bottom);
+    void drawSectionLine(float left, float top, float bottom, float right);
     void drawOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawDashedOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawSelectedBar(const ImVec2& min, const ImVec2& max);

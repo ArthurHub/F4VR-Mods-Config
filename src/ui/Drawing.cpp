@@ -230,11 +230,12 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Draws muted text at the cursor, inset from the page's edges and wrapped to its remaining width.
+     * Draws muted text at the cursor, inset from the page's edges and wrapped to its remaining width. It
+     * starts where a heading's text does.
      */
     void drawPageText(const std::string_view text)
     {
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_1);
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
@@ -370,35 +371,37 @@ namespace mods_config::ui
     }
 
     /**
-     * The heading of a section of rows: its text, and a line from it to a right edge, where the rows end.
-     * ImGui draws the line to the right of the window's work area, past the rows into the room of the scroll
-     * bar, so that edge is the heading's while it is drawn.
+     * The heading of a section of rows at the cursor: its text, `space-1` in, and a line from it to a right
+     * edge, where the rows end. ImGui draws the line to the right of the window's work area, past the rows into
+     * the room of the scroll bar, so that edge is the heading's while it is drawn.
      */
     void sectionHeading(const std::string_view text, const float right)
     {
         auto* window = ImGui::GetCurrentWindow();
         const float workRight = window->WorkRect.Max.x;
         window->WorkRect.Max.x = right;
+        // the style's padding sets the text in further than a heading's is
+        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(theme::SPACE_1, ImGui::GetStyle().SeparatorTextPadding.y));
         // by its end: the text is a mod's, and ImGui would cut it at a "##"
         ImGui::SeparatorTextEx(0, text.data(), text.data() + text.size(), 0.0f);
+        ImGui::PopStyleVar();
         window->WorkRect.Max.x = workRight;
     }
 
     /**
      * The line of a section in a section, along the left of its rows: from under its heading down to the
-     * bottom of its last row, where it turns toward the rows in a short foot with a rounded corner. It shows
-     * what the section covers, so a row after it is seen to be the outer section's.
+     * bottom of its last row, where it turns toward the rows with a rounded corner, and stops at a right edge,
+     * short of the rows. It shows what the section covers, so a row after it is seen to be the outer section's.
      */
-    void drawSectionLine(const float left, const float top, const float bottom)
+    void drawSectionLine(const float left, const float top, const float bottom, const float right)
     {
-        // the length of the foot, as the design system draws it: not a token
-        constexpr float FOOT_WIDTH = 14.0f;
         const float x = left + theme::BORDER_FRAME * 0.5f;
         const float y = bottom - theme::BORDER_FRAME * 0.5f;
+        const float radius = std::clamp(right - x, 0.0f, theme::RADIUS_FRAME);
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->PathLineTo(ImVec2(x, top));
-        drawList->PathArcTo(ImVec2(x + theme::RADIUS_FRAME, y - theme::RADIUS_FRAME), theme::RADIUS_FRAME, IM_PI, IM_PI * 0.5f);
-        drawList->PathLineTo(ImVec2(left + FOOT_WIDTH, y));
+        drawList->PathArcTo(ImVec2(x + radius, y - radius), radius, IM_PI, IM_PI * 0.5f);
+        drawList->PathLineTo(ImVec2(right, y));
         drawList->PathStroke(ImGui::GetColorU32(theme::color::RULE), ImDrawFlags_None, theme::BORDER_FRAME);
     }
 
@@ -658,11 +661,8 @@ namespace mods_config::ui
      */
     float drawMarkedCounts(const float right, const float top, const std::span<const MarkedCount> counts)
     {
-        // the boxes of the marks, as the design system draws them
-        constexpr float WIDE_MARK = 20.0f;
-        constexpr float PENDING_MARK = 10.0f;
         const auto markWidth = [](const CountMark mark) {
-            return mark == CountMark::Pending ? PENDING_MARK : WIDE_MARK;
+            return mark == CountMark::Pending ? PENDING_MARK_WIDTH : WARNING_MARK_WIDTH;
         };
 
         float width = 0.0f;
@@ -699,14 +699,15 @@ namespace mods_config::ui
         // the room a rule keeps at the least, as the design system has it
         constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
         const auto color = emphasized ? theme::color::GREEN : theme::color::GREEN_MUTED;
-        drawFoldArrow(ImVec2(pos.x + theme::SPACE_2, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
+        // where a heading's text starts
+        drawFoldArrow(ImVec2(pos.x + theme::SPACE_1, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
         float ruleRight = pos.x + width;
         if (!counts.empty()) {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
             ruleRight = drawMarkedCounts(ruleRight - theme::SPACE_3, pos.y, counts) - theme::SPACE_2;
             ImGui::PopFont();
         }
-        const float textLeft = pos.x + theme::SPACE_2 + FOLD_ARROW_SIZE + theme::SPACE_2;
+        const float textLeft = pos.x + theme::SPACE_1 + FOLD_ARROW_SIZE + theme::SPACE_2;
         const float textRight = (std::min)(textLeft + textWidth(text), ruleRight - RULE_MIN_WIDTH - theme::SPACE_3);
         drawText(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, text);
         const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;

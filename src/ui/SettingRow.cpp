@@ -172,7 +172,7 @@ namespace mods_config::ui
      * Editing continues for clipped rows so drags, text edits and dropdowns remain active.
      * Returns hover help and whether an input changed a value or began an interaction.
      */
-    SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context, const Gutter& gutter)
+    SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context)
     {
         SettingRowDrawn drawn;
         std::string help;
@@ -284,12 +284,6 @@ namespace mods_config::ui
         const auto look = stored.invalid ? ValueLook::Invalid : dirty ? ValueLook::Pending : ValueLook::Saved;
         float left = right;
         ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice && !isText);
-        const ImVec2 gutterMiddle(pos.x + gutter.mark, pos.y + theme::CONTROL_HEIGHT * 0.5f);
-        if (look == ValueLook::Invalid) {
-            drawInvalidMark(gutterMiddle);
-        } else if (look == ValueLook::Pending) {
-            drawPendingMark(gutterMiddle);
-        }
         switch (setting.type) {
         case model::SettingType::Switcher:
             left = drawSwitcher(right, pos.y, showsValue ? std::optional(on && *on) : std::nullopt, look);
@@ -308,7 +302,13 @@ namespace mods_config::ui
             break;
         }
         }
-        drawLabel(pos, gutter, left - theme::SPACE_3, setting.text, setting.textRuns, !warns.empty(), applies == model::Applies::Restart);
+        // an invalid value has its mark in the place of a warning's, which it has none of
+        const RowMarks marks{ .restart = applies == model::Applies::Restart,
+            .pending = look == ValueLook::Pending,
+            .mark = look == ValueLook::Invalid ? TextMark::Invalid
+                    : !warns.empty()           ? TextMark::Warning
+                                               : TextMark::None };
+        drawLabel(pos, left - theme::SPACE_3, setting.text, setting.textRuns, marks);
         ImGui::EndDisabled();
         if (defaultValue) {
             ImGui::BeginDisabled(!resets);

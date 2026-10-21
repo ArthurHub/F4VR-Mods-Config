@@ -29,12 +29,30 @@ namespace mods_config::ui
         std::string_view notAvailable;
     };
 
-    // The quick launch interactions reported by a frame of the front page.
+    // What a frame of the front page did: the row the ray is on, and whether a press did something.
     struct FrontPageDrawn
     {
-        std::optional<std::size_t> pressed;
         std::optional<PointedRow> pointed;
+        bool pressActed = false;
     };
 
-    FrontPageDrawn drawFrontPage(const std::vector<QuickLaunchEntry>& entries, const std::vector<FrontPageMod>& mods);
+    /**
+     * The menu's front page: its introduction, the quick launch entries and the notices of the mods, each
+     * under a heading that folds. A press on an entry opens it. A section stays as the player left it until
+     * the menu is closed.
+     */
+    class FrontPage
+    {
+    public:
+        void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
+        FrontPageDrawn draw(const std::vector<FrontPageMod>& mods);
+        void reset();
+
+    private:
+        std::vector<QuickLaunchEntry> _quickLaunch;
+
+        // whether the headings of the quick launch entries and of the notices are folded
+        bool _quickLaunchFolded = false;
+        bool _noticesFolded = false;
+    };
 }

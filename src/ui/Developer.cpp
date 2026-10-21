@@ -194,8 +194,12 @@ namespace mods_config::ui
             return drawn;
         }
 
+        // the rows are set in a level under the heading, and their names are a level inside their frames
+        ImGui::Indent(theme::SPACE_3);
+        const float rowWidth = width - theme::SPACE_3;
+        const float textLeft = std::floor(headingPos.x + theme::SPACE_3 + theme::SPACE_3);
+
         // the filter
-        const float textLeft = std::floor(headingPos.x + theme::SPACE_6 + theme::SPACE_3);
         const float right = headingPos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
         std::vector<model::Option> options;
         for (const auto* text : FILTER_OPTIONS) {
@@ -208,7 +212,7 @@ namespace mods_config::ui
         auto chosen = shown < options.size() ? std::optional(shown) : std::nullopt;
 
         const auto filterPos = ImGui::GetCursorScreenPos();
-        const bool pressed = ImGui::InvisibleButton("filter", ImVec2(width, theme::CONTROL_HEIGHT));
+        const bool pressed = ImGui::InvisibleButton("filter", ImVec2(rowWidth, theme::CONTROL_HEIGHT));
         const ChoiceRow row{ .pointed = ImGui::IsItemHovered(), .held = ImGui::IsItemActive(), .pressed = pressed };
         drawRowState();
         bool pulse = false;
@@ -234,7 +238,7 @@ namespace mods_config::ui
             const auto state = stateOf(mod);
             ImGui::PushID(static_cast<int>(place));
             const auto pos = ImGui::GetCursorScreenPos();
-            if (ImGui::InvisibleButton("package", ImVec2(width, theme::CONTROL_HEIGHT))) {
+            if (ImGui::InvisibleButton("package", ImVec2(rowWidth, theme::CONTROL_HEIGHT))) {
                 drawn.opened = place;
                 drawn.pressActed = true;
             }
@@ -262,6 +266,7 @@ namespace mods_config::ui
             }
             ImGui::PopID();
         }
+        ImGui::Unindent(theme::SPACE_3);
         return drawn;
     }
 }

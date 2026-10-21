@@ -45,7 +45,7 @@ namespace mods_config::ui
 
     void FullPanel::setQuickLaunch(std::vector<QuickLaunchEntry> entries)
     {
-        _quickLaunch = std::move(entries);
+        _frontPage.setQuickLaunch(std::move(entries));
     }
 
     void FullPanel::setControls(std::vector<ControlHelp> controls)
@@ -445,6 +445,7 @@ namespace mods_config::ui
         _report.reset();
         _returnToReport.reset();
         _packageReport.reset();
+        _frontPage.reset();
         _scrollToDeveloper = false;
         _leaving.reset();
         _pageChanged = true;
@@ -525,12 +526,9 @@ namespace mods_config::ui
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
             } else {
-                auto drawn = drawFrontPage(_quickLaunch, frontPageMods());
+                auto drawn = _frontPage.draw(frontPageMods());
                 pointed = std::move(drawn.pointed);
-                if (drawn.pressed) {
-                    _quickLaunch[*drawn.pressed].open();
-                    _pressActed = true;
-                }
+                _pressActed = drawn.pressActed;
                 if (_developerView.enabled) {
                     auto developer = _developer.draw(_mods, _developerView, _thumbstickSideValue, _scrollToDeveloper);
                     _scrollToDeveloper = false;

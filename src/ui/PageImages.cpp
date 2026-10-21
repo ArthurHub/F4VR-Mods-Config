@@ -39,37 +39,35 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * An image at the cursor, in the middle of the room the rows' width leaves it. It is as large as in MCM's
-     * menu beside the rows' text, and smaller where that room is not as wide. The row is as high as the image.
+     * An image at the cursor, in the middle of a row's width. It is as large as in MCM's menu beside the rows'
+     * text, and smaller where the row is not as wide. The row is as high as the image.
      */
-    void drawImage(const model::Image& image, const ImageDrawer& drawer, const float width, const float inset)
+    void drawImage(const model::Image& image, const ImageDrawer& drawer, const float width)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float room = width - inset - theme::SPACE_2;
-        const float scale = (std::min)(mcmScale(), room / image.width);
+        const float scale = (std::min)(mcmScale(), width / image.width);
         const ImVec2 size(std::round(image.width * scale), std::round(image.height * scale));
         ImGui::Dummy(ImVec2(width, size.y));
         if (drawer.draw && ImGui::IsItemVisible()) {
-            const ImVec2 topLeft(pos.x + inset + std::floor((room - size.x) * 0.5f), pos.y);
+            const ImVec2 topLeft(pos.x + std::floor((width - size.x) * 0.5f), pos.y);
             drawer.draw(image, topLeft, ImVec2(topLeft.x + size.x, topLeft.y + size.y));
         }
     }
 
     /**
-     * A package's texture at the cursor, in the middle of the room the rows' width leaves it, with room above
-     * and below it. A texture the game does not load is a box of its size with a dashed outline, that names it.
+     * A package's texture at the cursor, in the middle of a row's width, with room above and below it. A
+     * texture the game does not load is a box of its size with a dashed outline, that names it.
      */
-    void drawTexture(const model::Image& image, const ImageDrawer& drawer, const float width, const float inset)
+    void drawTexture(const model::Image& image, const ImageDrawer& drawer, const float width)
     {
         const auto own = drawer.textureSize ? drawer.textureSize(image.texture) : std::nullopt;
         const auto pos = ImGui::GetCursorScreenPos();
-        const float room = width - inset - theme::SPACE_2;
-        const auto size = textureSize(image, own, room);
+        const auto size = textureSize(image, own, width);
         ImGui::Dummy(ImVec2(width, size.y + theme::SPACE_1 * 2.0f));
         if (!ImGui::IsItemVisible()) {
             return;
         }
-        const ImVec2 topLeft(pos.x + inset + std::floor((room - size.x) * 0.5f), pos.y + theme::SPACE_1);
+        const ImVec2 topLeft(pos.x + std::floor((width - size.x) * 0.5f), pos.y + theme::SPACE_1);
         const ImVec2 bottomRight(topLeft.x + size.x, topLeft.y + size.y);
         if (own && drawer.draw) {
             drawer.draw(image, topLeft, bottomRight);

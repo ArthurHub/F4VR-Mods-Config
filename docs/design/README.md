@@ -45,6 +45,13 @@ Designs that are written and published to the design system but that Arthur has 
 - [Rows and their indent](design-system/project/components/SettingRow/README.md) — no gutter: a row's marks follow its name (the Restart tag, the pending dot, then the warning or the invalid mark, or a button's result). Every row is set in `space-3` from the content's left, under a heading or not, and a heading starts `space-1` in. A section in a section is a level further, with its rule stopping short of its rows. The Developer report's problems have no mark and are set in as rows. Design system: [SettingRow](design-system/project/components/SettingRow/README.md) and [SectionHeader](design-system/project/components/SectionHeader/README.md).
 - Not designed yet, beside these: Immersive Flashlight's flags value, `sFlashlightFlagsBitmask`, which needs the package to name each flag.
 
+## Not in the design system yet
+
+Done in the code, and still to be drawn in the design system. A note leaves this list when the design system has it.
+
+- The menu's front page: Quick launch and Notices are headings that fold, as the Developer section's is, open each time the menu opens, each with its help in the help line ("Mods with a configuration of their own, which opens from here.", "What needs your attention: a restart of the game, or a mod that is not available."). Design system: [FullPanelHome](design-system/project/components/FullPanelHome/README.md) still has plain headings.
+- Tokens: the usage of `space-6` and of `red` in `tokens.json`, which `src/Theme.h` is generated from, still names the row's gutter, which is gone.
+
 ## Names
 
 - Player-facing name: **Mods Config VR**

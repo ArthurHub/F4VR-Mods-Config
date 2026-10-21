@@ -142,7 +142,6 @@ namespace mods_config::ui
 
         // the mods the menu lists, in order of their display names
         std::vector<model::Mod> _mods;
-        std::vector<QuickLaunchEntry> _quickLaunch;
 
         // the controls of the menu that the Help page tells, and what Minimize and Close do
         std::vector<ControlHelp> _controls;
@@ -158,6 +157,7 @@ namespace mods_config::ui
         // And the one Back shows again, from the page a press on one of its problems showed
         std::optional<std::size_t> _report;
         std::optional<std::size_t> _returnToReport;
+        FrontPage _frontPage;
         PackageReport _packageReport;
 
         // the front page is scrolled to its Developer section as it is drawn next, as it is left a report for

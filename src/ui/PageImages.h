@@ -20,6 +20,6 @@ namespace mods_config::ui
         std::function<void(const model::Image& image, const ImVec2& min, const ImVec2& max)> draw;
     };
 
-    void drawImage(const model::Image& image, const ImageDrawer& drawer, float width, float inset);
-    void drawTexture(const model::Image& image, const ImageDrawer& drawer, float width, float inset);
+    void drawImage(const model::Image& image, const ImageDrawer& drawer, float width);
+    void drawTexture(const model::Image& image, const ImageDrawer& drawer, float width);
 }

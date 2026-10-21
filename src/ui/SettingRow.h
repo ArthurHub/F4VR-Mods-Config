@@ -28,5 +28,5 @@ namespace mods_config::ui
         bool pressActed = false;
     };
 
-    SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context, const Gutter& gutter);
+    SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context);
 }

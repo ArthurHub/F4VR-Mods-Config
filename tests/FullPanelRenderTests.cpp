@@ -519,6 +519,17 @@ TEST_CASE("FullPanel render: the ray on a quick launch row", "[.render]")
     WARN("Saved " << renderToFile(panel, "front-page-quick-launch-hover", ImVec2(640.0f, 215.0f)));
 }
 
+TEST_CASE("FullPanel render: the quick launch section folded with the ray on its heading", "[.render]")
+{
+    auto panel = testSetPanel();
+    const ImVec2 heading(640.0f, 171.0f);
+    WARN("Saved " << renderToFile(panel, "front-page-quick-launch-folded", heading, false, [&panel, heading] {
+        for (const bool pressed : { false, false, true, false }) {
+            test_panel::drawFrame(panel, heading, pressed);
+        }
+    }));
+}
+
 TEST_CASE("FullPanel render: no mods and no quick launch", "[.render]")
 {
     FullPanel panel;
@@ -837,6 +848,14 @@ TEST_CASE("FullPanel render: settings that take effect after a restart, their st
     WARN("Saved " << renderToFile(panel, "package-restart-saved", POINTER_AWAY));
     panel.select({});
     WARN("Saved " << renderToFile(panel, "front-page-restart-notice", POINTER_AWAY));
+
+    // the Notices heading is under the page's two lines of text: the panel has no quick launch
+    const ImVec2 notices(640.0f, 171.0f);
+    WARN("Saved " << renderToFile(panel, "front-page-notices-folded", notices, false, [&panel, notices] {
+        for (const bool pressed : { false, false, true, false }) {
+            test_panel::drawFrame(panel, notices, pressed);
+        }
+    }));
 }
 
 TEST_CASE("FullPanel render: values the player typed that are not valid, which disable Save, and a text with a most of characters as it is typed", "[.render]")

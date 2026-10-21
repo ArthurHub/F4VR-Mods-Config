@@ -1,7 +1,9 @@
 #include "FrontPage.h"
 
+#include <algorithm>
 #include <format>
 #include <string_view>
+#include <utility>
 
 #include <imgui.h>
 
@@ -15,6 +17,31 @@ namespace
 
     // the width of a quick launch button, in the panel's pixels
     constexpr float BUTTON_WIDTH = 160.0f;
+
+    // the headings of the sections, and their help
+    constexpr auto QUICK_LAUNCH = "Quick launch";
+    constexpr auto QUICK_LAUNCH_HELP = "Mods with a configuration of their own, which opens from here.";
+    constexpr auto NOTICES = "Notices";
+    constexpr auto NOTICES_HELP = "What needs your attention: a restart of the game, or a mod that is not available.";
+
+    /**
+     * A heading that folds at the cursor, as wide as the page: a press folds or opens it. Tells its text and
+     * help while the ray is on it, and whether a press did something.
+     */
+    void foldingHeading(const char* text, const char* help, bool& folded, ui::FrontPageDrawn& drawn)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float width = ImGui::GetContentRegionAvail().x;
+        if (ImGui::InvisibleButton(text, ImVec2(width, theme::CONTROL_HEIGHT))) {
+            folded = !folded;
+            drawn.pressActed = true;
+        }
+        const bool onHeading = ImGui::IsItemHovered();
+        ui::drawFoldingHeading(text, pos, width, folded, onHeading || ImGui::IsItemActive(), {});
+        if (onHeading) {
+            drawn.pointed = ui::PointedRow{ .text = text, .help = help };
+        }
+    }
 
     /**
      * A notice of the menu's front page at the cursor that the game has to be restarted: the Restart mark, and
@@ -34,12 +61,13 @@ namespace
     }
 
     /**
-     * A row of the quick launch section, laid out as a setting's row: the mod's name after the gutter, and an
-     * Open button in the control column. The whole row is pressed, so the button is only drawn.
+     * A row of the quick launch section, laid out as a setting's row: set in a level under its heading, the mod's
+     * name, and an Open button in the control column. The whole row is pressed, so the button is only drawn.
      * Tells whether the ray is on the row.
      */
     bool quickLaunchRow(const char* name, bool& pointed)
     {
+        ImGui::Indent(theme::SPACE_3);
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ImGui::GetContentRegionAvail().x;
         const bool pressed = ImGui::InvisibleButton(name, ImVec2(width, theme::CONTROL_HEIGHT));
@@ -53,7 +81,8 @@ namespace
         const float labelLeft = buttonLeft + (BUTTON_WIDTH - ui::textWidth("Open")) * 0.5f;
         ui::drawText(labelLeft, buttonRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, "Open");
 
-        ui::drawText(pos.x + theme::SPACE_6 + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
+        ui::drawText(pos.x + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
+        ImGui::Unindent(theme::SPACE_3);
         return pressed;
     }
 
@@ -62,50 +91,71 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Draws the menu's introduction, quick launch entries, restart notices and unavailable mods.
-     * Empty sections are omitted. Returns the pressed entry and the row the ray is on.
+     * The quick launch entries the front page lists, each with what opens it.
      */
-    FrontPageDrawn drawFrontPage(const std::vector<QuickLaunchEntry>& entries, const std::vector<FrontPageMod>& mods)
+    void FrontPage::setQuickLaunch(std::vector<QuickLaunchEntry> entries)
+    {
+        _quickLaunch = std::move(entries);
+    }
+
+    /**
+     * Draws the menu's introduction, quick launch entries, restart notices and unavailable mods.
+     * Empty sections are omitted. The heading of each section folds: a press on it folds or opens it, and a
+     * press on a quick launch entry opens it.
+     * Returns the row the ray is on, and whether a press did something.
+     */
+    FrontPageDrawn FrontPage::draw(const std::vector<FrontPageMod>& mods)
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
         drawPageText(std::format("Settings for the mods you have installed. Pick a mod on the left to see its settings.\nVersion {}", Version::NAME));
 
         FrontPageDrawn drawn;
-        if (!entries.empty()) {
-            ImGui::SeparatorText("Quick launch");
+        if (!_quickLaunch.empty()) {
+            foldingHeading(QUICK_LAUNCH, QUICK_LAUNCH_HELP, _quickLaunchFolded, drawn);
         }
-        for (std::size_t index = 0; index < entries.size(); ++index) {
-            const auto& entry = entries[index];
-            bool onRow = false;
-            if (quickLaunchRow(entry.name.c_str(), onRow)) {
-                drawn.pressed = index;
-            }
-            if (onRow) {
-                drawn.pointed = PointedRow{ .text = entry.name, .help = entry.help };
+        if (!_quickLaunchFolded) {
+            for (const auto& entry : _quickLaunch) {
+                bool onRow = false;
+                if (quickLaunchRow(entry.name.c_str(), onRow)) {
+                    entry.open();
+                    drawn.pressActed = true;
+                }
+                if (onRow) {
+                    drawn.pointed = PointedRow{ .text = entry.name, .help = entry.help };
+                }
             }
         }
 
-        bool hasNotices = false;
-        const auto notices = [&hasNotices] {
-            if (!hasNotices) {
-                ImGui::SeparatorText("Notices");
-                hasNotices = true;
-            }
-        };
+        const bool hasNotices = std::ranges::any_of(mods, [](const FrontPageMod& mod) {
+            return mod.savedRestartCount > 0 || !mod.notAvailable.empty();
+        });
+        if (!hasNotices) {
+            return drawn;
+        }
+        foldingHeading(NOTICES, NOTICES_HELP, _noticesFolded, drawn);
+        if (_noticesFolded) {
+            return drawn;
+        }
         for (const auto& mod : mods) {
             const auto restarts = mod.savedRestartCount;
             if (restarts > 0) {
-                notices();
                 restartNotice(std::format("Restart the game: {} has {} saved change{} effect then.", mod.displayName, restarts, restarts == 1 ? " that takes" : "s that take"));
             }
         }
         for (const auto& mod : mods) {
             if (!mod.notAvailable.empty()) {
-                notices();
                 drawPageText(std::format("{} is not available: {}.", mod.displayName, mod.notAvailable));
             }
         }
         return drawn;
     }
 
+    /**
+     * Opens the sections again, as the menu is closed.
+     */
+    void FrontPage::reset()
+    {
+        _quickLaunchFolded = false;
+        _noticesFolded = false;
+    }
 }

@@ -8,6 +8,7 @@
 #include <imgui.h>
 
 #include "Drawing.h"
+#include "Theme.h"
 #include "model/Conditions.h"
 
 namespace
@@ -27,19 +28,6 @@ namespace mods_config::ui
     {
         const float indent = ImGui::GetCursorPosX() - ImGui::GetCursorStartPos().x;
         return ImGui::GetWindowWidth() - theme::SCROLLBAR_SIZE - theme::SPACE_2 - indent;
-    }
-
-    /**
-     * The gutter of a row by how many sections it is in. In a section in a section the line of that section
-     * runs down the left of the gutter, so the gutter is wider, its mark sits right of its middle, clear of
-     * the line, and the text is further in. The controls do not move. A text and an image start past the line.
-     */
-    Gutter gutterAt(const int depth)
-    {
-        if (depth < 2) {
-            return {};
-        }
-        return { .width = theme::SPACE_8, .mark = theme::SPACE_8 * 0.5f + theme::SPACE_2, .inset = theme::SPACE_6 };
     }
 
     /**
@@ -68,19 +56,21 @@ namespace mods_config::ui
     }
 
     /**
-     * Draws a row's plain or formatted label after its gutter, reserving room for restart and warning marks.
-     * The label shortens before a mark does, so the marks always show.
+     * Draws a row's plain or formatted label `space-3` inside the row's frame, with its marks after it, each
+     * `space-2` after what is before it. The label shortens before a mark does, so the marks always show.
      */
-    void drawLabel(const ImVec2& pos, const Gutter& gutter, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const bool warned,
-        const bool restart)
+    void drawLabel(const ImVec2& pos, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const RowMarks& marks)
     {
-        const float left = pos.x + gutter.width + theme::SPACE_3;
-        const float restartWidth = restart ? restartMarkWidth() : 0.0f;
+        const float left = pos.x + theme::SPACE_3;
+        const float restartWidth = marks.restart ? restartMarkWidth() : 0.0f;
         float textRight = right;
-        if (restart) {
+        if (marks.restart) {
             textRight -= theme::SPACE_2 + restartWidth;
         }
-        if (warned) {
+        if (marks.pending) {
+            textRight -= theme::SPACE_2 + PENDING_MARK_WIDTH;
+        }
+        if (marks.mark != TextMark::None) {
             textRight -= theme::SPACE_2 + WARNING_MARK_WIDTH;
         }
         float width = 0.0f;
@@ -92,12 +82,19 @@ namespace mods_config::ui
         }
         const float middle = pos.y + theme::CONTROL_HEIGHT * 0.5f;
         float markLeft = left + width + (width > 0.0f ? theme::SPACE_2 : 0.0f);
-        if (restart) {
+        if (marks.restart) {
             drawRestartMark(markLeft, middle);
             markLeft += restartWidth + theme::SPACE_2;
         }
-        if (warned) {
-            drawWarningMark(ImVec2(markLeft + WARNING_MARK_WIDTH * 0.5f, middle));
+        if (marks.pending) {
+            drawPendingMark(ImVec2(markLeft + PENDING_MARK_WIDTH * 0.5f, middle));
+            markLeft += PENDING_MARK_WIDTH + theme::SPACE_2;
+        }
+        const ImVec2 markCenter(markLeft + WARNING_MARK_WIDTH * 0.5f, middle);
+        if (marks.mark == TextMark::Warning) {
+            drawWarningMark(markCenter);
+        } else if (marks.mark == TextMark::Invalid) {
+            drawInvalidMark(markCenter);
         }
     }
 

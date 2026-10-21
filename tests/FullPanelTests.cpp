@@ -1039,6 +1039,49 @@ TEST_CASE("FullPanel: a press that opens a quick launch entry acts")
     CHECK(acted);
 }
 
+TEST_CASE("FullPanel: the Notices heading tells its help, and a press on it folds or opens it")
+{
+    const test_panel::PanelContext context;
+    FullPanel panel;
+    panel.setMods({ model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .notAvailable = "its plugin SS2.esm is not loaded" } });
+    drawFrames(panel, 2);
+
+    // the heading is under the page's two lines of text: the panel has no quick launch
+    const ImVec2 heading(640.0f, 171.0f);
+    point(panel, heading);
+    CHECK(panel.helpLine().text().starts_with("Notices: "));
+    CHECK(pressActs(panel, heading));
+    CHECK(pressActs(panel, heading));
+}
+
+TEST_CASE("FullPanel: a press on the quick launch heading folds its entries, and the menu opens with it open")
+{
+    const test_panel::PanelContext context;
+    FullPanel panel;
+    int opened = 0;
+    panel.setQuickLaunch({ { .name = "FRIK", .help = {}, .open = [&opened] {
+                                ++opened;
+                            } } });
+    drawFrames(panel, 2);
+
+    // the heading is under the page's two lines of text, and the entry's row under it
+    const ImVec2 heading(640.0f, 171.0f);
+    const ImVec2 entry(640.0f, 227.0f);
+    CHECK(pressActs(panel, heading));
+    press(panel, entry);
+    CHECK(opened == 0);
+
+    CHECK(pressActs(panel, heading));
+    press(panel, entry);
+    CHECK(opened == 1);
+
+    CHECK(pressActs(panel, heading));
+    panel.reset();
+    drawFrames(panel, 2);
+    press(panel, entry);
+    CHECK(opened == 2);
+}
+
 TEST_CASE("FullPanel: a row that is selected outside the shown rows of the tree is scrolled to")
 {
     const test_panel::PanelContext context;

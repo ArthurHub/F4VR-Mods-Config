@@ -27,24 +27,24 @@ namespace
     using namespace mods_config;
 
     /**
-     * A text row at the cursor: its lines in the muted color, in from the edges of the rows and wrapped
-     * between them.
+     * A text row at the cursor: its lines in the muted color, under the rows' names, and wrapped to the end of
+     * the rows.
      */
-    void drawTextRow(const model::Text& text, const ui::Gutter& gutter)
+    void drawTextRow(const model::Text& text)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
-        const float height = ui::drawTextLines(text.lines, ImVec2(pos.x + gutter.inset, pos.y), width - gutter.inset - theme::SPACE_2, theme::color::GREEN_MUTED);
+        const float height = ui::drawTextLines(text.lines, ImVec2(pos.x + theme::SPACE_3, pos.y), width - theme::SPACE_3 - theme::SPACE_2, theme::color::GREEN_MUTED);
         ImGui::Dummy(ImVec2(width, height));
     }
 
     /**
      * A row at the cursor that has no control, as its text and what it is. It is laid out as a setting's row:
-     * the text after the gutter, and the type where the control ends, before the room of its Reset.
+     * the text, and the type where the control ends, before the room of its Reset.
      * A row with a help is disabled, with the look of a row under the ray, and none of a press, which does nothing.
      * Returns whether the ray is on the row.
      */
-    bool drawRow(const std::string_view text, const std::span<const model::TextRun> runs, const std::string_view type, const bool hasHelp, const ui::Gutter& gutter)
+    bool drawRow(const std::string_view text, const std::span<const model::TextRun> runs, const std::string_view type, const bool hasHelp)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
@@ -59,7 +59,7 @@ namespace
         ImGui::BeginDisabled(hasHelp);
         const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
         ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
-        ui::drawLabel(pos, gutter, typeLeft - theme::SPACE_3, text, runs);
+        ui::drawLabel(pos, typeLeft - theme::SPACE_3, text, runs);
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -87,14 +87,14 @@ namespace
     constexpr float BUTTON_WIDTH = 160.0f;
 
     /**
-     * The row of a button at the cursor: its text after the gutter, and its button where a control ends,
+     * The row of a button at the cursor: its text, and its button where a control ends,
      * before the room of a Reset, with its own text or `Run`. The whole row is pressed, so the button is
      * only drawn, and a press runs the action in the store. A button with no action is disabled, and so is
      * one whose action the menu does not run, which the reason says, and one whose enabledWhen does not hold.
      * A button whose warning holds has the warning mark after its text.
      * Returns whether the ray is on the row, and tells the reason and the warning.
      */
-    bool drawButton(const model::Button& button, const PageDrawing& page, const ui::Gutter& gutter, std::string& reason, std::string_view& warning)
+    bool drawButton(const model::Button& button, const PageDrawing& page, std::string& reason, std::string_view& warning)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
@@ -121,7 +121,7 @@ namespace
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
         ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
         ui::drawTextIn(box, button.buttonText.empty() ? std::string_view("Run") : std::string_view(button.buttonText), theme::color::GREEN, 0.5f, theme::SPACE_3);
-        ui::drawLabel(pos, gutter, box.Min.x - theme::SPACE_3, button.text, button.textRuns, !warning.empty());
+        ui::drawLabel(pos, box.Min.x - theme::SPACE_3, button.text, button.textRuns, { .mark = warning.empty() ? ui::TextMark::None : ui::TextMark::Warning });
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -130,14 +130,14 @@ namespace
     constexpr float KEY_MIN_WIDTH = 96.0f;
 
     /**
-     * The row of a hotkey at the cursor: its text after the gutter, and the key it is bound to in a box as
+     * The row of a hotkey at the cursor: its text, and the key it is bound to in a box as
      * wide as its name, where a control ends, before the room of a Reset. A hotkey with no key says `None`.
      * The key is only shown, so the whole row is always disabled, as a row that cannot be edited is. It has
      * the look of a row under the ray, for its help, but none of a press, which does nothing.
      * A hotkey that is not available looks the same, and the reason tells it from the others.
      * Returns whether the ray is on the row.
      */
-    bool drawHotkey(const model::Hotkey& hotkey, const PageDrawing& page, const ui::Gutter& gutter, std::string& reason)
+    bool drawHotkey(const model::Hotkey& hotkey, const PageDrawing& page, std::string& reason)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
@@ -155,7 +155,7 @@ namespace
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - boxWidth, pos.y, boxWidth);
 
         ImGui::BeginDisabled();
-        ui::drawLabel(pos, gutter, box.Min.x - theme::SPACE_3, hotkey.text, hotkey.textRuns);
+        ui::drawLabel(pos, box.Min.x - theme::SPACE_3, hotkey.text, hotkey.textRuns);
         ui::drawFrame(box);
         ui::drawTextIn(box, name, theme::color::GREEN, 0.5f);
         ImGui::EndDisabled();
@@ -204,9 +204,10 @@ namespace
     constexpr int MAX_SET_IN = 3;
 
     /**
-     * A section at the cursor: its heading, where it is shown, and the rows of its items under it. A section in a
-     * section is set in with its rows, by the step a page is set in under its mod in the tree, up to the third
-     * level, and while it is open and has rows its line runs down their left, so its rows are seen to be its and
+     * A section at the cursor: its heading, where it is shown, and the rows of its items under it, which are set
+     * in a level. A section in a section is set in a level with what is in it, up to the third, so its heading
+     * starts where the outer section's rows do. While it is open and has rows its line runs from under the start
+     * of its heading's text down to its last row, and stops short of the rows, so its rows are seen to be its and
      * not the outer section's. The depth is how many sections it is in.
      * A section that folds has a heading that a press folds or opens, and its rows are drawn while it is open.
      * One whose heading is not shown keeps its fold, and has no line. The heading of any other tells its help
@@ -216,9 +217,9 @@ namespace
     {
         const bool setIn = depth > 0 && depth <= MAX_SET_IN;
         if (setIn) {
-            ImGui::Indent();
+            ImGui::Indent(theme::SPACE_3);
         }
-        const float lineLeft = ImGui::GetCursorScreenPos().x + theme::SPACE_2;
+        const float headingLeft = ImGui::GetCursorScreenPos().x;
         bool folded = false;
         if (group.collapsible) {
             folded = headingShown ? drawFoldingHeading(group, page) : page.sections.isFolded(group);
@@ -234,11 +235,13 @@ namespace
             drawItems(group.items, page, depth + 1);
             const float rowsEnd = ImGui::GetCursorScreenPos().y;
             if (depth > 0 && headingShown && rowsEnd > rowsTop) {
-                ui::drawSectionLine(lineLeft, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y);
+                // the rows' frames are a level in from the heading
+                const float rowsLeft = headingLeft + theme::SPACE_3;
+                ui::drawSectionLine(headingLeft + theme::SPACE_1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, rowsLeft - theme::SPACE_1);
             }
         }
         if (setIn) {
-            ImGui::Unindent();
+            ImGui::Unindent(theme::SPACE_3);
         }
     }
 
@@ -262,7 +265,7 @@ namespace
 
         void operator()(const model::Setting& setting) const
         {
-            auto drawn = ui::drawSettingRow(setting, { .store = page.store, .sliders = page.sliders, .choices = page.choices, .textInputs = page.textInputs }, ui::gutterAt(depth));
+            auto drawn = ui::drawSettingRow(setting, { .store = page.store, .sliders = page.sliders, .choices = page.choices, .textInputs = page.textInputs });
             if (drawn.pointed) {
                 page.drawn.pointed = std::move(drawn.pointed);
             }
@@ -278,7 +281,7 @@ namespace
         {
             std::string reason;
             std::string_view warning;
-            if (drawButton(button, page, ui::gutterAt(depth), reason, warning)) {
+            if (drawButton(button, page, reason, warning)) {
                 page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason), .warning = warning };
             }
         }
@@ -286,24 +289,24 @@ namespace
         void operator()(const model::Hotkey& hotkey) const
         {
             std::string reason;
-            if (drawHotkey(hotkey, page, ui::gutterAt(depth), reason)) {
+            if (drawHotkey(hotkey, page, reason)) {
                 page.drawn.pointed = ui::PointedRow{ .text = hotkey.text, .help = ui::readOnlyHelp(std::move(reason), hotkey.help) };
             }
         }
 
         void operator()(const model::Text& text) const
         {
-            drawTextRow(text, ui::gutterAt(depth));
+            drawTextRow(text);
         }
 
         void operator()(const model::Image& image) const
         {
             if (image.pixels) {
-                ui::drawImage(image, page.imageDrawer, ui::rowWidth(), ui::gutterAt(depth).inset);
+                ui::drawImage(image, page.imageDrawer, ui::rowWidth());
             } else if (!image.texture.empty()) {
-                ui::drawTexture(image, page.imageDrawer, ui::rowWidth(), ui::gutterAt(depth).inset);
+                ui::drawTexture(image, page.imageDrawer, ui::rowWidth());
             } else {
-                drawRow({}, {}, "image", false, ui::gutterAt(depth));
+                drawRow({}, {}, "image", false);
             }
         }
 
@@ -315,7 +318,7 @@ namespace
         void operator()(const model::Placeholder& placeholder) const
         {
             const bool typed = !placeholder.type.empty();
-            if (drawRow(placeholder.text, placeholder.textRuns, typed ? std::string_view(placeholder.type) : "unknown", true, ui::gutterAt(depth))) {
+            if (drawRow(placeholder.text, placeholder.textRuns, typed ? std::string_view(placeholder.type) : "unknown", true)) {
                 auto help = typed ? std::format("Not available: the menu has no {} control.", placeholder.type) : std::string("Not available: the row has no type of control.");
                 page.drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = std::move(help) };
             }
@@ -338,8 +341,9 @@ namespace
     }
 
     /**
-     * Draws the items that are shown, each as its row. An item that is not shown has no row and no room.
-     * A section that is not shown is without its heading alone: its items are shown by their own conditions.
+     * Draws the items that are shown, each as its row, set in a level from the heading they are under, or from
+     * the content's left. An item that is not shown has no row and no room. A section that is not shown is
+     * without its heading alone: its items are shown by their own conditions.
      * The depth is how many sections the items are in.
      */
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page, const int depth)
@@ -347,6 +351,11 @@ namespace
         for (const auto& item : items) {
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
+            // a section sets in its heading and its rows itself
+            const bool isRow = !std::holds_alternative<model::Group>(item);
+            if (isRow) {
+                ImGui::Indent(theme::SPACE_3);
+            }
             const auto top = ImGui::GetCursorScreenPos();
             if (isShown(item, page.store)) {
                 std::visit(ItemDrawer{ .page = page, .depth = depth }, item);
@@ -355,6 +364,9 @@ namespace
             }
             if (&item == page.focused) {
                 drawFocus(ImRect(top, ImVec2(top.x + ui::rowWidth(), ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y)), page.scrollToFocused);
+            }
+            if (isRow) {
+                ImGui::Unindent(theme::SPACE_3);
             }
             ImGui::PopID();
         }
