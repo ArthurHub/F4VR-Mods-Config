@@ -114,6 +114,10 @@ namespace
         std::string path;
         std::vector<std::string> pages;
         std::string row;
+
+        // the places of the pages on the way to the page, and of the row among its items and those of its sections
+        std::vector<std::size_t> pagePlaces;
+        std::vector<std::size_t> itemPlaces;
     };
 
     /**
@@ -134,7 +138,8 @@ namespace
         Location at;
 
         /**
-         * Adds a problem where the reading is: on its row, or else on its page, or else of the package itself.
+         * Adds a problem where the reading is: on its row, with the row's place, or else on its page, or else of the
+         * package itself.
          */
         void report(const model::Severity severity, std::string message)
         {
@@ -146,7 +151,9 @@ namespace
                 where += (where.empty() ? "" : WHERE_SEPARATOR) + at.row;
             }
             auto row = !at.row.empty() ? at.row : !at.pages.empty() ? at.pages.back() : std::string(CONFIG_FILE);
-            problems.push_back({ .severity = severity, .row = std::move(row), .message = std::move(message), .where = std::move(where), .path = at.path });
+            auto place = !at.row.empty() ? std::optional(model::RowPlace{ .page = at.pagePlaces, .item = at.itemPlaces }) : std::nullopt;
+            problems.push_back(
+                { .severity = severity, .row = std::move(row), .message = std::move(message), .where = std::move(where), .path = at.path, .place = std::move(place) });
         }
     };
 
@@ -1179,6 +1186,7 @@ namespace
             const auto& row = (*content)[place];
             const Into into(reading, "content", place);
             reading.at.row = rowName(row, reading.translations);
+            reading.at.itemPlaces.push_back(place);
             const auto type = getText(row, "type");
             if (type == "section") {
                 checkFields(row, SECTION_FIELDS, reading);
@@ -1234,7 +1242,8 @@ namespace
 
     /**
      * A page of a package, with the pages under it, which get its `defaultFile` and its `applies` as its
-     * items do. A problem in it is on it: the caller reads it `Into` its place, which takes the page back off.
+     * items do. A problem in it is on it: the caller reads it `Into` its place, with its place among the pages,
+     * which takes the page back off.
      */
     model::Page loadPage(const Json& page, const Inherited& above, PackageReading& reading)
     {
@@ -1246,6 +1255,7 @@ namespace
         if (const auto pages = page.find("pages"); pages != page.end() && pages->is_array()) {
             for (std::size_t place = 0; place < pages->size(); ++place) {
                 const Into into(reading, "pages", place);
+                reading.at.pagePlaces.push_back(place);
                 loaded.pages.push_back(loadPage((*pages)[place], own, reading));
             }
         }
@@ -1500,6 +1510,7 @@ namespace
             auto& item = items[place];
             const Into into(reading, "content", place);
             reading.at.row = rowName(row, reading.translations);
+            reading.at.itemPlaces.push_back(place);
             const RowConditions own{ .visibleWhen = join(above.visibleWhen, loadRowCondition(row, "visibleWhen", reading)),
                 .enabledWhen = join(above.enabledWhen, loadRowCondition(row, "enabledWhen", reading)) };
             std::visit(
@@ -1532,6 +1543,7 @@ namespace
         }
         for (std::size_t place = 0; place < pages->size() && place < loaded.pages.size(); ++place) {
             const Into into(reading, "pages", place);
+            reading.at.pagePlaces.push_back(place);
             loadPageConditions((*pages)[place], loaded.pages[place], reading);
         }
     }
@@ -1806,10 +1818,12 @@ namespace mods_config::package
         if (const auto pages = package.find("pages"); pages != package.end() && pages->is_array()) {
             for (std::size_t place = 0; place < pages->size(); ++place) {
                 const Into into(reading, "pages", place);
+                reading.at.pagePlaces.push_back(place);
                 mod.pages.push_back(loadPage((*pages)[place], root, reading));
             }
             for (std::size_t place = 0; place < pages->size(); ++place) {
                 const Into into(reading, "pages", place);
+                reading.at.pagePlaces.push_back(place);
                 loadPageConditions((*pages)[place], mod.pages[place], reading);
             }
         }
@@ -1841,12 +1855,13 @@ namespace mods_config::package
             text << std::ifstream(file, std::ios::binary).rdbuf();
 
             auto mod = loadPackage(text.str(), translations, plugins);
+            const auto folderName = toLogText(folder->path().filename());
             if (!mod) {
-                const auto folderName = toLogText(folder->path().filename());
                 auto reason = std::format("It cannot be read: {}.", mod.error());
                 mod = notAvailableMod(folderName, folderName, "its package cannot be read");
                 mod->problems.push_back({ .severity = model::Severity::Error, .row = CONFIG_FILE, .message = std::move(reason), .where = {}, .path = {} });
             }
+            mod->folder = folderName;
             mods.push_back(std::move(*mod));
         }
 
@@ -1856,7 +1871,9 @@ namespace mods_config::package
         }
         for (auto& mod : mods) {
             if (mod.notAvailable.empty() && names[common::str_tolower(mod.name)] > 1) {
+                auto folder = std::move(mod.folder);
                 mod = notAvailableMod(mod.name, mod.displayName, "its package has the modName of another package");
+                mod.folder = std::move(folder);
                 mod.problems.push_back({ .severity = model::Severity::Error,
                     .row = CONFIG_FILE,
                     .message = std::format("Another package has the modName \"{}\": neither is read.", mod.name),

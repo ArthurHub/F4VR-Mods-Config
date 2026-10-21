@@ -1519,3 +1519,27 @@ TEST_CASE("FullPanel render: the front page's Developer section, open with the r
     auto all = panelWith({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false });
     WARN("Saved " << renderToFile(all, "front-page-developer-all", POINTER_AWAY));
 }
+
+TEST_CASE("FullPanel render: the package showcase's report, with the ray on a problem, and the row a problem shows in its focus ring", "[.render]")
+{
+    const auto mods = package::loadPackages(MODS_CONFIG_PACKAGE_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    package::PackageStore store(std::filesystem::path(MODS_CONFIG_PACKAGE_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::Package, &store);
+    panel.setMods(mods);
+    panel.setDeveloper({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false }, {});
+    REQUIRE(panel.openReport(0));
+    // the ray on the second error, under the page's text and the heading of the errors
+    WARN("Saved " << renderToFile(panel, "package-report", ImVec2(900.0f, 345.0f)));
+
+    // the first problem with a row on the Mistakes page: its row in the ring, in a section that was folded or not
+    const auto& problems = panel.mods()[0].problems;
+    const auto onRow = std::ranges::find_if(problems, [](const model::Problem& problem) {
+        return problem.place && problem.where.find("Mistakes") != std::string::npos && problem.message.starts_with("Its applies");
+    });
+    REQUIRE(onRow != problems.end());
+    REQUIRE(panel.showProblem(0, static_cast<std::size_t>(onRow - problems.begin())));
+    WARN("Saved " << renderToFile(panel, "package-report-focused-row", POINTER_AWAY));
+}

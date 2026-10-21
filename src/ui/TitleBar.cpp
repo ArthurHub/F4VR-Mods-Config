@@ -29,6 +29,9 @@ namespace
     // the breadcrumb of the Help page, after the menu's
     constexpr auto HELP_CRUMB = "Help";
 
+    // the breadcrumb of the front page's Developer section, before a package's report
+    constexpr auto DEVELOPER_CRUMB = "Developer";
+
     // what the help line says of the title bar's buttons
     constexpr auto HELP_HELP = "What each control of the menu does, with the buttons your config has for it.";
     constexpr auto MINIMIZE_HELP = "Hides the menu, as you left it. Resume on your offhand wrist shows it again.";
@@ -110,9 +113,11 @@ namespace mods_config::ui
 {
     /**
      * Draws the breadcrumbs and Help, Minimize and Close buttons, with overflowing pages collapsed to an
-     * ellipsis and long names shortened. Returns the pressed selection or button and the hovered help.
+     * ellipsis and long names shortened. A package's report, shown over the menu's front page, has the crumbs
+     * of the menu, of the Developer section, and of the package's name. Returns the pressed selection,
+     * Developer crumb or button and the hovered help.
      */
-    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown)
+    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const model::Mod* report)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ImGui::GetContentRegionAvail().x;
@@ -163,7 +168,7 @@ namespace mods_config::ui
         };
         const auto* mod = selection.mod && !helpShown ? &mods[*selection.mod] : nullptr;
 
-        if (crumb("menu", TITLE, at, crumbWidth(TITLE), mod || helpShown ? CrumbLook::Link : CrumbLook::Selected)) {
+        if (crumb("menu", TITLE, at, crumbWidth(TITLE), mod || helpShown || report ? CrumbLook::Link : CrumbLook::Selected)) {
             bar.pressed = Selection{};
         }
         at.x += crumbWidth(TITLE) + gap;
@@ -171,6 +176,14 @@ namespace mods_config::ui
         if (helpShown) {
             drawSeparator();
             crumb("help", HELP_CRUMB, at, (std::min)(crumbWidth(HELP_CRUMB), right - at.x), CrumbLook::Current);
+        } else if (report) {
+            drawSeparator();
+            if (crumb("developer", DEVELOPER_CRUMB, at, crumbWidth(DEVELOPER_CRUMB), CrumbLook::Link)) {
+                bar.developerPressed = true;
+            }
+            at.x += crumbWidth(DEVELOPER_CRUMB) + gap;
+            drawSeparator();
+            crumb("report", report->displayName, at, (std::min)(crumbWidth(report->displayName), right - at.x), CrumbLook::Current);
         } else if (mod) {
             // the pages on the way to the selected page, by their names: MCM's own list sets a page in under
             // another by spaces before its name, which are the tree's

@@ -60,7 +60,7 @@ The milestone builds on milestone 5 to complete packages: the rows that are left
 | M57 | mod  | The unsaved-changes prompt                                                                | in review |
 | M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | in review |
 | M60 | mod  | A package whose requirements are missing is not available                                 | in review |
-| M61 | mod  | A package's errors are reported, in the log and to its author in the menu                 | todo   |
+| M61 | mod  | A package's errors are reported, in the log and to its author in the menu                 | in review |
 | M117 | mod | A live copy of a package's config.json, read again as it is saved                         | todo   |
 
 M108, M109, M111 and M112 draw what M103 added to the page and the tree:

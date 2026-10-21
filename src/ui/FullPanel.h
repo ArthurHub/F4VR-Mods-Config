@@ -12,6 +12,7 @@
 #include "MenuControls.h"
 #include "ModPage.h"
 #include "ModTree.h"
+#include "PackageReport.h"
 #include "Selection.h"
 #include "TitleBar.h"
 #include "UnsavedDialog.h"
@@ -79,6 +80,15 @@ namespace mods_config::ui
             return _developerView;
         }
 
+        // the package whose report is shown over the menu's front page, by its place among the mods, and none
+        std::optional<std::size_t> report() const
+        {
+            return _report;
+        }
+
+        bool openReport(std::size_t mod);
+        bool showProblem(std::size_t mod, std::size_t problem);
+
         // whether the Help page is shown, over the selection, which it keeps
         bool isHelpShown() const
         {
@@ -113,12 +123,16 @@ namespace mods_config::ui
         {
             Selection to;
             bool closeMenu = false;
+
+            // the package whose report is shown over the menu's front page, which it goes to
+            std::optional<std::size_t> report;
         };
 
         model::Store* storeOf(const model::Mod& mod) const;
         bool hasUnsavedChanges() const;
         bool show(const Selection& shown);
         bool leave();
+        bool leaveReport(bool toDeveloper);
         void updateStatus();
         void pageShown();
         bool pressButton(TitleButton button);
@@ -139,6 +153,15 @@ namespace mods_config::ui
 
         // the Help page is shown in place of the selection's page, which Back shows again
         bool _helpShown = false;
+
+        // the package whose report is shown over the menu's front page, by its place among the mods, and none.
+        // And the one Back shows again, from the page a press on one of its problems showed
+        std::optional<std::size_t> _report;
+        std::optional<std::size_t> _returnToReport;
+        PackageReport _packageReport;
+
+        // the front page is scrolled to its Developer section as it is drawn next, as it is left a report for
+        bool _scrollToDeveloper = false;
 
         // what the dialog asks before, while it is shown
         std::optional<Leave> _leaving;

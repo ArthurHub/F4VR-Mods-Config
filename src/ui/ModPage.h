@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <vector>
 
 #include "Choices.h"
 #include "HelpLine.h"
@@ -43,6 +44,7 @@ namespace mods_config::ui
         bool cancelDrag();
         bool closeList();
         bool cancelEdit();
+        void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();
 
     private:
@@ -60,5 +62,9 @@ namespace mods_config::ui
 
         // its sections that fold, and whether each is folded
         Sections _sections;
+
+        // the item that has the focus ring, and none, and whether the page is scrolled to it as it is drawn next
+        const model::Item* _focused = nullptr;
+        bool _scrollToFocused = false;
     };
 }

@@ -3209,10 +3209,10 @@ TEST_CASE("FullPanel: with Developer tools on, the front page lists the packages
     CHECK(listedPackages(panel) == Names{ "Beam", "Hands", "Holsters" });
 
     rowWithHelp(panel, "Beam:");
-    CHECK(panel.helpLine().text() == "Beam: 1 error: parts of it are left out. 2 warnings: read, and likely not what is meant.");
+    CHECK(panel.helpLine().text() == "Beam: 1 error: parts of it are left out. 2 warnings: read, and likely not what is meant. Opens its report.");
     CHECK_FALSE(panel.helpLine().isInvalid());
     rowWithHelp(panel, "Holsters:");
-    CHECK(panel.helpLine().text() == "Holsters: It cannot be read: line 4.");
+    CHECK(panel.helpLine().text() == "Holsters: It cannot be read: line 4. Opens its report.");
     CHECK(panel.helpLine().isInvalid());
     CHECK(written.empty());
 }
@@ -3233,9 +3233,9 @@ TEST_CASE("FullPanel: the Developer section's filter steps to all the packages a
     CHECK(written.back().show == ui::ShowPackages::All);
     CHECK(listedPackages(panel) == Names{ "Beam", "Clean", "Hands", "Holsters", "Settlements" });
     rowWithHelp(panel, "Settlements:");
-    CHECK(panel.helpLine().text() == "Settlements: Not available: its plugin SS2.esm is not loaded.");
+    CHECK(panel.helpLine().text() == "Settlements: Not available: its plugin SS2.esm is not loaded. Opens its report.");
     rowWithHelp(panel, "Clean:");
-    CHECK(panel.helpLine().text() == "Clean: No problems.");
+    CHECK(panel.helpLine().text() == "Clean: No problems. Opens its report.");
 
     // the third option is the package the settings name, alone
     CHECK(pressActs(panel, *rowWithHelp(panel, "Show:")));
@@ -3261,4 +3261,123 @@ TEST_CASE("FullPanel: the Developer section's filter has no option of a package 
     // from All, the option after is the first again
     CHECK(pressActs(panel, *rowWithHelp(panel, "Show:")));
     CHECK(panel.developerView().show == ui::ShowPackages::NeedingAttention);
+}
+
+namespace
+{
+    /**
+     * The menu's front page with Developer tools on, and one package with problems: a switcher with no storage
+     * in a section of its page Beam, and an unknown field of a row of its front page, which a package store
+     * has the values of.
+     */
+    FullPanel reportPanel(package::PackageStore& store)
+    {
+        auto mod = package::loadPackage(R"({
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+            "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+            "defaultFile": "main",
+            "content": [ { "type": "spacer", "lines": 2 } ],
+            "pages": [ { "pageDisplayName": "Beam", "content": [
+                { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } },
+                { "type": "section", "text": "Shape", "isCollapsible": true, "collapsed": true, "content": [
+                    { "type": "switcher", "text": "Angle", "default": true }
+                ] }
+            ] } ]
+        })");
+        REQUIRE(mod);
+        mod->folder = "MyFolder";
+        FullPanel panel;
+        panel.setStore(model::Source::Package, &store);
+        panel.setMods({ std::move(*mod) });
+        panel.setDeveloper({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false }, {});
+        return panel;
+    }
+}
+
+TEST_CASE("FullPanel: a press on a package of the Developer section opens its report, whose problems tell where they are, and Back goes back")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    package::PackageStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    drawFrames(panel, 2);
+
+    const auto row = rowWithHelp(panel, "My Mod:");
+    REQUIRE(row);
+    CHECK(panel.helpLine().text() == "My Mod: 1 error: parts of it are left out. 1 warning: read, and likely not what is meant. Opens its report.");
+    CHECK(pressActs(panel, *row));
+    CHECK(panel.report() == 0u);
+    CHECK_FALSE(panel.selection().mod);
+
+    // a problem tells its message, where it is, and that it goes to its row
+    rowWithHelp(panel, "Angle:");
+    CHECK(panel.helpLine().text() == "Angle: It has no storage: it is not available. Beam \xE2\x80\xBA Angle \xC2\xB7 pages[0].content[1].content[0]. Goes to the row.");
+    CHECK_FALSE(panel.helpLine().isInvalid());
+    rowWithHelp(panel, "spacer:");
+    CHECK(panel.helpLine().text() == "spacer: Unknown field \"lines\": it is not read. spacer \xC2\xB7 content[0].lines. Goes to the row.");
+    CHECK(rowWithHelp(panel, "Errors: What the menu left out"));
+
+    // Back goes to the menu's front page, and so does its crumb
+    CHECK(panel.back());
+    CHECK_FALSE(panel.report());
+    CHECK(pressActs(panel, *rowWithHelp(panel, "My Mod:")));
+    CHECK(panel.report() == 0u);
+    CHECK(pressActs(panel, ImVec2(test_panel::CONTENT_START + 100.0f, test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f)));
+    CHECK_FALSE(panel.report());
+    CHECK_FALSE(panel.selection().mod);
+}
+
+TEST_CASE("FullPanel: a press on a problem of a report shows its row's page, with its section open, and Back shows the report again")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    package::PackageStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    drawFrames(panel, 2);
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Angle:")));
+    CHECK_FALSE(panel.report());
+    CHECK(panel.selection() == Selection{ .mod = 0, .page = { 0 } });
+    // the section that starts folded is open, so its row is drawn
+    CHECK(rowWithHelp(panel, "Angle:"));
+
+    CHECK(panel.back());
+    CHECK(panel.report() == 0u);
+    CHECK_FALSE(panel.selection().mod);
+    CHECK(panel.back());
+    CHECK_FALSE(panel.report());
+
+    // with a change that waits for a Save, Back asks first, and the dialog's Discard shows the report
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Angle:")));
+    CHECK(pressActs(panel, *rowWithHelp(panel, "Enable:")));
+    CHECK(store.dirtyCount() == 1);
+    CHECK(panel.back());
+    CHECK(panel.isAsking());
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, dialogButton(DIALOG_DISCARD)));
+    CHECK(panel.report() == 0u);
+    CHECK(store.dirtyCount() == 0);
+}
+
+TEST_CASE("FullPanel: a report of a package that cannot be read tells its error as one, and has no row to go to")
+{
+    const test_panel::PanelContext context;
+    model::Mod broken{ .name = "Broken", .displayName = "Broken", .notAvailable = "its package cannot be read", .source = model::Source::Package };
+    broken.problems.push_back({ .severity = model::Severity::Error, .row = "config.json", .message = "It cannot be read: line 4.", .where = {}, .path = {} });
+    FullPanel panel;
+    panel.setMods({ std::move(broken) });
+    panel.setDeveloper({ .enabled = true, .show = ui::ShowPackages::All, .package = {}, .folded = false }, {});
+    drawFrames(panel, 2);
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+    const auto row = rowWithHelp(panel, "config.json:");
+    REQUIRE(row);
+    CHECK(panel.helpLine().text() == "config.json: It cannot be read: line 4.");
+    CHECK(panel.helpLine().isInvalid());
+    CHECK_FALSE(pressActs(panel, *row));
+    CHECK(panel.report() == 0u);
 }

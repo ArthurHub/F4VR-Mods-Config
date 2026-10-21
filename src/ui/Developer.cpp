@@ -120,10 +120,10 @@ namespace
     {
         if (state.notLoaded) {
             const auto error = std::ranges::find(mod.problems, model::Severity::Error, &model::Problem::severity);
-            return { .text = mod.displayName, .help = error->message, .warning = {}, .invalid = true };
+            return { .text = mod.displayName, .help = error->message + " Opens its report.", .warning = {}, .invalid = true };
         }
         if (state.notAvailable) {
-            return { .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable), .warning = {}, .invalid = false };
+            return { .text = mod.displayName, .help = std::format("Not available: {}. Opens its report.", mod.notAvailable), .warning = {}, .invalid = false };
         }
         std::string help;
         if (state.errors > 0) {
@@ -132,7 +132,7 @@ namespace
         if (state.warnings > 0) {
             help += (help.empty() ? "" : " ") + countOf(state.warnings, "warning") + ": read, and likely not what is meant.";
         }
-        return { .text = mod.displayName, .help = help.empty() ? "No problems." : help, .warning = {}, .invalid = false };
+        return { .text = mod.displayName, .help = (help.empty() ? "No problems." : help) + " Opens its report.", .warning = {}, .invalid = false };
     }
 }
 
@@ -152,9 +152,10 @@ namespace mods_config::ui
      * steps, as any stepper. A Package that names no package has no option.
      * Then a row for each package the filter lists, in the order of the mods: its name, and its errors and its
      * warnings, `No problems`, `Not loaded` in red after the invalid mark for one that cannot be read, or `Not
-     * available`, and an arrow in the room of a Reset.
+     * available`, and an arrow in the room of a Reset: a press on it tells its package, whose report it opens.
+     * Scrolled to, the page is scrolled to put the section's heading at its top.
      */
-    DeveloperDrawn DeveloperSection::draw(const std::vector<model::Mod>& mods, DeveloperView& view, const float thumbstickSideValue)
+    DeveloperDrawn DeveloperSection::draw(const std::vector<model::Mod>& mods, DeveloperView& view, const float thumbstickSideValue, const bool scrollTo)
     {
         DeveloperDrawn drawn;
         _filter.startFrame(thumbstickSideValue);
@@ -167,6 +168,9 @@ namespace mods_config::ui
             drawn.pressActed = true;
         }
         const bool onHeading = ImGui::IsItemHovered();
+        if (scrollTo) {
+            ImGui::SetScrollHereY(0.0f);
+        }
         std::size_t packages = 0;
         auto listed = listedPackages(mods, view, packages);
         std::size_t errors = 0;
@@ -230,7 +234,10 @@ namespace mods_config::ui
             const auto state = stateOf(mod);
             ImGui::PushID(static_cast<int>(place));
             const auto pos = ImGui::GetCursorScreenPos();
-            ImGui::InvisibleButton("package", ImVec2(width, theme::CONTROL_HEIGHT));
+            if (ImGui::InvisibleButton("package", ImVec2(width, theme::CONTROL_HEIGHT))) {
+                drawn.opened = place;
+                drawn.pressActed = true;
+            }
             const bool onRow = ImGui::IsItemHovered();
             drawRowState();
 

@@ -83,6 +83,14 @@ namespace mods_config::ui
     }
 
     /**
+     * Opens a section, as a press on its heading does, so a row in it is drawn.
+     */
+    void Sections::open(const model::Group& group)
+    {
+        _folded[&group] = false;
+    }
+
+    /**
      * Draws the heading of a section that folds in its row, which the page added at a place and in a width: an
      * arrow that points right while it is folded and down while it is open, its text, and a rule from it to the
      * right edge of the rows, as a heading has. Its text and its arrow are muted, and brighter while the ray

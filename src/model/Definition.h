@@ -672,6 +672,18 @@ namespace mods_config::model
     };
 
     /**
+     * Where a row is in its mod: the page it is on, as a selection names a page, empty for the mod's front page,
+     * and its place among the page's items, then among the items of each section on the way to it.
+     */
+    struct RowPlace
+    {
+        std::vector<std::size_t> page;
+        std::vector<std::size_t> item;
+
+        bool operator==(const RowPlace&) const = default;
+    };
+
+    /**
      * A problem of a package, for its author: what is wrong, what the menu did with it, and where it is.
      */
     struct Problem
@@ -689,6 +701,9 @@ namespace mods_config::model
 
         // where it is in config.json, as `pages[0].content[4]`. Empty for the file as a whole
         std::string path;
+
+        // the row it is on, which the menu can show. None for a problem of a page or of the package itself
+        std::optional<RowPlace> place;
 
         bool operator==(const Problem&) const = default;
     };
@@ -714,5 +729,9 @@ namespace mods_config::model
 
         // a package's problems, in the order of its config.json. None for an MCM mod
         std::vector<Problem> problems;
+
+        // the folder of a package's config.json, in `Data\ModsConfigVR\Config`. Empty for an MCM mod, and for a
+        // package that was read alone
+        std::string folder;
     };
 }

@@ -1622,3 +1622,42 @@ TEST_CASE("PackageLoader: a choice with listFromClientCallback takes its options
     CHECK_FALSE(std::get<model::Setting>(mod.frontPage.items[1]).valueOptions.clientOptions);
     CHECK(problemLines(mod) == Lines{ "E Not true: It has no list of options, or names no shared list of its package: it has no options. [Not true] content[1].valueOptions" });
 }
+
+TEST_CASE("PackageLoader: a problem on a row has the row's place, by its page and its items, and the folder of a package is kept")
+{
+    const test_files::TempFolder folder;
+    folder.write("MyFolder/config.json", R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "Typo": 1,
+        "content": [ { "type": "spacer" }, { "type": "spacer", "lines": 1 } ],
+        "pages": [
+            { "pageDisplayName": "One", "content": [ { "type": "spacer" } ] },
+            {
+                "pageDisplayName": "Two", "visibleWen": 1,
+                "content": [ { "type": "spacer" } ],
+                "pages": [ { "pageDisplayName": "Under", "content": [
+                    { "type": "text", "text": "A" },
+                    { "type": "section", "text": "Section", "content": [ { "type": "spacer" }, { "type": "switcher", "text": "No storage", "default": true } ] }
+                ] } ]
+            }
+        ]
+    })");
+    const auto mods = package::loadPackages(folder.path);
+    REQUIRE(mods.size() == 1);
+    CHECK(mods[0].folder == "MyFolder");
+    Lines places;
+    for (const auto& problem : mods[0].problems) {
+        std::string line = problem.path + ":";
+        if (problem.place) {
+            for (const auto page : problem.place->page) {
+                line += std::format(" p{}", page);
+            }
+            for (const auto item : problem.place->item) {
+                line += std::format(" i{}", item);
+            }
+        } else {
+            line += " none";
+        }
+        places.push_back(line);
+    }
+    CHECK(places == Lines{ "Typo: none", "content[1].lines: i1", "pages[1].pages[0].content[1].content[1]: p1 p0 i1 i1", "pages[1].visibleWen: none" });
+}

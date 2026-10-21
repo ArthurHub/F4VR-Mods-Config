@@ -25,10 +25,13 @@ namespace mods_config::ui
         // the selection a pressed breadcrumb goes to
         std::optional<Selection> pressed;
 
+        // the Developer crumb of a package's report was pressed: it goes to the front page's Developer section
+        bool developerPressed = false;
+
         // the button that was pressed, and the button the ray is on, for the help line
         TitleButton pressedButton = TitleButton::None;
         std::optional<PointedRow> pointed;
     };
 
-    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, bool helpShown);
+    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, bool helpShown, const model::Mod* report = nullptr);
 }

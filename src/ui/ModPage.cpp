@@ -77,6 +77,10 @@ namespace
 
         ui::Sections& sections;
         ui::PageDrawn& drawn;
+
+        // the item that has the focus ring, and none, and whether the page is scrolled to it in this frame
+        const model::Item* focused;
+        bool& scrollToFocused;
     };
 
     // the button of a button's row, in the panel's pixels: as wide as the Open of the menu's front page
@@ -159,6 +163,22 @@ namespace
     }
 
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page, int depth = 0);
+
+    /**
+     * The focus ring around an item's rows, as the design system has it: a 2 px green outline. The page is
+     * scrolled to bring it into view, once. An item that is not shown has no room, and no ring.
+     */
+    void drawFocus(const ImRect& rows, bool& scrollTo)
+    {
+        if (rows.Max.y <= rows.Min.y) {
+            return;
+        }
+        ui::drawOutline(rows.Min, rows.Max, theme::color::GREEN);
+        if (scrollTo) {
+            ImGui::ScrollToRectEx(ImGui::GetCurrentWindow(), rows, ImGuiScrollFlags_KeepVisibleCenterY);
+            scrollTo = false;
+        }
+    }
 
     /**
      * The heading of a section that folds, at the cursor: a row that a press folds or opens, which the
@@ -327,10 +347,14 @@ namespace
         for (const auto& item : items) {
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
+            const auto top = ImGui::GetCursorScreenPos();
             if (isShown(item, page.store)) {
                 std::visit(ItemDrawer{ .page = page, .depth = depth }, item);
             } else if (const auto* group = std::get_if<model::Group>(&item)) {
                 drawGroup(*group, page, depth, false);
+            }
+            if (&item == page.focused) {
+                drawFocus(ImRect(top, ImVec2(top.x + ui::rowWidth(), ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y)), page.scrollToFocused);
             }
             ImGui::PopID();
         }
@@ -360,10 +384,36 @@ namespace mods_config::ui
         _sliders.startFrame(thumbstickSideValue);
         _choices.startFrame(thumbstickSideValue);
         drawItems(page.items,
-            PageDrawing{ .imageDrawer = _imageDrawer, .store = store, .sliders = _sliders, .choices = _choices, .textInputs = _textInputs, .sections = _sections, .drawn = drawn });
+            PageDrawing{ .imageDrawer = _imageDrawer,
+                .store = store,
+                .sliders = _sliders,
+                .choices = _choices,
+                .textInputs = _textInputs,
+                .sections = _sections,
+                .drawn = drawn,
+                .focused = _focused,
+                .scrollToFocused = _scrollToFocused });
         _sliders.endFrame();
         _choices.endFrame();
+        // the ring is the last row that was pressed, and a press on the page is on another
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
+            _focused = nullptr;
+        }
         return drawn;
+    }
+
+    /**
+     * Gives an item of the page that is shown the focus ring, and scrolls the page to it as it is drawn next:
+     * the sections it is in, from the outermost, are opened first. The ring stays until a press on the page,
+     * or until another page is shown.
+     */
+    void ModPage::focus(const model::Item& item, const std::vector<const model::Group*>& sections)
+    {
+        for (const auto* section : sections) {
+            _sections.open(*section);
+        }
+        _focused = &item;
+        _scrollToFocused = true;
     }
 
     /**
@@ -394,8 +444,8 @@ namespace mods_config::ui
     }
 
     /**
-     * Forgets what is edited in the page, as another page is shown, and how its sections were folded: each
-     * starts as its `collapsed` says each time its page is shown.
+     * Forgets what is edited in the page, as another page is shown, how its sections were folded, as each
+     * starts as its `collapsed` says each time its page is shown, and the row that has the focus ring.
      */
     void ModPage::reset()
     {
@@ -403,5 +453,7 @@ namespace mods_config::ui
         _choices.reset();
         _textInputs.reset();
         _sections.reset();
+        _focused = nullptr;
+        _scrollToFocused = false;
     }
 }

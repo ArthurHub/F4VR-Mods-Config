@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -46,18 +47,21 @@ namespace mods_config::ui
         std::optional<PointedRow> pointed;
         bool changed = false;
         bool pressActed = false;
+
+        // the package whose row was pressed, which opens its report, by its place among the mods
+        std::optional<std::size_t> opened;
     };
 
     /**
      * The Developer section of the menu's front page, for a package's author, while the Developer tools are on:
      * a heading that folds, its filter, and a row for each package the filter lists, with its errors and its
-     * warnings. An MCM mod is never listed.
+     * warnings, which a press opens the report of. An MCM mod is never listed.
      */
     class DeveloperSection
     {
     public:
         DeveloperSection();
-        DeveloperDrawn draw(const std::vector<model::Mod>& mods, DeveloperView& view, float thumbstickSideValue);
+        DeveloperDrawn draw(const std::vector<model::Mod>& mods, DeveloperView& view, float thumbstickSideValue, bool scrollTo = false);
 
     private:
         // the filter's stepper, which a stepper of the page draws
