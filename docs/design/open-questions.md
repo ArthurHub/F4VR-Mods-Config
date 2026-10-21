@@ -9,7 +9,7 @@ Work that F4VR-CommonFramework needs is tracked in [CommonFramework work require
 Every control is designed: see [Haptic](controls.md#haptic), [Color](controls.md#color), [InputBinding](controls.md#inputbinding), [List](controls.md#list), [Hand pose](controls.md#hand-pose), [Transform](controls.md#transform) and [ActivationSphere](controls.md#activationsphere) in Controls. What is left of them:
 
 - A transform is edited in the panel, and its In the world hands it to the framework's live tuning. The framework tunes only its own mod's keys today: tuning another mod's key, and handing the value back, is framework work.
-- An activation sphere is lit in the world while the ray is on its rows. That needs the client to be told which group the ray is in, an event beside the page events.
+- An activation sphere is lit in the world while the ray is on its rows. That needs the client to be told which group the ray is in, an event beside the [client's events](architecture.md#the-clients-events).
 - How a config spec names a section that is an activation sphere.
 
 The framework already defines how each is stored in its TOML config, which is the starting point; see [Controls](controls.md#commonframework-specific-controls) for the full forms:
@@ -41,7 +41,6 @@ The settled baseline remains: on Save, re-read each affected file, write only di
 
 - Font coverage: the UI font shows Western European languages only, so other languages need wider glyph coverage or fallback fonts
 - Formatting placeholders, pluralization, and runtime values
-- Localizing messages supplied by native functions
 - Whether asset paths can vary by locale
 - Tooling that finds missing or unused tokens
 
@@ -49,17 +48,13 @@ The form is settled: a config spec's text is plain, a `$` token as in MCM, or a 
 
 ## Native API details
 
-- Final C ABI types, ownership rules, string encoding, and API-version negotiation
-- Threading and callback restrictions
 - Preview coalescing timing
 - Save-batch and error-reporting structures
 - Native final-save notification payload
-- How the host detects a loaded F4SE plugin by name. F4SEVR has no `GetPluginInfo`; registering a listener for a sender fails when that plugin is not loaded, which may serve
-- The parameter types of a function that a button runs, and asynchronous completion
-- Registration and lifecycle for bespoke external UIs
-- Timeout, crash, or abandonment recovery during external UI handoff
 - Whether a safe host-owned custom-panel extension is needed later
-- Pages, options, visibility, and values supplied by native code, as a row that is shown while something of the game holds, which an MCM config does with a `hiddenSwitcher` that its script sets
+- Pages and values supplied by native code
+
+The binary interface, its versions, the client and its functions, events, states and quick launch entry, and how a mod's own UI is opened are settled; see [Native API](architecture.md#native-api).
 
 Raw ImGui ownership by client mods is deliberately deferred because it weakens input, layout, lifecycle, and compatibility guarantees.
 

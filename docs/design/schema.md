@@ -166,7 +166,7 @@ A page is a row in the navigation tree, under the mod or under another page. It 
 
 - A page's `content` is required and is not empty. A page with pages under it has rows of its own too.
 - A page's `help` is shown in the help line while the ray is on its row in the tree.
-- A page can have an `id`, unique among the config spec's pages. The mod's native client is told it as the page is shown and left, to show in the world what the page sets; see [Page events](architecture.md#page-events). A page with no `id` sends none.
+- A page can have an `id`, unique among the config spec's pages. The mod's native client is told it as the page is shown and left, to show in the world what the page sets; see [The client's events](architecture.md#the-clients-events). A page with no `id` sends none.
 - A page's pages are rows under it in the tree, shown while it or one of them is selected, as a mod's pages are shown while the mod is selected. The breadcrumbs name every level, as `MODS CONFIG VR » My Mod » Body » Hands`. See [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior).
 - What a page has goes down to the pages under it: its `defaultFile`, its `applies`, and its `visibleWhen`, which hides them with it.
 - An MCM config has one level of pages.
@@ -514,7 +514,21 @@ Conditions evaluate pending values so the UI responds immediately. Hiding or dis
 
 A condition that names a missing setting or compares incompatible types is invalid as a whole, however it is composed. It creates a developer diagnostic, and the item is shown and enabled as if it had no condition, so the mistake is visible instead of hiding content.
 
-Conditions on game state that changes while the game runs are deferred to the native API design.
+A condition can ask a state of the mod's native client, for what only the mod's code knows and changes while the game runs, as a calibration that is running:
+
+```json
+{
+  "type": "button",
+  "text": "Calibrate height",
+  "action": { "type": "CallNativeFunction", "function": "calibrate" },
+  "enabledWhen": { "clientState": "calibrating", "equals": false },
+  "warnings": [{ "text": "Stand still until it is done.", "when": { "clientState": "calibrating", "equals": true } }]
+}
+```
+
+- `clientState` names a state the client registered, by its name; see [A client's state](architecture.md#a-clients-state). It is a value of a type, as a setting's is, and takes the same operators. With none, it holds while the state is on, as a switch's value does.
+- The host asks the client as the page is drawn, so a row follows the state as it changes.
+- While the client has not registered the state, or the mod has no client, the state is not available, as a value that cannot be read: the row is shown, and the warning is not told.
 
 ## Choices
 
@@ -645,7 +659,9 @@ The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON v
 }
 ```
 
-Its `params` are named, typed JSON values, where the `params` of MCM's actions are a list. The function can also read the current pending settings snapshot. In a config spec without a native client, such a button is shown disabled.
+Its `params` are named, typed JSON values, where the `params` of MCM's actions are a list. Each is given to the function in its own type, as a `CallFunction`'s: a number written with no point is an int, one with a point or an exponent is a float, `true` and `false` are bools, and a text is a string. In a config spec without a native client, or whose client did not register the function, such a button is shown disabled.
+
+A button that opens the mod's own UI, as FRIK's calibration, is a `CallNativeFunction` too. Its function minimizes the menu as it opens its UI, and shows the menu again as the UI closes; see [The mod's own UI](architecture.md#the-mods-own-ui).
 
 A button can use ordinary visibility and enablement conditions, and [warnings](#warnings).
 
@@ -807,7 +823,7 @@ What an MCM config has that a config spec does not, and what the config spec has
 
 | MCM                                                    | A config spec                                                                                          |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `hiddenSwitcher`, set by a script to show rows         | A condition on a value, as a dropdown's, or on a loaded plugin. A row shown by game state that changes, as a mod's busy warning, waits for the native API |
+| `hiddenSwitcher`, set by a script to show rows         | A condition on a value, as a dropdown's, or on a loaded plugin. A row shown by game state that changes, as a mod's busy warning, is a condition on a state of the mod's client |
 | `groupControl` and `groupCondition`, groups by number  | `visibleWhen` and `enabledWhen`, which name settings by their ids                                  |
 | `{i}`, `{f}` and `{b}` in the text of a parameter      | A JSON value with its type                                                                         |
 | `{value}` in the text of a parameter                   | A parameter that is exactly `"{value}"`, in the setting's type                                     |

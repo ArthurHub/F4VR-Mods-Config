@@ -31,7 +31,7 @@ That makes four demands on the framework:
 | 10  | Override ownership                 | Previews beside other overrides     |
 | 11  | Images in canvases                 | MCM images and a config spec's images   |
 | 12  | Text entry and on-screen keyboard  | Typing a text, a value, or a search |
-| 13  | Mods Config VR client in `ModBase` | Handoff and live preview without mod code |
+| 13  | Mods Config VR client in `ModBase` | A mod's own UI and live preview without mod code |
 
 Item 1 puts a panel on the offhand. Items 2 to 5 make a panel interactive, so it can be tested in the headset. Items 6 and 7 complete what the Full panel needs. Items 8 to 10 do not depend on the UI and can be done at any time. Items 11 and 12 are needed by what the menu shows, not by the panel itself. Item 11 depends on nothing else, so it can be done at any time. Item 13 needs the Mods Config VR native API to exist first. [Later work](#later-work) lists what can wait.
 
@@ -235,14 +235,14 @@ Mods Config VR has a case of its own. It takes the opening gesture from FRIK by 
 
 **Today.** `ModBase` registers a devbench tool for every mod after `onGameLoaded` (`src/ModBase.cpp`), using the vendored devbench client (`src/devbench/DevBenchAPI.h`). Nothing knows about Mods Config VR.
 
-**Work.** In two parts. The menu needs the first for the handoff, and the second for live preview.
+**Work.** In two parts. The menu needs the first for a mod's own UI, and the second for live preview.
 
 The client and its functions:
 
-- When Mods Config VR is installed, `ModBase` registers the mod as a native client through a vendored client header, the way it registers the devbench tool. It registers every mod, under `Settings.name`, and does not look for a config spec. The host matches the client to the config spec whose `modName` is that name. A `Settings` flag opts a mod out, like `devbenchTool`.
-- A mod adds functions to its client, each under a name, which the buttons of its config spec run.
-- A mod that has a config UI of its own gives the client how to open it, and tells the client when it has closed. The host opens it through the handoff.
-- A mod can be told when a page of its config spec is shown and left, to show in the world what the page sets; see [Page events](architecture.md#page-events).
+- When Mods Config VR is installed, `ModBase` registers the mod as a native client through the vendored client header, `ModsConfigVRApi.h`, the way it registers the devbench tool; see [Native API](architecture.md#native-api). It registers every mod, under `Settings.name`, and does not look for a config spec. The host matches the client to the config spec whose `modName` is that name. A `Settings` flag opts a mod out, like `devbenchTool`.
+- A mod adds functions to its client, each under a name, which the buttons of its config spec run, and states, each under a name, which the conditions of its config spec ask.
+- A mod that has a config UI of its own gives the client how to open it, and tells the client when it has closed. The client registers it as a function and a quick launch entry, minimizes the menu as it opens, and restores the menu as it closes; see [The mod's own UI](architecture.md#the-mods-own-ui).
+- A mod can be told of the menu's events, as a page of its config spec is shown and left, to show in the world what the page sets; see [The client's events](architecture.md#the-clients-events).
 
 The preview. The client maps the host's calls onto the overrides, under an owner name of its own that no API caller uses (item 10):
 

@@ -98,25 +98,30 @@ With `Developer tools` on, a switch in Mods Config VR's own settings that is off
 
 M117 lets a config spec's author edit its `spec.json` while the game runs. On the config spec's report, `Read the live copy` copies its `spec.json` to `My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\<folder>\spec.json` and reads the copy in its place. The copy is watched and read again each time it is saved, as the mod's own TOML is, and Reload reads it at once. A read drops the mod's unsaved changes, and the page that is open stays while it is still there. A copy that cannot be read is an error of the report, and the mod keeps what it read last. Only `spec.json` is copied. `Open` and `Show` open the copy and its folder on the desktop. It is for config specs alone: MCM reads its own copy of an MCM config, so a live copy of one would show what MCM does not.
 
-## 7. Actions and handoff
+## 7. Actions and own UIs
 
-| #   | Repo      | Commit                                                                            | Status |
-| --- | --------- | --------------------------------------------------------------------------------- | ------ |
-| M62 | mod       | docs: the native API's binary interface                                           | todo   |
-| M63 | mod       | The native API: a client registers by name, with the client header                | todo   |
-| F28 | framework | `ModBase` registers the mod as a client                                           | todo   |
-| F29 | framework | A mod adds its functions, its own config UI and its page events to its client     | todo   |
-| M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog       | todo   |
-| M113 | mod      | A client is told when a page of its config spec is shown and left                     | todo   |
-| M65 | mod       | Handoff: an action opens the mod's own UI, and the menu comes back when it closes | todo   |
-| M66 | mod       | The quick launch section takes the mods that registered for it                    | todo   |
-| M67 | mod       | FRIK's config is opened through the handoff                                       | todo   |
+| #   | Repo      | Commit                                                                                      | Status |
+| --- | --------- | ------------------------------------------------------------------------------------------- | ------ |
+| M62 | mod       | docs: the native API: its binary interface, its versions and its calls                      | in review |
+| M63 | mod       | The native API: a client registers by name, with the client header                          | todo   |
+| F28 | framework | `ModBase` registers the mod as a client                                                     | todo   |
+| F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
+| M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | todo   |
+| M118 | mod      | A condition asks a state of the mod's client                                                | todo   |
+| M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | todo   |
+| M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | todo   |
+| M66 | mod       | The quick launch section takes the mods that registered for it                              | todo   |
+| M67 | mod       | FRIK's config is opened from its quick launch entry, and the menu comes back when it closes | todo   |
 
-M62 settles what the API passes between DLLs, how its text is encoded, and how its versions are told apart. It also settles what a config spec writes for a button that opens the mod's own UI.
+M62 settles the [Native API](architecture.md#native-api): what it passes between DLLs, how its text is encoded, how its versions are told apart, and its calls. The API is a struct of functions that `ModsConfigVR.dll` exports, as FRIK's is. A button that opens the mod's own UI is a plain `CallNativeFunction`, whose function minimizes the menu and restores it, so the schema has nothing of its own for it.
 
 M63, F28 and F29 are the first part of item 13 of the requirements. The client header is vendored in the framework, as devbench's is. M63 calls a client inside the guard of [A client that fails](architecture.md#a-client-that-fails), so a client whose call fails is cut off and the menu keeps working.
 
-M113 sends the [page events](architecture.md#page-events): a page of a config spec that has an `id` tells its client as it is shown and left. Immersive Flashlight draws its activation spheres in the world while their page is shown.
+M118 reads a condition's `clientState`, which the host asks the client once a frame while its mod is shown. The config spec showcase has no client, so a unit test covers it, with a state of the tests' own.
+
+M113 sends the [client's events](architecture.md#the-clients-events): the menu opened and closed, to every client, and its mod and a page of its config spec that has an `id` shown and left. Immersive Flashlight draws its activation spheres in the world while their page is shown.
+
+M65 is the menu's calls: `minimizeMenu`, `restoreMenu`, which reads the shown mod's values again, `reloadValues`, and `openMenu` at a mod and a page.
 
 M67 needs a FRIK that is built on a framework with F29. That is a commit in FRIK's repository, made when this commit needs it. A build of FRIK is enough: it does not have to be released. The quick launch entry needs no config spec. FRIK's entry in the quick launch section is then there when FRIK registers for it.
 

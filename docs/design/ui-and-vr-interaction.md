@@ -141,10 +141,10 @@ What the Full panel shows while no mod is selected. It is what the menu opens on
 An entry of the section opens a mod's own config UI, such as FRIK's.
 
 - A row has the mod's name and an `Open` button, and the whole row is pressed.
-- A mod registers its entry through the native API, with a help text that says what its UI is for. It needs no config spec for it, and a mod that has a config spec is in the tree as well.
+- A mod registers its entry through the native API, with a help text that says what its UI is for, and the text of its button in place of `Open`. It needs no config spec for it, and a mod that has a config spec is in the tree as well.
 - Until the native API is made, the menu adds one entry itself: FRIK, when FRIK is installed. The menu took the opening gesture from FRIK, so FRIK's config is opened from here.
 - The entries are listed alphabetically, as the mods are.
-- Pressing an entry minimizes the menu and opens the mod's UI; see [Bespoke UI handoff](#bespoke-ui-handoff). Until the handoff is made the menu does not come back by itself, and `Resume` on the wrist shows it again.
+- Pressing an entry runs a function of the mod's client, which minimizes the menu and opens the mod's UI; see [A mod's own UI](#a-mods-own-ui). Until the native API is made, the menu minimizes itself for FRIK's entry and does not come back by itself, and `Resume` on the wrist shows it again.
 
 ### Notices
 
@@ -397,17 +397,14 @@ MCM-backed entries should feel integrated without concealing their different lif
 
 What the menu shows for a mod follows what the mod supports, not where its menu comes from: changes that are saved as they are made, or a Save bar, with live preview where the mod has it. A config spec says when a change takes effect, for the mod and for any page, section or setting that differs.
 
-## Bespoke UI handoff
+## A mod's own UI
 
-A mod may expose an action such as `Open FRIK Calibration` or `Configure Holsters in World`.
+A mod may have a UI of its own, opened by a button such as `Open FRIK Calibration` or `Configure Holsters in World`, or by its quick launch entry.
 
-Expected experience:
+1. The press runs a function of the mod's client. It minimizes the menu and opens its UI. The editing session stays, so a pending change stays pending.
+2. The player uses the mod's UI.
+3. As it closes, the mod shows the menu again, in the view and on the page it was, and the menu reads the mod's values again: a clean setting shows what the mod's UI saved.
 
-1. Mods Config VR records its current state and hides or suspends its interactive panel.
-2. It transfers interaction ownership to the registered external UI.
-3. The external mod reports completion or cancellation.
-4. Mods Config VR restores the prior Full or Focused context and refreshes affected values.
-
-The external UI is not embedded inside the Mods Config VR panel. Failure recovery and timeout behavior remain open design work.
+The mod's UI is not drawn inside the menu's panel. A UI that does not open leaves the menu as it is, and the help line says why. One that never shows the menu again leaves it minimized, and `Resume` on the wrist shows it. A mod can also open the menu at its own settings, from its wrist button or its holotape. See [The mod's own UI](architecture.md#the-mods-own-ui).
 
 FRIK's own configuration is the first case: once Mods Config VR takes over the gesture that opened it, FRIK's menu is reached this way.
