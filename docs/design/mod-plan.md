@@ -63,7 +63,7 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 3   | MCM complete             | Every MCM feature is supported, shown read-only, or shown as unsupported with the reason                      | done   |
 | 4   | VR keyboard              | An MCM text row is typed in the headset                                                                       | done   |
 | 5   | Config specs with Save       | This mod's own TOML is edited from its config spec and saved, and the mod reloads its file                        | done   |
-| 6   | Config specs complete        | FRIK's TOML, an INI file and a script mod's globals are edited from config specs and saved, and a Save that fails changes no file | todo   |
+| 6   | Config specs complete        | FRIK's TOML, an INI file and a script mod's globals are edited from config specs and saved, and a Save that fails changes no file | done   |
 | 7   | Actions and handoff      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | todo   |
 | 8   | Live preview             | A CommonFramework mod with a config spec previews a slider live, with no code of its own                          | todo   |
 | 9   | CommonFramework controls | Every setting of Immersive Flashlight VR is edited from its config spec                                           | todo   |

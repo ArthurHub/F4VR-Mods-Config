@@ -44,24 +44,24 @@ The milestone builds on milestone 5 to complete config specs: the rows that are 
 
 | #   | Repo | Commit                                                                                    | Status |
 | --- | ---- | ----------------------------------------------------------------------------------------- | ------ |
-| M59 | mod  | Text, spacers and images in a config spec                                                     | in review |
-| M108 | mod | A section folds, and marks what it hides                                                  | in review |
-| M109 | mod | Pages under pages: the tree's levels, the breadcrumbs and Back                            | in review |
-| M111 | mod | A read-only setting, and how a number is shown                                            | in review |
-| M112 | mod | A row warns while a condition holds                                                       | in review |
-| M49 | mod  | A config spec's button calls a Papyrus function or runs a console command, with its own text  | in review |
-| M107 | mod | A config spec's setting kept in a global or a script property, and its action run by Save     | in review |
-| M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a config spec        | in review |
-| M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | in review |
-| M53 | mod  | A Save that fails leaves every file as it was                                             | in review |
-| M54 | mod  | Save creates a file that is missing                                                       | in review |
-| M55 | mod  | Validation                                                                                | in review |
+| M59 | mod  | Text, spacers and images in a config spec                                                     | done   |
+| M108 | mod | A section folds, and marks what it hides                                                  | done   |
+| M109 | mod | Pages under pages: the tree's levels, the breadcrumbs and Back                            | done   |
+| M111 | mod | A read-only setting, and how a number is shown                                            | done   |
+| M112 | mod | A row warns while a condition holds                                                       | done   |
+| M49 | mod  | A config spec's button calls a Papyrus function or runs a console command, with its own text  | done   |
+| M107 | mod | A config spec's setting kept in a global or a script property, and its action run by Save     | done   |
+| M110 | mod | A choice's options from a FormList or a script's property, in MCM and in a config spec        | done   |
+| M50 | mod  | An INI file is read, changed and written with its comments and order kept                 | done   |
+| M53 | mod  | A Save that fails leaves every file as it was                                             | done   |
+| M54 | mod  | Save creates a file that is missing                                                       | done   |
+| M55 | mod  | Validation                                                                                | done   |
 | M116 | mod | The save summary                                                                          | rejected |
-| M57 | mod  | The unsaved-changes prompt                                                                | in review |
-| M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | in review |
-| M60 | mod  | A config spec whose requirements are missing is not available                                 | in review |
-| M61 | mod  | A config spec's errors are reported, in the log and to its author in the menu                 | in review |
-| M117 | mod | A live copy of a config spec's spec.json, read again as it is saved                         | in review |
+| M57 | mod  | The unsaved-changes prompt                                                                | done   |
+| M58 | mod  | A row says when its change takes effect, and Save names a needed restart                  | done   |
+| M60 | mod  | A config spec whose requirements are missing is not available                                 | done   |
+| M61 | mod  | A config spec's errors are reported, in the log and to its author in the menu                 | done   |
+| M117 | mod | A live copy of a config spec's spec.json, read again as it is saved                         | done   |
 
 M108, M109, M111 and M112 draw what M103 added to the page and the tree:
 
