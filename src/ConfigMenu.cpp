@@ -72,6 +72,24 @@ namespace
     }
 
     /**
+     * The places of the pages on the way to the page of an id, under the pages given, with no regard to case. None
+     * for an id no page has.
+     */
+    std::optional<std::vector<std::size_t>> pagePath(const std::vector<mods_config::model::Page>& pages, const std::string& id)
+    {
+        for (std::size_t place = 0; place < pages.size(); ++place) {
+            if (common::str_tolower(pages[place].id) == id) {
+                return std::vector{ place };
+            }
+            if (auto under = pagePath(pages[place].pages, id)) {
+                under->insert(under->begin(), place);
+                return under;
+            }
+        }
+        return std::nullopt;
+    }
+
+    /**
      * The options of the menu's own Config spec setting: none first, then each config spec the menu lists, by its
      * modName and its name, in their order.
      */
@@ -296,6 +314,7 @@ namespace mods_config
             doLiveCopy(request.folder, request.action);
         }
         readChangedLiveCopies();
+        doClientRequests();
         if (isOpen() && g_config.panelChanged.exchange(false)) {
             applyPanelConfig();
         }
@@ -324,6 +343,106 @@ namespace mods_config
         } else if (_minimizeRequested) {
             _minimizeRequested = false;
             setMinimized(true);
+        }
+    }
+
+    /**
+     * Asks the menu to open at a mod, and at a page of it by its `id`, for a mod's client: at the mod's front page with
+     * no page, and at the menu's front page with no mod. Both are matched with no regard to case. The frame update
+     * opens it, shows it if it is minimized, and selects it, which asks first while the mod that is shown has unsaved
+     * changes. Returns false for a mod or a page that is not there, with nothing asked.
+     */
+    bool ConfigMenu::requestOpen(const std::string_view modName, const std::string_view pageId)
+    {
+        ui::Selection selection;
+        if (!modName.empty()) {
+            const auto& mods = _fullPanel.mods();
+            const auto name = common::str_tolower(std::string(modName));
+            const auto mod = std::ranges::find_if(mods, [&name](const model::Mod& each) {
+                return common::str_tolower(each.name) == name;
+            });
+            if (mod == mods.end()) {
+                logger::warn("A client asks to open the menu at the mod '{}', which it does not have", modName);
+                return false;
+            }
+            selection.mod = static_cast<std::size_t>(mod - mods.begin());
+            if (!pageId.empty()) {
+                auto path = pagePath(mod->pages, common::str_tolower(std::string(pageId)));
+                if (!path) {
+                    logger::warn("A client asks to open the menu at the page '{}' of '{}', which it does not have", pageId, modName);
+                    return false;
+                }
+                selection.page = std::move(*path);
+            }
+        }
+        _openRequest = std::move(selection);
+        return true;
+    }
+
+    /**
+     * Asks the menu to minimize, for a mod's client that opens its own UI. Nothing while it is closed.
+     */
+    void ConfigMenu::requestMinimize()
+    {
+        _minimizeRequested = isOpen();
+    }
+
+    /**
+     * Asks the menu to show itself again where it was, for a mod's client whose UI closed: only while it is minimized,
+     * so a menu the player showed or closed is left as it is. Its values are read again then.
+     */
+    void ConfigMenu::requestRestore()
+    {
+        _restoreRequested = true;
+    }
+
+    /**
+     * Asks the menu to read the values of a mod again while it is shown, for its client, which changed them.
+     */
+    void ConfigMenu::requestReadAgain(const std::string_view modName)
+    {
+        _readAgainRequest = modName;
+    }
+
+    /**
+     * Does what the mods' clients asked through the native API since the frame before: opens the menu at a mod and a
+     * page, shows it again with the values of the mod that is shown read again, or reads them again alone.
+     */
+    void ConfigMenu::doClientRequests()
+    {
+        if (_openRequest) {
+            const auto selection = std::move(*_openRequest);
+            _openRequest.reset();
+            if (!isOpen()) {
+                open();
+            } else if (isMinimized()) {
+                setMinimized(false);
+            }
+            _fullPanel.select(selection);
+        }
+        if (_restoreRequested) {
+            _restoreRequested = false;
+            if (isMinimized()) {
+                setMinimized(false);
+                readSelectedAgain();
+            }
+        }
+        if (!_readAgainRequest.empty()) {
+            const auto& selection = _fullPanel.selection();
+            if (isOpen() && selection.mod && common::str_tolower(_fullPanel.mods()[*selection.mod].name) == common::str_tolower(_readAgainRequest)) {
+                readSelectedAgain();
+            }
+            _readAgainRequest.clear();
+        }
+    }
+
+    /**
+     * Reads the values of the mod that is shown again, in its store.
+     */
+    void ConfigMenu::readSelectedAgain()
+    {
+        if (auto* const store = _fullPanel.selectedStore()) {
+            store->readAgain();
         }
     }
 

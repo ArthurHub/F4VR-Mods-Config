@@ -70,6 +70,16 @@ namespace mods_config::api
     };
 
     /**
+     * Whether the menu is closed, open, or open and minimized.
+     */
+    enum class MenuState : std::uint32_t
+    {
+        Closed,
+        Open,
+        Minimized
+    };
+
+    /**
      * A setting of the client's config spec.
      */
     struct SettingView
@@ -200,6 +210,35 @@ namespace mods_config::api
          * function can answer several states. False for a name that has one already, which keeps the first.
          */
         bool(MODS_CONFIG_VR_CALL* registerState)(Client* client, const char* name, StateFn state, void* ctx);
+
+        /**
+         * Whether the menu is closed, open, or minimized. Any DLL can ask, with or without a client.
+         */
+        MenuState(MODS_CONFIG_VR_CALL* getMenuState)();
+
+        /**
+         * Opens the menu at a mod, and at a page of its config spec by its `id`: at the mod's front page with no page,
+         * and at the menu's front page with no mod. A minimized menu is shown, and one that shows a mod with unsaved
+         * changes asks first. False for a mod or a page that is not there, with nothing opened.
+         */
+        bool(MODS_CONFIG_VR_CALL* openMenu)(const char* modName, const char* pageId);
+
+        /**
+         * Minimizes the menu, as a function of the client opens the mod's own UI. Its editing session stays.
+         */
+        void(MODS_CONFIG_VR_CALL* minimizeMenu)();
+
+        /**
+         * Shows the menu again where it was, as the mod's own UI closes, and reads the shown mod's values again: only
+         * while it is minimized, so a menu the player showed or closed is left as it is.
+         */
+        void(MODS_CONFIG_VR_CALL* restoreMenu)();
+
+        /**
+         * Reads the values of the client's mod again while it is shown, after the mod changed them: a clean setting
+         * takes its new value, and a pending one stays the player's.
+         */
+        void(MODS_CONFIG_VR_CALL* reloadValues)(Client* client);
 
         /**
          * Finds Mods Config VR's DLL and gets its API. Returns 0 when the API is there, and else:

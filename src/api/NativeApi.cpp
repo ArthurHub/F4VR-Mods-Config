@@ -35,6 +35,35 @@ namespace
         return g_modsConfig.menu().nativeClients().registerState(client, name, state, ctx);
     }
 
+    api::MenuState MODS_CONFIG_VR_CALL getMenuState()
+    {
+        const auto& menu = g_modsConfig.menu();
+        return !menu.isOpen() ? api::MenuState::Closed : menu.isMinimized() ? api::MenuState::Minimized : api::MenuState::Open;
+    }
+
+    bool MODS_CONFIG_VR_CALL openMenu(const char* modName, const char* pageId)
+    {
+        return g_modsConfig.menu().requestOpen(modName ? modName : "", pageId ? pageId : "");
+    }
+
+    void MODS_CONFIG_VR_CALL minimizeMenu()
+    {
+        g_modsConfig.menu().requestMinimize();
+    }
+
+    void MODS_CONFIG_VR_CALL restoreMenu()
+    {
+        g_modsConfig.menu().requestRestore();
+    }
+
+    void MODS_CONFIG_VR_CALL reloadValues(api::Client* client)
+    {
+        auto& menu = g_modsConfig.menu();
+        if (menu.nativeClients().isClient(client)) {
+            menu.requestReadAgain(client->name);
+        }
+    }
+
     // the API, which is the same for the whole run of the game
     constexpr api::ModsConfigVRApiV1 API{
         .getVersion = &getVersion,
@@ -43,6 +72,11 @@ namespace
         .registerOptions = &registerOptions,
         .registerFunction = &registerFunction,
         .registerState = &registerState,
+        .getMenuState = &getMenuState,
+        .openMenu = &openMenu,
+        .minimizeMenu = &minimizeMenu,
+        .restoreMenu = &restoreMenu,
+        .reloadValues = &reloadValues,
     };
 }
 

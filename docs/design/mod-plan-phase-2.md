@@ -108,7 +108,7 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 | M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | in review |
 | M118 | mod      | A condition asks a state of the mod's client                                                | in review |
 | M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | in review |
-| M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | todo   |
+| M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | in review |
 | F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
 | M66 | mod       | The quick launch section takes the mods that registered for it                              | todo   |
 | M67 | mod       | FRIK's config is opened from its quick launch entry, and the menu comes back when it closes | todo   |
@@ -123,7 +123,7 @@ M118 reads a condition's `clientState`, which the host asks the client once a fr
 
 M113 sends the [client's events](architecture.md#the-clients-events): the menu opened and closed, to every client, and its mod and a page of its config spec that has an `id` shown and left. Immersive Flashlight draws its activation spheres in the world while their page is shown.
 
-M65 is the menu's calls: `minimizeMenu`, `restoreMenu`, which reads the shown mod's values again, `reloadValues`, and `openMenu` at a mod and a page.
+M65 is the menu's calls: `getMenuState`, `minimizeMenu`, `restoreMenu`, which reads the shown mod's values again, `reloadValues`, and `openMenu` at a mod and a page. A call is done in the menu's frame update, as one comes from a function of the client that runs while the panel is drawn. An MCM mod's values are read as they are asked, so the MCM store reads nothing again. Until F29 no mod in the game makes the calls, so a unit test covers the values read again.
 
 M67 needs a FRIK that is built on a framework with F29. That is a commit in FRIK's repository, made when this commit needs it. A build of FRIK is enough: it does not have to be released. The quick launch entry needs no config spec. FRIK's entry in the quick launch section is then there when FRIK registers for it.
 

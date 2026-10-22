@@ -106,6 +106,7 @@ namespace mods_config::spec
         model::StoredValue clientState(std::string_view name) override;
         void startFrame() override;
         void showPage(const model::Page* page) override;
+        void readAgain() override;
         std::string notRunnable(const model::Action& action) const override;
         model::ActionResult run(const model::Action& action) override;
 
@@ -143,6 +144,7 @@ namespace mods_config::spec
             model::Value baseline;
         };
 
+        void readValues(const model::Mod& mod);
         void preview(const model::Setting& setting, const Entry& entry);
         void rollBack();
 
@@ -153,6 +155,9 @@ namespace mods_config::spec
 
         // the name of the mod that is selected, for the log
         std::string _modName;
+
+        // the mod of the session, and none
+        const model::Mod* _mod = nullptr;
 
         // the `id` of the page that is shown, which its mod's client is told as it is left: empty for one with none
         std::string _pageId;

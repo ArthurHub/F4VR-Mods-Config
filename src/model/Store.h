@@ -184,6 +184,13 @@ namespace mods_config::model
         {}
 
         /**
+         * Reads the values of the selected mod again, as its own UI can have changed them: a clean setting takes its
+         * new value, and a pending one stays the player's. Nothing for a store that reads its values as they are asked.
+         */
+        virtual void readAgain()
+        {}
+
+        /**
          * A frame of the panel starts: a store asks the states of its mod's client again as they are next asked.
          */
         virtual void startFrame()

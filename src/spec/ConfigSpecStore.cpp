@@ -541,8 +541,17 @@ namespace mods_config::spec
         _modName = mod.name;
         _modDisplayName = mod.displayName;
         _clientStates.clear();
+        _mod = &mod;
         _clientCalls.send(_modName, model::ClientEvent::ModShown);
+        readValues(mod);
+    }
 
+    /**
+     * Reads the values of the mod's files and of the game as the baseline of its settings, with why one is not
+     * available or is invalid, as `open` has it.
+     */
+    void ConfigSpecStore::readValues(const model::Mod& mod)
+    {
         std::map<std::string, FileOfSession, std::less<>> files;
         for (const auto& [name, file] : mod.files) {
             auto& read = files[name];
@@ -647,6 +656,7 @@ namespace mods_config::spec
         }
         _modName.clear();
         _modDisplayName.clear();
+        _mod = nullptr;
         _files.clear();
         _options.clear();
         _settingList.clear();
@@ -979,6 +989,41 @@ namespace mods_config::spec
         if (!_pageId.empty()) {
             _clientCalls.send(_modName, model::ClientEvent::PageShown, _pageId);
         }
+    }
+
+    /**
+     * Reads the values of the mod's files and of the game again, as its own UI can have changed them while the menu
+     * was minimized. A clean setting takes its new value as its baseline. A pending one stays the player's, as Save
+     * keeps it, and is clean where the new value is the player's. One the game has a preview of keeps its baseline:
+     * the game has the preview.
+     */
+    void ConfigSpecStore::readAgain()
+    {
+        if (!_mod) {
+            return;
+        }
+        auto before = std::move(_entries);
+        _entries.clear();
+        _files.clear();
+        _settingList.clear();
+        _settings.clear();
+        _options.clear();
+        readValues(*_mod);
+        for (auto& [setting, entry] : _entries) {
+            const auto found = before.find(setting);
+            if (found == before.end() || !entry.notAvailable.empty()) {
+                continue;
+            }
+            if (_previews.contains(setting)) {
+                entry.baseline = found->second.baseline;
+            }
+            const auto& pending = found->second.pending;
+            if (pending && !(entry.baseline && isSameValue(*pending, *entry.baseline))) {
+                entry.pending = pending;
+                entry.pendingInvalid = found->second.pendingInvalid;
+            }
+        }
+        logger::info("Read the values of '{}' again", _modName);
     }
 
     /**

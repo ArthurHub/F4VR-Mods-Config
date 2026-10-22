@@ -1144,3 +1144,39 @@ TEST_CASE("ConfigSpecStore: a choice takes its options from its mod's client as 
     alone.open(session.mod);
     CHECK_FALSE(alone.value(session.setting(0)).available);
 }
+
+TEST_CASE("ConfigSpecStore: values read again take a clean setting's new value, keep a pending one, and keep the baseline of a preview")
+{
+    test_globals::TestGlobals globals;
+    globals.values[{ "MyMod.esp", 0x800 }] = 1.0f;
+    Session session(R"(
+        { "type": "switcher", "valueType": "bool", "text": "Clean", "default": true, "storage": { "path": ["Main", "bClean"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Pending", "default": true, "storage": { "path": ["Main", "bPending"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Made the same", "default": true, "storage": { "path": ["Main", "bSame"] } },
+        { "type": "slider", "valueType": "float", "text": "Previewed", "default": 1.0, "valueOptions": { "min": 0.0, "max": 5.0, "step": 0.5 },
+          "storage": { "global": "MyMod.esp|800" } }
+    )");
+    session.open("[Main]\r\nbClean = false\r\nbPending = false\r\nbSame = false\r\n");
+    CHECK(session.store.set(session.setting(1), true));
+    CHECK(session.store.set(session.setting(2), true));
+    // a live global has its pending value in the game, as a preview
+    CHECK(session.store.set(session.setting(3), 2.5f));
+    CHECK(globals.values.at({ "MyMod.esp", 0x800 }) == 2.5f);
+
+    // the mod's own UI writes its file
+    session.myGames.write(MOD_FILE, "[Main]\r\nbClean = true\r\nbPending = false\r\nbSame = true\r\n");
+    session.store.readAgain();
+    CHECK(session.value(0).value == model::Value(true));
+    CHECK_FALSE(session.store.isDirty(session.setting(0)));
+    CHECK(session.value(1).value == model::Value(true));
+    CHECK(session.store.isDirty(session.setting(1)));
+    // the player's value is the file's now
+    CHECK(session.value(2).value == model::Value(true));
+    CHECK_FALSE(session.store.isDirty(session.setting(2)));
+    // the game has the preview, so the baseline is the one before it, which Discard writes back
+    CHECK(session.value(3).value == model::Value(2.5f));
+    CHECK(session.store.isDirty(session.setting(3)));
+    session.store.discard();
+    CHECK(globals.values.at({ "MyMod.esp", 0x800 }) == 1.0f);
+    CHECK(session.store.dirtyCount() == 0);
+}

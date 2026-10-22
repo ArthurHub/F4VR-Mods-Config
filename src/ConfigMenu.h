@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -44,6 +45,12 @@ namespace mods_config
 
         void registerOwnOptions();
 
+        // what a mod's client asks of the menu through the native API, which the frame update does
+        bool requestOpen(std::string_view modName, std::string_view pageId);
+        void requestMinimize();
+        void requestRestore();
+        void requestReadAgain(std::string_view modName);
+
         void setMods(std::vector<model::Mod> mods, model::Translations translations);
         const std::vector<model::Mod>& mods() const;
 
@@ -76,6 +83,8 @@ namespace mods_config
         void readLiveCopy(const std::string& folder);
         void readInstalled(const std::string& folder);
         void readChangedLiveCopies();
+        void doClientRequests();
+        void readSelectedAgain();
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
@@ -84,6 +93,12 @@ namespace mods_config
         bool _closeRequested = false;
         bool _askToCloseRequested = false;
         bool _openFrikRequested = false;
+
+        // what clients asked through the native API: the selection to open the menu at, to show the menu again, and the
+        // mod whose values to read again while it is shown
+        std::optional<ui::Selection> _openRequest;
+        bool _restoreRequested = false;
+        std::string _readAgainRequest;
 
         // the Developer tools as a press on the front page changed them, which the frame update writes to the config
         std::optional<ui::DeveloperView> _developerToSave;

@@ -53,13 +53,13 @@ namespace mods_config::api
         bool registerOptions(Client* client, const char* settingId, OptionsFn options, void* ctx);
         bool registerFunction(Client* client, const char* name, NativeFunction function, void* ctx);
         bool registerState(Client* client, const char* name, StateFn state, void* ctx);
+        bool isClient(const Client* client) const;
 
     private:
         std::expected<std::vector<model::Option>, std::string> callOptions(Client& client, OptionsFn options, void* ctx, const model::Setting& setting) const;
         model::FunctionResult callFunction(Client& client, NativeFunction function, void* ctx, const std::string& name, const std::vector<model::NamedArgument>& arguments) const;
         std::optional<model::Value> callState(Client& client, StateFn state, void* ctx, const std::string& name) const;
         void callEvent(Client& client, model::ClientEvent event, std::string_view pageId) const;
-        bool isClient(const Client* client) const;
         void cutOff(Client& client, std::string_view what) const;
 
         model::ClientOptions& _options;
