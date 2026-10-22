@@ -1,12 +1,12 @@
 #pragma once
 
+#include <expected>
 #include <functional>
 #include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include "ConfigDefinition.h"
@@ -38,11 +38,6 @@ namespace mods_config::model
     };
 
     /**
-     * What the mods' DLLs registered with the native API, which the menu calls: the functions a `CallNativeFunction`
-     * runs and the states a `clientState` condition asks, each by its mod's name and its own, and the events of each
-     * mod. It knows the mods that have a client, and those whose client is cut off, which are called no more.
-     */
-    /**
      * An entry of a mod's client in the quick launch section: its texts as the client gives them, and the function of
      * the client a press runs, which tells it from the mod's other entries.
      */
@@ -55,25 +50,39 @@ namespace mods_config::model
         std::string function;
     };
 
+    /**
+     * The mods' DLLs that registered a client with the native API, which the menu asks by name: the functions a
+     * `CallNativeFunction` runs, the states a `clientState` condition asks, and the options of a choice with
+     * `listFromClientCallback`, and tells the menu's events. It knows those whose client is cut off, which are asked
+     * nothing more, and the clients' quick launch entries.
+     */
     class ClientCalls
     {
     public:
-        // tells a client an event, with the `id` of the page of a PageShown and a PageLeft
-        using Events = std::function<void(ClientEvent event, std::string_view pageId)>;
+        /**
+         * What the menu asks a mod's client, each by name. One that is empty is not asked.
+         */
+        struct Client
+        {
+            std::function<bool(std::string_view name)> hasFunction;
+            std::function<FunctionResult(std::string_view name, const std::vector<NamedArgument>& arguments)> runFunction;
 
-        using Function = std::function<FunctionResult(const std::vector<NamedArgument>& arguments)>;
+            // a state's value, and none while it is not available
+            std::function<std::optional<Value>(std::string_view name)> state;
 
-        // a state's value, and none while it is not available
-        using State = std::function<std::optional<Value>()>;
+            // the options of a choice, or why it has none
+            std::function<std::expected<std::vector<Option>, std::string>(const Setting& setting)> options;
 
-        void addClient(std::string_view modName);
+            // an event, with the `id` of the page of a PageShown and a PageLeft
+            std::function<void(ClientEvent event, std::string_view pageId)> onEvent;
+        };
+
+        bool addClient(std::string_view modName, Client client);
         void cutOff(std::string_view modName);
-        bool add(std::string_view modName, std::string_view name, Function function);
         std::string notRunnable(std::string_view modName, std::string_view displayName, std::string_view name) const;
         FunctionResult call(std::string_view modName, std::string_view name, const std::vector<NamedArgument>& arguments) const;
-        bool addState(std::string_view modName, std::string_view name, State state);
         std::optional<Value> state(std::string_view modName, std::string_view name) const;
-        void addEvents(std::string_view modName, Events events);
+        std::expected<std::vector<Option>, std::string> options(std::string_view modName, const Setting& setting) const;
         void send(std::string_view modName, ClientEvent event, std::string_view pageId = {}) const;
         void sendToAll(ClientEvent event) const;
         bool addQuickLaunch(ClientQuickLaunch entry);
@@ -85,16 +94,14 @@ namespace mods_config::model
         }
 
     private:
-        // by the mod's name and the function's in lower case: both are compared without regard to case
-        std::map<std::pair<std::string, std::string>, Function> _functions;
-        std::map<std::pair<std::string, std::string>, State> _states;
+        const Client* find(std::string_view modName) const;
 
-        // by the mod's name in lower case
-        std::map<std::string, Events, std::less<>> _events;
+        // by the mod's name in lower case: it is compared without regard to case
+        std::map<std::string, Client, std::less<>> _clients;
+
+        // the mods whose client is cut off, in lower case
+        std::set<std::string, std::less<>> _cutOff;
+
         std::vector<ClientQuickLaunch> _quickLaunch;
-
-        // the mods that have a client, and those whose client is cut off, in lower case
-        std::set<std::string> _clients;
-        std::set<std::string> _cutOff;
     };
 }

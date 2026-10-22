@@ -5,85 +5,65 @@ using namespace mods_config;
 
 namespace
 {
-    std::uint32_t MODS_CONFIG_VR_CALL getVersion()
+    /**
+     * Mods Config VR's side of the native API, which the menu and its native clients answer. A call of the menu is
+     * asked of it, which does it in its frame update.
+     */
+    class HostApi final : public api::ModsConfigVRApiV1
     {
-        return api::MODS_CONFIG_VR_API_VERSION;
-    }
-
-    const char* MODS_CONFIG_VR_CALL getModVersion()
-    {
-        return Version::NAME.data();
-    }
-
-    api::Client* MODS_CONFIG_VR_CALL registerClient(const api::ClientInfo* info)
-    {
-        return g_modsConfig.menu().nativeClients().registerClient(info);
-    }
-
-    bool MODS_CONFIG_VR_CALL registerOptions(api::Client* client, const char* settingId, const api::OptionsFn options, void* ctx)
-    {
-        return g_modsConfig.menu().nativeClients().registerOptions(client, settingId, options, ctx);
-    }
-
-    bool MODS_CONFIG_VR_CALL registerFunction(api::Client* client, const char* name, const api::NativeFunction function, void* ctx)
-    {
-        return g_modsConfig.menu().nativeClients().registerFunction(client, name, function, ctx);
-    }
-
-    bool MODS_CONFIG_VR_CALL registerState(api::Client* client, const char* name, const api::StateFn state, void* ctx)
-    {
-        return g_modsConfig.menu().nativeClients().registerState(client, name, state, ctx);
-    }
-
-    api::MenuState MODS_CONFIG_VR_CALL getMenuState()
-    {
-        const auto& menu = g_modsConfig.menu();
-        return !menu.isOpen() ? api::MenuState::Closed : menu.isMinimized() ? api::MenuState::Minimized : api::MenuState::Open;
-    }
-
-    bool MODS_CONFIG_VR_CALL openMenu(const char* modName, const char* pageId)
-    {
-        return g_modsConfig.menu().requestOpen(modName ? modName : "", pageId ? pageId : "");
-    }
-
-    void MODS_CONFIG_VR_CALL minimizeMenu()
-    {
-        g_modsConfig.menu().requestMinimize();
-    }
-
-    void MODS_CONFIG_VR_CALL restoreMenu()
-    {
-        g_modsConfig.menu().requestRestore();
-    }
-
-    void MODS_CONFIG_VR_CALL reloadValues(api::Client* client)
-    {
-        auto& menu = g_modsConfig.menu();
-        if (menu.nativeClients().isClient(client)) {
-            menu.requestReadAgain(client->name);
+    public:
+        std::uint32_t getVersion() const override
+        {
+            return api::MODS_CONFIG_VR_API_VERSION;
         }
-    }
 
-    bool MODS_CONFIG_VR_CALL addQuickLaunch(api::Client* client, const char* text, const char* help, const char* buttonText, const char* functionName)
-    {
-        return g_modsConfig.menu().nativeClients().addQuickLaunch(client, text, help, buttonText, functionName);
-    }
+        const char* getModVersion() const override
+        {
+            return Version::NAME.data();
+        }
+
+        bool addQuickLaunch(api::IClient* client, const char* text, const char* help, const char* buttonText, const char* functionName) const override
+        {
+            return g_modsConfig.menu().nativeClients().addQuickLaunch(client, text, help, buttonText, functionName);
+        }
+
+        bool registerClient(const char* name, const std::uint32_t version, api::IClient* client) const override
+        {
+            return g_modsConfig.menu().nativeClients().registerClient(name, version, client);
+        }
+
+        api::MenuState getMenuState() const override
+        {
+            const auto& menu = g_modsConfig.menu();
+            return !menu.isOpen() ? api::MenuState::Closed : menu.isMinimized() ? api::MenuState::Minimized : api::MenuState::Open;
+        }
+
+        bool openMenu(const char* modName, const char* pageId) const override
+        {
+            return g_modsConfig.menu().requestOpen(modName ? modName : "", pageId ? pageId : "");
+        }
+
+        void minimizeMenu() const override
+        {
+            g_modsConfig.menu().requestMinimize();
+        }
+
+        void restoreMenu() const override
+        {
+            g_modsConfig.menu().requestRestore();
+        }
+
+        void reloadValues(api::IClient* client) const override
+        {
+            auto& menu = g_modsConfig.menu();
+            if (const auto* name = menu.nativeClients().nameOf(client)) {
+                menu.requestReadAgain(*name);
+            }
+        }
+    };
 
     // the API, which is the same for the whole run of the game
-    constexpr api::ModsConfigVRApiV1 API{
-        .getVersion = &getVersion,
-        .getModVersion = &getModVersion,
-        .addQuickLaunch = &addQuickLaunch,
-        .registerClient = &registerClient,
-        .registerOptions = &registerOptions,
-        .registerFunction = &registerFunction,
-        .registerState = &registerState,
-        .getMenuState = &getMenuState,
-        .openMenu = &openMenu,
-        .minimizeMenu = &minimizeMenu,
-        .restoreMenu = &restoreMenu,
-        .reloadValues = &reloadValues,
-    };
+    const HostApi API;
 }
 
 /**

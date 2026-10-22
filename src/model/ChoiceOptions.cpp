@@ -39,28 +39,10 @@ namespace
 namespace mods_config::model
 {
     /**
-     * Registers the callback that gives the options of a setting of a mod. False for a setting that has one
-     * already, which keeps the first.
-     */
-    bool ClientOptions::add(const std::string_view modName, const std::string_view settingId, Callback callback)
-    {
-        return _callbacks.try_emplace({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(settingId)) }, std::move(callback)).second;
-    }
-
-    /**
-     * The callback of a setting of a mod. None for a setting no callback is registered for.
-     */
-    const ClientOptions::Callback* ClientOptions::find(const std::string_view modName, const std::string_view settingId) const
-    {
-        const auto found = _callbacks.find({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(settingId)) });
-        return found != _callbacks.end() ? &found->second : nullptr;
-    }
-
-    /**
      * Reads the options of the choices of a mod that read them in the game or from its client, as the mod is
      * selected. It forgets those of the mod before it.
      */
-    void ChoiceOptions::read(const Mod& mod, const ClientOptions* clients)
+    void ChoiceOptions::read(const Mod& mod, const ClientCalls* clients)
     {
         std::vector<const Setting*> choices;
         addChoices(mod.frontPage.items, choices);
@@ -139,11 +121,10 @@ namespace mods_config::model
      */
     ChoiceOptions::Read ChoiceOptions::readClient(const Setting& setting) const
     {
-        const auto* callback = _clients ? _clients->find(_modName, setting.id) : nullptr;
-        if (!callback) {
+        if (!_clients) {
             return { .options = {}, .notAvailable = "Not available: its mod's client gives no options for it." };
         }
-        auto options = (*callback)(setting);
+        auto options = _clients->options(_modName, setting);
         if (!options) {
             return { .options = {}, .notAvailable = std::move(options.error()) };
         }

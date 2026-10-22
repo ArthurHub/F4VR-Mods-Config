@@ -51,14 +51,7 @@ namespace mods_config::spec
     public:
         ConfigSpecStore(std::filesystem::path dataFolder, std::filesystem::path myGamesFolder);
 
-        // the callbacks of the choices of mods that take their options from their clients (`listFromClientCallback`),
-        // which the native API registers. They are called as the mod is selected
-        model::ClientOptions& clientOptions()
-        {
-            return _clientOptions;
-        }
-
-        // the functions of mods' DLLs, which a `CallNativeFunction` runs, which the native API registers
+        // the clients of mods' DLLs, which the native API registers: the menu asks them for functions, states and options
         model::ClientCalls& clientCalls()
         {
             return _clientCalls;
@@ -170,7 +163,6 @@ namespace mods_config::spec
         // the options of the choices of the mod that is selected, and the callbacks that give the options of a choice
         // that takes them from its mod's client
         model::ChoiceOptions _options;
-        model::ClientOptions _clientOptions;
         model::ClientCalls _clientCalls;
 
         // the states of the mod's client asked in this frame, by their names in lower case: each is asked once a frame

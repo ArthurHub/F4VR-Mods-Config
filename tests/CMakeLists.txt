@@ -28,6 +28,7 @@ add_executable(${PROJECT_NAME}_tests
   Setup.cpp
   TestActions.cpp
   TestActions.h
+  TestClients.h
   TestEvents.cpp
   TestEvents.h
   TestFiles.h

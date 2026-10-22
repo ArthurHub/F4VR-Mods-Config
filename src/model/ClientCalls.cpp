@@ -5,18 +5,27 @@
 
 #include "common/CommonUtils.h"
 
+namespace
+{
+    // why a choice of a mod's client has no options: it has none of them, or no client
+    constexpr auto NO_OPTIONS = "Not available: its mod's client gives no options for it.";
+
+    // why nothing of a client that is cut off is there
+    constexpr auto CUT_OFF = "Not available: its mod's client failed, and is cut off until the game is restarted.";
+}
+
 namespace mods_config::model
 {
     /**
-     * Notes that a mod has a client, so a function it did not register is told from a DLL that is not there.
+     * Adds a mod's client, by its mod's name. False for a mod that has one already, which keeps the first.
      */
-    void ClientCalls::addClient(const std::string_view modName)
+    bool ClientCalls::addClient(const std::string_view modName, Client client)
     {
-        _clients.insert(common::str_tolower(std::string(modName)));
+        return _clients.try_emplace(common::str_tolower(std::string(modName)), std::move(client)).second;
     }
 
     /**
-     * Notes that a mod's client failed: none of its functions runs again until the game is restarted.
+     * Notes that a mod's client failed: it is asked nothing more until the game is restarted.
      */
     void ClientCalls::cutOff(const std::string_view modName)
     {
@@ -24,16 +33,18 @@ namespace mods_config::model
     }
 
     /**
-     * Registers a function of a mod. False for a name that has one already, which keeps the first.
+     * The client of a mod that is asked: none for a mod with no client, and for one whose client is cut off.
      */
-    bool ClientCalls::add(const std::string_view modName, const std::string_view name, Function function)
+    const ClientCalls::Client* ClientCalls::find(const std::string_view modName) const
     {
-        return _functions.try_emplace({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(name)) }, std::move(function)).second;
+        const auto mod = common::str_tolower(std::string(modName));
+        const auto found = _clients.find(mod);
+        return found != _clients.end() && !_cutOff.contains(mod) ? &found->second : nullptr;
     }
 
     /**
      * Why a function of a mod does not run, which a button's help line says: its mod has no client, as its DLL is
-     * not loaded, its client is cut off, or it did not register the function. Empty for one that runs.
+     * not loaded, its client is cut off, or has no function of the name. Empty for one that runs.
      */
     std::string ClientCalls::notRunnable(const std::string_view modName, const std::string_view displayName, const std::string_view name) const
     {
@@ -41,11 +52,13 @@ namespace mods_config::model
         if (!_clients.contains(mod)) {
             return std::format("Needs {}'s DLL, which is not loaded.", displayName);
         }
-        if (_cutOff.contains(mod)) {
-            return "Not available: its mod's client failed, and is cut off until the game is restarted.";
+        const auto* client = find(modName);
+        if (!client) {
+            return CUT_OFF;
         }
-        if (!_functions.contains({ mod, common::str_tolower(std::string(name)) })) {
-            return std::format("Not available: {}'s DLL has no function '{}'.", displayName, name);
+        if (!client->hasFunction || !client->hasFunction(name)) {
+            // asking it can have cut it off
+            return find(modName) ? std::format("Not available: {}'s DLL has no function '{}'.", displayName, name) : std::string(CUT_OFF);
         }
         return {};
     }
@@ -55,63 +68,53 @@ namespace mods_config::model
      */
     FunctionResult ClientCalls::call(const std::string_view modName, const std::string_view name, const std::vector<NamedArgument>& arguments) const
     {
-        const auto mod = common::str_tolower(std::string(modName));
-        const auto found = _functions.find({ mod, common::str_tolower(std::string(name)) });
-        if (found == _functions.end() || _cutOff.contains(mod)) {
-            return {};
-        }
-        return found->second(arguments);
-    }
-
-    /**
-     * Registers a state of a mod. False for a name that has one already, which keeps the first.
-     */
-    bool ClientCalls::addState(const std::string_view modName, const std::string_view name, State state)
-    {
-        return _states.try_emplace({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(name)) }, std::move(state)).second;
+        const auto* client = find(modName);
+        return client && client->runFunction ? client->runFunction(name, arguments) : FunctionResult{};
     }
 
     /**
      * The value of a state of a mod now. None while it is not available: its mod has no client, its client is cut off,
-     * did not register it, or does not answer it.
+     * or does not answer it.
      */
     std::optional<Value> ClientCalls::state(const std::string_view modName, const std::string_view name) const
     {
-        const auto mod = common::str_tolower(std::string(modName));
-        const auto found = _states.find({ mod, common::str_tolower(std::string(name)) });
-        if (found == _states.end() || _cutOff.contains(mod)) {
-            return std::nullopt;
-        }
-        return found->second();
+        const auto* client = find(modName);
+        return client && client->state ? client->state(name) : std::nullopt;
     }
 
     /**
-     * Registers the events of a mod's client, in place of any it had.
+     * The options of a choice of a mod, which its client gives, or why there are none.
      */
-    void ClientCalls::addEvents(const std::string_view modName, Events events)
+    std::expected<std::vector<Option>, std::string> ClientCalls::options(const std::string_view modName, const Setting& setting) const
     {
-        _events.insert_or_assign(common::str_tolower(std::string(modName)), std::move(events));
+        if (!_clients.contains(common::str_tolower(std::string(modName)))) {
+            return std::unexpected(NO_OPTIONS);
+        }
+        const auto* client = find(modName);
+        if (!client) {
+            return std::unexpected(CUT_OFF);
+        }
+        return client->options ? client->options(setting) : std::unexpected(std::string(NO_OPTIONS));
     }
 
     /**
-     * Tells a mod's client an event. Nothing for a mod whose client wants none, or is cut off.
+     * Tells a mod's client an event. Nothing for a mod with no client, or whose client is cut off.
      */
     void ClientCalls::send(const std::string_view modName, const ClientEvent event, const std::string_view pageId) const
     {
-        const auto mod = common::str_tolower(std::string(modName));
-        if (const auto found = _events.find(mod); found != _events.end() && !_cutOff.contains(mod)) {
-            found->second(event, pageId);
+        if (const auto* client = find(modName); client && client->onEvent) {
+            client->onEvent(event, pageId);
         }
     }
 
     /**
-     * Tells every client that wants events an event of the menu, as that it opened.
+     * Tells every client an event of the menu, as that it opened.
      */
     void ClientCalls::sendToAll(const ClientEvent event) const
     {
-        for (const auto& [mod, events] : _events) {
-            if (!_cutOff.contains(mod)) {
-                events(event, {});
+        for (const auto& [mod, client] : _clients) {
+            if (!_cutOff.contains(mod) && client.onEvent) {
+                client.onEvent(event, {});
             }
         }
     }

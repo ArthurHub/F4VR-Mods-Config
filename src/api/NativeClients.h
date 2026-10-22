@@ -4,43 +4,26 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "ModsConfigVRApi.h"
-#include "model/ChoiceOptions.h"
 #include "model/ClientCalls.h"
 #include "model/Translations.h"
 
 namespace mods_config::api
 {
     /**
-     * The host's side of a client: its name, the version of its header, and whether it is cut off.
-     */
-    struct Client
-    {
-        std::string name;
-        std::uint32_t version = 0;
-        void* ctx = nullptr;
-
-        // its callback of the menu's events, and none
-        void(MODS_CONFIG_VR_CALL* onEvent)(void* ctx, const MenuEvent* event) = nullptr;
-
-        // a call of it failed, so nothing of it is called again until the game is restarted
-        bool cutOff = false;
-    };
-
-    /**
-     * The native clients of the mods, which register through the API, each under the name of its mod. What a client
-     * registers is its config spec's: the callbacks of its options and its functions go into the client options and
-     * the client functions the config spec store reads. Every call of a client is in a guard: one that throws or
-     * faults is cut off, and its mod is handled as one with no client. It knows nothing of the game, so a test runs it.
+     * The native clients of the mods, which register through the API, each under the name of its mod. A client is
+     * added to the client calls the config spec store reads, which ask it by name for its functions, states and
+     * options, and tell it the menu's events. Every call of a client is in a guard: one that throws or faults is cut
+     * off, and its mod is handled as one with no client. It knows nothing of the game, so a test runs it.
      */
     class NativeClients
     {
     public:
-        NativeClients(model::ClientOptions& options, model::ClientCalls& calls)
-            : _options(options),
-              _calls(calls)
+        explicit NativeClients(model::ClientCalls& calls)
+            : _calls(calls)
         {}
 
         // the texts of the game's language, which a client's texts are translated with
@@ -49,25 +32,37 @@ namespace mods_config::api
             _translations = translations;
         }
 
-        Client* registerClient(const ClientInfo* info);
-        bool registerOptions(Client* client, const char* settingId, OptionsFn options, void* ctx);
-        bool registerFunction(Client* client, const char* name, NativeFunction function, void* ctx);
-        bool registerState(Client* client, const char* name, StateFn state, void* ctx);
-        bool addQuickLaunch(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
-        bool isClient(const Client* client) const;
+        bool registerClient(const char* name, std::uint32_t version, IClient* client);
+        bool addQuickLaunch(const IClient* client, const char* text, const char* help, const char* buttonText, const char* functionName);
+        const std::string* nameOf(const IClient* client) const;
 
     private:
-        std::expected<std::vector<model::Option>, std::string> callOptions(Client& client, OptionsFn options, void* ctx, const model::Setting& setting) const;
-        model::FunctionResult callFunction(Client& client, NativeFunction function, void* ctx, const std::string& name, const std::vector<model::NamedArgument>& arguments) const;
-        std::optional<model::Value> callState(Client& client, StateFn state, void* ctx, const std::string& name) const;
-        void callEvent(Client& client, model::ClientEvent event, std::string_view pageId) const;
-        void cutOff(Client& client, std::string_view what) const;
+        /**
+         * The host's side of a client: its name, the version of its header, and whether it is cut off.
+         */
+        struct Registered
+        {
+            std::string name;
+            std::uint32_t version = 0;
+            IClient* client = nullptr;
 
-        model::ClientOptions& _options;
+            // a call of it failed, so nothing of it is called again until the game is restarted
+            bool cutOff = false;
+        };
+
+        bool hasFunction(Registered& registered, std::string_view name) const;
+        model::FunctionResult runFunction(Registered& registered, std::string_view name, const std::vector<model::NamedArgument>& arguments) const;
+        std::optional<model::Value> answerState(Registered& registered, std::string_view name) const;
+        std::expected<std::vector<model::Option>, std::string> giveOptions(Registered& registered, const model::Setting& setting) const;
+        void tellEvent(Registered& registered, model::ClientEvent event, std::string_view pageId) const;
+        template <typename F>
+        bool call(Registered& registered, std::string_view what, F& function) const;
+        const Registered* find(const IClient* client) const;
+
         model::ClientCalls& _calls;
         const model::Translations* _translations = nullptr;
 
-        // each kept where it is, as a client keeps its handle
-        std::vector<std::unique_ptr<Client>> _clients;
+        // each kept where it is, as its calls point to it
+        std::vector<std::unique_ptr<Registered>> _clients;
     };
 }

@@ -575,7 +575,7 @@ namespace mods_config::spec
             read.file = modFile.get();
         }
 
-        _options.read(mod, &_clientOptions);
+        _options.read(mod, &_clientCalls);
         addSettings(mod.frontPage.items, _settingList);
         addSettings(mod.pages, _settingList);
         for (const auto* setting : _settingList) {

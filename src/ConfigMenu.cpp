@@ -16,7 +16,6 @@
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
 #include "imgui/ImGuiSettings.h"
-#include "modsconfig/ModsConfigClient.h"
 #include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
@@ -90,23 +89,6 @@ namespace
     }
 
     /**
-     * The options of the menu's own Config spec setting: none first, then each config spec the menu lists, by its
-     * modName and its name, in their order.
-     */
-    void MODS_CONFIG_VR_CALL addConfigSpecOptions(void* ctx, mods_config::api::OptionsCall* call)
-    {
-        using namespace mods_config;
-        const api::SettingValue none{ .type = api::ValueType::String, .text = "" };
-        call->addOption(call, &none, "None");
-        for (const auto& mod : static_cast<const ConfigMenu*>(ctx)->mods()) {
-            if (mod.source == model::Source::ConfigSpec) {
-                const api::SettingValue value{ .type = api::ValueType::String, .text = mod.name.c_str() };
-                call->addOption(call, &value, mod.displayName.c_str());
-            }
-        }
-    }
-
-    /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
      * for it. The function takes no arguments, which is an empty array.
      */
@@ -139,17 +121,21 @@ namespace mods_config
     }
 
     /**
-     * Registers the callback of its own config spec's Config spec setting through the native API, with the client the
-     * framework registered for the mod, as any CommonFramework mod's.
+     * Adds the options of its own config spec's Config spec setting to the mod's client of the native API, as any
+     * CommonFramework mod adds its own: none first, then each config spec the menu lists, by its modName and its name,
+     * in their order. The framework connects the client at kPostLoad.
      */
     void ConfigMenu::registerOwnOptions()
     {
-        const auto& modsConfig = f4cf::modsconfig::ModsConfigClient::get();
-        if (!modsConfig.isRegistered()) {
-            logger::error("The mod has no client of the native API: the Config spec setting has no options");
-            return;
-        }
-        modsConfig.api()->registerOptions(modsConfig.client(), DEVELOPER_CONFIG_SPEC_ID, &addConfigSpecOptions, this);
+        api::ModsConfigVRClient::get().addOptions(DEVELOPER_CONFIG_SPEC_ID, [this] {
+            std::vector<api::Option> options{ { .value = std::string(), .text = "None" } };
+            for (const auto& mod : mods()) {
+                if (mod.source == model::Source::ConfigSpec) {
+                    options.push_back({ .value = mod.name, .text = mod.displayName });
+                }
+            }
+            return options;
+        });
     }
 
     bool ConfigMenu::isOpen() const

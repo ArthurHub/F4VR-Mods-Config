@@ -43,6 +43,8 @@ namespace mods_config
     void ModsConfigVR::onModLoaded(const F4SE::LoadInterface*)
     {
         devbench::setupDevBenchTool();
+        // given to the menu as the framework connects the mod's client at kPostLoad
+        _menu.registerOwnOptions();
     }
 
     /**
@@ -51,9 +53,6 @@ namespace mods_config
     void ModsConfigVR::onGameLoaded()
     {
         takeOpenGestureFromFRIK();
-
-        // the framework registered the mod's client of the native API at kPostLoad, as any CommonFramework mod's
-        _menu.registerOwnOptions();
 
         // once: what a mod's menu holds does not change while the game runs
         const auto translations = loadGameTranslations();

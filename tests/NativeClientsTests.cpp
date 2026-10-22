@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <functional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "api/NativeClients.h"
@@ -11,10 +13,53 @@ using namespace std::string_literals;
 
 namespace
 {
-    api::ClientInfo infoOf(const char* name)
+    constexpr auto CUT_OFF = "Not available: its mod's client failed, and is cut off until the game is restarted.";
+
+    /**
+     * A client of the API, whose every method does what the test gives it, and nothing with none.
+     */
+    struct FakeClient final : api::IClient
     {
-        return { .version = api::MODS_CONFIG_VR_API_VERSION, .name = name, .ctx = nullptr };
-    }
+        std::function<bool(const char*)> has = [](const char*) {
+            return false;
+        };
+        std::function<bool(const char*, api::IFunctionCall*)> run = [](const char*, api::IFunctionCall*) {
+            return false;
+        };
+        std::function<bool(const char*, api::SettingValue*)> state = [](const char*, api::SettingValue*) {
+            return false;
+        };
+        std::function<bool(const api::SettingView*, api::IOptions*)> options = [](const api::SettingView*, api::IOptions*) {
+            return false;
+        };
+        std::function<void(const api::MenuEvent*)> event = [](const api::MenuEvent*) {
+        };
+
+        bool hasFunction(const char* name) override
+        {
+            return has(name);
+        }
+
+        bool runFunction(const char* name, api::IFunctionCall* call) override
+        {
+            return run(name, call);
+        }
+
+        bool answerState(const char* name, api::SettingValue* value) override
+        {
+            return state(name, value);
+        }
+
+        bool giveOptions(const api::SettingView* setting, api::IOptions* given) override
+        {
+            return options(setting, given);
+        }
+
+        void onEvent(const api::MenuEvent* menuEvent) override
+        {
+            event(menuEvent);
+        }
+    };
 
     model::Setting choiceOf(const std::string& id, const model::StoredType type)
     {
@@ -25,413 +70,302 @@ namespace
     }
 
     /**
-     * What a callback was called with, and how many times.
+     * The model's client calls and the native clients that fill them.
      */
-    struct Calls
+    struct Clients
     {
-        int count = 0;
-        std::string settingId;
-        api::ValueType valueType = api::ValueType::Bool;
-    };
+        model::ClientCalls calls;
+        api::NativeClients clients{ calls };
 
-    /**
-     * Gives the options of a string choice: none, a token, one with no text, and one of another type.
-     */
-    void MODS_CONFIG_VR_CALL stringOptions(void* ctx, api::OptionsCall* call)
-    {
-        auto& calls = *static_cast<Calls*>(ctx);
-        ++calls.count;
-        calls.settingId = call->setting->id;
-        calls.valueType = call->setting->valueType;
-        const api::SettingValue none{ .type = api::ValueType::String, .text = "" };
-        call->addOption(call, &none, "None");
-        const api::SettingValue frik{ .type = api::ValueType::String, .text = "frik" };
-        call->addOption(call, &frik, "$FRIK");
-        const api::SettingValue other{ .type = api::ValueType::String, .text = "Other" };
-        call->addOption(call, &other, nullptr);
-        const api::SettingValue number{ .type = api::ValueType::Int, .intValue = 3 };
-        call->addOption(call, &number, "Three");
-    }
-
-    /**
-     * Gives the options of an int choice, with no texts.
-     */
-    void MODS_CONFIG_VR_CALL intOptions(void*, api::OptionsCall* call)
-    {
-        for (std::int32_t i = 1; i <= 2; ++i) {
-            const api::SettingValue value{ .type = api::ValueType::Int, .intValue = i * 10 };
-            call->addOption(call, &value, nullptr);
+        bool add(const char* name, FakeClient& client)
+        {
+            return clients.registerClient(name, api::MODS_CONFIG_VR_API_VERSION, &client);
         }
-    }
-
-    /**
-     * Throws, as a client's code can, after it counts its call.
-     */
-    void MODS_CONFIG_VR_CALL throwingOptions(void* ctx, api::OptionsCall*)
-    {
-        ++static_cast<Calls*>(ctx)->count;
-        throw std::runtime_error("the client's bug");
-    }
-
-    std::expected<std::vector<model::Option>, std::string> readOptions(const model::ClientOptions& options, const std::string_view modName, const model::Setting& setting)
-    {
-        const auto* callback = options.find(modName, setting.id);
-        REQUIRE(callback);
-        return (*callback)(setting);
-    }
+    };
 }
 
 TEST_CASE("NativeClients: a client registers once by its name, without regard to case")
 {
-    model::ClientOptions options;
-    model::ClientCalls functions;
-    api::NativeClients clients(options, functions);
-    const auto info = infoOf("MyMod");
-    CHECK(clients.registerClient(&info) != nullptr);
+    Clients clients;
+    FakeClient client;
+    FakeClient other;
+    CHECK(clients.add("MyMod", client));
+    CHECK(*clients.clients.nameOf(&client) == "MyMod");
+    CHECK_FALSE(clients.add("mymod", other));
 
-    const auto again = infoOf("mymod");
-    CHECK(clients.registerClient(&again) == nullptr);
-
-    // an info with no name or no version, and none
-    const auto noName = infoOf("");
-    CHECK(clients.registerClient(&noName) == nullptr);
-    auto noVersion = infoOf("Other");
-    noVersion.version = 0;
-    CHECK(clients.registerClient(&noVersion) == nullptr);
-    CHECK(clients.registerClient(nullptr) == nullptr);
+    // the same client under another name, and no name, no client or no version
+    CHECK_FALSE(clients.add("Other", client));
+    CHECK_FALSE(clients.add("", other));
+    CHECK_FALSE(clients.clients.registerClient("Other", api::MODS_CONFIG_VR_API_VERSION, nullptr));
+    CHECK_FALSE(clients.clients.registerClient("Other", 0, &other));
+    CHECK_FALSE(clients.clients.nameOf(&other));
 }
 
-TEST_CASE("NativeClients: a client gives the options of a choice of its config spec, of the setting's type, with its texts translated")
+TEST_CASE("NativeClients: a client gives the options of a choice, of the setting's type, with its texts translated")
 {
-    model::ClientOptions options;
-    model::ClientCalls functions;
-    api::NativeClients clients(options, functions);
+    Clients clients;
     model::Translations translations;
     translations.add("$FRIK", "FRIK VR");
-    clients.setTranslations(&translations);
-    const auto info = infoOf("MyMod");
-    auto* client = clients.registerClient(&info);
-    Calls calls;
-    REQUIRE(clients.registerOptions(client, "Preset", &stringOptions, &calls));
-    REQUIRE(clients.registerOptions(client, "Count", &intOptions, nullptr));
+    clients.clients.setTranslations(&translations);
+    FakeClient client;
+    std::string asked;
+    client.options = [&asked](const api::SettingView* setting, api::IOptions* options) {
+        asked = setting->id;
+        if (setting->valueType == api::ValueType::Int) {
+            for (std::int32_t i = 1; i <= 2; ++i) {
+                const api::SettingValue value{ .type = api::ValueType::Int, .intValue = i * 10 };
+                options->add(&value, nullptr);
+            }
+            return true;
+        }
+        if (std::string(setting->id) != "preset") {
+            return false;
+        }
+        const api::SettingValue none{ .type = api::ValueType::String, .text = "" };
+        options->add(&none, "None");
+        const api::SettingValue frik{ .type = api::ValueType::String, .text = "frik" };
+        options->add(&frik, "$FRIK");
+        const api::SettingValue other{ .type = api::ValueType::String, .text = "Other" };
+        options->add(&other, nullptr);
+        // of another type, which is left out
+        const api::SettingValue number{ .type = api::ValueType::Int, .intValue = 3 };
+        options->add(&number, "Three");
+        return true;
+    };
+    REQUIRE(clients.add("MyMod", client));
 
-    // its mod's name and the setting's id are matched without regard to case
-    const auto preset = readOptions(options, "MYMOD", choiceOf("preset", model::StoredType::String));
+    const auto preset = clients.calls.options("MYMOD", choiceOf("preset", model::StoredType::String));
     REQUIRE(preset);
     CHECK(*preset == std::vector<model::Option>{ { .value = ""s, .text = "None" }, { .value = "frik"s, .text = "FRIK VR" }, { .value = "Other"s, .text = "Other" } });
-    CHECK(calls.count == 1);
-    CHECK(calls.settingId == "preset");
-    CHECK(calls.valueType == api::ValueType::String);
+    CHECK(asked == "preset");
 
     // an option with no text shows its value
-    const auto count = readOptions(options, "MyMod", choiceOf("Count", model::StoredType::Int));
+    const auto count = clients.calls.options("MyMod", choiceOf("count", model::StoredType::Int));
     REQUIRE(count);
     CHECK(*count == std::vector<model::Option>{ { .value = 10, .text = "10" }, { .value = 20, .text = "20" } });
-}
 
-TEST_CASE("NativeClients: the options of a setting are registered once, which keeps the first")
-{
-    model::ClientOptions options;
-    model::ClientCalls functions;
-    api::NativeClients clients(options, functions);
-    const auto info = infoOf("MyMod");
-    auto* client = clients.registerClient(&info);
-    Calls first;
-    Calls second;
-    CHECK(clients.registerOptions(client, "Preset", &stringOptions, &first));
-    CHECK_FALSE(clients.registerOptions(client, "preset", &stringOptions, &second));
-    CHECK(readOptions(options, "MyMod", choiceOf("Preset", model::StoredType::String)));
-    CHECK(first.count == 1);
-    CHECK(second.count == 0);
-
-    // a handle that is no client's, no setting and no callback
-    api::Client stranger;
-    CHECK_FALSE(clients.registerOptions(&stranger, "Other", &stringOptions, nullptr));
-    CHECK_FALSE(clients.registerOptions(nullptr, "Other", &stringOptions, nullptr));
-    CHECK_FALSE(clients.registerOptions(client, "", &stringOptions, nullptr));
-    CHECK_FALSE(clients.registerOptions(client, "Other", nullptr, nullptr));
-}
-
-TEST_CASE("NativeClients: a client whose callback throws is cut off, and its choices are not available")
-{
-    model::ClientOptions options;
-    model::ClientCalls functions;
-    api::NativeClients clients(options, functions);
-    const auto info = infoOf("MyMod");
-    auto* client = clients.registerClient(&info);
-    Calls throwing;
-    Calls other;
-    REQUIRE(clients.registerOptions(client, "Broken", &throwingOptions, &throwing));
-    REQUIRE(clients.registerOptions(client, "Preset", &stringOptions, &other));
-
-    constexpr auto reason = "Not available: its mod's client failed, and is cut off until the game is restarted.";
-    const auto broken = readOptions(options, "MyMod", choiceOf("Broken", model::StoredType::String));
-    REQUIRE_FALSE(broken);
-    CHECK(broken.error() == reason);
-    CHECK(throwing.count == 1);
-
-    // nothing of it is called again, and it registers nothing more
-    CHECK(readOptions(options, "MyMod", choiceOf("Broken", model::StoredType::String)).error() == reason);
-    CHECK(readOptions(options, "MyMod", choiceOf("Preset", model::StoredType::String)).error() == reason);
-    CHECK(throwing.count == 1);
-    CHECK(other.count == 0);
-    CHECK_FALSE(clients.registerOptions(client, "More", &stringOptions, nullptr));
-
-    // another client keeps working
-    const auto otherInfo = infoOf("OtherMod");
-    auto* otherClient = clients.registerClient(&otherInfo);
-    REQUIRE(clients.registerOptions(otherClient, "Preset", &stringOptions, &other));
-    CHECK(readOptions(options, "OtherMod", choiceOf("Preset", model::StoredType::String)));
-    CHECK(other.count == 1);
-}
-
-namespace
-{
-    /**
-     * What a function was called with, and what it answers.
-     */
-    struct FunctionCalls
-    {
-        int count = 0;
-        std::vector<std::pair<std::string, api::SettingValue>> params;
-        std::vector<std::string> texts;
-        bool done = true;
-        const char* message = nullptr;
-    };
-
-    /**
-     * Keeps its parameters, with their texts, and answers as its calls say.
-     */
-    bool MODS_CONFIG_VR_CALL calibrate(void* ctx, api::FunctionCall* call)
-    {
-        auto& calls = *static_cast<FunctionCalls*>(ctx);
-        ++calls.count;
-        for (std::uint32_t i = 0; i < call->paramCount; ++i) {
-            calls.params.emplace_back(call->params[i].name, call->params[i].value);
-            calls.texts.emplace_back(call->params[i].value.text);
-        }
-        if (calls.message) {
-            call->setMessage(call, calls.message);
-        }
-        return calls.done;
-    }
-
-    /**
-     * Throws, as a client's code can, after it counts its call.
-     */
-    bool MODS_CONFIG_VR_CALL throwingFunction(void* ctx, api::FunctionCall*)
-    {
-        ++static_cast<FunctionCalls*>(ctx)->count;
-        throw std::runtime_error("the client's bug");
-    }
+    // one it gives none of, and a mod with no client
+    CHECK(clients.calls.options("MyMod", choiceOf("other", model::StoredType::String)).error() == "Not available: its mod's client gives no options for it.");
+    CHECK(clients.calls.options("OtherMod", choiceOf("preset", model::StoredType::String)).error() == "Not available: its mod's client gives no options for it.");
 }
 
 TEST_CASE("NativeClients: a client's function runs with its named arguments, each in its type, and gives its result")
 {
-    model::ClientOptions options;
-    model::ClientCalls functions;
-    api::NativeClients clients(options, functions);
+    Clients clients;
     model::Translations translations;
     translations.add("$Done", "Done: 1.78 m.");
-    clients.setTranslations(&translations);
-    const auto info = infoOf("MyMod");
-    auto* client = clients.registerClient(&info);
-    FunctionCalls calls{ .message = "$Done" };
-    REQUIRE(clients.registerFunction(client, "Calibrate", &calibrate, &calls));
+    clients.clients.setTranslations(&translations);
+    FakeClient client;
+    std::vector<std::pair<std::string, api::SettingValue>> params;
+    std::vector<std::string> texts;
+    bool done = true;
+    const char* message = "$Done";
+    client.has = [](const char* name) {
+        return std::string(name) == "calibrate";
+    };
+    client.run = [&](const char* name, api::IFunctionCall* call) {
+        CHECK(std::string(name) == "calibrate");
+        for (std::uint32_t i = 0; i < call->paramCount(); ++i) {
+            params.emplace_back(call->param(i)->name, call->param(i)->value);
+            texts.emplace_back(call->param(i)->value.text);
+        }
+        if (message) {
+            call->setMessage(message);
+        }
+        return done;
+    };
+    REQUIRE(clients.add("MyMod", client));
 
-    // its mod's name and its own are matched without regard to case
-    CHECK(functions.notRunnable("mymod", "My Mod", "calibrate").empty());
+    CHECK(clients.calls.notRunnable("mymod", "My Mod", "calibrate").empty());
     const std::vector<model::NamedArgument> arguments{ { .name = "mode", .value = "height"s },
         { .name = "samples", .value = 30 },
         { .name = "scale", .value = 1.5f },
         { .name = "includeScale", .value = true } };
-    const auto result = functions.call("mymod", "calibrate", arguments);
+    const auto result = clients.calls.call("mymod", "calibrate", arguments);
     CHECK(result.done);
     CHECK(result.message == "Done: 1.78 m.");
-    REQUIRE(calls.params.size() == 4);
-    CHECK(calls.params[0].first == "mode");
-    CHECK(calls.params[0].second.type == api::ValueType::String);
-    CHECK(calls.texts[0] == "height");
-    CHECK(calls.params[1].second.type == api::ValueType::Int);
-    CHECK(calls.params[1].second.intValue == 30);
-    CHECK(calls.texts[1] == "30");
-    CHECK(calls.params[2].second.type == api::ValueType::Float);
-    CHECK(calls.params[2].second.floatValue == 1.5f);
-    CHECK(calls.params[3].second.type == api::ValueType::Bool);
-    CHECK(calls.params[3].second.boolValue);
+    REQUIRE(params.size() == 4);
+    CHECK(params[0].first == "mode");
+    CHECK(params[0].second.type == api::ValueType::String);
+    CHECK(texts[0] == "height");
+    CHECK(params[1].second.type == api::ValueType::Int);
+    CHECK(params[1].second.intValue == 30);
+    CHECK(texts[1] == "30");
+    CHECK(params[2].second.type == api::ValueType::Float);
+    CHECK(params[2].second.floatValue == 1.5f);
+    CHECK(params[3].second.type == api::ValueType::Bool);
+    CHECK(params[3].second.boolValue);
 
     // one that fails with no message
-    calls.done = false;
-    calls.message = nullptr;
-    const auto failed = functions.call("MyMod", "Calibrate", {});
+    done = false;
+    message = nullptr;
+    const auto failed = clients.calls.call("MyMod", "calibrate", {});
     CHECK_FALSE(failed.done);
     CHECK(failed.message.empty());
-    CHECK(calls.count == 2);
 }
 
 TEST_CASE("NativeClients: a function does not run with no client, with no function of its name, and once its client is cut off")
 {
-    model::ClientOptions options;
-    model::ClientCalls functions;
-    api::NativeClients clients(options, functions);
-    CHECK(functions.notRunnable("MyMod", "My Mod", "calibrate") == "Needs My Mod's DLL, which is not loaded.");
+    Clients clients;
+    CHECK(clients.calls.notRunnable("MyMod", "My Mod", "calibrate") == "Needs My Mod's DLL, which is not loaded.");
 
-    const auto info = infoOf("MyMod");
-    auto* client = clients.registerClient(&info);
-    CHECK(functions.notRunnable("MyMod", "My Mod", "calibrate") == "Not available: My Mod's DLL has no function 'calibrate'.");
-
-    FunctionCalls throwing;
-    FunctionCalls calls;
-    Calls optionCalls;
-    REQUIRE(clients.registerFunction(client, "Broken", &throwingFunction, &throwing));
-    REQUIRE(clients.registerFunction(client, "Calibrate", &calibrate, &calls));
-    REQUIRE(clients.registerOptions(client, "Preset", &stringOptions, &optionCalls));
-    CHECK_FALSE(clients.registerFunction(client, "calibrate", &calibrate, nullptr));
-
-    constexpr auto reason = "Not available: its mod's client failed, and is cut off until the game is restarted.";
-    const auto broken = functions.call("MyMod", "Broken", {});
-    CHECK_FALSE(broken.done);
-    CHECK(broken.message == reason);
-    CHECK(throwing.count == 1);
-
-    // nothing of it runs again: its functions and its options
-    CHECK(functions.notRunnable("MyMod", "My Mod", "calibrate") == reason);
-    CHECK_FALSE(functions.call("MyMod", "Calibrate", {}).done);
-    CHECK(calls.count == 0);
-    CHECK(readOptions(options, "MyMod", choiceOf("Preset", model::StoredType::String)).error() == reason);
-    CHECK(optionCalls.count == 0);
-    CHECK_FALSE(clients.registerFunction(client, "More", &calibrate, nullptr));
-}
-
-namespace
-{
-    /**
-     * What a state answers, and how many times it was asked.
-     */
-    struct StateAnswer
-    {
-        int count = 0;
-        bool answers = true;
-        api::SettingValue value{ .type = api::ValueType::Bool, .boolValue = true };
+    FakeClient client;
+    int runs = 0;
+    client.has = [](const char* name) {
+        return std::string(name) != "other";
     };
+    client.run = [&runs](const char* name, api::IFunctionCall*) {
+        ++runs;
+        if (std::string(name) == "broken") {
+            throw std::runtime_error("the client's bug");
+        }
+        return true;
+    };
+    REQUIRE(clients.add("MyMod", client));
+    CHECK(clients.calls.notRunnable("MyMod", "My Mod", "other") == "Not available: My Mod's DLL has no function 'other'.");
 
-    bool MODS_CONFIG_VR_CALL answerState(void* ctx, const char*, api::SettingValue* value)
-    {
-        auto& answer = *static_cast<StateAnswer*>(ctx);
-        ++answer.count;
-        *value = answer.value;
-        return answer.answers;
-    }
+    const auto broken = clients.calls.call("MyMod", "broken", {});
+    CHECK_FALSE(broken.done);
+    CHECK(broken.message == CUT_OFF);
+    CHECK(runs == 1);
 
-    bool MODS_CONFIG_VR_CALL throwingState(void*, const char*, api::SettingValue*)
-    {
-        throw std::runtime_error("the client's bug");
-    }
+    // nothing of it is asked again
+    CHECK(clients.calls.notRunnable("MyMod", "My Mod", "calibrate") == CUT_OFF);
+    CHECK_FALSE(clients.calls.call("MyMod", "calibrate", {}).done);
+    CHECK(runs == 1);
+    CHECK(clients.calls.options("MyMod", choiceOf("preset", model::StoredType::String)).error() == CUT_OFF);
+    CHECK_FALSE(clients.calls.state("MyMod", "calibrating"));
+
+    // and another client keeps working
+    FakeClient other;
+    other.has = [](const char*) {
+        return true;
+    };
+    REQUIRE(clients.add("OtherMod", other));
+    CHECK(clients.calls.notRunnable("OtherMod", "Other Mod", "calibrate").empty());
 }
 
-TEST_CASE("NativeClients: a client answers a state of its config spec, in its type, and none while it does not")
+TEST_CASE("NativeClients: a client answers a state, in its type, and none while it does not")
 {
-    model::ClientOptions options;
-    model::ClientCalls functions;
-    api::NativeClients clients(options, functions);
-    const auto info = infoOf("MyMod");
-    auto* client = clients.registerClient(&info);
-    StateAnswer answer;
-    REQUIRE(clients.registerState(client, "Calibrating", &answerState, &answer));
-    CHECK_FALSE(clients.registerState(client, "calibrating", &answerState, &answer));
+    Clients clients;
+    FakeClient client;
+    int asked = 0;
+    bool answers = true;
+    api::SettingValue answer{ .type = api::ValueType::Bool, .boolValue = true };
+    client.state = [&](const char* name, api::SettingValue* value) {
+        ++asked;
+        if (std::string(name) == "broken") {
+            throw std::runtime_error("the client's bug");
+        }
+        *value = answer;
+        return answers;
+    };
+    REQUIRE(clients.add("MyMod", client));
 
-    // by its mod's name and its own, without regard to case
-    CHECK(functions.state("mymod", "calibrating") == model::Value(true));
-    answer.value = { .type = api::ValueType::Int, .intValue = 3 };
-    CHECK(functions.state("MyMod", "Calibrating") == model::Value(3));
-    answer.value = { .type = api::ValueType::Float, .floatValue = 0.5f };
-    CHECK(functions.state("MyMod", "Calibrating") == model::Value(0.5f));
-    answer.value = { .type = api::ValueType::String, .text = "walk" };
-    CHECK(functions.state("MyMod", "Calibrating") == model::Value("walk"s));
-    answer.answers = false;
-    CHECK_FALSE(functions.state("MyMod", "Calibrating"));
-    CHECK_FALSE(functions.state("MyMod", "other"));
-    CHECK_FALSE(functions.state("OtherMod", "Calibrating"));
-    CHECK(answer.count == 5);
+    CHECK(clients.calls.state("mymod", "calibrating") == model::Value(true));
+    answer = { .type = api::ValueType::Int, .intValue = 3 };
+    CHECK(clients.calls.state("MyMod", "calibrating") == model::Value(3));
+    answer = { .type = api::ValueType::Float, .floatValue = 0.5f };
+    CHECK(clients.calls.state("MyMod", "calibrating") == model::Value(0.5f));
+    answer = { .type = api::ValueType::String, .text = "walk" };
+    CHECK(clients.calls.state("MyMod", "calibrating") == model::Value("walk"s));
+    answers = false;
+    CHECK_FALSE(clients.calls.state("MyMod", "calibrating"));
+    CHECK_FALSE(clients.calls.state("OtherMod", "calibrating"));
+    CHECK(asked == 5);
 
     // one that throws cuts its client off: none of its states is available after it
-    REQUIRE(clients.registerState(client, "Broken", &throwingState, nullptr));
-    answer.answers = true;
-    CHECK_FALSE(functions.state("MyMod", "Broken"));
-    CHECK_FALSE(functions.state("MyMod", "Calibrating"));
-    CHECK(answer.count == 5);
-    CHECK(functions.notRunnable("MyMod", "My Mod", "calibrate") == "Not available: its mod's client failed, and is cut off until the game is restarted.");
-}
-
-namespace
-{
-    /**
-     * The events a client was told, each as its type and its page.
-     */
-    struct EventCalls
-    {
-        std::vector<std::pair<api::MenuEventType, std::string>> events;
-    };
-
-    void MODS_CONFIG_VR_CALL onEvent(void* ctx, const api::MenuEvent* event)
-    {
-        static_cast<EventCalls*>(ctx)->events.emplace_back(event->type, event->pageId ? event->pageId : "");
-    }
-
-    void MODS_CONFIG_VR_CALL throwingEvent(void*, const api::MenuEvent*)
-    {
-        throw std::runtime_error("the client's bug");
-    }
+    answers = true;
+    CHECK_FALSE(clients.calls.state("MyMod", "broken"));
+    CHECK_FALSE(clients.calls.state("MyMod", "calibrating"));
+    CHECK(asked == 6);
 }
 
 TEST_CASE("NativeClients: a client is told the menu's events, and one that throws is cut off")
 {
-    model::ClientOptions options;
-    model::ClientCalls calls;
-    api::NativeClients clients(options, calls);
-    EventCalls told;
-    const api::ClientInfo info{ .version = api::MODS_CONFIG_VR_API_VERSION, .name = "MyMod", .ctx = &told, .onEvent = &onEvent };
-    REQUIRE(clients.registerClient(&info));
-    calls.send("mymod", model::ClientEvent::PageShown, "spheres");
-    calls.sendToAll(model::ClientEvent::MenuClosed);
-    calls.send("OtherMod", model::ClientEvent::ModShown);
-    CHECK(told.events == std::vector<std::pair<api::MenuEventType, std::string>>{ { api::MenuEventType::PageShown, "spheres" }, { api::MenuEventType::MenuClosed, "" } });
+    Clients clients;
+    FakeClient client;
+    std::vector<std::pair<api::MenuEventType, std::string>> told;
+    client.event = [&told](const api::MenuEvent* event) {
+        told.emplace_back(event->type, event->pageId ? event->pageId : "");
+    };
+    REQUIRE(clients.add("MyMod", client));
+    clients.calls.send("mymod", model::ClientEvent::PageShown, "spheres");
+    clients.calls.sendToAll(model::ClientEvent::MenuClosed);
+    clients.calls.send("OtherMod", model::ClientEvent::ModShown);
+    CHECK(told == std::vector<std::pair<api::MenuEventType, std::string>>{ { api::MenuEventType::PageShown, "spheres" }, { api::MenuEventType::MenuClosed, "" } });
 
-    // one that throws is cut off, and is told nothing more
-    const api::ClientInfo broken{ .version = api::MODS_CONFIG_VR_API_VERSION, .name = "Broken", .ctx = nullptr, .onEvent = &throwingEvent };
-    REQUIRE(clients.registerClient(&broken));
-    calls.send("Broken", model::ClientEvent::ModShown);
-    CHECK(calls.notRunnable("Broken", "Broken", "any") == "Not available: its mod's client failed, and is cut off until the game is restarted.");
+    FakeClient broken;
+    broken.event = [](const api::MenuEvent*) {
+        throw std::runtime_error("the client's bug");
+    };
+    broken.has = [](const char*) {
+        return true;
+    };
+    REQUIRE(clients.add("Broken", broken));
+    clients.calls.send("Broken", model::ClientEvent::ModShown);
+    CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
 }
 
-TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions, with the function a press runs")
+TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions")
 {
-    model::ClientOptions options;
-    model::ClientCalls calls;
-    api::NativeClients clients(options, calls);
-    const auto info = infoOf("MyMod");
-    auto* client = clients.registerClient(&info);
-    CHECK(clients.addQuickLaunch(client, "$MyMod", "Opens its own UI.", nullptr, "openConfig"));
-    CHECK(clients.addQuickLaunch(client, "MyMod: Pip-Boy", nullptr, "Place", "openPipboy"));
+    Clients clients;
+    FakeClient client;
+    REQUIRE(clients.add("MyMod", client));
+    CHECK(clients.clients.addQuickLaunch(&client, "$MyMod", "Opens its own UI.", nullptr, "openConfig"));
+    CHECK(clients.clients.addQuickLaunch(&client, "MyMod: Pip-Boy", nullptr, "Place", "openPipboy"));
     // one function has one entry, the first
-    CHECK_FALSE(clients.addQuickLaunch(client, "Again", nullptr, nullptr, "OpenConfig"));
-    REQUIRE(calls.quickLaunch().size() == 2);
-    CHECK(calls.quickLaunch()[1].buttonText == "Place");
-    const auto& entry = calls.quickLaunch().front();
+    CHECK_FALSE(clients.clients.addQuickLaunch(&client, "Again", nullptr, nullptr, "OpenConfig"));
+    REQUIRE(clients.calls.quickLaunch().size() == 2);
+    const auto& entry = clients.calls.quickLaunch().front();
     CHECK(entry.modName == "MyMod");
     CHECK(entry.text == "$MyMod");
     CHECK(entry.help == "Opens its own UI.");
     CHECK(entry.buttonText.empty());
     CHECK(entry.function == "openConfig");
-    // the function is not registered yet, so its entry does not open
-    CHECK(calls.notRunnable("MyMod", "My Mod", entry.function) == "Not available: My Mod's DLL has no function 'openConfig'.");
+    CHECK(clients.calls.quickLaunch()[1].buttonText == "Place");
 
-    // one with no text or no function, and from a handle that is no client's
-    const auto otherInfo = infoOf("OtherMod");
-    auto* other = clients.registerClient(&otherInfo);
-    CHECK_FALSE(clients.addQuickLaunch(other, "", nullptr, nullptr, "open"));
-    CHECK_FALSE(clients.addQuickLaunch(other, "Other", nullptr, nullptr, nullptr));
-    api::Client stranger;
-    CHECK_FALSE(clients.addQuickLaunch(&stranger, "Other", nullptr, nullptr, "open"));
-    CHECK(calls.quickLaunch().size() == 2);
+    // one with no text or no function, and of a client that is not registered
+    CHECK_FALSE(clients.clients.addQuickLaunch(&client, "", nullptr, nullptr, "open"));
+    CHECK_FALSE(clients.clients.addQuickLaunch(&client, "Other", nullptr, nullptr, nullptr));
+    FakeClient stranger;
+    CHECK_FALSE(clients.clients.addQuickLaunch(&stranger, "Other", nullptr, nullptr, "open"));
+    CHECK(clients.calls.quickLaunch().size() == 2);
+}
+
+TEST_CASE("ModsConfigVRApi: the C++ client's Params read a parameter by its name, in its own type, and the fallback for one of another type")
+{
+    struct Call final : api::IFunctionCall
+    {
+        std::vector<api::NamedValue> params;
+
+        std::uint32_t paramCount() override
+        {
+            return static_cast<std::uint32_t>(params.size());
+        }
+
+        const api::NamedValue* param(const std::uint32_t index) override
+        {
+            return &params[index];
+        }
+
+        void setMessage(const char*) override
+        {}
+    };
+
+    Call call;
+    call.params = { { .name = "mode", .value = { .type = api::ValueType::String, .text = "height" } },
+        { .name = "samples", .value = { .type = api::ValueType::Int, .intValue = 30 } },
+        { .name = "scale", .value = { .type = api::ValueType::Float, .floatValue = 1.5f } },
+        { .name = "includeScale", .value = { .type = api::ValueType::Bool, .boolValue = true } } };
+    const api::Params read(&call);
+
+    CHECK(read.getString("mode") == "height");
+    CHECK(read.getInt("samples") == 30);
+    CHECK(read.getBool("includeScale"));
+    CHECK(read.getFloat("samples") == 30.0f);
+    CHECK(read.getInt("scale") == 1);
+    CHECK_FALSE(read.get("Mode"));
+    CHECK(read.getInt("mode", 7) == 7);
+    CHECK(read.getString("samples", "none") == "none");
 }

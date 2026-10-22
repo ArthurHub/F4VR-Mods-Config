@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "TestActions.h"
+#include "TestClients.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
 #include "TestProperties.h"
@@ -1079,9 +1080,12 @@ TEST_CASE("ConfigSpecStore: every setting of the mod's own config spec is availa
     std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, folder / "ModsConfigVR.toml");
     // the menu gives the options of its Config spec setting: none, and the config specs it lists
     ConfigSpecStore store({}, myGames.path);
-    store.clientOptions().add("ModsConfigVR", "developerConfigSpec", [](const model::Setting&) {
-        return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "MyMod"s, .text = "My Mod" } };
-    });
+    store.clientCalls().addClient("ModsConfigVR",
+        test_clients::TestClient{ .options = { { "developerConfigSpec",
+                                      [](const model::Setting&) {
+                                          return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "MyMod"s, .text = "My Mod" } };
+                                      } } } }
+            .calls());
     store.open(mods[0]);
 
     std::size_t checked = 0;
@@ -1118,11 +1122,14 @@ TEST_CASE("ConfigSpecStore: a choice takes its options from its mod's client as 
     ConfigSpecStore store(session.data.path, session.myGames.path);
     int calls = 0;
     // its mod and its id in another case
-    store.clientOptions().add("mymod", "configspec", [&calls](const model::Setting& setting) {
-        ++calls;
-        CHECK(setting.text == "Config spec");
-        return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "FRIK"s, .text = "FRIK" } };
-    });
+    store.clientCalls().addClient("mymod",
+        test_clients::TestClient{ .options = { { "configspec",
+                                      [&calls](const model::Setting& setting) {
+                                          ++calls;
+                                          CHECK(setting.text == "Config spec");
+                                          return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "FRIK"s, .text = "FRIK" } };
+                                      } } } }
+            .calls());
     session.myGames.write(MOD_FILE, "[Main]\r\nsConfigSpec = \"FRIK\"\r\niOther = 0\r\n");
     store.open(session.mod);
     CHECK(calls == 1);

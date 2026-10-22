@@ -19,6 +19,7 @@
 
 #include <imgui.h>
 
+#include "TestClients.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
 #include "TestPanel.h"
@@ -1647,17 +1648,20 @@ TEST_CASE("FullPanel render: a button's confirmation, a dangerous one, and the r
         ]
     })");
     REQUIRE(mod);
-    auto& functions = store.clientCalls();
-    functions.addClient("MyMod");
-    functions.add("MyMod", "calibrate", [](const auto&) {
-        return model::FunctionResult{ .done = true, .message = "Done: 1.78 m." };
-    });
-    functions.add("MyMod", "reset", [](const auto&) {
-        return model::FunctionResult{ .done = true, .message = {} };
-    });
-    functions.add("MyMod", "pipboy", [](const auto&) {
-        return model::FunctionResult{ .done = false, .message = "The body is not ready yet." };
-    });
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .functions = { { "calibrate",
+                                                     [](const auto&) {
+                                                         return model::FunctionResult{ .done = true, .message = "Done: 1.78 m." };
+                                                     } },
+                                      { "reset",
+                                          [](const auto&) {
+                                              return model::FunctionResult{ .done = true, .message = {} };
+                                          } },
+                                      { "pipboy",
+                                          [](const auto&) {
+                                              return model::FunctionResult{ .done = false, .message = "The body is not ready yet." };
+                                          } } } }
+            .calls());
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });

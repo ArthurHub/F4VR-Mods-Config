@@ -15,6 +15,7 @@
 #include <imgui_internal.h>
 
 #include "TestActions.h"
+#include "TestClients.h"
 #include "TestEvents.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
@@ -1337,18 +1338,21 @@ TEST_CASE("FullPanel: a button runs its mod's function after its confirmation, a
     })");
     REQUIRE(mod);
     std::vector<std::vector<model::NamedArgument>> calls;
-    auto& functions = store.clientCalls();
-    functions.addClient("MyMod");
-    functions.add("MyMod", "calibrate", [&calls](const std::vector<model::NamedArgument>& arguments) {
-        calls.push_back(arguments);
-        return model::FunctionResult{ .done = true, .message = "Done: 1.78 m." };
-    });
-    functions.add("MyMod", "fail", [](const auto&) {
-        return model::FunctionResult{ .done = false, .message = "Stand still, then try again." };
-    });
-    functions.add("MyMod", "quiet", [](const auto&) {
-        return model::FunctionResult{ .done = true, .message = {} };
-    });
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .functions = { { "calibrate",
+                                                     [&calls](const std::vector<model::NamedArgument>& arguments) {
+                                                         calls.push_back(arguments);
+                                                         return model::FunctionResult{ .done = true, .message = "Done: 1.78 m." };
+                                                     } },
+                                      { "fail",
+                                          [](const auto&) {
+                                              return model::FunctionResult{ .done = false, .message = "Stand still, then try again." };
+                                          } },
+                                      { "quiet",
+                                          [](const auto&) {
+                                              return model::FunctionResult{ .done = true, .message = {} };
+                                          } } } }
+            .calls());
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
@@ -3868,12 +3872,13 @@ TEST_CASE("FullPanel: a row follows a state of its mod's client, which is asked 
     test_actions::TestActions actions;
     bool calibrating = true;
     int asked = 0;
-    auto& functions = store.clientCalls();
-    functions.addClient("MyMod");
-    functions.addState("MyMod", "calibrating", [&calibrating, &asked] {
-        ++asked;
-        return std::optional<model::Value>(calibrating);
-    });
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .states = { { "calibrating",
+                                      [&calibrating, &asked] {
+                                          ++asked;
+                                          return std::optional<model::Value>(calibrating);
+                                      } } } }
+            .calls());
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods({ std::move(*mod) });
@@ -3926,11 +3931,10 @@ TEST_CASE("FullPanel: a mod's client is told as its mod and the pages of its con
     std::vector<std::string> events;
     auto& calls = store.clientCalls();
     for (const auto* mod : { "MyMod", "OtherMod" }) {
-        calls.addClient(mod);
-        calls.addEvents(mod, [&events, mod](const model::ClientEvent event, const std::string_view pageId) {
+        calls.addClient(mod, test_clients::TestClient{ .onEvent = [&events, mod](const model::ClientEvent event, const std::string_view pageId) {
             constexpr std::array NAMES{ "MenuOpened", "MenuClosed", "ModShown", "ModLeft", "PageShown", "PageLeft" };
             events.push_back(std::format("{} {}{}{}", mod, NAMES[static_cast<int>(event)], pageId.empty() ? "" : " ", pageId));
-        });
+        } }.calls());
     }
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);

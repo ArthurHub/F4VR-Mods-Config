@@ -147,24 +147,26 @@ It does not contain every changed setting. Native clients that need exact change
 
 ## Native API
 
-A mod's DLL talks to the host through `ModsConfigVRApi.h`, a client header the mod copies as it is, as a mod copies FRIK's `FRIKApi.h`. The framework carries a copy, and `ModBase` registers every CommonFramework mod with it, so such a mod writes no client code; see [CommonFramework adapter](#commonframework-adapter).
+A mod's DLL talks to the host through `ModsConfigVRApi.h`, a client header the mod copies as it is, as a mod copies FRIK's `FRIKApi.h`. The framework carries a copy, and `ModBase` connects every CommonFramework mod's client with it; see [CommonFramework adapter](#commonframework-adapter).
 
 ### Binary interface
 
-`ModsConfigVR.dll` exports one function, `ModsConfigVRAPI_GetApiV1`, which returns the API: a struct of function pointers that the host keeps for the whole run of the game. The header's `ModsConfigVRApiV1::initialize` finds the DLL with `GetModuleHandle` and calls the export, as `FRIKApi::initialize` does. F4SE has loaded the DLL of every plugin by `kPostLoad`, so a client calls it from then on. While Mods Config VR is not installed it fails, and the mod works without it. The API is not asked for with an F4SE message: F4SEVR's listeners do not reach a plugin in every load order, which is why devbench's client has the same export as its fallback.
+What passes between the DLLs is two interfaces of virtual functions. The host implements `ModsConfigVRApiV1`, and a client implements `IClient`, which it registers once. The host asks the client by name for what its config spec names: a function, a state, the options of a choice. So a client registers nothing by name, and a name the client does not answer is one it does not have.
 
-What passes between the DLLs is C:
+`ModsConfigVR.dll` exports one function, `ModsConfigVRAPI_GetApiV1`, which returns the host's interface for the whole run of the game. The header's `ModsConfigVRApiV1::initialize` finds the DLL with `GetModuleHandle` and calls the export, as `FRIKApi::initialize` does. F4SE has loaded the DLL of every plugin by `kPostLoad`, so a client calls it from then on. While Mods Config VR is not installed it fails, and the mod works without it. The API is not asked for with an F4SE message: F4SEVR's listeners do not reach a plugin in every load order, which is why devbench's client has the same export as its fallback.
 
-- Whole numbers of a fixed width, `float`, `bool`, enums on `std::uint32_t`, `const char*`, and function pointers, each with a `void* ctx` that the client gets back. A list is a pointer and a count, and a struct holds only these. Every function is `__cdecl`. No `std::` type and no exception passes.
+- An interface's methods take whole numbers of a fixed width, `float`, `bool`, enums on `std::uint32_t`, `const char*`, plain structs of those, and pointers to an interface. No `std::` type and no exception passes: each DLL has its own heap, and its own layout of them. An interface has single inheritance and no data, whose virtual table MSVC lays out as COM has it, and a method is only added at its end.
 - Text is UTF-8, and ends with a zero. A text of the client that the player sees, as the message of a function or the text of a quick launch entry, can be a `$` token, which the host translates as it translates a config spec's text.
-- What the host passes is valid during the call, and the client copies what it keeps. What the client passes the host copies before the call returns. What a callback answers goes through a function of the struct the host passed it, as `FunctionCall::setMessage`, so it can only be given while the callback runs.
+- What the host passes is valid during the call, and the client copies what it keeps. What the client passes the host copies before the call returns. What a method answers goes through an interface the host passes it, as `IFunctionCall::setMessage`, so it can only be given while the method runs.
 - Every call, either way, is on the game's main thread. The host calls a client from its frame update, inside the guard of [A client that fails](#a-client-that-fails).
+
+The header has a C++ layer over the interfaces, `ModsConfigVRClient`, which is compiled into the client's DLL: an `IClient` that answers with the mod's lambdas, by name. A mod adds its functions, states, options and own config UIs to it at any time, and connects it once. Nothing of it crosses to the host.
 
 ### Versions
 
-- `V1` in the names changes only with a change that breaks a client. A V2 is another struct and another export, and the DLL keeps the export of V1 beside it, so a client built for V1 keeps working.
-- Within V1, `getVersion` counts what was added: a function is only added at the end of the struct, and a struct only grows at its end. A client asks `initialize` for the version it needs, and checks `getVersion` before it calls what a later version added.
-- A client gives the version of its header in its `ClientInfo`, so the host reads only the fields that client has, of what the client passes.
+- `V1` in the names changes only with a change that breaks a client. A V2 is another interface and another export, and the DLL keeps the export of V1 beside it, so a client built for V1 keeps working.
+- Within V1, `getVersion` counts what was added: a method is only added at the end of an interface, and a struct only grows at its end. A client connects to any menu of V1, and uses what a later version added after it checks the menu's version (the header's client's `apiVersion()`), so a client of a newer header keeps working with an older menu. One that does not work at all with an older menu asks `connect` for the version it needs, and an older menu is not connected to.
+- A client gives the version of its header as it registers, so the host calls only the methods of `IClient` that client has.
 - The version is 1 at the first release, and V1 changes as the milestones need it until then. How the API and the schema change after it is [M82](mod-plan-phase-2.md#11-first-release)'s.
 
 ### The API
@@ -172,66 +174,50 @@ What passes between the DLLs is C:
 ```cpp
 namespace mods_config::api
 {
-    inline constexpr std::uint32_t MODS_CONFIG_VR_API_VERSION = 1;
-
-    enum class MenuState : std::uint32_t
+    // the host's side, which its DLL exports
+    class ModsConfigVRApiV1
     {
-        Closed,
-        Open,
-        Minimized
-    };
-
-    struct Client; // the host's handle of a client
-
-    struct ModsConfigVRApiV1
-    {
-        // the host
-        std::uint32_t (*getVersion)();
-        const char* (*getModVersion)(); // Mods Config VR's own version
+    public:
+        virtual std::uint32_t getVersion() const = 0;
+        virtual const char* getModVersion() const = 0; // Mods Config VR's own version
 
         // the client's entries of the quick launch section, one for each function
-        bool (*addQuickLaunch)(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
+        virtual bool addQuickLaunch(IClient* client, const char* text, const char* help, const char* buttonText, const char* functionName) const = 0;
 
-        // the client
-        Client* (*registerClient)(const ClientInfo* info); // null when the name has a client already
-        bool (*registerOptions)(Client* client, const char* settingId, OptionsFn options, void* ctx);
-        bool (*registerFunction)(Client* client, const char* name, NativeFunction function, void* ctx);
-        bool (*registerState)(Client* client, const char* name, StateFn state, void* ctx);
+        // the client, once, under its mod's name: false when the name has a client already
+        virtual bool registerClient(const char* name, std::uint32_t version, IClient* client) const = 0;
 
         // the menu, for any DLL, with or without a client
-        MenuState (*getMenuState)();
-        bool (*openMenu)(const char* modName, const char* pageId); // no mod: the front page; no page: the mod's front page
-        void (*minimizeMenu)();
-        void (*restoreMenu)(); // only while it is minimized, and reads the shown mod's values again
-        void (*reloadValues)(Client* client); // reads its mod's values again, while it is shown
+        virtual MenuState getMenuState() const = 0;
+        virtual bool openMenu(const char* modName, const char* pageId) const = 0; // no mod: the front page; no page: the mod's front page
+        virtual void minimizeMenu() const = 0;
+        virtual void restoreMenu() const = 0; // only while it is minimized, and reads the shown mod's values again
+        virtual void reloadValues(IClient* client) const = 0; // reads its mod's values again, while it is shown
 
         [[nodiscard]] static int initialize(std::uint32_t minVersion = MODS_CONFIG_VR_API_VERSION);
         inline static const ModsConfigVRApiV1* inst = nullptr;
     };
+
+    // the client's side, which the host asks by name
+    class IClient
+    {
+    public:
+        virtual bool hasFunction(const char* name) = 0;
+        virtual bool runFunction(const char* name, IFunctionCall* call) = 0;
+        virtual bool answerState(const char* name, SettingValue* value) = 0;             // false: not available
+        virtual bool giveOptions(const SettingView* setting, IOptions* options) = 0; // false: it has none
+        virtual void onEvent(const MenuEvent* event) = 0;
+    };
 }
 ```
 
-A register call returns false for a name that is registered already, which keeps the first.
+A second entry of a function, and a second client of a name, are refused, and the first stays.
 
 ### The client
 
-A mod registers its client once, as it loads, and keeps the handle for the whole run of the game: there is no unregister. The host matches its name to the config spec whose `modName` is that name. A second client under a name that has one gets null, so two mods cannot both have a config spec. Every other call of a client takes the handle, so what it registers is its config spec's, and a client that fails is cut off as a whole.
+A mod registers its client once, as it loads, and it lives for the whole run of the game: there is no unregister. The host matches its name to the config spec whose `modName` is that name. A second client under a name that has one is refused, so two mods cannot both have a config spec. The client is asked only of its own config spec, and a client that fails is cut off as a whole.
 
-```cpp
-struct ClientInfo
-{
-    std::uint32_t version; // MODS_CONFIG_VR_API_VERSION of the client's header
-    const char* name;      // matched to the config spec's modName
-    void* ctx;             // given back to each callback
-
-    // each is null for a client that does not want it
-    void (*onEvent)(void* ctx, const MenuEvent* event);
-    void (*onPreview)(void* ctx, const SettingChange* change); // a live setting is previewed or discarded
-    void (*onSaved)(void* ctx, const SaveBatch* batch);        // what a Save wrote
-};
-```
-
-What the client registers by a name, which it has many of, has a call of its own: a function, the options of a choice and a state. What it has one of is in its `ClientInfo`: its events, its previews and its saved batch, which are in [Live preview API](#live-preview-api).
+The client's previews and its saved batch of [Live preview API](#live-preview-api) are methods of `IClient` that milestone 8 adds.
 
 ### The client's events
 
@@ -265,37 +251,30 @@ A `CallNativeFunction` button runs a function of its mod's client, by its name, 
 struct NamedValue
 {
     const char* name;
-    SettingValue value;
+    SettingValue value; // in its own JSON type
 };
 
-struct FunctionCall
+class IFunctionCall
 {
-    const NamedValue* params; // the button's params, each in its own JSON type
-    std::uint32_t paramCount;
-    void (*setMessage)(FunctionCall* call, const char* text); // what the help line shows of the result
+public:
+    virtual std::uint32_t paramCount() = 0;
+    virtual const NamedValue* param(std::uint32_t index) = 0;
+    virtual void setMessage(const char* text) = 0; // what the help line shows of the result
 };
-
-// true when it did what it does
-using NativeFunction = bool (*)(void* ctx, FunctionCall* call);
 ```
 
-- A function returns at once. Its message is in the help line after the info mark, or after the invalid mark when it returns false, as the result of an action is. Work that takes longer goes on after it returns, and a [state](#a-clients-state) of the client tells the rows that it is running.
-- A button whose client did not register its function is disabled, with the reason in the help line.
+- `runFunction` returns at once, true when the function did what it does. Its message is in the help line after the info mark, or after the invalid mark when it returns false, as the result of an action is. Work that takes longer goes on after it returns, and a [state](#a-clients-state) of the client tells the rows that it is running.
+- A button whose client does not have its function, as `hasFunction` says, is disabled, with the reason in the help line. The host asks it as the button is drawn.
 
 ### Quick launch
 
-`addQuickLaunch` adds an entry of the client to the quick launch section of the menu's front page: its `text`, its `help`, which the help line shows, its `buttonText` in place of `Open`, and the function that a press runs. A client adds an entry for each UI it opens from there, as FRIK's main config and its Pip-Boy config: a function has one entry. A client that matches no config spec has its entries too. The function is looked up as the entry is pressed, so it can be registered after the entry.
+`addQuickLaunch` adds an entry of the client to the quick launch section of the menu's front page: its `text`, its `help`, which the help line shows, its `buttonText` in place of `Open`, and the function that a press runs. A client adds an entry for each UI it opens from there, as FRIK's main config and its Pip-Boy config: a function has one entry. A client that matches no config spec has its entries too. The function is asked for as the entry is pressed.
 
 ### A client's state
 
-A condition of a config spec can ask a state of its client, by its name; see [Conditions](schema.md#conditions). The client registers a function that answers it:
+A condition of a config spec can ask a state of its client, by its name; see [Conditions](schema.md#conditions). The host asks it with `answerState`, which is false while the state is not available.
 
-```cpp
-// false while the state is not available
-using StateFn = bool (*)(void* ctx, const char* name, SettingValue* value);
-```
-
-The host asks each state once a frame, only while the client's mod is shown, so the rows of one state cost one call. The function answers at once and changes nothing. A state that is not registered, and every state of a client that is cut off, is not available.
+The host asks each state once a frame, only while the client's mod is shown, so the rows of one state cost one call. The method answers at once and changes nothing. A state the client does not answer, and every state of a client that is cut off, is not available.
 
 ### The mod's own UI
 
@@ -306,20 +285,18 @@ A mod's own UI is opened by a function of its client, from a button of its confi
 - `restoreMenu` reads the values of the shown mod again, as its UI can have changed them: a clean setting takes the value of its file, its global or its property, and a pending one stays the player's, as Save keeps it. `reloadValues` does the same for a client whose mod changes its values at another time while it is shown, as with a hotkey.
 - `openMenu` opens the menu at a mod and at a page of it by its `id`, at the mod's front page with no page, or at the menu's front page with no mod. A mod's wrist button or holotape opens its settings this way. While the menu is open on a mod with unsaved changes, the unsaved-changes dialog asks first. A mod or a page that is not there opens nothing, and the call returns false.
 
+The header's C++ client has it as one call, which registers the function and its quick launch entry, and minimizes the menu as the UI opens:
+
 ```cpp
-/**
- * Opens FRIK's Pip-Boy config, from a button of FRIK's config spec.
- */
-static bool openPipboyConfig(void* ctx, FunctionCall* call)
-{
-    if (!isSkeletonReady()) {
-        call->setMessage(call, "The body is not ready yet.");
-        return false;
-    }
-    ModsConfigVRApiV1::inst->minimizeMenu();
-    openPipboyConfigUI([] { ModsConfigVRApiV1::inst->restoreMenu(); });
-    return true;
-}
+ModsConfigVRClient::get().addConfigUI("openPipboyConfig", { .text = "FRIK: Pip-Boy", .help = "Moves the Pip-Boy on your wrist." },
+    [](std::string& message) {
+        if (!isSkeletonReady()) {
+            message = "The body is not ready yet.";
+            return false;
+        }
+        openPipboyConfigUI([] { ModsConfigVRClient::get().configUIClosed(); });
+        return true;
+    });
 ```
 
 ## Live preview API
@@ -441,20 +418,18 @@ Special gameplay side effects can use an optional binding API later.
 
 ### Options from a client
 
-A choice with `listFromClientCallback` takes its options from its mod's client; see [Options from the mod's client](schema.md#options-from-the-mods-client). The client registers a callback for each such setting, by its id, scoped to its config spec as the other callbacks are. The host calls it only for that setting, as the mod is selected:
+A choice with `listFromClientCallback` takes its options from its mod's client; see [Options from the mod's client](schema.md#options-from-the-mods-client). The host asks the client for them by the setting's id, as the mod is selected:
 
 ```cpp
-struct OptionsCall
+class IOptions
 {
-    const SettingView* setting;
+public:
     // adds an option, in the setting's valueType, after those added before; a null text shows the value
-    void (*addOption)(OptionsCall* call, const SettingValue* value, const char* text);
+    virtual void add(const SettingValue* value, const char* text) = 0;
 };
-
-using OptionsFn = void (*)(void* ctx, OptionsCall* call);
 ```
 
-The client registers it with `registerOptions`, by the setting's id. The callback gets the setting's view, so one function can serve several settings. It is called inside the guard of [A client that fails](#a-client-that-fails). The menu is a client of the API too, the one the framework registers for it as for any CommonFramework mod: it registers the callback of its own config spec's Config spec setting, whose options are the config specs it found.
+The host asks `giveOptions` with the setting's view, which is false for a choice the client has no options of. It is called inside the guard of [A client that fails](#a-client-that-fails). The menu is a client of the API too, the one the framework connects for it as for any CommonFramework mod: it gives the options of its own config spec's Config spec setting, the config specs it found.
 
 ### A client that fails
 
@@ -474,7 +449,7 @@ A preview therefore does what a reload of the INI does, and no more. A value tha
 
 The framework registers the adapter for every mod, under the mod's own name, whether or not the mod ships a config spec. The mod's config spec uses that name as its `modName`. This is the name the framework uses for the mod's log and config, which is not always its F4SE plugin name: FRIK's `modName` is `frik`, and its F4SE plugin name, `F4VRBody`, goes in `f4sePluginRequirements`.
 
-A CommonFramework mod that has a config UI of its own gives the framework how to open it, and the framework's client registers it as a function and a quick launch entry, and minimizes and restores the menu around it; see [The mod's own UI](#the-mods-own-ui).
+A CommonFramework mod that has a config UI of its own adds it to the header's C++ client, which the framework connects: it is a function and a quick launch entry, with the menu minimized and restored around it; see [The mod's own UI](#the-mods-own-ui).
 
 The framework side of this is listed in [CommonFramework work required](framework-requirements.md).
 
