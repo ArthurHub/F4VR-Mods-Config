@@ -624,6 +624,10 @@ namespace mods_config::ui
         }
 
         _pressActed = false;
+        if (auto* const store = selectedStore()) {
+            // the states of the mod's client are asked again in each frame
+            store->startFrame();
+        }
         auto titleBar = drawTitleBar(_mods, _selection, _helpShown, _report && !_helpShown ? &_mods[*_report] : nullptr);
         auto pressed = titleBar.pressed;
         // the body stands a little further from the title bar than a row from a row

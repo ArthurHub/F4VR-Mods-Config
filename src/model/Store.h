@@ -168,6 +168,21 @@ namespace mods_config::model
         virtual StoredValue hotkey(const Hotkey& hotkey) = 0;
 
         /**
+         * The value of a state of the selected mod's client, by its name, which a `clientState` condition asks: not
+         * available for a mod with no client, and while the client does not answer it.
+         */
+        virtual StoredValue clientState(std::string_view)
+        {
+            return {};
+        }
+
+        /**
+         * A frame of the panel starts: a store asks the states of its mod's client again as they are next asked.
+         */
+        virtual void startFrame()
+        {}
+
+        /**
          * Why an action of the selected mod does not run, which its button's help line says: empty for one that runs,
          * or that the store does not know to be unable to. The UI tells an action the menu does not run, and one that
          * runs nothing, by itself.

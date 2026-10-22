@@ -103,6 +103,8 @@ namespace mods_config::spec
 
         void discard() override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
+        model::StoredValue clientState(std::string_view name) override;
+        void startFrame() override;
         std::string notRunnable(const model::Action& action) const override;
         model::ActionResult run(const model::Action& action) override;
 
@@ -161,6 +163,9 @@ namespace mods_config::spec
         model::ChoiceOptions _options;
         model::ClientOptions _clientOptions;
         model::ClientFunctions _clientFunctions;
+
+        // the states of the mod's client asked in this frame, by their names in lower case: each is asked once a frame
+        std::map<std::string, std::optional<model::Value>, std::less<>> _clientStates;
 
         // the settings of the mod that is selected, in the order of its config spec
         std::vector<const model::Setting*> _settingList;

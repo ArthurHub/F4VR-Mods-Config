@@ -2405,6 +2405,26 @@
                   "enabledWhen": { "not": { "f4sePlugin": "NoSuchPlugin" } }
                 }
               ]
+            },
+            {
+              "type": "section",
+              "text": "The mod's DLL",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "Asks a state of the mod's DLL",
+                  "help": "Enabled while the mod's DLL says it is ready, and warns while it is busy. The showcase has no DLL, so the states are not available: the button is enabled, and does not warn.",
+                  "buttonText": "Notify",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the states were not available"]
+                  },
+                  "enabledWhen": { "clientState": "ready" },
+                  "warnings": [ { "text": "The mod's DLL is busy.", "when": { "clientState": "busy", "equals": true } } ]
+                }
+              ]
             }
           ]
         },

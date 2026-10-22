@@ -1754,3 +1754,46 @@ TEST_CASE("ConfigSpecLoader: with the folders of its files, a setting whose path
     REQUIRE(alone);
     CHECK(alone->problems.empty());
 }
+
+TEST_CASE("ConfigSpecLoader: a condition asks a state of the mod's client by its name, on, or with an operator of a value of any type")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "button", "text": "On", "action": { "type": "RunConsoleCommand", "command": "tm" }, "enabledWhen": { "clientState": "ready" } },
+        { "type": "button", "text": "Equals", "action": { "type": "RunConsoleCommand", "command": "tm" },
+          "enabledWhen": { "clientState": "calibrating", "equals": false },
+          "warnings": [ { "text": "Stand still.", "when": { "not": { "clientState": "calibrating", "notEquals": true } } } ] },
+        { "type": "text", "text": "Order", "visibleWhen": { "clientState": "Level", "greaterThanOrEqual": 2.5 } },
+        { "type": "text", "text": "List", "visibleWhen": { "clientState": "mode", "oneOf": ["walk", "run"] } },
+        { "type": "text", "text": "No name", "visibleWhen": { "clientState": "" } },
+        { "type": "text", "text": "Order of a text", "visibleWhen": { "clientState": "mode", "lessThan": "run" } },
+        { "type": "text", "text": "No list", "visibleWhen": { "clientState": "mode", "oneOf": "walk" } },
+        { "type": "text", "text": "No operator", "visibleWhen": { "clientState": "mode", "is": "walk" } }
+    )"));
+    const auto& items = mod.frontPage.items;
+    using Kind = model::Condition::Kind;
+    const auto stateOf = [](const std::string& name, const Kind kind, std::vector<model::Value> values) {
+        return model::Condition{ .kind = kind, .setting = name, .conditions = {}, .offWhenNotAvailable = false, .values = std::move(values), .clientState = true };
+    };
+    CHECK(std::get<model::Button>(items[0]).enabledWhen == stateOf("ready", Kind::On, {}));
+    const auto& equals = std::get<model::Button>(items[1]);
+    CHECK(equals.enabledWhen == stateOf("calibrating", Kind::Equals, { false }));
+    REQUIRE(equals.warnings.size() == 1);
+    CHECK(equals.warnings[0].when.conditions == std::vector{ stateOf("calibrating", Kind::NotEquals, { true }) });
+    CHECK(std::get<model::Text>(items[2]).visibleWhen == stateOf("Level", Kind::GreaterThanOrEqual, { 2.5f }));
+    CHECK(std::get<model::Text>(items[3]).visibleWhen == stateOf("mode", Kind::OneOf, { "walk"s, "run"s }));
+
+    // one that is not written right is left out, and reported
+    for (std::size_t place = 4; place < items.size(); ++place) {
+        CHECK_FALSE(std::get<model::Text>(items[place]).visibleWhen);
+    }
+    std::vector<std::string> problems;
+    for (const auto& problem : mod.problems) {
+        problems.push_back(problem.message);
+    }
+    CHECK(problems == Lines{
+                          "Its visibleWhen is left out: its clientState names no state. The row is shown and enabled as if it had none.",
+                          "Its visibleWhen is left out: lessThan compares numbers, and its value is no number. The row is shown and enabled as if it had none.",
+                          "Its visibleWhen is left out: its oneOf is not a list. The row is shown and enabled as if it had none.",
+                          "Its visibleWhen is left out: it has no operator for the state 'mode'. The row is shown and enabled as if it had none.",
+                      });
+}

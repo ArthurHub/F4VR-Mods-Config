@@ -106,7 +106,7 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 | M63 | mod       | The native API: a client registers by name, with the client header                          | in review |
 | F28 | framework | `ModBase` registers the mod as a client                                                     | in review |
 | M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | in review |
-| M118 | mod      | A condition asks a state of the mod's client                                                | todo   |
+| M118 | mod      | A condition asks a state of the mod's client                                                | in review |
 | M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | todo   |
 | M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | todo   |
 | F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
@@ -119,7 +119,7 @@ M63, F28 and F29 are the first part of item 13 of the requirements. F29 comes af
 
 M64 runs a `CallNativeFunction` of a button, and of a setting's action as Save writes its value, with its named `params` in their own types, and shows a function's message as the result of its run: after the info mark in the help line, and in red after the invalid mark when it failed. A button whose mod's DLL is not loaded, whose client is cut off, or whose DLL has no such function is disabled, with the reason. A button's `confirmation` asks first in the design system's dialog, red when it is `dangerous`, for any action. Until F29 no mod in the game registers a function, so a unit test covers the run, and the config spec showcase's Buttons page has a confirmation and a dangerous one.
 
-M118 reads a condition's `clientState`, which the host asks the client once a frame while its mod is shown. The config spec showcase has no client, so a unit test covers it, with a state of the tests' own.
+M118 reads a condition's `clientState`, which the host asks the client once a frame while its mod is shown. The config spec showcase has no client, so a unit test covers it, with a state of the tests' own, and the showcase's Conditions page has a button whose states are not available, which is enabled and does not warn.
 
 M113 sends the [client's events](architecture.md#the-clients-events): the menu opened and closed, to every client, and its mod and a page of its config spec that has an `id` shown and left. Immersive Flashlight draws its activation spheres in the world while their page is shown.
 

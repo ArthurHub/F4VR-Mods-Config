@@ -1469,8 +1469,50 @@ namespace
     }
 
     /**
+     * A condition on a state of the mod's client: its `clientState`, and one operator, as `{ "clientState":
+     * "calibrating", "equals": false }`, or none, which holds while the state is on. Its type is the client's, so a
+     * value of any type is compared, but an order is of a number and a `oneOf` and a `notOneOf` of a list. Or the
+     * reason it is not one.
+     */
+    std::expected<model::Condition, std::string> loadClientState(const Json& condition)
+    {
+        const auto named = condition.at("clientState");
+        if (!named.is_string() || named.get_ref<const std::string&>().empty()) {
+            return std::unexpected("its clientState names no state"s);
+        }
+        model::Condition state{ .kind = Kind::On, .setting = named.get<std::string>(), .conditions = {}, .offWhenNotAvailable = false, .values = {}, .clientState = true };
+        if (condition.size() == 1) {
+            return state;
+        }
+        const auto op = std::ranges::find_if(OPERATORS, [&condition](const OperatorName& name) {
+            return condition.contains(name.first);
+        });
+        if (op == OPERATORS.end()) {
+            return std::unexpected(std::format("it has no operator for the state '{}'", state.setting));
+        }
+        state.kind = op->second;
+        const bool isList = state.kind == Kind::OneOf || state.kind == Kind::NotOneOf;
+        const bool isOrder = state.kind != Kind::Equals && state.kind != Kind::NotEquals && !isList;
+        const auto& operand = condition.at(op->first);
+        if (isList && !operand.is_array()) {
+            return std::unexpected(std::format("its {} is not a list", op->first));
+        }
+        for (const auto& value : isList ? operand : Json::array({ operand })) {
+            if (!value.is_boolean() && !value.is_number() && !value.is_string()) {
+                return std::unexpected(std::format("its {} has a value that is not a bool, a number or a text", op->first));
+            }
+            if (isOrder && !value.is_number()) {
+                return std::unexpected(std::format("{} compares numbers, and its value is no number", op->first));
+            }
+            state.values.push_back(conditionValue(value));
+        }
+        return state;
+    }
+
+    /**
      * A condition of a config spec, or the reason it is not one: a comparison of a setting's value, `all` and
-     * `any` of a list of conditions, `not` of one, or whether a `plugin` or an `f4sePlugin` is loaded.
+     * `any` of a list of conditions, `not` of one, a state of the mod's client, or whether a `plugin` or an
+     * `f4sePlugin` is loaded.
      * Whether a plugin is loaded does not change while the game runs, so it is answered here, as an `all` of
      * none, which holds, or an `any` of none, which does not.
      * A condition with a part that is not one is not one as a whole.
@@ -1482,6 +1524,9 @@ namespace
         }
         if (condition.size() == 2 && condition.contains("setting")) {
             return loadComparison(condition, reading);
+        }
+        if (condition.size() <= 2 && condition.contains("clientState")) {
+            return loadClientState(condition);
         }
         if (condition.size() != 1) {
             return std::unexpected(std::format("{} is not one condition", condition.dump()));

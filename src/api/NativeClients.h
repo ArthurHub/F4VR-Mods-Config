@@ -2,6 +2,7 @@
 
 #include <expected>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -48,10 +49,12 @@ namespace mods_config::api
         Client* registerClient(const ClientInfo* info);
         bool registerOptions(Client* client, const char* settingId, OptionsFn options, void* ctx);
         bool registerFunction(Client* client, const char* name, NativeFunction function, void* ctx);
+        bool registerState(Client* client, const char* name, StateFn state, void* ctx);
 
     private:
         std::expected<std::vector<model::Option>, std::string> callOptions(Client& client, OptionsFn options, void* ctx, const model::Setting& setting) const;
         model::FunctionResult callFunction(Client& client, NativeFunction function, void* ctx, const std::string& name, const std::vector<model::NamedArgument>& arguments) const;
+        std::optional<model::Value> callState(Client& client, StateFn state, void* ctx, const std::string& name) const;
         bool isClient(const Client* client) const;
         void cutOff(Client& client, std::string_view what) const;
 

@@ -3845,3 +3845,56 @@ TEST_CASE("FullPanel: the dialog is answered as a press on its button does, and 
     CHECK(panel.selection() == selectionOf(1));
     CHECK(fileText(file) == "[Main]\r\nbEnable = true\r\nfHeight = 2.0\r\n");
 }
+
+TEST_CASE("FullPanel: a row follows a state of its mod's client, which is asked once a frame")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [
+            { "type": "button", "text": "Calibrate", "help": "Measures your height.", "action": { "type": "RunConsoleCommand", "command": "tm" },
+              "enabledWhen": { "clientState": "calibrating", "equals": false },
+              "warnings": [ { "text": "Stand still until it is done.", "when": { "clientState": "calibrating" } } ] },
+            { "type": "button", "text": "Unknown state", "help": "Its state is not registered.", "action": { "type": "RunConsoleCommand", "command": "tm" },
+              "enabledWhen": { "clientState": "other" }, "warnings": [ { "text": "Not told.", "when": { "clientState": "other" } } ] }
+        ]
+    })");
+    REQUIRE(mod);
+    test_actions::TestActions actions;
+    bool calibrating = true;
+    int asked = 0;
+    auto& functions = store.clientFunctions();
+    functions.addClient("MyMod");
+    functions.addState("MyMod", "calibrating", [&calibrating, &asked] {
+        ++asked;
+        return std::optional<model::Value>(calibrating);
+    });
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // disabled while its client is calibrating, and it warns
+    asked = 0;
+    drawFrames(panel, 3);
+    CHECK(asked == 3);
+    CHECK_FALSE(pressActs(panel, pageRow(0)));
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Calibrate: Stand still until it is done. Measures your height.");
+
+    // enabled as the state changes, with no warning
+    calibrating = false;
+    drawFrames(panel, 1);
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(actions.commands.size() == 1);
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Calibrate: Measures your height.");
+
+    // a state that is not available leaves its condition open: shown, enabled, and with no warning
+    CHECK(pressActs(panel, pageRow(1)));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Unknown state: Its state is not registered.");
+}

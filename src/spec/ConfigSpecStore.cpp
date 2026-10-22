@@ -540,6 +540,7 @@ namespace mods_config::spec
         close();
         _modName = mod.name;
         _modDisplayName = mod.displayName;
+        _clientStates.clear();
 
         std::map<std::string, FileOfSession, std::less<>> files;
         for (const auto& [name, file] : mod.files) {
@@ -939,6 +940,31 @@ namespace mods_config::spec
      * Returns false for a row with no action, for an action the store does not run, and for a function whose
      * form or script is not in the game.
      */
+    /**
+     * The value of a state of the mod's client, which it asks once a frame. Not available while the client does not
+     * answer it, and for a mod with no client.
+     */
+    model::StoredValue ConfigSpecStore::clientState(const std::string_view name)
+    {
+        auto key = common::str_tolower(std::string(name));
+        auto found = _clientStates.find(key);
+        if (found == _clientStates.end()) {
+            found = _clientStates.emplace(std::move(key), _clientFunctions.state(_modName, name)).first;
+        }
+        if (!found->second) {
+            return { .value = {}, .available = false, .invalid = false, .reason = "Not available: its mod's client does not answer it." };
+        }
+        return { .value = *found->second, .available = true, .invalid = false, .reason = {} };
+    }
+
+    /**
+     * Forgets the states of the mod's client asked in the frame before, so each is asked again.
+     */
+    void ConfigSpecStore::startFrame()
+    {
+        _clientStates.clear();
+    }
+
     /**
      * Why an action does not run: a function of the mod's DLL whose client is not there, is cut off, or did not
      * register it. Empty for any other.

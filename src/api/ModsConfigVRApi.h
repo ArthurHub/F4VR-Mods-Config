@@ -135,6 +135,11 @@ namespace mods_config::api
     // does. It returns at once: work that takes longer goes on after it
     using NativeFunction = bool(MODS_CONFIG_VR_CALL*)(void* ctx, FunctionCall* call);
 
+    // answers a state of the client by its name, which a `clientState` condition of its config spec asks, in value: false
+    // while it is not available. It is asked once a frame while the client's mod is shown, so it answers at once and
+    // changes nothing. A String's text is copied before it returns
+    using StateFn = bool(MODS_CONFIG_VR_CALL*)(void* ctx, const char* name, SettingValue* value);
+
     struct ModsConfigVRApiV1
     {
         /**
@@ -165,6 +170,12 @@ namespace mods_config::api
          * already, which keeps the first.
          */
         bool(MODS_CONFIG_VR_CALL* registerFunction)(Client* client, const char* name, NativeFunction function, void* ctx);
+
+        /**
+         * Registers a state of the client, which a `clientState` condition of its config spec asks by its name. One
+         * function can answer several states. False for a name that has one already, which keeps the first.
+         */
+        bool(MODS_CONFIG_VR_CALL* registerState)(Client* client, const char* name, StateFn state, void* ctx);
 
         /**
          * Finds Mods Config VR's DLL and gets its API. Returns 0 when the API is there, and else:

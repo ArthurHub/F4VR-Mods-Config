@@ -320,6 +320,71 @@ namespace mods_config::api
     }
 
     /**
+     * Registers a client's state, which a `clientState` condition of its config spec asks by its name. False for a
+     * handle that is no client's, a client that is cut off, and a name that has one already, which keeps the first.
+     */
+    bool NativeClients::registerState(Client* client, const char* name, const StateFn state, void* ctx)
+    {
+        if (!isClient(client)) {
+            logger::warn("Native API: the state '{}' is registered with a handle that is no client's", name ? name : "");
+            return false;
+        }
+        if (!name || !*name || !state) {
+            logger::warn("Native API: client '{}' registers a state with no name or no callback", client->name);
+            return false;
+        }
+        if (client->cutOff) {
+            return false;
+        }
+        const bool added = _functions.addState(client->name, name, [this, client, state, ctx, name = std::string(name)] {
+            return callState(*client, state, ctx, name);
+        });
+        if (!added) {
+            logger::warn("Native API: client '{}' registers the state '{}' again, which keeps the first", client->name, name);
+        }
+        return added;
+    }
+
+    /**
+     * Asks a client a state, inside the guard. None while it is not available: the client does not answer it, or is
+     * cut off, as one that throws or faults is.
+     */
+    std::optional<model::Value> NativeClients::callState(Client& client, const StateFn state, void* ctx, const std::string& name) const
+    {
+        if (client.cutOff) {
+            return std::nullopt;
+        }
+        SettingValue value{};
+        bool answered = false;
+        std::optional<model::Value> copied;
+        // the text is copied inside the guard, as the client's pointer can be bad
+        auto call = [state, ctx, &name, &value, &answered, &copied] {
+            answered = state(ctx, name.c_str(), &value);
+            if (answered && value.type == ValueType::String) {
+                copied = value.text ? model::Value(std::string(value.text)) : model::Value(std::string());
+            }
+        };
+        if (!callGuarded(call)) {
+            cutOff(client, std::format("the state '{}'", name));
+            return std::nullopt;
+        }
+        if (!answered) {
+            return std::nullopt;
+        }
+        switch (value.type) {
+        case ValueType::Bool:
+            return model::Value(value.boolValue);
+        case ValueType::Int:
+            return model::Value(static_cast<int>(value.intValue));
+        case ValueType::Float:
+            return model::Value(value.floatValue);
+        case ValueType::String:
+            break;
+        }
+        return copied;
+    }
+
+    /**
      * Whether a handle is a registered client's.
      */
     bool NativeClients::isClient(const Client* client) const

@@ -61,4 +61,26 @@ namespace mods_config::model
         }
         return found->second(arguments);
     }
+
+    /**
+     * Registers a state of a mod. False for a name that has one already, which keeps the first.
+     */
+    bool ClientFunctions::addState(const std::string_view modName, const std::string_view name, State state)
+    {
+        return _states.try_emplace({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(name)) }, std::move(state)).second;
+    }
+
+    /**
+     * The value of a state of a mod now. None while it is not available: its mod has no client, its client is cut off,
+     * did not register it, or does not answer it.
+     */
+    std::optional<Value> ClientFunctions::state(const std::string_view modName, const std::string_view name) const
+    {
+        const auto mod = common::str_tolower(std::string(modName));
+        const auto found = _states.find({ mod, common::str_tolower(std::string(name)) });
+        if (found == _states.end() || _cutOff.contains(mod)) {
+            return std::nullopt;
+        }
+        return found->second();
+    }
 }

@@ -302,3 +302,63 @@ TEST_CASE("NativeClients: a function does not run with no client, with no functi
     CHECK(optionCalls.count == 0);
     CHECK_FALSE(clients.registerFunction(client, "More", &calibrate, nullptr));
 }
+
+namespace
+{
+    /**
+     * What a state answers, and how many times it was asked.
+     */
+    struct StateAnswer
+    {
+        int count = 0;
+        bool answers = true;
+        api::SettingValue value{ .type = api::ValueType::Bool, .boolValue = true };
+    };
+
+    bool MODS_CONFIG_VR_CALL answerState(void* ctx, const char*, api::SettingValue* value)
+    {
+        auto& answer = *static_cast<StateAnswer*>(ctx);
+        ++answer.count;
+        *value = answer.value;
+        return answer.answers;
+    }
+
+    bool MODS_CONFIG_VR_CALL throwingState(void*, const char*, api::SettingValue*)
+    {
+        throw std::runtime_error("the client's bug");
+    }
+}
+
+TEST_CASE("NativeClients: a client answers a state of its config spec, in its type, and none while it does not")
+{
+    model::ClientOptions options;
+    model::ClientFunctions functions;
+    api::NativeClients clients(options, functions);
+    const auto info = infoOf("MyMod");
+    auto* client = clients.registerClient(&info);
+    StateAnswer answer;
+    REQUIRE(clients.registerState(client, "Calibrating", &answerState, &answer));
+    CHECK_FALSE(clients.registerState(client, "calibrating", &answerState, &answer));
+
+    // by its mod's name and its own, without regard to case
+    CHECK(functions.state("mymod", "calibrating") == model::Value(true));
+    answer.value = { .type = api::ValueType::Int, .intValue = 3 };
+    CHECK(functions.state("MyMod", "Calibrating") == model::Value(3));
+    answer.value = { .type = api::ValueType::Float, .floatValue = 0.5f };
+    CHECK(functions.state("MyMod", "Calibrating") == model::Value(0.5f));
+    answer.value = { .type = api::ValueType::String, .text = "walk" };
+    CHECK(functions.state("MyMod", "Calibrating") == model::Value("walk"s));
+    answer.answers = false;
+    CHECK_FALSE(functions.state("MyMod", "Calibrating"));
+    CHECK_FALSE(functions.state("MyMod", "other"));
+    CHECK_FALSE(functions.state("OtherMod", "Calibrating"));
+    CHECK(answer.count == 5);
+
+    // one that throws cuts its client off: none of its states is available after it
+    REQUIRE(clients.registerState(client, "Broken", &throwingState, nullptr));
+    answer.answers = true;
+    CHECK_FALSE(functions.state("MyMod", "Broken"));
+    CHECK_FALSE(functions.state("MyMod", "Calibrating"));
+    CHECK(answer.count == 5);
+    CHECK(functions.notRunnable("MyMod", "My Mod", "calibrate") == "Not available: its mod's client failed, and is cut off until the game is restarted.");
+}
