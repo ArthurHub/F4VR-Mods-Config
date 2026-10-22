@@ -677,6 +677,63 @@ TEST_CASE("FullPanel render: the pages of the mod's own config spec, with the ra
     }
 }
 
+TEST_CASE("FullPanel render: client states in text", "[.render]")
+{
+    const auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [
+            { "type": "text", "text": "<font size='30'><b>Version {clientState:version}</b></font>", "html": true },
+            { "type": "text", "text": "<b>Status:</b> <font color='#FFBF33'>{clientState:status}</font>", "html": true },
+            { "type": "text", "text": "Items: {clientState:count}   Scale: {clientState:scale}   Ready: {clientState:ready}" },
+            { "type": "text", "text": "Literal state value: {clientState:literal}" },
+            { "type": "text", "text": "Unregistered state: {clientState:missing}" }
+        ]
+    })");
+    REQUIRE(mod);
+    spec::ConfigSpecStore store({}, {});
+    std::string version = "1.2.3";
+    std::string status = "Ready to configure";
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .states = { { "version",
+                                                  [&] {
+                                                      return std::optional<model::Value>(version);
+                                                  } },
+                                      { "status",
+                                          [&] {
+                                              return std::optional<model::Value>(status);
+                                          } },
+                                      { "count",
+                                          [] {
+                                              return std::optional<model::Value>(12);
+                                          } },
+                                      { "scale",
+                                          [] {
+                                              return std::optional<model::Value>(1.25f);
+                                          } },
+                                      { "ready",
+                                          [] {
+                                              return std::optional<model::Value>(true);
+                                          } },
+                                      { "literal",
+                                          [] {
+                                              return std::optional<model::Value>("<b>not markup</b> & {clientState:version}"s);
+                                          } } } }
+            .calls());
+    const auto render = [&mod](spec::ConfigSpecStore& source, const std::string& name) {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &source);
+        panel.setMods({ *mod });
+        panel.select({ .mod = 0 });
+        WARN("Saved " << renderToFile(panel, name, POINTER_AWAY));
+    };
+    render(store, "client-text-values");
+    version = "1.2.4";
+    status = "Calibration complete.\nYour settings are ready.";
+    render(store, "client-text-updated");
+    spec::ConfigSpecStore alone({}, {});
+    render(alone, "client-text-unavailable");
+}
+
 TEST_CASE("FullPanel render: the pages of the config spec showcase", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);

@@ -699,6 +699,25 @@
           "content": [
             {
               "type": "section",
+              "text": "Client states in text",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Version {clientState:version}"
+                },
+                {
+                  "type": "text",
+                  "text": "<b>Client status:</b> <font color='#FFBF33'>{clientState:status}</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "These values come from the mod's native client. The showcase has no DLL, so they show Unknown (version) and Unknown (status). A mod registers them with addState."
+                }
+              ]
+            },
+            {
+              "type": "section",
               "text": "Bold, italic and underlined",
               "content": [
                 {

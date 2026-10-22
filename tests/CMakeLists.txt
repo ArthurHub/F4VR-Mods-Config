@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}_tests
   ConfigSpecStoreTests.cpp
   SwfImagesTests.cpp
   TextMarkupTests.cpp
+  TextStatesTests.cpp
   TomlFileTests.cpp
   TranslationsTests.cpp
   Setup.cpp
@@ -53,6 +54,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/ClientCalls.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
+  ${SOURCE_DIR}/model/TextStates.cpp
   ${SOURCE_DIR}/spec/IniFile.cpp
   ${SOURCE_DIR}/spec/LiveCopies.cpp
   ${SOURCE_DIR}/spec/ModFile.cpp

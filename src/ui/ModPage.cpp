@@ -22,6 +22,7 @@
 #include "Sliders.h"
 #include "Theme.h"
 #include "model/Conditions.h"
+#include "model/TextStates.h"
 
 namespace
 {
@@ -31,11 +32,13 @@ namespace
      * A text row at the cursor: its lines in the muted color, under the rows' names, and wrapped to the end of
      * the rows.
      */
-    void drawTextRow(const model::Text& text)
+    void drawTextRow(const model::Text& text, model::Store* store)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
-        const float height = ui::drawTextLines(text.lines, ImVec2(pos.x + theme::SPACE_3, pos.y), width - theme::SPACE_3 - theme::SPACE_2, theme::color::GREEN_MUTED);
+        const auto resolved = model::resolveClientText(text.lines, store);
+        const float height =
+            ui::drawTextLines(resolved ? *resolved : text.lines, ImVec2(pos.x + theme::SPACE_3, pos.y), width - theme::SPACE_3 - theme::SPACE_2, theme::color::GREEN_MUTED);
         ImGui::Dummy(ImVec2(width, height));
     }
 
@@ -253,7 +256,7 @@ namespace
 
         void operator()(const model::Text& text) const
         {
-            drawTextRow(text);
+            drawTextRow(text, page.store);
         }
 
         void operator()(const model::Image& image) const

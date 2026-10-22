@@ -3853,6 +3853,51 @@ TEST_CASE("FullPanel: the dialog is answered as a press on its button does, and 
     CHECK(fileText(file) == "[Main]\r\nbEnable = true\r\nfHeight = 2.0\r\n");
 }
 
+TEST_CASE("FullPanel: text rows insert client states each frame and share their query with conditions")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [
+            { "type": "text", "text": "Version {clientState:version}", "visibleWhen": { "clientState": "version", "equals": "1.2.3" } },
+            { "type": "text", "text": "<b>Also {clientState:VERSION}</b>: {clientState:status}", "html": true }
+        ]
+    })");
+    REQUIRE(mod);
+    std::string version = "1.2.3";
+    int asked = 0;
+    int textAsked = 0;
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .states = { { "version",
+                                                  [&] {
+                                                      ++asked;
+                                                      return std::optional<model::Value>(version);
+                                                  } },
+                                      { "status",
+                                          [&] {
+                                              ++textAsked;
+                                              return std::optional<model::Value>("Ready"s);
+                                          } } } }
+            .calls());
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    asked = 0;
+    textAsked = 0;
+    drawFrames(panel, 3);
+    CHECK(asked == 3);
+    CHECK(textAsked == 3);
+    version = "1.2.4";
+    // The first text is now hidden, so only the second can request the state after the condition does.
+    drawFrames(panel, 1);
+    CHECK(asked == 4);
+    CHECK(textAsked == 4);
+}
+
 TEST_CASE("FullPanel: a row follows a state of its mod's client, which is asked once a frame")
 {
     const test_panel::PanelContext context;
