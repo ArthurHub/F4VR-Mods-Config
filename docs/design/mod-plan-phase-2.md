@@ -107,7 +107,7 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 | F28 | framework | `ModBase` registers the mod as a client                                                     | in review |
 | M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | in review |
 | M118 | mod      | A condition asks a state of the mod's client                                                | in review |
-| M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | todo   |
+| M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | in review |
 | M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | todo   |
 | F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
 | M66 | mod       | The quick launch section takes the mods that registered for it                              | todo   |

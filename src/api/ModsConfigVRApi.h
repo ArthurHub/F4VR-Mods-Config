@@ -84,14 +84,38 @@ namespace mods_config::api
     struct Client;
 
     /**
+     * What happened in the menu: it opened or closed, which every client is told, and the client's mod or a page of its
+     * config spec that has an `id` was shown or left. A minimized menu is still open.
+     */
+    enum class MenuEventType : std::uint32_t
+    {
+        MenuOpened,
+        MenuClosed,
+        ModShown,
+        ModLeft,
+        PageShown,
+        PageLeft
+    };
+
+    struct MenuEvent
+    {
+        MenuEventType type;
+        const char* pageId; // the page's `id` in the config spec, for PageShown and PageLeft, and null for the others
+    };
+
+    /**
      * What a client registers with: its name, which is matched to the config spec whose `modName` is that name
-     * without regard to case, and the version of its header, so the host reads only the fields it has.
+     * without regard to case, the version of its header, so the host reads only the fields it has, and its callbacks,
+     * each null for a client that does not want it.
      */
     struct ClientInfo
     {
         std::uint32_t version = MODS_CONFIG_VR_API_VERSION;
         const char* name = nullptr;
         void* ctx = nullptr; // given back to each of its callbacks
+
+        // what happens in the menu, as it happens
+        void(MODS_CONFIG_VR_CALL* onEvent)(void* ctx, const MenuEvent* event) = nullptr;
     };
 
     /**

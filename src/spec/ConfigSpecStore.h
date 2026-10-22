@@ -15,7 +15,7 @@
 
 #include "ModFile.h"
 #include "model/ChoiceOptions.h"
-#include "model/ClientFunctions.h"
+#include "model/ClientCalls.h"
 #include "model/ConfigDefinition.h"
 #include "model/Store.h"
 
@@ -59,9 +59,9 @@ namespace mods_config::spec
         }
 
         // the functions of mods' DLLs, which a `CallNativeFunction` runs, which the native API registers
-        model::ClientFunctions& clientFunctions()
+        model::ClientCalls& clientCalls()
         {
-            return _clientFunctions;
+            return _clientCalls;
         }
 
         void open(const model::Mod& mod) override;
@@ -105,6 +105,7 @@ namespace mods_config::spec
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         model::StoredValue clientState(std::string_view name) override;
         void startFrame() override;
+        void showPage(const model::Page* page) override;
         std::string notRunnable(const model::Action& action) const override;
         model::ActionResult run(const model::Action& action) override;
 
@@ -152,6 +153,9 @@ namespace mods_config::spec
 
         // the name of the mod that is selected, for the log
         std::string _modName;
+
+        // the `id` of the page that is shown, which its mod's client is told as it is left: empty for one with none
+        std::string _pageId;
         std::string _modDisplayName;
 
         // the files of the mod that is selected that the menu reads, by their names in its config spec. A file that
@@ -162,7 +166,7 @@ namespace mods_config::spec
         // that takes them from its mod's client
         model::ChoiceOptions _options;
         model::ClientOptions _clientOptions;
-        model::ClientFunctions _clientFunctions;
+        model::ClientCalls _clientCalls;
 
         // the states of the mod's client asked in this frame, by their names in lower case: each is asked once a frame
         std::map<std::string, std::optional<model::Value>, std::less<>> _clientStates;

@@ -1358,7 +1358,11 @@ namespace
     {
         reading.at.pages.push_back(common::trim(getShownText(page, "pageDisplayName", reading.translations)));
         checkFields(page, PAGE_FIELDS, reading);
-        model::Page loaded{ .name = readShownText(page, "pageDisplayName", reading), .help = readShownText(page, "help", reading), .items = {}, .pages = {} };
+        model::Page loaded{ .name = readShownText(page, "pageDisplayName", reading),
+            .help = readShownText(page, "help", reading),
+            .items = {},
+            .pages = {},
+            .id = getText(page, "id") };
         const auto own = inherit(page, above, reading);
         loaded.items = loadItems(page, own, reading);
         if (const auto pages = page.find("pages"); pages != page.end() && pages->is_array()) {

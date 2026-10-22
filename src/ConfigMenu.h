@@ -114,7 +114,7 @@ namespace mods_config
         spec::ConfigSpecStore _configSpecStore{ "Data", common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
 
         // the native clients, whose options and functions the config spec store reads
-        api::NativeClients _nativeClients{ _configSpecStore.clientOptions(), _configSpecStore.clientFunctions() };
+        api::NativeClients _nativeClients{ _configSpecStore.clientOptions(), _configSpecStore.clientCalls() };
 
         // what the panel shows
         ui::FullPanel _fullPanel;

@@ -1334,7 +1334,7 @@ TEST_CASE("FullPanel: a button runs its mod's function after its confirmation, a
     })");
     REQUIRE(mod);
     std::vector<std::vector<model::NamedArgument>> calls;
-    auto& functions = store.clientFunctions();
+    auto& functions = store.clientCalls();
     functions.addClient("MyMod");
     functions.add("MyMod", "calibrate", [&calls](const std::vector<model::NamedArgument>& arguments) {
         calls.push_back(arguments);
@@ -3865,7 +3865,7 @@ TEST_CASE("FullPanel: a row follows a state of its mod's client, which is asked 
     test_actions::TestActions actions;
     bool calibrating = true;
     int asked = 0;
-    auto& functions = store.clientFunctions();
+    auto& functions = store.clientCalls();
     functions.addClient("MyMod");
     functions.addState("MyMod", "calibrating", [&calibrating, &asked] {
         ++asked;
@@ -3897,4 +3897,66 @@ TEST_CASE("FullPanel: a row follows a state of its mod's client, which is asked 
     CHECK(pressActs(panel, pageRow(1)));
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Unknown state: Its state is not registered.");
+}
+
+TEST_CASE("FullPanel: a mod's client is told as its mod and the pages of its config spec that have an id are shown and left")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    const auto configSpec = [](const std::string& name) {
+        return spec::loadConfigSpec(std::format(R"({{
+            "minSchemaVersion": 1, "modName": "{0}", "displayName": "{0}", "applies": "save",
+            "content": [ {{ "type": "text", "text": "Front" }} ],
+            "pages": [
+                {{ "pageDisplayName": "Spheres", "id": "spheres", "content": [],
+                   "pages": [ {{ "pageDisplayName": "Left", "id": "leftSphere", "content": [] }} ] }},
+                {{ "pageDisplayName": "No id", "content": [] }}
+            ]
+        }})",
+            name));
+    };
+    auto first = configSpec("MyMod");
+    auto second = configSpec("OtherMod");
+    REQUIRE(first);
+    REQUIRE(second);
+    std::vector<std::string> events;
+    auto& calls = store.clientCalls();
+    for (const auto* mod : { "MyMod", "OtherMod" }) {
+        calls.addClient(mod);
+        calls.addEvents(mod, [&events, mod](const model::ClientEvent event, const std::string_view pageId) {
+            constexpr std::array NAMES{ "MenuOpened", "MenuClosed", "ModShown", "ModLeft", "PageShown", "PageLeft" };
+            events.push_back(std::format("{} {}{}{}", mod, NAMES[static_cast<int>(event)], pageId.empty() ? "" : " ", pageId));
+        });
+    }
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*first), std::move(*second) });
+
+    // the mod's front page has no id
+    panel.select(selectionOf(0));
+    CHECK(events == std::vector<std::string>{ "MyMod ModShown" });
+    events.clear();
+
+    // a page under a page, from its page, and one with no id
+    panel.select(selectionOf(0, 0));
+    panel.select({ .mod = 0, .page = { 0, 0 } });
+    panel.select(selectionOf(0, 1));
+    CHECK(events == std::vector<std::string>{ "MyMod PageShown spheres", "MyMod PageLeft spheres", "MyMod PageShown leftSphere", "MyMod PageLeft leftSphere" });
+    events.clear();
+
+    // another mod leaves the page and the mod
+    panel.select(selectionOf(0, 0));
+    panel.select(selectionOf(1, 0));
+    CHECK(events == std::vector<std::string>{ "MyMod PageShown spheres", "MyMod PageLeft spheres", "MyMod ModLeft", "OtherMod ModShown", "OtherMod PageShown spheres" });
+    events.clear();
+
+    // and the menu closing leaves both, as the panel is reset
+    panel.reset();
+    CHECK(events == std::vector<std::string>{ "OtherMod PageLeft spheres", "OtherMod ModLeft" });
+
+    // the menu's own events go to every client
+    events.clear();
+    calls.sendToAll(model::ClientEvent::MenuOpened);
+    CHECK(events == std::vector<std::string>{ "MyMod MenuOpened", "OtherMod MenuOpened" });
 }

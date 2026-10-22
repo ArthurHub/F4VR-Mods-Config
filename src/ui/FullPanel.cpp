@@ -356,6 +356,9 @@ namespace mods_config::ui
             store->pageShown();
         }
         _selection = shown;
+        if (store) {
+            store->showPage(selectedPage());
+        }
         pageShown();
         return true;
     }

@@ -155,6 +155,7 @@ namespace mods_config
         createPanel();
         createWristButtons();
         _store.menuOpened();
+        _configSpecStore.clientCalls().sendToAll(model::ClientEvent::MenuOpened);
     }
 
     void ConfigMenu::close()
@@ -174,9 +175,10 @@ namespace mods_config
         _minimizeButton.reset();
         _imageTextures.clear();
         _configSpecTextures.clear();
-        // the mod that is shown is left, which its scripts are told before they are told of the menu
+        // the mod that is shown is left, which its scripts and its client are told before they are told of the menu
         _fullPanel.reset();
         _store.menuClosed();
+        _configSpecStore.clientCalls().sendToAll(model::ClientEvent::MenuClosed);
     }
 
     /**

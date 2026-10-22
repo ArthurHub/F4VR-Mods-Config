@@ -8,7 +8,7 @@
 
 #include "ModsConfigVRApi.h"
 #include "model/ChoiceOptions.h"
-#include "model/ClientFunctions.h"
+#include "model/ClientCalls.h"
 #include "model/Translations.h"
 
 namespace mods_config::api
@@ -21,6 +21,9 @@ namespace mods_config::api
         std::string name;
         std::uint32_t version = 0;
         void* ctx = nullptr;
+
+        // its callback of the menu's events, and none
+        void(MODS_CONFIG_VR_CALL* onEvent)(void* ctx, const MenuEvent* event) = nullptr;
 
         // a call of it failed, so nothing of it is called again until the game is restarted
         bool cutOff = false;
@@ -35,9 +38,9 @@ namespace mods_config::api
     class NativeClients
     {
     public:
-        NativeClients(model::ClientOptions& options, model::ClientFunctions& functions)
+        NativeClients(model::ClientOptions& options, model::ClientCalls& calls)
             : _options(options),
-              _functions(functions)
+              _calls(calls)
         {}
 
         // the texts of the game's language, which a client's texts are translated with
@@ -55,11 +58,12 @@ namespace mods_config::api
         std::expected<std::vector<model::Option>, std::string> callOptions(Client& client, OptionsFn options, void* ctx, const model::Setting& setting) const;
         model::FunctionResult callFunction(Client& client, NativeFunction function, void* ctx, const std::string& name, const std::vector<model::NamedArgument>& arguments) const;
         std::optional<model::Value> callState(Client& client, StateFn state, void* ctx, const std::string& name) const;
+        void callEvent(Client& client, model::ClientEvent event, std::string_view pageId) const;
         bool isClient(const Client* client) const;
         void cutOff(Client& client, std::string_view what) const;
 
         model::ClientOptions& _options;
-        model::ClientFunctions& _functions;
+        model::ClientCalls& _calls;
         const model::Translations* _translations = nullptr;
 
         // each kept where it is, as a client keeps its handle

@@ -10,6 +10,8 @@ using namespace mods_config;
 
 namespace
 {
+    static_assert(static_cast<int>(api::MenuEventType::PageLeft) == static_cast<int>(model::ClientEvent::PageLeft), "the API's events are the model's, in its order");
+
     constexpr auto CUT_OFF_REASON = "Not available: its mod's client failed, and is cut off until the game is restarted.";
 
     using Thunk = void (*)(void* arg);
@@ -197,8 +199,14 @@ namespace mods_config::api
             logger::warn("Native API: '{}' has a client already, so another is not registered", name);
             return nullptr;
         }
-        auto& client = _clients.emplace_back(std::make_unique<Client>(Client{ .name = name, .version = info->version, .ctx = info->ctx }));
-        _functions.addClient(name);
+        const auto onEvent = info->onEvent;
+        auto& client = _clients.emplace_back(std::make_unique<Client>(Client{ .name = name, .version = info->version, .ctx = info->ctx, .onEvent = onEvent }));
+        _calls.addClient(name);
+        if (onEvent) {
+            _calls.addEvents(name, [this, registered = client.get()](const model::ClientEvent event, const std::string_view pageId) {
+                callEvent(*registered, event, pageId);
+            });
+        }
         logger::info("Native API: client '{}' registered, built with the API of version {}", name, info->version);
         return client.get();
     }
@@ -276,7 +284,7 @@ namespace mods_config::api
         if (client->cutOff) {
             return false;
         }
-        const bool added = _functions.add(client->name, name, [this, client, function, ctx, name = std::string(name)](const std::vector<model::NamedArgument>& arguments) {
+        const bool added = _calls.add(client->name, name, [this, client, function, ctx, name = std::string(name)](const std::vector<model::NamedArgument>& arguments) {
             return callFunction(*client, function, ctx, name, arguments);
         });
         if (!added) {
@@ -336,7 +344,7 @@ namespace mods_config::api
         if (client->cutOff) {
             return false;
         }
-        const bool added = _functions.addState(client->name, name, [this, client, state, ctx, name = std::string(name)] {
+        const bool added = _calls.addState(client->name, name, [this, client, state, ctx, name = std::string(name)] {
             return callState(*client, state, ctx, name);
         });
         if (!added) {
@@ -385,6 +393,24 @@ namespace mods_config::api
     }
 
     /**
+     * Tells a client an event of the menu, inside the guard. A client that throws or faults is cut off.
+     */
+    void NativeClients::callEvent(Client& client, const model::ClientEvent event, const std::string_view pageId) const
+    {
+        if (client.cutOff || !client.onEvent) {
+            return;
+        }
+        const std::string page(pageId);
+        const MenuEvent menuEvent{ .type = static_cast<MenuEventType>(event), .pageId = page.empty() ? nullptr : page.c_str() };
+        auto call = [&client, &menuEvent] {
+            client.onEvent(client.ctx, &menuEvent);
+        };
+        if (!callGuarded(call)) {
+            cutOff(client, "an event of the menu");
+        }
+    }
+
+    /**
      * Whether a handle is a registered client's.
      */
     bool NativeClients::isClient(const Client* client) const
@@ -400,7 +426,7 @@ namespace mods_config::api
     void NativeClients::cutOff(Client& client, const std::string_view what) const
     {
         client.cutOff = true;
-        _functions.cutOff(client.name);
+        _calls.cutOff(client.name);
         logger::error("Native API: client '{}' failed in {}, and is cut off until the game is restarted", client.name, what);
     }
 }

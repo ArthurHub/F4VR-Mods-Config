@@ -1645,7 +1645,7 @@ TEST_CASE("FullPanel render: a button's confirmation, a dangerous one, and the r
         ]
     })");
     REQUIRE(mod);
-    auto& functions = store.clientFunctions();
+    auto& functions = store.clientCalls();
     functions.addClient("MyMod");
     functions.add("MyMod", "calibrate", [](const auto&) {
         return model::FunctionResult{ .done = true, .message = "Done: 1.78 m." };

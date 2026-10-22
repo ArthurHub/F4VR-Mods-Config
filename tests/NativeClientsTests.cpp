@@ -84,7 +84,7 @@ namespace
 TEST_CASE("NativeClients: a client registers once by its name, without regard to case")
 {
     model::ClientOptions options;
-    model::ClientFunctions functions;
+    model::ClientCalls functions;
     api::NativeClients clients(options, functions);
     const auto info = infoOf("MyMod");
     CHECK(clients.registerClient(&info) != nullptr);
@@ -104,7 +104,7 @@ TEST_CASE("NativeClients: a client registers once by its name, without regard to
 TEST_CASE("NativeClients: a client gives the options of a choice of its config spec, of the setting's type, with its texts translated")
 {
     model::ClientOptions options;
-    model::ClientFunctions functions;
+    model::ClientCalls functions;
     api::NativeClients clients(options, functions);
     model::Translations translations;
     translations.add("$FRIK", "FRIK VR");
@@ -132,7 +132,7 @@ TEST_CASE("NativeClients: a client gives the options of a choice of its config s
 TEST_CASE("NativeClients: the options of a setting are registered once, which keeps the first")
 {
     model::ClientOptions options;
-    model::ClientFunctions functions;
+    model::ClientCalls functions;
     api::NativeClients clients(options, functions);
     const auto info = infoOf("MyMod");
     auto* client = clients.registerClient(&info);
@@ -155,7 +155,7 @@ TEST_CASE("NativeClients: the options of a setting are registered once, which ke
 TEST_CASE("NativeClients: a client whose callback throws is cut off, and its choices are not available")
 {
     model::ClientOptions options;
-    model::ClientFunctions functions;
+    model::ClientCalls functions;
     api::NativeClients clients(options, functions);
     const auto info = infoOf("MyMod");
     auto* client = clients.registerClient(&info);
@@ -229,7 +229,7 @@ namespace
 TEST_CASE("NativeClients: a client's function runs with its named arguments, each in its type, and gives its result")
 {
     model::ClientOptions options;
-    model::ClientFunctions functions;
+    model::ClientCalls functions;
     api::NativeClients clients(options, functions);
     model::Translations translations;
     translations.add("$Done", "Done: 1.78 m.");
@@ -272,7 +272,7 @@ TEST_CASE("NativeClients: a client's function runs with its named arguments, eac
 TEST_CASE("NativeClients: a function does not run with no client, with no function of its name, and once its client is cut off")
 {
     model::ClientOptions options;
-    model::ClientFunctions functions;
+    model::ClientCalls functions;
     api::NativeClients clients(options, functions);
     CHECK(functions.notRunnable("MyMod", "My Mod", "calibrate") == "Needs My Mod's DLL, which is not loaded.");
 
@@ -332,7 +332,7 @@ namespace
 TEST_CASE("NativeClients: a client answers a state of its config spec, in its type, and none while it does not")
 {
     model::ClientOptions options;
-    model::ClientFunctions functions;
+    model::ClientCalls functions;
     api::NativeClients clients(options, functions);
     const auto info = infoOf("MyMod");
     auto* client = clients.registerClient(&info);
@@ -361,4 +361,45 @@ TEST_CASE("NativeClients: a client answers a state of its config spec, in its ty
     CHECK_FALSE(functions.state("MyMod", "Calibrating"));
     CHECK(answer.count == 5);
     CHECK(functions.notRunnable("MyMod", "My Mod", "calibrate") == "Not available: its mod's client failed, and is cut off until the game is restarted.");
+}
+
+namespace
+{
+    /**
+     * The events a client was told, each as its type and its page.
+     */
+    struct EventCalls
+    {
+        std::vector<std::pair<api::MenuEventType, std::string>> events;
+    };
+
+    void MODS_CONFIG_VR_CALL onEvent(void* ctx, const api::MenuEvent* event)
+    {
+        static_cast<EventCalls*>(ctx)->events.emplace_back(event->type, event->pageId ? event->pageId : "");
+    }
+
+    void MODS_CONFIG_VR_CALL throwingEvent(void*, const api::MenuEvent*)
+    {
+        throw std::runtime_error("the client's bug");
+    }
+}
+
+TEST_CASE("NativeClients: a client is told the menu's events, and one that throws is cut off")
+{
+    model::ClientOptions options;
+    model::ClientCalls calls;
+    api::NativeClients clients(options, calls);
+    EventCalls told;
+    const api::ClientInfo info{ .version = api::MODS_CONFIG_VR_API_VERSION, .name = "MyMod", .ctx = &told, .onEvent = &onEvent };
+    REQUIRE(clients.registerClient(&info));
+    calls.send("mymod", model::ClientEvent::PageShown, "spheres");
+    calls.sendToAll(model::ClientEvent::MenuClosed);
+    calls.send("OtherMod", model::ClientEvent::ModShown);
+    CHECK(told.events == std::vector<std::pair<api::MenuEventType, std::string>>{ { api::MenuEventType::PageShown, "spheres" }, { api::MenuEventType::MenuClosed, "" } });
+
+    // one that throws is cut off, and is told nothing more
+    const api::ClientInfo broken{ .version = api::MODS_CONFIG_VR_API_VERSION, .name = "Broken", .ctx = nullptr, .onEvent = &throwingEvent };
+    REQUIRE(clients.registerClient(&broken));
+    calls.send("Broken", model::ClientEvent::ModShown);
+    CHECK(calls.notRunnable("Broken", "Broken", "any") == "Not available: its mod's client failed, and is cut off until the game is restarted.");
 }

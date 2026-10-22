@@ -177,6 +177,13 @@ namespace mods_config::model
         }
 
         /**
+         * The page of the selected mod that is shown, after its session starts and as another is shown, which a store
+         * tells its mod's client: the mod's front page for none.
+         */
+        virtual void showPage(const Page*)
+        {}
+
+        /**
          * A frame of the panel starts: a store asks the states of its mod's client again as they are next asked.
          */
         virtual void startFrame()

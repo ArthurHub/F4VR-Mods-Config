@@ -659,6 +659,9 @@ namespace mods_config::model
 
         // the pages under it, which a config spec's page can have
         std::vector<Page> pages;
+
+        // what its mod's client is told it by as it is shown and left: a config spec's page can have it. Empty for none
+        std::string id;
     };
 
     /**

@@ -439,7 +439,7 @@ namespace
      * `CallNativeFunction` have the value written in place of each of their `{value}` parameters, as the file or the
      * game keeps it, and a `RunConsoleCommand` runs its line. A function of the mod's DLL runs by its mod's name.
      */
-    void runAction(const model::Setting& setting, const model::Value& written, const model::ClientFunctions& functions, const std::string& modName)
+    void runAction(const model::Setting& setting, const model::Value& written, const model::ClientCalls& functions, const std::string& modName)
     {
         if (const auto* native = std::get_if<model::NativeFunction>(&setting.action)) {
             auto arguments = native->arguments;
@@ -541,6 +541,7 @@ namespace mods_config::spec
         _modName = mod.name;
         _modDisplayName = mod.displayName;
         _clientStates.clear();
+        _clientCalls.send(_modName, model::ClientEvent::ModShown);
 
         std::map<std::string, FileOfSession, std::less<>> files;
         for (const auto& [name, file] : mod.files) {
@@ -640,6 +641,10 @@ namespace mods_config::spec
     void ConfigSpecStore::close()
     {
         rollBack();
+        if (!_modName.empty()) {
+            showPage(nullptr);
+            _clientCalls.send(_modName, model::ClientEvent::ModLeft);
+        }
         _modName.clear();
         _modDisplayName.clear();
         _files.clear();
@@ -896,7 +901,7 @@ namespace mods_config::spec
             if (!written.contains(setting)) {
                 continue;
             }
-            runAction(*setting, *_entries.at(setting).baseline, _clientFunctions, _modName);
+            runAction(*setting, *_entries.at(setting).baseline, _clientCalls, _modName);
             if (applies(*setting) == model::Applies::Restart) {
                 _savedForRestart[_modName].insert(storageKey(*setting));
                 ++restarts;
@@ -949,12 +954,31 @@ namespace mods_config::spec
         auto key = common::str_tolower(std::string(name));
         auto found = _clientStates.find(key);
         if (found == _clientStates.end()) {
-            found = _clientStates.emplace(std::move(key), _clientFunctions.state(_modName, name)).first;
+            found = _clientStates.emplace(std::move(key), _clientCalls.state(_modName, name)).first;
         }
         if (!found->second) {
             return { .value = {}, .available = false, .invalid = false, .reason = "Not available: its mod's client does not answer it." };
         }
         return { .value = *found->second, .available = true, .invalid = false, .reason = {} };
+    }
+
+    /**
+     * Tells the mod's client that a page of its config spec that has an `id` is left and another is shown, as the
+     * player goes to it. Nothing for the page that is shown already.
+     */
+    void ConfigSpecStore::showPage(const model::Page* page)
+    {
+        const std::string pageId = page ? page->id : std::string();
+        if (_modName.empty() || pageId == _pageId) {
+            return;
+        }
+        if (!_pageId.empty()) {
+            _clientCalls.send(_modName, model::ClientEvent::PageLeft, _pageId);
+        }
+        _pageId = pageId;
+        if (!_pageId.empty()) {
+            _clientCalls.send(_modName, model::ClientEvent::PageShown, _pageId);
+        }
     }
 
     /**
@@ -972,7 +996,7 @@ namespace mods_config::spec
     std::string ConfigSpecStore::notRunnable(const model::Action& action) const
     {
         const auto* native = std::get_if<model::NativeFunction>(&action);
-        return native ? _clientFunctions.notRunnable(_modName, _modDisplayName, native->function) : std::string();
+        return native ? _clientCalls.notRunnable(_modName, _modDisplayName, native->function) : std::string();
     }
 
     /**
@@ -988,7 +1012,7 @@ namespace mods_config::spec
             return { .ran = runConsoleCommand(*command), .failed = false, .message = {} };
         }
         if (const auto* native = std::get_if<model::NativeFunction>(&action); native && notRunnable(action).empty()) {
-            auto result = _clientFunctions.call(_modName, native->function, native->arguments);
+            auto result = _clientCalls.call(_modName, native->function, native->arguments);
             return { .ran = true, .failed = !result.done, .message = std::move(result.message) };
         }
         return {};
