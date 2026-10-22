@@ -12,4 +12,7 @@ namespace mods_config
 
     // Runs a line of the game's console. Returns whether it is run.
     bool runConsoleCommand(const model::ConsoleCommand& command);
+
+    // Opens a link with Windows' default handler. Returns whether Windows accepted it.
+    bool openWebLink(const model::WebLink& link);
 }

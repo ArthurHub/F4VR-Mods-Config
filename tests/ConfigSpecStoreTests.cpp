@@ -895,6 +895,32 @@ TEST_CASE("ConfigSpecStore: a choice reads its options in the game as its mod is
     CHECK(session.store.options(session.setting(0)).size() == 3);
 }
 
+TEST_CASE("ConfigSpecStore: OpenURL launches immediately and reports a failed browser launch")
+{
+    test_actions::TestActions actions;
+    Session session(R"(
+        { "type": "button", "text": "Documentation", "action": { "type": "OpenURL", "url": "https://example.com/help" } }
+    )");
+    session.open(MOD_TOML);
+    const auto& action = std::get<model::Button>(session.mod.frontPage.items[0]).action;
+    CHECK(session.store.notRunnable(action).empty());
+    const auto opened = session.store.run(action);
+    CHECK(opened.ran);
+    CHECK_FALSE(opened.failed);
+    CHECK(opened.message == "Opened in your desktop browser.");
+    CHECK(actions.links == std::vector{ model::WebLink{ "https://example.com/help" } });
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(actions.called.empty());
+    CHECK(actions.commands.empty());
+
+    actions.browserAvailable = false;
+    const auto failed = session.store.run(action);
+    CHECK(failed.ran);
+    CHECK(failed.failed);
+    CHECK(failed.message == "Could not open the link in your desktop browser.");
+    CHECK(actions.links.size() == 2);
+}
+
 TEST_CASE("ConfigSpecStore: a button calls its function or runs its console command at once")
 {
     test_actions::TestActions actions;

@@ -30,6 +30,24 @@ namespace
         static bool inGame = true;
         return inGame;
     }
+
+    /**
+     * The web links whose launch was attempted, of all the tests.
+     */
+    std::vector<mods_config::model::WebLink>& openedLinks()
+    {
+        static std::vector<mods_config::model::WebLink> links;
+        return links;
+    }
+
+    /**
+     * Whether Windows accepts the browser launch in a test.
+     */
+    bool& canOpenBrowser()
+    {
+        static bool available = true;
+        return available;
+    }
 }
 
 namespace test_actions
@@ -37,11 +55,15 @@ namespace test_actions
     TestActions::TestActions()
         : called(calledFunctions()),
           commands(runCommands()),
-          inGame(formsInGame())
+          links(openedLinks()),
+          inGame(formsInGame()),
+          browserAvailable(canOpenBrowser())
     {
         called.clear();
         commands.clear();
+        links.clear();
         inGame = true;
+        browserAvailable = true;
     }
 }
 
@@ -66,5 +88,14 @@ namespace mods_config
     {
         runCommands().push_back(command);
         return true;
+    }
+
+    /**
+     * Records a web link without opening a browser, and simulates a failed launch when requested.
+     */
+    bool openWebLink(const model::WebLink& link)
+    {
+        openedLinks().push_back(link);
+        return canOpenBrowser();
     }
 }

@@ -5,7 +5,7 @@
 #include "model/ConfigDefinition.h"
 
 // The actions a store runs in a test, which has no game: TestActions.cpp is the tests' own `callFunction` and
-// `runConsoleCommand`, in place of the mod's.
+// `runConsoleCommand` and `openWebLink`, in place of the mod's.
 namespace test_actions
 {
     /**
@@ -20,6 +20,8 @@ namespace test_actions
 
         std::vector<mods_config::model::CallFunction>& called;
         std::vector<mods_config::model::ConsoleCommand>& commands;
+        std::vector<mods_config::model::WebLink>& links;
         bool& inGame;
+        bool& browserAvailable;
     };
 }

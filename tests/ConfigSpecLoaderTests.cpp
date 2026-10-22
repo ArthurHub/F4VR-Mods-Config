@@ -438,6 +438,31 @@ TEST_CASE("ConfigSpecLoader: a button calls a function with its typed params, or
     CHECK(std::get<model::Button>(items[2]).action == model::Action(model::ConsoleCommand{ "tm" }));
 }
 
+TEST_CASE("ConfigSpecLoader: OpenURL loads a desktop web link without a native client")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "button", "text": "Documentation", "buttonText": "Open",
+          "action": { "type": "OpenURL", "url": "https://example.com/docs?q=a%20b#buttons" } }
+    )"));
+    REQUIRE(mod.problems.empty());
+    REQUIRE(mod.frontPage.items.size() == 1);
+    const auto& button = std::get<model::Button>(mod.frontPage.items[0]);
+    CHECK(button.buttonText == "Open");
+    CHECK(button.action == model::Action(model::WebLink{ "https://example.com/docs?q=a%20b#buttons" }));
+}
+
+TEST_CASE("ConfigSpecLoader: OpenURL is only available for buttons, so saving a setting never opens a browser")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "switcher", "valueType": "bool", "text": "Enabled", "default": true,
+          "storage": { "path": ["Main", "bEnabled"] }, "action": { "type": "OpenURL", "url": "https://example.com" } }
+    )"));
+    REQUIRE(mod.problems.size() == 1);
+    const auto& action = std::get<model::Setting>(mod.frontPage.items[0]).action;
+    REQUIRE(std::holds_alternative<model::UnknownAction>(action));
+    CHECK(std::get<model::UnknownAction>(action).reason == "Not available: OpenURL is only available for buttons.");
+}
+
 TEST_CASE("ConfigSpecLoader: a setting's action has the value written for each parameter that is {value}")
 {
     const auto mod = loaded(configSpecOf(R"(

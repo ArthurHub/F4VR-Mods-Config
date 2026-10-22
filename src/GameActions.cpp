@@ -3,6 +3,9 @@
 #include <type_traits>
 #include <variant>
 
+#include <Windows.h>
+#include <shellapi.h>
+
 #include "f4sevr/PapyrusUtils.h"
 
 using namespace mods_config;
@@ -157,6 +160,26 @@ namespace mods_config
     {
         RE::Console::ExecuteCommand(command.command.c_str());
         logger::debug("Ran the console command '{}'", command.command);
+        return true;
+    }
+
+    /**
+     * Opens a link with Windows' default handler, using UTF-16 so non-ASCII URLs are preserved.
+     * A failed launch is logged and returned to the button's result.
+     */
+    bool openWebLink(const model::WebLink& link)
+    {
+        const auto url = F4SE::stl::utf8_to_utf16(link.url);
+        if (!url) {
+            logger::warn("The web link is not opened: its URL is not UTF-8");
+            return false;
+        }
+        const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr, L"open", url->c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+        if (result <= 32) {
+            logger::warn("The web link '{}' is not opened: Windows returned {}", link.url, result);
+            return false;
+        }
+        logger::debug("Opened the web link '{}' in the desktop browser", link.url);
         return true;
     }
 }

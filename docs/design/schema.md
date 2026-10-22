@@ -620,6 +620,7 @@ Its `action` is an object with a `type`, as in an MCM config:
 - `CallFunction` calls a function of a script on a form, and `CallGlobalFunction` a global function of a script, as in an MCM config. So a script-only mod has buttons too.
 - `RunConsoleCommand` runs a console command, as MCM runs one for a hotkey. It needs no script, so a mod with no plugin of its own has buttons too.
 - `CallNativeFunction` runs a function that the mod's native client registered, by its name.
+- `OpenURL` opens a link through Windows' default handler, normally the desktop browser for web links. It needs no script or native client and is only available for buttons.
 
 ```json
 {
@@ -640,6 +641,17 @@ Its `action` is an object with a `type`, as in an MCM config:
 ```
 
 The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON values, each given to the script in its own type: a number written with no point is an int, one with a point or an exponent is a float, `true` and `false` are bools, and a text is a string. A text is never read for a type: the `{i}`, `{f}` and `{b}` of an MCM config are not a config spec's. `"{value}"` is the value of a setting's action; see [A setting's action](#a-settings-action).
+
+`OpenURL` passes its literal `url` to Windows without validating it. A launch failure is shown in the button's help line. The menu stays open in VR.
+
+```json
+{
+  "type": "button",
+  "text": "Documentation",
+  "buttonText": "Open",
+  "action": { "type": "OpenURL", "url": "https://example.com/docs" }
+}
+```
 
 `buttonText` is the text on the button, in place of `Run`. It is a localized text.
 

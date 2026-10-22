@@ -348,6 +348,14 @@ namespace mods_config::model
         bool operator==(const ConsoleCommand&) const = default;
     };
 
+    // A web link opened in the default desktop browser.
+    struct WebLink
+    {
+        std::string url;
+
+        bool operator==(const WebLink&) const = default;
+    };
+
     /**
      * A parameter of a function of a mod's DLL: its name, and its value in its own type.
      */
@@ -391,7 +399,7 @@ namespace mods_config::model
     /**
      * What a row runs. Only the store runs it.
      */
-    using Action = std::variant<NoAction, CallFunction, ConsoleCommand, NativeFunction, UnknownAction>;
+    using Action = std::variant<NoAction, CallFunction, ConsoleCommand, WebLink, NativeFunction, UnknownAction>;
 
     /**
      * A piece of a line that is drawn in one size, one color and one face.

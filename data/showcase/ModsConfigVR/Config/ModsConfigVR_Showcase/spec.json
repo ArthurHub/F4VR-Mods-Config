@@ -1421,7 +1421,7 @@
         },
         {
           "pageDisplayName": "Buttons",
-          "help": "Buttons that call a function of a script or run a console command, with the text on their button.",
+          "help": "Buttons that call a function, run a console command or open a web link in your desktop browser.",
           "content": [
             {
               "type": "section",
@@ -1487,6 +1487,22 @@
                   "action": {
                     "type": "RunConsoleCommand",
                     "command": "set gamehour to 20"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Desktop browser",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "Mods Config VR on GitHub",
+                  "help": "Opens the project's GitHub page in your default desktop browser. The menu stays open in VR.",
+                  "buttonText": "Open",
+                  "action": {
+                    "type": "OpenURL",
+                    "url": "https://github.com/ArthurHub/F4VR-Mods-Config"
                   }
                 }
               ]

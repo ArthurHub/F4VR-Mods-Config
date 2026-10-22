@@ -311,7 +311,7 @@ namespace
     constexpr std::array<std::string_view, 8> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 2> WARNING_FIELDS{ "when", "text" };
     // an action, of a button or a setting, and a button's confirmation:
-    constexpr std::array<std::string_view, 7> ACTION_FIELDS{ "type", "function", "params", "form", "scriptName", "script", "command" };
+    constexpr std::array<std::string_view, 8> ACTION_FIELDS{ "type", "function", "params", "form", "scriptName", "script", "command", "url" };
     constexpr std::array<std::string_view, 4> CONFIRMATION_FIELDS{ "title", "message", "confirm", "dangerous" };
 
     /**
@@ -1078,7 +1078,7 @@ namespace
 
     /**
      * What a button runs, by the `type` of its `action`: a `CallFunction` and a `CallGlobalFunction`, with
-     * their `params`, a `RunConsoleCommand`, with its `command`, and a `CallNativeFunction`, a function that the
+     * their `params`, a `RunConsoleCommand`, an `OpenURL`, and a `CallNativeFunction`, a function that the
      * mod's DLL registered with the native API, with its named `params`. A button with no action, any other action,
      * and one that is not written right are actions the menu does not run, with the reason, and are reported.
      */
@@ -1098,6 +1098,9 @@ namespace
         if (type == "RunConsoleCommand") {
             auto command = getText(*action, "command");
             return command.empty() ? model::Action(mistakenAction(std::move(type), "its RunConsoleCommand has no command", reading)) : model::ConsoleCommand{ std::move(command) };
+        }
+        if (type == "OpenURL") {
+            return model::WebLink{ .url = getText(*action, "url") };
         }
         if (type.empty()) {
             return mistakenAction({}, "the action has no type", reading);
@@ -1166,6 +1169,9 @@ namespace
             return model::NoAction{};
         }
         auto action = loadAction(row, reading);
+        if (std::holds_alternative<model::WebLink>(action)) {
+            return mistakenAction("OpenURL", "OpenURL is only available for buttons", reading);
+        }
         if (auto* call = std::get_if<model::CallFunction>(&action)) {
             for (std::size_t place = 0; place < call->arguments.size(); ++place) {
                 if (call->arguments[place] == model::Value(std::string(VALUE_PARAMETER))) {

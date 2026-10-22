@@ -1045,8 +1045,8 @@ namespace mods_config::spec
     }
 
     /**
-     * Runs an action at once: a function of a script, a line of the console, or a function of the mod's DLL, which
-     * can fail and gives the message of its result.
+     * Runs an action at once: a script, console command, desktop web link or function of the mod's DLL.
+     * A browser launch or native function that fails gives a message for the button's help line.
      */
     model::ActionResult ConfigSpecStore::run(const model::Action& action)
     {
@@ -1055,6 +1055,10 @@ namespace mods_config::spec
         }
         if (const auto* command = std::get_if<model::ConsoleCommand>(&action)) {
             return { .ran = runConsoleCommand(*command), .failed = false, .message = {} };
+        }
+        if (const auto* link = std::get_if<model::WebLink>(&action)) {
+            const bool opened = openWebLink(*link);
+            return { .ran = true, .failed = !opened, .message = opened ? "Opened in your desktop browser." : "Could not open the link in your desktop browser." };
         }
         if (const auto* native = std::get_if<model::NativeFunction>(&action); native && notRunnable(action).empty()) {
             auto result = _clientCalls.call(_modName, native->function, native->arguments);
