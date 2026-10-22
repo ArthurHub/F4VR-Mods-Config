@@ -104,7 +104,7 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 | --- | --------- | ------------------------------------------------------------------------------------------- | ------ |
 | M62 | mod       | docs: the native API: its binary interface, its versions and its calls                      | in review |
 | M63 | mod       | The native API: a client registers by name, with the client header                          | in review |
-| F28 | framework | `ModBase` registers the mod as a client                                                     | todo   |
+| F28 | framework | `ModBase` registers the mod as a client                                                     | in review |
 | F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
 | M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | todo   |
 | M118 | mod      | A condition asks a state of the mod's client                                                | todo   |

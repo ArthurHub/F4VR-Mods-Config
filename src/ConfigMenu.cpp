@@ -16,6 +16,7 @@
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
 #include "imgui/ImGuiSettings.h"
+#include "modsconfig/ModsConfigClient.h"
 #include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
@@ -120,19 +121,17 @@ namespace mods_config
     }
 
     /**
-     * Registers the menu's own client through the native API, as any mod's client registers, with the callback of its
-     * config spec's Config spec setting.
+     * Registers the callback of its own config spec's Config spec setting through the native API, with the client the
+     * framework registered for the mod, as any CommonFramework mod's.
      */
-    void ConfigMenu::registerOwnClient()
+    void ConfigMenu::registerOwnOptions()
     {
-        if (const int err = api::ModsConfigVRApiV1::initialize(); err != 0) {
-            logger::error("The native API is not available (error {}): the Config spec setting has no options", err);
+        const auto& modsConfig = f4cf::modsconfig::ModsConfigClient::get();
+        if (!modsConfig.isRegistered()) {
+            logger::error("The mod has no client of the native API: the Config spec setting has no options");
             return;
         }
-        const auto* nativeApi = api::ModsConfigVRApiV1::inst;
-        const api::ClientInfo info{ .version = api::MODS_CONFIG_VR_API_VERSION, .name = Version::PROJECT.data(), .ctx = this };
-        auto* client = nativeApi->registerClient(&info);
-        nativeApi->registerOptions(client, DEVELOPER_CONFIG_SPEC_ID, &addConfigSpecOptions, this);
+        modsConfig.api()->registerOptions(modsConfig.client(), DEVELOPER_CONFIG_SPEC_ID, &addConfigSpecOptions, this);
     }
 
     bool ConfigMenu::isOpen() const

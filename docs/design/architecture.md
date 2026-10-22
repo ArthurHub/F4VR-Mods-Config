@@ -452,7 +452,7 @@ struct OptionsCall
 using OptionsFn = void (*)(void* ctx, OptionsCall* call);
 ```
 
-The client registers it with `registerOptions`, by the setting's id. The callback gets the setting's view, so one function can serve several settings. It is called inside the guard of [A client that fails](#a-client-that-fails). The menu is the API's first client: it registers through the API, as any mod's client does, the callback of its own config spec's Config spec setting, whose options are the config specs it found.
+The client registers it with `registerOptions`, by the setting's id. The callback gets the setting's view, so one function can serve several settings. It is called inside the guard of [A client that fails](#a-client-that-fails). The menu is a client of the API too, the one the framework registers for it as for any CommonFramework mod: it registers the callback of its own config spec's Config spec setting, whose options are the config specs it found.
 
 ### A client that fails
 

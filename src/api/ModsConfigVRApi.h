@@ -1,4 +1,6 @@
-#pragma once
+// A guard of its own, not #pragma once: a mod can have two copies of this file, its own and its framework's
+#ifndef MODS_CONFIG_VR_API_V1_H
+#define MODS_CONFIG_VR_API_V1_H
 
 #include <Windows.h>
 #include <cstdint>
@@ -166,3 +168,5 @@ namespace mods_config::api
         inline static const ModsConfigVRApiV1* inst = nullptr;
     };
 }
+
+#endif

@@ -42,7 +42,7 @@ namespace mods_config
         void back();
         void onFrameUpdate();
 
-        void registerOwnClient();
+        void registerOwnOptions();
 
         void setMods(std::vector<model::Mod> mods, model::Translations translations);
         const std::vector<model::Mod>& mods() const;

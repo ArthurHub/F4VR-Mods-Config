@@ -38,13 +38,11 @@ namespace mods_config
     }
 
     /**
-     * Run F4SE plugin load and initialize the plugin given the init handle. The menu is the native API's first
-     * client, which registers through it as any mod's does.
+     * Run F4SE plugin load and initialize the plugin given the init handle.
      */
     void ModsConfigVR::onModLoaded(const F4SE::LoadInterface*)
     {
         devbench::setupDevBenchTool();
-        _menu.registerOwnClient();
     }
 
     /**
@@ -53,6 +51,9 @@ namespace mods_config
     void ModsConfigVR::onGameLoaded()
     {
         takeOpenGestureFromFRIK();
+
+        // the framework registered the mod's client of the native API at kPostLoad, as any CommonFramework mod's
+        _menu.registerOwnOptions();
 
         // once: what a mod's menu holds does not change while the game runs
         const auto translations = loadGameTranslations();
