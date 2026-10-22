@@ -189,19 +189,21 @@ namespace mods_config::api
         std::uint32_t (*getVersion)();
         const char* (*getModVersion)(); // Mods Config VR's own version
 
+        // the client
+        Client* (*registerClient)(const ClientInfo* info); // null when the name has a client already
+        bool (*registerOptions)(Client* client, const char* settingId, OptionsFn options, void* ctx);
+        bool (*registerFunction)(Client* client, const char* name, NativeFunction function, void* ctx);
+        bool (*registerState)(Client* client, const char* name, StateFn state, void* ctx);
+
         // the menu, for any DLL, with or without a client
         MenuState (*getMenuState)();
         bool (*openMenu)(const char* modName, const char* pageId); // no mod: the front page; no page: the mod's front page
         void (*minimizeMenu)();
         void (*restoreMenu)(); // only while it is minimized, and reads the shown mod's values again
-
-        // the client
-        Client* (*registerClient)(const ClientInfo* info); // null when the name has a client already
-        bool (*addQuickLaunch)(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
-        bool (*registerFunction)(Client* client, const char* name, NativeFunction function, void* ctx);
-        bool (*registerOptions)(Client* client, const char* settingId, OptionsFn options, void* ctx);
-        bool (*registerState)(Client* client, const char* name, StateFn state, void* ctx);
         void (*reloadValues)(Client* client); // reads its mod's values again, while it is shown
+
+        // the client's entry of the quick launch section
+        bool (*addQuickLaunch)(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
 
         [[nodiscard]] static int initialize(std::uint32_t minVersion = MODS_CONFIG_VR_API_VERSION);
         inline static const ModsConfigVRApiV1* inst = nullptr;
@@ -209,7 +211,7 @@ namespace mods_config::api
 }
 ```
 
-A register call returns false for a name that is registered already, which keeps the first.
+The functions are in the order they are added, as a function is only added at the end. A register call returns false for a name that is registered already, which keeps the first.
 
 ### The client
 

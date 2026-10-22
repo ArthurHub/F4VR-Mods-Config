@@ -14,6 +14,14 @@ namespace
 {
     using namespace mods_config;
 
+    // The size of a dialog, which is not a token of the design system, in the panel's pixels. Its width:
+    constexpr float DIALOG_WIDTH = 576.0f;
+    // and the least a button of it is, which is wider for a longer word:
+    constexpr float DIALOG_BUTTON_MIN_WIDTH = 112.0f;
+
+    // the ring around a dangerous button while the ray is on it, outside its box
+    constexpr float DANGER_RING = 2.0f;
+
     // the room of the mark of the chosen option, before the text of every option of a list
     constexpr float CHECK_SIZE = 20.0f;
     constexpr float CHECK_THICKNESS = 2.5f;
@@ -576,15 +584,91 @@ namespace mods_config::ui
         const bool pressed = ImGui::InvisibleButton(label, box.GetSize());
         const bool pointed = ImGui::IsItemHovered();
         const bool held = ImGui::IsItemActive();
+        auto* drawList = ImGui::GetWindowDrawList();
         if (look == ButtonLook::Primary) {
-            ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed && !held ? theme::color::GLOW : theme::color::GREEN), theme::RADIUS_FRAME);
+            drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed && !held ? theme::color::GLOW : theme::color::GREEN), theme::RADIUS_FRAME);
             if (held) {
                 drawOutline(box.Min, box.Max, theme::color::GLOW);
+            }
+        } else if (look == ButtonLook::Danger) {
+            drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(theme::color::RED), theme::RADIUS_FRAME);
+            if (pointed || held) {
+                drawList->AddRect(ImVec2(box.Min.x - DANGER_RING, box.Min.y - DANGER_RING),
+                    ImVec2(box.Max.x + DANGER_RING, box.Max.y + DANGER_RING),
+                    ImGui::GetColorU32(theme::color::RED),
+                    theme::RADIUS_FRAME + DANGER_RING,
+                    0,
+                    DANGER_RING);
             }
         } else if (look == ButtonLook::Secondary || pointed || held) {
             drawButtonFrame(box, pointed, held);
         }
-        drawTextIn(box, label, look == ButtonLook::Primary ? theme::color::ON_GREEN : theme::color::GREEN, 0.5f);
+        const auto textColor = look == ButtonLook::Primary ? theme::color::ON_GREEN : look == ButtonLook::Danger ? theme::color::ON_RED : theme::color::GREEN;
+        drawTextIn(box, label, textColor, 0.5f);
+        return pressed;
+    }
+
+    /**
+     * Begins a dialog, as the design system's ConfirmDialog has it: a modal popup of ImGui in the middle of the panel,
+     * which dims the panel behind it and takes every press, with a border of its color. It is opened while it is
+     * asked, and closed as it is not, as after Back: ImGui opens and closes a popup inside a frame. Returns whether
+     * its content is drawn, which ends with `ImGui::EndPopup`.
+     */
+    bool beginDialog(const char* id, const bool asked, const ImU32 border)
+    {
+        const auto popup = ImGui::GetID(id);
+        if (asked && !ImGui::IsPopupOpen(popup, ImGuiPopupFlags_None)) {
+            ImGui::OpenPopupEx(popup);
+        }
+        if (!ImGui::IsPopupOpen(popup, ImGuiPopupFlags_None)) {
+            return false;
+        }
+
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(DIALOG_WIDTH, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_6, theme::SPACE_6));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(theme::SPACE_2, theme::SPACE_4));
+        ImGui::PushStyleColor(ImGuiCol_Border, border);
+        const bool shown = ImGui::BeginPopupModal(id,
+            nullptr,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar(2);
+        if (!shown) {
+            return false;
+        }
+        if (!asked) {
+            ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * The buttons of a dialog, from its right in their order, a little further from its text than that is from its
+     * title. A button is as wide as its word with its padding, and no less than the least. Returns the place of the
+     * one that was pressed, and -1 for none.
+     */
+    int dialogButtons(const std::span<const DialogButton> buttons)
+    {
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_2);
+        const auto pos = ImGui::GetCursorScreenPos();
+        float right = pos.x + ImGui::GetContentRegionAvail().x;
+        int pressed = -1;
+        for (int place = 0; place < static_cast<int>(buttons.size()); ++place) {
+            const auto& dialogButton = buttons[place];
+            const float width = (std::max)(DIALOG_BUTTON_MIN_WIDTH, std::ceil(textWidth(dialogButton.label) + theme::SPACE_4 * 2.0f));
+            const auto box = controlBox(right - width, pos.y, width);
+            right -= width + theme::SPACE_2;
+            ImGui::BeginDisabled(dialogButton.disabled);
+            if (button(std::string(dialogButton.label).c_str(), box, dialogButton.look)) {
+                pressed = place;
+            }
+            ImGui::EndDisabled();
+        }
+        ImGui::SetCursorScreenPos(pos);
+        ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, theme::CONTROL_HEIGHT));
         return pressed;
     }
 

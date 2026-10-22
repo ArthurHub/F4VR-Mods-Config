@@ -543,10 +543,10 @@ namespace mods_config::mcm
      * Returns false for a row with no action, for an action the store does not run, and for a function whose
      * form or script is not in the game.
      */
-    bool McmStore::run(const model::Action& action)
+    model::ActionResult McmStore::run(const model::Action& action)
     {
         const auto* call = std::get_if<model::CallFunction>(&action);
-        return call && callFunction(*call);
+        return { .ran = call && callFunction(*call), .failed = false, .message = {} };
     }
 
     /**

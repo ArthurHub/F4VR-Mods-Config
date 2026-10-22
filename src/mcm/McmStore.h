@@ -126,7 +126,7 @@ namespace mods_config::mcm
         {}
 
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
-        bool run(const model::Action& action) override;
+        model::ActionResult run(const model::Action& action) override;
 
     private:
         bool write(const model::Setting& setting, const model::Value& value);

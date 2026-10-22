@@ -109,6 +109,32 @@ namespace mods_config::api
     // gives the options of a choice with listFromClientCallback, as its mod is selected
     using OptionsFn = void(MODS_CONFIG_VR_CALL*)(void* ctx, OptionsCall* call);
 
+    /**
+     * A parameter of a function: its name, and its value in its own JSON type in the config spec.
+     */
+    struct NamedValue
+    {
+        const char* name;
+        SettingValue value;
+    };
+
+    /**
+     * A call of a function of the client: its parameters, and how the function gives the message of its result.
+     */
+    struct FunctionCall
+    {
+        const NamedValue* params;
+        std::uint32_t paramCount;
+
+        // Gives what the help line shows of the result: after the info mark, or after the invalid mark when the
+        // function returns false. A text can be a `$` token of the game's language. Valid until the function returns.
+        void(MODS_CONFIG_VR_CALL* setMessage)(FunctionCall* call, const char* text);
+    };
+
+    // runs a function of the client, which a CallNativeFunction of its config spec names: true when it did what it
+    // does. It returns at once: work that takes longer goes on after it
+    using NativeFunction = bool(MODS_CONFIG_VR_CALL*)(void* ctx, FunctionCall* call);
+
     struct ModsConfigVRApiV1
     {
         /**
@@ -132,6 +158,13 @@ namespace mods_config::api
          * One function can serve several settings. False for a setting that has one already, which keeps the first.
          */
         bool(MODS_CONFIG_VR_CALL* registerOptions)(Client* client, const char* settingId, OptionsFn options, void* ctx);
+
+        /**
+         * Registers a function of the client, which a button of its config spec runs by its name with a
+         * CallNativeFunction, as does a setting's action as Save writes its value. False for a name that has one
+         * already, which keeps the first.
+         */
+        bool(MODS_CONFIG_VR_CALL* registerFunction)(Client* client, const char* name, NativeFunction function, void* ctx);
 
         /**
          * Finds Mods Config VR's DLL and gets its API. Returns 0 when the API is there, and else:

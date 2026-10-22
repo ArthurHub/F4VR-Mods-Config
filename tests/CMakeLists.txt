@@ -49,6 +49,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/mcm/McmStore.cpp
   ${SOURCE_DIR}/mcm/SwfImages.cpp
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
+  ${SOURCE_DIR}/model/ClientFunctions.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/spec/IniFile.cpp
@@ -58,7 +59,9 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/spec/ConfigSpecStore.cpp
   ${SOURCE_DIR}/spec/TomlFile.cpp
   ${SOURCE_DIR}/model/Translations.cpp
+  ${SOURCE_DIR}/ui/Buttons.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
+  ${SOURCE_DIR}/ui/ConfirmDialog.cpp
   ${SOURCE_DIR}/ui/Developer.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp
   ${SOURCE_DIR}/ui/FrontPage.cpp

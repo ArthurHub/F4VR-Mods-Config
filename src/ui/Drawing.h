@@ -78,6 +78,18 @@ namespace mods_config::ui
         Secondary,
         // Cancel: no outline until the ray is on it
         Quiet,
+        // the confirming button of a dangerous confirmation: a solid red
+        Danger,
+    };
+
+    /**
+     * A button of a dialog: its text, its look, and whether it is disabled.
+     */
+    struct DialogButton
+    {
+        std::string_view label;
+        ButtonLook look = ButtonLook::Quiet;
+        bool disabled = false;
     };
 
     // the track of a slider, and the box of a stepper's option, in the panel's pixels: not a token of the
@@ -120,6 +132,8 @@ namespace mods_config::ui
     void drawButtonFrame(const ImRect& box, bool pointed, bool held);
     bool iconButton(const char* id, const ImRect& box, bool& pointed);
     bool button(const char* label, const ImRect& box, ButtonLook look);
+    bool beginDialog(const char* id, bool asked, ImU32 border);
+    int dialogButtons(std::span<const DialogButton> buttons);
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
     ImU32 valueColor(ValueLook look);
     float tagWidth(std::string_view text);

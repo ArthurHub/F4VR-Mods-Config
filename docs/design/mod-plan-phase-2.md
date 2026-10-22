@@ -105,17 +105,19 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 | M62 | mod       | docs: the native API: its binary interface, its versions and its calls                      | in review |
 | M63 | mod       | The native API: a client registers by name, with the client header                          | in review |
 | F28 | framework | `ModBase` registers the mod as a client                                                     | in review |
-| F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
-| M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | todo   |
+| M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | in review |
 | M118 | mod      | A condition asks a state of the mod's client                                                | todo   |
 | M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | todo   |
 | M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | todo   |
+| F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
 | M66 | mod       | The quick launch section takes the mods that registered for it                              | todo   |
 | M67 | mod       | FRIK's config is opened from its quick launch entry, and the menu comes back when it closes | todo   |
 
 M62 settles the [Native API](architecture.md#native-api): what it passes between DLLs, how its text is encoded, how its versions are told apart, and its calls. The API is a struct of functions that `ModsConfigVR.dll` exports, as FRIK's is. A button that opens the mod's own UI is a plain `CallNativeFunction`, whose function minimizes the menu and restores it, so the schema has nothing of its own for it.
 
-M63, F28 and F29 are the first part of item 13 of the requirements. The client header is vendored in the framework, as devbench's is. M63 has `registerClient` and `registerOptions`, and calls a client inside the guard of [A client that fails](architecture.md#a-client-that-fails), so a client whose call fails is cut off and the menu keeps working. The menu is the first client: the options of its own Config spec setting go through the API, so M63 is tried in the headset with the menu alone.
+M63, F28 and F29 are the first part of item 13 of the requirements. F29 comes after M65: it gives a CommonFramework mod the functions, the states, the events and the calls of the menu that M64, M118, M113 and M65 add to the API. The client header is vendored in the framework, as devbench's is. M63 has `registerClient` and `registerOptions`, and calls a client inside the guard of [A client that fails](architecture.md#a-client-that-fails), so a client whose call fails is cut off and the menu keeps working. The menu is the first client: the options of its own Config spec setting go through the API, so M63 is tried in the headset with the menu alone.
+
+M64 runs a `CallNativeFunction` of a button, and of a setting's action as Save writes its value, with its named `params` in their own types, and shows a function's message as the result of its run: after the info mark in the help line, and in red after the invalid mark when it failed. A button whose mod's DLL is not loaded, whose client is cut off, or whose DLL has no such function is disabled, with the reason. A button's `confirmation` asks first in the design system's dialog, red when it is `dangerous`, for any action. Until F29 no mod in the game registers a function, so a unit test covers the run, and the config spec showcase's Buttons page has a confirmation and a dangerous one.
 
 M118 reads a condition's `clientState`, which the host asks the client once a frame while its mod is shown. The config spec showcase has no client, so a unit test covers it, with a state of the tests' own.
 

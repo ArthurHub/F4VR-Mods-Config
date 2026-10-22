@@ -239,7 +239,11 @@ namespace mods_config::devbench
                             return { { "kind", "button" },
                                 { "text", it.text },
                                 { "buttonText", it.buttonText },
-                                { "runnable", !std::holds_alternative<model::NoAction>(it.action) && !std::holds_alternative<model::UnknownAction>(it.action) },
+                                { "runnable",
+                                    !std::holds_alternative<model::NoAction>(it.action) && !std::holds_alternative<model::UnknownAction>(it.action) &&
+                                        store.notRunnable(it.action).empty() },
+                                { "notRunnable", store.notRunnable(it.action) },
+                                { "confirmation", it.confirmation.has_value() },
                                 { "enabled", shown(it.enabledWhen) } };
                         } else if constexpr (std::is_same_v<T, model::Hotkey>) {
                             const auto key = store.hotkey(it);
@@ -442,8 +446,9 @@ namespace mods_config::devbench
         }
 
         /**
-         * Runs the action of a button of the page that is shown, by its text, as a press on its row does. A button
-         * whose action the menu does not run, or whose enabledWhen does not hold, is disabled, and is not run.
+         * Runs the action of a button of the page that is shown, by its text, as a press on its row and then on the
+         * confirming button of its confirmation does. A button whose action the menu or its store does not run, or
+         * whose enabledWhen does not hold, is disabled, and is not run. The answer has what the run did.
          */
         json runButton(const json& args)
         {
@@ -465,7 +470,11 @@ namespace mods_config::devbench
             if (button->enabledWhen && !model::holds(*button->enabledWhen, &store)) {
                 throw std::runtime_error("the button is disabled: its enabledWhen does not hold");
             }
-            return { { "ran", store.run(button->action) }, { "session", sessionToJson(store) } };
+            if (const auto reason = store.notRunnable(button->action); !reason.empty()) {
+                throw std::runtime_error("the button is disabled: " + reason);
+            }
+            const auto result = store.run(button->action);
+            return { { "ran", result.ran }, { "failed", result.failed }, { "message", result.message }, { "session", sessionToJson(store) } };
         }
 
         /**

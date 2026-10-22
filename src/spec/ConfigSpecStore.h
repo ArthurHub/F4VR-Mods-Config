@@ -15,6 +15,7 @@
 
 #include "ModFile.h"
 #include "model/ChoiceOptions.h"
+#include "model/ClientFunctions.h"
 #include "model/ConfigDefinition.h"
 #include "model/Store.h"
 
@@ -57,6 +58,12 @@ namespace mods_config::spec
             return _clientOptions;
         }
 
+        // the functions of mods' DLLs, which a `CallNativeFunction` runs, which the native API registers
+        model::ClientFunctions& clientFunctions()
+        {
+            return _clientFunctions;
+        }
+
         void open(const model::Mod& mod) override;
         void close() override;
         void pageShown() override;
@@ -96,7 +103,8 @@ namespace mods_config::spec
 
         void discard() override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
-        bool run(const model::Action& action) override;
+        std::string notRunnable(const model::Action& action) const override;
+        model::ActionResult run(const model::Action& action) override;
 
     private:
         /**
@@ -142,6 +150,7 @@ namespace mods_config::spec
 
         // the name of the mod that is selected, for the log
         std::string _modName;
+        std::string _modDisplayName;
 
         // the files of the mod that is selected that the menu reads, by their names in its config spec. A file that
         // is not there is one too
@@ -151,6 +160,7 @@ namespace mods_config::spec
         // that takes them from its mod's client
         model::ChoiceOptions _options;
         model::ClientOptions _clientOptions;
+        model::ClientFunctions _clientFunctions;
 
         // the settings of the mod that is selected, in the order of its config spec
         std::vector<const model::Setting*> _settingList;

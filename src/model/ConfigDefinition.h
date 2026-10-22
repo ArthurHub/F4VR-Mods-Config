@@ -346,6 +346,32 @@ namespace mods_config::model
     };
 
     /**
+     * A parameter of a function of a mod's DLL: its name, and its value in its own type.
+     */
+    struct NamedArgument
+    {
+        std::string name;
+        Value value;
+
+        bool operator==(const NamedArgument&) const = default;
+    };
+
+    /**
+     * A call of a function that a config spec's mod's DLL registered with the native API, by its name.
+     */
+    struct NativeFunction
+    {
+        std::string function;
+        std::vector<NamedArgument> arguments;
+
+        // the places of the arguments that are the value a setting is written with, as Save runs its action.
+        // None for a button
+        std::vector<std::size_t> valueArguments;
+
+        bool operator==(const NativeFunction&) const = default;
+    };
+
+    /**
      * An action the menu does not run: a button of it is disabled, and a value row is set with nothing run.
      */
     struct UnknownAction
@@ -362,7 +388,7 @@ namespace mods_config::model
     /**
      * What a row runs. Only the store runs it.
      */
-    using Action = std::variant<NoAction, CallFunction, ConsoleCommand, UnknownAction>;
+    using Action = std::variant<NoAction, CallFunction, ConsoleCommand, NativeFunction, UnknownAction>;
 
     /**
      * A piece of a line that is drawn in one size, one color and one face.
@@ -460,6 +486,18 @@ namespace mods_config::model
     };
 
     /**
+     * What a config spec's button asks before it runs: a dialog with a title, a message, and the text of the button
+     * that runs it, which is empty for the button's own text. A dangerous one is red.
+     */
+    struct Confirmation
+    {
+        std::string title;
+        std::string message;
+        std::string confirm;
+        bool dangerous = false;
+    };
+
+    /**
      * A row that runs an action.
      */
     struct Button
@@ -478,6 +516,9 @@ namespace mods_config::model
 
         // as a setting's: a config spec's button can have them
         std::vector<Warning> warnings;
+
+        // what it asks before it runs: a config spec's button can have it
+        std::optional<Confirmation> confirmation;
     };
 
     /**

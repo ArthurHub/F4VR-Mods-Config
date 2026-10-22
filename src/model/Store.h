@@ -37,6 +37,17 @@ namespace mods_config::model
     };
 
     /**
+     * What a run of an action did: whether it ran, whether it failed, as a function of a mod's DLL can, and the
+     * message of its result, which can be none.
+     */
+    struct ActionResult
+    {
+        bool ran = false;
+        bool failed = false;
+        std::string message;
+    };
+
+    /**
      * The values of the mod that is selected. The UI reads the definition to know what to draw, and asks the
      * store for every value: it never reads or writes a global, a file or a script property itself.
      */
@@ -157,9 +168,19 @@ namespace mods_config::model
         virtual StoredValue hotkey(const Hotkey& hotkey) = 0;
 
         /**
-         * Runs an action. Returns whether it is run: not one the store does not run, and not one whose
-         * target is not there.
+         * Why an action of the selected mod does not run, which its button's help line says: empty for one that runs,
+         * or that the store does not know to be unable to. The UI tells an action the menu does not run, and one that
+         * runs nothing, by itself.
          */
-        virtual bool run(const Action& action) = 0;
+        virtual std::string notRunnable(const Action&) const
+        {
+            return {};
+        }
+
+        /**
+         * Runs an action. Returns whether it is run: not one the store does not run, and not one whose
+         * target is not there, and what it did.
+         */
+        virtual ActionResult run(const Action& action) = 0;
     };
 }

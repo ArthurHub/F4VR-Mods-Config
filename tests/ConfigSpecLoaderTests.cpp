@@ -447,7 +447,8 @@ TEST_CASE("ConfigSpecLoader: a setting's action has the value written for each p
           "action": { "type": "CallGlobalFunction", "script": "MyMod:Config", "function": "SetCount", "params": ["{value}"] } },
         { "type": "switcher", "text": "HUD", "storage": { "path": ["Main", "bHud"] }, "action": { "type": "RunConsoleCommand", "command": "tm" } },
         { "type": "switcher", "text": "No action", "storage": { "path": ["Main", "bNone"] } },
-        { "type": "switcher", "text": "Native", "storage": { "path": ["Main", "bNative"] }, "action": { "type": "CallNativeFunction", "function": "apply" } }
+        { "type": "switcher", "text": "Native", "storage": { "path": ["Main", "bNative"] },
+          "action": { "type": "CallNativeFunction", "function": "apply", "params": { "on": "{value}", "mode": "{value} as text" } } }
     )"));
     const auto settings = settingsOf(mod);
     REQUIRE(settings.size() == 5);
@@ -465,13 +466,54 @@ TEST_CASE("ConfigSpecLoader: a setting's action has the value written for each p
 
     CHECK(settings[2].action == model::Action(model::ConsoleCommand{ "tm" }));
     CHECK(std::holds_alternative<model::NoAction>(settings[3].action));
-    CHECK(std::holds_alternative<model::UnknownAction>(settings[4].action));
+    const auto* native = std::get_if<model::NativeFunction>(&settings[4].action);
+    REQUIRE(native);
+    CHECK(native->function == "apply");
+    CHECK(native->arguments == std::vector<model::NamedArgument>{ { .name = "mode", .value = "{value} as text"s }, { .name = "on", .value = "{value}"s } });
+    CHECK(native->valueArguments == std::vector<std::size_t>{ 1 });
+}
+
+TEST_CASE("ConfigSpecLoader: a button runs a function of its mod's DLL with its named parameters, and asks its confirmation first")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "button", "text": "Calibrate", "buttonText": "Calibrate",
+          "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "mode": "height", "samples": 30, "scale": 1.5, "includeScale": true } },
+          "confirmation": { "title": "Calibrate?", "message": "Stand straight and look ahead.", "confirm": "Start", "dangerous": true } },
+        { "type": "button", "text": "No params", "action": { "type": "CallNativeFunction", "function": "reset" }, "confirmation": { "title": "Reset?" } },
+        { "type": "button", "text": "Not an object", "action": { "type": "RunConsoleCommand", "command": "tm" }, "confirmation": "Sure?" }
+    )"));
+    const auto& calibrate = std::get<model::Button>(mod.frontPage.items[0]);
+    // the parameters by their names
+    CHECK(calibrate.action == model::Action(model::NativeFunction{ .function = "calibrate",
+                                  .arguments = { { .name = "includeScale", .value = true },
+                                      { .name = "mode", .value = "height"s },
+                                      { .name = "samples", .value = 30 },
+                                      { .name = "scale", .value = 1.5f } },
+                                  .valueArguments = {} }));
+    REQUIRE(calibrate.confirmation);
+    CHECK(calibrate.confirmation->title == "Calibrate?");
+    CHECK(calibrate.confirmation->message == "Stand straight and look ahead.");
+    CHECK(calibrate.confirmation->confirm == "Start");
+    CHECK(calibrate.confirmation->dangerous);
+
+    const auto& reset = std::get<model::Button>(mod.frontPage.items[1]);
+    CHECK(reset.action == model::Action(model::NativeFunction{ .function = "reset", .arguments = {}, .valueArguments = {} }));
+    REQUIRE(reset.confirmation);
+    CHECK(reset.confirmation->message.empty());
+    CHECK_FALSE(reset.confirmation->dangerous);
+
+    // a confirmation that is no object is an error, and the button asks none
+    CHECK_FALSE(std::get<model::Button>(mod.frontPage.items[2]).confirmation);
+    REQUIRE(mod.problems.size() == 1);
+    CHECK(mod.problems[0].message == "Its confirmation is not an object: the button runs with none.");
 }
 
 TEST_CASE("ConfigSpecLoader: a button whose action the menu does not run, or is not written right, has the reason")
 {
     const auto mod = loaded(configSpecOf(R"(
-        { "type": "button", "text": "Calibrate", "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "mode": "height" } } },
+        { "type": "button", "text": "No native function", "action": { "type": "CallNativeFunction" } },
+        { "type": "button", "text": "Native params a list", "action": { "type": "CallNativeFunction", "function": "calibrate", "params": ["height"] } },
+        { "type": "button", "text": "Native list param", "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "modes": ["height"] } } },
         { "type": "button", "text": "Flash", "action": { "type": "CallExternalFunction", "function": "Flash" } },
         { "type": "button", "text": "No type", "action": { "function": "ResetAll" } },
         { "type": "button", "text": "No action" },
@@ -491,7 +533,9 @@ TEST_CASE("ConfigSpecLoader: a button whose action the menu does not run, or is 
         reasons.push_back(std::get<model::UnknownAction>(action).reason);
     }
     CHECK(reasons == Lines{
-                         "Not available: the mod's DLL has not given the menu its functions.",
+                         "Not available: its CallNativeFunction names no function.",
+                         "Not available: the params of its CallNativeFunction are not an object of named values.",
+                         "Not available: the parameter 'modes' of its CallNativeFunction is not a whole number of Papyrus, a number, a bool or a text.",
                          "Not available: the menu does not run a CallExternalFunction.",
                          "Not available: the action has no type.",
                          "Not available: the button has no action.",

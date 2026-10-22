@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 
+#include "Buttons.h"
 #include "Choices.h"
 #include "HelpLine.h"
 #include "PageImages.h"
@@ -34,7 +35,7 @@ namespace mods_config::ui
      * A section, a spacer, a text row and an image are drawn as they are, and a press on the heading of a
      * section that folds folds or opens it. A setting is drawn as its control,
      * with the value its store has for it, and a button as its text and a Run button, which runs its action in
-     * the store, and a text input as its text in a box, which a press edits. A hotkey is its text and the key the store has for it, which is only shown. Any other row is its text and what it is, until the commit that draws its control.
+     * the store, after its confirmation where it has one, and a text input as its text in a box, which a press edits. A hotkey is its text and the key the store has for it, which is only shown. Any other row is its text and what it is, until the commit that draws its control.
      */
     class ModPage
     {
@@ -44,6 +45,7 @@ namespace mods_config::ui
         bool cancelDrag();
         bool closeList();
         bool cancelEdit();
+        bool cancelConfirmation();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();
 
@@ -62,6 +64,9 @@ namespace mods_config::ui
 
         // its sections that fold, and whether each is folded
         Sections _sections;
+
+        // its buttons, the confirmation one shows, and the results of their runs
+        Buttons _buttons;
 
         // the item that has the focus ring, and none, and whether the page is scrolled to it as it is drawn next
         const model::Item* _focused = nullptr;

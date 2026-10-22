@@ -158,9 +158,9 @@ namespace
             return {};
         }
 
-        bool run(const model::Action&) override
+        model::ActionResult run(const model::Action&) override
         {
-            return false;
+            return {};
         }
 
     private:

@@ -25,12 +25,18 @@ namespace
         return g_modsConfig.menu().nativeClients().registerOptions(client, settingId, options, ctx);
     }
 
+    bool MODS_CONFIG_VR_CALL registerFunction(api::Client* client, const char* name, const api::NativeFunction function, void* ctx)
+    {
+        return g_modsConfig.menu().nativeClients().registerFunction(client, name, function, ctx);
+    }
+
     // the API, which is the same for the whole run of the game
     constexpr api::ModsConfigVRApiV1 API{
         .getVersion = &getVersion,
         .getModVersion = &getModVersion,
         .registerClient = &registerClient,
         .registerOptions = &registerOptions,
+        .registerFunction = &registerFunction,
     };
 }
 

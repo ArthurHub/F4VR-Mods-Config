@@ -129,6 +129,50 @@ namespace
         }
         host.options->push_back({ .value = *converted, .text = std::move(shown) });
     }
+
+    /**
+     * The call of a function that the host passes a client, with where the message of its result goes. The client's
+     * call is its first member, so its `setMessage` finds the rest from it.
+     */
+    struct HostFunctionCall
+    {
+        api::FunctionCall call;
+        const model::Translations* translations;
+        std::string* message;
+    };
+
+    static_assert(std::is_standard_layout_v<HostFunctionCall>);
+
+    /**
+     * Keeps the message a client's function gives of its result, translated, in place of one it gave before.
+     */
+    void MODS_CONFIG_VR_CALL setMessage(api::FunctionCall* call, const char* text)
+    {
+        const auto& host = *reinterpret_cast<HostFunctionCall*>(call);
+        *host.message = text ? std::string(text) : std::string();
+        if (host.translations) {
+            *host.message = host.translations->translate(std::move(*host.message));
+        }
+    }
+
+    /**
+     * A value as the API passes it, with its text, which points into the text given: it is valid while that is.
+     */
+    api::SettingValue toApiValue(const model::Value& value, const std::string& text)
+    {
+        api::SettingValue apiValue{ .type = api::ValueType::String, .text = text.c_str() };
+        if (const auto* flag = std::get_if<bool>(&value)) {
+            apiValue.type = api::ValueType::Bool;
+            apiValue.boolValue = *flag;
+        } else if (const auto* number = std::get_if<int>(&value)) {
+            apiValue.type = api::ValueType::Int;
+            apiValue.intValue = *number;
+        } else if (const auto* real = std::get_if<float>(&value)) {
+            apiValue.type = api::ValueType::Float;
+            apiValue.floatValue = *real;
+        }
+        return apiValue;
+    }
 }
 
 namespace mods_config::api
@@ -154,6 +198,7 @@ namespace mods_config::api
             return nullptr;
         }
         auto& client = _clients.emplace_back(std::make_unique<Client>(Client{ .name = name, .version = info->version, .ctx = info->ctx }));
+        _functions.addClient(name);
         logger::info("Native API: client '{}' registered, built with the API of version {}", name, info->version);
         return client.get();
     }
@@ -164,9 +209,7 @@ namespace mods_config::api
      */
     bool NativeClients::registerOptions(Client* client, const char* settingId, const OptionsFn options, void* ctx)
     {
-        if (!std::ranges::any_of(_clients, [client](const auto& registered) {
-                return registered.get() == client;
-            })) {
+        if (!isClient(client)) {
             logger::warn("Native API: the options of '{}' are registered with a handle that is no client's", settingId ? settingId : "");
             return false;
         }
@@ -207,13 +250,92 @@ namespace mods_config::api
             options(ctx, &host.call);
         };
         if (!callGuarded(call)) {
-            client.cutOff = true;
-            logger::error("Native API: client '{}' failed in the options of '{}', and is cut off until the game is restarted", client.name, setting.id);
+            cutOff(client, std::format("the options of '{}'", setting.id));
             return std::unexpected(CUT_OFF_REASON);
         }
         if (leftOut > 0) {
             logger::warn("Native API: client '{}' gave {} options of '{}' that are not of its type, which are left out", client.name, leftOut, setting.id);
         }
         return collected;
+    }
+
+    /**
+     * Registers a client's function, which a `CallNativeFunction` of its config spec runs by its name. False for a
+     * handle that is no client's, a client that is cut off, and a name that has one already, which keeps the first.
+     */
+    bool NativeClients::registerFunction(Client* client, const char* name, const NativeFunction function, void* ctx)
+    {
+        if (!isClient(client)) {
+            logger::warn("Native API: the function '{}' is registered with a handle that is no client's", name ? name : "");
+            return false;
+        }
+        if (!name || !*name || !function) {
+            logger::warn("Native API: client '{}' registers a function with no name or no callback", client->name);
+            return false;
+        }
+        if (client->cutOff) {
+            return false;
+        }
+        const bool added = _functions.add(client->name, name, [this, client, function, ctx, name = std::string(name)](const std::vector<model::NamedArgument>& arguments) {
+            return callFunction(*client, function, ctx, name, arguments);
+        });
+        if (!added) {
+            logger::warn("Native API: client '{}' registers the function '{}' again, which keeps the first", client->name, name);
+        }
+        return added;
+    }
+
+    /**
+     * Calls a client's function with its arguments, inside the guard, and gives what it did and its message. A client
+     * that throws or faults is cut off, and the result says so.
+     */
+    model::FunctionResult NativeClients::callFunction(Client& client, const NativeFunction function, void* ctx, const std::string& name,
+        const std::vector<model::NamedArgument>& arguments) const
+    {
+        if (client.cutOff) {
+            return { .done = false, .message = CUT_OFF_REASON };
+        }
+        std::vector<std::string> texts;
+        texts.reserve(arguments.size());
+        std::vector<NamedValue> params;
+        params.reserve(arguments.size());
+        for (const auto& argument : arguments) {
+            const auto& text = texts.emplace_back(valueText(argument.value));
+            params.push_back({ .name = argument.name.c_str(), .value = toApiValue(argument.value, text) });
+        }
+        std::string message;
+        bool done = false;
+        HostFunctionCall host{ .call = { .params = params.data(), .paramCount = static_cast<std::uint32_t>(params.size()), .setMessage = &setMessage },
+            .translations = _translations,
+            .message = &message };
+        auto call = [function, ctx, &host, &done] {
+            done = function(ctx, &host.call);
+        };
+        if (!callGuarded(call)) {
+            cutOff(client, std::format("the function '{}'", name));
+            return { .done = false, .message = CUT_OFF_REASON };
+        }
+        logger::info("Native API: client '{}' ran the function '{}': {}{}", client.name, name, done ? "done" : "failed", message.empty() ? "" : ": " + message);
+        return { .done = done, .message = std::move(message) };
+    }
+
+    /**
+     * Whether a handle is a registered client's.
+     */
+    bool NativeClients::isClient(const Client* client) const
+    {
+        return std::ranges::any_of(_clients, [client](const auto& registered) {
+            return registered.get() == client;
+        });
+    }
+
+    /**
+     * Cuts a client off after a call of it failed: nothing of it is called again until the game is restarted.
+     */
+    void NativeClients::cutOff(Client& client, const std::string_view what) const
+    {
+        client.cutOff = true;
+        _functions.cutOff(client.name);
+        logger::error("Native API: client '{}' failed in {}, and is cut off until the game is restarted", client.name, what);
     }
 }

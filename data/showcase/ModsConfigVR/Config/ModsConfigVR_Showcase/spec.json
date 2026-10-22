@@ -1568,12 +1568,52 @@
             },
             {
               "type": "section",
+              "text": "Confirmations",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "With a confirmation",
+                  "help": "Asks first, then calls Debug.Notification.",
+                  "buttonText": "Notify",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: it was confirmed"]
+                  },
+                  "confirmation": {
+                    "title": "Show a notification?",
+                    "message": "The game shows a notification at the top left of your view.",
+                    "confirm": "Show"
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "A dangerous one",
+                  "help": "Asks first in red, as a button that resets something would, then calls Debug.Notification.",
+                  "buttonText": "Reset",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: nothing was reset"]
+                  },
+                  "confirmation": {
+                    "title": "Reset everything?",
+                    "message": "A dangerous button asks in red. This one only shows a notification.",
+                    "dangerous": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
               "text": "Not run",
               "content": [
                 {
                   "type": "button",
                   "text": "A function of the mod's DLL",
-                  "help": "A CallNativeFunction runs a function the mod's DLL gives the menu.",
+                  "help": "A CallNativeFunction runs a function the mod's DLL registered with the menu. The showcase has no DLL, so it is disabled.",
                   "buttonText": "Calibrate",
                   "action": {
                     "type": "CallNativeFunction",

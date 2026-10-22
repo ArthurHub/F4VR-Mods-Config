@@ -13,6 +13,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "Buttons.h"
 #include "Choices.h"
 #include "Drawing.h"
 #include "PageRows.h"
@@ -76,55 +77,13 @@ namespace
         ui::TextInputs& textInputs;
 
         ui::Sections& sections;
+        ui::Buttons& buttons;
         ui::PageDrawn& drawn;
 
         // the item that has the focus ring, and none, and whether the page is scrolled to it in this frame
         const model::Item* focused;
         bool& scrollToFocused;
     };
-
-    // the button of a button's row, in the panel's pixels: as wide as the Open of the menu's front page
-    constexpr float BUTTON_WIDTH = 160.0f;
-
-    /**
-     * The row of a button at the cursor: its text, and its button where a control ends,
-     * before the room of a Reset, with its own text or `Run`. The whole row is pressed, so the button is
-     * only drawn, and a press runs the action in the store. A button with no action is disabled, and so is
-     * one whose action the menu does not run, which the reason says, and one whose enabledWhen does not hold.
-     * A button whose warning holds has the warning mark after its text.
-     * Returns whether the ray is on the row, and tells the reason and the warning.
-     */
-    bool drawButton(const model::Button& button, const PageDrawing& page, std::string& reason, std::string_view& warning)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
-        const bool enabled = !button.enabledWhen || model::holds(*button.enabledWhen, page.store);
-        const auto row = ui::addRow(enabled);
-        if (!enabled && row.shown) {
-            ui::drawRowState();
-        }
-
-        const auto* unknown = std::get_if<model::UnknownAction>(&button.action);
-        const bool runs = page.store && enabled && !unknown && !std::holds_alternative<model::NoAction>(button.action);
-        if (runs && row.pressed && page.store->run(button.action)) {
-            page.drawn.pressActed = true;
-        }
-        if (unknown) {
-            reason = unknown->reason;
-        }
-        if (!row.shown) {
-            return false;
-        }
-        warning = ui::warningOf(button.warnings, page.store);
-
-        ImGui::BeginDisabled(!runs);
-        const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
-        ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
-        ui::drawTextIn(box, button.buttonText.empty() ? std::string_view("Run") : std::string_view(button.buttonText), theme::color::GREEN, 0.5f, theme::SPACE_3);
-        ui::drawLabel(pos, box.Min.x - theme::SPACE_3, button.text, button.textRuns, { .mark = warning.empty() ? ui::TextMark::None : ui::TextMark::Warning });
-        ImGui::EndDisabled();
-        return row.pointed;
-    }
 
     // the least width of the box of a hotkey's key, in the panel's pixels: not a token of the design system
     constexpr float KEY_MIN_WIDTH = 96.0f;
@@ -279,10 +238,8 @@ namespace
 
         void operator()(const model::Button& button) const
         {
-            std::string reason;
-            std::string_view warning;
-            if (drawButton(button, page, reason, warning)) {
-                page.drawn.pointed = ui::PointedRow{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason), .warning = warning };
+            if (auto pointed = page.buttons.draw(button, page.store, page.drawn.pressActed)) {
+                page.drawn.pointed = std::move(*pointed);
             }
         }
 
@@ -402,11 +359,15 @@ namespace mods_config::ui
                 .choices = _choices,
                 .textInputs = _textInputs,
                 .sections = _sections,
+                .buttons = _buttons,
                 .drawn = drawn,
                 .focused = _focused,
                 .scrollToFocused = _scrollToFocused });
         _sliders.endFrame();
         _choices.endFrame();
+        if (_buttons.drawDialog(store)) {
+            drawn.pressActed = true;
+        }
         // the ring is the last row that was pressed, and a press on the page is on another
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
             _focused = nullptr;
@@ -456,8 +417,18 @@ namespace mods_config::ui
     }
 
     /**
+     * Closes the confirmation a button shows with nothing run, for Back.
+     * Returns false while none is shown.
+     */
+    bool ModPage::cancelConfirmation()
+    {
+        return _buttons.cancelConfirmation();
+    }
+
+    /**
      * Forgets what is edited in the page, as another page is shown, how its sections were folded, as each
-     * starts as its `collapsed` says each time its page is shown, and the row that has the focus ring.
+     * starts as its `collapsed` says each time its page is shown, the results of its buttons, and the row that has
+     * the focus ring.
      */
     void ModPage::reset()
     {
@@ -465,6 +436,7 @@ namespace mods_config::ui
         _choices.reset();
         _textInputs.reset();
         _sections.reset();
+        _buttons.reset();
         _focused = nullptr;
         _scrollToFocused = false;
     }

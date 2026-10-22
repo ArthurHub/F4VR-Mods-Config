@@ -422,17 +422,21 @@ namespace
     constexpr int DIALOG_DISCARD = 1;
     constexpr int DIALOG_CANCEL = 2;
 
+    // the window of the dialog that asks about unsaved changes, and of a button's confirmation
+    constexpr auto UNSAVED_DIALOG = "Unsaved changes";
+    constexpr auto CONFIRMATION = "##confirmation";
+
     /**
-     * The dialog's window, which is shown while it is active.
+     * A dialog's window, which is shown while it is active.
      */
-    const ImGuiWindow* dialogWindow()
+    const ImGuiWindow* dialogWindow(const char* name = UNSAVED_DIALOG)
     {
-        return ImGui::FindWindowByName("Unsaved changes");
+        return ImGui::FindWindowByName(name);
     }
 
-    bool isDialogShown()
+    bool isDialogShown(const char* name = UNSAVED_DIALOG)
     {
-        const auto* window = dialogWindow();
+        const auto* window = dialogWindow(name);
         return window && window->Active;
     }
 
@@ -440,10 +444,10 @@ namespace
      * A place in a button of the dialog, by its place from the right, while the dialog is shown: near the
      * right of the button, as a button is 112 wide or a little more for a longer word.
      */
-    ImVec2 dialogButton(const int place)
+    ImVec2 dialogButton(const int place, const char* name = UNSAVED_DIALOG)
     {
         constexpr float BUTTON_MIN_WIDTH = 112.0f;
-        const auto* window = dialogWindow();
+        const auto* window = dialogWindow(name);
         REQUIRE(window);
         const float right = window->Pos.x + window->Size.x - theme::SPACE_6;
         const float bottom = window->Pos.y + window->Size.y - theme::SPACE_6;
@@ -1307,10 +1311,84 @@ TEST_CASE("FullPanel: a config spec's button runs its console command while its 
     CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "tm" } });
     CHECK(store.dirtyCount() == 1);
 
-    // a function of the mod's DLL is not run, and the help line says why
+    // a function of the mod's DLL is not run while its DLL is not loaded, and the help line says why
     CHECK_FALSE(pressActs(panel, pageRow(2)));
     point(panel, pageRow(2));
-    CHECK(panel.helpLine().text() == "Calibrate: Not available: the mod's DLL has not given the menu its functions.");
+    CHECK(panel.helpLine().text() == "Calibrate: Needs My Mod's DLL, which is not loaded.");
+}
+
+TEST_CASE("FullPanel: a button runs its mod's function after its confirmation, and its result is in the help line")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [
+            { "type": "button", "text": "Calibrate", "help": "Measures your height.", "buttonText": "Calibrate",
+              "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "samples": 30 } },
+              "confirmation": { "title": "Calibrate?", "message": "Stand straight.", "dangerous": true } },
+            { "type": "button", "text": "Fail", "help": "Never works.", "action": { "type": "CallNativeFunction", "function": "fail" } },
+            { "type": "button", "text": "Quiet", "action": { "type": "CallNativeFunction", "function": "quiet" } }
+        ]
+    })");
+    REQUIRE(mod);
+    std::vector<std::vector<model::NamedArgument>> calls;
+    auto& functions = store.clientFunctions();
+    functions.addClient("MyMod");
+    functions.add("MyMod", "calibrate", [&calls](const std::vector<model::NamedArgument>& arguments) {
+        calls.push_back(arguments);
+        return model::FunctionResult{ .done = true, .message = "Done: 1.78 m." };
+    });
+    functions.add("MyMod", "fail", [](const auto&) {
+        return model::FunctionResult{ .done = false, .message = "Stand still, then try again." };
+    });
+    functions.add("MyMod", "quiet", [](const auto&) {
+        return model::FunctionResult{ .done = true, .message = {} };
+    });
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // a press asks first, and Back cancels it with nothing run
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(isDialogShown(CONFIRMATION));
+    CHECK(calls.empty());
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(calls.empty());
+
+    // its confirming button runs it, and the result is told while the ray is on the row
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(pressActs(panel, dialogButton(0, CONFIRMATION)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    REQUIRE(calls.size() == 1);
+    CHECK(calls[0] == std::vector<model::NamedArgument>{ { .name = "samples", .value = 30 } });
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Calibrate: Done: 1.78 m. Measures your height.");
+
+    // a run that failed has its reason in place of the help
+    CHECK(pressActs(panel, pageRow(1)));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Fail: Stand still, then try again.");
+    CHECK(panel.helpLine().isInvalid());
+
+    // one with no message only runs
+    CHECK(pressActs(panel, pageRow(2)));
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Quiet");
+
+    // another page forgets the results
+    panel.select({});
+    drawFrames(panel, 2);
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Calibrate: Measures your height.");
 }
 
 TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press on its row does nothing")

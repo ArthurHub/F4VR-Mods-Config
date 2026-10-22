@@ -435,12 +435,20 @@ namespace
     }
 
     /**
-     * Runs the action of a setting that Save wrote: a `CallFunction` and a `CallGlobalFunction` have the value
-     * written in place of each of their `{value}` parameters, as the file or the game keeps it, and a
-     * `RunConsoleCommand` runs its line.
+     * Runs the action of a setting that Save wrote: a `CallFunction`, a `CallGlobalFunction` and a
+     * `CallNativeFunction` have the value written in place of each of their `{value}` parameters, as the file or the
+     * game keeps it, and a `RunConsoleCommand` runs its line. A function of the mod's DLL runs by its mod's name.
      */
-    void runAction(const model::Setting& setting, const model::Value& written)
+    void runAction(const model::Setting& setting, const model::Value& written, const model::ClientFunctions& functions, const std::string& modName)
     {
+        if (const auto* native = std::get_if<model::NativeFunction>(&setting.action)) {
+            auto arguments = native->arguments;
+            for (const auto place : native->valueArguments) {
+                arguments[place].value = storedValue(setting, written);
+            }
+            functions.call(modName, native->function, arguments);
+            return;
+        }
         if (const auto* call = std::get_if<model::CallFunction>(&setting.action)) {
             auto filled = *call;
             for (const auto& argument : filled.valueArguments) {
@@ -531,6 +539,7 @@ namespace mods_config::spec
     {
         close();
         _modName = mod.name;
+        _modDisplayName = mod.displayName;
 
         std::map<std::string, FileOfSession, std::less<>> files;
         for (const auto& [name, file] : mod.files) {
@@ -631,6 +640,7 @@ namespace mods_config::spec
     {
         rollBack();
         _modName.clear();
+        _modDisplayName.clear();
         _files.clear();
         _options.clear();
         _settingList.clear();
@@ -885,7 +895,7 @@ namespace mods_config::spec
             if (!written.contains(setting)) {
                 continue;
             }
-            runAction(*setting, *_entries.at(setting).baseline);
+            runAction(*setting, *_entries.at(setting).baseline, _clientFunctions, _modName);
             if (applies(*setting) == model::Applies::Restart) {
                 _savedForRestart[_modName].insert(storageKey(*setting));
                 ++restarts;
@@ -929,13 +939,33 @@ namespace mods_config::spec
      * Returns false for a row with no action, for an action the store does not run, and for a function whose
      * form or script is not in the game.
      */
-    bool ConfigSpecStore::run(const model::Action& action)
+    /**
+     * Why an action does not run: a function of the mod's DLL whose client is not there, is cut off, or did not
+     * register it. Empty for any other.
+     */
+    std::string ConfigSpecStore::notRunnable(const model::Action& action) const
+    {
+        const auto* native = std::get_if<model::NativeFunction>(&action);
+        return native ? _clientFunctions.notRunnable(_modName, _modDisplayName, native->function) : std::string();
+    }
+
+    /**
+     * Runs an action at once: a function of a script, a line of the console, or a function of the mod's DLL, which
+     * can fail and gives the message of its result.
+     */
+    model::ActionResult ConfigSpecStore::run(const model::Action& action)
     {
         if (const auto* call = std::get_if<model::CallFunction>(&action)) {
-            return callFunction(*call);
+            return { .ran = callFunction(*call), .failed = false, .message = {} };
         }
-        const auto* command = std::get_if<model::ConsoleCommand>(&action);
-        return command && runConsoleCommand(*command);
+        if (const auto* command = std::get_if<model::ConsoleCommand>(&action)) {
+            return { .ran = runConsoleCommand(*command), .failed = false, .message = {} };
+        }
+        if (const auto* native = std::get_if<model::NativeFunction>(&action); native && notRunnable(action).empty()) {
+            auto result = _clientFunctions.call(_modName, native->function, native->arguments);
+            return { .ran = true, .failed = !result.done, .message = std::move(result.message) };
+        }
+        return {};
     }
 
     /**

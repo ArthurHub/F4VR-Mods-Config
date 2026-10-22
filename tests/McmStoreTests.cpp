@@ -928,21 +928,21 @@ TEST_CASE("McmStore: the action of a button calls its function, and no other act
     events.sent.clear();
 
     const model::CallFunction call{ .plugin = PLUGIN, .formId = 0x800, .script = "MyMod:Main", .function = "Apply", .arguments = { 40, true, "a text"s } };
-    CHECK(store.run(call));
+    CHECK(store.run(call).ran);
     const model::CallFunction global{ .plugin = {}, .formId = 0, .script = "Debug", .function = "Notification", .arguments = { "Hi"s } };
-    CHECK(store.run(global));
+    CHECK(store.run(global).ran);
     CHECK(actions.called == std::vector{ call, global });
 
     // a button is no setting: MCM's menu sends no event for it
     CHECK(events.sent.empty());
 
-    CHECK_FALSE(store.run(model::NoAction{}));
-    CHECK_FALSE(store.run(model::UnknownAction{ .type = "CallExternalFunction", .reason = {} }));
+    CHECK_FALSE(store.run(model::NoAction{}).ran);
+    CHECK_FALSE(store.run(model::UnknownAction{ .type = "CallExternalFunction", .reason = {} }).ran);
     CHECK(actions.called.size() == 2);
 
     // a function of a form that is not in the game
     actions.inGame = false;
-    CHECK_FALSE(store.run(call));
+    CHECK_FALSE(store.run(call).ran);
     CHECK(actions.called.size() == 2);
 }
 

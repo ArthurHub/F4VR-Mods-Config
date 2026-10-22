@@ -1625,3 +1625,64 @@ TEST_CASE("FullPanel render: the config spec showcase read from its live copy: i
     auto developer = panelWith(false);
     WARN("Saved " << renderToFile(developer, "front-page-developer-live-copy", ImVec2(900.0f, 270.0f)));
 }
+
+TEST_CASE("FullPanel render: a button's confirmation, a dangerous one, and the results of its runs", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "FRIK", "applies": "save",
+        "content": [
+            { "type": "button", "text": "Calibrate height", "help": "Measures your height and updates the calibration.", "buttonText": "Calibrate",
+              "action": { "type": "CallNativeFunction", "function": "calibrate" },
+              "confirmation": { "title": "Calibrate your height?", "message": "Stand straight and look ahead until it is done.", "confirm": "Start" } },
+            { "type": "button", "text": "Reset the calibration", "help": "Puts the body back as it was measured first.", "buttonText": "Reset",
+              "action": { "type": "CallNativeFunction", "function": "reset" },
+              "confirmation": { "title": "Reset the calibration?", "message": "This discards the current body calibration.", "dangerous": true } },
+            { "type": "button", "text": "Open the Pip-Boy config", "help": "Moves the Pip-Boy on your wrist, in the world.", "buttonText": "Open",
+              "action": { "type": "CallNativeFunction", "function": "pipboy" } },
+            { "type": "button", "text": "Not in this DLL", "action": { "type": "CallNativeFunction", "function": "missing" } }
+        ]
+    })");
+    REQUIRE(mod);
+    auto& functions = store.clientFunctions();
+    functions.addClient("MyMod");
+    functions.add("MyMod", "calibrate", [](const auto&) {
+        return model::FunctionResult{ .done = true, .message = "Done: 1.78 m." };
+    });
+    functions.add("MyMod", "reset", [](const auto&) {
+        return model::FunctionResult{ .done = true, .message = {} };
+    });
+    functions.add("MyMod", "pipboy", [](const auto&) {
+        return model::FunctionResult{ .done = false, .message = "The body is not ready yet." };
+    });
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = {} });
+
+    const auto press = [&panel](const ImVec2 at) {
+        return [&panel, at] {
+            for (const bool pressed : { false, false, true, false, false }) {
+                test_panel::drawFrame(panel, at, pressed);
+            }
+        };
+    };
+    WARN("Saved " << renderToFile(panel, "button-confirmation", POINTER_AWAY, false, press(pageRow(0))));
+    panel.back();
+    WARN("Saved " << renderToFile(panel, "button-confirmation-dangerous", POINTER_AWAY, false, press(pageRow(1))));
+    panel.back();
+
+    // the result of a run that is done, read while the ray is on its row, one that failed, and one that does not run
+    WARN("Saved " << renderToFile(panel, "button-result", pageRow(0), false, [&press] {
+        press(pageRow(0))();
+        const auto* dialog = ImGui::FindWindowByName("##confirmation");
+        REQUIRE(dialog);
+        // its confirming button, the rightmost
+        const ImVec2 confirm(dialog->Pos.x + dialog->Size.x - theme::SPACE_6 - theme::SPACE_4, dialog->Pos.y + dialog->Size.y - theme::SPACE_6 - theme::CONTROL_HEIGHT * 0.5f);
+        press(confirm)();
+        press(pageRow(2))();
+    }));
+    WARN("Saved " << renderToFile(panel, "button-failed", pageRow(2), false, press(pageRow(2))));
+    WARN("Saved " << renderToFile(panel, "button-not-in-dll", pageRow(3)));
+}

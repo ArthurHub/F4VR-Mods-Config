@@ -907,19 +907,19 @@ TEST_CASE("ConfigSpecStore: a button calls its function or runs its console comm
         return std::get<model::Button>(session.mod.frontPage.items.at(row)).action;
     };
 
-    CHECK(session.store.run(action(0)));
+    CHECK(session.store.run(action(0)).ran);
     REQUIRE(actions.called.size() == 1);
     CHECK(actions.called[0].function == "ResetAll");
     CHECK(actions.called[0].arguments == std::vector<model::Value>{ 1 });
 
-    CHECK(session.store.run(action(1)));
+    CHECK(session.store.run(action(1)).ran);
     CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "tm" } });
 
     // an action the menu does not run, a row with none, and a function whose form is not in the game
-    CHECK_FALSE(session.store.run(action(2)));
-    CHECK_FALSE(session.store.run(model::NoAction{}));
+    CHECK_FALSE(session.store.run(action(2)).ran);
+    CHECK_FALSE(session.store.run(model::NoAction{}).ran);
     actions.inGame = false;
-    CHECK_FALSE(session.store.run(action(0)));
+    CHECK_FALSE(session.store.run(action(0)).ran);
     CHECK(actions.called.size() == 1);
 
     // nothing waits for a Save

@@ -1040,6 +1040,33 @@ namespace
     }
 
     /**
+     * A `CallNativeFunction`: the function of the mod's DLL it names, and its `params`, an object of named values,
+     * each given to the function in its own JSON type, as a `CallFunction`'s. Or what is not written right.
+     */
+    std::expected<model::NativeFunction, std::string> loadNativeFunction(const Json& action)
+    {
+        model::NativeFunction native{ .function = getText(action, "function"), .arguments = {}, .valueArguments = {} };
+        if (native.function.empty()) {
+            return std::unexpected("its CallNativeFunction names no function"s);
+        }
+        const auto params = action.find("params");
+        if (params == action.end()) {
+            return native;
+        }
+        if (!params->is_object()) {
+            return std::unexpected("the params of its CallNativeFunction are not an object of named values"s);
+        }
+        for (const auto& [name, param] : params->items()) {
+            auto argument = loadArgument(param);
+            if (!argument) {
+                return std::unexpected(std::format("the parameter '{}' of its CallNativeFunction is not a whole number of Papyrus, a number, a bool or a text", name));
+            }
+            native.arguments.push_back({ .name = name, .value = std::move(*argument) });
+        }
+        return native;
+    }
+
+    /**
      * An action of a button or a setting that is not written right, which the menu does not run: the help line
      * of a button has the mistake as its reason, and it is reported.
      */
@@ -1051,10 +1078,9 @@ namespace
 
     /**
      * What a button runs, by the `type` of its `action`: a `CallFunction` and a `CallGlobalFunction`, with
-     * their `params`, and a `RunConsoleCommand`, with its `command`. A `CallNativeFunction` runs a function
-     * that the mod's DLL gives the menu, and the menu takes none from a DLL yet: it is not a mistake of the
-     * config spec. A button with no action, any other action, and one that is not written right are actions the
-     * menu does not run, with the reason, and are reported.
+     * their `params`, a `RunConsoleCommand`, with its `command`, and a `CallNativeFunction`, a function that the
+     * mod's DLL registered with the native API, with its named `params`. A button with no action, any other action,
+     * and one that is not written right are actions the menu does not run, with the reason, and are reported.
      */
     model::Action loadAction(const Json& row, ConfigSpecReading& reading)
     {
@@ -1077,8 +1103,8 @@ namespace
             return mistakenAction({}, "the action has no type", reading);
         }
         if (type == "CallNativeFunction") {
-            logger::info("'{}' has a CallNativeFunction, which the menu does not run yet", reading.at.row);
-            return model::UnknownAction{ .type = std::move(type), .reason = "Not available: the mod's DLL has not given the menu its functions."s };
+            auto native = loadNativeFunction(*action);
+            return native ? model::Action(std::move(*native)) : mistakenAction(std::move(type), native.error(), reading);
         }
         reading.report(model::Severity::Error, std::format("Its action \"{}\" is not one the menu runs: it is not run.", type));
         auto reason = std::format("Not available: the menu does not run a {}.", type);
@@ -1086,15 +1112,35 @@ namespace
     }
 
     /**
-     * A button: its text, its action and the text on its button, `buttonText`, which is `Run` without one. Its
-     * conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
+     * What a button asks before it runs: its `confirmation`, with its `title`, its `message`, the text of the button
+     * that runs it, `confirm`, and whether it is `dangerous`. None for a button with none, and for one that is no
+     * object, which is reported.
+     */
+    std::optional<model::Confirmation> loadConfirmation(const Json& row, ConfigSpecReading& reading)
+    {
+        const auto found = row.find("confirmation");
+        if (found == row.end()) {
+            return std::nullopt;
+        }
+        const Into into(reading, "confirmation");
+        if (!found->is_object()) {
+            reading.report(model::Severity::Error, "Its confirmation is not an object: the button runs with none.");
+            return std::nullopt;
+        }
+        checkFields(*found, CONFIRMATION_FIELDS, reading);
+        return model::Confirmation{ .title = readShownText(*found, "title", reading),
+            .message = readShownText(*found, "message", reading),
+            .confirm = readShownText(*found, "confirm", reading),
+            .dangerous = getBool(*found, "dangerous") };
+    }
+
+    /**
+     * A button: its text, its action, the text on its button, `buttonText`, which is `Run` without one, and what it
+     * asks before it runs. Its conditions and its warnings are read once every setting of the config spec is
+     * (`loadConditions`).
      */
     model::Button loadButton(const Json& row, ConfigSpecReading& reading)
     {
-        if (const auto confirmation = row.find("confirmation"); confirmation != row.end()) {
-            const Into into(reading, "confirmation");
-            checkFields(*confirmation, CONFIRMATION_FIELDS, reading);
-        }
         return model::Button{ .text = getLabel(row, reading),
             .textRuns = getLabelRuns(row, reading.translations),
             .help = readShownText(row, "help", reading),
@@ -1102,7 +1148,8 @@ namespace
             .action = loadAction(row, reading),
             .visibleWhen = {},
             .enabledWhen = {},
-            .warnings = {} };
+            .warnings = {},
+            .confirmation = loadConfirmation(row, reading) };
     }
 
     // the parameter of a setting's action that is its value
@@ -1123,6 +1170,12 @@ namespace
             for (std::size_t place = 0; place < call->arguments.size(); ++place) {
                 if (call->arguments[place] == model::Value(std::string(VALUE_PARAMETER))) {
                     call->valueArguments.push_back({ .place = place, .text = VALUE_PARAMETER, .type = valueType });
+                }
+            }
+        } else if (auto* native = std::get_if<model::NativeFunction>(&action)) {
+            for (std::size_t place = 0; place < native->arguments.size(); ++place) {
+                if (native->arguments[place].value == model::Value(std::string(VALUE_PARAMETER))) {
+                    native->valueArguments.push_back(place);
                 }
             }
         }
