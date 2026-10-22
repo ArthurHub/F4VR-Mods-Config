@@ -15,7 +15,7 @@ Two sources fill one internal model:
 1. Mods Config VR declarative JSON config specs.
 2. A bridge to MCM for existing Fallout 4 MCM menus.
 
-A mod's DLL can also register as a native client, through a restricted C++ API; see [Native API](#native-api). A client is not a third source. It adds to its mod's config spec: live preview, functions that buttons run, options and states that only its code knows, and an entry of the quick launch section that opens its own UI.
+A mod's DLL can also register as a native client, through a restricted C++ API; see [Native API](#native-api). A client is not a third source. It adds to its mod's config spec: live preview, functions that buttons run, options and states that only its code knows, and entries of the quick launch section that open its own UI.
 
 The UI does not show which source a mod's menu comes from. What differs is in the mod's store: an MCM change is saved as it is made, and a config spec's on Save. See [The settings model](model.md).
 
@@ -37,7 +37,7 @@ MCM config ───────────┘
 
 Every declarative config spec has a stable identity, its `modName`. The host uses it for discovery, diagnostics, and matching an optional native client registration. The `modName` is not repeated in every scoped setting event.
 
-A native client registers under a name, and the host matches it to the config spec whose `modName` is that name. A client that matches no config spec gets no setting events. A quick launch entry it added is still on the menu's front page.
+A native client registers under a name, and the host matches it to the config spec whose `modName` is that name. A client that matches no config spec gets no setting events. The quick launch entries it added are still on the menu's front page.
 
 A config spec remains usable without a native client. In that case it can read, validate, and save its settings, and gets live preview only for a setting kept in a global or a script property, which the host writes into the game itself. Saved values reach the running mod only if the mod reads them again. CommonFramework mods do: the framework watches the INI and reloads it when it changes. A script mod reads them through the [Papyrus API](#papyrus-api), or keeps them in globals and properties, which it reads itself, and applies a change in the action of its setting.
 
@@ -189,6 +189,9 @@ namespace mods_config::api
         std::uint32_t (*getVersion)();
         const char* (*getModVersion)(); // Mods Config VR's own version
 
+        // the client's entries of the quick launch section, one for each function
+        bool (*addQuickLaunch)(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
+
         // the client
         Client* (*registerClient)(const ClientInfo* info); // null when the name has a client already
         bool (*registerOptions)(Client* client, const char* settingId, OptionsFn options, void* ctx);
@@ -202,16 +205,13 @@ namespace mods_config::api
         void (*restoreMenu)(); // only while it is minimized, and reads the shown mod's values again
         void (*reloadValues)(Client* client); // reads its mod's values again, while it is shown
 
-        // the client's entry of the quick launch section
-        bool (*addQuickLaunch)(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
-
         [[nodiscard]] static int initialize(std::uint32_t minVersion = MODS_CONFIG_VR_API_VERSION);
         inline static const ModsConfigVRApiV1* inst = nullptr;
     };
 }
 ```
 
-The functions are in the order they are added, as a function is only added at the end. A register call returns false for a name that is registered already, which keeps the first.
+A register call returns false for a name that is registered already, which keeps the first.
 
 ### The client
 
@@ -284,7 +284,7 @@ using NativeFunction = bool (*)(void* ctx, FunctionCall* call);
 
 ### Quick launch
 
-`addQuickLaunch` adds the client's entry to the quick launch section of the menu's front page: its `text`, its `help`, which the help line shows, its `buttonText` in place of `Open`, and the function that a press runs. A client that matches no config spec has its entry too. The function is looked up as the entry is pressed, so it can be registered after the entry.
+`addQuickLaunch` adds an entry of the client to the quick launch section of the menu's front page: its `text`, its `help`, which the help line shows, its `buttonText` in place of `Open`, and the function that a press runs. A client adds an entry for each UI it opens from there, as FRIK's main config and its Pip-Boy config: a function has one entry. A client that matches no config spec has its entries too. The function is looked up as the entry is pressed, so it can be registered after the entry.
 
 ### A client's state
 
@@ -299,7 +299,7 @@ The host asks each state once a frame, only while the client's mod is shown, so 
 
 ### The mod's own UI
 
-A mod's own UI is opened by a function of its client, from a button of its config spec or from its quick launch entry. The function moves the menu out of the way itself, with the calls of the menu, which any DLL can make:
+A mod's own UI is opened by a function of its client, from a button of its config spec or from a quick launch entry. The function moves the menu out of the way itself, with the calls of the menu, which any DLL can make:
 
 - `minimizeMenu` as it opens its UI. A minimized menu keeps its editing session, so a pending change stays pending. A function whose UI does not open does not minimize it, and its message says why.
 - `restoreMenu` as its UI closes. It shows the menu where it was, and only while it is minimized: a player who has pressed `Resume` on the wrist or closed the menu is not shown it again. A UI that never calls it leaves the menu minimized, and `Resume` shows it.
@@ -458,7 +458,7 @@ The client registers it with `registerOptions`, by the setting's id. The callbac
 
 ### A client that fails
 
-The host calls a client inside a guard that catches a C++ exception and a fault, as an access violation. A client whose call fails is cut off until the game is restarted, and its mod is handled as a mod with no native client: its `live` settings are handled as `save`, its native buttons and its quick launch entry are disabled, with the reason in the help line, and its states are not available. The rest of its config spec, and every other mod, keep working. The log names the client and the call that failed.
+The host calls a client inside a guard that catches a C++ exception and a fault, as an access violation. A client whose call fails is cut off until the game is restarted, and its mod is handled as a mod with no native client: its `live` settings are handled as `save`, its native buttons and its quick launch entries are disabled, with the reason in the help line, and its states are not available. The rest of its config spec, and every other mod, keep working. The log names the client and the call that failed.
 
 ### CommonFramework adapter
 

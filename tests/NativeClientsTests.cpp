@@ -403,3 +403,35 @@ TEST_CASE("NativeClients: a client is told the menu's events, and one that throw
     calls.send("Broken", model::ClientEvent::ModShown);
     CHECK(calls.notRunnable("Broken", "Broken", "any") == "Not available: its mod's client failed, and is cut off until the game is restarted.");
 }
+
+TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions, with the function a press runs")
+{
+    model::ClientOptions options;
+    model::ClientCalls calls;
+    api::NativeClients clients(options, calls);
+    const auto info = infoOf("MyMod");
+    auto* client = clients.registerClient(&info);
+    CHECK(clients.addQuickLaunch(client, "$MyMod", "Opens its own UI.", nullptr, "openConfig"));
+    CHECK(clients.addQuickLaunch(client, "MyMod: Pip-Boy", nullptr, "Place", "openPipboy"));
+    // one function has one entry, the first
+    CHECK_FALSE(clients.addQuickLaunch(client, "Again", nullptr, nullptr, "OpenConfig"));
+    REQUIRE(calls.quickLaunch().size() == 2);
+    CHECK(calls.quickLaunch()[1].buttonText == "Place");
+    const auto& entry = calls.quickLaunch().front();
+    CHECK(entry.modName == "MyMod");
+    CHECK(entry.text == "$MyMod");
+    CHECK(entry.help == "Opens its own UI.");
+    CHECK(entry.buttonText.empty());
+    CHECK(entry.function == "openConfig");
+    // the function is not registered yet, so its entry does not open
+    CHECK(calls.notRunnable("MyMod", "My Mod", entry.function) == "Not available: My Mod's DLL has no function 'openConfig'.");
+
+    // one with no text or no function, and from a handle that is no client's
+    const auto otherInfo = infoOf("OtherMod");
+    auto* other = clients.registerClient(&otherInfo);
+    CHECK_FALSE(clients.addQuickLaunch(other, "", nullptr, nullptr, "open"));
+    CHECK_FALSE(clients.addQuickLaunch(other, "Other", nullptr, nullptr, nullptr));
+    api::Client stranger;
+    CHECK_FALSE(clients.addQuickLaunch(&stranger, "Other", nullptr, nullptr, "open"));
+    CHECK(calls.quickLaunch().size() == 2);
+}

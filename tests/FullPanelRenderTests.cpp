@@ -427,6 +427,7 @@ namespace
         FullPanel panel;
         panel.setMods(std::move(mods));
         panel.setQuickLaunch({ { .name = "FRIK", .help = "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.", .open = [] {
+                                    return ui::QuickLaunchResult{};
                                 } } });
         return panel;
     }
@@ -551,6 +552,7 @@ TEST_CASE("FullPanel render: mods that are not available, in the tree and in the
     FullPanel panel;
     panel.setMods(std::move(mods));
     panel.setQuickLaunch({ { .name = "FRIK", .help = "Opens FRIK's own configuration in the world.", .open = [] {
+                                return ui::QuickLaunchResult{};
                             } } });
 
     // the third row of the tree, which is Sim Settlements 2's in the order of the names

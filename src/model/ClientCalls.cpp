@@ -1,5 +1,6 @@
 #include "ClientCalls.h"
 
+#include <algorithm>
 #include <format>
 
 #include "common/CommonUtils.h"
@@ -113,5 +114,22 @@ namespace mods_config::model
                 events(event, {});
             }
         }
+    }
+
+    /**
+     * Adds an entry of a mod to the quick launch section, by the function a press runs: a mod can have an entry for
+     * each of its functions. False for a function of the mod that has one already, which keeps the first.
+     */
+    bool ClientCalls::addQuickLaunch(ClientQuickLaunch entry)
+    {
+        const auto mod = common::str_tolower(entry.modName);
+        const auto function = common::str_tolower(entry.function);
+        if (std::ranges::any_of(_quickLaunch, [&mod, &function](const ClientQuickLaunch& added) {
+                return common::str_tolower(added.modName) == mod && common::str_tolower(added.function) == function;
+            })) {
+            return false;
+        }
+        _quickLaunch.push_back(std::move(entry));
+        return true;
     }
 }

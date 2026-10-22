@@ -42,6 +42,19 @@ namespace mods_config::model
      * runs and the states a `clientState` condition asks, each by its mod's name and its own, and the events of each
      * mod. It knows the mods that have a client, and those whose client is cut off, which are called no more.
      */
+    /**
+     * An entry of a mod's client in the quick launch section: its texts as the client gives them, and the function of
+     * the client a press runs, which tells it from the mod's other entries.
+     */
+    struct ClientQuickLaunch
+    {
+        std::string modName;
+        std::string text;
+        std::string help;
+        std::string buttonText;
+        std::string function;
+    };
+
     class ClientCalls
     {
     public:
@@ -63,6 +76,13 @@ namespace mods_config::model
         void addEvents(std::string_view modName, Events events);
         void send(std::string_view modName, ClientEvent event, std::string_view pageId = {}) const;
         void sendToAll(ClientEvent event) const;
+        bool addQuickLaunch(ClientQuickLaunch entry);
+
+        // the quick launch entries of the clients, in the order they were added
+        const std::vector<ClientQuickLaunch>& quickLaunch() const
+        {
+            return _quickLaunch;
+        }
 
     private:
         // by the mod's name and the function's in lower case: both are compared without regard to case
@@ -71,6 +91,7 @@ namespace mods_config::model
 
         // by the mod's name in lower case
         std::map<std::string, Events, std::less<>> _events;
+        std::vector<ClientQuickLaunch> _quickLaunch;
 
         // the mods that have a client, and those whose client is cut off, in lower case
         std::set<std::string> _clients;

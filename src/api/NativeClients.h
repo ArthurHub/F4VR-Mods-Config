@@ -53,6 +53,7 @@ namespace mods_config::api
         bool registerOptions(Client* client, const char* settingId, OptionsFn options, void* ctx);
         bool registerFunction(Client* client, const char* name, NativeFunction function, void* ctx);
         bool registerState(Client* client, const char* name, StateFn state, void* ctx);
+        bool addQuickLaunch(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
         bool isClient(const Client* client) const;
 
     private:

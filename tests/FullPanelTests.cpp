@@ -1031,6 +1031,7 @@ TEST_CASE("FullPanel: a press that opens a quick launch entry acts")
     int opened = 0;
     panel.setQuickLaunch({ { .name = "FRIK", .help = {}, .open = [&opened] {
                                 ++opened;
+                                return ui::QuickLaunchResult{};
                             } } });
     drawFrames(panel, 2);
 
@@ -1065,6 +1066,7 @@ TEST_CASE("FullPanel: a press on the quick launch heading folds its entries, and
     int opened = 0;
     panel.setQuickLaunch({ { .name = "FRIK", .help = {}, .open = [&opened] {
                                 ++opened;
+                                return ui::QuickLaunchResult{};
                             } } });
     drawFrames(panel, 2);
 
@@ -1205,6 +1207,7 @@ TEST_CASE("FullPanel: the help line has the help of the quick launch entry the r
     const test_panel::PanelContext context;
     FullPanel panel;
     panel.setQuickLaunch({ { .name = "FRIK", .help = "Opens FRIK's own configuration.", .open = [] {
+                                return ui::QuickLaunchResult{};
                             } } });
     drawFrames(panel, 2);
 
@@ -3959,4 +3962,43 @@ TEST_CASE("FullPanel: a mod's client is told as its mod and the pages of its con
     events.clear();
     calls.sendToAll(model::ClientEvent::MenuOpened);
     CHECK(events == std::vector<std::string>{ "MyMod MenuOpened", "OtherMod MenuOpened" });
+}
+
+TEST_CASE("FullPanel: a quick launch entry says its own button text, tells the result of its press, and is disabled with the reason")
+{
+    const test_panel::PanelContext context;
+    FullPanel panel;
+    int opened = 0;
+    panel.setQuickLaunch({ { .name = "Holsters",
+                               .help = "Places the holsters in the world.",
+                               .open =
+                                   [&opened] {
+                                       ++opened;
+                                       return ui::QuickLaunchResult{ .failed = true, .message = "The body is not ready yet." };
+                                   },
+                               .buttonText = "Place" },
+        { .name = "Immersive Flashlight",
+            .help = "Moves the light in the world.",
+            .open =
+                [&opened] {
+                    ++opened;
+                    return ui::QuickLaunchResult{};
+                },
+            .notAvailable = "Not available: its mod's client failed, and is cut off until the game is restarted." } });
+    drawFrames(panel, 2);
+
+    // the rows under the page's two lines of text and the heading of their section
+    const ImVec2 holsters(640.0f, 215.0f);
+    const ImVec2 flashlight(640.0f, 215.0f + theme::ROW_PITCH);
+    CHECK(pressActs(panel, holsters));
+    CHECK(opened == 1);
+    point(panel, holsters);
+    CHECK(panel.helpLine().text() == "Holsters: The body is not ready yet.");
+    CHECK(panel.helpLine().isInvalid());
+
+    // a disabled entry does nothing, and its reason is its help
+    CHECK_FALSE(pressActs(panel, flashlight));
+    CHECK(opened == 1);
+    point(panel, flashlight);
+    CHECK(panel.helpLine().text() == "Immersive Flashlight: Not available: its mod's client failed, and is cut off until the game is restarted.");
 }

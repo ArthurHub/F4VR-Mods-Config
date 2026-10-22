@@ -187,6 +187,15 @@ namespace mods_config::api
         const char*(MODS_CONFIG_VR_CALL* getModVersion)();
 
         /**
+         * Adds an entry of the client to the quick launch section of the menu's front page: its text, its help, which
+         * the help line shows, the text of its button, null for Open, and the function of the client a press runs, which
+         * opens the mod's own UI. A client can add an entry for each of its functions. The function is looked up as the
+         * entry is pressed. A text can be a `$` token of the game's language. False for a function that has an entry
+         * already, which keeps the first.
+         */
+        bool(MODS_CONFIG_VR_CALL* addQuickLaunch)(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName);
+
+        /**
          * Registers the mod's client, once, as it loads: keep the handle for the whole run of the game.
          * Null for a name that has a client already, and for an info with no name.
          */

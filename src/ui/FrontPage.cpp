@@ -62,28 +62,32 @@ namespace
 
     /**
      * A row of the quick launch section, laid out as a setting's row: set in a level under its heading, the mod's
-     * name, and an Open button in the control column. The whole row is pressed, so the button is only drawn.
+     * name, and its button in the control column, which says its own text or Open. The whole row is pressed, so the
+     * button is only drawn. A disabled row is drawn so, and a press on it does nothing.
      * Tells whether the ray is on the row.
      */
-    bool quickLaunchRow(const char* name, bool& pointed)
+    bool quickLaunchRow(const ui::QuickLaunchEntry& entry, bool& pointed)
     {
         ImGui::Indent(theme::SPACE_3);
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ImGui::GetContentRegionAvail().x;
-        const bool pressed = ImGui::InvisibleButton(name, ImVec2(width, theme::CONTROL_HEIGHT));
-        pointed = ImGui::IsItemHovered();
+        const bool enabled = entry.notAvailable.empty();
+        ImGui::BeginDisabled(!enabled);
+        const bool pressed = ImGui::InvisibleButton(entry.name.c_str(), ImVec2(width, theme::CONTROL_HEIGHT));
+        pointed = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled);
         ui::drawRowState();
 
         // the button ends where a setting's control does, before the room of its Reset
         const float buttonRight = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
         const float buttonLeft = buttonRight - BUTTON_WIDTH;
         ui::drawOutline(ImVec2(buttonLeft, pos.y), ImVec2(buttonRight, pos.y + theme::CONTROL_HEIGHT), theme::color::FRAME_BORDER);
-        const float labelLeft = buttonLeft + (BUTTON_WIDTH - ui::textWidth("Open")) * 0.5f;
-        ui::drawText(labelLeft, buttonRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, "Open");
+        const std::string_view label = entry.buttonText.empty() ? std::string_view("Open") : std::string_view(entry.buttonText);
+        ui::drawTextIn(ImRect(buttonLeft, pos.y, buttonRight, pos.y + theme::CONTROL_HEIGHT), label, theme::color::GREEN, 0.5f, theme::SPACE_3);
 
-        ui::drawText(pos.x + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
+        ui::drawText(pos.x + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, entry.name);
+        ImGui::EndDisabled();
         ImGui::Unindent(theme::SPACE_3);
-        return pressed;
+        return pressed && enabled;
     }
 
 }
@@ -116,12 +120,22 @@ namespace mods_config::ui
         if (!_quickLaunchFolded) {
             for (const auto& entry : _quickLaunch) {
                 bool onRow = false;
-                if (quickLaunchRow(entry.name.c_str(), onRow)) {
-                    entry.open();
+                if (quickLaunchRow(entry, onRow)) {
+                    _result = entry.open();
+                    _resultOf = entry.name;
                     drawn.pressActed = true;
                 }
-                if (onRow) {
-                    drawn.pointed = PointedRow{ .text = entry.name, .help = entry.help };
+                if (!onRow) {
+                    continue;
+                }
+                drawn.pointed = PointedRow{ .text = entry.name, .help = entry.notAvailable.empty() ? entry.help : entry.notAvailable };
+                if (_resultOf == entry.name && !_result.message.empty()) {
+                    if (_result.failed) {
+                        drawn.pointed->help = _result.message;
+                        drawn.pointed->invalid = true;
+                    } else {
+                        drawn.pointed->result = _result.message;
+                    }
                 }
             }
         }
@@ -151,11 +165,13 @@ namespace mods_config::ui
     }
 
     /**
-     * Opens the sections again, as the menu is closed.
+     * Opens the sections again, and forgets the result of the last press on an entry, as the menu is closed.
      */
     void FrontPage::reset()
     {
         _quickLaunchFolded = false;
         _noticesFolded = false;
+        _resultOf.clear();
+        _result = {};
     }
 }

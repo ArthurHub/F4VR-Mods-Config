@@ -741,8 +741,10 @@ namespace mods_config
     }
 
     /**
-     * The mods whose own config UI is opened from the menu's front page. FRIK's is the one there is, with
-     * FRIK installed: this menu took its opening gesture.
+     * The mods whose own config UI is opened from the menu's front page, by the names they show, as the mods are
+     * listed: FRIK's, with FRIK installed, as this menu took its opening gesture, and the entry each client added,
+     * with its texts translated. A press on a client's entry runs its function, which minimizes the menu and opens
+     * the mod's UI, and one whose function does not run is disabled, with the reason.
      */
     std::vector<ui::FullPanel::QuickLaunchEntry> ConfigMenu::quickLaunchEntries()
     {
@@ -750,10 +752,33 @@ namespace mods_config
         if (frik::api::FRIKApi::inst) {
             entries.push_back({ .name = "FRIK Configuration",
                 .help = "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.",
-                .open = [this] {
-                    _openFrikRequested = true;
-                } });
+                .open =
+                    [this] {
+                        _openFrikRequested = true;
+                        return ui::QuickLaunchResult{};
+                    },
+                .buttonText = {},
+                .notAvailable = {} });
         }
+        // the clients' entries, whose function minimizes the menu and opens the mod's own UI
+        const auto& calls = _configSpecStore.clientCalls();
+        for (const auto& entry : calls.quickLaunch()) {
+            auto name = _translations.translate(entry.text);
+            auto notAvailable = calls.notRunnable(entry.modName, name, entry.function);
+            entries.push_back({ .name = std::move(name),
+                .help = _translations.translate(entry.help),
+                .open =
+                    [&calls, entry] {
+                        auto result = calls.call(entry.modName, entry.function, {});
+                        return ui::QuickLaunchResult{ .failed = !result.done, .message = std::move(result.message) };
+                    },
+                .buttonText = _translations.translate(entry.buttonText),
+                .notAvailable = std::move(notAvailable) });
+        }
+        // as the mods are listed
+        std::ranges::sort(entries, [](const auto& entry, const auto& other) {
+            return common::str_tolower(entry.name) < common::str_tolower(other.name);
+        });
         return entries;
     }
 }

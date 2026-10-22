@@ -354,6 +354,33 @@ namespace mods_config::api
     }
 
     /**
+     * Adds an entry of a client to the quick launch section, with the function of the client a press runs, which is
+     * looked up as it is pressed: a client can have an entry for each of its functions. Its texts are kept as the client
+     * gives them: the menu translates them as it shows them. False for a handle that is no client's, a client that is cut
+     * off, one with no text or no function, and a function that has an entry already, which keeps the first.
+     */
+    bool NativeClients::addQuickLaunch(Client* client, const char* text, const char* help, const char* buttonText, const char* functionName)
+    {
+        if (!isClient(client)) {
+            logger::warn("Native API: the quick launch entry '{}' is added with a handle that is no client's", text ? text : "");
+            return false;
+        }
+        if (!text || !*text || !functionName || !*functionName) {
+            logger::warn("Native API: client '{}' adds a quick launch entry with no text or no function", client->name);
+            return false;
+        }
+        if (client->cutOff) {
+            return false;
+        }
+        const bool added =
+            _calls.addQuickLaunch({ .modName = client->name, .text = text, .help = help ? help : "", .buttonText = buttonText ? buttonText : "", .function = functionName });
+        if (!added) {
+            logger::warn("Native API: client '{}' adds a quick launch entry of its function '{}' again, which keeps the first", client->name, functionName);
+        }
+        return added;
+    }
+
+    /**
      * Asks a client a state, inside the guard. None while it is not available: the client does not answer it, or is
      * cut off, as one that throws or faults is.
      */

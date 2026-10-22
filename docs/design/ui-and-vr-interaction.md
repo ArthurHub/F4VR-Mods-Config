@@ -141,7 +141,7 @@ What the Full panel shows while no mod is selected. It is what the menu opens on
 An entry of the section opens a mod's own config UI, such as FRIK's.
 
 - A row has the mod's name and an `Open` button, and the whole row is pressed.
-- A mod registers its entry through the native API, with a help text that says what its UI is for, and the text of its button in place of `Open`. It needs no config spec for it, and a mod that has a config spec is in the tree as well.
+- A mod registers its entries through the native API, one for each UI it opens from here, each with a help text that says what its UI is for, and the text of its button in place of `Open`. It needs no config spec for it, and a mod that has a config spec is in the tree as well.
 - Until the native API is made, the menu adds one entry itself: FRIK, when FRIK is installed. The menu took the opening gesture from FRIK, so FRIK's config is opened from here.
 - The entries are listed alphabetically, as the mods are.
 - Pressing an entry runs a function of the mod's client, which minimizes the menu and opens the mod's UI; see [A mod's own UI](#a-mods-own-ui). Until the native API is made, the menu minimizes itself for FRIK's entry and does not come back by itself, and `Resume` on the wrist shows it again.

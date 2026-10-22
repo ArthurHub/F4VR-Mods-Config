@@ -64,10 +64,16 @@ namespace
         }
     }
 
+    bool MODS_CONFIG_VR_CALL addQuickLaunch(api::Client* client, const char* text, const char* help, const char* buttonText, const char* functionName)
+    {
+        return g_modsConfig.menu().nativeClients().addQuickLaunch(client, text, help, buttonText, functionName);
+    }
+
     // the API, which is the same for the whole run of the game
     constexpr api::ModsConfigVRApiV1 API{
         .getVersion = &getVersion,
         .getModVersion = &getModVersion,
+        .addQuickLaunch = &addQuickLaunch,
         .registerClient = &registerClient,
         .registerOptions = &registerOptions,
         .registerFunction = &registerFunction,
