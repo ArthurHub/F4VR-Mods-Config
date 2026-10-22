@@ -38,11 +38,13 @@ namespace mods_config
     }
 
     /**
-     * Run F4SE plugin load and initialize the plugin given the init handle.
+     * Run F4SE plugin load and initialize the plugin given the init handle. The menu is the native API's first
+     * client, which registers through it as any mod's does.
      */
     void ModsConfigVR::onModLoaded(const F4SE::LoadInterface*)
     {
         devbench::setupDevBenchTool();
+        _menu.registerOwnClient();
     }
 
     /**

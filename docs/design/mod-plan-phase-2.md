@@ -103,7 +103,7 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 | #   | Repo      | Commit                                                                                      | Status |
 | --- | --------- | ------------------------------------------------------------------------------------------- | ------ |
 | M62 | mod       | docs: the native API: its binary interface, its versions and its calls                      | in review |
-| M63 | mod       | The native API: a client registers by name, with the client header                          | todo   |
+| M63 | mod       | The native API: a client registers by name, with the client header                          | in review |
 | F28 | framework | `ModBase` registers the mod as a client                                                     | todo   |
 | F29 | framework | A mod adds its functions, its states, its own config UI and its events to its client        | todo   |
 | M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | todo   |
@@ -115,7 +115,7 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 
 M62 settles the [Native API](architecture.md#native-api): what it passes between DLLs, how its text is encoded, how its versions are told apart, and its calls. The API is a struct of functions that `ModsConfigVR.dll` exports, as FRIK's is. A button that opens the mod's own UI is a plain `CallNativeFunction`, whose function minimizes the menu and restores it, so the schema has nothing of its own for it.
 
-M63, F28 and F29 are the first part of item 13 of the requirements. The client header is vendored in the framework, as devbench's is. M63 calls a client inside the guard of [A client that fails](architecture.md#a-client-that-fails), so a client whose call fails is cut off and the menu keeps working.
+M63, F28 and F29 are the first part of item 13 of the requirements. The client header is vendored in the framework, as devbench's is. M63 has `registerClient` and `registerOptions`, and calls a client inside the guard of [A client that fails](architecture.md#a-client-that-fails), so a client whose call fails is cut off and the menu keeps working. The menu is the first client: the options of its own Config spec setting go through the API, so M63 is tried in the headset with the menu alone.
 
 M118 reads a condition's `clientState`, which the host asks the client once a frame while its mod is shown. The config spec showcase has no client, so a unit test covers it, with a state of the tests' own.
 

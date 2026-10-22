@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "api/NativeClients.h"
 #include "common/CommonUtils.h"
 #include "imgui/UIImGuiPanel.h"
 #include "mcm/McmStore.h"
@@ -41,6 +42,8 @@ namespace mods_config
         void back();
         void onFrameUpdate();
 
+        void registerOwnClient();
+
         void setMods(std::vector<model::Mod> mods, model::Translations translations);
         const std::vector<model::Mod>& mods() const;
 
@@ -51,6 +54,12 @@ namespace mods_config
         ui::FullPanel& fullPanel()
         {
             return _fullPanel;
+        }
+
+        // the mods' native clients, which the native API registers
+        api::NativeClients& nativeClients()
+        {
+            return _nativeClients;
         }
 
     private:
@@ -103,6 +112,9 @@ namespace mods_config
 
         // and a config spec's mod's, in its files, from the game's Data folder and the game's folder of My Games
         spec::ConfigSpecStore _configSpecStore{ "Data", common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
+
+        // the native clients, whose options the config spec store reads
+        api::NativeClients _nativeClients{ _configSpecStore.clientOptions() };
 
         // what the panel shows
         ui::FullPanel _fullPanel;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <functional>
 #include <map>
 #include <string>
@@ -14,15 +15,15 @@ namespace mods_config::model
 {
     /**
      * The callbacks that give the options of the choices that take them from their mod's client
-     * (`listFromClientCallback`), each for one setting, by its mod's name and its id. The native API registers a
-     * client's: until it is there the menu registers the one of its own config spec.
+     * (`listFromClientCallback`), each for one setting, by its mod's name and its id, which the native API
+     * registers. A callback gives the options, or why it gives none, as a client that is cut off does.
      */
     class ClientOptions
     {
     public:
-        using Callback = std::function<std::vector<Option>(const Setting& setting)>;
+        using Callback = std::function<std::expected<std::vector<Option>, std::string>(const Setting& setting)>;
 
-        void add(std::string_view modName, std::string_view settingId, Callback callback);
+        bool add(std::string_view modName, std::string_view settingId, Callback callback);
         const Callback* find(std::string_view modName, std::string_view settingId) const;
 
     private:

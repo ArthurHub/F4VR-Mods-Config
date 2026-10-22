@@ -609,7 +609,7 @@ A choice can take its options from the mod's native client, for a list only the 
 
 The client registers a callback for the setting's id with the [native API](architecture.md#options-from-a-client), and the host calls it as the mod is selected. It returns the options in either form of `options`: texts, or values with their texts, the values in the setting's `valueType`. While no callback is registered for the setting, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options is invalid, and the `default` is any value of the setting's type, as for options from the game.
 
-Mods Config VR's own config spec uses it for its Config spec setting, whose options are the config specs the menu found: until the native API is there, the menu registers that one callback itself.
+Mods Config VR's own config spec uses it for its Config spec setting, whose options are the config specs the menu found: the menu registers that callback through the native API, as its own client.
 
 ## Buttons
 

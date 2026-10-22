@@ -39,11 +39,12 @@ namespace
 namespace mods_config::model
 {
     /**
-     * Registers the callback that gives the options of a setting of a mod, in place of one it had.
+     * Registers the callback that gives the options of a setting of a mod. False for a setting that has one
+     * already, which keeps the first.
      */
-    void ClientOptions::add(const std::string_view modName, const std::string_view settingId, Callback callback)
+    bool ClientOptions::add(const std::string_view modName, const std::string_view settingId, Callback callback)
     {
-        _callbacks.insert_or_assign({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(settingId)) }, std::move(callback));
+        return _callbacks.try_emplace({ common::str_tolower(std::string(modName)), common::str_tolower(std::string(settingId)) }, std::move(callback)).second;
     }
 
     /**
@@ -134,7 +135,7 @@ namespace mods_config::model
 
     /**
      * The options a choice's mod's client gives, by the callback it registered for the setting. None for a
-     * setting with no callback, with the reason.
+     * setting with no callback, and for one whose callback gives none, with the reason.
      */
     ChoiceOptions::Read ChoiceOptions::readClient(const Setting& setting) const
     {
@@ -142,6 +143,10 @@ namespace mods_config::model
         if (!callback) {
             return { .options = {}, .notAvailable = "Not available: its mod's client gives no options for it." };
         }
-        return { .options = (*callback)(setting), .notAvailable = {} };
+        auto options = (*callback)(setting);
+        if (!options) {
+            return { .options = {}, .notAvailable = std::move(options.error()) };
+        }
+        return { .options = std::move(*options), .notAvailable = {} };
     }
 }

@@ -50,13 +50,11 @@ namespace mods_config::spec
     public:
         ConfigSpecStore(std::filesystem::path dataFolder, std::filesystem::path myGamesFolder);
 
-        /**
-         * Registers the callback that gives the options of a choice of a mod that takes them from its client
-         * (`listFromClientCallback`), by the mod's name and the setting's id. It is read as the mod is selected.
-         */
-        void addClientOptions(const std::string_view modName, const std::string_view settingId, model::ClientOptions::Callback callback)
+        // the callbacks of the choices of mods that take their options from their clients (`listFromClientCallback`),
+        // which the native API registers. They are called as the mod is selected
+        model::ClientOptions& clientOptions()
         {
-            _clientOptions.add(modName, settingId, std::move(callback));
+            return _clientOptions;
         }
 
         void open(const model::Mod& mod) override;

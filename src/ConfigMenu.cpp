@@ -71,6 +71,23 @@ namespace
     }
 
     /**
+     * The options of the menu's own Config spec setting: none first, then each config spec the menu lists, by its
+     * modName and its name, in their order.
+     */
+    void MODS_CONFIG_VR_CALL addConfigSpecOptions(void* ctx, mods_config::api::OptionsCall* call)
+    {
+        using namespace mods_config;
+        const api::SettingValue none{ .type = api::ValueType::String, .text = "" };
+        call->addOption(call, &none, "None");
+        for (const auto& mod : static_cast<const ConfigMenu*>(ctx)->mods()) {
+            if (mod.source == model::Source::ConfigSpec) {
+                const api::SettingValue value{ .type = api::ValueType::String, .text = mod.name.c_str() };
+                call->addOption(call, &value, mod.displayName.c_str());
+            }
+        }
+    }
+
+    /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
      * for it. The function takes no arguments, which is an empty array.
      */
@@ -91,25 +108,31 @@ namespace
 namespace mods_config
 {
     /**
-     * The menu, closed. It registers the callback of its own config spec's Config spec setting, whose options are the
-     * config specs the menu lists: none first, then each config spec, by its modName and its name, in their order.
-     * A config spec is read from its live copy while its author's report turns it on.
+     * The menu, closed. A config spec is read from its live copy while its author's report turns it on.
      */
     ConfigMenu::ConfigMenu()
         : _liveCopies(spec::CONFIG_SPEC_FOLDER, LIVE_COPIES_FOLDER)
     {
-        _configSpecStore.addClientOptions(Version::PROJECT, DEVELOPER_CONFIG_SPEC_ID, [this](const model::Setting&) {
-            std::vector<model::Option> options{ { .value = std::string(), .text = "None" } };
-            for (const auto& mod : _fullPanel.mods()) {
-                if (mod.source == model::Source::ConfigSpec) {
-                    options.push_back({ .value = mod.name, .text = mod.displayName });
-                }
-            }
-            return options;
-        });
+        _nativeClients.setTranslations(&_translations);
         _fullPanel.setLiveCopyAction([this](const std::string& folder, const ui::LiveCopyAction action) {
             _liveCopyRequest = LiveCopyRequest{ .folder = folder, .action = action };
         });
+    }
+
+    /**
+     * Registers the menu's own client through the native API, as any mod's client registers, with the callback of its
+     * config spec's Config spec setting.
+     */
+    void ConfigMenu::registerOwnClient()
+    {
+        if (const int err = api::ModsConfigVRApiV1::initialize(); err != 0) {
+            logger::error("The native API is not available (error {}): the Config spec setting has no options", err);
+            return;
+        }
+        const auto* nativeApi = api::ModsConfigVRApiV1::inst;
+        const api::ClientInfo info{ .version = api::MODS_CONFIG_VR_API_VERSION, .name = Version::PROJECT.data(), .ctx = this };
+        auto* client = nativeApi->registerClient(&info);
+        nativeApi->registerOptions(client, DEVELOPER_CONFIG_SPEC_ID, &addConfigSpecOptions, this);
     }
 
     bool ConfigMenu::isOpen() const

@@ -1079,7 +1079,7 @@ TEST_CASE("ConfigSpecStore: every setting of the mod's own config spec is availa
     std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, folder / "ModsConfigVR.toml");
     // the menu gives the options of its Config spec setting: none, and the config specs it lists
     ConfigSpecStore store({}, myGames.path);
-    store.addClientOptions("ModsConfigVR", "developerConfigSpec", [](const model::Setting&) {
+    store.clientOptions().add("ModsConfigVR", "developerConfigSpec", [](const model::Setting&) {
         return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "MyMod"s, .text = "My Mod" } };
     });
     store.open(mods[0]);
@@ -1118,7 +1118,7 @@ TEST_CASE("ConfigSpecStore: a choice takes its options from its mod's client as 
     ConfigSpecStore store(session.data.path, session.myGames.path);
     int calls = 0;
     // its mod and its id in another case
-    store.addClientOptions("mymod", "configspec", [&calls](const model::Setting& setting) {
+    store.clientOptions().add("mymod", "configspec", [&calls](const model::Setting& setting) {
         ++calls;
         CHECK(setting.text == "Config spec");
         return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "FRIK"s, .text = "FRIK" } };
