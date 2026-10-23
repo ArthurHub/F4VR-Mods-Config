@@ -264,7 +264,10 @@ namespace
             if (image.pixels) {
                 ui::drawImage(image, page.imageDrawer, ui::rowWidth());
             } else if (!image.texture.empty()) {
-                ui::drawTexture(image, page.imageDrawer, ui::rowWidth());
+                std::string reason;
+                if (ui::drawTexture(image, page.imageDrawer, ui::rowWidth(), reason)) {
+                    page.drawn.pointed = ui::PointedRow{ .text = image.texture, .help = std::move(reason), .invalid = true };
+                }
             } else {
                 drawRow({}, {}, "image", false);
             }

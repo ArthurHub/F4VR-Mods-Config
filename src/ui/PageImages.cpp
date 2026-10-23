@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <format>
 
 #include <imgui.h>
 
@@ -56,29 +57,36 @@ namespace mods_config::ui
 
     /**
      * A config spec's texture at the cursor, in the middle of a row's width, with room above and below it. A
-     * texture the game does not load is a box of its size with a dashed outline, that names it.
+     * texture the game does not load is a box of its size with a dashed outline, that names it. Returns whether the
+     * ray is on the row of a texture that is not loaded, with why as the reason.
      */
-    void drawTexture(const model::Image& image, const ImageDrawer& drawer, const float width)
+    bool drawTexture(const model::Image& image, const ImageDrawer& drawer, const float width, std::string& reason)
     {
         const auto own = drawer.textureSize ? drawer.textureSize(image.texture) : std::nullopt;
         const auto pos = ImGui::GetCursorScreenPos();
         const auto size = textureSize(image, own, width);
         ImGui::Dummy(ImVec2(width, size.y + theme::SPACE_1 * 2.0f));
         if (!ImGui::IsItemVisible()) {
-            return;
+            return false;
         }
         const ImVec2 topLeft(pos.x + std::floor((width - size.x) * 0.5f), pos.y + theme::SPACE_1);
         const ImVec2 bottomRight(topLeft.x + size.x, topLeft.y + size.y);
         if (own && drawer.draw) {
             drawer.draw(image, topLeft, bottomRight);
-            return;
+            return false;
+        }
+        const bool pointed = ImGui::IsItemHovered();
+        if (pointed) {
+            const auto error = drawer.textureError ? drawer.textureError(image.texture) : std::string();
+            reason = error.empty() ? std::string("Not loaded: the game has not loaded it.") : std::format("Not loaded: {}.", error);
         }
         drawDashedOutline(topLeft, bottomRight, theme::color::FRAME_BORDER);
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const auto text = "Missing: " + image.texture;
+        const auto text = "Not loaded: " + image.texture;
         const float left = (std::max)(topLeft.x + theme::SPACE_2, std::floor((topLeft.x + bottomRight.x - textWidth(text)) * 0.5f));
         drawText(left, bottomRight.x - theme::SPACE_2, topLeft.y, size.y, theme::color::GREEN_MUTED, text);
         ImGui::PopFont();
+        return pointed;
     }
 
 }

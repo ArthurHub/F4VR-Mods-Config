@@ -463,6 +463,10 @@ namespace mods_config
                                         [this](const std::string& texture) {
                                             return textureSize(texture);
                                         },
+            .textureError =
+                [this](const std::string& texture) {
+                    return textureOf(texture).error();
+                },
             .draw =
                 [this](const model::Image& image, const ImVec2& min, const ImVec2& max) {
                     drawImage(image, min, max);

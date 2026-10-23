@@ -1775,6 +1775,27 @@ TEST_CASE("FullPanel: the help line says that the menu does not have a control, 
     CHECK_FALSE(pressActs(panel, pageRow(0)));
 }
 
+TEST_CASE("FullPanel: the help line says why a texture is not loaded")
+{
+    const test_panel::PanelContext context;
+    auto mod = modOf("Alpha");
+    mod.frontPage.items.push_back(model::Image{ .texture = "MyMod/banner.dds" });
+    FullPanel panel;
+    panel.setImageDrawer({ .textureSize = [](const std::string&) -> std::optional<ImVec2> {
+                              return std::nullopt;
+                          },
+        .textureError =
+            [](const std::string&) {
+                return std::string("block-compressed DDS dimensions 1086x362 must both be multiples of 4");
+            } });
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "MyMod/banner.dds: Not loaded: block-compressed DDS dimensions 1086x362 must both be multiples of 4.");
+}
+
 TEST_CASE("FullPanel: a press on a row that is not edited changes nothing")
 {
     const test_panel::PanelContext context;
