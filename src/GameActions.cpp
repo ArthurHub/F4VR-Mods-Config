@@ -174,7 +174,7 @@ namespace mods_config
             logger::warn("The web link is not opened: its URL is not UTF-8");
             return false;
         }
-        const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr, L"open", url->c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+        const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr, L"open", L"explorer.exe", url->c_str(), nullptr, SW_SHOWNORMAL));
         if (result <= 32) {
             logger::warn("The web link '{}' is not opened: Windows returned {}", link.url, result);
             return false;
