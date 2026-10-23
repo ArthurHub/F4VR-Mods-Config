@@ -597,6 +597,56 @@ TEST_CASE("ConfigSpecLoader: a button is shown by its visibleWhen and enabled by
     CHECK(button.enabledWhen == Condition{ .kind = Kind::All, .setting = {}, .conditions = { compared(Kind::Equals, true), compared(Kind::NotEquals, false) } });
 }
 
+TEST_CASE("ConfigSpecLoader: page conditions cover child pages and their rows")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [ { "type": "text", "text": "Front" } ],
+        "pages": [
+            { "pageDisplayName": "Parent", "visibleWhen": { "clientState": "visible" }, "enabledWhen": { "clientState": "enabled" },
+              "content": [ { "type": "text", "text": "Parent text" } ],
+              "pages": [
+                { "pageDisplayName": "Child", "visibleWhen": { "clientState": "childVisible" }, "enabledWhen": { "clientState": "childEnabled" },
+                  "content": [ { "type": "button", "text": "Run", "action": { "type": "RunConsoleCommand", "command": "tm" } } ],
+                  "pages": [ { "pageDisplayName": "Grandchild", "content": [ { "type": "text", "text": "Nested" } ] } ] }
+              ] },
+            { "pageDisplayName": "Other", "content": [ { "type": "text", "text": "Other" } ] }
+        ]
+    })");
+    CHECK(mod.problems.empty());
+    const auto gate = [](const std::string& name) {
+        return model::Condition{ .kind = model::Condition::Kind::On, .setting = name, .clientState = true };
+    };
+    const auto& parent = mod.pages[0];
+    const auto& child = parent.pages[0];
+    CHECK(parent.visibleWhen == gate("visible"));
+    CHECK(parent.enabledWhen == gate("enabled"));
+    CHECK(std::get<model::Text>(parent.items[0]).visibleWhen == parent.visibleWhen);
+    CHECK(child.visibleWhen == model::Condition{ .kind = model::Condition::Kind::All, .conditions = { gate("visible"), gate("childVisible") } });
+    CHECK(child.enabledWhen == model::Condition{ .kind = model::Condition::Kind::All, .conditions = { gate("enabled"), gate("childEnabled") } });
+    const auto& button = std::get<model::Button>(child.items[0]);
+    CHECK(button.visibleWhen == child.visibleWhen);
+    CHECK(button.enabledWhen == child.enabledWhen);
+    CHECK(child.pages[0].visibleWhen == child.visibleWhen);
+    CHECK(child.pages[0].enabledWhen == child.enabledWhen);
+    CHECK_FALSE(mod.pages[1].visibleWhen);
+    CHECK_FALSE(mod.pages[1].enabledWhen);
+}
+
+TEST_CASE("ConfigSpecLoader: malformed page conditions are reported and left out")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [ { "type": "text", "text": "Front" } ],
+        "pages": [ { "pageDisplayName": "Page", "visibleWhen": true, "enabledWhen": {}, "content": [ { "type": "text", "text": "Shown" } ] } ]
+    })");
+    REQUIRE(mod.problems.size() == 2);
+    CHECK_FALSE(mod.pages[0].visibleWhen);
+    CHECK_FALSE(mod.pages[0].enabledWhen);
+    CHECK(mod.problems[0].path == "pages[0].enabledWhen");
+    CHECK(mod.problems[1].path == "pages[0].visibleWhen");
+}
+
 TEST_CASE("ConfigSpecLoader: a setting and a button have their warnings, each a text with its condition, in their order")
 {
     model::Translations translations;
@@ -1503,7 +1553,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     // a page has pages under it, two levels deep
     const auto pages = std::ranges::find(examples.pages, "Pages", &model::Page::name);
     REQUIRE(pages != examples.pages.end());
-    REQUIRE(pages->pages.size() == 1);
+    REQUIRE(pages->pages.size() == 2);
     CHECK(pages->pages[0].pages.size() == 1);
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,

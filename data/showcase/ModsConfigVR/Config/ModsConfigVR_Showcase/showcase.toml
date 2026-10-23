@@ -105,6 +105,8 @@ bInside = false
 bAfter = false
 
 [Pages]
+bShowConditional = true
+bEnableConditional = false
 bTop = true
 bUnder = false
 bDeeper = false

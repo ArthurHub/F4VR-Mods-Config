@@ -145,6 +145,7 @@ namespace mods_config::ui
 
         model::Store* storeOf(const model::Mod& mod) const;
         Selection existing(const Selection& selection) const;
+        Selection available(const Selection& selection) const;
         bool hasUnsavedChanges() const;
         bool show(const Selection& shown);
         bool leave();

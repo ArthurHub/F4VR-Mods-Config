@@ -1901,8 +1901,26 @@
         },
         {
           "pageDisplayName": "Pages",
-          "help": "A page with pages under it, two levels deep.",
+          "help": "Nested pages, and a page that can be hidden or disabled with its children.",
           "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "id": "showConditionalPage",
+              "text": "Show conditional page",
+              "help": "Shows or hides Conditional page and its child in the navigation tree.",
+              "default": true,
+              "storage": { "path": ["Pages", "bShowConditional"] }
+            },
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "id": "enableConditionalPage",
+              "text": "Enable conditional page",
+              "help": "Allows Conditional page and its child to be opened. While off, the page stays visible but disabled.",
+              "default": false,
+              "storage": { "path": ["Pages", "bEnableConditional"] }
+            },
             {
               "type": "switcher",
               "valueType": "bool",
@@ -1938,6 +1956,23 @@
                       "default": false,
                       "storage": { "path": ["Pages", "bDeeper"] }
                     }
+                  ]
+                }
+              ]
+            },
+            {
+              "pageDisplayName": "Conditional page",
+              "help": "Its visibility and enabled state follow the two switches on Pages.",
+              "visibleWhen": { "setting": "showConditionalPage", "equals": true },
+              "enabledWhen": { "setting": "enableConditionalPage", "equals": true },
+              "content": [
+                { "type": "text", "text": "This page is shown and enabled by the switches on its parent page. Its child inherits both conditions." }
+              ],
+              "pages": [
+                {
+                  "pageDisplayName": "Inside conditional page",
+                  "content": [
+                    { "type": "text", "text": "This child page follows its parent's visibility and enabled state." }
                   ]
                 }
               ]

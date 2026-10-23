@@ -269,7 +269,7 @@ namespace
     // a file of its `files`:
     constexpr std::array<std::string_view, 3> FILE_FIELDS{ "format", "root", "path" };
     // a page:
-    constexpr std::array<std::string_view, 8> PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "visibleWhen" };
+    constexpr std::array<std::string_view, 9> PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
     // a row, by its type:
     constexpr std::array<std::string_view, 10>
         SECTION_FIELDS{ "type", "text", "help", "content", "isCollapsible", "collapsed", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
@@ -1695,12 +1695,15 @@ namespace
     }
 
     /**
-     * Gives the items of a page and of the pages under it their conditions, as `loadPage` read them.
+     * Gives a page, its items and its child pages their conditions, including those of its parent pages.
      */
-    void loadPageConditions(const Json& page, model::Page& loaded, ConfigSpecReading& reading)
+    void loadPageConditions(const Json& page, model::Page& loaded, ConfigSpecReading& reading, const RowConditions& above = {})
     {
         reading.at.pages.push_back(common::trim(loaded.name));
-        loadConditions(page, loaded.items, {}, reading);
+        loaded.visibleWhen = join(above.visibleWhen, loadRowCondition(page, "visibleWhen", reading));
+        loaded.enabledWhen = join(above.enabledWhen, loadRowCondition(page, "enabledWhen", reading));
+        const RowConditions own{ .visibleWhen = loaded.visibleWhen, .enabledWhen = loaded.enabledWhen };
+        loadConditions(page, loaded.items, own, reading);
         const auto pages = page.find("pages");
         if (pages == page.end() || !pages->is_array()) {
             return;
@@ -1708,7 +1711,7 @@ namespace
         for (std::size_t place = 0; place < pages->size() && place < loaded.pages.size(); ++place) {
             const Into into(reading, "pages", place);
             reading.at.pagePlaces.push_back(place);
-            loadPageConditions((*pages)[place], loaded.pages[place], reading);
+            loadPageConditions((*pages)[place], loaded.pages[place], reading, own);
         }
     }
 

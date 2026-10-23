@@ -12,6 +12,7 @@
 #include "HelpPage.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
+#include "model/Conditions.h"
 
 namespace
 {
@@ -298,7 +299,8 @@ namespace mods_config::ui
      */
     bool FullPanel::select(const Selection& selection)
     {
-        const auto shown = existing(selection);
+        const auto target = existing(selection);
+        const auto shown = target.mod == _selection.mod ? available(target) : target;
         if (shown == _selection) {
             // the menu's front page, which a report is shown over, from the report
             return _report ? leaveReport(false) : showHelp(false);
@@ -332,6 +334,32 @@ namespace mods_config::ui
     }
 
     /**
+     * The nearest visible, enabled page of a selection whose mod's store is open. A blocked page also blocks
+     * its descendants; its nearest available parent, or the mod's front page, is shown instead.
+     */
+    Selection FullPanel::available(const Selection& selection) const
+    {
+        Selection shown{ .mod = selection.mod, .page = {} };
+        if (!selection.mod) {
+            return shown;
+        }
+        auto* store = storeOf(_mods[*selection.mod]);
+        const auto* pages = &_mods[*selection.mod].pages;
+        for (const auto place : selection.page) {
+            if (place >= pages->size()) {
+                break;
+            }
+            const auto& page = (*pages)[place];
+            if ((page.visibleWhen && !model::holds(*page.visibleWhen, store)) || (page.enabledWhen && !model::holds(*page.enabledWhen, store))) {
+                break;
+            }
+            shown.page.push_back(place);
+            pages = &page.pages;
+        }
+        return shown;
+    }
+
+    /**
      * Shows a selection of what is there. Another mod than before starts its editing session in its store,
      * which ends the session it had. A mod that is left for no mod, or for a mod of another store, ends its
      * session in its store. Another page of the same mod is told to its store, which reads the values it keeps
@@ -355,7 +383,7 @@ namespace mods_config::ui
         } else if (store) {
             store->pageShown();
         }
-        _selection = shown;
+        _selection = available(shown);
         if (store) {
             store->showPage(selectedPage());
         }
@@ -631,6 +659,12 @@ namespace mods_config::ui
             // the states of the mod's client are asked again in each frame
             store->startFrame();
         }
+        const auto shown = available(_selection);
+        if (shown != _selection) {
+            const bool helpShown = _helpShown;
+            show(shown);
+            _helpShown = helpShown;
+        }
         auto titleBar = drawTitleBar(_mods, _selection, _helpShown, _report && !_helpShown ? &_mods[*_report] : nullptr);
         auto pressed = titleBar.pressed;
         // the body stands a little further from the title bar than a row from a row
@@ -640,7 +674,7 @@ namespace mods_config::ui
         const auto bodyPos = ImGui::GetCursorScreenPos();
         const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
 
-        auto tree = _modTree.draw(_mods, _selection, bodyHeight);
+        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore());
         if (tree.pressed) {
             pressed = tree.pressed;
         }

@@ -7,6 +7,7 @@
 #include "Selection.h"
 #include "Theme.h"
 #include "model/ConfigDefinition.h"
+#include "model/Store.h"
 
 namespace mods_config::ui
 {
@@ -32,14 +33,14 @@ namespace mods_config::ui
     class ModTree
     {
     public:
-        TreeDrawn draw(const std::vector<model::Mod>& mods, const Selection& selection, float height);
+        TreeDrawn draw(const std::vector<model::Mod>& mods, const Selection& selection, float height, model::Store* store);
         void showSelection();
         void showTop();
         void setWidth(float width);
 
     private:
-        void drawPages(const std::vector<model::Page>& pages, std::size_t modIndex, const Selection& selection, std::vector<std::size_t>& path, float rowWidth,
-            TreeDrawn& drawn) const;
+        void drawPages(const std::vector<model::Page>& pages, std::size_t modIndex, const Selection& selection, std::vector<std::size_t>& path, float rowWidth, TreeDrawn& drawn,
+            model::Store* store) const;
 
         // the plate's width, in the panel's pixels
         float _width = theme::NAV_WIDTH;

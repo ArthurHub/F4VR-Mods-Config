@@ -168,7 +168,9 @@ A page is a row in the navigation tree, under the mod or under another page. It 
 - A page's `help` is shown in the help line while the ray is on its row in the tree.
 - A page can have an `id`, unique among the config spec's pages. The mod's native client is told it as the page is shown and left, to show in the world what the page sets; see [The client's events](architecture.md#the-clients-events). A page with no `id` sends none.
 - A page's pages are rows under it in the tree, shown while it or one of them is selected, as a mod's pages are shown while the mod is selected. The breadcrumbs name every level, as `MODS CONFIG VR » My Mod » Body » Hands`. See [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior).
-- What a page has goes down to the pages under it: its `defaultFile`, its `applies`, and its `visibleWhen`, which hides them with it.
+- A page can have `visibleWhen` and `enabledWhen`, using the same [conditions](#conditions) as rows. `visibleWhen` hides its navigation row and its children. `enabledWhen` leaves the row visible but disabled, with an explanation in the help line, and prevents opening it or its children.
+- What a page has goes down to the pages under it: its `defaultFile`, its `applies`, its `visibleWhen` and its `enabledWhen`. Page conditions also cover its content, combined with each row's own conditions.
+- If the selected page becomes hidden or disabled, the menu returns to the nearest visible, enabled parent, or the mod's front page. Unsaved changes stay pending. Direct page requests follow the same rule, including requests from a native client.
 - An MCM config has one level of pages.
 
 ## Layout and file defaults
@@ -459,7 +461,16 @@ An MCM section is a heading row whose rows are the ones after it, up to the next
 
 ## Conditions
 
-A row can be shown or enabled by the pending values of settings: it is shown while its `visibleWhen` holds, and enabled while its `enabledWhen` holds. A row that is not enabled is drawn disabled. A section's conditions cover everything in it, so a row needs every condition above it to hold. A page can have a `visibleWhen`, which hides its row in the tree, and the pages under it.
+A row can be shown or enabled by the pending values of settings: it is shown while its `visibleWhen` holds, and enabled while its `enabledWhen` holds. A row that is not enabled is drawn disabled. A section's conditions cover everything in it, so a row needs every condition above it to hold. A page supports both conditions too, covering its row in the tree, its content and its child pages:
+
+```json
+{
+  "pageDisplayName": "Calibration",
+  "visibleWhen": { "setting": "showCalibration", "equals": true },
+  "enabledWhen": { "clientState": "ready" },
+  "content": [ { "type": "text", "text": "Adjust calibration here." } ]
+}
+```
 
 ```json
 {

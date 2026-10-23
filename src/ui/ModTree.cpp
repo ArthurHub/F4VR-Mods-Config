@@ -10,6 +10,7 @@
 
 #include "Drawing.h"
 #include "Theme.h"
+#include "model/Conditions.h"
 
 namespace
 {
@@ -95,11 +96,11 @@ namespace
     }
 
     /**
-     * The row of a mod that is not available, at the cursor, in the width of every row. It is disabled: it
+     * The row of a mod or page that is not available, at the cursor, in the width of every row. It is disabled: it
      * has the look of a row under the ray, so the reason in the help line is seen to be its, and none of a
      * press, which does nothing. Returns whether the ray is on the row.
      */
-    bool notAvailableRow(const std::string_view name, const float width)
+    bool disabledRow(const std::string_view name, const int level, const Arrow arrow, const float width)
     {
         const auto min = ImGui::GetCursorScreenPos();
         ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
@@ -110,8 +111,11 @@ namespace
         ui::drawRowState();
 
         ImGui::BeginDisabled();
-        drawArrow(min.x + theme::SPACE_2, min.y, false, theme::color::GREEN);
-        ui::drawText(min.x + theme::SPACE_2 + ARROW_COLUMN + ARROW_GAP, min.x + width - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
+        const float left = min.x + theme::SPACE_2 + indentOf(level);
+        if (arrow != Arrow::None) {
+            drawArrow(left, min.y, false, theme::color::GREEN);
+        }
+        ui::drawText(left + ARROW_COLUMN + ARROW_GAP, min.x + width - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
         ImGui::EndDisabled();
         return pointed;
     }
@@ -128,7 +132,7 @@ namespace mods_config::ui
      * Returns what a pressed row selects, and the row the ray is on where it has something to say: the reason
      * of a mod that is not available, or the help of a mod or a page, which a config spec gives them.
      */
-    TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height)
+    TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height, model::Store* store)
     {
         TreeDrawn drawn;
         // a row is the same width whether or not the scroll bar shows
@@ -164,7 +168,7 @@ namespace mods_config::ui
                     const bool open = selected && !mod.pages.empty();
                     ImGui::PushID(static_cast<int>(modIndex));
                     if (!mod.notAvailable.empty()) {
-                        if (notAvailableRow(mod.displayName, rowWidth)) {
+                        if (disabledRow(mod.displayName, 0, Arrow::Closed, rowWidth)) {
                             drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
                         }
                         ImGui::PopID();
@@ -179,7 +183,7 @@ namespace mods_config::ui
                     }
                     if (open) {
                         std::vector<std::size_t> path;
-                        drawPages(mod.pages, modIndex, selection, path, rowWidth, drawn);
+                        drawPages(mod.pages, modIndex, selection, path, rowWidth, drawn, store);
                     }
                     ImGui::PopID();
                 }
@@ -198,23 +202,29 @@ namespace mods_config::ui
      * pages are the rows under it, a level further in. Tells a pressed row and a pointed one with a help.
      */
     void ModTree::drawPages(const std::vector<model::Page>& pages, const std::size_t modIndex, const Selection& selection, std::vector<std::size_t>& path, const float rowWidth,
-        TreeDrawn& drawn) const
+        TreeDrawn& drawn, model::Store* store) const
     {
         for (std::size_t pageIndex = 0; pageIndex < pages.size(); ++pageIndex) {
             const auto& page = pages[pageIndex];
+            if (page.visibleWhen && !model::holds(*page.visibleWhen, store)) {
+                continue;
+            }
             path.push_back(pageIndex);
+            const bool enabled = !page.enabledWhen || model::holds(*page.enabledWhen, store);
             const bool open = !page.pages.empty() && std::ranges::starts_with(selection.page, path);
             const auto arrow = page.pages.empty() ? Arrow::None : open ? Arrow::Open : Arrow::Closed;
             ImGui::PushID(static_cast<int>(pageIndex));
             bool pointed = false;
-            if (treeRow(page.name, static_cast<int>(path.size()), arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
+            if (!enabled) {
+                pointed = disabledRow(page.name, static_cast<int>(path.size()), arrow, rowWidth);
+            } else if (treeRow(page.name, static_cast<int>(path.size()), arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
-            if (pointed && !page.help.empty()) {
-                drawn.pointed = PointedRow{ .text = page.name, .help = page.help };
+            if (pointed && (!enabled || !page.help.empty())) {
+                drawn.pointed = PointedRow{ .text = page.name, .help = enabled ? page.help : "This page is disabled." + (page.help.empty() ? std::string() : " " + page.help) };
             }
-            if (open) {
-                drawPages(page.pages, modIndex, selection, path, rowWidth, drawn);
+            if (open && enabled) {
+                drawPages(page.pages, modIndex, selection, path, rowWidth, drawn, store);
             }
             ImGui::PopID();
             path.pop_back();

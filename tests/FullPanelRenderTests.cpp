@@ -677,6 +677,48 @@ TEST_CASE("FullPanel render: the pages of the mod's own config spec, with the ra
     }
 }
 
+TEST_CASE("FullPanel render: hidden and disabled pages", "[.render]")
+{
+    const auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [ { "type": "text", "text": "Page conditions affect navigation and are inherited by child pages." } ],
+        "pages": [
+            { "pageDisplayName": "Conditional", "help": "Available when the mod is ready.",
+              "visibleWhen": { "clientState": "visible" }, "enabledWhen": { "clientState": "ready" },
+              "content": [ { "type": "text", "text": "The conditional page is enabled." } ],
+              "pages": [ { "pageDisplayName": "Child", "content": [ { "type": "text", "text": "Child inherits the page conditions." } ] } ] },
+            { "pageDisplayName": "Always available", "content": [ { "type": "text", "text": "Always available." } ] }
+        ]
+    })");
+    REQUIRE(mod);
+    spec::ConfigSpecStore store({}, {});
+    bool visible = true;
+    bool ready = false;
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .states = { { "visible",
+                                                  [&] {
+                                                      return std::optional<model::Value>(visible);
+                                                  } },
+                                      { "ready",
+                                          [&] {
+                                              return std::optional<model::Value>(ready);
+                                          } } } }
+            .calls());
+    const auto render = [&](const std::vector<std::size_t>& page, const std::string& name, const ImVec2 pointer = POINTER_AWAY) {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods({ *mod });
+        panel.select({ .mod = 0, .page = page });
+        WARN("Saved " << renderToFile(panel, name, pointer));
+    };
+    render({}, "pages-disabled", ImVec2(200.0f, 330.0f));
+    visible = false;
+    render({}, "pages-hidden");
+    visible = true;
+    ready = true;
+    render({ 0, 0 }, "pages-enabled-child");
+}
+
 TEST_CASE("FullPanel render: client states in text", "[.render]")
 {
     const auto mod = spec::loadConfigSpec(R"({

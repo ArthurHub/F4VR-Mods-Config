@@ -821,6 +821,115 @@ TEST_CASE("FullPanel: a page's pages are rows under it while it or one of them i
     CHECK(panel.selection() == selectionOf(1));
 }
 
+TEST_CASE("FullPanel: page conditions follow pending settings, block opening, and keep changes when a page disappears")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    const auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } }, "defaultFile": "main",
+        "content": [
+            { "type": "switcher", "valueType": "bool", "id": "show", "text": "Show", "default": true, "storage": { "path": ["Main", "bShow"] } },
+            { "type": "switcher", "valueType": "bool", "id": "enable", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } }
+        ],
+        "pages": [
+            { "pageDisplayName": "Conditional", "help": "Conditional page help.", "visibleWhen": { "setting": "show", "equals": true }, "enabledWhen": { "setting": "enable", "equals": true },
+              "content": [ { "type": "text", "text": "Parent" } ],
+              "pages": [ { "pageDisplayName": "Child", "content": [ { "type": "text", "text": "Child" } ] } ] },
+            { "pageDisplayName": "Always", "content": [ { "type": "text", "text": "Always" } ] }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ *mod });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    point(panel, treeRow(1));
+    CHECK(panel.helpLine().text() == "Conditional: This page is disabled. Conditional page help.");
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK_FALSE(panel.select({ .mod = 0, .page = { 0, 0 } }));
+    const auto& show = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    const auto& enable = std::get<model::Setting>(panel.mods()[0].frontPage.items[1]);
+    REQUIRE(store.set(enable, true));
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0, 0));
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == Selection{ .mod = 0, .page = { 0, 0 } });
+    REQUIRE(store.set(show, false));
+    drawFrames(panel, 1);
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK(store.dirtyCount() == 2);
+    CHECK_FALSE(panel.isAsking());
+    // Hiding the subtree keeps the original index of its following sibling.
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0, 1));
+    REQUIRE(store.set(show, true));
+    REQUIRE(store.set(enable, false));
+    panel.select(selectionOf(0));
+    CHECK_FALSE(panel.select(selectionOf(0, 0)));
+    CHECK(panel.selection() == selectionOf(0));
+}
+
+TEST_CASE("FullPanel: client page conditions use the target session and return to the nearest parent with page events")
+{
+    const test_panel::PanelContext context;
+    spec::ConfigSpecStore store({}, {});
+    const auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [ { "type": "text", "text": "Front" } ],
+        "pages": [ { "pageDisplayName": "Parent", "id": "parent", "enabledWhen": { "clientState": "ready" },
+            "content": [ { "type": "text", "text": "{clientState:ready}" } ],
+            "pages": [ { "pageDisplayName": "Child", "id": "child", "enabledWhen": { "clientState": "childReady" },
+                "content": [ { "type": "text", "text": "Child" } ] } ] } ]
+    })");
+    REQUIRE(mod);
+    bool ready = false;
+    bool childReady = true;
+    int asked = 0;
+    std::vector<std::pair<model::ClientEvent, std::string>> events;
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .states = { { "ready",
+                                                  [&] {
+                                                      ++asked;
+                                                      return std::optional<model::Value>(ready);
+                                                  } },
+                                      { "childReady",
+                                          [&] {
+                                              return std::optional<model::Value>(childReady);
+                                          } } },
+            .onEvent =
+                [&](const model::ClientEvent event, const std::string_view page) {
+                    events.emplace_back(event, page);
+                } }
+            .calls());
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ *mod });
+    // Even a direct first selection must open this mod's store before testing its page conditions.
+    panel.select({ .mod = 0, .page = { 0, 0 } });
+    CHECK(panel.selection() == selectionOf(0));
+    ready = true;
+    drawFrames(panel, 1);
+    panel.select({ .mod = 0, .page = { 0, 0 } });
+    CHECK(panel.selectedPage()->id == "child");
+    asked = 0;
+    drawFrames(panel, 3);
+    CHECK(asked == 3);
+    childReady = false;
+    events.clear();
+    panel.showHelp(true);
+    drawFrames(panel, 1);
+    CHECK(panel.selection() == selectionOf(0, 0));
+    CHECK(panel.isHelpShown());
+    CHECK(events == std::vector<std::pair<model::ClientEvent, std::string>>{ { model::ClientEvent::PageLeft, "child" }, { model::ClientEvent::PageShown, "parent" } });
+    ready = false;
+    drawFrames(panel, 1);
+    CHECK(panel.selection() == selectionOf(0));
+}
+
 TEST_CASE("FullPanel: a selection of a page under a page that is not there shows the deepest page on the way that is")
 {
     auto panel = nestedPages();

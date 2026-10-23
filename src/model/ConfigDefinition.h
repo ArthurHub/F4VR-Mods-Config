@@ -670,6 +670,12 @@ namespace mods_config::model
 
         // what its mod's client is told it by as it is shown and left: a config spec's page can have it. Empty for none
         std::string id;
+
+        // includes its parent pages' conditions; a hidden page hides its subtree
+        std::optional<Condition> visibleWhen;
+
+        // a disabled page stays in the tree but cannot be opened
+        std::optional<Condition> enabledWhen;
     };
 
     /**
