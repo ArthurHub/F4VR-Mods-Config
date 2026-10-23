@@ -8,6 +8,7 @@
 #include <imgui.h>
 
 #include "Drawing.h"
+#include "PageRows.h"
 #include "Theme.h"
 #include "Version.h"
 
@@ -31,14 +32,11 @@ namespace
     void foldingHeading(const char* text, const char* help, bool& folded, ui::FrontPageDrawn& drawn)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ImGui::GetContentRegionAvail().x;
-        if (ImGui::InvisibleButton(text, ImVec2(width, theme::CONTROL_HEIGHT))) {
-            folded = !folded;
-            drawn.pressActed = true;
-        }
-        const bool onHeading = ImGui::IsItemHovered();
-        ui::drawFoldingHeading(text, pos, width, folded, onHeading || ImGui::IsItemActive(), {});
-        if (onHeading) {
+        const float width = ui::rowWidth();
+        const auto row = ui::addFoldingRow(text, folded);
+        drawn.pressActed = drawn.pressActed || row.pressed;
+        ui::drawFoldingHeading(text, pos, width, folded, row.pointed || row.held, {});
+        if (row.pointed) {
             drawn.pointed = ui::PointedRow{ .text = text, .help = help };
         }
     }
@@ -70,7 +68,7 @@ namespace
     {
         ImGui::Indent(theme::SPACE_3);
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ImGui::GetContentRegionAvail().x;
+        const float width = ui::rowWidth();
         const bool enabled = entry.notAvailable.empty();
         ImGui::BeginDisabled(!enabled);
         const bool pressed = ImGui::InvisibleButton(entry.name.c_str(), ImVec2(width, theme::CONTROL_HEIGHT));

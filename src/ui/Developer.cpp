@@ -8,6 +8,7 @@
 #include <imgui.h>
 
 #include "Drawing.h"
+#include "PageRows.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
 
@@ -166,13 +167,11 @@ namespace mods_config::ui
         _filter.startFrame(thumbstickSideValue);
 
         const auto headingPos = ImGui::GetCursorScreenPos();
-        const float width = ImGui::GetContentRegionAvail().x;
-        if (ImGui::InvisibleButton("developer", ImVec2(width, theme::CONTROL_HEIGHT))) {
-            view.folded = !view.folded;
-            drawn.changed = true;
-            drawn.pressActed = true;
-        }
-        const bool onHeading = ImGui::IsItemHovered();
+        const float width = rowWidth();
+        const auto headingRow = addFoldingRow("developer", view.folded);
+        drawn.changed = headingRow.pressed;
+        drawn.pressActed = headingRow.pressed;
+        const bool onHeading = headingRow.pointed;
         if (scrollTo) {
             ImGui::SetScrollHereY(0.0f);
         }
@@ -186,7 +185,7 @@ namespace mods_config::ui
             warnings += state.warnings;
         }
         const auto hidden = view.folded ? problemCounts(errors, warnings) : std::vector<MarkedCount>{};
-        drawFoldingHeading(HEADING, headingPos, width, view.folded, onHeading || ImGui::IsItemActive(), hidden);
+        drawFoldingHeading(HEADING, headingPos, width, view.folded, onHeading || headingRow.held, hidden);
         if (onHeading) {
             auto help = std::string(HEADING_HELP);
             if (!hidden.empty()) {

@@ -56,6 +56,22 @@ namespace mods_config::ui
     }
 
     /**
+     * Adds the row of a heading that folds at the cursor, by its id, as a section's heading of a page is: a row
+     * that is pressed, with the look of a row under the ray. A press folds or opens it. The caller draws the
+     * heading in it with `drawFoldingHeading`.
+     */
+    Row addFoldingRow(const char* id, bool& folded)
+    {
+        ImGui::PushID(id);
+        const auto row = addRow(true);
+        ImGui::PopID();
+        if (row.pressed) {
+            folded = !folded;
+        }
+        return row;
+    }
+
+    /**
      * Draws a row's plain or formatted label `space-3` inside the row's frame, with its marks after it, each
      * `space-2` after what is before it. The label shortens before a mark does, so the marks always show.
      */

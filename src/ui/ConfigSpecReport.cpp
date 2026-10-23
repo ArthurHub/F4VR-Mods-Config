@@ -86,13 +86,10 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
-        if (ImGui::InvisibleButton(id, ImVec2(width, theme::CONTROL_HEIGHT))) {
-            folded = !folded;
-            pressActed = true;
-        }
-        const bool pointed = ImGui::IsItemHovered();
-        ui::drawFoldingHeading(text, pos, width, folded, pointed || ImGui::IsItemActive(), folded ? hidden : std::span<const ui::MarkedCount>(), mark);
-        return pointed;
+        const auto row = ui::addFoldingRow(id, folded);
+        pressActed = pressActed || row.pressed;
+        ui::drawFoldingHeading(text, pos, width, folded, row.pointed || row.held, folded ? hidden : std::span<const ui::MarkedCount>(), mark);
+        return row.pointed;
     }
 
     /**
