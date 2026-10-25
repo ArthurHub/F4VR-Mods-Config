@@ -112,7 +112,7 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 | M66 | mod       | The quick launch section takes the mods that registered for it                              | in review |
 | F29 | framework | `ModBase` connects the header's C++ client, to which a mod adds what its client answers | in review |
 | M119 | mod      | The native API is two interfaces: the host asks a client by name, with a C++ client in the header | in review |
-| M67 | mod       | FRIK's config is opened from its quick launch entry, and the menu comes back when it closes | todo   |
+| M67 | mod       | FRIK's config is opened from its quick launch entry, and the menu comes back when it closes | in review |
 
 M62 settles the [Native API](architecture.md#native-api): what it passes between DLLs, how its text is encoded, how its versions are told apart, and its calls. The API is two interfaces: the host's, which `ModsConfigVR.dll` exports, and the client's, which the host asks by name (M119). A button that opens the mod's own UI is a plain `CallNativeFunction`, whose function minimizes the menu and restores it, so the schema has nothing of its own for it.
 
@@ -130,7 +130,7 @@ M119 makes the native API two interfaces of virtual functions, the host's and th
 
 M66 is `addQuickLaunch`: a client adds an entry for each UI it opens from the menu's front page, with its text, its help, the text of its button and the function a press runs, which tells the entry from the client's others. The menu translates the texts as it opens, as a client registers before the game's translations are read, and lists the entries as the mods are. A press tells the function's message in the help line, in red when it failed, and an entry whose function does not run, as one of a client that is cut off, is disabled with the reason. FRIK's own entry stays until M67. It comes before F29, which gives a CommonFramework mod its entries and the menu's minimize and restore.
 
-M67 needs a FRIK that is built on a framework with F29. That is a commit in FRIK's repository, made when this commit needs it. A build of FRIK is enough: it does not have to be released. The quick launch entry needs no config spec. FRIK's entry in the quick launch section is then there when FRIK registers for it.
+M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework with F29, and the menu keeps its own for a FRIK of before it, which adds none, while FRIK is installed: the menu takes FRIK's gesture from that FRIK too. A build of FRIK is enough: it does not have to be released. FRIK's entry opens its main config in FRIK's next frame update, as the press runs while the menu draws its panel, and minimizes the menu, which FRIK restores once none of its configs is open: the Pip-Boy and weapon configs open from the main config, which closes as they do. The quick launch entry needs no config spec.
 
 ## 8. Live preview
 

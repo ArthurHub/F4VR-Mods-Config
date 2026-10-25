@@ -79,6 +79,7 @@ namespace mods_config
         std::optional<ImVec2> textureSize(const std::string& texture);
         render::Texture& textureOf(const std::string& texture);
         std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();
+        std::optional<ui::FullPanel::QuickLaunchEntry> frikFallbackEntry();
         void doLiveCopy(const std::string& folder, ui::LiveCopyAction action);
         void readLiveCopy(const std::string& folder);
         void readInstalled(const std::string& folder);

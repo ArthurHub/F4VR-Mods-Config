@@ -45,6 +45,9 @@ namespace
     // the id of the Config spec setting of the menu's own config spec, whose options the menu gives
     constexpr auto DEVELOPER_CONFIG_SPEC_ID = "developerConfigSpec";
 
+    // the name FRIK's client of the native API registers under, whose quick launch entry replaces the menu's own
+    constexpr auto FRIK_CLIENT_NAME = "FRIK";
+
     // the folder of the live copies of the config specs' spec.json, in the mod's folder of My Games
     const auto LIVE_COPIES_FOLDER = mods_config::BASE_MOD_PATH + R"(\Dev)";
 
@@ -731,26 +734,18 @@ namespace mods_config
     }
 
     /**
-     * The mods whose own config UI is opened from the menu's front page, by the names they show, as the mods are
-     * listed: FRIK's, with FRIK installed, as this menu took its opening gesture, and the entry each client added,
-     * with its texts translated. A press on a client's entry runs its function, which minimizes the menu and opens
-     * the mod's UI, and one whose function does not run is disabled, with the reason.
+     * The entries of the quick launch section of the menu's front page, by the names they show, as the mods are listed:
+     * the entry each client added, with its texts translated, and the menu's own for an older FRIK. A press on a
+     * client's entry runs its function, as one that opens the mod's own UI and minimizes the menu, and one whose
+     * function does not run is disabled, with the reason.
      */
     std::vector<ui::FullPanel::QuickLaunchEntry> ConfigMenu::quickLaunchEntries()
     {
         std::vector<ui::FullPanel::QuickLaunchEntry> entries;
-        if (frik::api::FRIKApi::inst) {
-            entries.push_back({ .name = "FRIK Configuration",
-                .help = "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.",
-                .open =
-                    [this] {
-                        _openFrikRequested = true;
-                        return ui::QuickLaunchResult{};
-                    },
-                .buttonText = {},
-                .notAvailable = {} });
+        if (auto frik = frikFallbackEntry()) {
+            entries.push_back(std::move(*frik));
         }
-        // the clients' entries, whose function minimizes the menu and opens the mod's own UI
+        // the clients' entries, whose function opens the mod's own UI and minimizes the menu, or does a quick action
         const auto& calls = _configSpecStore.clientCalls();
         for (const auto& entry : calls.quickLaunch()) {
             auto name = _translations.translate(entry.text);
@@ -770,5 +765,33 @@ namespace mods_config
             return common::str_tolower(entry.name) < common::str_tolower(other.name);
         });
         return entries;
+    }
+
+    /**
+     * The menu's own quick launch entry for FRIK, while FRIK is installed and its client added none, as a FRIK of before
+     * the native API: this menu took FRIK's opening gesture, so its config is opened from here. A press minimizes the
+     * menu and opens FRIK's config in the frame update, and the menu does not come back by itself. None for a FRIK whose
+     * client added its own.
+     */
+    std::optional<ui::FullPanel::QuickLaunchEntry> ConfigMenu::frikFallbackEntry()
+    {
+        if (!frik::api::FRIKApi::inst) {
+            return std::nullopt;
+        }
+        const bool frikAddedEntry = std::ranges::any_of(_configSpecStore.clientCalls().quickLaunch(), [](const model::ClientQuickLaunch& entry) {
+            return common::str_tolower(entry.modName) == common::str_tolower(FRIK_CLIENT_NAME);
+        });
+        if (frikAddedEntry) {
+            return std::nullopt;
+        }
+        return ui::FullPanel::QuickLaunchEntry{ .name = "FRIK Configuration",
+            .help = "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.",
+            .open =
+                [this] {
+                    _openFrikRequested = true;
+                    return ui::QuickLaunchResult{};
+                },
+            .buttonText = {},
+            .notAvailable = {} };
     }
 }
