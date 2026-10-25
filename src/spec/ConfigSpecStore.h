@@ -41,9 +41,9 @@ namespace mods_config::spec
      * for an invalid one, which leaves the preview before it, and
      * its baseline is written back as it is set back, discarded, or its session ends. Save writes them after
      * the files, and then runs the action of each setting it wrote.
-     * A setting takes effect as its `applies` says, but a `live` one of a file, which has no native client to
-     * preview it, takes effect after Save. The store keeps the ones that take effect after a restart that a
-     * Save wrote, for each mod, until the game is restarted.
+     * A setting takes effect as its `applies` says, also a `live` one of a file, which no native client previews
+     * yet. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
+     * game is restarted.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
     class ConfigSpecStore : public model::Store

@@ -78,11 +78,7 @@ namespace mods_config::ui
     void drawLabel(const ImVec2& pos, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const RowMarks& marks)
     {
         const float left = pos.x + theme::SPACE_3;
-        const float restartWidth = marks.restart ? restartMarkWidth() : 0.0f;
         float textRight = right;
-        if (marks.restart) {
-            textRight -= theme::SPACE_2 + restartWidth;
-        }
         if (marks.pending) {
             textRight -= theme::SPACE_2 + PENDING_MARK_WIDTH;
         }
@@ -98,10 +94,6 @@ namespace mods_config::ui
         }
         const float middle = pos.y + theme::CONTROL_HEIGHT * 0.5f;
         float markLeft = left + width + (width > 0.0f ? theme::SPACE_2 : 0.0f);
-        if (marks.restart) {
-            drawRestartMark(markLeft, middle);
-            markLeft += restartWidth + theme::SPACE_2;
-        }
         if (marks.pending) {
             drawPendingMark(ImVec2(markLeft + PENDING_MARK_WIDTH * 0.5f, middle));
             markLeft += PENDING_MARK_WIDTH + theme::SPACE_2;

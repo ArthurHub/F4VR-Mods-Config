@@ -210,7 +210,7 @@ Save writes a change, and the mod acts on it in its own way. Some mods read thei
 | `save`    | After Save                  | No preview                                                                            |
 | `restart` | After the game is restarted | No preview. A Save that wrote it says that a restart is needed                        |
 
-The help line shows the `applies` of the row the ray is on, and the Help page says what each value means. `unknown` and `save` differ only there: the host does the same for both.
+The help line shows the `applies` of the row the ray is on while its change waits for Save, but for `unknown`, which has no mark, as most settings have it. The Help page says what each value means. `unknown` and `save` differ only there: the host does the same for both.
 
 `applies` is optional at every level, and a setting takes the nearest one:
 

@@ -142,7 +142,7 @@ namespace mods_config::ui
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
     ImU32 valueColor(ValueLook look);
     float tagWidth(std::string_view text);
-    void drawTag(float left, float middle, std::string_view text);
+    void drawTag(float left, float middle, std::string_view text, bool pending = false);
     float restartMarkWidth();
     void drawRestartMark(float left, float middle);
     float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);

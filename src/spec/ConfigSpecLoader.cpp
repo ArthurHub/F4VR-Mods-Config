@@ -381,11 +381,14 @@ namespace
 
     /**
      * The `applies` of a config spec, a page, a section or a setting. None for one that has none, and for one
-     * that is not `live`, `save` or `restart`.
+     * that is not `unknown`, `live`, `save` or `restart`.
      */
     std::optional<model::Applies> findApplies(const Json& value)
     {
         const auto text = getText(value, "applies");
+        if (text == "unknown") {
+            return model::Applies::Unknown;
+        }
         if (text == "live") {
             return model::Applies::Live;
         }
@@ -402,7 +405,7 @@ namespace
     struct Inherited
     {
         std::string defaultFile;
-        model::Applies applies = model::Applies::Live;
+        model::Applies applies = model::Applies::Unknown;
     };
 
     /**
@@ -419,7 +422,7 @@ namespace
             own.applies = *applies;
         } else if (value.contains("applies")) {
             const Into into(reading, "applies");
-            reading.report(model::Severity::Error, std::format("Its applies {} is not live, save or restart: it has the one above it.", value["applies"].dump()));
+            reading.report(model::Severity::Error, std::format("Its applies {} is not unknown, live, save or restart: it has the one above it.", value["applies"].dump()));
         }
         return own;
     }
@@ -1973,17 +1976,14 @@ namespace mods_config::spec
         if (!reason.empty()) {
             return notAvailableMod(std::move(mod.name), std::move(mod.displayName), std::move(reason));
         }
-        const auto applies = findApplies(configSpec);
-        if (!applies) {
-            return std::unexpected("No applies of live, save or restart"s);
-        }
         checkFields(configSpec, ROOT_FIELDS, reading);
         mod.help = readShownText(configSpec, "help", reading);
         reading.files = loadFiles(configSpec, reading);
         reading.fileValues = readFiles(reading.files, folders);
         checkSharedLists(reading);
 
-        const Inherited root{ .defaultFile = getText(configSpec, "defaultFile"), .applies = *applies };
+        // a setting that nothing says it of takes effect at a time the menu does not know
+        const auto root = inherit(configSpec, Inherited{}, reading);
         mod.frontPage.items = loadItems(configSpec, root, reading);
         loadConditions(configSpec, mod.frontPage.items, {}, reading);
         if (const auto pages = configSpec.find("pages"); pages != configSpec.end() && pages->is_array()) {

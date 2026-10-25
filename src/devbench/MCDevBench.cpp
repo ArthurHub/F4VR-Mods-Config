@@ -151,6 +151,8 @@ namespace mods_config::devbench
         const char* appliesName(const model::Applies applies)
         {
             switch (applies) {
+            case model::Applies::Unknown:
+                return "unknown";
             case model::Applies::Live:
                 return "live";
             case model::Applies::Save:
@@ -204,7 +206,7 @@ namespace mods_config::devbench
                 { "enabled", !setting.enabledWhen || model::holds(*setting.enabledWhen, &store) } };
             const auto defaultValue = store.defaultValue(setting);
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);
-            row["applies"] = setting.applies ? json(appliesName(*setting.applies)) : json(nullptr);
+            row["applies"] = appliesName(setting.applies);
             if (setting.type == model::SettingType::Slider) {
                 row["range"] = { { "min", setting.valueOptions.min }, { "max", setting.valueOptions.max }, { "step", setting.valueOptions.step } };
             } else if (const auto& choiceOptions = store.options(setting); !choiceOptions.empty()) {

@@ -114,8 +114,8 @@ namespace mods_config::model
         virtual std::size_t invalidCount() const = 0;
 
         /**
-         * When a change of a setting takes effect in its running mod, as the store makes it. None for a setting
-         * whose store does not know, as an MCM mod's, and for one that is not set, as a read-only one.
+         * When a change of a setting takes effect in its running mod, as its config spec says: unknown for an MCM
+         * mod's. None for one that is not set, as a read-only one.
          */
         virtual std::optional<Applies> applies(const Setting& setting) const = 0;
 

@@ -210,11 +210,13 @@ namespace mods_config::model
     using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, UnknownStorage>;
 
     /**
-     * When a change of a config spec's setting takes effect in the running mod.
+     * When a change of a setting takes effect in the running mod, as its config spec says it: the menu cannot tell.
      */
     enum class Applies : std::uint8_t
     {
-        // as it is made
+        // not known: every MCM row's, and a config spec's setting that nothing says it of
+        Unknown,
+        // as it is made: the mod handles the change it is told of
         Live,
         // after Save
         Save,
@@ -478,9 +480,9 @@ namespace mods_config::model
         // the row is edited while it holds, and is disabled while it does not. A row with none is always edited
         std::optional<Condition> enabledWhen;
 
-        // when its change takes effect: its own, or else the nearest its config spec gives above it. None for an
-        // MCM row
-        std::optional<Applies> applies;
+        // when its change takes effect: its own, or else the nearest its config spec gives above it, and unknown
+        // where none does, as for an MCM row
+        Applies applies = Applies::Unknown;
 
         // the value Reset gives it, in its value's type: a config spec's setting has it. None for an MCM row,
         // whose default is its store's to answer

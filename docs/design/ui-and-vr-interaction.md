@@ -221,7 +221,7 @@ What the menu's controls do, with the buttons the player's config has for them. 
 - The crumbs are `MODS CONFIG VR » Help`. The tree keeps the selected mod and page, and so does the editing session: the Help page is shown in place of the page, which is not left.
 - Back goes back to the page it was shown over. A row of the tree or the first crumb goes there, as from any page.
 - It is a text, then each control as `Name: text`, as the help line has a row's help: pointing and the trigger, the thumbstick's scroll and step, Back, moving the panel, Recenter, opening and closing the menu, and Minimize.
-- Then what Save does, and each mark of when a change takes effect with what it means: Save writes the changes, and each mod acts on them in its own way, which a config spec can say and an MCM mod cannot.
+- Then what Save does, and each mark of when a change takes effect with what it means: Save writes the changes, and each mod acts on them in its own way, which a config spec can say and an MCM mod cannot. A setting with no mark is one whose mod does not say.
 - A button and a binding are said as the config has them, in the sentence of the [InputBinding](design-system/project/components/InputBinding/README.md) control, as the controllers print their buttons: "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand". Back and the move are on the hand that points, either hand, so an A button is "the A or X button". A control the config turns off is left out.
 - Nothing on it is pressed.
 
@@ -313,7 +313,7 @@ The help line has room for two lines. Help that needs a third is drawn in a smal
 
 Help is one size and one color. An MCM config can have the tags of a [text row](schema.md#text-spacers-and-images) in a help, with or without `html`. They are removed, and a line break becomes a space, so the help keeps to its lines.
 
-The help of a setting also says when its change takes effect, with a mark of its `applies`: not known, as it is made, after Save, or after the game is restarted. Its row has no such mark, as one on every row takes room and says little: a pending row's mark is that one, in amber, so it shows both that the change waits for Save and when it takes effect. A count of pending changes, in a folded section's heading, in the status and in the unsaved-changes dialog, keeps one plain pending mark. See [When a change takes effect](schema.md#when-a-change-takes-effect). The marks are still to be designed.
+While a setting's change waits for Save, the help line also says when it takes effect, with a mark of its `applies` in amber, as the pending value is: as it is made, after Save, or after the game is restarted. It appears as the setting is changed, so browsing the rows shows their help alone. A setting whose `applies` is unknown, as every MCM setting's is, has none, so a mark is only there where the mod says something. Its row has no such mark, as one on every row takes room and says little: a pending row's mark is that one, in amber, so it shows both that the change waits for Save and when it takes effect, and the plain pending mark for an unknown one. A count of pending changes, in a folded section's heading, in the status and in the unsaved-changes dialog, keeps one plain pending mark. See [When a change takes effect](schema.md#when-a-change-takes-effect). The marks are still to be designed.
 
 A button that calls a script, of a mod with unsaved changes, says in its help that a press asks to save them first; see [Buttons](schema.md#buttons).
 

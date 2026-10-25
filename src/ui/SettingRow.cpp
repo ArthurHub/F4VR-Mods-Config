@@ -108,18 +108,6 @@ namespace
     }
 
     /**
-     * What the help line says of when a setting's change takes effect, after the row's help: nothing for one
-     * that takes effect as it is made, and for one whose store does not know.
-     */
-    std::string_view takesEffect(const std::optional<model::Applies> applies)
-    {
-        if (applies == model::Applies::Save) {
-            return "Takes effect after Save.";
-        }
-        return applies == model::Applies::Restart ? "Takes effect after the game is restarted." : std::string_view();
-    }
-
-    /**
      * The parts of a help that are not empty, with a space between each two.
      */
     std::string joinHelp(const std::initializer_list<std::string_view> parts)
@@ -272,9 +260,11 @@ namespace mods_config::ui
             } else {
                 const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, choiceOptions, *defaultValue)) : std::string();
                 const auto ownHelp = setting.readOnly ? readOnlyHelp({}, setting.help) : setting.help;
-                help = joinHelp({ ownHelp, numberDetail(setting, stored, value), takesEffect(applies), defaultText });
+                help = joinHelp({ ownHelp, numberDetail(setting, stored, value), defaultText });
             }
-            drawn.pointed = PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid };
+            // the tag of when it takes effect is told as it is changed
+            const bool pending = stored.available && context.store->isDirty(setting);
+            drawn.pointed = PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid, .applies = pending ? applies : std::nullopt };
         }
         if (!row.shown) {
             return drawn;
@@ -303,11 +293,7 @@ namespace mods_config::ui
         }
         }
         // an invalid value has its mark in the place of a warning's, which it has none of
-        const RowMarks marks{ .restart = applies == model::Applies::Restart,
-            .pending = look == ValueLook::Pending,
-            .mark = look == ValueLook::Invalid ? TextMark::Invalid
-                    : !warns.empty()           ? TextMark::Warning
-                                               : TextMark::None };
+        const RowMarks marks{ .pending = look == ValueLook::Pending, .mark = look == ValueLook::Invalid ? TextMark::Invalid : !warns.empty() ? TextMark::Warning : TextMark::None };
         drawLabel(pos, left - theme::SPACE_3, setting.text, setting.textRuns, marks);
         ImGui::EndDisabled();
         if (defaultValue) {

@@ -738,7 +738,7 @@ namespace mods_config::spec
             entry.pendingInvalid = typedReason(setting, _options.of(setting), *typed);
             entry.pending = std::move(*typed);
         }
-        if (applies(setting) == model::Applies::Live && entry.pendingInvalid.empty()) {
+        if (setting.applies == model::Applies::Live && isInGame(setting.storage) && entry.pendingInvalid.empty()) {
             preview(setting, entry);
         }
         return true;
@@ -773,17 +773,14 @@ namespace mods_config::spec
     }
 
     /**
-     * When a change of a setting takes effect, as its `applies` says. A `live` one of a file takes effect
-     * after Save: the mod has no native client yet, so its preview has nowhere to go, and the store previews
-     * only a global and a property. None for a read-only setting, which is not set.
+     * When a change of a setting takes effect, as its `applies` says, also a `live` one of a file, which no native
+     * client previews yet: its mod can act on the change in its own way. None for a read-only setting, which is
+     * not set.
      */
     std::optional<model::Applies> ConfigSpecStore::applies(const model::Setting& setting) const
     {
         if (setting.readOnly) {
             return std::nullopt;
-        }
-        if (setting.applies == model::Applies::Live && !isInGame(setting.storage)) {
-            return model::Applies::Save;
         }
         return setting.applies;
     }

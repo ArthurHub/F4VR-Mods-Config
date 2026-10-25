@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <functional>
 #include <sstream>
@@ -1374,7 +1375,8 @@ TEST_CASE("ConfigSpecLoader: a setting takes its own applies, or else the neares
                     { "type": "switcher", "text": "Own in a section", "applies": "live", "storage": { "path": ["Main", "e"] } }
                 ]
             },
-            { "type": "switcher", "text": "Not one", "applies": "never", "storage": { "path": ["Main", "f"] } }
+            { "type": "switcher", "text": "Not one", "applies": "never", "storage": { "path": ["Main", "f"] } },
+            { "type": "switcher", "text": "Own unknown", "applies": "unknown", "storage": { "path": ["Main", "i"] } }
         ],
         "pages": [
             {
@@ -1384,11 +1386,10 @@ TEST_CASE("ConfigSpecLoader: a setting takes its own applies, or else the neares
             }
         ]
     })");
-    const auto name = [](const std::optional<model::Applies> applies) {
-        if (!applies) {
-            return "none";
-        }
-        switch (*applies) {
+    const auto name = [](const model::Applies applies) {
+        switch (applies) {
+        case model::Applies::Unknown:
+            return "unknown";
         case model::Applies::Live:
             return "live";
         case model::Applies::Save:
@@ -1402,9 +1403,30 @@ TEST_CASE("ConfigSpecLoader: a setting takes its own applies, or else the neares
     for (const auto& setting : settingsOf(mod)) {
         applies.push_back(setting.text + " " + name(setting.applies));
     }
-    CHECK(
-        applies ==
-        Lines{ "Config spec's live", "Own restart", "Section's save", "Outer section's save", "Own in a section live", "Not one live", "Page's restart", "Page above's restart" });
+    CHECK(applies == Lines{ "Config spec's live",
+                         "Own restart",
+                         "Section's save",
+                         "Outer section's save",
+                         "Own in a section live",
+                         "Not one live",
+                         "Own unknown unknown",
+                         "Page's restart",
+                         "Page above's restart" });
+}
+
+TEST_CASE("ConfigSpecLoader: a config spec with no applies, or one that is not one, has settings whose applies is unknown")
+{
+    for (const auto* root : { "", R"("applies": "never",)" }) {
+        const auto mod = loaded(std::format(R"({{
+            "minSchemaVersion": 1, "modName": "MyMod", {}
+            "files": {{ "main": {{ "format": "toml", "root": "myGames", "path": "MyMod.toml" }} }},
+            "defaultFile": "main",
+            "content": [ {{ "type": "switcher", "text": "A", "storage": {{ "path": ["Main", "a"] }} }} ]
+        }})",
+            root));
+        REQUIRE(settingsOf(mod).size() == 1);
+        CHECK(settingsOf(mod)[0].applies == model::Applies::Unknown);
+    }
 }
 
 TEST_CASE("ConfigSpecLoader: a config spec that cannot be read says why")
@@ -1412,9 +1434,6 @@ TEST_CASE("ConfigSpecLoader: a config spec that cannot be read says why")
     CHECK(spec::loadConfigSpec("{ not json").error().starts_with("Not valid JSON"));
     CHECK(spec::loadConfigSpec("[]").error() == "Not a JSON object");
     CHECK(spec::loadConfigSpec(R"({ "applies": "live", "content": [] })").error() == "No modName");
-    // applies is required at the root, and has to be one of the three
-    CHECK(spec::loadConfigSpec(R"({ "minSchemaVersion": 1, "modName": "MyMod", "content": [] })").error() == "No applies of live, save or restart");
-    CHECK(spec::loadConfigSpec(R"({ "minSchemaVersion": 1, "modName": "MyMod", "applies": "never", "content": [] })").error() == "No applies of live, save or restart");
 }
 
 TEST_CASE("ConfigSpecLoader: a mod with no displayName is named by its modName, and comments are skipped")
@@ -1475,7 +1494,7 @@ TEST_CASE("ConfigSpecLoader: the config spec of every folder in the config specs
         CHECK(mod.source == model::Source::ConfigSpec);
     }
     // one that cannot be read is named by its folder
-    CHECK(names == Lines{ "Broken: its spec.json cannot be read", "MyMod", "NoApplies: its spec.json cannot be read", "Other" });
+    CHECK(names == Lines{ "Broken: its spec.json cannot be read", "MyMod", "NoApplies", "Other" });
 }
 
 TEST_CASE("ConfigSpecLoader: two config specs with one modName, in any case, are both not available")

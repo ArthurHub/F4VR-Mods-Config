@@ -123,6 +123,7 @@ sNotification = "Showcase: saved"
 [Applies]
 bPage = true
 bLive = true
+bUnknown = true
 bRestart = false
 bInner = false
 

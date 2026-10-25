@@ -12,13 +12,33 @@ namespace
     // the lines the footer has room for: in the body size, and in the detail size for a help that needs more
     constexpr int BODY_LINES = 2;
     constexpr int DETAIL_LINES = 3;
+
+    /**
+     * The tag of when a setting's change takes effect, as the Help page tells it. None for one that is not known,
+     * which most settings are, as every MCM setting.
+     */
+    std::string_view appliesTag(const mods_config::model::Applies applies)
+    {
+        using mods_config::model::Applies;
+        switch (applies) {
+        case Applies::Live:
+            return "Live";
+        case Applies::Save:
+            return "Save";
+        case Applies::Restart:
+            return "Restart";
+        case Applies::Unknown:
+            break;
+        }
+        return {};
+    }
 }
 
 namespace mods_config::ui
 {
     /**
-     * Shows a row's text, its warning, the result of its action and its help, and whether the help is why its value
-     * is invalid. A row with none of them is its text alone, which a row that
+     * Shows a row's text, its warning, the result of its action and its help, whether the help is why its value
+     * is invalid, and when the change of its setting takes effect. A row with none of them is its text alone, which a row that
      * ends in an ellipsis has in full here. A mod sets a row in by spaces before its text: they are the page's.
      */
     void HelpLine::show(const PointedRow& row)
@@ -38,6 +58,7 @@ namespace mods_config::ui
         }
         _help = row.help;
         _invalid = row.invalid && !_help.empty();
+        _applies = row.applies;
     }
 
     void HelpLine::clear()
@@ -47,6 +68,7 @@ namespace mods_config::ui
         _result.clear();
         _help.clear();
         _invalid = false;
+        _applies.reset();
     }
 
     /**
@@ -63,6 +85,8 @@ namespace mods_config::ui
 
     /**
      * Draws the line from a place at the top of the footer, in the middle of the footer's height.
+     * A setting whose change waits for a Save has the tag of when it takes effect first, in amber, where it is known,
+     * and the text beside it.
      * It is two lines of body text at most. A help that needs a third is drawn in the detail size, where
      * three lines fit, and a longer one ends in an ellipsis. A warning is in amber after the warning mark,
      * a result in green after the info mark, and why a row is invalid in red after the invalid mark.
@@ -71,10 +95,18 @@ namespace mods_config::ui
      * restart, or in red after the invalid mark while a change is invalid and for a Save that failed,
      * wrapped as a help is.
      */
-    void HelpLine::draw(const ImVec2& pos, const float width) const
+    void HelpLine::draw(const ImVec2& at, const float lineWidth) const
     {
         const bool hasRow = !_name.empty() || !_warning.empty() || !_result.empty() || !_help.empty();
-        const float middle = pos.y + theme::FOOTER_HEIGHT * 0.5f;
+        const float middle = at.y + theme::FOOTER_HEIGHT * 0.5f;
+        auto pos = at;
+        float width = lineWidth;
+        if (const auto tag = this->tag(); !tag.empty()) {
+            drawTag(pos.x, middle, tag, true);
+            const float tagRoom = tagWidth(tag) + theme::SPACE_3;
+            pos.x += tagRoom;
+            width -= tagRoom;
+        }
         if (!hasRow && _look == StatusLook::Pending) {
             constexpr float MARK_WIDTH = 10.0f;
             drawPendingMark(ImVec2(pos.x + MARK_WIDTH * 0.5f, middle));
@@ -109,6 +141,16 @@ namespace mods_config::ui
         if (detail) {
             ImGui::PopFont();
         }
+    }
+
+    /**
+     * The tag of when the change of the line's row takes effect: empty with no row, for a row that is no setting
+     * that is set, and for one where it is not known.
+     */
+    std::string_view HelpLine::tag() const
+    {
+        const bool hasRow = !_name.empty() || !_warning.empty() || !_result.empty() || !_help.empty();
+        return hasRow && _applies ? appliesTag(*_applies) : std::string_view();
     }
 
     /**

@@ -2116,10 +2116,14 @@ TEST_CASE("FullPanel: the help line says that an MCM mod has no unsaved changes,
     CHECK(panel.helpLine().status() == "No unsaved changes");
 
     // it stays the status under the help of a row, for when the ray leaves the rows
+    // it stays the status under the help of a row, for when the ray leaves the rows
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Off: What it does.");
     CHECK(pressActs(panel, pageRow(0)));
     CHECK(panel.helpLine().status() == "1 unsaved change");
+
+    // an MCM config does not say when a change takes effect, so a pending row has no tag
+    CHECK(panel.helpLine().tag().empty());
     store.discard();
 
     // the menu's front page has no session
@@ -2692,7 +2696,7 @@ TEST_CASE("FullPanel: a config spec's changes wait for a Save, which the help li
     CHECK(panel.helpLine().statusLook() == ui::StatusLook::Plain);
 }
 
-TEST_CASE("FullPanel: a config spec's setting says when its change takes effect, and the status counts the ones that take effect after a restart, until the next change")
+TEST_CASE("FullPanel: the help line has the tag of when a setting's change takes effect, and the status counts the ones that take effect after a restart, until the next change")
 {
     const test_panel::PanelContext context;
     const test_globals::TestGlobals globals = someGlobals();
@@ -2718,16 +2722,21 @@ TEST_CASE("FullPanel: a config spec's setting says when its change takes effect,
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
 
-    // the help says it before the default, but for one that takes effect as it is made
+    // the help says nothing of when a change takes effect, and the help line has no tag before the change
     test_panel::drawFrame(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. Takes effect after the game is restarted. (Default: off)");
-    test_panel::drawFrame(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Beam: Takes effect after Save. (Default: off)");
-    test_panel::drawFrame(panel, pageRow(3));
-    CHECK(panel.helpLine().text() == "Live: (Default: off)");
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
+    CHECK(panel.helpLine().tag().empty());
 
+    // and has it while the change waits for a Save
     CHECK(pressActs(panel, pageRow(0)));
+    CHECK(panel.helpLine().tag() == "Restart");
     CHECK(pressActs(panel, pageRow(1)));
+    CHECK(panel.helpLine().text() == "Beam: (Default: off)");
+    CHECK(panel.helpLine().tag() == "Save");
+    CHECK(pressActs(panel, pageRow(3)));
+    CHECK(panel.helpLine().tag() == "Live");
+    CHECK(pressActs(panel, pageRow(3)));
+    CHECK(panel.helpLine().tag().empty());
     drawFrames(panel, 1);
     CHECK(panel.helpLine().status() == "2 unsaved changes, 1 takes effect after a restart");
     CHECK(panel.helpLine().statusLook() == ui::StatusLook::Pending);
@@ -2880,7 +2889,7 @@ TEST_CASE("FullPanel: a Save that fails says why in the help line, until the nex
 
     // the row the ray is on has its help over it, and the status is there again as the ray leaves
     test_panel::drawFrame(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Other: Takes effect after Save. (Default: off)");
+    CHECK(panel.helpLine().text() == "Other: (Default: off)");
     drawFrames(panel, 1);
     CHECK(panel.helpLine().status() == "Not saved: MyMod.toml cannot be written.");
 
@@ -3189,14 +3198,14 @@ TEST_CASE("FullPanel: a config spec's setting and button tell the first warning 
     drawFrames(panel, 2);
 
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. Takes effect after Save. (Default: off)");
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Rebuild");
 
     // a pending value warns, and blocks nothing
     CHECK(pressActs(panel, pageRow(0)));
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Shadows: Costly. Draws shadows. Takes effect after Save. (Default: off)");
+    CHECK(panel.helpLine().text() == "Shadows: Costly. Draws shadows. (Default: off)");
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Rebuild: Load the save again.");
     point(panel, pageRow(2));
@@ -3206,7 +3215,7 @@ TEST_CASE("FullPanel: a config spec's setting and button tell the first warning 
     // and is gone with the value
     CHECK(pressActs(panel, pageRow(0)));
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. Takes effect after Save. (Default: off)");
+    CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
 }
 
 TEST_CASE("FullPanel: the help line writes a number as its display does, with a percentage's number, and a unit its box has no room for")
@@ -3236,13 +3245,13 @@ TEST_CASE("FullPanel: the help line writes a number as its display does, with a 
     drawFrames(panel, 2);
 
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Ray opacity: How solid the ray is. 85% (217 of 255). Takes effect after Save. (Default: 100%)");
+    CHECK(panel.helpLine().text() == "Ray opacity: How solid the ray is. 85% (217 of 255). (Default: 100%)");
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Ray opacity: Reset to 100%");
     point(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Draw distance: How far it is drawn. 250000 meters. Takes effect after Save. (Default: 1000 meters)");
+    CHECK(panel.helpLine().text() == "Draw distance: How far it is drawn. 250000 meters. (Default: 1000 meters)");
     point(panel, pageRow(2));
-    CHECK(panel.helpLine().text() == "Height: Takes effect after Save. (Default: 1.75 m)");
+    CHECK(panel.helpLine().text() == "Height: (Default: 1.75 m)");
 }
 
 TEST_CASE("FullPanel: a config spec's Reset is a change as any other, which Save writes and Discard takes back")
@@ -3489,15 +3498,15 @@ TEST_CASE("FullPanel: a section that folds starts as its collapsed says, and a p
 
     // Advanced is folded, and Open is open
     point(panel, pageRow(3));
-    CHECK(panel.helpLine().text() == "Shown: In the open section. Takes effect after Save.");
+    CHECK(panel.helpLine().text() == "Shown: In the open section.");
 
     CHECK(pressActs(panel, pageRow(1)));
     point(panel, pageRow(3));
-    CHECK(panel.helpLine().text() == "Inner: In the folded section. Takes effect after Save.");
+    CHECK(panel.helpLine().text() == "Inner: In the folded section.");
 
     CHECK(pressActs(panel, pageRow(1)));
     point(panel, pageRow(3));
-    CHECK(panel.helpLine().text() == "Shown: In the open section. Takes effect after Save.");
+    CHECK(panel.helpLine().text() == "Shown: In the open section.");
 
     // the heading of Open, with no help, and the one that does not fold, where its row was
     CHECK(pressActs(panel, pageRow(2)));
@@ -3524,7 +3533,7 @@ TEST_CASE("FullPanel: a section that folds starts as its collapsed says each tim
         point(panel, pageRow(2));
         CHECK(panel.helpLine().text() == "Open");
         point(panel, pageRow(3));
-        CHECK(panel.helpLine().text() == "Shown: In the open section. Takes effect after Save.");
+        CHECK(panel.helpLine().text() == "Shown: In the open section.");
     };
 
     // after another page

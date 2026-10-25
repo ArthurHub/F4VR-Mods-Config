@@ -13,11 +13,9 @@
 
 namespace mods_config::ui
 {
-    // The marks after a row's name, in this order: the Restart tag, the pending dot, then the warning mark or
-    // the invalid mark.
+    // The marks after a row's name, in this order: the pending dot, then the warning mark or the invalid mark.
     struct RowMarks
     {
-        bool restart = false;
         bool pending = false;
         TextMark mark = TextMark::None;
     };

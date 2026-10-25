@@ -28,9 +28,8 @@ Whether InputBinding warns of two bindings that collide, of one mod or of two: F
 
 The design system still has the Restart mark on a row and one pending dot, and needs the marks of [the help line](ui-and-vr-interaction.md#help-line), which M124 designs once the rest is done:
 
-- A mark for each `applies`, told apart at the detail size in the headset, and drawn as the warning mark is.
-- The pending mark of a row as its `applies` mark in amber, and the plain pending mark of a count.
-- Whether an MCM row's pending mark is the plain one, as all of them are `unknown`.
+- A mark for `live`, `save` and `restart`, told apart at the detail size in the headset, and drawn as the warning mark is. `unknown` has none.
+- The pending mark of a row as its `applies` mark in amber, and the plain pending mark of an `unknown` one and of a count.
 
 ## Storage edge cases
 

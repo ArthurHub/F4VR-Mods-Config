@@ -716,15 +716,16 @@ namespace mods_config::ui
 
     /**
      * A tag, from its left in the middle of a height: a short text in the detail size and the muted color, in an
-     * outline of a frame's border, as the design system's tag has it.
+     * outline of a frame's border, as the design system's tag has it. One of a change that waits for a Save is all
+     * in amber, as its value is.
      */
-    void drawTag(const float left, const float middle, const std::string_view text)
+    void drawTag(const float left, const float middle, const std::string_view text, const bool pending)
     {
         const ImVec2 min(std::floor(left), std::floor(middle - RESTART_MARK_HEIGHT * 0.5f));
         const ImVec2 max(min.x + tagWidth(text), min.y + RESTART_MARK_HEIGHT);
-        drawOutline(min, max, theme::color::FRAME_BORDER);
+        drawOutline(min, max, pending ? theme::color::AMBER : theme::color::FRAME_BORDER);
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        drawText(min.x + theme::BORDER_FRAME + theme::SPACE_2, max.x, min.y, RESTART_MARK_HEIGHT, theme::color::GREEN_MUTED, text);
+        drawText(min.x + theme::BORDER_FRAME + theme::SPACE_2, max.x, min.y, RESTART_MARK_HEIGHT, pending ? theme::color::AMBER : theme::color::GREEN_MUTED, text);
         ImGui::PopFont();
     }
 

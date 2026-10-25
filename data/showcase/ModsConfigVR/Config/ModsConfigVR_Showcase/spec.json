@@ -2053,7 +2053,7 @@
         },
         {
           "pageDisplayName": "When a change takes effect",
-          "help": "Settings that take effect as they are changed, after Save, and after a restart: their own, a section's and the page's.",
+          "help": "Settings that take effect as they are changed, after Save, after a restart, or at a time the mod does not say: their own, a section's and the page's.",
           "applies": "save",
           "content": [
             {
@@ -2072,10 +2072,19 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": "As it is changed",
-                  "help": "It has its own applies, live. It is kept in a file, so it takes effect after Save until the mod has a native client.",
+                  "help": "It has its own applies, live: the mod handles the change. It is kept in a file, so nothing previews it until the mod has a native client.",
                   "applies": "live",
                   "default": true,
                   "storage": { "path": ["Applies", "bLive"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Not known",
+                  "help": "It has its own applies, unknown, as a setting that nothing says it of has.",
+                  "applies": "unknown",
+                  "default": true,
+                  "storage": { "path": ["Applies", "bUnknown"] }
                 }
               ]
             },
@@ -2677,7 +2686,7 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": "An applies that is not one",
-                  "help": "Its applies is not live, save or restart, so it has the config spec's.",
+                  "help": "Its applies is not unknown, live, save or restart, so it has the config spec's.",
                   "applies": "never",
                   "default": true,
                   "storage": { "path": ["Mistakes", "bApplies"] }

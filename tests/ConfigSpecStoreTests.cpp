@@ -1015,12 +1015,12 @@ namespace
     )";
 }
 
-TEST_CASE("ConfigSpecStore: a setting takes effect as its applies says, but a live one of a file after Save, and a read-only one never")
+TEST_CASE("ConfigSpecStore: a setting takes effect as its applies says, also a live one of a file, and a read-only one never")
 {
     TestGame game;
     Session session(APPLIES_SETTINGS);
     session.open("[Main]\r\n");
-    CHECK(session.store.applies(session.setting(0)) == model::Applies::Save);
+    CHECK(session.store.applies(session.setting(0)) == model::Applies::Live);
     CHECK(session.store.applies(session.setting(1)) == model::Applies::Save);
     CHECK(session.store.applies(session.setting(2)) == model::Applies::Restart);
     CHECK(session.store.applies(session.setting(4)) == model::Applies::Live);
