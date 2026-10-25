@@ -75,5 +75,5 @@ The F4SE plugin name, the Papyrus script name, and the data root are public: oth
 - A restricted C++ API adds live preview, functions that buttons run, states that conditions ask, and opening a mod's own UI.
 - A script-only mod needs only a config spec: its scripts read the saved values through Papyrus functions that Mods Config VR provides, or keep them in globals and properties, as an MCM mod does.
 - Existing MCM menus retain their established storage and event behavior through a bridge to the installed MCM.
-- The game keeps running while the menu is open, so a change that the mod acts on at once is seen as it is made.
+- The game keeps running while the menu is open, so a `live` change is seen as it is made, and a saved one as the mod acts on it.
 - The architecture should leave room for advanced features without requiring them in the initial implementation.

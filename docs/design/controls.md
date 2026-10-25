@@ -9,7 +9,7 @@ Every setting has four distinct concepts:
 - **Type**: the value stored by the target mod. A config spec's `valueType`.
 - **Control**: how Mods Config VR presents and edits that value. A config spec's `type`, as in an MCM config.
 - **Storage**: where the value is read from and written to. A config spec's `storage`.
-- **Application policy**: when a change takes effect in the running mod: as it is made, after Save, or after a restart. A config spec's `applies`.
+- **Application policy**: when a change takes effect in the running mod: as it is made, after Save, after a restart, or not known. A config spec's `applies`.
 
 Keeping these separate prevents the file format, widget, and runtime behavior from becoming unnecessarily coupled.
 
@@ -294,4 +294,4 @@ Every editable declarative setting must declare its default beside the setting d
 
 ## MCM controls
 
-The MCM bridge should preserve the existing MCM control vocabulary and behavior as faithfully as practical instead of translating every control into a more powerful native concept. MCM's controls are not marked as MCM's. A page whose changes are saved as they are made says so.
+The MCM bridge should preserve the existing MCM control vocabulary and behavior as faithfully as practical instead of translating every control into a more powerful native concept. MCM's controls are not marked as MCM's, and their changes wait for Save as a config spec's do.

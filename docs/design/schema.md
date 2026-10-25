@@ -45,12 +45,13 @@ One `spec.json` is supported per config spec: a config spec has no includes or f
 - `modName`: the stable, unique identity of the config spec, named as in an MCM config.
 - `displayName`: the mod's name as the player sees it, a localized text.
 - `files`: named settings-file declarations when the config spec has file-backed settings.
-- `applies`: when a change to a setting takes effect in the running mod: `live`, `save` or `restart`. See [When a change takes effect](#when-a-change-takes-effect).
 - `content`: the items of the mod's front page, which is shown when the mod is selected. It is not empty. It has no row of its own in the navigation tree: the mod's row is its row.
 
 `pages` is optional: the mod's other pages, in order, each a row under the mod in the tree. A page can have pages of its own; see [Pages](#pages). This is the shape of an MCM config, whose root `content` is the mod's front page too.
 
 `help` is optional: what the mod is, shown in the help line while the ray is on the mod's row in the tree.
+
+`applies` is optional: when a change to a setting takes effect in the running mod, `unknown`, `live`, `save` or `restart`. See [When a change takes effect](#when-a-change-takes-effect).
 
 `specVersion` is useful for diagnostics and config spec evolution but does not represent the installed mod's marketing version.
 
@@ -200,20 +201,26 @@ Repetitive file references are avoided through inherited `defaultFile` values. A
 
 ## When a change takes effect
 
-A mod does not show every change as it is made. Some mods read their file again after a Save, and some values are read once, when the game starts. Only the mod's author knows which, so the config spec says it, with `applies`:
+Save writes a change, and the mod acts on it in its own way. Some mods read their file again after a Save, some values are read once, when the game starts, and a mod that reads a value every frame can still keep a copy of it. Only the mod's author knows which, so the config spec can say it, with `applies`:
 
 | Value     | The change takes effect     | What the host does                                                                    |
 | --------- | --------------------------- | ------------------------------------------------------------------------------------- |
-| `live`    | As it is made               | Sends the pending value to the mod's native client, as a preview, or writes a global or a property into the game |
+| `unknown` | Not known to the menu       | No preview. The default                                                               |
+| `live`    | As it is made: the mod handles the change it is told of | Sends the pending value to the mod's native client, as a preview, or writes a global or a property into the game |
 | `save`    | After Save                  | No preview                                                                            |
-| `restart` | After the game is restarted | No preview. The row is marked, and a Save that wrote it says that a restart is needed |
+| `restart` | After the game is restarted | No preview. A Save that wrote it says that a restart is needed                        |
 
-`applies` is required at the config spec's root: a config spec without it is not loaded, and the error is reported. Below the root it is optional, and a setting takes the nearest one:
+The help line shows the `applies` of the row the ray is on, and the Help page says what each value means. `unknown` and `save` differ only there: the host does the same for both.
+
+`applies` is optional at every level, and a setting takes the nearest one:
 
 1. The setting's own `applies`
 2. The `applies` of the nearest section it is in
 3. The `applies` of the nearest page it is on: its own page, then the pages above it
 4. Config spec-level `applies`
+5. `unknown`
+
+`unknown` can be written too, for a page, a section or a setting under one that says more.
 
 ```json
 {
@@ -237,8 +244,9 @@ Which value a mod uses:
 - A mod that reads its file again after a Save is `save`. It does so through a file watcher, the save notification, or a script's save event.
 - A mod that reads its file only when the game starts is `restart`.
 - A setting kept in a global or a script property is `live` when the mod reads it as it plays, as the game's conditions read a global. The host previews it itself.
+- A setting the author cannot say of stays `unknown`.
 
-A `live` setting kept in a file, of a mod with no native client, is handled as `save`, as a preview has nowhere to go.
+A `live` setting kept in a file, of a mod with no native client, is not previewed, as a preview has nowhere to go. It is still shown as `live`: the mod can act on the change in its own way.
 
 The host does not check what a config spec says. A setting that is `live` in a mod that ignores the change looks broken to the player.
 
@@ -688,6 +696,8 @@ A button that opens the mod's own UI, as FRIK's calibration, is a `CallNativeFun
 
 A button can use ordinary visibility and enablement conditions, and [warnings](#warnings).
 
+A button's action reads the saved values, as a script or the mod's DLL has them. So while its mod has unsaved changes, a press asks to save them first, with Cancel and Save and run: Save and run saves the changes and then runs the button, and is disabled while a change is invalid, as Save is. It stands for the button's confirmation too, with the confirmation's title and message, and is red for a dangerous one, so a button never asks twice. The button's help line says beforehand that it asks to save first. An MCM button does the same.
+
 Optional confirmation is declarative:
 
 ```json
@@ -854,13 +864,13 @@ This is what an MCM config does, with the fallback added. The texts of an MCM co
 
 A config spec has what an MCM config has, by MCM's names, and more:
 
-- Its settings are kept in the mod's own INI, TOML and JSON files, and in globals and properties of its scripts, and are saved together with Save.
+- Its settings are kept in the mod's own INI, TOML and JSON files, and in globals and properties of its scripts.
 - Every setting has a `default`, for Reset, and can be read-only. A number has its `display`.
 - A setting and a button can warn while a condition holds.
 - `applies` says when a change takes effect.
 - A condition compares any value with its operators, can enable a row as well as show it, and can ask whether a plugin is loaded.
 - Sections nest and fold, and pages nest.
-- A parameter has its type as a JSON value, and the action of a setting is run by Save.
+- A parameter has its type as a JSON value.
 - A button can run a console command or a function of the mod's DLL, has its own text, and can ask for a confirmation.
 - The mod and each page have a help, and the mod's DLL is told which of its pages is shown.
 - A text can have a fallback, and an image is a texture file.

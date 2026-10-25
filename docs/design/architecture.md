@@ -17,7 +17,7 @@ Two sources fill one internal model:
 
 A mod's DLL can also register as a native client, through a restricted C++ API; see [Native API](#native-api). A client is not a third source. It adds to its mod's config spec: live preview, functions that buttons run, options and states that only its code knows, and entries of the quick launch section that open its own UI.
 
-The UI does not show which source a mod's menu comes from. What differs is in the mod's store: an MCM change is saved as it is made, and a config spec's on Save. See [The settings model](model.md).
+The UI does not show which source a mod's menu comes from. A change of either waits for Save, and what differs is in the mod's store: an MCM change is written through MCM, and a config spec's into its files and the game. See [The settings model](model.md).
 
 ```text
 Declarative config spec ──┐
@@ -41,7 +41,7 @@ A native client registers under a name, and the host matches it to the config sp
 
 A config spec remains usable without a native client. In that case it can read, validate, and save its settings, and gets live preview only for a setting kept in a global or a script property, which the host writes into the game itself. Saved values reach the running mod only if the mod reads them again. CommonFramework mods do: the framework watches the INI and reloads it when it changes. A script mod reads them through the [Papyrus API](#papyrus-api), or keeps them in globals and properties, which it reads itself, and applies a change in the action of its setting.
 
-The host cannot tell when a change takes effect in the running mod: a mod with a client can still read one of its values only when the game starts. So the config spec says it, with `applies`: `live`, `save` or `restart`. It is set for the mod, and a page, a section or a setting can have its own; see [When a change takes effect](schema.md#when-a-change-takes-effect).
+The host cannot tell when a change takes effect in the running mod: a mod can read a global only when it needs it, and a mod with a client can still read one of its values only when the game starts. So the config spec can say it, with `applies`: `live`, `save` or `restart`, and where it does not, it is `unknown`. It is set for the mod, and a page, a section or a setting can have its own; see [When a change takes effect](schema.md#when-a-change-takes-effect). An MCM mod's settings are `unknown`.
 
 ## Persistence model
 
@@ -103,6 +103,8 @@ A pending value that returns to its baseline is sent to the preview adapter as `
 
 Reset-to-default is an ordinary pending edit. It is not persisted until Save.
 
+An MCM mod has the same session, with no preview: see [MCM compatibility](#mcm-compatibility).
+
 ### Values at session start
 
 For a global or a property the baseline is the game's value, and one that is not in the game is not available, with the reason, as an MCM row is. For a key of a file, the file is the source of the baseline, whatever state it is in:
@@ -118,7 +120,7 @@ Only dirty settings can block Save. An invalid value that was already in the fil
 
 The player-facing operation is named **Save**, not Apply. A value may already be visible through live preview; Save means accept and persist the pending values.
 
-Save proceeds as follows:
+A config spec's Save proceeds as follows, and an MCM mod's is in [MCM compatibility](#mcm-compatibility):
 
 1. Validate the dirty settings.
 2. Read the latest content of every affected file into memory. A file that does not exist counts as empty.
@@ -434,7 +436,7 @@ The host asks `giveOptions` with the setting's view, which is false for a choice
 
 ### A client that fails
 
-The host calls a client inside a guard that catches a C++ exception and a fault, as an access violation. A client whose call fails is cut off until the game is restarted, and its mod is handled as a mod with no native client: its `live` settings are handled as `save`, its native buttons and its quick launch entries are disabled, with the reason in the help line, and its states are not available. The rest of its config spec, and every other mod, keep working. The log names the client and the call that failed.
+The host calls a client inside a guard that catches a C++ exception and a fault, as an access violation. A client whose call fails is cut off until the game is restarted, and its mod is handled as a mod with no native client: its `live` settings are not previewed, its native buttons and its quick launch entries are disabled, with the reason in the help line, and its states are not available. The rest of its config spec, and every other mod, keep working. The log names the client and the call that failed.
 
 ### CommonFramework adapter
 
@@ -556,22 +558,27 @@ Mods Config VR does not replace MCM. It bridges to it: MCM stays installed and k
 
 Replacing MCM would mean reimplementing its Papyrus functions, its setting store, and its hotkey dispatch, and asking players to uninstall it. Bridging is less work and cannot change how existing mods behave.
 
-MCM pages remain a compatibility source rather than being rewritten into the new persistence lifecycle. The bridge:
+MCM pages remain a compatibility source: their values are read and written as MCM does, and only when they are written is the menu's. The bridge:
 
 - Reads each mod's MCM `config.json` and its declared default settings.
 - Writes ModSettings through MCM's own `MCM.SetModSetting*` functions, so MCM's in-memory store and its settings file stay in agreement. It never writes MCM's settings files itself.
 - Reads and writes GlobalValue and PropertyValue sources directly, as MCM does.
-- Sends the existing `OnMCMSettingChange|ModName` external event after a change, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
-- Runs the supported MCM button actions.
+- Sends the existing `OnMCMSettingChange|ModName` external event after Save writes a change, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
+- Runs the supported MCM button actions. A script reads the saved values, so while the mod has unsaved changes a press asks to save them first, as a config spec's button does; see [Buttons](schema.md#buttons).
 - Shows hotkeys read-only. MCM keeps dispatching them.
 
 How it handles each MCM feature is in [MCM support](mcm.md).
 
 `MCM.RefreshMenu()` stays MCM's own function and refreshes MCM's own menu. The bridge cannot observe the call, so it reads MCM's settings file again as another page of the mod is shown.
 
-MCM settings are saved as they are changed, as existing mods expect. They do not acquire staged Save/Discard behavior. MCM mods are not marked or grouped apart in the UI. It shows a “Changes are saved as they are made” status instead of the normal Save bar.
+An MCM change is pending until Save, as a config spec's is, and Discard drops it, where MCM's menu writes each change at once. So every mod has one lifecycle, with the Save bar, and a script gets what MCM's menu gives it, in MCM's order, at Save. MCM mods are not marked or grouped apart in the UI.
 
-Saved is all the status says. When the mod acts on a change is the mod's, and an MCM config has no field for it: a script reads a global when it needs it, and a DLL can read MCM's settings file only when the game starts. A mod that needs a restart says so in its own text, which the menu shows.
+- A clean value is still read in every frame, so a change a script makes shows. A pending one stays the player's, and is clean again where the game's value comes to equal it. A setting with no storage is held by the store and is never dirty.
+- Nothing is previewed.
+- Save writes every dirty setting first: a global and a property into the game, and a ModSetting through `MCM.SetModSetting*`. Then, for each in the order of the config, it runs the row's action with the value and sends `OnMCMSettingChange`, so a script that reads another setting finds the saved value. Then, where it wrote a ModSetting, it tells the game's listeners that the pause menu opened and closed, so a DLL that reads MCM's file as the pause menu closes reads it.
+- A ModSetting's write is queued to Papyrus and gives no result, so an MCM mod's Save does not fail once it writes, and is not taken back.
+
+When the mod acts on a change is the mod's, and an MCM config has no field for it: a script reads a global when it needs it, and a DLL can read MCM's settings file only when the game starts. So an MCM setting's `applies` is `unknown`. A mod that needs a restart says so in its own text, which the menu shows.
 
 ## Raw custom UI
 

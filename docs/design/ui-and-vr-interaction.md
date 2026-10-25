@@ -19,7 +19,7 @@ The menu opens by pressing in both thumbsticks and holding them, the gesture FRI
 
 When FRIK is installed, Mods Config VR takes the gesture over. It turns off FRIK's `sOpenConfigButton` binding for the session through FRIK's config override API, and FRIK's configuration is then opened from the quick launch section of the menu's front page. FRIK can integrate more closely later.
 
-The game is not paused while the menu is open, so a change that the mod acts on at once is seen as it is made.
+The game is not paused while the menu is open, so a `live` change is seen as it is made, and a saved one as the mod acts on it.
 
 FRIK is not required. With FRIK, the hand-anchored vrui buttons are pressed with the index fingertip and the hand takes a pointing pose. Without FRIK the controller itself presses them, and a small sphere marks the point.
 
@@ -221,6 +221,7 @@ What the menu's controls do, with the buttons the player's config has for them. 
 - The crumbs are `MODS CONFIG VR » Help`. The tree keeps the selected mod and page, and so does the editing session: the Help page is shown in place of the page, which is not left.
 - Back goes back to the page it was shown over. A row of the tree or the first crumb goes there, as from any page.
 - It is a text, then each control as `Name: text`, as the help line has a row's help: pointing and the trigger, the thumbstick's scroll and step, Back, moving the panel, Recenter, opening and closing the menu, and Minimize.
+- Then what Save does, and each mark of when a change takes effect with what it means: Save writes the changes, and each mod acts on them in its own way, which a config spec can say and an MCM mod cannot.
 - A button and a binding are said as the config has them, in the sentence of the [InputBinding](design-system/project/components/InputBinding/README.md) control, as the controllers print their buttons: "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand". Back and the move are on the hand that points, either hand, so an A button is "the A or X button". A control the config turns off is left out.
 - Nothing on it is pressed.
 
@@ -304,7 +305,7 @@ The help line shows, in priority order:
 
 1. Active validation error
 2. The help of the row, option or control the ray is on, as `Name: help`: the row's text, a colon, and its help. The name is not repeated on a line of its own. A row whose [warning](schema.md#warnings) holds has the warning before its help.
-3. The status of the editing session when the ray is not on a row: the unsaved changes, or that changes are saved as they are made.
+3. The status of the editing session when the ray is not on a row: the unsaved changes, or the last Save.
 
 The help is kept while the ray moves from row to row, through the gaps between them, and the status comes back when the ray leaves the rows or the open popup. Without that, the line would flicker as the ray sweeps the list.
 
@@ -312,7 +313,9 @@ The help line has room for two lines. Help that needs a third is drawn in a smal
 
 Help is one size and one color. An MCM config can have the tags of a [text row](schema.md#text-spacers-and-images) in a help, with or without `html`. They are removed, and a line break becomes a space, so the help keeps to its lines.
 
-The help of a config spec's setting also says when its change takes effect, unless that is as it is made: after Save, or after the game is restarted. A setting that needs a restart has a mark on its row too. See [When a change takes effect](schema.md#when-a-change-takes-effect).
+The help of a setting also says when its change takes effect, with a mark of its `applies`: not known, as it is made, after Save, or after the game is restarted. Its row has no such mark, as one on every row takes room and says little: a pending row's mark is that one, in amber, so it shows both that the change waits for Save and when it takes effect. A count of pending changes, in a folded section's heading, in the status and in the unsaved-changes dialog, keeps one plain pending mark. See [When a change takes effect](schema.md#when-a-change-takes-effect). The marks are still to be designed.
+
+A button of a mod with unsaved changes says in its help that a press asks to save them first; see [Buttons](schema.md#buttons).
 
 A config spec's mod and its pages can have a help of their own, which the help line shows while the ray is on their row in the tree. An MCM mod and its pages have none. A mod that is [not available](#notices) has the reason there instead: the help line says why while the ray is on its row. A page that explains itself at length does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
 
@@ -387,15 +390,14 @@ A player who used [MCM Categorizer](https://www.nexusmods.com/fallout4/mods/6631
 
 ## MCM presentation
 
-MCM-backed entries should feel integrated without concealing their different lifecycle:
+MCM-backed entries should feel integrated:
 
 - MCM-backed entries appear only when MCM is installed.
 - They are in the same list as every other mod, with no group or badge of their own.
-- State that changes are saved as they are made, which is what MCM does. It does not say that the mod acts on them at once: the menu does not know that.
-- Do not offer a misleading Save contract for changes the original MCM has already saved.
-- Preserve MCM-specific help, option state, and event behavior where possible.
+- Their changes wait for Save, as a config spec's do. When the mod acts on one is not known, and the help line says so: the menu does not know it.
+- Preserve MCM-specific help, option state, and event behavior where possible. Its events and its actions are sent and run by Save.
 
-What the menu shows for a mod follows what the mod supports, not where its menu comes from: changes that are saved as they are made, or a Save bar, with live preview where the mod has it. A config spec says when a change takes effect, for the mod and for any page, section or setting that differs.
+What the menu shows for a mod follows what the mod supports, not where its menu comes from: the Save bar for every mod, with live preview where the mod has it. A config spec can say when a change takes effect, for the mod and for any page, section or setting that differs.
 
 ## A mod's own UI
 

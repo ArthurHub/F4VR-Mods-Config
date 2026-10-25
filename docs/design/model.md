@@ -45,8 +45,8 @@ A setting has:
 | enabledWhen  | A condition of the same kind. The row can be edited while it holds                                    |
 | storage      | Where the value is kept. Only the store reads it                                                      |
 | default      | The value Reset gives it. A config spec's only: an MCM row's is its store's to answer                     |
-| applies      | When a change takes effect in the running mod: live, save or restart. A config spec's only                |
-| action       | What runs after the value is written: at once for an MCM row, and by Save for a config spec's setting     |
+| applies      | When a change takes effect in the running mod: unknown, live, save or restart. Unknown for an MCM row     |
+| action       | What runs after Save writes the value                                                                     |
 
 Three things are as they are because of MCM:
 
@@ -54,7 +54,7 @@ Three things are as they are because of MCM:
 - **The default is the store's to answer.** MCM has a default only for a ModSetting, and not in its config: it is the value the mod's `settings.ini` has for it, a file the MCM store reads as the mod is selected. So the UI asks the store for the default, and a row without one has no Reset. A config spec's setting always has a default: the schema requires it, and a setting without one is an error of the config spec. The config spec loader reads it into the setting, and the config spec store answers it from there. A read-only setting is the one that needs none, as it has no Reset.
 - **The storage has several forms.** A global, a script property, an MCM ModSetting, or a key of a file. An MCM row can also have none: FallUI has three switchers, two of them named "Unfold settings", that only show and hide a group of rows and have nowhere to keep their value: their source is a ModSetting, which is named by the row's id, and they have no id. The store holds the value of such a setting by itself: it starts off, lasts while the mod is selected, and is written nowhere. A config spec's setting always has a storage: a key of a file, a global or a script property.
 
-`applies` is a config spec's. It says when a change takes effect in the running mod: as it is made, after Save, or after the game is restarted. The mod always has one, and a page, a group and a setting can each have their own. A setting takes its own, or else the nearest group's it is in, the nearest page's, its mod's. An MCM mod has none: an MCM config has no field for it.
+`applies` says when a change takes effect in the running mod: as it is made, after Save, after the game is restarted, or not known. A config spec's mod, a page, a group and a setting can each have their own. A setting takes its own, or else the nearest group's it is in, the nearest page's, its mod's, and else it is unknown. An MCM setting is unknown: an MCM config has no field for it.
 
 Pages and groups nest in a config spec: a page can have pages, and a group can hold groups. An MCM mod has one level of pages, and its groups do not nest.
 
@@ -67,24 +67,23 @@ What the UI asks of the store:
 - To set a value.
 - The default of a setting, where it has one. Reset sets it, as any other value is set.
 - The options of a choice: the definition's, or the ones it reads in the game as the mod is selected, for a choice that takes them from a FormList or a property of a script. The MCM store reads them again as another page is shown, as MCM's menu does.
-- Whether a change is saved at once or waits for Save.
-- With Save: whether a setting is dirty, and to Save and Discard.
+- Whether a setting is dirty, and to Save and Discard.
 - To run an action.
 - To read its values again.
 
 There are two stores, and what happens around a change is theirs:
 
-- **The MCM store** writes a value where its storage says, at once. It then runs the row's action and sends MCM's event. It has no Save.
+- **The MCM store** reads a clean value in every frame, and a set changes the pending value, with no preview. Save writes the dirty values where their storage says, then runs each row's action and sends MCM's event. See [MCM compatibility](architecture.md#mcm-compatibility).
 - **The config spec store** reads the files, and the globals and properties, when the mod is selected. A set changes the pending value, and that of a `live` setting is previewed: to the mod's client for a key of a file, and into the game by the store itself for a global or a property. Save writes the values and then runs the actions of the settings it wrote. Save and Discard are as in [Architecture and lifecycle](architecture.md#editing-session).
 
-Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's. The second is the mod's, and a config spec says it with `applies`:
+Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's, and every change is saved on Save. The second is the mod's, and a config spec can say it with `applies`:
 
-| The setting        | Saved            | The mod acts on it                                     |
-| ------------------ | ---------------- | ------------------------------------------------------ |
-| MCM                | As it is changed | Not known to the menu                                  |
-| Config spec, `live`    | On Save          | As it is changed, as a preview that Discard takes back |
-| Config spec, `save`    | On Save          | After Save                                             |
-| Config spec, `restart` | On Save          | After the game is restarted                            |
+| `applies`  | The mod acts on it                                     |
+| ---------- | ------------------------------------------------------ |
+| `unknown`  | Not known to the menu: every MCM setting, and a config spec's that says nothing |
+| `live`     | As it is changed, as a preview that Discard takes back |
+| `save`     | After Save                                             |
+| `restart`  | After the game is restarted                            |
 
 So a `live` setting is never saved by being previewed. And an MCM change that is saved is not always in effect: Unlimited Survival Mode's DLL reads MCM's settings file itself, and its page says in a text row that its settings need a restart. The menu shows such a text as MCM does, and claims no more than that the change is saved.
 
@@ -215,10 +214,10 @@ The front page, drawn from the two, with the ray on "Enable the feature". Its he
 A press on "Enable the feature":
 
 1. The UI sets `main/2` to off.
-2. The MCM store writes 0 to the global, runs `OnToggle` with the value, and sends MCM's event.
+2. The MCM store holds off as its pending value. `main/2` is dirty.
 3. The UI asks for the values again. `main/2` is off, so the Strength row is not visible.
 
-Nothing is dirty. When the ray leaves the rows, the help line goes back to the status, which says that changes are saved as they are made.
+When the ray leaves the rows, the help line goes back to the status, which counts one unsaved change. Save writes 0 to the global, runs `OnToggle` with the value, and sends MCM's event.
 
 ### A config spec
 
