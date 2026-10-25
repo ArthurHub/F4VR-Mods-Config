@@ -5,91 +5,165 @@
   "help": "This menu: the panel it is shown on, and the pointer you use it with.",
   "specVersion": 1,
   "files": {
-    "config": { "format": "toml", "root": "myGames", "path": "Mods_Config/ModsConfigVR/ModsConfigVR.toml" }
+    "config": {
+      "format": "toml",
+      "root": "myGames",
+      "path": "Mods_Config/ModsConfigVR/ModsConfigVR.toml"
+    }
   },
   "defaultFile": "config",
   "applies": "live",
   "content": [
+    { "type": "image", "texture": "ModsConfigVR/banner.dds", "width": 600 },
+    {
+      "type": "text",
+      "text": "<font color='#AAAAAA' size=13>Version: {clientState:modVersion}</font>",
+      "html": true
+    },
     {
       "type": "section",
-      "text": "Size",
+      "text": "About",
       "content": [
         {
-          "type": "slider", "valueType": "float", "text": "Scale",
-          "help": "How large the menu is, with its text and its rows. To read it better make it larger, or bring it nearer.",
-          "default": 6.0, "valueOptions": { "min": 3.0, "max": 12.0, "step": 0.5 },
-          "storage": { "path": ["Panel", "fScale"] }
-        },
-        {
-          "type": "slider", "valueType": "float", "text": "Width",
-          "help": "How much room the menu has for its rows, across. A wider menu shows more, with its text at the same size.",
-          "default": 30.0, "valueOptions": { "min": 16.0, "max": 60.0, "step": 1.0 },
-          "storage": { "path": ["Panel", "fPanelWidth"] }
-        },
-        {
-          "type": "slider", "valueType": "float", "text": "Height",
-          "help": "How much room the menu has for its rows, up and down. A higher menu shows more of a page.",
-          "default": 15.0, "valueOptions": { "min": 10.0, "max": 40.0, "step": 1.0 },
-          "storage": { "path": ["Panel", "fPanelHeight"] }
-        },
-        {
-          "type": "slider", "valueType": "float", "text": "Mod list width",
-          "help": "How wide the list of the mods on the left is. Widen it if the names of your mods are cut short.",
-          "default": 8.0, "valueOptions": { "min": 4.0, "max": 20.0, "step": 0.5 },
-          "storage": { "path": ["Panel", "fTreeWidth"] }
+          "type": "text",
+          "text": "Write a good description of the mods config mod."
         }
       ]
     },
     {
       "type": "section",
-      "text": "Place",
+      "text": "Help",
       "content": [
         {
-          "type": "slider", "valueType": "float", "text": "Distance",
-          "help": "How far from your eyes the menu is put, in game units of about 1.4 cm.",
-          "default": 120.0, "valueOptions": { "min": 40.0, "max": 300.0, "step": 5.0 },
-          "storage": { "path": ["Panel", "fDistance"] }
-        },
-        {
-          "type": "slider", "valueType": "float", "text": "Height",
-          "help": "How much above your eyes the menu is put, in game units. Below zero is below the eyes.",
-          "default": -20.0, "valueOptions": { "min": -100.0, "max": 100.0, "step": 5.0 },
-          "storage": { "path": ["Panel", "fHeight"] }
-        },
-        {
-          "type": "slider", "valueType": "float", "text": "Tilt",
-          "help": "How far the top of the menu is tilted back, in degrees.",
-          "default": 5.0, "valueOptions": { "min": -45.0, "max": 45.0, "step": 1.0 },
-          "storage": { "path": ["Panel", "fTilt"] }
-        },
-        {
-          "type": "slider", "valueType": "float", "text": "Recenter distance",
-          "help": "The menu is put in front of you again when you are further than this from it, in game units. 0 leaves it where it is. A change applies the next time the menu opens.",
-          "default": 350.0, "valueOptions": { "min": 0.0, "max": 1000.0, "step": 10.0 },
-          "storage": { "path": ["Panel", "fRecenterDistance"] }
-        }
-      ]
-    },
-    {
-      "type": "section",
-      "text": "Look and moving",
-      "content": [
-        {
-          "type": "slider", "valueType": "int", "text": "Background opacity",
-          "help": "How much the menu's background hides the world behind it: 0 is a clear menu, and 255 one you do not see through.",
-          "default": 217, "valueOptions": { "min": 0, "max": 255, "step": 1 },
-          "storage": { "path": ["Panel", "iBackgroundOpacity"] }
-        },
-        {
-          "type": "slider", "valueType": "float", "text": "Move smoothing",
-          "help": "The time the menu takes to catch up with the hand that moves it, in seconds. Higher is steadier. 0 is no smoothing.",
-          "default": 0.05, "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
-          "storage": { "path": ["Panel", "fMoveSmoothing"] }
+          "type": "button",
+          "text": "Open WIKI page",
+          "help": "TODO.",
+          "buttonText": "Open",
+          "action": {
+            "type": "OpenURL",
+            "url": "https://github.com/rollingrock/Fallout-4-VR-Body/blob/main/docs/README.md"
+          }
         }
       ]
     }
   ],
   "pages": [
+    {
+      "pageDisplayName": "General",
+      "help": "TODO.",
+      "content": [
+        {
+          "type": "section",
+          "text": "Size",
+          "content": [
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Scale",
+              "help": "How large the menu is, with its text and its rows. To read it better make it larger, or bring it nearer.",
+              "default": 6.0,
+              "valueOptions": { "min": 3.0, "max": 12.0, "step": 0.5 },
+              "storage": { "path": ["Panel", "fScale"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Width",
+              "help": "How much room the menu has for its rows, across. A wider menu shows more, with its text at the same size.",
+              "default": 30.0,
+              "valueOptions": { "min": 16.0, "max": 60.0, "step": 1.0 },
+              "storage": { "path": ["Panel", "fPanelWidth"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Height",
+              "help": "How much room the menu has for its rows, up and down. A higher menu shows more of a page.",
+              "default": 15.0,
+              "valueOptions": { "min": 10.0, "max": 40.0, "step": 1.0 },
+              "storage": { "path": ["Panel", "fPanelHeight"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Mod list width",
+              "help": "How wide the list of the mods on the left is. Widen it if the names of your mods are cut short.",
+              "default": 8.0,
+              "valueOptions": { "min": 4.0, "max": 20.0, "step": 0.5 },
+              "storage": { "path": ["Panel", "fTreeWidth"] }
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Place",
+          "content": [
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Distance",
+              "help": "How far from your eyes the menu is put, in game units of about 1.4 cm.",
+              "default": 120.0,
+              "valueOptions": { "min": 40.0, "max": 300.0, "step": 5.0 },
+              "storage": { "path": ["Panel", "fDistance"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Height",
+              "help": "How much above your eyes the menu is put, in game units. Below zero is below the eyes.",
+              "default": -20.0,
+              "valueOptions": { "min": -100.0, "max": 100.0, "step": 5.0 },
+              "storage": { "path": ["Panel", "fHeight"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Tilt",
+              "help": "How far the top of the menu is tilted back, in degrees.",
+              "default": 5.0,
+              "valueOptions": { "min": -45.0, "max": 45.0, "step": 1.0 },
+              "storage": { "path": ["Panel", "fTilt"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Recenter distance",
+              "help": "The menu is put in front of you again when you are further than this from it, in game units. 0 leaves it where it is. A change applies the next time the menu opens.",
+              "default": 350.0,
+              "valueOptions": { "min": 0.0, "max": 1000.0, "step": 10.0 },
+              "storage": { "path": ["Panel", "fRecenterDistance"] }
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Look and moving",
+          "content": [
+            {
+              "type": "slider",
+              "valueType": "int",
+              "text": "Background opacity",
+              "help": "How much the menu's background hides the world behind it: 0 is a clear menu, and 255 one you do not see through.",
+              "default": 217,
+              "valueOptions": { "min": 0, "max": 255, "step": 1 },
+              "storage": { "path": ["Panel", "iBackgroundOpacity"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Move smoothing",
+              "help": "The time the menu takes to catch up with the hand that moves it, in seconds. Higher is steadier. 0 is no smoothing.",
+              "default": 0.05,
+              "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
+              "storage": { "path": ["Panel", "fMoveSmoothing"] }
+            }
+          ]
+        }
+      ]
+    },
     {
       "pageDisplayName": "Pointer",
       "help": "The ray from your hand, and the mark where it points on the menu.",
@@ -99,51 +173,71 @@
           "text": "Ray",
           "content": [
             {
-              "type": "slider", "valueType": "float", "text": "Width",
+              "type": "slider",
+              "valueType": "float",
+              "text": "Width",
               "help": "How wide the ray is, in game units.",
-              "default": 0.2, "valueOptions": { "min": 0.05, "max": 1.0, "step": 0.05 },
+              "default": 0.2,
+              "valueOptions": { "min": 0.05, "max": 1.0, "step": 0.05 },
               "storage": { "path": ["Pointer", "fRayWidth"] }
             },
             {
-              "type": "slider", "valueType": "float", "text": "Length",
+              "type": "slider",
+              "valueType": "float",
+              "text": "Length",
               "help": "The longest the ray is, in game units. It ends at the mark when the menu is nearer.",
-              "default": 25.0, "valueOptions": { "min": 5.0, "max": 100.0, "step": 1.0 },
+              "default": 25.0,
+              "valueOptions": { "min": 5.0, "max": 100.0, "step": 1.0 },
               "storage": { "path": ["Pointer", "fRayMaxLength"] }
             },
             {
-              "type": "slider", "valueType": "float", "text": "Fade",
+              "type": "slider",
+              "valueType": "float",
+              "text": "Fade",
               "help": "How long the ray fades in and out over at its two ends, in game units.",
-              "default": 4.0, "valueOptions": { "min": 0.0, "max": 20.0, "step": 0.5 },
+              "default": 4.0,
+              "valueOptions": { "min": 0.0, "max": 20.0, "step": 0.5 },
               "storage": { "path": ["Pointer", "fRayFade"] }
             }
           ]
         },
+        { "type": "spacer" },
         {
           "type": "section",
           "text": "Mark",
           "content": [
             {
-              "type": "slider", "valueType": "float", "text": "Size",
+              "type": "slider",
+              "valueType": "float",
+              "text": "Size",
               "help": "The radius of the mark where the ray points on the menu. It keeps its size at any distance.",
-              "default": 0.45, "valueOptions": { "min": 0.1, "max": 2.0, "step": 0.05 },
+              "default": 0.45,
+              "valueOptions": { "min": 0.1, "max": 2.0, "step": 0.05 },
               "storage": { "path": ["Pointer", "fMarkSize"] }
             },
             {
-              "type": "slider", "valueType": "float", "text": "Border width",
+              "type": "slider",
+              "valueType": "float",
+              "text": "Border width",
               "help": "How wide the border is, at the outside of the mark's radius. 0 is no border.",
-              "default": 0.08, "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
+              "default": 0.08,
+              "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
               "storage": { "path": ["Pointer", "fMarkBorderWidth"] }
             }
           ]
         },
+        { "type": "spacer" },
         {
           "type": "section",
           "text": "Scrolling",
           "content": [
             {
-              "type": "slider", "valueType": "float", "text": "Scroll speed",
+              "type": "slider",
+              "valueType": "float",
+              "text": "Scroll speed",
               "help": "How fast the thumbstick of the hand that points scrolls the menu, in lines a second when pushed all the way. 0 is no scrolling.",
-              "default": 30.0, "valueOptions": { "min": 0.0, "max": 100.0, "step": 1.0 },
+              "default": 30.0,
+              "valueOptions": { "min": 0.0, "max": 100.0, "step": 1.0 },
               "storage": { "path": ["Pointer", "fScrollSpeed"] }
             }
           ]
@@ -155,24 +249,34 @@
       "help": "For a config spec's author: each config spec's problems on the menu's front page.",
       "content": [
         {
-          "type": "switcher", "valueType": "bool", "text": "Developer tools",
+          "type": "switcher",
+          "valueType": "bool",
+          "text": "Developer tools",
           "help": "Shows the Developer section on the menu's front page, with each config spec's errors and warnings. The log has them either way.",
           "default": false,
           "storage": { "path": ["Developer", "bDeveloperTools"] }
         },
         {
-          "type": "stepper", "valueType": "string", "id": "showConfigSpecs", "text": "Show config specs",
+          "type": "stepper",
+          "valueType": "string",
+          "id": "showConfigSpecs",
+          "text": "Show config specs",
           "help": "Which config specs the front page lists: those that need attention (errors, warnings, or not loaded), all of them, or only the config spec below.",
           "default": "attention",
-          "valueOptions": { "options": [
-            { "value": "attention", "text": "Needing attention" },
-            { "value": "all", "text": "All" },
-            { "value": "one", "text": "Only one" }
-          ] },
+          "valueOptions": {
+            "options": [
+              { "value": "attention", "text": "Needing attention" },
+              { "value": "all", "text": "All" },
+              { "value": "one", "text": "Only one" }
+            ]
+          },
           "storage": { "path": ["Developer", "sShowConfigSpecs"] }
         },
         {
-          "type": "dropdown", "valueType": "string", "id": "developerConfigSpec", "text": "Config spec",
+          "type": "dropdown",
+          "valueType": "string",
+          "id": "developerConfigSpec",
+          "text": "Config spec",
           "help": "The config spec the front page lists alone while Show config specs is Only one: the one you are working on, with or without problems.",
           "default": "",
           "valueOptions": { "listFromClientCallback": true },

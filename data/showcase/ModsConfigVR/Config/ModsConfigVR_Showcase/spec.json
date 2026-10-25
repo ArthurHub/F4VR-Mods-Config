@@ -40,102 +40,32 @@
     ]
   },
   "content": [
-    {
-      "type": "text",
-      "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config VR. Each page is one kind."
-    },
-    { "type": "image", "texture": "ModsConfigVR_Showcase/swatches.dds" },
+    { "type": "spacer" },
+    { "type": "image", "texture": "ModsConfigVR_Showcase/banner.dds", "width": 700 },
     { "type": "spacer" },
     {
       "type": "section",
-      "text": "A bit of everything",
+      "text": "About",
       "content": [
-        { "type": "text", "text": "A plain text row above the controls." },
         {
-          "type": "switcher",
-          "valueType": "bool",
-          "text": "Switcher",
-          "help": "A switcher that is on by default.",
-          "default": true,
-          "storage": { "path": ["Main", "bSwitcher"] }
-        },
-        {
-          "type": "slider",
-          "valueType": "float",
-          "text": "Slider",
-          "help": "A slider from 0 to 100 by 5.",
-          "default": 50.0,
-          "valueOptions": { "min": 0, "max": 100, "step": 5 },
-          "storage": { "path": ["Main", "fSlider"] }
-        },
-        {
-          "type": "slider",
-          "valueType": "int",
-          "text": "Whole number slider",
-          "help": "A slider of whole numbers from 0 to 255.",
-          "default": 217,
-          "valueOptions": { "min": 0, "max": 255, "step": 1 },
-          "storage": { "path": ["Main", "iSlider"] }
-        },
-        {
-          "type": "stepper",
-          "valueType": "int",
-          "text": "Stepper",
-          "help": "A stepper of three options, which stores the place of the chosen one.",
-          "default": 1,
-          "valueOptions": { "options": ["Low", "Medium", "High"] },
-          "storage": { "path": ["Main", "iStepper"] }
-        },
-        {
-          "type": "dropdown",
-          "valueType": "string",
-          "text": "Dropdown",
-          "help": "A dropdown of four options, each with the value it stores.",
-          "default": "offhand",
-          "valueOptions": {
-            "options": [
-              { "value": "head", "text": "Head", "help": "On the head." },
-              {
-                "value": "offhand",
-                "text": "Offhand",
-                "help": "On the hand that does not point."
-              },
-              {
-                "value": "primary",
-                "text": "Primary hand",
-                "help": "On the hand that points."
-              },
-              { "value": "chest", "text": "Chest", "help": "On the chest." }
-            ]
-          },
-          "storage": { "path": ["Main", "sDropdown"] }
-        },
-        {
-          "type": "textinput",
-          "valueType": "string",
-          "text": "Text input",
-          "help": "A text that is typed.",
-          "default": "Hello",
-          "storage": { "path": ["Main", "sText"] }
-        },
-        {
-          "type": "textinput",
-          "valueType": "float",
-          "text": "Number input",
-          "help": "A text input that takes a number.",
-          "default": 1.5,
-          "storage": { "path": ["Main", "fNumber"] }
-        },
+          "type": "text",
+          "text": "Write a good description of the mods config mod."
+        }
+      ]
+    },
+    { "type": "spacer" },
+    {
+      "type": "section",
+      "text": "Help",
+      "content": [
         {
           "type": "button",
-          "text": "Button",
-          "help": "Shows a notification.",
-          "buttonText": "Show",
+          "text": "Open WIKI page",
+          "help": "TODO.",
+          "buttonText": "Open",
           "action": {
-            "type": "CallGlobalFunction",
-            "script": "Debug",
-            "function": "Notification",
-            "params": ["Showcase: the button ran"]
+            "type": "OpenURL",
+            "url": "https://github.com/rollingrock/Fallout-4-VR-Body/blob/main/docs/README.md"
           }
         }
       ]
@@ -143,253 +73,223 @@
   ],
   "pages": [
     {
-      "pageDisplayName": "Simple",
-      "help": "An example page of common and simple features.",
+      "pageDisplayName": "Most Used",
+      "help": "An example page of common and most used features.",
       "content": [
         {
           "type": "text",
-          "text": "Common controls in a small example menu. Change a value, try its Reset, then Save or Discard your changes. These settings are examples and do not change gameplay."
+          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config VR. Each page is one kind."
         },
+        { "type": "spacer" },
         {
           "type": "section",
-          "text": "General",
+          "text": "A bit of everything",
           "content": [
+            { "type": "text", "text": "A plain text row above the controls." },
             {
               "type": "switcher",
               "valueType": "bool",
-              "text": "Enable notifications",
-              "help": "A simple on/off setting.",
+              "text": "Switcher",
+              "help": "A switcher that is on by default.",
               "default": true,
-              "storage": { "path": ["Simple", "bNotifications"] }
+              "storage": { "path": ["Main", "bSwitcher"] }
             },
             {
               "type": "slider",
               "valueType": "float",
-              "text": "Notification duration",
-              "help": "A number with a unit, from 1 to 10 seconds in half-second steps.",
-              "default": 3.0,
-              "valueOptions": { "min": 1, "max": 10, "step": 0.5 },
-              "display": { "unit": "s" },
-              "storage": { "path": ["Simple", "fDuration"] }
-            },
-            {
-              "type": "slider",
-              "valueType": "int",
-              "text": "Notification limit",
-              "help": "A whole number from 1 to 10.",
-              "default": 3,
-              "valueOptions": { "min": 1, "max": 10, "step": 1 },
-              "storage": { "path": ["Simple", "iLimit"] }
+              "text": "Slider",
+              "help": "A slider from 0 to 100 by 5.",
+              "default": 50.0,
+              "valueOptions": { "min": 0, "max": 100, "step": 5 },
+              "storage": { "path": ["Main", "fSlider"] }
             },
             {
               "type": "stepper",
               "valueType": "int",
-              "text": "Detail level",
-              "help": "Cycle through three labels. The file stores the chosen option's position, starting at zero.",
+              "text": "Stepper",
+              "help": "A stepper of three options, which stores the place of the chosen one.",
               "default": 1,
               "valueOptions": { "options": ["Low", "Medium", "High"] },
-              "storage": { "path": ["Simple", "iDetail"] }
+              "storage": { "path": ["Main", "iStepper"] }
             },
             {
               "type": "dropdown",
               "valueType": "string",
-              "text": "Placement",
-              "help": "Choose a label from a list. The file stores its text value.",
-              "default": "chest",
+              "text": "Dropdown",
+              "help": "A dropdown of four options, each with the value it stores.",
+              "default": "offhand",
               "valueOptions": {
                 "options": [
-                  { "value": "head", "text": "Head" },
-                  { "value": "chest", "text": "Chest" },
-                  { "value": "hip", "text": "Hip" }
+                  { "value": "head", "text": "Head", "help": "On the head." },
+                  {
+                    "value": "offhand",
+                    "text": "Offhand",
+                    "help": "On the hand that does not point."
+                  },
+                  {
+                    "value": "primary",
+                    "text": "Primary hand",
+                    "help": "On the hand that points."
+                  },
+                  { "value": "chest", "text": "Chest", "help": "On the chest." }
                 ]
               },
-              "storage": { "path": ["Simple", "sPlacement"] }
+              "storage": { "path": ["Main", "sDropdown"] }
+            },
+            {
+              "type": "textinput",
+              "valueType": "string",
+              "text": "Text input",
+              "help": "A text that is typed.",
+              "default": "Hello",
+              "valueOptions": { "allowEmpty": false, "maxLength": 12 },
+              "storage": { "path": ["Main", "sText"] }
+            },
+            {
+              "type": "textinput",
+              "valueType": "float",
+              "text": "Number input",
+              "help": "A text input that takes a number with a unit.",
+              "default": 1.5,
+              "valueOptions": { "min": 0.5, "max": 2.5 },
+              "display": { "decimals": 1, "unit": "m" },
+              "storage": { "path": ["Main", "fNumber"] }
+            },
+            {
+              "type": "button",
+              "text": "Button",
+              "help": "Shows a notification.",
+              "buttonText": "Show",
+              "action": {
+                "type": "CallGlobalFunction",
+                "script": "Debug",
+                "function": "Notification",
+                "params": ["Showcase: the button ran"]
+              }
             }
           ]
         },
         { "type": "spacer" },
         {
           "type": "section",
-          "text": "Profile",
+          "text": "More Advanced Features",
           "content": [
             {
-              "type": "textinput",
-              "valueType": "string",
-              "text": "Profile name",
-              "help": "Type a name with the keyboard, of 1 to 16 characters.",
-              "default": "Standing",
-              "valueOptions": { "allowEmpty": false, "maxLength": 16 },
-              "storage": { "path": ["Simple", "sProfile"] }
+              "type": "text",
+              "text": "A connected example of conditions, shared choices, warnings and inherited defaults. These settings do not change gameplay. Turn holsters off or change the mode to see the layout respond to pending changes."
             },
+            { "type": "spacer" },
             {
-              "type": "textinput",
-              "valueType": "float",
-              "text": "Player height",
-              "help": "A numeric input between 0.5 and 2.5 meters.",
-              "default": 1.78,
-              "valueOptions": { "min": 0.5, "max": 2.5 },
-              "display": { "decimals": 2, "unit": "m" },
-              "storage": { "path": ["Simple", "fHeight"] }
-            },
-            {
-              "type": "button",
-              "text": "Test notification",
-              "help": "Runs a Papyrus notification immediately, independently of the example settings above.",
-              "buttonText": "Show",
-              "action": {
-                "type": "CallGlobalFunction",
-                "script": "Debug",
-                "function": "Notification",
-                "params": ["Showcase: hello from the Simple page"]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "pageDisplayName": "Advanced",
-      "help": "An example page of advanced features.",
-      "applies": "save",
-      "content": [
-        {
-          "type": "text",
-          "text": "A connected example of conditions, shared choices, warnings and inherited defaults. These settings do not change gameplay. Turn holsters off or change the mode to see the layout respond to pending changes."
-        },
-        {
-          "type": "switcher",
-          "valueType": "bool",
-          "id": "advancedHolsters",
-          "text": "Enable holsters",
-          "help": "Enables the holster settings below. The page's settings apply on Save.",
-          "default": true,
-          "storage": { "path": ["Advanced", "bHolsters"] }
-        },
-        {
-          "type": "section",
-          "text": "Holsters",
-          "enabledWhen": { "setting": "advancedHolsters", "equals": true },
-          "content": [
-            {
-              "type": "dropdown",
-              "valueType": "string",
-              "id": "advancedMode",
-              "text": "Activation mode",
-              "help": "Physical shows the tuning section; Buttons hides it.",
-              "default": "physical",
-              "valueOptions": {
-                "options": [
-                  { "value": "physical", "text": "Physical" },
-                  { "value": "buttons", "text": "Buttons" }
-                ]
-              },
-              "storage": { "path": ["Advanced", "sMode"] }
-            },
-            {
-              "type": "stepper",
-              "valueType": "int",
-              "text": "Activation hand",
-              "help": "Uses the config spec's shared hands list and stores the option's position.",
-              "default": 1,
-              "valueOptions": { "sharedOptions": "hands" },
-              "storage": { "path": ["Advanced", "iHand"] }
-            },
-            {
-              "type": "dropdown",
-              "valueType": "string",
-              "text": "Holster position",
-              "help": "Uses the config spec's shared places list and stores the option's text value.",
-              "default": "hip",
-              "valueOptions": { "sharedOptions": "places" },
-              "storage": { "path": ["Advanced", "sPlace"] }
+              "type": "switcher",
+              "valueType": "bool",
+              "id": "advancedHolsters",
+              "text": "Enable holsters",
+              "help": "Enables the holster settings below. The page's settings apply on Save.",
+              "default": true,
+              "storage": { "path": ["Advanced", "bHolsters"] }
             },
             {
               "type": "section",
-              "text": "Physical tuning",
-              "help": "A nested section that starts folded. Its rows inherit the outer section's enabled condition.",
-              "isCollapsible": true,
-              "collapsed": true,
-              "visibleWhen": {
-                "setting": "advancedMode",
-                "equals": "physical"
-              },
+              "text": "Holsters",
+              "enabledWhen": { "setting": "advancedHolsters", "equals": true },
               "content": [
                 {
-                  "type": "slider",
-                  "valueType": "float",
-                  "id": "advancedReach",
-                  "text": "Activation reach",
-                  "help": "Try more than 30 cm to show a warning. A warning does not block Save.",
-                  "default": 15.0,
-                  "valueOptions": { "min": 5, "max": 50, "step": 1 },
-                  "display": { "unit": "cm" },
-                  "storage": { "path": ["Advanced", "fReach"] },
-                  "warnings": [
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "id": "advancedMode",
+                  "text": "Activation mode",
+                  "help": "Physical shows the tuning section; Buttons hides it.",
+                  "default": "physical",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "physical", "text": "Physical" },
+                      { "value": "buttons", "text": "Buttons" }
+                    ]
+                  },
+                  "storage": { "path": ["Advanced", "sMode"] }
+                },
+                {
+                  "type": "stepper",
+                  "valueType": "int",
+                  "text": "Activation hand",
+                  "help": "Uses the config spec's shared hands list and stores the option's position.",
+                  "default": 1,
+                  "valueOptions": { "sharedOptions": "hands" },
+                  "storage": { "path": ["Advanced", "iHand"] }
+                },
+                {
+                  "type": "section",
+                  "text": "Physical tuning",
+                  "help": "A nested section that starts folded. Its rows inherit the outer section's enabled condition.",
+                  "isCollapsible": true,
+                  "collapsed": true,
+                  "visibleWhen": {
+                    "setting": "advancedMode",
+                    "equals": "physical"
+                  },
+                  "content": [
                     {
-                      "when": { "setting": "advancedReach", "greaterThan": 30 },
-                      "text": "A large reach can activate a nearby holster by accident. This is an example warning."
+                      "type": "slider",
+                      "valueType": "float",
+                      "id": "advancedReach",
+                      "text": "Activation reach",
+                      "help": "Try more than 30 cm to show a warning. A warning does not block Save.",
+                      "default": 15.0,
+                      "valueOptions": { "min": 5, "max": 50, "step": 1 },
+                      "display": { "unit": "cm" },
+                      "storage": { "path": ["Advanced", "fReach"] },
+                      "warnings": [
+                        {
+                          "when": { "setting": "advancedReach", "greaterThan": 30 },
+                          "text": "A large reach can activate a nearby holster by accident. This is an example warning."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "slider",
+                      "valueType": "float",
+                      "text": "Grip threshold",
+                      "help": "Stores a value from 0 to 1 and displays it as a percentage of that range.",
+                      "default": 0.75,
+                      "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                      "display": { "percent": true },
+                      "storage": { "path": ["Advanced", "fGrip"] }
                     }
                   ]
                 },
                 {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Grip threshold",
-                  "help": "Stores a value from 0 to 1 and displays it as a percentage of that range.",
-                  "default": 0.75,
-                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
-                  "display": { "percent": true },
-                  "storage": { "path": ["Advanced", "fGrip"] }
+                  "type": "button",
+                  "text": "Test holster action",
+                  "help": "Enabled only with holsters on in Physical mode: both the section's condition and its own must hold. Shows a notification immediately.",
+                  "buttonText": "Test",
+                  "enabledWhen": {
+                    "setting": "advancedMode",
+                    "equals": "physical"
+                  },
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the Advanced holster action ran"]
+                  }
                 }
               ]
             },
             {
-              "type": "button",
-              "text": "Test holster action",
-              "help": "Enabled only with holsters on in Physical mode: both the section's condition and its own must hold. Shows a notification immediately.",
-              "buttonText": "Test",
-              "enabledWhen": {
-                "setting": "advancedMode",
-                "equals": "physical"
-              },
-              "action": {
-                "type": "CallGlobalFunction",
-                "script": "Debug",
-                "function": "Notification",
-                "params": ["Showcase: the Advanced holster action ran"]
-              }
-            }
-          ]
-        },
-        {
-          "type": "section",
-          "text": "Player-specific file",
-          "help": "This section overrides the config spec's file. Its values go to Mods_Config/ModsConfigVR_Showcase/player.toml under My Games/Fallout4VR, created on the first Save that changes them.",
-          "defaultFile": "player",
-          "content": [
-            {
-              "type": "textinput",
-              "valueType": "string",
-              "text": "Calibration profile",
-              "help": "Stored in the player file instead of the showcase's shipped TOML file.",
-              "default": "Room scale",
-              "storage": { "path": ["Advanced", "sProfile"] }
-            }
-          ]
-        },
-        {
-          "type": "section",
-          "text": "Startup options",
-          "help": "This section overrides the page's apply-on-save behavior. Its settings are marked as needing a restart.",
-          "applies": "restart",
-          "content": [
-            {
-              "type": "switcher",
-              "valueType": "bool",
-              "text": "Enable startup diagnostics",
-              "help": "An example of a setting read only at startup. Saving a change shows the restart notice.",
-              "default": false,
-              "storage": { "path": ["Advanced", "bDiagnostics"] }
+              "type": "section",
+              "text": "Startup options",
+              "help": "This section overrides the page's apply-on-save behavior. Its settings are marked as needing a restart.",
+              "applies": "restart",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Enable startup diagnostics",
+                  "help": "An example of a setting read only at startup. Saving a change shows the restart notice.",
+                  "default": false,
+                  "storage": { "path": ["Advanced", "bDiagnostics"] }
+                }
+              ]
             }
           ]
         }
@@ -399,6 +299,7 @@
       "pageDisplayName": "Detailed Examples",
       "help": "Pages with very detailed examples of all supported features.",
       "content": [
+        { "type": "spacer", "numLines": 3 },
         {
           "type": "text",
           "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config VR. Each page is one kind."
@@ -612,7 +513,7 @@
           ]
         },
         {
-          "pageDisplayName": "Text: align and lines",
+          "pageDisplayName": "Text: align, lines, and spacers",
           "content": [
             {
               "type": "section",
@@ -690,6 +591,23 @@
                   "text": "AWordThatIsMuchTooLongForTheWidthOfTheRowsAndHasNoSpaceToBeWrappedAtSoItRunsPastTheEdgeOfThePageToSeeWhatHappensToItThere and words after it",
                   "html": true
                 }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Spacers",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A spacer of one line under this text."
+                },
+                { "type": "spacer" },
+                {
+                  "type": "text",
+                  "text": "A spacer of three lines under this text."
+                },
+                { "type": "spacer", "numLines": 3 },
+                { "type": "text", "text": "The end of the spacers." }
               ]
             }
           ]
@@ -824,6 +742,201 @@
                   "type": "text",
                   "text": "<p align = \"center\"><font size='25'><b>by an author</b></font></p>",
                   "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Images",
+          "help": "Rows that hold no value: texts with and without tags, spacers, and textures at their own size and at the size a row gives.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Images",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Swatches at the texture's own size, 256 by 64."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/swatches.dds"
+                },
+                {
+                  "type": "text",
+                  "text": "A checker of 128 by 128, at the size its row gives, 64 by 64."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "width": 64,
+                  "height": 64
+                },
+                {
+                  "type": "text",
+                  "text": "The checker at a width of 192 alone: its height is of its aspect."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "width": 192
+                },
+                {
+                  "type": "text",
+                  "text": "A ruler of 1024 by 64, which is wider than the rows, so it is as wide as they are."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/ruler.dds"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Shown by a switcher",
+              "content": [
+                {
+                  "id": "showPicture",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Show the picture",
+                  "help": "The text and the image under it are shown while it is on.",
+                  "default": true,
+                  "storage": { "path": ["Rows", "bShowPicture"] }
+                },
+                {
+                  "type": "text",
+                  "text": "Shown while Show the picture is on.",
+                  "visibleWhen": { "setting": "showPicture", "equals": true }
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "width": 64,
+                  "height": 64,
+                  "visibleWhen": { "setting": "showPicture", "equals": true }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Sections",
+          "help": "Sections in sections, each set in under the one it is in, and sections that fold.",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "Before any section",
+              "help": "A row of the page itself.",
+              "default": true,
+              "storage": { "path": ["Sections", "bBefore"] }
+            },
+            {
+              "type": "section",
+              "text": "Holsters",
+              "help": "A section's help, which the help line has while the ray is on its heading.",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Enable holsters",
+                  "help": "A row of the outer section.",
+                  "default": true,
+                  "storage": { "path": ["Sections", "bHolsters"] }
+                },
+                {
+                  "type": "section",
+                  "text": "Advanced",
+                  "help": "A section that folds, folded each time the page is shown. Change a row in it and fold it.",
+                  "isCollapsible": true,
+                  "collapsed": true,
+                  "content": [
+                    {
+                      "type": "slider",
+                      "valueType": "float",
+                      "text": "Reach",
+                      "help": "A row of a section in a section.",
+                      "default": 10.0,
+                      "valueOptions": { "min": 0, "max": 50, "step": 1 },
+                      "storage": { "path": ["Sections", "fReach"] }
+                    },
+                    {
+                      "type": "section",
+                      "text": "Even more",
+                      "help": "A section that folds, open each time the page is shown.",
+                      "isCollapsible": true,
+                      "content": [
+                        {
+                          "type": "slider",
+                          "valueType": "float",
+                          "text": "Angle",
+                          "help": "A row three sections in.",
+                          "default": 45.0,
+                          "valueOptions": { "min": 0, "max": 90, "step": 5 },
+                          "storage": { "path": ["Sections", "fAngle"] }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Size",
+                  "help": "A row of the outer section, after the sections in it.",
+                  "default": 1.0,
+                  "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 },
+                  "storage": { "path": ["Sections", "fSize"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Only a section in it",
+              "content": [
+                {
+                  "type": "section",
+                  "text": "Inside",
+                  "content": [
+                    {
+                      "type": "switcher",
+                      "valueType": "bool",
+                      "text": "In the inner section",
+                      "help": "The outer section has no rows of its own.",
+                      "default": false,
+                      "storage": { "path": ["Sections", "bInside"] }
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "section", "text": "An empty section", "content": [] },
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "After the sections",
+              "help": "A row of the last section.",
+              "default": false,
+              "storage": { "path": ["Sections", "bAfter"] }
+            },
+            {
+              "type": "section",
+              "text": "Folded with an invalid value",
+              "help": "Its file has a value that is not its setting's, which its heading tells.",
+              "isCollapsible": true,
+              "collapsed": true,
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Past its most",
+                  "help": "The file has 2.0, and the slider goes from 0 to 1.",
+                  "default": 0.5,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Folded", "fPastMost"] }
                 }
               ]
             }
@@ -1661,245 +1774,6 @@
           ]
         },
         {
-          "pageDisplayName": "Text, spacers and images",
-          "help": "Rows that hold no value: texts with and without tags, spacers, and textures at their own size and at the size a row gives.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Texts",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "A plain text, wrapped to the width of the rows. It has no html, so a tag in it, as <b>this</b>, is shown as it is written."
-                },
-                {
-                  "type": "text",
-                  "html": true,
-                  "text": "<p align='center'><font size='28'>A title in a larger size</font></p><p>A text with tags: <b>bold</b>, <i>italic</i>, <u>underlined words</u>, and <font color='#FFFFFF'>a color of its own</font>.</p><p align='right'><font size='16'>A note in a smaller size, at the right</font></p>"
-                },
-                {
-                  "type": "text",
-                  "text": "A text of two lines.\nIts second line."
-                },
-                {
-                  "type": "text",
-                  "text": {
-                    "token": "$ModsConfigVR_Showcase_TextRow",
-                    "fallback": "A text of a token, which no translation file has, so it is its fallback."
-                  }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Spacers",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "A spacer of one line under this text."
-                },
-                { "type": "spacer" },
-                {
-                  "type": "text",
-                  "text": "A spacer of three lines under this text."
-                },
-                { "type": "spacer", "numLines": 3 },
-                { "type": "text", "text": "The end of the spacers." }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Images",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "Swatches at the texture's own size, 256 by 64."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigVR_Showcase/swatches.dds"
-                },
-                {
-                  "type": "text",
-                  "text": "A checker of 128 by 128, at the size its row gives, 64 by 64."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigVR_Showcase/checker.dds",
-                  "width": 64,
-                  "height": 64
-                },
-                {
-                  "type": "text",
-                  "text": "The checker at a width of 192 alone: its height is of its aspect."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigVR_Showcase/checker.dds",
-                  "width": 192
-                },
-                {
-                  "type": "text",
-                  "text": "A ruler of 1024 by 64, which is wider than the rows, so it is as wide as they are."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigVR_Showcase/ruler.dds"
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Shown by a switcher",
-              "content": [
-                {
-                  "id": "showPicture",
-                  "type": "switcher",
-                  "valueType": "bool",
-                  "text": "Show the picture",
-                  "help": "The text and the image under it are shown while it is on.",
-                  "default": true,
-                  "storage": { "path": ["Rows", "bShowPicture"] }
-                },
-                {
-                  "type": "text",
-                  "text": "Shown while Show the picture is on.",
-                  "visibleWhen": { "setting": "showPicture", "equals": true }
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigVR_Showcase/checker.dds",
-                  "width": 64,
-                  "height": 64,
-                  "visibleWhen": { "setting": "showPicture", "equals": true }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Sections",
-          "help": "Sections in sections, each set in under the one it is in, and sections that fold.",
-          "content": [
-            {
-              "type": "switcher",
-              "valueType": "bool",
-              "text": "Before any section",
-              "help": "A row of the page itself.",
-              "default": true,
-              "storage": { "path": ["Sections", "bBefore"] }
-            },
-            {
-              "type": "section",
-              "text": "Holsters",
-              "help": "A section's help, which the help line has while the ray is on its heading.",
-              "content": [
-                {
-                  "type": "switcher",
-                  "valueType": "bool",
-                  "text": "Enable holsters",
-                  "help": "A row of the outer section.",
-                  "default": true,
-                  "storage": { "path": ["Sections", "bHolsters"] }
-                },
-                {
-                  // the detailed settings of the section, after the settings they belong to
-                  "type": "section",
-                  "text": "Advanced",
-                  "help": "A section that folds, folded each time the page is shown. Change a row in it and fold it.",
-                  "isCollapsible": true,
-                  "collapsed": true,
-                  "content": [
-                    {
-                      "type": "slider",
-                      "valueType": "float",
-                      "text": "Reach",
-                      "help": "A row of a section in a section.",
-                      "default": 10.0,
-                      "valueOptions": { "min": 0, "max": 50, "step": 1 },
-                      "storage": { "path": ["Sections", "fReach"] }
-                    },
-                    {
-                      "type": "section",
-                      "text": "Even more",
-                      "help": "A section that folds, open each time the page is shown.",
-                      "isCollapsible": true,
-                      "content": [
-                        {
-                          "type": "slider",
-                          "valueType": "float",
-                          "text": "Angle",
-                          "help": "A row three sections in.",
-                          "default": 45.0,
-                          "valueOptions": { "min": 0, "max": 90, "step": 5 },
-                          "storage": { "path": ["Sections", "fAngle"] }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Size",
-                  "help": "A row of the outer section, after the sections in it.",
-                  "default": 1.0,
-                  "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 },
-                  "storage": { "path": ["Sections", "fSize"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Only a section in it",
-              "content": [
-                {
-                  "type": "section",
-                  "text": "Inside",
-                  "content": [
-                    {
-                      "type": "switcher",
-                      "valueType": "bool",
-                      "text": "In the inner section",
-                      "help": "The outer section has no rows of its own.",
-                      "default": false,
-                      "storage": { "path": ["Sections", "bInside"] }
-                    }
-                  ]
-                }
-              ]
-            },
-            { "type": "section", "text": "An empty section", "content": [] },
-            {
-              "type": "switcher",
-              "valueType": "bool",
-              "text": "After the sections",
-              "help": "A row of the last section.",
-              "default": false,
-              "storage": { "path": ["Sections", "bAfter"] }
-            },
-            {
-              "type": "section",
-              "text": "Folded with an invalid value",
-              "help": "Its file has a value that is not its setting's, which its heading tells.",
-              "isCollapsible": true,
-              "collapsed": true,
-              "defaultFile": "invalid",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Past its most",
-                  "help": "The file has 2.0, and the slider goes from 0 to 1.",
-                  "default": 0.5,
-                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
-                  "storage": { "path": ["Folded", "fPastMost"] }
-                }
-              ]
-            }
-          ]
-        },
-        {
           "pageDisplayName": "Pages",
           "help": "Nested pages, and a page that can be hidden or disabled with its children.",
           "content": [
@@ -1966,13 +1840,19 @@
               "visibleWhen": { "setting": "showConditionalPage", "equals": true },
               "enabledWhen": { "setting": "enableConditionalPage", "equals": true },
               "content": [
-                { "type": "text", "text": "This page is shown and enabled by the switches on its parent page. Its child inherits both conditions." }
+                {
+                  "type": "text",
+                  "text": "This page is shown and enabled by the switches on its parent page. Its child inherits both conditions."
+                }
               ],
               "pages": [
                 {
                   "pageDisplayName": "Inside conditional page",
                   "content": [
-                    { "type": "text", "text": "This child page follows its parent's visibility and enabled state." }
+                    {
+                      "type": "text",
+                      "text": "This child page follows its parent's visibility and enabled state."
+                    }
                   ]
                 }
               ]
@@ -2492,7 +2372,12 @@
                     "params": ["Showcase: the states were not available"]
                   },
                   "enabledWhen": { "clientState": "ready" },
-                  "warnings": [ { "text": "The mod's DLL is busy.", "when": { "clientState": "busy", "equals": true } } ]
+                  "warnings": [
+                    {
+                      "text": "The mod's DLL is busy.",
+                      "when": { "clientState": "busy", "equals": true }
+                    }
+                  ]
                 }
               ]
             }
@@ -2636,7 +2521,7 @@
         {
           "pageDisplayName": {
             "token": "$ModsConfigVR_Showcase_Texts",
-            "fallback": "Texts"
+            "fallback": "Translations"
           },
           "help": {
             "token": "$ModsConfigVR_Showcase_TextsHelp",

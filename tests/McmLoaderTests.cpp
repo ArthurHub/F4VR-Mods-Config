@@ -899,7 +899,7 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
     CHECK(mods[0].name == "ModsConfigVR_McmShowcase");
     CHECK(mods[0].displayName == "Mods Config VR: MCM Compatibility");
     CHECK_FALSE(mods[0].frontPage.items.empty());
-    CHECK(mods[0].pages.size() == 13);
+    CHECK(mods[0].pages.size() == 10);
 
     // its images are read from its lib.swf, but for the one of a class the file does not have
     Lines images;

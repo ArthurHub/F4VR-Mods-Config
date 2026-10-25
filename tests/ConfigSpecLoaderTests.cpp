@@ -1536,10 +1536,9 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(mod.displayName == "Mods Config VR: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
-    REQUIRE(mod.pages.size() == 3);
-    CHECK(mod.pages[0].name == "Simple");
-    CHECK(mod.pages[1].name == "Advanced");
-    const auto& examples = mod.pages[2];
+    REQUIRE(mod.pages.size() == 2);
+    CHECK(mod.pages[0].name == "Most Used");
+    const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
     CHECK(examples.pages.size() == 21);
 
@@ -1722,7 +1721,7 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the 
         (problem.severity == model::Severity::Error ? errors : warnings) += 1;
     }
     // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
-    CHECK(elsewhere == Lines{ "files.outside", "pages[2].pages[19].content[0].content[2].text" });
+    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[19].content[0].content[2].text" });
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }

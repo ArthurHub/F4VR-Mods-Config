@@ -4,128 +4,402 @@
   "minMcmVersion": 2,
   "sharedLists": { "weather": ["Clear", "Cloudy", "Rain", "Storm"] },
   "content": [
-    { "type": "text", "text": "<p align='center'><font size='30'>MCM Showcase</font></p>", "html": true },
-    { "type": "text", "text": "<p align='center'><font color='#AAAAAA' size='16'>Every kind of row an MCM config has, to see how each looks in Mods Config VR. Each page is one kind.</font></p>", "html": true },
+    {
+      "type": "text",
+      "text": "<p align='center'><font size='30'>MCM Showcase</font></p>",
+      "html": true
+    },
+    {
+      "type": "text",
+      "text": "<p align='center'><font color='#AAAAAA' size='16'>Every kind of row an MCM config has, to see how each looks in Mods Config VR. Each page is one kind.</font></p>",
+      "html": true
+    },
     { "type": "spacer" },
     { "type": "section", "text": "A bit of everything" },
     { "type": "text", "text": "A plain text row above the controls." },
     {
-      "type": "switcher", "text": "Switcher", "help": "A switcher that is on by default.", "id": "bSwitcher:Main",
+      "type": "switcher",
+      "text": "Switcher",
+      "help": "A switcher that is on by default.",
+      "id": "bSwitcher:Main",
       "valueOptions": { "sourceType": "ModSettingBool" }
     },
     {
-      "type": "slider", "text": "Slider", "help": "A slider from 0 to 100 by 5.", "id": "fSlider:Main",
-      "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 5 }
+      "type": "slider",
+      "text": "Slider",
+      "help": "A slider from 0 to 100 by 5.",
+      "id": "fSlider:Main",
+      "valueOptions": {
+        "sourceType": "ModSettingFloat",
+        "min": 0,
+        "max": 100,
+        "step": 5
+      }
     },
     {
-      "type": "stepper", "text": "Stepper", "help": "A stepper of three options.", "id": "iStepper:Main",
-      "valueOptions": { "sourceType": "ModSettingInt", "options": ["Low", "Medium", "High"] }
+      "type": "stepper",
+      "text": "Stepper",
+      "help": "A stepper of three options.",
+      "id": "iStepper:Main",
+      "valueOptions": {
+        "sourceType": "ModSettingInt",
+        "options": ["Low", "Medium", "High"]
+      }
     },
     {
-      "type": "dropdown", "text": "Dropdown", "help": "A dropdown of four options.", "id": "iDropdown:Main",
-      "valueOptions": { "sourceType": "ModSettingInt", "options": ["Head", "Offhand", "Primary hand", "Chest"] }
+      "type": "dropdown",
+      "text": "Dropdown",
+      "help": "A dropdown of four options.",
+      "id": "iDropdown:Main",
+      "valueOptions": {
+        "sourceType": "ModSettingInt",
+        "options": ["Head", "Offhand", "Primary hand", "Chest"]
+      }
     },
     {
-      "type": "textinput", "text": "Text input", "help": "A text that is typed.", "id": "sText:Main",
+      "type": "textinput",
+      "text": "Text input",
+      "help": "A text that is typed.",
+      "id": "sText:Main",
       "valueOptions": { "sourceType": "ModSettingString" }
     },
     { "type": "button", "text": "Button", "help": "A button with no action." },
-    { "type": "hotkey", "text": "Hotkey", "help": "A hotkey.", "id": "TestHotkey" }
+    {
+      "type": "hotkey",
+      "text": "Hotkey",
+      "help": "A hotkey.",
+      "id": "TestHotkey"
+    }
   ],
   "pages": [
     {
       "pageDisplayName": "Text: sizes",
       "content": [
         { "type": "section", "text": "Each size on a row of its own" },
-        { "type": "text", "text": "<font size='48'>Size 48: The quick brown fox</font>", "html": true },
-        { "type": "text", "text": "<font size='40'>Size 40: The quick brown fox</font>", "html": true },
-        { "type": "text", "text": "<font size='36'>Size 36: The quick brown fox</font>", "html": true },
-        { "type": "text", "text": "<font size='30'>Size 30: The quick brown fox jumps</font>", "html": true },
-        { "type": "text", "text": "<font size='28'>Size 28: The quick brown fox jumps</font>", "html": true },
-        { "type": "text", "text": "<font size='24'>Size 24: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "No size: The quick brown fox jumps over the lazy dog", "html": true },
-        { "type": "text", "text": "<font size='22'>Size 22: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "<font size='20'>Size 20: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "<font size='18'>Size 18: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "<font size='16'>Size 16: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "<font size='15'>Size 15: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "<font size='14'>Size 14: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "<font size='12'>Size 12: The quick brown fox jumps over the lazy dog</font>", "html": true },
-        { "type": "text", "text": "<font size='10'>Size 10: The quick brown fox jumps over the lazy dog</font>", "html": true },
+        {
+          "type": "text",
+          "text": "<font size='48'>Size 48: The quick brown fox</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='40'>Size 40: The quick brown fox</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='36'>Size 36: The quick brown fox</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='30'>Size 30: The quick brown fox jumps</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='28'>Size 28: The quick brown fox jumps</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='24'>Size 24: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "No size: The quick brown fox jumps over the lazy dog",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='22'>Size 22: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='20'>Size 20: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='18'>Size 18: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='16'>Size 16: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='15'>Size 15: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='14'>Size 14: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='12'>Size 12: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='10'>Size 10: The quick brown fox jumps over the lazy dog</font>",
+          "html": true
+        },
         { "type": "section", "text": "Sizes on one line" },
-        { "type": "text", "text": "<font size='40'>40</font> <font size='30'>30</font> <font size='24'>24</font> <font size='20'>20</font> <font size='16'>16</font> <font size='12'>12</font> and no size", "html": true },
-        { "type": "text", "text": "A sentence with <font size='36'>one large word</font> in it, long enough that it is wrapped to a second line, so the height of a line with a large word shows beside the height of a line without one.", "html": true },
+        {
+          "type": "text",
+          "text": "<font size='40'>40</font> <font size='30'>30</font> <font size='24'>24</font> <font size='20'>20</font> <font size='16'>16</font> <font size='12'>12</font> and no size",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "A sentence with <font size='36'>one large word</font> in it, long enough that it is wrapped to a second line, so the height of a line with a large word shows beside the height of a line without one.",
+          "html": true
+        },
         { "type": "section", "text": "A size inside a size" },
-        { "type": "text", "text": "<font size='30'>Thirty, <font size='16'>sixteen inside it,</font> and thirty again</font>", "html": true },
-        { "type": "text", "text": "<font size='big'>A size that is not a number</font>, <font size='0'>a size of zero</font>, <font size='-4'>and one below it</font>", "html": true }
+        {
+          "type": "text",
+          "text": "<font size='30'>Thirty, <font size='16'>sixteen inside it,</font> and thirty again</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='big'>A size that is not a number</font>, <font size='0'>a size of zero</font>, <font size='-4'>and one below it</font>",
+          "html": true
+        }
       ]
     },
     {
       "pageDisplayName": "Text: colors",
       "content": [
         { "type": "section", "text": "Colors" },
-        { "type": "text", "text": "No color: the panel's muted text", "html": true },
-        { "type": "text", "text": "<font color='#FFFFFF'>#FFFFFF white</font>", "html": true },
-        { "type": "text", "text": "<font color='#AAAAAA'>#AAAAAA grey, as FallUI's notes</font>", "html": true },
-        { "type": "text", "text": "<font color='#666666'>#666666 dark grey</font>", "html": true },
-        { "type": "text", "text": "<font color='#000000'>#000000 black</font>", "html": true },
-        { "type": "text", "text": "<font color='#0AFA78'>#0AFA78 the panel's green</font>", "html": true },
-        { "type": "text", "text": "<font color='#FFBF33'>#FFBF33 the panel's amber</font>", "html": true },
-        { "type": "text", "text": "<font color='#FF9585'>#FF9585 the panel's red</font>", "html": true },
-        { "type": "text", "text": "<font color='#FF0000'>#FF0000 red</font> <font color='#00FF00'>#00FF00 green</font> <font color='#0000FF'>#0000FF blue</font>", "html": true },
-        { "type": "text", "text": "<font color='#FFFF00'>#FFFF00 yellow</font> <font color='#00FFFF'>#00FFFF cyan</font> <font color='#FF00FF'>#FF00FF magenta</font>", "html": true },
+        {
+          "type": "text",
+          "text": "No color: the panel's muted text",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#FFFFFF'>#FFFFFF white</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#AAAAAA'>#AAAAAA grey, as FallUI's notes</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#666666'>#666666 dark grey</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#000000'>#000000 black</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#0AFA78'>#0AFA78 the panel's green</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#FFBF33'>#FFBF33 the panel's amber</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#FF9585'>#FF9585 the panel's red</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#FF0000'>#FF0000 red</font> <font color='#00FF00'>#00FF00 green</font> <font color='#0000FF'>#0000FF blue</font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#FFFF00'>#FFFF00 yellow</font> <font color='#00FFFF'>#00FFFF cyan</font> <font color='#FF00FF'>#FF00FF magenta</font>",
+          "html": true
+        },
         { "type": "section", "text": "Colors in a sentence" },
-        { "type": "text", "text": "Stand straight and look ahead. <font color='#FFFFFF'>Do not move</font> until it is done, and <font color='#FF9585'>do not press anything</font>.", "html": true },
-        { "type": "text", "text": "<font color='#AAAAAA' size='16'>A grey note in size 16, <font color='#FFFFFF'>with white words inside it</font>, and grey again.</font>", "html": true },
+        {
+          "type": "text",
+          "text": "Stand straight and look ahead. <font color='#FFFFFF'>Do not move</font> until it is done, and <font color='#FF9585'>do not press anything</font>.",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#AAAAAA' size='16'>A grey note in size 16, <font color='#FFFFFF'>with white words inside it</font>, and grey again.</font>",
+          "html": true
+        },
         { "type": "section", "text": "Colors that are not read" },
-        { "type": "text", "text": "<font color='red'>A color by its name</font>, <font color='#FFF'>one of three digits</font>, <font color='#GGGGGG'>and one that is no number</font>", "html": true }
+        {
+          "type": "text",
+          "text": "<font color='red'>A color by its name</font>, <font color='#FFF'>one of three digits</font>, <font color='#GGGGGG'>and one that is no number</font>",
+          "html": true
+        }
       ]
     },
     {
       "pageDisplayName": "Text: align and lines",
       "content": [
         { "type": "section", "text": "Align" },
-        { "type": "text", "text": "<p align='left'>A paragraph at the left</p>", "html": true },
-        { "type": "text", "text": "<p align='center'>A paragraph in the center</p>", "html": true },
-        { "type": "text", "text": "<p align='right'>A paragraph at the right</p>", "html": true },
-        { "type": "text", "text": "<p align='center'>A centered paragraph that is long enough to be wrapped, so that each of its lines is seen to be centered by itself in the width of the rows, the last one too.</p>", "html": true },
-        { "type": "text", "text": "<p align='right'>A paragraph at the right that is long enough to be wrapped, so that each of its lines is seen to end at the right edge of the rows, the last one too.</p>", "html": true },
-        { "type": "text", "text": "<p align='center'><font size='30'>A centered title</font></p><p>A paragraph under it, at the left.</p><p align='right'><font size='16'>And a note at the right</font></p>", "html": true },
+        {
+          "type": "text",
+          "text": "<p align='left'>A paragraph at the left</p>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<p align='center'>A paragraph in the center</p>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<p align='right'>A paragraph at the right</p>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<p align='center'>A centered paragraph that is long enough to be wrapped, so that each of its lines is seen to be centered by itself in the width of the rows, the last one too.</p>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<p align='right'>A paragraph at the right that is long enough to be wrapped, so that each of its lines is seen to end at the right edge of the rows, the last one too.</p>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<p align='center'><font size='30'>A centered title</font></p><p>A paragraph under it, at the left.</p><p align='right'><font size='16'>And a note at the right</font></p>",
+          "html": true
+        },
         { "type": "section", "text": "Lines" },
-        { "type": "text", "text": "One line<br>A second, after a br<br/>A third, after a br/<br />A fourth, after a br /", "html": true },
-        { "type": "text", "text": "A line before an empty one<br><br>A line after it", "html": true },
-        { "type": "text", "text": "<p>A first paragraph.</p><p>A second, right under it.</p><br><p>A third, after a br between the paragraphs.</p>", "html": true },
-        { "type": "text", "text": "A line that ends in the config\nand goes on in the next, with html", "html": true },
+        {
+          "type": "text",
+          "text": "One line<br>A second, after a br<br/>A third, after a br/<br />A fourth, after a br /",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "A line before an empty one<br><br>A line after it",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<p>A first paragraph.</p><p>A second, right under it.</p><br><p>A third, after a br between the paragraphs.</p>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "A line that ends in the config\nand goes on in the next, with html",
+          "html": true
+        },
         { "type": "section", "text": "Wrapping" },
-        { "type": "text", "text": "A long paragraph. Sim Settlements 2 allows your settlers to build their own homes, farms, shops, and more. If this is your first time using the mod, know that you'll need to grab the holotape in the world or you can spawn it with the button below. Run the holotape to get started, and come back to this menu for the options.", "html": true },
-        { "type": "text", "text": "AWordThatIsMuchTooLongForTheWidthOfTheRowsAndHasNoSpaceToBeWrappedAtSoItRunsPastTheEdgeOfThePageToSeeWhatHappensToItThere and words after it", "html": true }
+        {
+          "type": "text",
+          "text": "A long paragraph. Sim Settlements 2 allows your settlers to build their own homes, farms, shops, and more. If this is your first time using the mod, know that you'll need to grab the holotape in the world or you can spawn it with the button below. Run the holotape to get started, and come back to this menu for the options.",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "AWordThatIsMuchTooLongForTheWidthOfTheRowsAndHasNoSpaceToBeWrappedAtSoItRunsPastTheEdgeOfThePageToSeeWhatHappensToItThere and words after it",
+          "html": true
+        }
       ]
     },
     {
       "pageDisplayName": "Text: tags and plain",
       "content": [
         { "type": "section", "text": "Bold, italic and underlined" },
-        { "type": "text", "text": "A <b>bold</b>, an <i>italic</i> and an <u>underlined</u> word, and <b><i>one that is both</i></b>, which is bold.", "html": true },
-        { "type": "text", "text": "<u>An underlined sentence that is long enough to be wrapped, so its line is seen under the words and the spaces between them, but not after its last word on a line.</u>", "html": true },
-        { "type": "text", "text": "<font size='30'><b>Bold</b> in size 30</font>, <font color='#FFFFFF'><i>italic in white</i></font>, and <b>bold <font color='#FFBF33' size='16'>around a small amber font</font> tag</b>", "html": true },
+        {
+          "type": "text",
+          "text": "A <b>bold</b>, an <i>italic</i> and an <u>underlined</u> word, and <b><i>one that is both</i></b>, which is bold.",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<u>An underlined sentence that is long enough to be wrapped, so its line is seen under the words and the spaces between them, but not after its last word on a line.</u>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size='30'><b>Bold</b> in size 30</font>, <font color='#FFFFFF'><i>italic in white</i></font>, and <b>bold <font color='#FFBF33' size='16'>around a small amber font</font> tag</b>",
+          "html": true
+        },
         { "type": "section", "text": "Tags that are dropped" },
-        { "type": "text", "text": "A <a href='https://example.com'>link</a> keeps its text.", "html": true },
-        { "type": "text", "text": "An image tag<img src='logo.png'/> and a closing tag with none open</font> leave nothing.", "html": true },
+        {
+          "type": "text",
+          "text": "A <a href='https://example.com'>link</a> keeps its text.",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "An image tag<img src='logo.png'/> and a closing tag with none open</font> leave nothing.",
+          "html": true
+        },
         { "type": "section", "text": "Entities" },
-        { "type": "text", "text": "Salt &amp; pepper, &lt;b&gt;, &quot;quoted&quot;, it&apos;s, a&nbsp;space, &#169; and &#xE9;", "html": true },
-        { "type": "text", "text": "What is no entity: fish & chips; &unknown; and 1 < 2 > 0", "html": true },
+        {
+          "type": "text",
+          "text": "Salt &amp; pepper, &lt;b&gt;, &quot;quoted&quot;, it&apos;s, a&nbsp;space, &#169; and &#xE9;",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "What is no entity: fish & chips; &unknown; and 1 < 2 > 0",
+          "html": true
+        },
         { "type": "section", "text": "Text rows with no html" },
         { "type": "text", "text": "A plain text row." },
         { "type": "text", "text": "A plain text row\nwith a line end in it." },
-        { "type": "text", "text": "A plain row shows its <b>tags</b> &amp; entities as they are written.<br>" },
-        { "type": "text", "text": "The chance decides, if a human NPC can use items. If you set the chance to 100%, all human NPCs will use items. If you set it to 50%, every second NPC can use items." },
+        {
+          "type": "text",
+          "text": "A plain row shows its <b>tags</b> &amp; entities as they are written.<br>"
+        },
+        {
+          "type": "text",
+          "text": "The chance decides, if a human NPC can use items. If you set the chance to 100%, all human NPCs will use items. If you set it to 50%, every second NPC can use items."
+        },
         { "type": "section", "text": "Titles and notes as mods write them" },
-        { "type": "text", "text": "<font size='30'><p align='center'>FallUI - Inventory</p></font>", "html": true },
-        { "type": "text", "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>", "html": 1 },
-        { "type": "text", "text": "<p align='center'><font size='24'>Sim Settlements 2</font></p>", "html": true },
-        { "type": "text", "text": "<font size=\"40\"><p align = \"center\">Unlimited Survival Mode</p></font>", "html": true },
-        { "type": "text", "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>", "html": true },
-        { "type": "text", "text": "<p align = \"center\"><font size='25'><b>by an author</b></font></p>", "align": "center", "html": "true" }
+        {
+          "type": "text",
+          "text": "<font size='30'><p align='center'>FallUI - Inventory</p></font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>",
+          "html": 1
+        },
+        {
+          "type": "text",
+          "text": "<p align='center'><font size='24'>Sim Settlements 2</font></p>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size=\"40\"><p align = \"center\">Unlimited Survival Mode</p></font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>",
+          "html": true
+        },
+        {
+          "type": "text",
+          "text": "<p align = \"center\"><font size='25'><b>by an author</b></font></p>",
+          "align": "center",
+          "html": "true"
+        }
       ]
     },
     {
@@ -133,11 +407,19 @@
       "content": [
         { "type": "text", "text": "A row before any section." },
         { "type": "section", "text": "A section" },
-        { "type": "switcher", "text": "A row in the section", "id": "bInSection:Main", "valueOptions": { "sourceType": "ModSettingBool" } },
+        {
+          "type": "switcher",
+          "text": "A row in the section",
+          "id": "bInSection:Main",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
         { "type": "section", "text": "A section with no rows" },
         { "type": "section", "text": "" },
         { "type": "text", "text": "The section above this row has no text." },
-        { "type": "section", "text": "A section with a name that is much too long for the width of the page and so has to end somewhere before the edge of it" },
+        {
+          "type": "section",
+          "text": "A section with a name that is much too long for the width of the page and so has to end somewhere before the edge of it"
+        },
         { "type": "section", "text": "Spacers" },
         { "type": "text", "text": "Under this row is a spacer of one line." },
         { "type": "spacer" },
@@ -148,9 +430,19 @@
         { "type": "text", "text": "Under this row are two spacers." },
         { "type": "spacer" },
         { "type": "spacer" },
-        { "type": "switcher", "text": "A row", "id": "bSpacerA:Main", "valueOptions": { "sourceType": "ModSettingBool" } },
+        {
+          "type": "switcher",
+          "text": "A row",
+          "id": "bSpacerA:Main",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
         { "type": "spacer" },
-        { "type": "switcher", "text": "A row after a spacer", "id": "bSpacerB:Main", "valueOptions": { "sourceType": "ModSettingBool" } },
+        {
+          "type": "switcher",
+          "text": "A row after a spacer",
+          "id": "bSpacerB:Main",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
         { "type": "spacer" },
         { "type": "section", "text": "A section after a spacer" },
         { "type": "text", "text": "The end of the page." }
@@ -160,110 +452,692 @@
       "pageDisplayName": "Switchers",
       "content": [
         { "type": "section", "text": "Switchers" },
-        { "type": "switcher", "text": "On by default", "help": "A ModSetting that is on.", "id": "bOn:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Off by default", "help": "A ModSetting that is off.", "id": "bOff:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "With no help", "id": "bNoHelp:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "<font size='15'><u>With tags in its text</u></font>", "help": "MCM's menu reads the text of any row as html: its font is small and underlined. It is kept nowhere.", "html": true },
-        { "type": "switcher", "text": "<font size='16' color='#AAAAAA'>(A small gray text)</font>", "help": "A font tag gives the text of a row its size and its color. It is kept nowhere." },
-        { "type": "switcher", "text": "Plain, <font color='#FF9585'>red</font> and <font size='40'>large</font>, in a text that is much too long for the room of its row", "help": "A size larger than the rows' text is drawn as large as it, and a long text ends in an ellipsis. It is kept nowhere." },
-        { "type": "switcher", "text": "A switcher with a name that is much too long for the room a row has before its control and ends in an ellipsis", "help": "The help line shows the name in full.", "id": "bLongName:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "With a long help", "help": "<p>When ON, settlers will attempt to automatically assign to available items in your settlements. </p><p>When OFF, they wait to be assigned. It is recommended to turn off Auto-Assignment from Workshop Framework. <font color='#aaaaaa'>(Default: ON)</font></p>", "id": "bLongHelp:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "A setting that is in no file", "help": "Its ModSetting is in neither of MCM's files. It is set while the mod is shown, and is off again when the mod is selected again.", "id": "bMissing:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "With no storage", "help": "A switcher with no valueOptions. It is kept nowhere, and is off again when the mod is selected again." },
-        { "type": "switcher", "text": "A global that is not in the game", "help": "A GlobalValue of a plugin that is not installed.", "valueOptions": { "sourceType": "GlobalValue", "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800" } },
-        { "type": "switcher", "text": "A property that is not in the game", "help": "A PropertyValueBool of a script of a plugin that is not installed.", "valueOptions": { "sourceType": "PropertyValueBool", "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800", "propertyName": "bOn" } },
+        {
+          "type": "switcher",
+          "text": "On by default",
+          "help": "A ModSetting that is on.",
+          "id": "bOn:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "Off by default",
+          "help": "A ModSetting that is off.",
+          "id": "bOff:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "With no help",
+          "id": "bNoHelp:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "<font size='15'><u>With tags in its text</u></font>",
+          "help": "MCM's menu reads the text of any row as html: its font is small and underlined. It is kept nowhere.",
+          "html": true
+        },
+        {
+          "type": "switcher",
+          "text": "<font size='16' color='#AAAAAA'>(A small gray text)</font>",
+          "help": "A font tag gives the text of a row its size and its color. It is kept nowhere."
+        },
+        {
+          "type": "switcher",
+          "text": "Plain, <font color='#FF9585'>red</font> and <font size='40'>large</font>, in a text that is much too long for the room of its row",
+          "help": "A size larger than the rows' text is drawn as large as it, and a long text ends in an ellipsis. It is kept nowhere."
+        },
+        {
+          "type": "switcher",
+          "text": "A switcher with a name that is much too long for the room a row has before its control and ends in an ellipsis",
+          "help": "The help line shows the name in full.",
+          "id": "bLongName:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "With a long help",
+          "help": "<p>When ON, settlers will attempt to automatically assign to available items in your settlements. </p><p>When OFF, they wait to be assigned. It is recommended to turn off Auto-Assignment from Workshop Framework. <font color='#aaaaaa'>(Default: ON)</font></p>",
+          "id": "bLongHelp:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "A setting that is in no file",
+          "help": "Its ModSetting is in neither of MCM's files. It is set while the mod is shown, and is off again when the mod is selected again.",
+          "id": "bMissing:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "With no storage",
+          "help": "A switcher with no valueOptions. It is kept nowhere, and is off again when the mod is selected again."
+        },
+        {
+          "type": "switcher",
+          "text": "A global that is not in the game",
+          "help": "A GlobalValue of a plugin that is not installed.",
+          "valueOptions": {
+            "sourceType": "GlobalValue",
+            "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800"
+          }
+        },
+        {
+          "type": "switcher",
+          "text": "A property that is not in the game",
+          "help": "A PropertyValueBool of a script of a plugin that is not installed.",
+          "valueOptions": {
+            "sourceType": "PropertyValueBool",
+            "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800",
+            "propertyName": "bOn"
+          }
+        },
         { "type": "section", "text": "A group that a switcher shows" },
-        { "type": "switcher", "text": "Unfold settings", "help": "Shows the rows of its group. It has no id, so it is kept nowhere, and is off again when the mod is selected again.", "groupControl": 1, "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "A row of the group", "groupCondition": 1, "id": "bGroupA:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "text", "text": "A text row of the group.", "groupCondition": 1 },
-        { "type": "switcher", "text": "A row of groups 1 and 2", "groupControl": 2, "groupCondition": 1, "id": "bGroupB:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "A row that needs both", "groupCondition": { "AND": [1, 2] }, "id": "bGroupC:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "A row that needs either", "groupCondition": { "OR": [1, 2] }, "id": "bGroupD:Switchers", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "text", "text": "A text row that needs group 1 and no other.", "groupCondition": { "ONLY": [1] } }
+        {
+          "type": "switcher",
+          "text": "Unfold settings",
+          "help": "Shows the rows of its group. It has no id, so it is kept nowhere, and is off again when the mod is selected again.",
+          "groupControl": 1,
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "A row of the group",
+          "groupCondition": 1,
+          "id": "bGroupA:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "text",
+          "text": "A text row of the group.",
+          "groupCondition": 1
+        },
+        {
+          "type": "switcher",
+          "text": "A row of groups 1 and 2",
+          "groupControl": 2,
+          "groupCondition": 1,
+          "id": "bGroupB:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "A row that needs both",
+          "groupCondition": { "AND": [1, 2] },
+          "id": "bGroupC:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "switcher",
+          "text": "A row that needs either",
+          "groupCondition": { "OR": [1, 2] },
+          "id": "bGroupD:Switchers",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "text",
+          "text": "A text row that needs group 1 and no other.",
+          "groupCondition": { "ONLY": [1] }
+        }
       ]
     },
     {
       "pageDisplayName": "Sliders",
       "content": [
         { "type": "section", "text": "Sliders" },
-        { "type": "slider", "text": "0 to 100 by 1", "help": "Whole numbers.", "id": "fPercent:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "slider", "text": "0 to 2 by 0.1", "help": "One decimal.", "id": "fTenth:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 2, "step": 0.1 } },
-        { "type": "slider", "text": "0.5 to 1.5 by 0.01", "help": "Two decimals.", "id": "fHundredth:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0.5, "max": 1.5, "step": 0.01 } },
-        { "type": "slider", "text": "-1000 to 1000 by 50", "help": "Below zero, and wide values.", "id": "fWide:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": -1000, "max": 1000, "step": 50 } },
-        { "type": "slider", "text": "An int, 1 to 10", "help": "A ModSettingInt.", "id": "iCount:Sliders", "valueOptions": { "sourceType": "ModSettingInt", "min": 1, "max": 10, "step": 1 } },
-        { "type": "slider", "text": "Two steps only", "help": "0 or 1.", "id": "fTwo:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 1, "step": 1 } },
-        { "type": "slider", "text": "A value outside its range", "help": "The file has 500, and the most is 100.", "id": "fOutside:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "slider", "text": "A slider with a name that is much too long for the room a row has before its control", "id": "fLongName:Sliders", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "slider", "text": "With no range", "help": "A slider with no min, max and step.", "id": "fNoRange:Sliders", "valueOptions": { "sourceType": "ModSettingFloat" } },
+        {
+          "type": "slider",
+          "text": "0 to 100 by 1",
+          "help": "Whole numbers.",
+          "id": "fPercent:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0,
+            "max": 100,
+            "step": 1
+          }
+        },
+        {
+          "type": "slider",
+          "text": "0 to 2 by 0.1",
+          "help": "One decimal.",
+          "id": "fTenth:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0,
+            "max": 2,
+            "step": 0.1
+          }
+        },
+        {
+          "type": "slider",
+          "text": "0.5 to 1.5 by 0.01",
+          "help": "Two decimals.",
+          "id": "fHundredth:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0.5,
+            "max": 1.5,
+            "step": 0.01
+          }
+        },
+        {
+          "type": "slider",
+          "text": "-1000 to 1000 by 50",
+          "help": "Below zero, and wide values.",
+          "id": "fWide:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": -1000,
+            "max": 1000,
+            "step": 50
+          }
+        },
+        {
+          "type": "slider",
+          "text": "An int, 1 to 10",
+          "help": "A ModSettingInt.",
+          "id": "iCount:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "min": 1,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "type": "slider",
+          "text": "Two steps only",
+          "help": "0 or 1.",
+          "id": "fTwo:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        },
+        {
+          "type": "slider",
+          "text": "A value outside its range",
+          "help": "The file has 500, and the most is 100.",
+          "id": "fOutside:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0,
+            "max": 100,
+            "step": 1
+          }
+        },
+        {
+          "type": "slider",
+          "text": "A slider with a name that is much too long for the room a row has before its control",
+          "id": "fLongName:Sliders",
+          "valueOptions": {
+            "sourceType": "ModSettingFloat",
+            "min": 0,
+            "max": 100,
+            "step": 1
+          }
+        },
+        {
+          "type": "slider",
+          "text": "With no range",
+          "help": "A slider with no min, max and step.",
+          "id": "fNoRange:Sliders",
+          "valueOptions": { "sourceType": "ModSettingFloat" }
+        },
         { "type": "section", "text": "With no storage" },
-        { "type": "slider", "text": "0 to 100 by 5", "help": "A slider with no sourceType. It is kept nowhere, and is at its least again when the mod is selected again.", "valueOptions": { "min": 0, "max": 100, "step": 5 } },
-        { "type": "slider", "text": "0.5 to 1.5 by 0.01", "help": "A hundred steps, for the thumbstick. It is kept nowhere.", "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 } }
+        {
+          "type": "slider",
+          "text": "0 to 100 by 5",
+          "help": "A slider with no sourceType. It is kept nowhere, and is at its least again when the mod is selected again.",
+          "valueOptions": { "min": 0, "max": 100, "step": 5 }
+        },
+        {
+          "type": "slider",
+          "text": "0.5 to 1.5 by 0.01",
+          "help": "A hundred steps, for the thumbstick. It is kept nowhere.",
+          "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 }
+        }
       ]
     },
     {
       "pageDisplayName": "Steppers and dropdowns",
       "content": [
         { "type": "section", "text": "Steppers" },
-        { "type": "stepper", "text": "Two options", "help": "Off or On.", "id": "iTwo:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Off", "On"] } },
-        { "type": "stepper", "text": "Five options", "help": "From Very low to Very high.", "id": "iFive:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Very low", "Low", "Medium", "High", "Very high"] } },
-        { "type": "stepper", "text": "Long options", "id": "iLong:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["An option with a long name", "Another option with a name that is longer still", "Short"] } },
+        {
+          "type": "stepper",
+          "text": "Two options",
+          "help": "Off or On.",
+          "id": "iTwo:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": ["Off", "On"]
+          }
+        },
+        {
+          "type": "stepper",
+          "text": "Five options",
+          "help": "From Very low to Very high.",
+          "id": "iFive:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": ["Very low", "Low", "Medium", "High", "Very high"]
+          }
+        },
+        {
+          "type": "stepper",
+          "text": "Long options",
+          "id": "iLong:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "An option with a long name",
+              "Another option with a name that is longer still",
+              "Short"
+            ]
+          }
+        },
         { "type": "section", "text": "Dropdowns" },
-        { "type": "dropdown", "text": "Three options", "help": "Where the flashlight is.", "id": "iThree:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Head", "Offhand", "Primary hand"] } },
-        { "type": "dropdown", "text": "Twenty options", "help": "More than the list has room for.", "id": "iTwenty:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13", "Option 14", "Option 15", "Option 16", "Option 17", "Option 18", "Option 19", "Option 20"] } },
-        { "type": "dropdown", "text": "Long options", "id": "iLongDrop:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["An option with a long name", "Another option with a name that is much longer than the control is wide", "Short"] } },
-        { "type": "dropdown", "text": "One option", "id": "iOne:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["The only one"] } },
-        { "type": "dropdown", "text": "A value that is no option", "help": "The file has 7, and there are three options.", "id": "iOutside:Choices", "valueOptions": { "sourceType": "ModSettingInt", "options": ["Zero", "One", "Two"] } },
-        { "type": "dropdown", "text": "With no options", "id": "iNone:Choices", "valueOptions": { "sourceType": "ModSettingInt" } },
-        { "type": "dropdown", "text": "Shared options", "help": "Its options are the config's shared list 'weather'. It is kept nowhere.", "valueOptions": { "sharedOptions": "weather" } },
-        { "type": "stepper", "text": "Shared options", "help": "The same list, in a stepper. It is kept nowhere.", "valueOptions": { "sharedOptions": "weather" } },
-        { "type": "text", "text": "A row under the dropdowns, which an open list covers." },
-        { "type": "switcher", "text": "A row under the dropdowns", "id": "bUnder:Choices", "valueOptions": { "sourceType": "ModSettingBool" } },
+        {
+          "type": "dropdown",
+          "text": "Three options",
+          "help": "Where the flashlight is.",
+          "id": "iThree:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": ["Head", "Offhand", "Primary hand"]
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "Twenty options",
+          "help": "More than the list has room for.",
+          "id": "iTwenty:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "Option 1",
+              "Option 2",
+              "Option 3",
+              "Option 4",
+              "Option 5",
+              "Option 6",
+              "Option 7",
+              "Option 8",
+              "Option 9",
+              "Option 10",
+              "Option 11",
+              "Option 12",
+              "Option 13",
+              "Option 14",
+              "Option 15",
+              "Option 16",
+              "Option 17",
+              "Option 18",
+              "Option 19",
+              "Option 20"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "Long options",
+          "id": "iLongDrop:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": [
+              "An option with a long name",
+              "Another option with a name that is much longer than the control is wide",
+              "Short"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "One option",
+          "id": "iOne:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": ["The only one"]
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "A value that is no option",
+          "help": "The file has 7, and there are three options.",
+          "id": "iOutside:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "options": ["Zero", "One", "Two"]
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "With no options",
+          "id": "iNone:Choices",
+          "valueOptions": { "sourceType": "ModSettingInt" }
+        },
+        {
+          "type": "dropdown",
+          "text": "Shared options",
+          "help": "Its options are the config's shared list 'weather'. It is kept nowhere.",
+          "valueOptions": { "sharedOptions": "weather" }
+        },
+        {
+          "type": "stepper",
+          "text": "Shared options",
+          "help": "The same list, in a stepper. It is kept nowhere.",
+          "valueOptions": { "sharedOptions": "weather" }
+        },
+        {
+          "type": "text",
+          "text": "A row under the dropdowns, which an open list covers."
+        },
+        {
+          "type": "switcher",
+          "text": "A row under the dropdowns",
+          "id": "bUnder:Choices",
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
         { "type": "section", "text": "Options from the game" },
-        { "type": "dropdown", "text": "Settlements", "help": "A listFromForm: the names of the forms of the game's FormList SettlementLocationsList, read as the page is shown.", "id": "iSettlement:Choices", "valueOptions": { "sourceType": "ModSettingInt", "listFromForm": "Fallout4.esm|1D98E2" } },
-        { "type": "stepper", "text": "Companions", "help": "A listFromForm in a stepper: the game's FormList CompanionFormlist.", "id": "iCompanion:Choices", "valueOptions": { "sourceType": "ModSettingInt", "listFromForm": "Fallout4.esm|78591" } },
-        { "type": "dropdown", "text": "A FormList that is not in the game", "help": "Its plugin is not loaded.", "id": "iNoList:Choices", "valueOptions": { "sourceType": "ModSettingInt", "listFromForm": "ModsConfigVR_McmShowcase.esp|800" } },
-        { "type": "dropdown", "text": "A property that is not in the game", "help": "A listFromProperty of a form that has no such script.", "id": "iNoProperty:Choices", "valueOptions": { "sourceType": "ModSettingInt", "listFromProperty": { "form": "Fallout4.esm|1D98E2", "scriptName": "ModsConfigVR:NoSuchScript", "propertyName": "Names" } } },
+        {
+          "type": "dropdown",
+          "text": "Settlements",
+          "help": "A listFromForm: the names of the forms of the game's FormList SettlementLocationsList, read as the page is shown.",
+          "id": "iSettlement:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "listFromForm": "Fallout4.esm|1D98E2"
+          }
+        },
+        {
+          "type": "stepper",
+          "text": "Companions",
+          "help": "A listFromForm in a stepper: the game's FormList CompanionFormlist.",
+          "id": "iCompanion:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "listFromForm": "Fallout4.esm|78591"
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "A FormList that is not in the game",
+          "help": "Its plugin is not loaded.",
+          "id": "iNoList:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "listFromForm": "ModsConfigVR_McmShowcase.esp|800"
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "A property that is not in the game",
+          "help": "A listFromProperty of a form that has no such script.",
+          "id": "iNoProperty:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingInt",
+            "listFromProperty": {
+              "form": "Fallout4.esm|1D98E2",
+              "scriptName": "ModsConfigVR:NoSuchScript",
+              "propertyName": "Names"
+            }
+          }
+        },
         { "type": "section", "text": "Dropdowns of files" },
-        { "type": "dropdownFiles", "text": "The JSON files of this config", "help": "A dropdownFiles of the showcase's own folder, with the mask *.json. It keeps the name of the file.", "id": "sFile:Choices", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config/ModsConfigVR_McmShowcase", "mask": "*.json" } },
-        { "type": "dropdownFiles", "text": "Every file of this config", "help": "With no mask.", "id": "sAnyFile:Choices", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config/ModsConfigVR_McmShowcase" } },
-        { "type": "dropdownFiles", "text": "A mask that matches no file", "help": "None is its only option.", "id": "sNoFile:Choices", "valueOptions": { "sourceType": "ModSettingString", "path": "Data/MCM/Config/ModsConfigVR_McmShowcase", "mask": "*.nothing" } },
+        {
+          "type": "dropdownFiles",
+          "text": "The JSON files of this config",
+          "help": "A dropdownFiles of the showcase's own folder, with the mask *.json. It keeps the name of the file.",
+          "id": "sFile:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase",
+            "mask": "*.json"
+          }
+        },
+        {
+          "type": "dropdownFiles",
+          "text": "Every file of this config",
+          "help": "With no mask.",
+          "id": "sAnyFile:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase"
+          }
+        },
+        {
+          "type": "dropdownFiles",
+          "text": "A mask that matches no file",
+          "help": "None is its only option.",
+          "id": "sNoFile:Choices",
+          "valueOptions": {
+            "sourceType": "ModSettingString",
+            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase",
+            "mask": "*.nothing"
+          }
+        },
         { "type": "section", "text": "With no storage" },
-        { "type": "stepper", "text": "Five options", "help": "A stepper with no sourceType. It is kept nowhere, and is at its first option again when the mod is selected again.", "valueOptions": { "options": ["Very low", "Low", "Medium", "High", "Very high"] } },
-        { "type": "dropdown", "text": "Three options", "help": "A dropdown with no sourceType. It is kept nowhere.", "valueOptions": { "options": ["Head", "Offhand", "Primary hand"] } },
-        { "type": "dropdown", "text": "Twenty options", "help": "More than the list has room for, so it scrolls. It is kept nowhere.", "valueOptions": { "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13", "Option 14", "Option 15", "Option 16", "Option 17", "Option 18", "Option 19", "Option 20"] } },
-        { "type": "dropdown", "text": "Long options", "help": "It is kept nowhere.", "valueOptions": { "options": ["An option with a long name", "Another option with a name that is much longer than the control is wide", "Short"] } },
-        { "type": "dropdownFiles", "text": "The JSON files of this config", "help": "A dropdownFiles with no sourceType. It is kept nowhere.", "valueOptions": { "path": "Data/MCM/Config/ModsConfigVR_McmShowcase", "mask": "*.json" } }
+        {
+          "type": "stepper",
+          "text": "Five options",
+          "help": "A stepper with no sourceType. It is kept nowhere, and is at its first option again when the mod is selected again.",
+          "valueOptions": {
+            "options": ["Very low", "Low", "Medium", "High", "Very high"]
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "Three options",
+          "help": "A dropdown with no sourceType. It is kept nowhere.",
+          "valueOptions": { "options": ["Head", "Offhand", "Primary hand"] }
+        },
+        {
+          "type": "dropdown",
+          "text": "Twenty options",
+          "help": "More than the list has room for, so it scrolls. It is kept nowhere.",
+          "valueOptions": {
+            "options": [
+              "Option 1",
+              "Option 2",
+              "Option 3",
+              "Option 4",
+              "Option 5",
+              "Option 6",
+              "Option 7",
+              "Option 8",
+              "Option 9",
+              "Option 10",
+              "Option 11",
+              "Option 12",
+              "Option 13",
+              "Option 14",
+              "Option 15",
+              "Option 16",
+              "Option 17",
+              "Option 18",
+              "Option 19",
+              "Option 20"
+            ]
+          }
+        },
+        {
+          "type": "dropdown",
+          "text": "Long options",
+          "help": "It is kept nowhere.",
+          "valueOptions": {
+            "options": [
+              "An option with a long name",
+              "Another option with a name that is much longer than the control is wide",
+              "Short"
+            ]
+          }
+        },
+        {
+          "type": "dropdownFiles",
+          "text": "The JSON files of this config",
+          "help": "A dropdownFiles with no sourceType. It is kept nowhere.",
+          "valueOptions": {
+            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase",
+            "mask": "*.json"
+          }
+        }
       ]
     },
     {
       "pageDisplayName": "Buttons, text input and others",
       "content": [
         { "type": "section", "text": "Buttons" },
-        { "type": "button", "text": "A button with no action", "help": "Nothing runs." },
-        { "type": "button", "text": "A button with a name that is much too long for the room a row has before its control and ends in an ellipsis", "help": "Nothing runs." },
-        { "type": "button", "text": "CallFunction on a form that is not there", "help": "The form is of a plugin that is not loaded.", "action": { "type": "CallFunction", "form": "NoSuchPlugin.esp|800", "function": "DoIt", "params": ["text", 1, true] } },
-        { "type": "button", "text": "CallGlobalFunction", "help": "Debug.Notification with a text.", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["MCM Showcase: the button ran"] } },
-        { "type": "button", "text": "CallExternalFunction", "help": "A Flash function of an F4SE plugin, which the menu does not run.", "action": { "type": "CallExternalFunction", "plugin": "NoSuchPlugin", "function": "DoIt" } },
+        {
+          "type": "button",
+          "text": "A button with no action",
+          "help": "Nothing runs."
+        },
+        {
+          "type": "button",
+          "text": "A button with a name that is much too long for the room a row has before its control and ends in an ellipsis",
+          "help": "Nothing runs."
+        },
+        {
+          "type": "button",
+          "text": "CallFunction on a form that is not there",
+          "help": "The form is of a plugin that is not loaded.",
+          "action": {
+            "type": "CallFunction",
+            "form": "NoSuchPlugin.esp|800",
+            "function": "DoIt",
+            "params": ["text", 1, true]
+          }
+        },
+        {
+          "type": "button",
+          "text": "CallGlobalFunction",
+          "help": "Debug.Notification with a text.",
+          "action": {
+            "type": "CallGlobalFunction",
+            "script": "Debug",
+            "function": "Notification",
+            "params": ["MCM Showcase: the button ran"]
+          }
+        },
+        {
+          "type": "button",
+          "text": "CallExternalFunction",
+          "help": "A Flash function of an F4SE plugin, which the menu does not run.",
+          "action": {
+            "type": "CallExternalFunction",
+            "plugin": "NoSuchPlugin",
+            "function": "DoIt"
+          }
+        },
         { "type": "section", "text": "Value rows with an action" },
-        { "type": "switcher", "text": "A switcher with a CallFunction", "help": "Its function is of a form that is not there: the switcher is set, and nothing runs.", "action": { "type": "CallFunction", "form": "NoSuchPlugin.esp|800", "function": "OnToggle", "params": ["{b}{value}"] } },
-        { "type": "switcher", "text": "A switcher with a CallGlobalFunction", "help": "Debug.Notification with its value. It is kept nowhere.", "action": { "type": "CallGlobalFunction", "script": "Debug", "function": "Notification", "params": ["MCM Showcase: the switcher is {value}"] } },
+        {
+          "type": "switcher",
+          "text": "A switcher with a CallFunction",
+          "help": "Its function is of a form that is not there: the switcher is set, and nothing runs.",
+          "action": {
+            "type": "CallFunction",
+            "form": "NoSuchPlugin.esp|800",
+            "function": "OnToggle",
+            "params": ["{b}{value}"]
+          }
+        },
+        {
+          "type": "switcher",
+          "text": "A switcher with a CallGlobalFunction",
+          "help": "Debug.Notification with its value. It is kept nowhere.",
+          "action": {
+            "type": "CallGlobalFunction",
+            "script": "Debug",
+            "function": "Notification",
+            "params": ["MCM Showcase: the switcher is {value}"]
+          }
+        },
         { "type": "section", "text": "Text input" },
-        { "type": "textinput", "text": "A text", "help": "A ModSettingString.", "id": "sName:Inputs", "valueOptions": { "sourceType": "ModSettingString" } },
-        { "type": "textinput", "text": "An empty text", "id": "sEmpty:Inputs", "valueOptions": { "sourceType": "ModSettingString" } },
-        { "type": "textinput", "text": "A long text", "id": "sLong:Inputs", "valueOptions": { "sourceType": "ModSettingString" } },
-        { "type": "textinputInt", "text": "A whole number", "id": "iNumber:Inputs", "valueOptions": { "sourceType": "ModSettingInt" } },
-        { "type": "textinputFloat", "text": "A number", "id": "fNumber:Inputs", "valueOptions": { "sourceType": "ModSettingFloat" } },
+        {
+          "type": "textinput",
+          "text": "A text",
+          "help": "A ModSettingString.",
+          "id": "sName:Inputs",
+          "valueOptions": { "sourceType": "ModSettingString" }
+        },
+        {
+          "type": "textinput",
+          "text": "An empty text",
+          "id": "sEmpty:Inputs",
+          "valueOptions": { "sourceType": "ModSettingString" }
+        },
+        {
+          "type": "textinput",
+          "text": "A long text",
+          "id": "sLong:Inputs",
+          "valueOptions": { "sourceType": "ModSettingString" }
+        },
+        {
+          "type": "textinputInt",
+          "text": "A whole number",
+          "id": "iNumber:Inputs",
+          "valueOptions": { "sourceType": "ModSettingInt" }
+        },
+        {
+          "type": "textinputFloat",
+          "text": "A number",
+          "id": "fNumber:Inputs",
+          "valueOptions": { "sourceType": "ModSettingFloat" }
+        },
         { "type": "section", "text": "Hotkeys" },
-        { "type": "hotkey", "text": "A hotkey", "help": "Shows a notification. Bind a key to it in MCM's menu.", "id": "TestHotkeyA" },
-        { "type": "hotkey", "text": "A hotkey with modifiers", "help": "With allowModifierKeys: bind it with Ctrl, Alt or Shift held.", "id": "TestHotkeyB", "valueOptions": { "allowModifierKeys": true } },
-        { "type": "hotkey", "text": "A hotkey that is not in keybinds.json", "help": "MCM binds no key to it.", "id": "TestHotkeyMissing" },
+        {
+          "type": "hotkey",
+          "text": "A hotkey",
+          "help": "Shows a notification. Bind a key to it in MCM's menu.",
+          "id": "TestHotkeyA"
+        },
+        {
+          "type": "hotkey",
+          "text": "A hotkey with modifiers",
+          "help": "With allowModifierKeys: bind it with Ctrl, Alt or Shift held.",
+          "id": "TestHotkeyB",
+          "valueOptions": { "allowModifierKeys": true }
+        },
+        {
+          "type": "hotkey",
+          "text": "A hotkey that is not in keybinds.json",
+          "help": "MCM binds no key to it.",
+          "id": "TestHotkeyMissing"
+        },
         { "type": "section", "text": "Hidden switchers" },
-        { "type": "hiddenSwitcher", "id": "bOn:Hidden", "groupControl": 1, "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "hiddenSwitcher", "id": "bOff:Hidden", "groupControl": 2, "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "text", "text": "A text row of the group of a hidden switcher that is on. The switcher itself is not shown.", "groupCondition": 1 },
-        { "type": "text", "text": "A text row of the group of a hidden switcher that is off, which is not shown.", "groupCondition": 2 },
+        {
+          "type": "hiddenSwitcher",
+          "id": "bOn:Hidden",
+          "groupControl": 1,
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "hiddenSwitcher",
+          "id": "bOff:Hidden",
+          "groupControl": 2,
+          "valueOptions": { "sourceType": "ModSettingBool" }
+        },
+        {
+          "type": "text",
+          "text": "A text row of the group of a hidden switcher that is on. The switcher itself is not shown.",
+          "groupCondition": 1
+        },
+        {
+          "type": "text",
+          "text": "A text row of the group of a hidden switcher that is off, which is not shown.",
+          "groupCondition": 2
+        },
         { "type": "section", "text": "Other controls" },
-        { "type": "color", "text": "color", "id": "iColor:Inputs", "valueOptions": { "sourceType": "ModSettingInt" } },
+        {
+          "type": "color",
+          "text": "color",
+          "id": "iColor:Inputs",
+          "valueOptions": { "sourceType": "ModSettingInt" }
+        },
         { "type": "noSuchControl", "text": "A type that no menu knows" },
         { "text": "A row with no type" }
       ]
@@ -271,75 +1145,53 @@
     {
       "pageDisplayName": "Images",
       "content": [
-        { "type": "text", "text": "An image is a class of the mod's lib.swf. This one is 256 by 64: a yellow corner at its top left, red, green, blue and white, black to white, and white from clear to solid." },
-        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Swatches" },
-        { "type": "text", "text": "An image of 1024 by 64, which is wider than MCM's menu: it is shown smaller. It has a mark every 64 pixels and a longer one every 256." },
-        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Ruler" },
-        { "type": "text", "text": "A bitmap of 128 by 128 that its movie clip shows at 64 by 64: squares of white and of a half clear green." },
-        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Checker" },
-        { "type": "text", "text": "An image with a width and a height in its row." },
-        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "Swatches", "width": 256, "height": 64 },
+        {
+          "type": "text",
+          "text": "An image is a class of the mod's lib.swf. This one is 256 by 64: a yellow corner at its top left, red, green, blue and white, black to white, and white from clear to solid."
+        },
+        {
+          "type": "image",
+          "libName": "ModsConfigVR_McmShowcase",
+          "className": "Swatches"
+        },
+        {
+          "type": "text",
+          "text": "An image of 1024 by 64, which is wider than MCM's menu: it is shown smaller. It has a mark every 64 pixels and a longer one every 256."
+        },
+        {
+          "type": "image",
+          "libName": "ModsConfigVR_McmShowcase",
+          "className": "Ruler"
+        },
+        {
+          "type": "text",
+          "text": "A bitmap of 128 by 128 that its movie clip shows at 64 by 64: squares of white and of a half clear green."
+        },
+        {
+          "type": "image",
+          "libName": "ModsConfigVR_McmShowcase",
+          "className": "Checker"
+        },
+        {
+          "type": "text",
+          "text": "An image with a width and a height in its row."
+        },
+        {
+          "type": "image",
+          "libName": "ModsConfigVR_McmShowcase",
+          "className": "Swatches",
+          "width": 256,
+          "height": 64
+        },
         { "type": "text", "text": "A class that the file does not have." },
-        { "type": "image", "libName": "ModsConfigVR_McmShowcase", "className": "NoSuchImage", "width": 256, "height": 64 }
+        {
+          "type": "image",
+          "libName": "ModsConfigVR_McmShowcase",
+          "className": "NoSuchImage",
+          "width": 256,
+          "height": 64
+        }
       ]
-    },
-    {
-      "pageDisplayName": "A long page",
-      "content": [
-        { "type": "text", "text": "Forty rows, to scroll." },
-        { "type": "section", "text": "Rows 1 to 10" },
-        { "type": "switcher", "text": "Row 1", "id": "bRow1:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 2", "id": "bRow2:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "slider", "text": "Row 3", "id": "fRow3:Long", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "switcher", "text": "Row 4", "id": "bRow4:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "dropdown", "text": "Row 5", "id": "iRow5:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 6", "id": "bRow6:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 7", "id": "bRow7:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "stepper", "text": "Row 8", "id": "iRow8:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 9", "id": "bRow9:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 10", "id": "bRow10:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "section", "text": "Rows 11 to 20" },
-        { "type": "switcher", "text": "Row 11", "id": "bRow11:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 12", "id": "bRow12:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "slider", "text": "Row 13", "id": "fRow13:Long", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "switcher", "text": "Row 14", "id": "bRow14:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "dropdown", "text": "Row 15", "id": "iRow15:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 16", "id": "bRow16:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 17", "id": "bRow17:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "stepper", "text": "Row 18", "id": "iRow18:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 19", "id": "bRow19:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 20", "id": "bRow20:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "section", "text": "Rows 21 to 30" },
-        { "type": "switcher", "text": "Row 21", "id": "bRow21:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 22", "id": "bRow22:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "slider", "text": "Row 23", "id": "fRow23:Long", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "switcher", "text": "Row 24", "id": "bRow24:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "dropdown", "text": "Row 25", "id": "iRow25:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 26", "id": "bRow26:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 27", "id": "bRow27:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "stepper", "text": "Row 28", "id": "iRow28:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 29", "id": "bRow29:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 30", "id": "bRow30:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "section", "text": "Rows 31 to 40" },
-        { "type": "switcher", "text": "Row 31", "id": "bRow31:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 32", "id": "bRow32:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "slider", "text": "Row 33", "id": "fRow33:Long", "valueOptions": { "sourceType": "ModSettingFloat", "min": 0, "max": 100, "step": 1 } },
-        { "type": "switcher", "text": "Row 34", "id": "bRow34:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "dropdown", "text": "Row 35", "id": "iRow35:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 36", "id": "bRow36:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 37", "id": "bRow37:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "stepper", "text": "Row 38", "id": "iRow38:Long", "valueOptions": { "sourceType": "ModSettingInt", "options": ["One", "Two", "Three"] } },
-        { "type": "switcher", "text": "Row 39", "id": "bRow39:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "switcher", "text": "Row 40", "id": "bRow40:Long", "valueOptions": { "sourceType": "ModSettingBool" } },
-        { "type": "text", "text": "<p align='center'>The end of the page.</p>", "html": true }
-      ]
-    },
-    {
-      "pageDisplayName": "A page with a name that is much too long for the tree and for the title bar",
-      "content": [
-        { "type": "text", "text": "A page whose name does not fit its row in the tree, nor its breadcrumb." }
-      ]
-    },
-    { "pageDisplayName": "An empty page", "content": [] }
+    }
   ]
 }

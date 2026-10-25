@@ -810,7 +810,7 @@ TEST_CASE("FullPanel render: the pages of the config spec showcase", "[.render]"
     renderPages(mods[0].pages);
 }
 
-TEST_CASE("FullPanel render: the front page of the config spec showcase with values that wait for a Save", "[.render]")
+TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with values that wait for a Save", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
@@ -819,9 +819,9 @@ TEST_CASE("FullPanel render: the front page of the config spec showcase with val
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
-    panel.select({ .mod = 0, .page = {} });
+    panel.select({ .mod = 0, .page = pagePlaces(mods[0], { "Most Used" }) });
 
-    // a switcher, a slider, a stepper, a dropdown and a text input of its front page, each changed
+    // a switcher, a slider, a stepper, a dropdown and a text input of its Most Used page, each changed
     const auto change = [&store](const std::vector<model::Item>& items, const auto& self) -> void {
         for (const auto& item : items) {
             if (const auto* group = std::get_if<model::Group>(&item)) {
@@ -845,12 +845,18 @@ TEST_CASE("FullPanel render: the front page of the config spec showcase with val
                 store.set(*setting, setting->valueOptions.options.back().value);
                 break;
             case model::SettingType::TextInput:
-                store.set(*setting, setting->valueType == model::StoredType::String ? model::Value("Changed") : model::Value("7"));
+                // a number inside its limits, where it has them, so the value waits for a Save and is not invalid
+                if (setting->valueType == model::StoredType::String) {
+                    store.set(*setting, model::Value("Changed"));
+                } else {
+                    const auto& limits = setting->valueOptions;
+                    store.set(*setting, model::Value(limits.max > limits.min ? std::format("{}", limits.max) : std::string("7")));
+                }
                 break;
             }
         }
     };
-    change(panel.mods()[0].frontPage.items, change);
+    change(findPage(panel.mods()[0], { "Most Used" }).items, change);
     REQUIRE(store.dirtyCount() > 0);
     WARN("Saved " << renderToFile(panel, "config-spec-showcase-pending", POINTER_AWAY));
 
@@ -873,7 +879,7 @@ TEST_CASE("FullPanel render: the front page of the config spec showcase with val
         }
         return nullptr;
     };
-    const auto* input = numberInput(panel.mods()[0].frontPage.items, numberInput);
+    const auto* input = numberInput(findPage(panel.mods()[0], { "Most Used" }).items, numberInput);
     REQUIRE(input);
     store.set(*input, "not a number"s);
     REQUIRE(store.invalidCount() > 0);
@@ -1038,8 +1044,7 @@ TEST_CASE("FullPanel render: the ends of the config spec showcase's pages of row
     spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
 
     // the images are at the end of each page: the thumbstick scrolls the page the ray is on
-    for (const auto& [pageName, name] :
-        { std::pair{ "Text, spacers and images", "config-spec-showcase-images" }, std::pair{ "Mistakes", "config-spec-showcase-missing-textures" } }) {
+    for (const auto& [pageName, name] : { std::pair{ "Images", "config-spec-showcase-images" }, std::pair{ "Mistakes", "config-spec-showcase-missing-textures" } }) {
         FullPanel panel;
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
