@@ -145,6 +145,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | M68 | mod       | A client gets the preview and discard events             | in review |
 | M69 | mod       | A client gets the saved batch                            | in review |
 | F30 | framework | `ModBase`'s client previews through the config overrides | in review |
+| F31 | framework | config: a subscriber is told the change of its keys         | in review |
 | M70 | mod       | The F4SE message after a Save                            | todo   |
 
 M120 to M125 give every mod one lifecycle before a client previews: a change waits for Save, and the menu says when a change takes effect only where a config spec says it. See [MCM compatibility](architecture.md#mcm-compatibility) and [When a change takes effect](schema.md#when-a-change-takes-effect).
@@ -155,6 +156,8 @@ M120 to M125 give every mod one lifecycle before a client previews: a change wai
 - M124 designs the marks: a broadcast for `live`, a disk for `save` and a power mark for `restart`, the pending mark as that one in amber, and a plain pending mark for an `unknown` one and for a count. It also brings the design system up to M121 and M122: every mod has the Save bar, and a script's button can ask to save first. M125 draws them, and the Help page says what each means and what Save does.
 
 F30 is the second part of item 13. The overrides it drives are done (F12 to F14). `ModBase` subscribes a `ConfigPreviews` to the mod's client, which sets an override under the owner `ModsConfigVR` for a preview of a setting of the mod's own config file, by the value's path in it, and clears it for a discard, and a Save clears the overrides of the settings it wrote. A setting of another file or of the game is left to the mod's own handlers.
+
+F31 is for a mod that does more work for a value to take effect, as one that rebuilds what a value makes: a subscriber of the config names its keys, a value or a whole section or table, and is called on the game thread at the start of the next frame only for a load that changed one of them, with the ones that did. Each load is compared with the one before, whatever made it, so a preview, a discard and a Save tell it as a change of the file does. The first load changes nothing.
 
 M68 previews the settings whose `applies` is `live`, and no others: a valid pending value is told to its mod's client, that of a global or a property after the store writes it into the game, with the value it was told before, and a Discard back to the baseline as it is set back, discarded or its mod is left. A Save tells nothing: the saved batch is M69's. `IClient` grows `onChange`, and the framework's copy of the header is changed with it.
 

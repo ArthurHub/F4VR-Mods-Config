@@ -452,7 +452,7 @@ A CommonFramework mod does not need client code of its own. The framework regist
 
 The adapter acts only on a setting of the mod's own config file, which it knows by the file's absolute path. It needs only the path of the value and the value. The mod's own loading code applies it as it applies any reload. A mod that has a setting of another file, or of the game, handles it with its own handlers of the client.
 
-A preview therefore does what a reload of the config file does, and no more. A value that the mod reads only once, when the game starts, is changed by neither, so the mod's config spec marks that setting `restart`.
+A preview therefore does what a reload of the config file does, and no more. A mod that does more work for a value to take effect subscribes to the config's change of that key, which a preview, a discard and a Save tell as a change of the file does. A value that the mod reads only once, when the game starts, is changed by neither, so the mod's config spec marks that setting `restart`.
 
 The framework registers the adapter for every mod, under the mod's own name, whether or not the mod ships a config spec. The mod's config spec uses that name as its `modName`. This is the name the framework uses for the mod's log and config, which is not always its F4SE plugin name: FRIK's `modName` is `frik`, and its F4SE plugin name, `F4VRBody`, goes in `f4sePluginRequirements`.
 
