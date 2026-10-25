@@ -124,6 +124,47 @@ namespace
     };
 }
 
+namespace
+{
+    /**
+     * The changes of `live` settings a store tells its mod's client, each as a line: its phase, its setting, its file
+     * and its path in it, or its form and a property's script and name, and the value it had before and has now. With
+     * a game, the value of each global the game has as it is told.
+     */
+    struct ToldChanges
+    {
+        std::vector<std::string> lines;
+        std::string filePath;
+
+        explicit ToldChanges(ConfigSpecStore& store)
+        {
+            store.clientCalls().addClient("MyMod", { .onChange = [this](const model::SettingChange& change) {
+                const auto text = [](const model::Value& value) {
+                    return std::visit(
+                        []<typename T>(const T& v) {
+                            return std::format("{}", v);
+                        },
+                        value);
+                };
+                std::string where = change.fileName.empty() ? change.form : change.fileName + ":";
+                for (const auto& name : change.path) {
+                    where += (where.ends_with(':') ? "" : ".") + name;
+                }
+                if (!change.property.empty()) {
+                    where += std::format(" {}.{}", change.script, change.property);
+                }
+                lines.push_back(std::format("{} {} {} {} -> {}",
+                    change.phase == model::ChangePhase::Discard ? "Discard" : "Preview",
+                    change.settingId,
+                    where,
+                    text(change.previous),
+                    text(change.value)));
+                filePath = change.filePath;
+            } });
+        }
+    };
+}
+
 TEST_CASE("ConfigSpecStore: a value is the file's, in the type of its control, and is clean")
 {
     Session session;
@@ -1029,6 +1070,89 @@ TEST_CASE("ConfigSpecStore: a setting takes effect as its applies says, also a l
     // a live one of a file is not in the game, so a change of it is only pending
     CHECK(session.store.set(session.setting(0), false));
     CHECK(session.store.isDirty(session.setting(0)));
+}
+
+TEST_CASE("ConfigSpecStore: a live setting of a file is previewed to its mod's client, and a Discard tells it its baseline again")
+{
+    Session session;
+    ToldChanges told(session.store);
+    session.open(MOD_TOML);
+
+    // each valid pending value, in the setting's type, after the value told before it
+    CHECK(session.store.set(session.setting(1), 1.4f));
+    CHECK(session.store.set(session.setting(1), 1.3f));
+    CHECK(session.store.set(session.setting(2), 100.0f));
+    CHECK(told.lines == std::vector<std::string>{ "Preview fScale:Main main:Main.fScale 1.25 -> 1.4",
+                            "Preview fScale:Main main:Main.fScale 1.4 -> 1.3",
+                            "Preview iOpacity:Main main:Main.iOpacity 128 -> 100" });
+    CHECK(told.filePath.ends_with(R"(Mods_Config\MyMod\MyMod.toml)"));
+
+    // set back, it is a Discard to the baseline
+    told.lines.clear();
+    CHECK(session.store.set(session.setting(1), 1.25f));
+    CHECK(told.lines == std::vector<std::string>{ "Discard fScale:Main main:Main.fScale 1.3 -> 1.25" });
+
+    // an invalid value is not told, and the client keeps the preview before it
+    told.lines.clear();
+    CHECK(session.store.set(session.setting(6), "x"s));
+    CHECK(told.lines.empty());
+
+    // Discard, and the end of the session, tell each preview's baseline
+    session.store.discard();
+    CHECK(told.lines == std::vector<std::string>{ "Discard iOpacity:Main main:Main.iOpacity 100 -> 128" });
+    told.lines.clear();
+    CHECK(session.store.set(session.setting(0), true));
+    session.store.close();
+    CHECK(told.lines == std::vector<std::string>{ "Preview bEnable:Main main:Main.bEnable false -> true", "Discard bEnable:Main main:Main.bEnable true -> false" });
+}
+
+TEST_CASE("ConfigSpecStore: a live global or property is told to the mod's client after the game has its value, and so is its Discard")
+{
+    TestGame game;
+    Session session(GAME_SETTINGS);
+    ToldChanges told(session.store);
+    std::vector<float> hours;
+    session.store.clientCalls().addClient("Other", {});
+    // the game's hour as the client is told each change: the store writes it first
+    const auto check = [&told, &game, &hours] {
+        hours.push_back(game.hour());
+    };
+    session.open(MOD_TOML);
+
+    CHECK(session.store.set(session.setting(0), 18.0f));
+    check();
+    CHECK(session.store.set(session.setting(2), 1));
+    CHECK(game.mode() == model::Value(1));
+    // one that is not live, as Automation, is not told
+    CHECK(session.store.set(session.setting(1), true));
+    session.store.discard();
+    check();
+    // a Discard of each, in no order
+    REQUIRE(told.lines.size() == 4);
+    std::ranges::sort(told.lines.begin() + 2, told.lines.end());
+    CHECK(told.lines == std::vector<std::string>{ "Preview Fallout4.esm|38 Fallout4.esm|38 8.5 -> 18",
+                            "Preview iMode:MyMod.esp|800 MyMod.esp|800 MyMod:Config.iMode 2 -> 1",
+                            "Discard Fallout4.esm|38 Fallout4.esm|38 18 -> 8.5",
+                            "Discard iMode:MyMod.esp|800 MyMod.esp|800 MyMod:Config.iMode 1 -> 2" });
+    CHECK(hours == std::vector<float>{ 18.0f, 8.5f });
+}
+
+TEST_CASE("ConfigSpecStore: a Save tells the client nothing of a preview it wrote, and a setting that is not live is not previewed")
+{
+    Session session(R"(
+        { "type": "switcher", "valueType": "bool", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
+        { "type": "slider", "valueType": "float", "text": "Scale", "default": 1.0, "applies": "save", "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "path": ["Main", "fScale"] } }
+    )");
+    ToldChanges told(session.store);
+    session.open("[Main]\r\nbEnable = false\r\nfScale = 1.25\r\n");
+
+    CHECK(session.store.set(session.setting(1), 1.4f));
+    CHECK(told.lines.empty());
+    CHECK(session.store.set(session.setting(0), true));
+    REQUIRE(session.store.save());
+    session.store.close();
+    CHECK(told.lines == std::vector<std::string>{ "Preview bEnable:Main main:Main.bEnable false -> true" });
 }
 
 TEST_CASE("ConfigSpecStore: the changes that take effect after a restart are counted while pending, by the last Save, and for the mod until the game is restarted")

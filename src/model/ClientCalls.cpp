@@ -120,6 +120,17 @@ namespace mods_config::model
     }
 
     /**
+     * Tells a mod's client a change of a `live` setting of its config spec. Nothing for a mod with no client, or whose
+     * client is cut off.
+     */
+    void ClientCalls::sendChange(const std::string_view modName, const SettingChange& change) const
+    {
+        if (const auto* client = find(modName); client && client->onChange) {
+            client->onChange(change);
+        }
+    }
+
+    /**
      * Adds an entry of a mod to the quick launch section, by the function a press runs: a mod can have an entry for
      * each of its functions. False for a function of the mod that has one already, which keeps the first.
      */

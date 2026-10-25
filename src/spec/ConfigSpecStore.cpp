@@ -741,6 +741,7 @@ namespace mods_config::spec
         if (setting.applies == model::Applies::Live && isInGame(setting.storage) && entry.pendingInvalid.empty()) {
             preview(setting, entry);
         }
+        previewToClient(setting, entry);
         return true;
     }
 
@@ -883,6 +884,8 @@ namespace mods_config::spec
             entry.pending.reset();
             entry.invalid.clear();
             written.insert(setting);
+            // the file has the value the client shows now
+            _clientPreviews.erase(setting);
         };
         for (const auto& fileSave : saves) {
             std::ranges::for_each(fileSave.settings, wrote);
@@ -1020,6 +1023,16 @@ namespace mods_config::spec
                 entry.pendingInvalid = found->second.pendingInvalid;
             }
         }
+        // a setting the client shows that is clean now, as its file has the player's value, ends its preview
+        for (auto preview = _clientPreviews.begin(); preview != _clientPreviews.end();) {
+            const auto entry = _entries.find(preview->first);
+            if (entry == _entries.end() || !entry->second.pending) {
+                discardOnClient(preview->second);
+                preview = _clientPreviews.erase(preview);
+            } else {
+                ++preview;
+            }
+        }
         logger::info("Read the values of '{}' again", _modName);
     }
 
@@ -1084,14 +1097,88 @@ namespace mods_config::spec
     }
 
     /**
-     * Writes the baseline of each setting that is previewed back into the game, so no preview outlives the
-     * change it shows.
+     * Tells the mod's client the change of a `live` setting: its valid pending value, as a Preview, with the value it was
+     * told before, its baseline at first, and a Discard back to the baseline as the setting is clean again. A setting of
+     * the game is in it already, as the store previews it first, and the client can do what more it needs. An invalid
+     * pending value leaves the client with the preview before it. Nothing for a setting that is not `live`.
+     */
+    void ConfigSpecStore::previewToClient(const model::Setting& setting, const Entry& entry)
+    {
+        const auto* storage = std::get_if<model::FileStorage>(&setting.storage);
+        if (setting.applies != model::Applies::Live || (!storage && !isInGame(setting.storage)) || !_mod) {
+            return;
+        }
+        const auto found = _clientPreviews.find(&setting);
+        if (!entry.pending) {
+            if (found != _clientPreviews.end()) {
+                discardOnClient(found->second);
+                _clientPreviews.erase(found);
+            }
+            return;
+        }
+        if (!entry.pendingInvalid.empty()) {
+            return;
+        }
+        auto value = storedValue(setting, *entry.pending);
+        if (found != _clientPreviews.end()) {
+            auto& change = found->second.change;
+            if (isSameValue(change.value, value)) {
+                return;
+            }
+            change.previous = std::exchange(change.value, std::move(value));
+            change.phase = model::ChangePhase::Preview;
+            _clientCalls.sendChange(_modName, change);
+            return;
+        }
+        // the value the session started with, or the default where the file has none of the setting's type
+        const auto baseline = entry.baseline ? storedValue(setting, *entry.baseline) : setting.defaultValue.value_or(value);
+        ClientPreview preview{
+            .change = { .settingId = setting.id, .valueType = setting.valueType, .previous = baseline, .value = std::move(value), .phase = model::ChangePhase::Preview },
+            .baseline = baseline
+        };
+        auto& change = preview.change;
+        if (storage) {
+            const auto file = _mod->files.find(storage->file);
+            const auto& root = file != _mod->files.end() && file->second.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder;
+            change.fileName = storage->file;
+            change.format = file != _mod->files.end() ? file->second.format : model::FileFormat::Toml;
+            change.filePath = file != _mod->files.end() ? (root / filePath(file->second)).make_preferred().string() : std::string();
+            change.path = storage->path;
+        } else if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
+            change.form = formText(global->plugin, global->formId);
+        } else if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
+            change.form = formText(property->plugin, property->formId);
+            change.script = property->script;
+            change.property = property->name;
+        }
+        _clientCalls.sendChange(_modName, change);
+        _clientPreviews.emplace(&setting, std::move(preview));
+    }
+
+    /**
+     * Tells the mod's client that a setting it shows a preview of is back at its baseline.
+     */
+    void ConfigSpecStore::discardOnClient(ClientPreview& preview) const
+    {
+        preview.change.previous = std::exchange(preview.change.value, preview.baseline);
+        preview.change.phase = model::ChangePhase::Discard;
+        _clientCalls.sendChange(_modName, preview.change);
+    }
+
+    /**
+     * Writes the baseline of each setting of the game that is previewed back into the game, and tells the mod's client
+     * that each `live` setting it shows a preview of is back at its baseline, so no preview outlives the change it shows.
      */
     void ConfigSpecStore::rollBack()
     {
+        // the game has the baseline before the client is told it
         for (const auto& preview : _previews | std::views::values) {
             writeGame(preview.storage, preview.baseline);
         }
         _previews.clear();
+        for (auto& preview : _clientPreviews | std::views::values) {
+            discardOnClient(preview);
+        }
+        _clientPreviews.clear();
     }
 }

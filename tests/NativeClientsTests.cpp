@@ -1,6 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
+#include <format>
 #include <functional>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -34,6 +37,8 @@ namespace
         };
         std::function<void(const api::MenuEvent*)> event = [](const api::MenuEvent*) {
         };
+        std::function<void(const api::SettingChange*)> change = [](const api::SettingChange*) {
+        };
 
         bool hasFunction(const char* name) override
         {
@@ -59,7 +64,28 @@ namespace
         {
             event(menuEvent);
         }
+
+        void onChange(const api::SettingChange* settingChange) override
+        {
+            change(settingChange);
+        }
     };
+
+    /**
+     * A change of the setting `fScale:Main` of a TOML file, from 1.25 to 1.5.
+     */
+    model::SettingChange scaleChange(const model::ChangePhase phase = model::ChangePhase::Preview)
+    {
+        return { .settingId = "fScale:Main",
+            .valueType = model::StoredType::Float,
+            .fileName = "main",
+            .format = model::FileFormat::Toml,
+            .filePath = R"(C:\My Games\MyMod.toml)",
+            .path = { "Main", "fScale" },
+            .previous = 1.25f,
+            .value = 1.5f,
+            .phase = phase };
+    }
 
     model::Setting choiceOf(const std::string& id, const model::StoredType type)
     {
@@ -305,6 +331,89 @@ TEST_CASE("NativeClients: a client is told the menu's events, and one that throw
     REQUIRE(clients.add("Broken", broken));
     clients.calls.send("Broken", model::ClientEvent::ModShown);
     CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
+}
+
+TEST_CASE("NativeClients: a client is told a change of a live setting with where it is kept, and one that throws is cut off")
+{
+    Clients clients;
+    FakeClient client;
+    std::vector<std::string> told;
+    client.change = [&told](const api::SettingChange* change) {
+        const auto& setting = *change->setting;
+        std::string path;
+        for (std::uint32_t i = 0; i < setting.storage.pathCount; ++i) {
+            path += std::string(i > 0 ? "." : "") + setting.storage.path[i];
+        }
+        told.push_back(std::format("{} {} {} {} {} {} -> {}",
+            change->phase == api::ChangePhase::Discard ? "Discard" : "Preview",
+            setting.id,
+            setting.storage.file->name,
+            setting.storage.file->format == api::FileFormat::Toml ? "toml" : "other",
+            path,
+            change->previousValue.floatValue,
+            change->value.floatValue));
+        CHECK(std::string_view(setting.storage.file->path) == R"(C:\My Games\MyMod.toml)");
+        CHECK(change->value.type == api::ValueType::Float);
+    };
+    REQUIRE(clients.add("MyMod", client));
+    clients.calls.sendChange("mymod", scaleChange());
+    clients.calls.sendChange("MyMod", scaleChange(model::ChangePhase::Discard));
+    CHECK(told == std::vector<std::string>{ "Preview fScale:Main main toml Main.fScale 1.25 -> 1.5", "Discard fScale:Main main toml Main.fScale 1.25 -> 1.5" });
+
+    // a setting of the game has no file, and its form, with a property's script and name
+    std::string game;
+    client.change = [&game](const api::SettingChange* change) {
+        const auto& storage = change->setting->storage;
+        game = std::format("{} {} {} {}", storage.file ? "file" : "no file", storage.form, storage.scriptName, storage.propertyName);
+    };
+    auto property = scaleChange();
+    property.fileName.clear();
+    property.filePath.clear();
+    property.path.clear();
+    property.form = "MyMod.esp|800";
+    property.script = "MyMod:Config";
+    property.property = "fScale";
+    clients.calls.sendChange("MyMod", property);
+    CHECK(game == "no file MyMod.esp|800 MyMod:Config fScale");
+
+    // one that throws is cut off
+    FakeClient broken;
+    broken.change = [](const api::SettingChange*) {
+        throw std::runtime_error("the client's bug");
+    };
+    REQUIRE(clients.add("Broken", broken));
+    clients.calls.sendChange("Broken", scaleChange());
+    CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
+}
+
+TEST_CASE("ModsConfigVRApi: the C++ client hands a change to its handlers in its own types")
+{
+    // the client is one in the DLL, so the handler keeps what it is told in what it owns
+    auto told = std::make_shared<std::vector<std::string>>();
+    auto& client = api::ModsConfigVRClient::get();
+    client.subscribeToChanges([told](const api::Change& change) {
+        std::string path;
+        for (const auto name : change.path) {
+            path += std::string(path.empty() ? "" : ".") + std::string(name);
+        }
+        told->push_back(std::format("{} {} {} {} {} {} -> {}",
+            change.discard ? "Discard" : "Preview",
+            change.id,
+            change.fileName,
+            change.filePath,
+            path,
+            std::get<std::string>(change.previous),
+            std::get<std::string>(change.value)));
+    });
+    const api::FileView file{ .name = "main", .format = api::FileFormat::Ini, .path = "MyMod.ini" };
+    const std::array<const char*, 2> path{ "Main", "sName" };
+    const api::SettingView setting{ .id = "sName:Main", .valueType = api::ValueType::String, .storage = { .file = &file, .path = path.data(), .pathCount = 2 } };
+    const api::SettingChange change{ .setting = &setting,
+        .previousValue = { .type = api::ValueType::String, .text = "Me" },
+        .value = { .type = api::ValueType::String, .text = "You" },
+        .phase = api::ChangePhase::Discard };
+    static_cast<api::IClient&>(client).onChange(&change);
+    CHECK(*told == std::vector<std::string>{ "Discard sName:Main main MyMod.ini Main.sName Me -> You" });
 }
 
 TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions")

@@ -628,11 +628,18 @@ namespace
     /**
      * The id a setting gets from where its value is kept: the last name of its path, and the names before it
      * joined by dots, as `fScale:Panel` for `Panel`, `fScale`. A path of two is named as MCM names a key of an
-     * INI file, so a mod that moves from INI to TOML keeps its ids. A path of one is its name alone. Empty for
-     * a storage the menu does not read.
+     * INI file, so a mod that moves from INI to TOML keeps its ids. A path of one is its name alone. A global is
+     * its form, as `MyMod.esp|1234`, and a property of a script its name and its form, as `fStrength:MyMod.esp|800`.
+     * Empty for a storage the menu does not read.
      */
     std::string idOf(const model::Storage& storage)
     {
+        if (const auto* global = std::get_if<model::GlobalStorage>(&storage)) {
+            return std::format("{}|{:X}", global->plugin, global->formId);
+        }
+        if (const auto* property = std::get_if<model::PropertyStorage>(&storage)) {
+            return std::format("{}:{}|{:X}", property->name, property->plugin, property->formId);
+        }
         const auto* file = std::get_if<model::FileStorage>(&storage);
         if (!file || file->path.empty()) {
             return {};

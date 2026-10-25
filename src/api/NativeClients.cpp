@@ -10,6 +10,7 @@ using namespace mods_config;
 namespace
 {
     static_assert(static_cast<int>(api::MenuEventType::PageLeft) == static_cast<int>(model::ClientEvent::PageLeft), "the API's events are the model's, in its order");
+    static_assert(static_cast<int>(api::FileFormat::Toml) == static_cast<int>(model::FileFormat::Toml), "the API's file formats are the model's, in its order");
 
     constexpr auto CUT_OFF_REASON = "Not available: its mod's client failed, and is cut off until the game is restarted.";
 
@@ -218,6 +219,10 @@ namespace mods_config::api
                 .onEvent =
                     [this, kept](const model::ClientEvent event, const std::string_view pageId) {
                         tellEvent(*kept, event, pageId);
+                    },
+                .onChange =
+                    [this, kept](const model::SettingChange& change) {
+                        tellChange(*kept, change);
                     } });
         if (!added) {
             logger::warn("Native API: '{}' has a client already, so another is not registered", name);
@@ -347,6 +352,41 @@ namespace mods_config::api
             registered.client->onEvent(&menuEvent);
         };
         call(registered, "an event of the menu", tell);
+    }
+
+    /**
+     * Tells a client a change of a `live` setting, inside the guard: the setting's view with where its value is kept,
+     * in a file or in the game, and the value it was told last and the new one.
+     */
+    void NativeClients::tellChange(Registered& registered, const model::SettingChange& change) const
+    {
+        const FileView file{ .name = change.fileName.c_str(), .format = static_cast<FileFormat>(change.format), .path = change.filePath.c_str() };
+        std::vector<const char*> path;
+        path.reserve(change.path.size());
+        for (const auto& name : change.path) {
+            path.push_back(name.c_str());
+        }
+        const auto text = [](const std::string& value) {
+            return value.empty() ? nullptr : value.c_str();
+        };
+        const SettingView setting{ .id = change.settingId.c_str(),
+            .valueType = toApiType(change.valueType),
+            .storage = { .file = change.fileName.empty() ? nullptr : &file,
+                .path = path.data(),
+                .pathCount = static_cast<std::uint32_t>(path.size()),
+                .form = text(change.form),
+                .scriptName = text(change.script),
+                .propertyName = text(change.property) } };
+        const auto previousText = valueText(change.previous);
+        const auto newText = valueText(change.value);
+        const SettingChange apiChange{ .setting = &setting,
+            .previousValue = toApiValue(change.previous, previousText),
+            .value = toApiValue(change.value, newText),
+            .phase = change.phase == model::ChangePhase::Discard ? ChangePhase::Discard : ChangePhase::Preview };
+        auto tell = [&registered, &apiChange] {
+            registered.client->onChange(&apiChange);
+        };
+        call(registered, std::format("a change of '{}'", change.settingId), tell);
     }
 
     /**

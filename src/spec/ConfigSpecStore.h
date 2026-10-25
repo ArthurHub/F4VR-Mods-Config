@@ -41,8 +41,9 @@ namespace mods_config::spec
      * for an invalid one, which leaves the preview before it, and
      * its baseline is written back as it is set back, discarded, or its session ends. Save writes them after
      * the files, and then runs the action of each setting it wrote.
-     * A setting takes effect as its `applies` says, also a `live` one of a file, which no native client previews
-     * yet. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
+     * A setting takes effect as its `applies` says. A `live` one is previewed by the mod's client: it is told each valid
+     * pending value, and a Discard as the value goes back to its baseline, by a set, Discard, or the end of the
+     * session, one of the game after the game has it. A Save tells it nothing: the file or the game has the value then. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
      * game is restarted.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
@@ -132,8 +133,20 @@ namespace mods_config::spec
             model::Value baseline;
         };
 
+        /**
+         * A `live` setting whose pending value the mod's client was told: the change it was told last, and the
+         * setting's baseline, which a Discard tells it. It does not need the mod, which can be gone as the session ends.
+         */
+        struct ClientPreview
+        {
+            model::SettingChange change;
+            model::Value baseline;
+        };
+
         void readValues(const model::Mod& mod);
         void preview(const model::Setting& setting, const Entry& entry);
+        void previewToClient(const model::Setting& setting, const Entry& entry);
+        void discardOnClient(ClientPreview& preview) const;
         void rollBack();
 
         // the folders a path of a config spec's file is from: the game's Data folder, and
@@ -174,6 +187,9 @@ namespace mods_config::spec
 
         // the settings of the game that are previewed, by the setting, which is not read through it
         std::unordered_map<const model::Setting*, Preview> _previews;
+
+        // the `live` settings whose pending value the mod's client was told, by the setting, which is not read through it
+        std::unordered_map<const model::Setting*, ClientPreview> _clientPreviews;
 
         // why the last Save did not write every dirty setting, until the next change, Save or Discard
         std::string _saveFailure;

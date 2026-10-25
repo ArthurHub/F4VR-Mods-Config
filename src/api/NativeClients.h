@@ -16,7 +16,7 @@ namespace mods_config::api
     /**
      * The native clients of the mods, which register through the API, each under the name of its mod. A client is
      * added to the client calls the config spec store reads, which ask it by name for its functions, states and
-     * options, and tell it the menu's events. Every call of a client is in a guard: one that throws or faults is cut
+     * options, and tell it the menu's events and the changes of its `live` settings. Every call of a client is in a guard: one that throws or faults is cut
      * off, and its mod is handled as one with no client. It knows nothing of the game, so a test runs it.
      */
     class NativeClients
@@ -55,6 +55,7 @@ namespace mods_config::api
         std::optional<model::Value> answerState(Registered& registered, std::string_view name) const;
         std::expected<std::vector<model::Option>, std::string> giveOptions(Registered& registered, const model::Setting& setting) const;
         void tellEvent(Registered& registered, model::ClientEvent event, std::string_view pageId) const;
+        void tellChange(Registered& registered, const model::SettingChange& change) const;
         template <typename F>
         bool call(Registered& registered, std::string_view what, F& function) const;
         const Registered* find(const IClient* client) const;

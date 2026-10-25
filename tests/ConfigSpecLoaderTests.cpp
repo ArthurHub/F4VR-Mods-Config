@@ -1134,10 +1134,11 @@ TEST_CASE("ConfigSpecLoader: a setting is kept in a global, or in a property of 
           model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x800, .script = "MyMod:Config", .name = "iCount", .type = model::StoredType::Int }));
     CHECK(settings[3].storage == model::Storage(model::PropertyStorage{ .plugin = "MyMod.esp", .formId = 0x800, .script = {}, .name = "bOn", .type = model::StoredType::Bool }));
 
-    // it has no id from where its value is kept
-    for (const auto& setting : settings) {
-        CHECK(setting.id.empty());
-    }
+    // its id is its form, and a property's its name and its form
+    CHECK(settings[0].id == "Fallout4.esm|38");
+    CHECK(settings[1].id == "MyMod.esp|1234");
+    CHECK(settings[2].id == "iCount:MyMod.esp|800");
+    CHECK(settings[3].id == "bOn:MyMod.esp|800");
 }
 
 TEST_CASE("ConfigSpecLoader: a setting that names no file of its config spec, or no value, is kept where the menu does not read")
@@ -1335,13 +1336,15 @@ TEST_CASE("ConfigSpecLoader: a setting has its author's id, or one from where it
         { "type": "switcher", "text": "Two names", "storage": { "path": ["Holsters", "bEnabled"] } },
         { "type": "switcher", "text": "Key", "storage": { "section": "Holsters", "key": "bLeft" } },
         { "type": "switcher", "text": "Three names", "storage": { "path": ["body", "hands", "bLeft"] } },
-        { "type": "switcher", "text": "One name", "storage": { "path": ["bTop"] } }
+        { "type": "switcher", "text": "One name", "storage": { "path": ["bTop"] } },
+        { "type": "slider", "text": "Time of day", "storage": { "global": "Fallout4.esm|38" } },
+        { "type": "switcher", "text": "A property", "storage": { "form": "MyMod.esp|800", "scriptName": "MyMod:Config", "propertyName": "bOn" } }
     )"));
     Lines ids;
     for (const auto& setting : settingsOf(mod)) {
         ids.push_back(setting.id);
     }
-    CHECK(ids == Lines{ "playerHeight", "bEnabled:Holsters", "bLeft:Holsters", "bLeft:body.hands", "bTop" });
+    CHECK(ids == Lines{ "playerHeight", "bEnabled:Holsters", "bLeft:Holsters", "bLeft:body.hands", "bTop", "Fallout4.esm|38", "bOn:MyMod.esp|800" });
 }
 
 TEST_CASE("ConfigSpecLoader: two settings whose ids are the same, in any case, are both kept")

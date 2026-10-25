@@ -38,6 +38,39 @@ namespace mods_config::model
     };
 
     /**
+     * What a change of a setting is, which a mod's client is told: a Preview of a valid pending value, or a Discard back
+     * to the value the session started with.
+     */
+    enum class ChangePhase : std::uint8_t
+    {
+        Preview,
+        Discard,
+    };
+
+    /**
+     * A change of a `live` setting of a mod, which its client is told while the change waits for a Save: the setting's
+     * id and type, where it is kept, the value the client was told last and the new one, in the setting's type. A
+     * setting of a file has the file's name, format and absolute path, and the names that lead to the value in it. One
+     * of the game has its form, as `MyMod.esp|800`, and a property's script and name. It holds what it needs, as a
+     * Discard is told as the session ends, when the mod can be gone.
+     */
+    struct SettingChange
+    {
+        std::string settingId;
+        StoredType valueType = StoredType::String;
+        std::string fileName;
+        FileFormat format = FileFormat::Toml;
+        std::string filePath;
+        std::vector<std::string> path;
+        std::string form;
+        std::string script;
+        std::string property;
+        Value previous;
+        Value value;
+        ChangePhase phase = ChangePhase::Preview;
+    };
+
+    /**
      * An entry of a mod's client in the quick launch section: its texts as the client gives them, and the function of
      * the client a press runs, which tells it from the mod's other entries.
      */
@@ -53,7 +86,7 @@ namespace mods_config::model
     /**
      * The mods' DLLs that registered a client with the native API, which the menu asks by name: the functions a
      * `CallNativeFunction` runs, the states a `clientState` condition asks, and the options of a choice with
-     * `listFromClientCallback`, and tells the menu's events. It knows those whose client is cut off, which are asked
+     * `listFromClientCallback`, and tells the menu's events and the changes of `live` settings. It knows those whose client is cut off, which are asked
      * nothing more, and the clients' quick launch entries.
      */
     class ClientCalls
@@ -75,6 +108,9 @@ namespace mods_config::model
 
             // an event, with the `id` of the page of a PageShown and a PageLeft
             std::function<void(ClientEvent event, std::string_view pageId)> onEvent;
+
+            // a change of a `live` setting
+            std::function<void(const SettingChange& change)> onChange;
         };
 
         bool addClient(std::string_view modName, Client client);
@@ -85,6 +121,7 @@ namespace mods_config::model
         std::expected<std::vector<Option>, std::string> options(std::string_view modName, const Setting& setting) const;
         void send(std::string_view modName, ClientEvent event, std::string_view pageId = {}) const;
         void sendToAll(ClientEvent event) const;
+        void sendChange(std::string_view modName, const SettingChange& change) const;
         bool addQuickLaunch(ClientQuickLaunch entry);
 
         // the quick launch entries of the clients, in the order they were added

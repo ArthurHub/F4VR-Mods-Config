@@ -90,7 +90,7 @@ Only one mod has an active editing session.
 
 1. Selecting a mod reads its files, globals and properties, and captures the values as the session baseline.
 2. Player edits update a pending model.
-3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host.
+3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host, and then sent to the client too, which can do what more it needs.
 4. Focused and minimized modes retain the same session.
 5. Save establishes a new baseline.
 6. Discard restores the baseline and rolls back live previews.
@@ -169,7 +169,7 @@ The header has a C++ layer over the interfaces, `ModsConfigVRClient`, which is c
 - `V1` in the names changes only with a change that breaks a client. A V2 is another interface and another export, and the DLL keeps the export of V1 beside it, so a client built for V1 keeps working.
 - Within V1, `getVersion` counts what was added: a method is only added at the end of an interface, and a struct only grows at its end. A client connects to any menu of V1, and uses what a later version added after it checks the menu's version (the header's client's `apiVersion()`), so a client of a newer header keeps working with an older menu. One that does not work at all with an older menu asks `connect` for the version it needs, and an older menu is not connected to.
 - A client gives the version of its header as it registers, so the host calls only the methods of `IClient` that client has.
-- The version is 1 at the first release, and V1 changes as the milestones need it until then. How the API and the schema change after it is [M82](mod-plan-phase-2.md#11-first-release)'s.
+- The version is 1 at the first release, and V1 changes as the milestones need it until then, so a client is built again with the header of the menu it runs with. How the API and the schema change after it is [M82](mod-plan-phase-2.md#11-first-release)'s.
 
 ### The API
 
@@ -219,7 +219,7 @@ A second entry of a function, and a second client of a name, are refused, and th
 
 A mod registers its client once, as it loads, and it lives for the whole run of the game: there is no unregister. The host matches its name to the config spec whose `modName` is that name. A second client under a name that has one is refused, so two mods cannot both have a config spec. The client is asked only of its own config spec, and a client that fails is cut off as a whole.
 
-The client's previews and its saved batch of [Live preview API](#live-preview-api) are methods of `IClient` that milestone 8 adds.
+A client is told each change of a `live` setting of its config spec with `onChange`, also of one kept in the game, which the host writes first, as [Live preview API](#live-preview-api) has it, and the header's C++ client hands it to the mod's handlers (`subscribeToChanges`). The saved batch is a method milestone 8 adds next.
 
 ### The client's events
 
@@ -411,7 +411,7 @@ struct SaveBatch
 };
 ```
 
-`SettingView` exposes the stable setting ID, value type, default, value options, and resolved storage. It does not require the client to parse the declarative config spec.
+`SettingView` exposes the stable setting ID, value type, default, value options, and resolved storage. It does not require the client to parse the declarative config spec. The header passes its id, its type and its storage in a file: the file's name, format and absolute path, and the names that lead to the value, its section and key in an INI file and its tables and key in a TOML file. A setting kept in the game has no file, and its form, with a property's script and name: the host writes its value into the game before it tells the client, which can do what more it needs.
 
 The host owns the views and the text in them. They are valid during the callback, and a client copies what it keeps.
 

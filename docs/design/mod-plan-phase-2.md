@@ -142,7 +142,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | M123 | mod      | `applies` is `unknown` where nothing says it, and the help line says it | in review |
 | M124 | mod      | design system: the marks of `applies`, and the Help page's legend | in review |
 | M125 | mod      | The marks of `applies` on a pending row and in the help line, and the Help page's legend | in review |
-| M68 | mod       | A client gets the preview and discard events             | todo   |
+| M68 | mod       | A client gets the preview and discard events             | in review |
 | M69 | mod       | A client gets the saved batch                            | todo   |
 | F30 | framework | `ModBase`'s client previews through the config overrides | todo   |
 | M70 | mod       | The F4SE message after a Save                            | todo   |
@@ -156,7 +156,7 @@ M120 to M125 give every mod one lifecycle before a client previews: a change wai
 
 F30 is the second part of item 13. The overrides it drives are done (F12 to F14).
 
-M68 previews the settings whose `applies` is `live`, and no others.
+M68 previews the settings whose `applies` is `live`, and no others: a valid pending value is told to its mod's client, that of a global or a property after the store writes it into the game, with the value it was told before, and a Discard back to the baseline as it is set back, discarded or its mod is left. A Save tells nothing: the saved batch is M69's. `IClient` grows `onChange`, and the framework's copy of the header is changed with it.
 
 The milestone comes before the controls of milestone 9 and the Focused view of milestone 10. Both are for tuning a value while the player sees its effect.
 
