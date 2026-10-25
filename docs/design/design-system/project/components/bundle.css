@@ -124,6 +124,27 @@ svg.mc-ico .fill { fill: currentColor; stroke: none; }
 /* the mark of a setting that takes effect after the game is restarted */
 .mc-tag { display: inline-block; margin-left: var(--space-2); padding: 0 var(--space-2); line-height: 22px; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); color: var(--green-muted); vertical-align: 2px; }
 .mc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--amber); }
+.mc-applies { width: 16px; height: 16px; flex: none; }
+.mc-applies path { fill: none; stroke: var(--amber); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mc-applies .fill { fill: var(--amber); stroke: none; }
+.mc-tag.is-pending { display: inline-flex; align-items: center; gap: var(--space-1); border-color: var(--amber); color: var(--amber); }
+.mc-tag .mc-applies { width: 14px; height: 14px; }
+.help .mc-tag { margin: 0 var(--space-3) 0 0; vertical-align: 1px; }
+.mc-control .name .mc-applies, .mc-control .name .mc-dot { display: inline-block; margin-right: var(--space-2); vertical-align: -1px; }
+.mc-applies { width: 16px; height: 16px; flex: none; }
+.mc-applies path { fill: none; stroke: var(--amber); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mc-applies .fill { fill: var(--amber); stroke: none; }
+.mc-tag.is-pending { display: inline-flex; align-items: center; gap: var(--space-1); border-color: var(--amber); color: var(--amber); }
+.mc-tag .mc-applies { width: 14px; height: 14px; }
+.help .mc-tag { margin: 0 var(--space-3) 0 0; vertical-align: 1px; }
+.mc-control .name .mc-applies, .mc-control .name .mc-dot { display: inline-block; margin-right: var(--space-2); vertical-align: -1px; }
+.mc-applies { width: 16px; height: 16px; flex: none; }
+.mc-applies path { fill: none; stroke: var(--amber); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mc-applies .fill { fill: var(--amber); stroke: none; }
+.mc-tag.is-pending { display: inline-flex; align-items: center; gap: var(--space-1); border-color: var(--amber); color: var(--amber); }
+.mc-tag .mc-applies { width: 14px; height: 14px; }
+.help .mc-tag { margin: 0 var(--space-3) 0 0; vertical-align: 1px; }
+.mc-control .name .mc-applies, .mc-control .name .mc-dot { display: inline-block; margin-right: var(--space-2); vertical-align: -1px; }
 .mc-warn { width: 20px; height: 18px; }
 .mc-warn .tri { fill: var(--red); }
 .mc-warn .bang { fill: var(--on-red); }

@@ -26,4 +26,12 @@ With a `confirmation`, a press opens it first, as the unsaved-changes dialog is 
 - `dangerous`: the dialog's frame and the confirming button are `red`, the button's text `on-red`. Hover is the `red` fill with a 2 px `red` ring outside. The ray lands on Cancel first: the dialog opens with Cancel focused.
 - Back is Cancel. A press beside the dialog does nothing, so a stray press does not run it.
 
+## Unsaved changes first
+
+A script reads the saved values, so while its mod has unsaved changes a press on a `CallFunction` or a `CallGlobalFunction` asks first, in the same dialog: its title is the confirmation's, or `Unsaved changes`, and it says how many changes there are and that the button's script reads the saved values.
+
+- Cancel (quiet), `Run without saving` (secondary), and `Save and run`, which is primary, or `red` for a dangerous confirmation. It stands for the confirming button, so a button never asks twice.
+- `Save and run` is disabled while a change is invalid, as Save is, and the text asks to fix or discard it. `Run without saving` stays enabled.
+- The button's help ends with "A press asks to save the unsaved changes first." while there are changes. A console command, a link and a function of the mod's DLL do not ask.
+
 The behavior is in [Buttons](../../../../schema.md#buttons).

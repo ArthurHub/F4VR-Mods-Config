@@ -4,8 +4,8 @@ A setting's or a button's warning: a value that works and has a cost, or a butto
 
 **Provides:** the row, and the text of the first of its `warnings` whose `when` holds on the pending values, or none.
 
-- **The mark** is a hollow triangle after the name, 20 x 18: a 2 px `amber` outline with a `!` in `amber`, `space-2` after the name, the Restart mark and the pending dot, where the row has them. Drawn with `AddTriangle` and two `AddRectFilled`.
-- It is not the invalid mark: that one is a filled `red` triangle, which takes its place after the name while the value is invalid, and blocks Save. A row can be pending and warned at once: the pending dot, then the warning mark.
+- **The mark** is a hollow triangle after the name, 20 x 18: a 2 px `amber` outline with a `!` in `amber`, `space-2` after the name and the pending mark, where the row has one. Drawn with `AddTriangle` and two `AddRectFilled`.
+- It is not the invalid mark: that one is a filled `red` triangle, which takes its place after the name while the value is invalid, and blocks Save. A row can be pending and warned at once: the pending mark, then the warning mark.
 - The name shortens with an ellipsis before the marks do: the marks always show.
 - An invalid row shows its invalid mark and its reason, and no warning mark: what is wrong comes first.
 - **The help line** has the warning before the row's help, the mark and its text in `amber`: "Player height: ⚠ Above 1.4 m your view can be in the ceiling. Adjusts the estimated player height."

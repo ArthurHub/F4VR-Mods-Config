@@ -4,7 +4,7 @@ Mods Config VR is one settings panel for every Fallout 4 VR mod, drawn with Dear
 
 - **One hue.** Draw text, borders, fills and focus in `green` (#0afa78, the framework's `F4VR_PANEL_STYLE` color) at full value or as a tint. The only other hues are `amber` for pending and `red` for invalid, and both always come with a drawn mark.
 - **Solid green means chosen.** Use a solid `green` fill only for the selected tree row, the first breadcrumb while the menu's front page is open, the current option, the On half of a toggle, and the primary button, with `on-green` text on it. Everything else is outline or tint.
-- **Never color alone.** A pending setting has the amber dot, an invalid one has the warning triangle and its reason in the help line, a setting that needs a restart has the Restart mark, and a toggle says Off or On in words.
+- **Never color alone.** A pending setting has the amber dot, or the amber mark of when it takes effect, an invalid one has the warning triangle and its reason in the help line, and a toggle says Off or On in words.
 - **Nothing moves.** The help line, the reset slot of every row, Discard and Save, and the control column keep their place whether they are in use or not. Only text changes; nothing pressable appears or disappears under the ray.
 - **Big enough for a ray.** Every pressable thing is at least `control-height` (48 px, one vrui unit) tall.
 
@@ -115,7 +115,7 @@ Set these once, before the first canvas draws. In the mod, `mods_config::theme::
 - **Developer tools** (`Developer`, `FullPanelDeveloper`, `FullPanelConfigSpecReport`), for a config spec's author, behind a switch in the menu's own settings: a Developer section at the end of the menu's front page, with a filter and a row for each config spec's errors and warnings, and a config spec's report with its live copy and its problems, each a row that goes to the row it names. A player never sees them.
 - **Footer**: Discard and Save fixed on the right. On the left, the help line (`DescriptionArea`): an error, else "Name: help" for the setting or option under the ray, else the session status.
 - **Indent**: a heading's text and a folding heading's arrow start `space-3` into its row, as a row's name does in its frame, so a heading lines up with the rows beside it; the page's texts start there too. A row under a heading is a level in, `space-3`, so its frame starts under the heading's text and it reads as its heading's. A row under no heading is at the content's left, where a heading's row starts. A section in a section is a level further, up to the third. The content's levels are `ImGui::Indent(theme::SPACE_3)`: `IndentSpacing` stays the tree's `space-8`.
-- **Setting row**: the name, `space-3` inside the row's frame, with its marks after it (the Restart tag, the pending dot, then the warning or the invalid mark), then the `control-width` control column: the control right-aligned, then a 48 px Reset slot that is always reserved. There is no gutter: most rows have no mark, and the name has their room.
+- **Setting row**: the name, `space-3` inside the row's frame, with its marks after it (the pending mark, then the warning or the invalid mark), then the `control-width` control column: the control right-aligned, then a 48 px Reset slot that is always reserved. There is no gutter: most rows have no mark, and the name has their room.
 - **Focused panel** (`FocusedPanel`): `focused-width` x `focused-height` on the offhand. Its footer is too narrow for help, so a two-line help area (`description-height`) sits at the top. Each setting stacks its name over its control, and a dropdown becomes a stepper.
 - **Minimized**: the panel is hidden; only the wrist buttons remain (`WristButtons`).
 - Open dropdowns, popups and the dialog inside the panel. The ray never has to leave it.
@@ -126,7 +126,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 
 - Tree and dropdown arrows: `ImGui::RenderArrow` or a filled triangle, 14 px.
 - The current option's check: `ImGui::RenderCheckMark`.
-- Pending: `AddCircleFilled`, 10 px across, `amber`.
+- Pending: `AddCircleFilled`, 10 px across, `amber`. A changed setting whose mod says when it takes effect has its mark in its place, 16 px, `amber`: a broadcast for `live`, a disk for `save`, a power mark for `restart` (see `TakesEffect`).
 - Invalid: a filled `red` triangle 20 x 18 with `!` in `on-red`.
 - A warning: a hollow triangle 20 x 18, a 2 px `amber` outline with `!` in `amber`, after the row's name (see `RowWarning`).
 - Running: a three-quarter arc that turns, 20 px, in a button (see `ButtonRow`).
@@ -148,7 +148,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - Write plain, literal sentences. No exclamation marks, no jokes, no "please".
 - The commit is **Save**, never Apply. Its partners are **Discard** and **Cancel**. Per row it is **Reset**.
 - Name what happened and what to do: "Must be 0.50 to 1.50", "Enter a value from 0.50 to 1.50, or Reset it to 1.00."
-- An MCM mod's footer says "Changes are saved as they are made". It does not say that the mod acts on them: the menu does not know that. Do not label MCM mods or group them apart.
+- Every mod's changes wait for Save, an MCM mod's too. Say when a change takes effect only where the mod's config spec says it: the menu does not know it otherwise. Do not label MCM mods or group them apart.
 - An entry that opens the keyboard says so in words: "Type a new name". Do not end a label with an ellipsis: `…` is outside the font's range, and three dots read as a typo in this voice.
 - Help reads "Name: help": the setting's name in `green`, a colon, the help in `green-muted`. Do not repeat the name on a line of its own or write "help".
 - Counts use the number and the noun: "1 unsaved change", "3 pages".

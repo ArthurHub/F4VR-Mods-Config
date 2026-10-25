@@ -24,11 +24,24 @@ PLUS = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 12 H18 M12 6 V18"/><
 WARN = '<svg class="mc-warn" viewBox="0 0 20 18"><path class="tri" d="M10 1 L19 17 H1 Z"/><rect class="bang" x="9" y="6" width="2" height="6"/><rect class="bang" x="9" y="13.4" width="2" height="2"/></svg>'
 DOT = '<span class="mc-dot"></span>'
 
-def helpline(name, text, long=False, error=False):
-    """The left of the footer while the ray is on a setting: "Name: help". Long help drops to t-detail."""
+# when a pending change takes effect (a config spec's applies), drawn in amber in place of the pending dot: live, save
+# and restart. An unknown one keeps the dot
+LIVE = ('<svg class="mc-applies" viewBox="0 0 16 16"><circle class="fill" cx="8" cy="8" r="2.2"/>'
+        '<path d="M4.6 3.6 A6 6 0 0 0 4.6 12.4 M11.4 3.6 A6 6 0 0 1 11.4 12.4"/></svg>')
+SAVE = ('<svg class="mc-applies" viewBox="0 0 16 16"><path d="M2 2.5 Q2 2 2.5 2 H11.5 L14 4.5 V13.5 Q14 14 13.5 14 H2.5 Q2 14 2 13.5 Z"/>'
+        '<rect class="fill" x="5" y="2" width="5" height="3.5"/><rect class="fill" x="4.5" y="9" width="7" height="5"/></svg>')
+RESTART = '<svg class="mc-applies" viewBox="0 0 16 16"><path d="M5 3.8 A5.8 5.8 0 1 0 11 3.8"/><path d="M8 1.2 V8"/></svg>'
+
+def ptag(mark, word):
+    """The help line's tag of when a pending change takes effect: its mark and its word, all in amber."""
+    return f'<span class="mc-tag is-pending t-detail">{mark}{word}</span>'
+
+def helpline(name, text, long=False, error=False, tag=''):
+    """The left of the footer while the ray is on a setting: "Name: help", after the tag of a pending change. Long
+    help drops to t-detail."""
     cls = 'help ' + ('t-detail is-long' if long else 't-body') + (' is-error' if error else '')
     mark = WARN if error else ''
-    return f'<div class="{cls}">{mark}<span class="name">{name}:</span> {text}</div>'
+    return f'<div class="{cls}">{tag}{mark}<span class="name">{name}:</span> {text}</div>'
 
 def pagehelp(text):
     return f'<div class="mc-pagehelp t-body">{text}</div>'
@@ -64,9 +77,9 @@ def choice_stepper(label, pending=False, show_reset=False):
 MARK_RE = re.compile(r'<span class="mc-tag[^"]*"[^>]*>.*?</span>|<svg\b.*?</svg>', re.S)
 
 def row(name, ctl, state='', gutter='', mark=None):
-    """A row: its name, set in from the row's left inside its frame, and its marks after it, in this order: the Restart
-    tag, the pending dot, then the warning or the invalid mark, or a button's result. A mark in the name's text (a
-    tag or a drawn mark) is moved there; `gutter` is a state mark (the pending dot, the invalid mark, a result)."""
+    """A row: its name, set in from the row's left inside its frame, and its marks after it, in this order: the pending
+    mark, then the warning or the invalid mark, or a button's result. A mark in the name's text (a tag or a drawn mark)
+    is moved there; `gutter` is a state mark (the pending mark, the invalid mark, a result)."""
     found = MARK_RE.findall(name)
     text = MARK_RE.sub('', name)
     tags = [m for m in found if m.startswith('<span')]
@@ -187,15 +200,17 @@ def write(comp, html):
         f.write(html)
 
 # ---------------- SettingRow ----------------
-write('SettingRow', page('<!-- @dsCard group="Settings" height=660 width=940 subtitle="Idle, hover, focused, active, pending, invalid, disabled, needs a restart" -->', 'Setting row', labeled([
+write('SettingRow', page('<!-- @dsCard group="Settings" height=780 width=940 subtitle="Idle, hover, focused, active, pending, and when a pending change takes effect, invalid, disabled" -->', 'Setting row', labeled([
     ('Idle', row('Brightness', slider('1.00', 50))),
     ('Hover', row('Brightness', slider('1.00', 50), 'is-hover', mark=(212, 20))),
     ('Focused', row('Brightness', slider('1.00', 50), 'is-focus')),
     ('Active (drag)', row('Brightness', slider('1.10', 60, 'is-active'), 'is-active')),
     ('Pending', row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=DOT)),
+    ('Pending, live', row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=LIVE)),
+    ('Pending, after Save', row('Holster size', slider('0.80', 40, 'is-pending', 'is-pending', True), gutter=SAVE)),
+    ('Pending, restart', row('Shadow resolution', choice_stepper('4096', True, True), gutter=RESTART)),
     ('Invalid', row('Brightness', slider('2.00', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Beam shadows', toggle(False), 'is-disabled')),
-    ('Needs a restart', row('Shadow resolution<span class="mc-tag t-detail">Restart</span>', choice_stepper('2048'))),
 ])))
 
 # ---------------- Toggle ----------------
@@ -248,6 +263,8 @@ def fbar(left, dirty=True):
 da_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:1120px">
 <span class="t-detail mc-muted">The ray is on a setting: its help, "Name: help", two lines at t-body</span>
 {fbar(helpline('Brightness', "How bright the beam is. 1.00 is the game's own flashlight; above 1.25 the beam starts to wash out close surfaces. Default 1.00."))}
+<span class="t-detail mc-muted">A pending change of a setting whose mod says when it takes effect: its tag first, in amber</span>
+{fbar(helpline('Shadow size', 'How sharp the beam&#39;s shadows are. Larger costs frame time. (Default: 2048)', tag=ptag(RESTART, 'Restart')))}
 <span class="t-detail mc-muted">Help that needs a third line drops to t-detail; past three lines it ends in an ellipsis</span>
 {fbar(helpline('Hide HUD in Pip-Boy', "Hides the compass, health, action points and the ammo counter while the Pip-Boy is raised, and brings them back when it is lowered. Widgets that FallUI HUD does not own, such as quest markers from other mods, keep their own setting. Default off.", long=True))}
 <span class="t-detail mc-muted">A validation error comes first</span>
@@ -255,7 +272,7 @@ da_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 <span class="t-detail mc-muted">The ray is off the settings: the session status</span>
 <div class="mc-footer"><div class="status t-body"><span class="mc-dot"></span><span class="mc-amber">1 unsaved change</span></div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
 </div></div>'''
-write('DescriptionArea', page('<!-- @dsCard group="Settings" height=520 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->', 'Help line', da_body))
+write('DescriptionArea', page('<!-- @dsCard group="Settings" height=610 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->', 'Help line', da_body))
 
 # ---------------- SectionHeader ----------------
 sh_states = ''.join(f'<span class="t-detail mc-muted" style="height:56px;display:flex;align-items:center">{label}</span><div>{html}</div>' for label, html in [
@@ -315,10 +332,8 @@ sb_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 {footer(WARN + '<span class="mc-red">2 invalid values</span>', btn('Discard') + btn('Save', 'is-primary', 'is-disabled'))}
 <span class="t-detail mc-muted">Not saved: a Save that failed</span>
 {footer(WARN + '<span class="mc-red">Not saved: showcase.toml cannot be written.</span>', btn('Discard') + btn('Save', 'is-primary'))}
-<span class="t-detail mc-muted">An MCM mod: no Save bar</span>
-{footer('<span class="mc-muted">Changes are saved as they are made</span>', '')}
 </div></div>'''
-write('SaveBar', page('<!-- @dsCard group="Actions" height=640 width=1180 subtitle="Clean, pending, blocked, not saved, and the status line of an MCM mod" -->', 'Save bar', sb_body))
+write('SaveBar', page('<!-- @dsCard group="Actions" height=560 width=1180 subtitle="Clean, pending, blocked, not saved: every mod, MCM too" -->', 'Save bar', sb_body))
 
 # ---------------- ConfirmDialog ----------------
 cd_body = f'''<div class="mc-world"><div class="mc-sheet mc-scrim" style="width:820px;height:400px;padding:0">
@@ -534,6 +549,18 @@ print('ok home')
 def control(name, text):
     """A control of the menu on the Help page, as the help line has a row's help: "Name: text"."""
     return f'<div class="mc-control t-body"><span class="name">{name}:</span> {text}</div>'
+
+def legend(mark, name, text):
+    """A mark of when a change takes effect on the Help page: the mark in amber, then "Name: text"."""
+    return f'<div class="mc-control t-body"><span class="name">{mark}{name}:</span> {text}</div>'
+
+def legend(mark, name, text):
+    """A mark of when a change takes effect on the Help page: the mark in amber, then "Name: text"."""
+    return f'<div class="mc-control t-body"><span class="name">{mark}{name}:</span> {text}</div>'
+
+def legend(mark, name, text):
+    """A mark of when a change takes effect on the Help page: the mark in amber, then "Name: text"."""
+    return f'<div class="mc-control t-body"><span class="name">{mark}{name}:</span> {text}</div>'
 fhp_nav = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Beam')
 fhp_rows = ''.join([
     pagehelp('How the menu is used, with the buttons your config has.'),
@@ -546,6 +573,12 @@ fhp_rows = ''.join([
     control('Recenter', 'Long press the thumbstick on the off hand: the menu is put in front of you again, also after you moved it.'),
     control('Open and close the menu', 'Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand.'),
     control('Minimize', 'Minimize, on the title bar or on your offhand wrist, hides the menu as you left it. Resume on the wrist shows it again.'),
+    section('Saving'),
+    control('Save', 'Writes the changes of the mod you are on, and the mod acts on them in its own way. A mod can say when: a changed row then has its mark, and the help line its tag.'),
+    legend(LIVE, 'Live', 'As you change it. Discard takes it back.'),
+    legend(SAVE, 'Save', 'After Save.'),
+    legend(RESTART, 'Restart', 'After the game is restarted.'),
+    legend(DOT, 'No mark', 'The mod does not say, as no MCM mod does. Save writes it all the same.'),
 ])
 fhp_body = f'''<div class="mc-world">
 <div class="mc-panel">
@@ -554,13 +587,13 @@ fhp_body = f'''<div class="mc-world">
 <div class="mc-body">
 {nav(fhp_nav, '', 11)}
 <div class="mc-content">
-<div class="mc-scroll"><div class="rows">{fhp_rows}</div></div>
+<div class="mc-scroll"><div class="rows" style="margin-top:-330px">{fhp_rows}</div><div class="mc-scrollbar"><i style="top:38%;height:62%"></i></div></div>
 </div>
 </div>
 <div class="mc-footer">{helpline('Help', 'What each control of the menu does, with the buttons your config has for it.')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
 </div>
 </div>'''
-write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The Help page over a page of a mod: each control with the buttons of the config, the ray on Help" -->', 'Full panel, Help page', fhp_body))
+write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The Help page over a page of a mod, scrolled to its end: each control with the buttons of the config, and what Save does with the marks of when a change takes effect" -->', 'Full panel, Help page', fhp_body))
 print('ok help')
 
 # ---------------- FullPanelCategories: Mods Config VR's own Categories page, with the tree grouped ----------------
@@ -1338,12 +1371,12 @@ def warnline(name, warning, help_):
     return f'<div class="help t-body"><span class="name">{name}:</span> {CAUTION}<span class="caution">{warning}</span> {help_}</div>'
 
 rw_body = f"""<div class="mc-world mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The mark after the name, and after the pending dot: a hollow amber triangle. The invalid mark takes its place while the value is invalid</span>
+<span class="t-detail mc-caption">The mark after the name, and after the pending mark: a hollow amber triangle. The invalid mark takes its place while the value is invalid</span>
 {h_sheet([
     ('No warning', row('Player height', slider('1.30 m', 60))),
     ('Warning', row(f'Player height{CAUTION}', slider('1.45 m', 76, 'is-pending', 'is-pending', True), gutter=DOT)),
     ('Under the ray', row(f'Player height{CAUTION}', slider('1.45 m', 76, 'is-pending', 'is-pending', True), 'is-hover', gutter=DOT, mark=(560, 22))),
-    ('With Restart', row(f'Shadow size<span class="mc-tag t-detail">Restart</span>{CAUTION}', choice_stepper('4096', True, True), gutter=DOT)),
+    ('Pending, restart', row(f'Shadow size{CAUTION}', choice_stepper('4096', True, True), gutter=RESTART)),
     ('A button', row(f'Rebuild the holsters{CAUTION}', '<div class="main"><span class="mc-btn t-body">Run</span></div>' + reset_btn(False))),
     ('Invalid wins', row('Player height', slider('1.60 m', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN)),
 ])}
@@ -1462,9 +1495,9 @@ br_states = h_sheet([
     ('Failed', row('Calibrate height', run_btn('Calibrate'), gutter=WARN)),
     ('No client', row('Rebuild the holsters', run_btn('Rebuild'), 'is-disabled')),
 ])
-dlg = lambda title, msg, ok, danger: (f'<div class="mc-sheet mc-scrim" style="width:820px;height:300px;padding:0">'
+dlg = lambda title, msg, ok, danger, without=False: (f'<div class="mc-sheet mc-scrim" style="width:820px;height:300px;padding:0">'
     f'<div class="mc-dialog{" is-danger" if danger else ""}"><div class="t-title">{title}</div><div class="t-body">{msg}</div>'
-    f'<div class="actions">{btn("Cancel", "is-quiet")}{btn(ok, "is-danger" if danger else "is-primary")}</div></div></div>')
+    f'<div class="actions">{btn("Cancel", "is-quiet")}{btn("Run without saving") if without else ""}{btn(ok, "is-danger" if danger else "is-primary")}</div></div></div>')
 br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 820px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">The row: Run, or the button's text, in the control column; running; a mark after the name for its result, which is in the help line</span>
@@ -1480,20 +1513,22 @@ br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:90
 {dlg('Reset the calibration?', 'This discards the current body calibration. FRIK measures you again the next time you calibrate.', 'Reset', False)}
 <span class="t-detail mc-caption">dangerous: the confirming button and the frame in red</span>
 {dlg('Delete every holster?', 'Every holster you placed is removed, with the weapons in them returned to your inventory. This cannot be undone.', 'Delete', True)}
+<span class="t-detail mc-caption">A script's button while its mod has unsaved changes: Save and run, or Run without saving</span>
+{dlg('Unsaved changes', 'You have 2 unsaved changes, and the button&#39;s script reads the saved values. Save them before it runs?', 'Save and run', False, True)}
 </div>
 </div>"""
-write('ButtonRow', page('<!-- @dsCard group="Actions" height=850 width=1800 subtitle="A row that runs an action: Run or its text, running, its result marked in the gutter and said in the help line; a confirmation, and a dangerous one" -->', 'Button row', br_body))
+write('ButtonRow', page('<!-- @dsCard group="Actions" height=1190 width=1800 subtitle="A row that runs an action: Run or its text, running, its result marked in the gutter and said in the help line; a confirmation, and a dangerous one" -->', 'Button row', br_body))
 print('ok button row')
 
 # ---------------- RestartNotice: a setting that needs a restart, and the Save that wrote one ----------------
 RTAG = '<span class="mc-tag t-detail">Restart</span>'
 rn_body = f"""<div class="mc-world mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The row: the Restart mark after its name, and its help says when it takes effect</span>
+<span class="t-detail mc-caption">The row: changed, its pending mark is the Restart mark, and the status counts it (see TakesEffect)</span>
 <div class="mc-sheet mc-stack" style="width:1120px;gap:12px">
-<div style="width:772px">{row('Shadow size' + RTAG, choice_stepper('4096', True, True), 'is-hover', gutter=DOT, mark=(560, 22))}{row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=DOT)}</div>
+<div style="width:772px">{row('Shadow size', choice_stepper('4096', True, True), 'is-hover', gutter=RESTART, mark=(560, 22))}{row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=SAVE)}</div>
 {footer(DOT + '<span class="mc-amber">2 unsaved changes, 1 takes effect after a restart</span>', btn('Discard') + btn('Save', 'is-primary'))}
-<span class="t-detail mc-muted">The ray on it</span>
-<div class="mc-footer">{helpline('Shadow size', 'How sharp the beam&#39;s shadows are. Larger costs frame time. Takes effect after the game is restarted. (Default: 2048)')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+<span class="t-detail mc-muted">The ray on it: the help line's tag</span>
+<div class="mc-footer">{helpline('Shadow size', 'How sharp the beam&#39;s shadows are. Larger costs frame time. (Default: 2048)', tag=ptag(RESTART, 'Restart'))}{btn('Discard')}{btn('Save', 'is-primary')}</div>
 <span class="t-detail mc-muted">After the Save: the status says it until the next change of the mod</span>
 {footer(RTAG + '<span>Saved. 1 change takes effect after the game is restarted.</span>', btn('Discard', '', 'is-disabled') + btn('Save', 'is-primary', 'is-disabled'))}
 <span class="t-detail mc-muted">A Save with no restart</span>
@@ -1502,8 +1537,31 @@ rn_body = f"""<div class="mc-world mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">The menu's front page keeps it under Notices until the game is restarted</span>
 <div class="mc-sheet" style="width:772px">{section('Notices')}<div class="mc-notice t-body">{RTAG}<span>Restart the game: Immersive Flashlight VR has 1 saved change that takes effect then.</span></div>{pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.')}</div>
 </div>"""
-write('RestartNotice', page('<!-- @dsCard group="Actions" height=910 width=1170 subtitle="A setting that takes effect after a restart: its mark, its help, the status after the Save that wrote it, and the front page notice" -->', 'Restart notice', rn_body))
+write('RestartNotice', page('<!-- @dsCard group="Actions" height=910 width=1170 subtitle="A change that takes effect after a restart: its mark, its tag, the status after the Save that wrote it, and the front page notice" -->', 'Restart notice', rn_body))
 print('ok restart')
+
+# ---------------- TakesEffect: when a pending change takes effect, as its config spec says ----------------
+te_rows = h_sheet([
+    ('Not changed', row('Brightness', slider('1.00', 50))),
+    ('Not known', row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=DOT)),
+    ('Live', row('Brightness', slider('1.25', 75, 'is-pending', 'is-pending', True), gutter=LIVE)),
+    ('After Save', row('Holster size', slider('0.80', 40, 'is-pending', 'is-pending', True), gutter=SAVE)),
+    ('After a restart', row('Shadow size', choice_stepper('4096', True, True), gutter=RESTART)),
+    ('And a warning', row(f'Shadow size{CAUTION}', choice_stepper('4096', True, True), gutter=RESTART)),
+])
+te_body = f"""<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A changed row: its pending mark is the mark of when the change takes effect, in amber, or the plain dot where its mod does not say</span>
+{te_rows}
+<span class="t-detail mc-caption">The help line: the tag of the pending change, in amber, before the row's help. A row that is not changed, or whose mod does not say, has none</span>
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+<div class="mc-footer">{helpline('Brightness', 'How bright the beam is. (Default: 1.00)', tag=ptag(LIVE, 'Live'))}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+<div class="mc-footer">{helpline('Holster size', 'How large the holsters are drawn. (Default: 1.00)', tag=ptag(SAVE, 'Save'))}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+<div class="mc-footer">{helpline('Shadow size', 'How sharp the beam&#39;s shadows are. Larger costs frame time. (Default: 2048)', tag=ptag(RESTART, 'Restart'))}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+<div class="mc-footer">{helpline('Brightness', 'How bright the beam is.')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+</div>
+</div>"""
+write('TakesEffect', page('<!-- @dsCard group="Settings" height=900 width=1170 subtitle="When a pending change takes effect: its mark on a changed row in place of the pending dot, and its tag in the help line" -->', 'When a change takes effect', te_body))
+print('ok takes effect')
 
 # ---------------- TextInput: a field that shows the text, typed on SteamVR's keyboard ----------------
 PEN = '<svg class="mc-ico pen" viewBox="0 0 24 24"><path d="M4 20 L5 15 L15.5 4.5 L19.5 8.5 L9 19 Z"/><path d="M13.5 6.5 L17.5 10.5"/></svg>'

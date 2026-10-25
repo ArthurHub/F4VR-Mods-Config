@@ -24,13 +24,6 @@ A setting is stored in one key, and a table is one value of it: a string setting
 
 Whether InputBinding warns of two bindings that collide, of one mod or of two: FRIK, Immersive Flashlight and this mod all use the thumbsticks.
 
-## The marks of `applies`
-
-The design system still has the Restart mark on a row and one pending dot, and needs the marks of [the help line](ui-and-vr-interaction.md#help-line), which M124 designs once the rest is done:
-
-- A mark for `live`, `save` and `restart`, told apart at the detail size in the headset, and drawn as the warning mark is. `unknown` has none.
-- The pending mark of a row as its `applies` mark in amber, and the plain pending mark of an `unknown` one and of a count.
-
 ## Storage edge cases
 
 - Whether a config spec can forbid creating a missing file, for a mod that cannot load a file that holds only some of its settings

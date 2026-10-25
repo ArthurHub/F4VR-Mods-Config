@@ -9,7 +9,7 @@ A choice of the files in a folder, MCM's `dropdownFiles`, and a config spec's: a
 - A dropdown's frame, 392 x 48: from the left, a texture's thumbnail, the file's name in `t-body` with its extension in `green-muted`, and the drawn down arrow. Then the Reset slot.
 - **The thumbnail** is the texture itself, 32 x 32 on black, outlined in `frame-border`: a gobo shows how the light falls through it. A file that is not a texture (`.json`, `.nif`) has none, and its name starts at the left.
 - A press anywhere on the row opens the list.
-- Pending: the name in `amber`, the pending dot after the name, the thumbnail of the new file.
+- Pending: the name in `amber`, the pending mark after the name, the thumbnail of the new file.
 - **Not in the folder:** a value that names a file the folder does not have. The frame has a `red` outline and the name as the file has it in `red`, with no thumbnail, and the help line says the folder has no such file: "9_Laser is not in Gobos." Reset sets the default; picking a file fixes it.
 - **An empty folder**, or one that is missing: the row is disabled and says `No files`. The help line says where it looked: "No *.dds files in Textures\ImmersiveFlashlightVR\Gobos."
 

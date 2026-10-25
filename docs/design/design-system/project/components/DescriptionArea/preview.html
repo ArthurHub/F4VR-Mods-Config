@@ -1,4 +1,4 @@
-<!-- @dsCard group="Settings" height=520 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->
+<!-- @dsCard group="Settings" height=610 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>Help line — preview</title></head>
@@ -6,6 +6,8 @@
 <div class="mc-world"><div class="mc-sheet mc-stack" style="width:1120px">
 <span class="t-detail mc-muted">The ray is on a setting: its help, "Name: help", two lines at t-body</span>
 <div class="mc-footer"><div class="help t-body"><span class="name">Brightness:</span> How bright the beam is. 1.00 is the game's own flashlight; above 1.25 the beam starts to wash out close surfaces. Default 1.00.</div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
+<span class="t-detail mc-muted">A pending change of a setting whose mod says when it takes effect: its tag first, in amber</span>
+<div class="mc-footer"><div class="help t-body"><span class="mc-tag is-pending t-detail"><svg class="mc-applies" viewBox="0 0 16 16"><path d="M5 3.8 A5.8 5.8 0 1 0 11 3.8"/><path d="M8 1.2 V8"/></svg>Restart</span><span class="name">Shadow size:</span> How sharp the beam&#39;s shadows are. Larger costs frame time. (Default: 2048)</div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
 <span class="t-detail mc-muted">Help that needs a third line drops to t-detail; past three lines it ends in an ellipsis</span>
 <div class="mc-footer"><div class="help t-detail is-long"><span class="name">Hide HUD in Pip-Boy:</span> Hides the compass, health, action points and the ammo counter while the Pip-Boy is raised, and brings them back when it is lowered. Widgets that FallUI HUD does not own, such as quest markers from other mods, keep their own setting. Default off.</div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
 <span class="t-detail mc-muted">A validation error comes first</span>

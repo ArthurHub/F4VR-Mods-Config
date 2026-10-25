@@ -140,7 +140,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | M121 | mod      | An MCM mod's changes wait for a Save                     | in review |
 | M122 | mod      | A script button of a mod with unsaved changes asks to save first | in review |
 | M123 | mod      | `applies` is `unknown` where nothing says it, and the help line says it | in review |
-| M124 | mod      | design system: the marks of `applies`, and the Help page's legend | todo |
+| M124 | mod      | design system: the marks of `applies`, and the Help page's legend | in review |
 | M125 | mod      | The marks of `applies` on a pending row and in the help line, and the Help page's legend | todo |
 | M68 | mod       | A client gets the preview and discard events             | todo   |
 | M69 | mod       | A client gets the saved batch                            | todo   |
@@ -152,7 +152,7 @@ M120 to M125 give every mod one lifecycle before a client previews: a change wai
 - M121 keeps an MCM mod's changes pending, with the Save bar and the unsaved-changes dialog. Save writes them all, then runs each row's action and sends MCM's event in the order of the config, then the pause menu's events where it wrote a ModSetting. A setting with no storage is never dirty.
 - M122 has a button that calls a script, of a mod with unsaved changes, ask to save them first, with Cancel, Run without saving and Save and run, which stands for the button's own confirmation. Its help says so. It is for an MCM mod and a config spec alike. A console command, a link and a function of the mod's DLL do not ask.
 - M123 reads `unknown`, and an `applies` that is not at the config spec's root, which is `unknown`. An MCM setting is `unknown`. The help line says the pointed row's `applies` in an amber tag while its change is pending, but for `unknown`, which has none, and a row has no Restart mark. A `live` setting of a file with no client still says `live`.
-- M124 designs the marks: one for `live`, `save` and `restart`, the pending mark as that one in amber, and a plain pending mark for an `unknown` one and for a count. M125 draws them, and the Help page says what each means and what Save does.
+- M124 designs the marks: a broadcast for `live`, a disk for `save` and a power mark for `restart`, the pending mark as that one in amber, and a plain pending mark for an `unknown` one and for a count. It also brings the design system up to M121 and M122: every mod has the Save bar, and a script's button can ask to save first. M125 draws them, and the Help page says what each means and what Save does.
 
 F30 is the second part of item 13. The overrides it drives are done (F12 to F14).
 
