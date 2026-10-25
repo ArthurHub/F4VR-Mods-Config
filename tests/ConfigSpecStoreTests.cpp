@@ -126,41 +126,66 @@ namespace
 
 namespace
 {
+    std::string textOf(const model::Value& value)
+    {
+        return std::visit(
+            []<typename T>(const T& v) {
+                return std::format("{}", v);
+            },
+            value);
+    }
+
     /**
-     * The changes of `live` settings a store tells its mod's client, each as a line: its phase, its setting, its file
-     * and its path in it, or its form and a property's script and name, and the value it had before and has now. With
-     * a game, the value of each global the game has as it is told.
+     * A setting as its mod's client is told it: its id, its file and its path in it, or its form and a property's
+     * script and name.
+     */
+    std::string settingText(const model::ClientSetting& setting)
+    {
+        std::string where = setting.file ? setting.file->name + ":" : setting.form;
+        for (const auto& name : setting.path) {
+            where += (where.ends_with(':') ? "" : ".") + name;
+        }
+        if (!setting.property.empty()) {
+            where += std::format(" {}.{}", setting.script, setting.property);
+        }
+        return setting.id + " " + where;
+    }
+
+    /**
+     * The changes of `live` settings a store tells its mod's client, each as a line: its phase, its setting, and the
+     * value it had before and has now. And each Save it tells, as a line of its revision and its files, and a line of
+     * each setting, with its value before and the value written.
      */
     struct ToldChanges
     {
         std::vector<std::string> lines;
+        std::vector<std::string> saves;
         std::string filePath;
 
         explicit ToldChanges(ConfigSpecStore& store)
         {
-            store.clientCalls().addClient("MyMod", { .onChange = [this](const model::SettingChange& change) {
-                const auto text = [](const model::Value& value) {
-                    return std::visit(
-                        []<typename T>(const T& v) {
-                            return std::format("{}", v);
+            store.clientCalls().addClient("MyMod",
+                { .onChange =
+                        [this](const model::SettingChange& change) {
+                            lines.push_back(std::format("{} {} {} -> {}",
+                                change.phase == model::ChangePhase::Discard ? "Discard" : "Preview",
+                                settingText(change.setting),
+                                textOf(change.previous),
+                                textOf(change.value)));
+                            filePath = change.setting.file ? change.setting.file->path : std::string();
                         },
-                        value);
-                };
-                std::string where = change.fileName.empty() ? change.form : change.fileName + ":";
-                for (const auto& name : change.path) {
-                    where += (where.ends_with(':') ? "" : ".") + name;
-                }
-                if (!change.property.empty()) {
-                    where += std::format(" {}.{}", change.script, change.property);
-                }
-                lines.push_back(std::format("{} {} {} {} -> {}",
-                    change.phase == model::ChangePhase::Discard ? "Discard" : "Preview",
-                    change.settingId,
-                    where,
-                    text(change.previous),
-                    text(change.value)));
-                filePath = change.filePath;
-            } });
+                    .onSaved =
+                        [this](const model::SaveBatch& batch) {
+                            std::string files;
+                            for (const auto& file : batch.files) {
+                                files += " " + file.name;
+                                filePath = file.path;
+                            }
+                            saves.push_back(std::format("Save {}:{}", batch.revision, files));
+                            for (const auto& saved : batch.settings) {
+                                saves.push_back(std::format("  {} {} -> {}", settingText(saved.setting), textOf(saved.before), textOf(saved.value)));
+                            }
+                        } });
         }
     };
 }
@@ -1137,22 +1162,41 @@ TEST_CASE("ConfigSpecStore: a live global or property is told to the mod's clien
     CHECK(hours == std::vector<float>{ 18.0f, 8.5f });
 }
 
-TEST_CASE("ConfigSpecStore: a Save tells the client nothing of a preview it wrote, and a setting that is not live is not previewed")
+TEST_CASE("ConfigSpecStore: a Save tells the client once what it wrote, of any applies, and no Discard of a preview it wrote")
 {
+    TestGame game;
     Session session(R"(
         { "type": "switcher", "valueType": "bool", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
         { "type": "slider", "valueType": "float", "text": "Scale", "default": 1.0, "applies": "save", "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
-          "storage": { "path": ["Main", "fScale"] } }
+          "storage": { "path": ["Main", "fScale"] } },
+        { "type": "switcher", "valueType": "bool", "text": "Automation", "default": true, "applies": "restart", "storage": { "global": "MyMod.esp|801" } }
     )");
     ToldChanges told(session.store);
     session.open("[Main]\r\nbEnable = false\r\nfScale = 1.25\r\n");
 
+    // one that is not live is not previewed
     CHECK(session.store.set(session.setting(1), 1.4f));
     CHECK(told.lines.empty());
     CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.set(session.setting(2), true));
     REQUIRE(session.store.save());
+    CHECK(told.saves == std::vector<std::string>{ "Save 1: main",
+                            "  bEnable:Main main:Main.bEnable false -> true",
+                            "  fScale:Main main:Main.fScale 1.25 -> 1.4",
+                            "  MyMod.esp|801 MyMod.esp|801 false -> true" });
+    CHECK(told.filePath.ends_with(R"(Mods_Config\MyMod\MyMod.toml)"));
+
+    // the preview it wrote ends with it, with no Discard
     session.store.close();
     CHECK(told.lines == std::vector<std::string>{ "Preview bEnable:Main main:Main.bEnable false -> true" });
+
+    // the next Save of the mod counts on, one of the game alone writes no file, and one that writes nothing tells nothing
+    session.store.open(session.mod);
+    told.saves.clear();
+    CHECK(session.store.set(session.setting(2), false));
+    REQUIRE(session.store.save());
+    REQUIRE(session.store.save());
+    CHECK(told.saves == std::vector<std::string>{ "Save 2:", "  MyMod.esp|801 MyMod.esp|801 true -> false" });
 }
 
 TEST_CASE("ConfigSpecStore: the changes that take effect after a restart are counted while pending, by the last Save, and for the mod until the game is restarted")

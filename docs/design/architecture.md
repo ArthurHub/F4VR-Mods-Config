@@ -133,7 +133,7 @@ A config spec's Save proceeds as follows, and an MCM mod's is in [MCM compatibil
 9. If a write fails, write the content read in step 2 back to the files already written, delete the files this Save created, and report the failure. The folders it created stay. The Save stops there.
 10. Write the dirty globals and properties into the game.
 11. Run the action of each setting that was written, in the order of the config spec, with its saved value.
-12. Call the client's `onSaved` with one batch.
+12. Call the client's `onSaved` with one batch: every setting that was written, with its value before the Save, and the files written. A Save that wrote nothing tells nothing.
 13. Send one final native notification and one equivalent Papyrus notification.
 14. Tell the player that the game has to be restarted, when a `restart` setting was written.
 
@@ -209,6 +209,8 @@ namespace mods_config::api
         virtual bool answerState(const char* name, SettingValue* value) = 0;             // false: not available
         virtual bool giveOptions(const SettingView* setting, IOptions* options) = 0; // false: it has none
         virtual void onEvent(const MenuEvent* event) = 0;
+        virtual void onChange(const SettingChange* change) = 0; // a `live` setting's preview or discard
+        virtual void onSaved(const SaveBatch* batch) = 0;       // what a Save wrote
     };
 }
 ```
@@ -219,7 +221,7 @@ A second entry of a function, and a second client of a name, are refused, and th
 
 A mod registers its client once, as it loads, and it lives for the whole run of the game: there is no unregister. The host matches its name to the config spec whose `modName` is that name. A second client under a name that has one is refused, so two mods cannot both have a config spec. The client is asked only of its own config spec, and a client that fails is cut off as a whole.
 
-A client is told each change of a `live` setting of its config spec with `onChange`, also of one kept in the game, which the host writes first, as [Live preview API](#live-preview-api) has it, and the header's C++ client hands it to the mod's handlers (`subscribeToChanges`). The saved batch is a method milestone 8 adds next.
+A client is told each change of a `live` setting of its config spec with `onChange`, also of one kept in the game, which the host writes first, as [Live preview API](#live-preview-api) has it, and the header's C++ client hands it to the mod's handlers (`subscribeToChanges`). It is told once what each Save wrote with `onSaved`, every setting of any `applies`, which ends the previews of the ones it wrote, and the C++ client hands that to the mod's handlers too (`subscribeToSaves`).
 
 ### The client's events
 
@@ -399,17 +401,19 @@ struct SettingChange
 struct SavedSetting
 {
     const SettingView& setting;
-    SettingValue baselineValue; // the value before this editing session
-    SettingValue value;         // the value written to the file
+    SettingValue baselineValue; // the value before the Save
+    SettingValue value;         // the value written, to the file or the game
 };
 
 struct SaveBatch
 {
-    std::span<const SavedSetting> settings;
+    std::span<const SavedSetting> settings; // in the order of the config spec
     std::span<const FileView> writtenFiles;
-    std::uint64_t revision; // counts this config spec's successful Saves since the game started
+    std::uint64_t revision; // counts this config spec's Saves that wrote something since the game started
 };
 ```
+
+A Save tells the client its batch once, after the action of each setting ran. It has every setting the Save wrote, whatever its `applies`, so a mod applies a `save` setting from it, as it is written. A `live` setting the client shows a preview of is told no Discard: the batch has it, and the file or the game has the value. A Save that wrote some settings and failed on a global that left the game has those it wrote.
 
 `SettingView` exposes the stable setting ID, value type, default, value options, and resolved storage. It does not require the client to parse the declarative config spec. The header passes its id, its type and its storage in a file: the file's name, format and absolute path, and the names that lead to the value, its section and key in an INI file and its tables and key in a TOML file. A setting kept in the game has no file, and its form, with a property's script and name: the host writes its value into the game before it tells the client, which can do what more it needs.
 

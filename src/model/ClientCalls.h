@@ -48,26 +48,65 @@ namespace mods_config::model
     };
 
     /**
-     * A change of a `live` setting of a mod, which its client is told while the change waits for a Save: the setting's
-     * id and type, where it is kept, the value the client was told last and the new one, in the setting's type. A
-     * setting of a file has the file's name, format and absolute path, and the names that lead to the value in it. One
-     * of the game has its form, as `MyMod.esp|800`, and a property's script and name. It holds what it needs, as a
-     * Discard is told as the session ends, when the mod can be gone.
+     * A file of a mod's config spec, as its client is told it: its name in the config spec's `files`, its format and its
+     * absolute path.
      */
-    struct SettingChange
+    struct ClientFile
     {
-        std::string settingId;
-        StoredType valueType = StoredType::String;
-        std::string fileName;
+        std::string name;
         FileFormat format = FileFormat::Toml;
-        std::string filePath;
+        std::string path;
+    };
+
+    /**
+     * A setting of a mod, as its client is told it: its id and type, and where it is kept. A setting of a file has the
+     * file, and the names that lead to the value in it. One of the game has no file, and its form, as `MyMod.esp|800`,
+     * with a property's script and name. It holds what it needs, as a Discard is told as the session ends, when the mod
+     * can be gone.
+     */
+    struct ClientSetting
+    {
+        std::string id;
+        StoredType valueType = StoredType::String;
+        std::optional<ClientFile> file;
         std::vector<std::string> path;
         std::string form;
         std::string script;
         std::string property;
+    };
+
+    /**
+     * A change of a `live` setting of a mod, which its client is told while the change waits for a Save: the value the
+     * client was told last and the new one, in the setting's type.
+     */
+    struct SettingChange
+    {
+        ClientSetting setting;
         Value previous;
         Value value;
         ChangePhase phase = ChangePhase::Preview;
+    };
+
+    /**
+     * A setting a Save of a mod wrote: its value before the Save and the value written, in the setting's type.
+     */
+    struct SavedSetting
+    {
+        ClientSetting setting;
+        Value before;
+        Value value;
+    };
+
+    /**
+     * What a Save of a mod wrote, which its client is told once: each setting it wrote, of any `applies`, in the order of
+     * the config spec, the files it wrote, and how many Saves of the mod wrote something in this run of the game, this
+     * one with them.
+     */
+    struct SaveBatch
+    {
+        std::vector<SavedSetting> settings;
+        std::vector<ClientFile> files;
+        std::uint64_t revision = 0;
     };
 
     /**
@@ -86,7 +125,7 @@ namespace mods_config::model
     /**
      * The mods' DLLs that registered a client with the native API, which the menu asks by name: the functions a
      * `CallNativeFunction` runs, the states a `clientState` condition asks, and the options of a choice with
-     * `listFromClientCallback`, and tells the menu's events and the changes of `live` settings. It knows those whose client is cut off, which are asked
+     * `listFromClientCallback`, and tells the menu's events, the changes of `live` settings and what a Save wrote. It knows those whose client is cut off, which are asked
      * nothing more, and the clients' quick launch entries.
      */
     class ClientCalls
@@ -111,6 +150,9 @@ namespace mods_config::model
 
             // a change of a `live` setting
             std::function<void(const SettingChange& change)> onChange;
+
+            // what a Save wrote
+            std::function<void(const SaveBatch& batch)> onSaved;
         };
 
         bool addClient(std::string_view modName, Client client);
@@ -122,6 +164,7 @@ namespace mods_config::model
         void send(std::string_view modName, ClientEvent event, std::string_view pageId = {}) const;
         void sendToAll(ClientEvent event) const;
         void sendChange(std::string_view modName, const SettingChange& change) const;
+        void sendSave(std::string_view modName, const SaveBatch& batch) const;
         bool addQuickLaunch(ClientQuickLaunch entry);
 
         // the quick launch entries of the clients, in the order they were added

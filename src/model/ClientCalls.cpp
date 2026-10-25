@@ -131,6 +131,17 @@ namespace mods_config::model
     }
 
     /**
+     * Tells a mod's client what a Save of its config spec wrote. Nothing for a mod with no client, or whose client is
+     * cut off.
+     */
+    void ClientCalls::sendSave(const std::string_view modName, const SaveBatch& batch) const
+    {
+        if (const auto* client = find(modName); client && client->onSaved) {
+            client->onSaved(batch);
+        }
+    }
+
+    /**
      * Adds an entry of a mod to the quick launch section, by the function a press runs: a mod can have an entry for
      * each of its functions. False for a function of the mod that has one already, which keeps the first.
      */

@@ -43,7 +43,8 @@ namespace mods_config::spec
      * the files, and then runs the action of each setting it wrote.
      * A setting takes effect as its `applies` says. A `live` one is previewed by the mod's client: it is told each valid
      * pending value, and a Discard as the value goes back to its baseline, by a set, Discard, or the end of the
-     * session, one of the game after the game has it. A Save tells it nothing: the file or the game has the value then. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
+     * session, one of the game after the game has it. A Save tells it no Discard: it tells the client once what it wrote,
+     * every setting with its value before and the files, after the actions ran. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
      * game is restarted.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
@@ -147,6 +148,8 @@ namespace mods_config::spec
         void preview(const model::Setting& setting, const Entry& entry);
         void previewToClient(const model::Setting& setting, const Entry& entry);
         void discardOnClient(ClientPreview& preview) const;
+        model::ClientSetting clientSetting(const model::Setting& setting) const;
+        model::ClientFile clientFile(const std::string& name) const;
         void rollBack();
 
         // the folders a path of a config spec's file is from: the game's Data folder, and
@@ -201,5 +204,8 @@ namespace mods_config::spec
         // the ids of the settings that take effect after a restart that a Save wrote in this run of the game,
         // by the name of their mod. It outlives the session
         std::map<std::string, std::set<std::string, std::less<>>, std::less<>> _savedForRestart;
+
+        // how many Saves of each mod wrote something in this run of the game, by its name, which its client is told
+        std::map<std::string, std::uint64_t, std::less<>> _saveRevisions;
     };
 }

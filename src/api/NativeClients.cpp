@@ -1,6 +1,7 @@
 #include "NativeClients.h"
 
 #include <algorithm>
+#include <deque>
 #include <format>
 
 #include "common/CommonUtils.h"
@@ -100,6 +101,54 @@ namespace
         }
         return apiValue;
     }
+
+    api::FileView toFileView(const model::ClientFile& file)
+    {
+        return { .name = file.name.c_str(), .format = static_cast<api::FileFormat>(file.format), .path = file.path.c_str() };
+    }
+
+    /**
+     * A setting's view as the API passes it, with where its value is kept: a file, or none for one of the game. It
+     * points into the setting it is made of and into itself, so it is valid while the setting is, and is not copied.
+     */
+    class HostSettingView
+    {
+    public:
+        explicit HostSettingView(const model::ClientSetting& setting)
+        {
+            const auto text = [](const std::string& value) {
+                return value.empty() ? nullptr : value.c_str();
+            };
+            if (setting.file) {
+                _file = toFileView(*setting.file);
+            }
+            _path.reserve(setting.path.size());
+            for (const auto& name : setting.path) {
+                _path.push_back(name.c_str());
+            }
+            _view = { .id = setting.id.c_str(),
+                .valueType = toApiType(setting.valueType),
+                .storage = { .file = setting.file ? &_file : nullptr,
+                    .path = _path.data(),
+                    .pathCount = static_cast<std::uint32_t>(_path.size()),
+                    .form = text(setting.form),
+                    .scriptName = text(setting.script),
+                    .propertyName = text(setting.property) } };
+        }
+
+        HostSettingView(const HostSettingView&) = delete;
+        HostSettingView& operator=(const HostSettingView&) = delete;
+
+        const api::SettingView* get() const
+        {
+            return &_view;
+        }
+
+    private:
+        api::FileView _file{};
+        std::vector<const char*> _path;
+        api::SettingView _view{};
+    };
 
     /**
      * The options of a choice that a client gives, which the host passes it: each is of the setting's type, with its
@@ -223,6 +272,10 @@ namespace mods_config::api
                 .onChange =
                     [this, kept](const model::SettingChange& change) {
                         tellChange(*kept, change);
+                    },
+                .onSaved =
+                    [this, kept](const model::SaveBatch& batch) {
+                        tellSave(*kept, batch);
                     } });
         if (!added) {
             logger::warn("Native API: '{}' has a client already, so another is not registered", name);
@@ -360,33 +413,50 @@ namespace mods_config::api
      */
     void NativeClients::tellChange(Registered& registered, const model::SettingChange& change) const
     {
-        const FileView file{ .name = change.fileName.c_str(), .format = static_cast<FileFormat>(change.format), .path = change.filePath.c_str() };
-        std::vector<const char*> path;
-        path.reserve(change.path.size());
-        for (const auto& name : change.path) {
-            path.push_back(name.c_str());
-        }
-        const auto text = [](const std::string& value) {
-            return value.empty() ? nullptr : value.c_str();
-        };
-        const SettingView setting{ .id = change.settingId.c_str(),
-            .valueType = toApiType(change.valueType),
-            .storage = { .file = change.fileName.empty() ? nullptr : &file,
-                .path = path.data(),
-                .pathCount = static_cast<std::uint32_t>(path.size()),
-                .form = text(change.form),
-                .scriptName = text(change.script),
-                .propertyName = text(change.property) } };
+        const HostSettingView setting(change.setting);
         const auto previousText = valueText(change.previous);
         const auto newText = valueText(change.value);
-        const SettingChange apiChange{ .setting = &setting,
+        const SettingChange apiChange{ .setting = setting.get(),
             .previousValue = toApiValue(change.previous, previousText),
             .value = toApiValue(change.value, newText),
             .phase = change.phase == model::ChangePhase::Discard ? ChangePhase::Discard : ChangePhase::Preview };
         auto tell = [&registered, &apiChange] {
             registered.client->onChange(&apiChange);
         };
-        call(registered, std::format("a change of '{}'", change.settingId), tell);
+        call(registered, std::format("a change of '{}'", change.setting.id), tell);
+    }
+
+    /**
+     * Tells a client what a Save wrote, inside the guard: each setting's view with where its value is kept, its value
+     * before the Save and the value written, the files written and the Save's revision.
+     */
+    void NativeClients::tellSave(Registered& registered, const model::SaveBatch& batch) const
+    {
+        std::deque<HostSettingView> views;
+        std::vector<std::string> texts;
+        texts.reserve(batch.settings.size() * 2);
+        std::vector<SavedSetting> settings;
+        settings.reserve(batch.settings.size());
+        for (const auto& saved : batch.settings) {
+            const auto& view = views.emplace_back(saved.setting);
+            const auto& beforeText = texts.emplace_back(valueText(saved.before));
+            const auto& writtenText = texts.emplace_back(valueText(saved.value));
+            settings.push_back({ .setting = view.get(), .baselineValue = toApiValue(saved.before, beforeText), .value = toApiValue(saved.value, writtenText) });
+        }
+        std::vector<FileView> files;
+        files.reserve(batch.files.size());
+        for (const auto& file : batch.files) {
+            files.push_back(toFileView(file));
+        }
+        const SaveBatch apiBatch{ .settings = settings.data(),
+            .settingCount = static_cast<std::uint32_t>(settings.size()),
+            .writtenFiles = files.data(),
+            .fileCount = static_cast<std::uint32_t>(files.size()),
+            .revision = batch.revision };
+        auto tell = [&registered, &apiBatch] {
+            registered.client->onSaved(&apiBatch);
+        };
+        call(registered, "a Save", tell);
     }
 
     /**

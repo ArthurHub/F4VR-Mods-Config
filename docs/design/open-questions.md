@@ -49,12 +49,12 @@ The form is settled: a config spec's text is plain, a `$` token as in MCM, or a 
 ## Native API details
 
 - Preview coalescing timing
-- Save-batch and error-reporting structures
+- Error-reporting structures
 - Native final-save notification payload
 - Whether a safe host-owned custom-panel extension is needed later
 - Pages and values supplied by native code
 
-The binary interface, its versions, the client and its functions, events, states and quick launch entry, and how a mod's own UI is opened are settled; see [Native API](architecture.md#native-api).
+The binary interface, its versions, the client and its functions, events, states and quick launch entry, the changes and the saved batch it is told, and how a mod's own UI is opened are settled; see [Native API](architecture.md#native-api).
 
 Raw ImGui ownership by client mods is deliberately deferred because it weakens input, layout, lifecycle, and compatibility guarantees.
 

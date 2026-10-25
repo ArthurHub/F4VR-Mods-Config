@@ -343,6 +343,15 @@ namespace
     }
 
     /**
+     * The value a setting's mod's client is told a setting had before its change, in the setting's type: its baseline,
+     * or its default where its file has no value of its type, and else the value it has now, which is stored.
+     */
+    model::Value clientBaseline(const model::Setting& setting, const std::optional<model::Value>& baseline, const model::Value& stored)
+    {
+        return baseline ? storedValue(setting, *baseline) : setting.defaultValue.value_or(stored);
+    }
+
+    /**
      * A global or a property as a reason names it: `the global Fallout4.esm|38`.
      */
     std::string gameName(const model::Storage& storage)
@@ -806,6 +815,7 @@ namespace mods_config::spec
      * is not there is created. The dirty settings of the game are written after every file, and the action of
      * each setting that was written runs then, in the order of the config spec, with the value written. The ones
      * written that take effect after a restart are kept for the mod, and how many they are is the last Save.
+     * Then the mod's client is told once what the Save wrote: each setting, with its value before, and the files.
      * Nothing is written before every file has its new text, checked to read back, and every global and
      * property is in the game, and the files already written are put back when a write fails: a Save that
      * fails changes no file and no value of the game, and keeps every setting dirty.
@@ -877,14 +887,15 @@ namespace mods_config::spec
         }
 
         std::expected<void, std::string> saved;
-        std::unordered_set<const model::Setting*> written;
+        // each setting written, with the value it had before, which its mod's client is told
+        std::unordered_map<const model::Setting*, model::Value> written;
         const auto wrote = [this, &written](const model::Setting* setting) {
             auto& entry = _entries.at(setting);
+            written.emplace(setting, clientBaseline(*setting, entry.baseline, storedValue(*setting, *entry.pending)));
             entry.baseline = std::move(entry.pending);
             entry.pending.reset();
             entry.invalid.clear();
-            written.insert(setting);
-            // the file has the value the client shows now
+            // the file has the value the client shows now, which the batch tells it
             _clientPreviews.erase(setting);
         };
         for (const auto& fileSave : saves) {
@@ -907,18 +918,29 @@ namespace mods_config::spec
         }
 
         std::size_t restarts = 0;
+        model::SaveBatch batch;
         for (const auto* setting : _settingList) {
-            if (!written.contains(setting)) {
+            const auto before = written.find(setting);
+            if (before == written.end()) {
                 continue;
             }
-            runAction(*setting, *_entries.at(setting).baseline, _clientCalls, _modName);
+            const auto& value = *_entries.at(setting).baseline;
+            runAction(*setting, value, _clientCalls, _modName);
             if (applies(*setting) == model::Applies::Restart) {
                 _savedForRestart[_modName].insert(storageKey(*setting));
                 ++restarts;
             }
+            batch.settings.push_back({ .setting = clientSetting(*setting), .before = before->second, .value = storedValue(*setting, value) });
         }
         _lastSave = restarts;
         logger::info("Saved {} changes of '{}', {} of them take effect after a restart", written.size(), _modName, restarts);
+        if (!written.empty()) {
+            for (const auto& fileSave : saves) {
+                batch.files.push_back(clientFile(std::string(fileSave.name)));
+            }
+            batch.revision = ++_saveRevisions[_modName];
+            _clientCalls.sendSave(_modName, batch);
+        }
         if (!saved) {
             return failed(saved.error());
         }
@@ -1130,29 +1152,45 @@ namespace mods_config::spec
             _clientCalls.sendChange(_modName, change);
             return;
         }
-        // the value the session started with, or the default where the file has none of the setting's type
-        const auto baseline = entry.baseline ? storedValue(setting, *entry.baseline) : setting.defaultValue.value_or(value);
-        ClientPreview preview{
-            .change = { .settingId = setting.id, .valueType = setting.valueType, .previous = baseline, .value = std::move(value), .phase = model::ChangePhase::Preview },
-            .baseline = baseline
-        };
-        auto& change = preview.change;
-        if (storage) {
-            const auto file = _mod->files.find(storage->file);
-            const auto& root = file != _mod->files.end() && file->second.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder;
-            change.fileName = storage->file;
-            change.format = file != _mod->files.end() ? file->second.format : model::FileFormat::Toml;
-            change.filePath = file != _mod->files.end() ? (root / filePath(file->second)).make_preferred().string() : std::string();
-            change.path = storage->path;
-        } else if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
-            change.form = formText(global->plugin, global->formId);
-        } else if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
-            change.form = formText(property->plugin, property->formId);
-            change.script = property->script;
-            change.property = property->name;
-        }
-        _clientCalls.sendChange(_modName, change);
+        const auto baseline = clientBaseline(setting, entry.baseline, value);
+        ClientPreview preview{ .change = { .setting = clientSetting(setting), .previous = baseline, .value = std::move(value), .phase = model::ChangePhase::Preview },
+            .baseline = baseline };
+        _clientCalls.sendChange(_modName, preview.change);
         _clientPreviews.emplace(&setting, std::move(preview));
+    }
+
+    /**
+     * A setting as the mod's client is told it: its id and type, and where it is kept, in a file of the mod or in the
+     * game.
+     */
+    model::ClientSetting ConfigSpecStore::clientSetting(const model::Setting& setting) const
+    {
+        model::ClientSetting told{ .id = setting.id, .valueType = setting.valueType };
+        if (const auto* storage = std::get_if<model::FileStorage>(&setting.storage)) {
+            told.file = clientFile(storage->file);
+            told.path = storage->path;
+        } else if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
+            told.form = formText(global->plugin, global->formId);
+        } else if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
+            told.form = formText(property->plugin, property->formId);
+            told.script = property->script;
+            told.property = property->name;
+        }
+        return told;
+    }
+
+    /**
+     * A file of the mod as its client is told it: its name in the config spec, its format and its absolute path, from
+     * the game's Data folder or from `My Games`. One the config spec does not have has no path.
+     */
+    model::ClientFile ConfigSpecStore::clientFile(const std::string& name) const
+    {
+        const auto file = _mod->files.find(name);
+        if (file == _mod->files.end()) {
+            return { .name = name };
+        }
+        const auto& root = file->second.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder;
+        return { .name = name, .format = file->second.format, .path = (root / filePath(file->second)).make_preferred().string() };
     }
 
     /**

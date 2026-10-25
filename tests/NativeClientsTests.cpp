@@ -39,6 +39,8 @@ namespace
         };
         std::function<void(const api::SettingChange*)> change = [](const api::SettingChange*) {
         };
+        std::function<void(const api::SaveBatch*)> saved = [](const api::SaveBatch*) {
+        };
 
         bool hasFunction(const char* name) override
         {
@@ -69,22 +71,30 @@ namespace
         {
             change(settingChange);
         }
+
+        void onSaved(const api::SaveBatch* batch) override
+        {
+            saved(batch);
+        }
     };
+
+    /**
+     * The setting `fScale:Main` of a TOML file.
+     */
+    model::ClientSetting scaleSetting()
+    {
+        return { .id = "fScale:Main",
+            .valueType = model::StoredType::Float,
+            .file = model::ClientFile{ .name = "main", .format = model::FileFormat::Toml, .path = R"(C:\My Games\MyMod.toml)" },
+            .path = { "Main", "fScale" } };
+    }
 
     /**
      * A change of the setting `fScale:Main` of a TOML file, from 1.25 to 1.5.
      */
     model::SettingChange scaleChange(const model::ChangePhase phase = model::ChangePhase::Preview)
     {
-        return { .settingId = "fScale:Main",
-            .valueType = model::StoredType::Float,
-            .fileName = "main",
-            .format = model::FileFormat::Toml,
-            .filePath = R"(C:\My Games\MyMod.toml)",
-            .path = { "Main", "fScale" },
-            .previous = 1.25f,
-            .value = 1.5f,
-            .phase = phase };
+        return { .setting = scaleSetting(), .previous = 1.25f, .value = 1.5f, .phase = phase };
     }
 
     model::Setting choiceOf(const std::string& id, const model::StoredType type)
@@ -367,12 +377,11 @@ TEST_CASE("NativeClients: a client is told a change of a live setting with where
         game = std::format("{} {} {} {}", storage.file ? "file" : "no file", storage.form, storage.scriptName, storage.propertyName);
     };
     auto property = scaleChange();
-    property.fileName.clear();
-    property.filePath.clear();
-    property.path.clear();
-    property.form = "MyMod.esp|800";
-    property.script = "MyMod:Config";
-    property.property = "fScale";
+    property.setting.file.reset();
+    property.setting.path.clear();
+    property.setting.form = "MyMod.esp|800";
+    property.setting.script = "MyMod:Config";
+    property.setting.property = "fScale";
     clients.calls.sendChange("MyMod", property);
     CHECK(game == "no file MyMod.esp|800 MyMod:Config fScale");
 
@@ -414,6 +423,78 @@ TEST_CASE("ModsConfigVRApi: the C++ client hands a change to its handlers in its
         .phase = api::ChangePhase::Discard };
     static_cast<api::IClient&>(client).onChange(&change);
     CHECK(*told == std::vector<std::string>{ "Discard sName:Main main MyMod.ini Main.sName Me -> You" });
+}
+
+TEST_CASE("NativeClients: a client is told what a Save wrote, each setting with where it is kept, and one that throws is cut off")
+{
+    Clients clients;
+    FakeClient client;
+    std::vector<std::string> told;
+    client.saved = [&told](const api::SaveBatch* batch) {
+        told.push_back(std::format("Save {}", batch->revision));
+        for (std::uint32_t i = 0; i < batch->fileCount; ++i) {
+            const auto& file = batch->writtenFiles[i];
+            told.push_back(std::format("file {} {} {}", file.name, file.format == api::FileFormat::Ini ? "ini" : "toml", file.path));
+        }
+        for (std::uint32_t i = 0; i < batch->settingCount; ++i) {
+            const auto& saved = batch->settings[i];
+            const auto& storage = saved.setting->storage;
+            std::string where = storage.file ? storage.file->name : storage.form;
+            for (std::uint32_t name = 0; name < storage.pathCount; ++name) {
+                where += std::string(name > 0 ? "." : ":") + storage.path[name];
+            }
+            if (storage.propertyName) {
+                where += std::format(" {}", storage.propertyName);
+            }
+            const auto text = [](const api::SettingValue& value) {
+                return value.type == api::ValueType::Float ? std::format("{}", value.floatValue) : std::string(value.text);
+            };
+            told.push_back(std::format("{} {} {} -> {}", saved.setting->id, where, text(saved.baselineValue), text(saved.value)));
+        }
+    };
+    REQUIRE(clients.add("MyMod", client));
+
+    model::SavedSetting name{ .setting = { .id = "sName:MyMod.esp|800", .valueType = model::StoredType::String, .form = "MyMod.esp|800", .property = "sName" },
+        .before = "Me"s,
+        .value = "You"s };
+    const model::SaveBatch batch{ .settings = { { .setting = scaleSetting(), .before = 1.25f, .value = 1.5f }, name },
+        .files = { { .name = "main", .format = model::FileFormat::Toml, .path = R"(C:\My Games\MyMod.toml)" } },
+        .revision = 3 };
+    clients.calls.sendSave("mymod", batch);
+    CHECK(told == std::vector<std::string>{ "Save 3",
+                      R"(file main toml C:\My Games\MyMod.toml)",
+                      "fScale:Main main:Main.fScale 1.25 -> 1.5",
+                      "sName:MyMod.esp|800 MyMod.esp|800 sName Me -> You" });
+
+    // one that throws is cut off
+    FakeClient broken;
+    broken.saved = [](const api::SaveBatch*) {
+        throw std::runtime_error("the client's bug");
+    };
+    REQUIRE(clients.add("Broken", broken));
+    clients.calls.sendSave("Broken", batch);
+    CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
+}
+
+TEST_CASE("ModsConfigVRApi: the C++ client hands what a Save wrote to its handlers in its own types")
+{
+    auto told = std::make_shared<std::vector<std::string>>();
+    auto& client = api::ModsConfigVRClient::get();
+    client.subscribeToSaves([told](const api::Saved& saved) {
+        told->push_back(std::format("Save {}", saved.revision));
+        for (const auto& file : saved.files) {
+            told->push_back(std::format("file {} {}", file.name, file.path));
+        }
+        for (const auto& setting : saved.settings) {
+            told->push_back(std::format("{} {} {} {} -> {}", setting.id, setting.form, setting.propertyName, std::get<int>(setting.previous), std::get<int>(setting.value)));
+        }
+    });
+    const api::FileView file{ .name = "main", .format = api::FileFormat::Ini, .path = "MyMod.ini" };
+    const api::SettingView setting{ .id = "iMode", .valueType = api::ValueType::Int, .storage = { .form = "MyMod.esp|800", .propertyName = "iMode" } };
+    const api::SavedSetting saved{ .setting = &setting, .baselineValue = { .type = api::ValueType::Int, .intValue = 2 }, .value = { .type = api::ValueType::Int, .intValue = 1 } };
+    const api::SaveBatch batch{ .settings = &saved, .settingCount = 1, .writtenFiles = &file, .fileCount = 1, .revision = 7 };
+    static_cast<api::IClient&>(client).onSaved(&batch);
+    CHECK(*told == std::vector<std::string>{ "Save 7", "file main MyMod.ini", "iMode MyMod.esp|800 iMode 2 -> 1" });
 }
 
 TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions")
