@@ -246,11 +246,11 @@ The client and its functions:
 
 The preview. The client maps the host's calls onto the overrides, under an owner name of its own that no API caller uses (item 10):
 
-- A preview sets the override for the setting's INI section and key.
+- A preview sets the override for the setting's section and key in the mod's config file.
 - A discard clears it.
 - After a Save, it clears the overrides it set. The file holds the values by then, so the reload that follows reads them from disk.
 
-It acts only on settings bound to the mod's own INI.
+It acts only on settings bound to the mod's own config file.
 
 This item depends on the native API of Mods Config VR, described in [Architecture and lifecycle](architecture.md#live-preview-api), so each part comes after the host has its side of it.
 
