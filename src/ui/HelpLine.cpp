@@ -85,8 +85,8 @@ namespace mods_config::ui
 
     /**
      * Draws the line from a place at the top of the footer, in the middle of the footer's height.
-     * A setting whose change waits for a Save has the tag of when it takes effect first, in amber, where it is known,
-     * and the text beside it.
+     * A setting whose change waits for a Save has the tag of when it takes effect first, its mark and its word in
+     * amber, where it is known, and the text beside it.
      * It is two lines of body text at most. A help that needs a third is drawn in the detail size, where
      * three lines fit, and a longer one ends in an ellipsis. A warning is in amber after the warning mark,
      * a result in green after the info mark, and why a row is invalid in red after the invalid mark.
@@ -102,8 +102,8 @@ namespace mods_config::ui
         auto pos = at;
         float width = lineWidth;
         if (const auto tag = this->tag(); !tag.empty()) {
-            drawTag(pos.x, middle, tag, true);
-            const float tagRoom = tagWidth(tag) + theme::SPACE_3;
+            drawAppliesTag(pos.x, middle, *_applies, tag);
+            const float tagRoom = appliesTagWidth(tag) + theme::SPACE_3;
             pos.x += tagRoom;
             width -= tagRoom;
         }

@@ -293,7 +293,11 @@ namespace mods_config::ui
         }
         }
         // an invalid value has its mark in the place of a warning's, which it has none of
-        const RowMarks marks{ .pending = look == ValueLook::Pending, .mark = look == ValueLook::Invalid ? TextMark::Invalid : !warns.empty() ? TextMark::Warning : TextMark::None };
+        const RowMarks marks{ .pending = look == ValueLook::Pending,
+            .applies = applies.value_or(model::Applies::Unknown),
+            .mark = look == ValueLook::Invalid ? TextMark::Invalid
+                    : !warns.empty()           ? TextMark::Warning
+                                               : TextMark::None };
         drawLabel(pos, left - theme::SPACE_3, setting.text, setting.textRuns, marks);
         ImGui::EndDisabled();
         if (defaultValue) {

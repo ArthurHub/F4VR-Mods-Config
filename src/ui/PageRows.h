@@ -13,10 +13,12 @@
 
 namespace mods_config::ui
 {
-    // The marks after a row's name, in this order: the pending dot, then the warning mark or the invalid mark.
+    // The marks after a row's name, in this order: the pending mark, the dot or the mark of when the change takes
+    // effect, then the warning mark or the invalid mark.
     struct RowMarks
     {
         bool pending = false;
+        model::Applies applies = model::Applies::Unknown;
         TextMark mark = TextMark::None;
     };
 

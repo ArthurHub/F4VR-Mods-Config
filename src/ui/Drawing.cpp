@@ -716,16 +716,39 @@ namespace mods_config::ui
 
     /**
      * A tag, from its left in the middle of a height: a short text in the detail size and the muted color, in an
-     * outline of a frame's border, as the design system's tag has it. One of a change that waits for a Save is all
-     * in amber, as its value is.
+     * outline of a frame's border, as the design system's tag has it.
      */
-    void drawTag(const float left, const float middle, const std::string_view text, const bool pending)
+    void drawTag(const float left, const float middle, const std::string_view text)
     {
         const ImVec2 min(std::floor(left), std::floor(middle - RESTART_MARK_HEIGHT * 0.5f));
         const ImVec2 max(min.x + tagWidth(text), min.y + RESTART_MARK_HEIGHT);
-        drawOutline(min, max, pending ? theme::color::AMBER : theme::color::FRAME_BORDER);
+        drawOutline(min, max, theme::color::FRAME_BORDER);
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        drawText(min.x + theme::BORDER_FRAME + theme::SPACE_2, max.x, min.y, RESTART_MARK_HEIGHT, pending ? theme::color::AMBER : theme::color::GREEN_MUTED, text);
+        drawText(min.x + theme::BORDER_FRAME + theme::SPACE_2, max.x, min.y, RESTART_MARK_HEIGHT, theme::color::GREEN_MUTED, text);
+        ImGui::PopFont();
+    }
+
+    /**
+     * The width of the tag of when a pending change takes effect: its mark and its word.
+     */
+    float appliesTagWidth(const std::string_view word)
+    {
+        return tagWidth(word) + APPLIES_MARK_WIDTH + theme::SPACE_1;
+    }
+
+    /**
+     * The tag of when a pending change takes effect, from its left in the middle of a height, as the design
+     * system's TakesEffect has it: the mark of its applies and its word, all in amber, as the pending value is.
+     */
+    void drawAppliesTag(const float left, const float middle, const model::Applies applies, const std::string_view word)
+    {
+        const ImVec2 min(std::floor(left), std::floor(middle - RESTART_MARK_HEIGHT * 0.5f));
+        const ImVec2 max(min.x + appliesTagWidth(word), min.y + RESTART_MARK_HEIGHT);
+        drawOutline(min, max, theme::color::AMBER);
+        const float markLeft = min.x + theme::BORDER_FRAME + theme::SPACE_2;
+        drawAppliesMark(applies, ImVec2(markLeft + APPLIES_MARK_WIDTH * 0.5f, min.y + RESTART_MARK_HEIGHT * 0.5f));
+        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+        drawText(markLeft + APPLIES_MARK_WIDTH + theme::SPACE_1, max.x, min.y, RESTART_MARK_HEIGHT, theme::color::AMBER, word);
         ImGui::PopFont();
     }
 
@@ -819,6 +842,62 @@ namespace mods_config::ui
     {
         constexpr float RADIUS = 5.0f;
         ImGui::GetWindowDrawList()->AddCircleFilled(center, RADIUS, ImGui::GetColorU32(theme::color::AMBER));
+    }
+
+    /**
+     * The width of the pending mark of a change by when it takes effect: the dot where it is not known.
+     */
+    float pendingMarkWidth(const model::Applies applies)
+    {
+        return applies == model::Applies::Unknown ? PENDING_MARK_WIDTH : APPLIES_MARK_WIDTH;
+    }
+
+    /**
+     * The pending mark of a change by when it takes effect, around a point, in amber, as the design system's
+     * TakesEffect draws it in a box of 16: a broadcast for `live`, a disk for `save`, a power mark for `restart`,
+     * and the plain dot where it is not known.
+     */
+    void drawAppliesMark(const model::Applies applies, const ImVec2& center)
+    {
+        constexpr float THICKNESS = 2.0f;
+        const ImVec2 origin(std::floor(center.x - 8.0f), std::floor(center.y - 8.0f));
+        const auto at = [&origin](const float x, const float y) {
+            return ImVec2(origin.x + x, origin.y + y);
+        };
+        auto* drawList = ImGui::GetWindowDrawList();
+        const auto color = ImGui::GetColorU32(theme::color::AMBER);
+        switch (applies) {
+        case model::Applies::Live: {
+            // a dot with an arc on each side of it
+            constexpr float SPREAD = 0.95f;
+            drawList->AddCircleFilled(at(8.0f, 8.0f), 2.2f, color);
+            drawList->PathArcTo(at(8.0f, 8.0f), 5.6f, IM_PI - SPREAD, IM_PI + SPREAD);
+            drawList->PathStroke(color, ImDrawFlags_None, THICKNESS);
+            drawList->PathArcTo(at(8.0f, 8.0f), 5.6f, -SPREAD, SPREAD);
+            drawList->PathStroke(color, ImDrawFlags_None, THICKNESS);
+            break;
+        }
+        case model::Applies::Save: {
+            // a disk: its outline with a corner cut, its shutter and its label
+            const std::array outline{ at(2.0f, 2.0f), at(11.5f, 2.0f), at(14.0f, 4.5f), at(14.0f, 14.0f), at(2.0f, 14.0f) };
+            drawList->AddPolyline(outline.data(), static_cast<int>(outline.size()), color, ImDrawFlags_Closed, THICKNESS);
+            drawList->AddRectFilled(at(5.0f, 2.0f), at(10.0f, 5.5f), color);
+            drawList->AddRectFilled(at(4.5f, 9.0f), at(11.5f, 14.0f), color);
+            break;
+        }
+        case model::Applies::Restart: {
+            // a power mark: an arc open at the top, and a line down into it
+            constexpr float GAP_FROM = -1.03f;
+            constexpr float GAP_TO = 1.03f + IM_PI;
+            drawList->PathArcTo(at(8.0f, 8.8f), 5.8f, GAP_FROM, GAP_TO);
+            drawList->PathStroke(color, ImDrawFlags_None, THICKNESS);
+            drawList->AddLine(at(8.0f, 1.2f), at(8.0f, 8.0f), color, THICKNESS);
+            break;
+        }
+        case model::Applies::Unknown:
+            drawPendingMark(center);
+            break;
+        }
     }
 
     /**

@@ -109,6 +109,9 @@ namespace mods_config::ui
     // the box of the pending mark, a dot, as the design system draws it
     constexpr float PENDING_MARK_WIDTH = 10.0f;
 
+    // the box of the mark of when a pending change takes effect, which is drawn in place of the dot
+    constexpr float APPLIES_MARK_WIDTH = 16.0f;
+
     // how far the selected-row bar's tip extends past its right edge
     constexpr float SELECTED_BAR_TIP_DEPTH = 20.0f;
 
@@ -142,12 +145,16 @@ namespace mods_config::ui
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);
     ImU32 valueColor(ValueLook look);
     float tagWidth(std::string_view text);
-    void drawTag(float left, float middle, std::string_view text, bool pending = false);
+    void drawTag(float left, float middle, std::string_view text);
+    float appliesTagWidth(std::string_view word);
+    void drawAppliesTag(float left, float middle, model::Applies applies, std::string_view word);
     float restartMarkWidth();
     void drawRestartMark(float left, float middle);
     float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);
     void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, std::span<const MarkedCount> counts, TextMark mark = TextMark::None);
     void drawPendingMark(const ImVec2& center);
+    float pendingMarkWidth(model::Applies applies);
+    void drawAppliesMark(model::Applies applies, const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);
     void drawWarningMark(const ImVec2& center);
     void drawInfoMark(const ImVec2& center);

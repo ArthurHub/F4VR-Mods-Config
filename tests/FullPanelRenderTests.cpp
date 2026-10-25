@@ -608,6 +608,52 @@ TEST_CASE("FullPanel render: the Help page over a page of a mod, with the ray on
             test_panel::drawFrame(panel, help, pressed);
         }
     }));
+
+    // scrolled to its end, as the thumbstick scrolls it: what Save does, and the marks of when a change takes effect
+    const ImVec2 content(800.0f, 400.0f);
+    WARN("Saved " << renderToFile(panel, "help-page-saving", content, false, [&panel, content] {
+        for (int frame = 0; frame < 20; ++frame) {
+            ImGui::GetIO().AddMouseWheelEvent(0.0f, -5.0f);
+            test_panel::drawFrame(panel, content);
+        }
+    }));
+}
+
+TEST_CASE("FullPanel render: the mark of when a pending change takes effect on each row, and the help line's tag of a live, a save and a restart one", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "Immersive Flashlight VR",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "valueType": "float", "text": "Brightness", "help": "How bright the beam is.", "default": 1.0, "applies": "live",
+              "valueOptions": { "min": 0.0, "max": 2.0, "step": 0.05 }, "storage": { "path": ["Main", "fBrightness"] } },
+            { "type": "slider", "valueType": "float", "text": "Holster size", "help": "How large the holsters are drawn.", "default": 1.0, "applies": "save",
+              "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 }, "storage": { "path": ["Main", "fHolster"] } },
+            { "type": "switcher", "text": "Shadows", "help": "Draws the beam's shadows.", "default": false, "applies": "restart",
+              "warnings": [ { "when": { "setting": "Shadows:Main", "equals": true }, "text": "Costly." } ], "storage": { "path": ["Main", "Shadows"] } },
+            { "type": "switcher", "text": "Not known", "help": "Its mod does not say when it takes effect.", "default": false, "storage": { "path": ["Main", "bUnknown"] } },
+            { "type": "switcher", "text": "Not changed", "default": false, "applies": "restart", "storage": { "path": ["Main", "bClean"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = {} });
+    const auto& items = panel.mods()[0].frontPage.items;
+    store.set(std::get<model::Setting>(items[0]), 1.25f);
+    store.set(std::get<model::Setting>(items[1]), 0.8f);
+    store.set(std::get<model::Setting>(items[2]), true);
+    store.set(std::get<model::Setting>(items[3]), true);
+
+    WARN("Saved " << renderToFile(panel, "applies-live", pageRow(0)));
+    WARN("Saved " << renderToFile(panel, "applies-save", pageRow(1)));
+    WARN("Saved " << renderToFile(panel, "applies-restart", pageRow(2)));
+    WARN("Saved " << renderToFile(panel, "applies-unknown", pageRow(3)));
 }
 
 TEST_CASE("FullPanel render: a page under the tree's last rows is scrolled to", "[.render]")

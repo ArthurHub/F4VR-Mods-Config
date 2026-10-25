@@ -141,7 +141,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | M122 | mod      | A script button of a mod with unsaved changes asks to save first | in review |
 | M123 | mod      | `applies` is `unknown` where nothing says it, and the help line says it | in review |
 | M124 | mod      | design system: the marks of `applies`, and the Help page's legend | in review |
-| M125 | mod      | The marks of `applies` on a pending row and in the help line, and the Help page's legend | todo |
+| M125 | mod      | The marks of `applies` on a pending row and in the help line, and the Help page's legend | in review |
 | M68 | mod       | A client gets the preview and discard events             | todo   |
 | M69 | mod       | A client gets the saved batch                            | todo   |
 | F30 | framework | `ModBase`'s client previews through the config overrides | todo   |

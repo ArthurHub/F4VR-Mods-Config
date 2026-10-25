@@ -79,8 +79,9 @@ namespace mods_config::ui
     {
         const float left = pos.x + theme::SPACE_3;
         float textRight = right;
+        const float pendingWidth = pendingMarkWidth(marks.applies);
         if (marks.pending) {
-            textRight -= theme::SPACE_2 + PENDING_MARK_WIDTH;
+            textRight -= theme::SPACE_2 + pendingWidth;
         }
         if (marks.mark != TextMark::None) {
             textRight -= theme::SPACE_2 + WARNING_MARK_WIDTH;
@@ -95,8 +96,8 @@ namespace mods_config::ui
         const float middle = pos.y + theme::CONTROL_HEIGHT * 0.5f;
         float markLeft = left + width + (width > 0.0f ? theme::SPACE_2 : 0.0f);
         if (marks.pending) {
-            drawPendingMark(ImVec2(markLeft + PENDING_MARK_WIDTH * 0.5f, middle));
-            markLeft += PENDING_MARK_WIDTH + theme::SPACE_2;
+            drawAppliesMark(marks.applies, ImVec2(markLeft + pendingWidth * 0.5f, middle));
+            markLeft += pendingWidth + theme::SPACE_2;
         }
         drawMark(marks.mark, ImVec2(markLeft + WARNING_MARK_WIDTH * 0.5f, middle));
     }
