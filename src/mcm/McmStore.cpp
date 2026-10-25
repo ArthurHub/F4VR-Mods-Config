@@ -311,17 +311,46 @@ namespace
     }
 
     /**
-     * Adds the settings of the items to the map, each by its id, with those of the groups among them.
+     * Adds the settings of the items to the map, each by its id, and to the list in their order, with those of
+     * the groups among them.
      */
-    void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings)
+    void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings, std::vector<const model::Setting*>& list)
     {
         for (const auto& item : items) {
             if (const auto* setting = std::get_if<model::Setting>(&item)) {
                 settings.try_emplace(setting->id, setting);
+                list.push_back(setting);
             } else if (const auto* group = std::get_if<model::Group>(&item)) {
-                addSettings(group->items, settings);
+                addSettings(group->items, settings, list);
             }
         }
+    }
+
+    /**
+     * Whether two values of a setting are the same: two numbers that are as near as a number MCM writes.
+     */
+    bool isSameValue(const model::Value& value, const model::Value& other)
+    {
+        const auto* number = std::get_if<float>(&value);
+        const auto* otherNumber = std::get_if<float>(&other);
+        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
+    }
+
+    /**
+     * Where a setting keeps its value, as the reason of a Save that cannot write it names it.
+     */
+    std::string storageName(const model::Setting& setting)
+    {
+        if (const auto* global = std::get_if<model::GlobalStorage>(&setting.storage)) {
+            return std::format("the global {:X} of {}", global->formId, global->plugin);
+        }
+        if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
+            return std::format("the property {} of the form {:X} of {}", property->name, property->formId, property->plugin);
+        }
+        if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
+            return std::format("the ModSetting {}", modSetting->name);
+        }
+        return std::format("'{}'", setting.text);
     }
 }
 
@@ -341,16 +370,11 @@ namespace mods_config::mcm
 
     /**
      * Tells the scripts that the menu is closed, as MCM's menu does with `OnMCMClose`. The menu ends the
-     * session of its mod before it. After a ModSetting was written, a DLL that reads its MCM file as the pause
-     * menu closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left.
+     * session of its mod before it.
      */
     void McmStore::menuClosed()
     {
         sendEvent("OnMCMClose");
-        if (_modSettingWritten) {
-            _modSettingWritten = false;
-            sendPauseMenuEvents();
-        }
     }
 
     /**
@@ -369,17 +393,17 @@ namespace mods_config::mcm
         _keybinds.load(_mcmFolder, mod.name);
         _options.read(mod);
         logger::debug("Read {} ModSettings and {} hotkeys of '{}' from MCM's files", _modSettings.size(), _keybinds.size(), mod.name);
-        addSettings(mod.frontPage.items, _settings);
+        addSettings(mod.frontPage.items, _settings, _settingList);
         for (const auto& page : mod.pages) {
-            addSettings(page.items, _settings);
+            addSettings(page.items, _settings, _settingList);
         }
         sendEvent("OnMCMMenuOpen");
         sendEvent("OnMCMMenuOpen|" + _modName);
     }
 
     /**
-     * Ends the session of the mod: its values are forgotten, and the scripts are told that it is left, which
-     * they are not with no mod.
+     * Ends the session of the mod: its values are forgotten, also the pending ones, why a Save failed and the
+     * last Save, and the scripts are told that it is left, which they are not with no mod.
      * It does not read the mod, which can be gone by now: the menu's mods are replaced before it is called.
      */
     void McmStore::close()
@@ -393,6 +417,10 @@ namespace mods_config::mcm
         _options.clear();
         _held.clear();
         _settings.clear();
+        _settingList.clear();
+        _pending.clear();
+        _saveFailure.clear();
+        _lastSave.reset();
     }
 
     /**
@@ -413,16 +441,30 @@ namespace mods_config::mcm
     }
 
     /**
-     * The value of a setting, read from its storage now: another mod or the console can change a global at
-     * any time. A ModSetting is the one of the mod that is selected, as its files had it when they were last
-     * read, or as it was set since.
+     * The value of a setting: its pending value, or else the one its storage has now. One whose storage is
+     * not available is not, with the reason, also while it has a pending value.
+     */
+    model::StoredValue McmStore::value(const model::Setting& setting)
+    {
+        auto current = stored(setting);
+        const auto pending = std::ranges::find(_pending, &setting, &Pending::setting);
+        if (current.available && pending != _pending.end()) {
+            current.value = pending->value;
+        }
+        return current;
+    }
+
+    /**
+     * The value a setting's storage has, read now: another mod or the console can change a global at any
+     * time. A ModSetting is the one of the mod that is selected, as its files had it when they were last read,
+     * or as a Save wrote it since.
      * A property of a script is read from the script now too.
-     * A ModSetting that is in neither of MCM's files is what MCM reads for it, until it is set and held.
+     * A ModSetting that is in neither of MCM's files is what MCM reads for it, until a Save holds it.
      * A global that is not in the game is not available, with the reason, and neither is a property that is
      * not in the game, a value of a storage the store does not read, and a choice whose list of options is not
      * in the game.
      */
-    model::StoredValue McmStore::value(const model::Setting& setting)
+    model::StoredValue McmStore::stored(const model::Setting& setting)
     {
         if (const auto reason = _options.notAvailable(setting); !reason.empty()) {
             return { .value = valueWithNone(setting), .available = false, .reason = std::string(reason) };
@@ -468,12 +510,13 @@ namespace mods_config::mcm
     }
 
     /**
-     * Sets a value, at once, then runs the action of its row with the value, and then tells the scripts
-     * that the setting changed, in the order of MCM's menu: with the name of the mod and the id of the row,
-     * for a row that has one in its config.
+     * Sets the pending value of a setting, as its storage reads it back once a Save writes it: a slider of a
+     * whole number has the nearest one. A value that is the one its storage has leaves the setting clean.
+     * A setting with no storage is held at once, with the action of its row and MCM's event, as nothing writes it.
      * A text input that takes a number is set to the text of the number that is typed, as MCM's menu shows it.
-     * Returns false for a value that is not written: no action is run for it, and no script is told of it.
-     * A text that is no number, for a text input that takes one, is not written.
+     * A value that is set ends the last Save, and its failure.
+     * Returns false for a value that is not set: one of a storage that is not available or that the store does
+     * not write, one its storage does not keep, and a text that is no number, for a text input that takes one.
      */
     bool McmStore::set(const model::Setting& setting, const model::Value& typed)
     {
@@ -481,27 +524,118 @@ namespace mods_config::mcm
         if (isNumberField(setting)) {
             auto text = typedNumberText(setting, typed);
             if (!text) {
-                logger::debug("A text that is no number is not written to '{}'", setting.text);
+                logger::debug("A text that is no number is not set to '{}'", setting.text);
                 return false;
             }
             value = std::move(*text);
         }
-        if (!write(setting, value)) {
+        if (std::holds_alternative<model::NoStorage>(setting.storage)) {
+            write(setting, value);
+            written(setting, value);
+            return true;
+        }
+        const auto current = stored(setting);
+        auto read = current.available ? readBack(setting, value) : std::nullopt;
+        if (!read) {
             return false;
         }
-        if (const auto* call = std::get_if<model::CallFunction>(&setting.action)) {
-            auto filled = *call;
-            for (const auto& argument : filled.valueArguments) {
-                filled.arguments[argument.place] = filledArgument(argument, value);
-            }
-            filled.valueArguments.clear();
-            callFunction(filled);
-        }
-        if (!setting.sourceId.empty()) {
-            sendEvent("OnMCMSettingChange", { _modName, setting.sourceId });
-            sendEvent("OnMCMSettingChange|" + _modName, { _modName, setting.sourceId });
+        _saveFailure.clear();
+        _lastSave.reset();
+        std::erase_if(_pending, [&setting](const Pending& pending) {
+            return pending.setting == &setting;
+        });
+        if (!isSameValue(*read, current.value)) {
+            _pending.push_back({ .setting = &setting, .value = std::move(*read) });
         }
         return true;
+    }
+
+    /**
+     * Whether a setting has a change that waits for a Save.
+     */
+    bool McmStore::isDirty(const model::Setting& setting) const
+    {
+        return std::ranges::contains(_pending, &setting, &Pending::setting);
+    }
+
+    /**
+     * Writes the pending values, in the order of the config, and then runs the action of each row that is
+     * written and tells the scripts it changed, in that order too, so a script that reads another setting
+     * finds the saved value. After a ModSetting is written, a DLL that reads its MCM file as the pause menu
+     * closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left.
+     * A global or a property that is not in the game fails the Save before anything is written. A ModSetting
+     * is written through a call to Papyrus that gives no result, so what is written is not taken back.
+     * Returns why a change is not written, which stays pending.
+     */
+    std::expected<void, std::string> McmStore::save()
+    {
+        _saveFailure.clear();
+        _lastSave.reset();
+        const auto failed = [this](std::string reason) {
+            logger::warn("The changes of '{}' are not saved: {}", _modName, reason);
+            _saveFailure = reason;
+            return std::unexpected(std::move(reason));
+        };
+        for (const auto& pending : _pending) {
+            if (!stored(*pending.setting).available) {
+                return failed(std::format("{} is not in the game", storageName(*pending.setting)));
+            }
+        }
+
+        // a setting the mod does not have, as in a test, is after those it has
+        const auto place = [this](const Pending& pending) {
+            return std::ranges::distance(_settingList.begin(), std::ranges::find(_settingList, pending.setting));
+        };
+        std::ranges::stable_sort(_pending, std::less(), place);
+
+        std::vector<Pending> notWritten;
+        std::vector<Pending> wrote;
+        bool modSettingWritten = false;
+        for (auto& pending : _pending) {
+            if (!write(*pending.setting, pending.value)) {
+                notWritten.push_back(std::move(pending));
+                continue;
+            }
+            const auto* modSetting = std::get_if<model::ModSettingStorage>(&pending.setting->storage);
+            modSettingWritten = modSettingWritten || (modSetting && _modSettings.find(modSetting->name));
+            wrote.push_back(std::move(pending));
+        }
+        _pending = std::move(notWritten);
+        for (const auto& [setting, value] : wrote) {
+            written(*setting, value);
+        }
+        if (modSettingWritten) {
+            sendPauseMenuEvents();
+        }
+        _lastSave = 0;
+        logger::info("Saved {} changes of '{}'", wrote.size(), _modName);
+        if (!_pending.empty()) {
+            return failed(std::format("{} is not written", storageName(*_pending.front().setting)));
+        }
+        return {};
+    }
+
+    /**
+     * Takes back the pending values, so each setting has the value its storage has. The last Save is over, also
+     * one that failed.
+     */
+    void McmStore::discard()
+    {
+        _pending.clear();
+        _saveFailure.clear();
+        _lastSave.reset();
+    }
+
+    /**
+     * A frame of the panel starts: a pending value that is the one its storage has now, as a script set it so, is
+     * no change any more.
+     */
+    void McmStore::startFrame()
+    {
+        std::erase_if(_pending, [this](const Pending& pending) {
+            const auto current = stored(*pending.setting);
+            return current.available && isSameValue(current.value, pending.value);
+        });
     }
 
     /**
@@ -576,11 +710,7 @@ namespace mods_config::mcm
                 return true;
             }
             const auto typed = typedValue(modSetting->type, value);
-            if (typed && _modSettings.set(modSetting->name, *typed)) {
-                _modSettingWritten = true;
-                return true;
-            }
-            return false;
+            return typed && _modSettings.set(modSetting->name, *typed);
         }
         if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
             const auto typed = typedValue(property->type, value);
@@ -590,5 +720,57 @@ namespace mods_config::mcm
             }
         }
         return false;
+    }
+
+    /**
+     * The value a setting has once a value is written to its storage, as the storage keeps it and the row reads
+     * it: a bool of a choice is its first option or its second, and a whole number of a slider the nearest one.
+     * None for a value its storage does not keep, as a text for a number, and for a storage the store does not
+     * write. A ModSetting that is in neither of MCM's files is held as it is.
+     */
+    std::optional<model::Value> McmStore::readBack(const model::Setting& setting, const model::Value& value) const
+    {
+        if (std::holds_alternative<model::GlobalStorage>(setting.storage)) {
+            const auto number = typedValue(model::StoredType::Float, value);
+            return number ? fromNumber(setting, std::get<float>(*number)) : std::nullopt;
+        }
+        if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
+            if (!_modSettings.find(modSetting->name)) {
+                return value;
+            }
+            const auto typed = typedValue(modSetting->type, value);
+            if (!typed || keepsText(setting)) {
+                return typed;
+            }
+            const auto number = toNumber(*typed);
+            return number ? fromNumber(setting, *number) : std::nullopt;
+        }
+        if (const auto* property = std::get_if<model::PropertyStorage>(&setting.storage)) {
+            const auto typed = typedValue(property->type, value);
+            auto read = typed ? propertyValue(setting, *property, typed) : model::StoredValue{};
+            return read.available ? std::optional(std::move(read.value)) : std::nullopt;
+        }
+        return std::nullopt;
+    }
+
+    /**
+     * What follows the write of a value, in the order of MCM's menu: the action of its row runs with the value,
+     * and then the scripts are told that the setting changed, with the name of the mod and the id of the row,
+     * for a row that has one in its config.
+     */
+    void McmStore::written(const model::Setting& setting, const model::Value& value) const
+    {
+        if (const auto* call = std::get_if<model::CallFunction>(&setting.action)) {
+            auto filled = *call;
+            for (const auto& argument : filled.valueArguments) {
+                filled.arguments[argument.place] = filledArgument(argument, value);
+            }
+            filled.valueArguments.clear();
+            callFunction(filled);
+        }
+        if (!setting.sourceId.empty()) {
+            sendEvent("OnMCMSettingChange", { _modName, setting.sourceId });
+            sendEvent("OnMCMSettingChange|" + _modName, { _modName, setting.sourceId });
+        }
     }
 }

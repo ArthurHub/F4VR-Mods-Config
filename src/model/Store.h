@@ -98,12 +98,6 @@ namespace mods_config::model
         virtual const std::vector<Option>& options(const Setting& setting) const = 0;
 
         /**
-         * Whether a change is saved as it is made, as an MCM mod's is: nothing waits for a Save then, and no
-         * setting is dirty.
-         */
-        virtual bool savesAtOnce() const = 0;
-
-        /**
          * Whether a setting is dirty: its value is not the one its session started with, and waits for a Save.
          */
         virtual bool isDirty(const Setting& setting) const = 0;
@@ -146,7 +140,7 @@ namespace mods_config::model
         /**
          * Writes the dirty settings, which are then clean: the values written are their new baseline. Returns
          * why, for a Save that does not write every one, as `showcase.toml cannot be written`. Nothing is
-         * written while a dirty setting is invalid. Nothing for a store that saves a change as it is made.
+         * written while a dirty setting is invalid.
          */
         virtual std::expected<void, std::string> save() = 0;
 

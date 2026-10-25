@@ -100,11 +100,6 @@ namespace
             return setting.valueOptions.options;
         }
 
-        bool savesAtOnce() const override
-        {
-            return true;
-        }
-
         bool isDirty(const model::Setting&) const override
         {
             return false;

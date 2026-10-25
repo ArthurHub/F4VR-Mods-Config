@@ -137,7 +137,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | #   | Repo      | Commit                                                   | Status |
 | --- | --------- | -------------------------------------------------------- | ------ |
 | M120 | mod      | docs: Save for every mod, and `applies` that is not known | in review |
-| M121 | mod      | An MCM mod's changes wait for a Save                     | todo   |
+| M121 | mod      | An MCM mod's changes wait for a Save                     | in review |
 | M122 | mod      | A button of a mod with unsaved changes asks to save first | todo  |
 | M123 | mod      | `applies` is `unknown` where nothing says it, and the help line says it | todo |
 | M124 | mod      | design system: the marks of `applies`, and the Help page's legend | todo |

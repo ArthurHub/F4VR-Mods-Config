@@ -273,6 +273,32 @@ namespace
     }
 
     /**
+     * The value of the first setting of the first mod's front page that is kept in a global, by the global's
+     * id, as a number: what the store has for it, pending a Save or not. A switcher is 1 or 0, and a choice
+     * the place of its option.
+     */
+    float numberOf(model::Store& store, const FullPanel& panel, const std::uint32_t formId)
+    {
+        for (const auto& item : panel.mods()[0].frontPage.items) {
+            const auto* setting = std::get_if<model::Setting>(&item);
+            const auto* global = setting ? std::get_if<model::GlobalStorage>(&setting->storage) : nullptr;
+            if (!global || global->formId != formId) {
+                continue;
+            }
+            const auto value = store.value(*setting).value;
+            if (const auto* on = std::get_if<bool>(&value)) {
+                return *on ? 1.0f : 0.0f;
+            }
+            if (const auto* whole = std::get_if<int>(&value)) {
+                return static_cast<float>(*whole);
+            }
+            return std::get<float>(value);
+        }
+        FAIL("no setting of the global " << formId);
+        return 0.0f;
+    }
+
+    /**
      * Globals for the mod with choices: 0x820 is 1, 0x821 is 0, 0x822 is 0 and 0x823 is 7.
      */
     test_globals::TestGlobals choiceGlobals()
@@ -1337,12 +1363,12 @@ TEST_CASE("FullPanel: a press on the row of a switcher turns it on or off in its
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    CHECK(numberOf(store, panel, 0x800) == 1.0f);
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+    CHECK(numberOf(store, panel, 0x800) == 0.0f);
 
     CHECK(pressActs(panel, pageRow(1)));
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
+    CHECK(numberOf(store, panel, 0x801) == 0.0f);
 
     // the page is the same one
     CHECK(panel.selection() == selectionOf(0));
@@ -1622,7 +1648,11 @@ TEST_CASE("FullPanel: a press on the row of a text input edits it, and Enter wri
     pressKey(panel, ImGuiKey_Enter);
     CHECK(ImGui::GetActiveID() == 0);
     CHECK(textOf(store, panel, 0) == model::Value("Diamond City East"s));
-    CHECK(events.sent.size() == 2);
+    CHECK(events.sent.empty());
+    CHECK(store.save().has_value());
+
+    // MCM's two events of the setting, and the pause menu's two, as a ModSetting is written
+    CHECK(events.sent.size() == 4);
 }
 
 TEST_CASE("FullPanel: a text input that is left by the keyboard's Done writes its text, and one that is cancelled writes nothing")
@@ -1882,14 +1912,14 @@ TEST_CASE("FullPanel: a row of a group is shown while the switcher that controls
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "After: What it does.");
     CHECK(pressActs(panel, pageRow(1)));
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+    CHECK(numberOf(store, panel, 0x801) == 0.0f);
+    CHECK(numberOf(store, panel, 0x800) == 0.0f);
 
     CHECK(pressActs(panel, pageRow(0)));
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "In the group: What it does.");
     CHECK(pressActs(panel, pageRow(1)));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    CHECK(numberOf(store, panel, 0x800) == 1.0f);
     point(panel, pageRow(2));
     CHECK(panel.helpLine().text() == "After: What it does.");
 
@@ -1920,11 +1950,11 @@ TEST_CASE("FullPanel: a row is edited while its enabledWhen holds, and is disabl
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Enabled by it: What it does.");
     CHECK_FALSE(pressActs(panel, pageRow(1)));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+    CHECK(numberOf(store, panel, 0x800) == 0.0f);
 
     CHECK(pressActs(panel, pageRow(0)));
     CHECK(pressActs(panel, pageRow(1)));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    CHECK(numberOf(store, panel, 0x800) == 1.0f);
 }
 
 TEST_CASE("FullPanel: a config spec's row whose condition on a plugin does not hold is hidden, with no store")
@@ -1948,19 +1978,21 @@ TEST_CASE("FullPanel: a config spec's row whose condition on a plugin does not h
     CHECK(panel.helpLine().text() == "After: What it does.");
 }
 
-TEST_CASE("FullPanel: the help line says that changes are saved as they are made, while a mod is shown")
+TEST_CASE("FullPanel: the help line says that an MCM mod has no unsaved changes, and how many it has, while it is shown")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
     mcm::McmStore store;
     auto panel = modWithValues(store);
     drawFrames(panel, 2);
-    CHECK(panel.helpLine().status() == "Changes are saved as they are made");
+    CHECK(panel.helpLine().status() == "No unsaved changes");
 
     // it stays the status under the help of a row, for when the ray leaves the rows
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Off: What it does.");
-    CHECK(panel.helpLine().status() == "Changes are saved as they are made");
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(panel.helpLine().status() == "1 unsaved change");
+    store.discard();
 
     // the menu's front page has no session
     panel.select({});
@@ -1992,15 +2024,15 @@ TEST_CASE("FullPanel: a press on the track of a slider puts its grab there, on a
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, sliderTrack(0, 0.5f)));
-    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 50.0f);
+    CHECK(numberOf(store, panel, 0x810) == 50.0f);
 
     // 83 of 100 is nearest to the step at 85
     CHECK(pressActs(panel, sliderTrack(0, 0.83f)));
-    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 85.0f);
+    CHECK(numberOf(store, panel, 0x810) == 85.0f);
 
     CHECK(pressActs(panel, sliderTrack(1, 0.26f)));
-    CHECK(globals.values.at({ PLUGIN, 0x811 }) == Catch::Approx(0.5f));
-    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 85.0f);
+    CHECK(numberOf(store, panel, 0x811) == Catch::Approx(0.5f));
+    CHECK(numberOf(store, panel, 0x810) == 85.0f);
 }
 
 TEST_CASE("FullPanel: a slider that is dragged is written as the trigger is let go, also beside its track")
@@ -2010,7 +2042,9 @@ TEST_CASE("FullPanel: a slider that is dragged is written as the trigger is let 
     mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
-    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+    const auto percent = [&store, &panel] {
+        return numberOf(store, panel, 0x810);
+    };
 
     int acted = 0;
     const auto frame = [&panel, &acted](const ImVec2 at, const bool held) {
@@ -2023,27 +2057,27 @@ TEST_CASE("FullPanel: a slider that is dragged is written as the trigger is let 
     frame(sliderTrack(0, 0.8f), true);
 
     // nothing is written while the trigger is held
-    CHECK(percent == 20.0f);
+    CHECK(percent() == 20.0f);
     frame(sliderTrack(0, 0.8f), false);
-    CHECK(percent == 80.0f);
+    CHECK(percent() == 80.0f);
 
     // past the end of the track, and on the row under it
     frame(sliderTrack(0, 0.6f), true);
     frame(ImVec2(sliderTrack(0, 1.0f).x + 200.0f, pageRow(1).y), true);
     frame(ImVec2(sliderTrack(0, 1.0f).x + 200.0f, pageRow(1).y), false);
-    CHECK(percent == 100.0f);
+    CHECK(percent() == 100.0f);
     frame(sliderTrack(0, 0.6f), true);
     frame(ImVec2(sliderTrack(0, 0.0f).x - 200.0f, pageRow(1).y), true);
     frame(sliderTrack(0, 0.3f), true);
-    CHECK(percent == 100.0f);
+    CHECK(percent() == 100.0f);
 
     // let go: the ray moves nothing, and the slider of the row it was on is not changed
     frame(sliderTrack(0, 0.3f), false);
-    CHECK(percent == 30.0f);
+    CHECK(percent() == 30.0f);
     frame(sliderTrack(0, 0.9f), false);
     frame(sliderTrack(1, 0.9f), false);
-    CHECK(percent == 30.0f);
-    CHECK(globals.values.at({ PLUGIN, 0x811 }) == 1.0f);
+    CHECK(percent() == 30.0f);
+    CHECK(numberOf(store, panel, 0x811) == 1.0f);
 
     // the hand gets a pulse as it takes hold, and none for the steps of a drag
     CHECK(acted == 3);
@@ -2056,7 +2090,9 @@ TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
     mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
-    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+    const auto percent = [&store, &panel] {
+        return numberOf(store, panel, 0x810);
+    };
 
     // the grab is at 20 of 100, and the ray on its right part: 8 pixels are 3 of 100, nearest to the step at 25
     const auto onGrab = ImVec2(sliderTrack(0, 0.2f).x + 8.0f, pageRow(0).y);
@@ -2064,7 +2100,7 @@ TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
         test_panel::drawFrame(panel, onGrab, held);
     }
     test_panel::drawFrame(panel, onGrab, false);
-    CHECK(percent == 20.0f);
+    CHECK(percent() == 20.0f);
 
     // the grab then moves as far as the ray does
     for (const bool held : { false, true, true }) {
@@ -2073,7 +2109,7 @@ TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
     const auto moved = ImVec2(sliderTrack(0, 0.5f).x + 8.0f, pageRow(0).y);
     test_panel::drawFrame(panel, moved, true);
     test_panel::drawFrame(panel, moved, false);
-    CHECK(percent == 50.0f);
+    CHECK(percent() == 50.0f);
 }
 
 TEST_CASE("FullPanel: Back ends the drag of a slider with nothing written, and the rest of the press changes nothing")
@@ -2083,7 +2119,9 @@ TEST_CASE("FullPanel: Back ends the drag of a slider with nothing written, and t
     mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
-    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
+    const auto percent = [&store, &panel] {
+        return numberOf(store, panel, 0x810);
+    };
 
     for (const bool held : { false, false, true }) {
         test_panel::drawFrame(panel, sliderTrack(0, 0.6f), held);
@@ -2093,7 +2131,7 @@ TEST_CASE("FullPanel: Back ends the drag of a slider with nothing written, and t
     CHECK(panel.back());
     CHECK(panel.selection() == selectionOf(0));
     test_panel::drawFrame(panel, sliderTrack(0, 0.9f), true);
-    CHECK(percent == 20.0f);
+    CHECK(percent() == 20.0f);
 
     // Back again, with the trigger still held, is a step back in the panel
     CHECK(panel.back());
@@ -2103,7 +2141,7 @@ TEST_CASE("FullPanel: Back ends the drag of a slider with nothing written, and t
 
     // and the slider is dragged again
     CHECK(pressActs(panel, sliderTrack(0, 0.4f)));
-    CHECK(percent == 40.0f);
+    CHECK(percent() == 40.0f);
 }
 
 TEST_CASE("FullPanel: the thumbstick steps the slider the ray is on, and again while it is held")
@@ -2113,21 +2151,25 @@ TEST_CASE("FullPanel: the thumbstick steps the slider the ray is on, and again w
     mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
-    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
-    const auto& tenths = globals.values.at({ PLUGIN, 0x811 });
+    const auto percent = [&store, &panel] {
+        return numberOf(store, panel, 0x810);
+    };
+    const auto tenths = [&store, &panel] {
+        return numberOf(store, panel, 0x811);
+    };
 
     // the ray is on no slider
     pushFrames(panel, test_panel::POINTER_AWAY, 1.0f, 2);
     pushFrames(panel, pageRow(2), 1.0f, 60);
     pushFrames(panel, pageRow(2), 0.0f, 1);
-    CHECK(percent == 20.0f);
-    CHECK(tenths == 1.0f);
+    CHECK(percent() == 20.0f);
+    CHECK(tenths() == 1.0f);
 
     // on the name of a slider, for longer than the 0.3 seconds it waits, at 90 frames a second: one step
     // as the push begins, and none for a push that is not far
     pushFrames(panel, pageRow(1), 0.0f, 40);
     pushFrames(panel, pageRow(1), 1.0f, 1);
-    CHECK(tenths == Catch::Approx(1.1f));
+    CHECK(tenths() == Catch::Approx(1.1f));
     // the hand gets a pulse for a step
     CHECK(panel.pressActed());
     pushFrames(panel, pageRow(1), 0.0f, 1);
@@ -2135,19 +2177,19 @@ TEST_CASE("FullPanel: the thumbstick steps the slider the ray is on, and again w
     pushFrames(panel, pageRow(1), 0.4f, 60);
     pushFrames(panel, pageRow(1), 0.0f, 1);
     pushFrames(panel, pageRow(1), -1.0f, 1);
-    CHECK(tenths == Catch::Approx(1.0f));
-    CHECK(percent == 20.0f);
+    CHECK(tenths() == Catch::Approx(1.0f));
+    CHECK(percent() == 20.0f);
 
     // a push that is held steps again after 0.4 seconds
     pushFrames(panel, pageRow(1), 0.0f, 1);
     pushFrames(panel, pageRow(1), 1.0f, 30);
-    CHECK(tenths == Catch::Approx(1.1f));
+    CHECK(tenths() == Catch::Approx(1.1f));
     pushFrames(panel, pageRow(1), 1.0f, 10);
-    CHECK(tenths == Catch::Approx(1.2f));
+    CHECK(tenths() == Catch::Approx(1.2f));
 
     // and stops at the end of the range
     pushFrames(panel, pageRow(1), 1.0f, 450);
-    CHECK(tenths == Catch::Approx(2.0f));
+    CHECK(tenths() == Catch::Approx(2.0f));
 
     // where the push changes nothing, and the hand gets no pulse
     CHECK_FALSE(panel.pressActed());
@@ -2160,31 +2202,35 @@ TEST_CASE("FullPanel: the thumbstick steps a slider only once the ray is on its 
     mcm::McmStore store;
     auto panel = modWithSliders(store);
     drawFrames(panel, 2);
-    const auto& percent = globals.values.at({ PLUGIN, 0x810 });
-    const auto& tenths = globals.values.at({ PLUGIN, 0x811 });
+    const auto percent = [&store, &panel] {
+        return numberOf(store, panel, 0x810);
+    };
+    const auto tenths = [&store, &panel] {
+        return numberOf(store, panel, 0x811);
+    };
 
     // a push as the ray comes to the row steps nothing at first, and one step once the 0.3 seconds are over
     pushFrames(panel, pageRow(1), 0.0f, 3);
     pushFrames(panel, pageRow(1), 1.0f, 10);
-    CHECK(tenths == 1.0f);
+    CHECK(tenths() == 1.0f);
     pushFrames(panel, pageRow(1), 1.0f, 30);
-    CHECK(tenths == Catch::Approx(1.1f));
+    CHECK(tenths() == Catch::Approx(1.1f));
     pushFrames(panel, pageRow(1), 0.0f, 1);
 
     // a push that began off the sliders steps nothing on one, however long it is held
     pushFrames(panel, test_panel::POINTER_AWAY, 1.0f, 3);
     pushFrames(panel, pageRow(0), 1.0f, 180);
-    CHECK(percent == 20.0f);
+    CHECK(percent() == 20.0f);
 
     // until the thumbstick is let go and pushed again
     pushFrames(panel, pageRow(0), 0.0f, 1);
     pushFrames(panel, pageRow(0), 1.0f, 1);
-    CHECK(percent == 25.0f);
+    CHECK(percent() == 25.0f);
 
     // and neither does a push that is held as the ray goes from one slider to another
     pushFrames(panel, pageRow(1), 1.0f, 180);
-    CHECK(percent == 25.0f);
-    CHECK(tenths == Catch::Approx(1.1f));
+    CHECK(percent() == 25.0f);
+    CHECK(tenths() == Catch::Approx(1.1f));
 }
 
 TEST_CASE("FullPanel: a press on the name of a slider changes nothing")
@@ -2196,7 +2242,7 @@ TEST_CASE("FullPanel: a press on the name of a slider changes nothing")
     drawFrames(panel, 2);
 
     CHECK_FALSE(pressActs(panel, pageRow(0)));
-    CHECK(globals.values.at({ PLUGIN, 0x810 }) == 20.0f);
+    CHECK(numberOf(store, panel, 0x810) == 20.0f);
 }
 
 TEST_CASE("FullPanel: a button of a stepper goes to the option before or after, and stops at the first and the last")
@@ -2206,25 +2252,29 @@ TEST_CASE("FullPanel: a button of a stepper goes to the option before or after, 
     mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
-    const auto& quality = globals.values.at({ PLUGIN, 0x820 });
+    const auto quality = [&store, &panel] {
+        return numberOf(store, panel, 0x820);
+    };
 
     CHECK(pressActs(panel, stepperButton(0, true)));
-    CHECK(quality == 2.0f);
+    CHECK(quality() == 2.0f);
     CHECK_FALSE(pressActs(panel, stepperButton(0, true)));
-    CHECK(quality == 2.0f);
+    CHECK(quality() == 2.0f);
 
     CHECK(pressActs(panel, stepperButton(0, false)));
     CHECK(pressActs(panel, stepperButton(0, false)));
-    CHECK(quality == 0.0f);
+    CHECK(quality() == 0.0f);
     CHECK_FALSE(pressActs(panel, stepperButton(0, false)));
-    CHECK(quality == 0.0f);
+    CHECK(quality() == 0.0f);
 
     // a stepper whose value is no option has none before it, and its first after it
-    const auto& outside = globals.values.at({ PLUGIN, 0x823 });
+    const auto outside = [&store, &panel] {
+        return numberOf(store, panel, 0x823);
+    };
     CHECK_FALSE(pressActs(panel, stepperButton(4, false)));
-    CHECK(outside == 7.0f);
+    CHECK(outside() == 7.0f);
     CHECK(pressActs(panel, stepperButton(4, true)));
-    CHECK(outside == 0.0f);
+    CHECK(outside() == 0.0f);
 }
 
 TEST_CASE("FullPanel: a press on the row of a stepper goes to the option after, and from the last to the first")
@@ -2234,14 +2284,16 @@ TEST_CASE("FullPanel: a press on the row of a stepper goes to the option after, 
     mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
-    const auto& quality = globals.values.at({ PLUGIN, 0x820 });
+    const auto quality = [&store, &panel] {
+        return numberOf(store, panel, 0x820);
+    };
 
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(quality == 2.0f);
+    CHECK(quality() == 2.0f);
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(quality == 0.0f);
+    CHECK(quality() == 0.0f);
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(quality == 1.0f);
+    CHECK(quality() == 1.0f);
 }
 
 TEST_CASE("FullPanel: a push of the thumbstick steps the stepper the ray is on, once for a push")
@@ -2251,35 +2303,37 @@ TEST_CASE("FullPanel: a push of the thumbstick steps the stepper the ray is on, 
     mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
-    const auto& quality = globals.values.at({ PLUGIN, 0x820 });
+    const auto quality = [&store, &panel] {
+        return numberOf(store, panel, 0x820);
+    };
 
     // a push that is held is one step, with a pulse in its frame
     pushFrames(panel, pageRow(0), 0.0f, 3);
     pushFrames(panel, pageRow(0), 1.0f, 1);
-    CHECK(quality == 2.0f);
+    CHECK(quality() == 2.0f);
     CHECK(panel.pressActed());
     pushFrames(panel, pageRow(0), 1.0f, 90);
-    CHECK(quality == 2.0f);
+    CHECK(quality() == 2.0f);
 
     // it stops at the last option, with no pulse, and a push that is not far steps nothing
     pushFrames(panel, pageRow(0), 0.0f, 1);
     pushFrames(panel, pageRow(0), 1.0f, 1);
-    CHECK(quality == 2.0f);
+    CHECK(quality() == 2.0f);
     CHECK_FALSE(panel.pressActed());
     pushFrames(panel, pageRow(0), 0.0f, 1);
     pushFrames(panel, pageRow(0), -0.4f, 2);
-    CHECK(quality == 2.0f);
+    CHECK(quality() == 2.0f);
     pushFrames(panel, pageRow(0), -1.0f, 1);
-    CHECK(quality == 1.0f);
+    CHECK(quality() == 1.0f);
 
     // a push that began off the row steps nothing on it, and neither does one on the row of a dropdown
     pushFrames(panel, pageRow(0), 0.0f, 1);
     pushFrames(panel, test_panel::POINTER_AWAY, 1.0f, 2);
     pushFrames(panel, pageRow(0), 1.0f, 10);
-    CHECK(quality == 1.0f);
+    CHECK(quality() == 1.0f);
     pushFrames(panel, pageRow(1), 0.0f, 3);
     pushFrames(panel, pageRow(1), 1.0f, 2);
-    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 0.0f);
+    CHECK(numberOf(store, panel, 0x821) == 0.0f);
     panel.setThumbstickSideValue(0.0f);
 }
 
@@ -2290,29 +2344,31 @@ TEST_CASE("FullPanel: a press on the row of a dropdown opens its list, and a pre
     mcm::McmStore store;
     auto panel = modWithChoices(store);
     drawFrames(panel, 2);
-    const auto& place = globals.values.at({ PLUGIN, 0x821 });
+    const auto place = [&store, &panel] {
+        return numberOf(store, panel, 0x821);
+    };
 
     CHECK(pressActs(panel, pageRow(1)));
     CHECK(isListOpen());
-    CHECK(place == 0.0f);
+    CHECK(place() == 0.0f);
 
     CHECK(pressActs(panel, listOption(1, 2)));
     CHECK_FALSE(isListOpen());
-    CHECK(place == 2.0f);
+    CHECK(place() == 2.0f);
 
     // the option it is at already closes the list, and changes nothing
     CHECK(pressActs(panel, pageRow(1)));
     CHECK_FALSE(pressActs(panel, listOption(1, 2)));
     CHECK_FALSE(isListOpen());
-    CHECK(place == 2.0f);
+    CHECK(place() == 2.0f);
 
     // the first option is over the row of the switcher, which is not pressed
     CHECK(pressActs(panel, pageRow(1)));
     CHECK(pressActs(panel, listOption(1, 0)));
-    CHECK(place == 0.0f);
-    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 0.0f);
+    CHECK(place() == 0.0f);
+    CHECK(numberOf(store, panel, 0x822) == 0.0f);
     CHECK(pressActs(panel, listOption(1, 0)));
-    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 1.0f);
+    CHECK(numberOf(store, panel, 0x822) == 1.0f);
 }
 
 TEST_CASE("FullPanel: a press beside the open list of a dropdown closes it, and does nothing else")
@@ -2327,11 +2383,11 @@ TEST_CASE("FullPanel: a press beside the open list of a dropdown closes it, and 
     CHECK(pressActs(panel, pageRow(1)));
     CHECK_FALSE(pressActs(panel, pageRow(2)));
     CHECK_FALSE(isListOpen());
-    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 0.0f);
-    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 0.0f);
+    CHECK(numberOf(store, panel, 0x821) == 0.0f);
+    CHECK(numberOf(store, panel, 0x822) == 0.0f);
 
     CHECK(pressActs(panel, pageRow(2)));
-    CHECK(globals.values.at({ PLUGIN, 0x822 }) == 1.0f);
+    CHECK(numberOf(store, panel, 0x822) == 1.0f);
 }
 
 TEST_CASE("FullPanel: Back closes the open list of a dropdown, with no option picked")
@@ -2350,7 +2406,7 @@ TEST_CASE("FullPanel: Back closes the open list of a dropdown, with no option pi
     drawFrames(panel, 2);
     CHECK_FALSE(isListOpen());
     CHECK(panel.selection() == selectionOf(0));
-    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 0.0f);
+    CHECK(numberOf(store, panel, 0x821) == 0.0f);
 
     // Back again is a step back in the panel
     CHECK(panel.back());
@@ -2410,13 +2466,13 @@ TEST_CASE("FullPanel: a choice that reads its options in the game has the option
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, stepperButton(0, true)));
-    CHECK(globals.values.at({ PLUGIN, 0x820 }) == 2.0f);
+    CHECK(numberOf(store, panel, 0x820) == 2.0f);
     CHECK_FALSE(pressActs(panel, stepperButton(0, true)));
 
     CHECK(pressActs(panel, pageRow(1)));
     CHECK(isListOpen());
     CHECK(pressActs(panel, listOption(1, 2)));
-    CHECK(globals.values.at({ PLUGIN, 0x821 }) == 2.0f);
+    CHECK(numberOf(store, panel, 0x821) == 2.0f);
 
     CHECK_FALSE(pressActs(panel, pageRow(2)));
     CHECK_FALSE(isListOpen());
@@ -2878,7 +2934,7 @@ TEST_CASE("FullPanel: the dialog's Save that fails stays on the mod with the rea
     CHECK(fileText(file) == "[Main]\r\nbEnable = false\r\nfHeight = 1.5\r\n");
 }
 
-TEST_CASE("FullPanel: an MCM mod's changes are saved as they are made, so it is left with nothing to ask")
+TEST_CASE("FullPanel: an MCM mod's changes wait for a Save, so it asks before it is left, and its Save writes them")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
@@ -2887,9 +2943,17 @@ TEST_CASE("FullPanel: an MCM mod's changes are saved as they are made, so it is 
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(panel.select(selectionOf(1)));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+    CHECK(pressActs(panel, treeRow(1)));
+    drawFrames(panel, 2);
+    CHECK(panel.isAsking());
+    CHECK(panel.selection() == selectionOf(0));
+
+    CHECK(pressActs(panel, dialogButton(DIALOG_SAVE)));
+    drawFrames(panel, 2);
     CHECK_FALSE(panel.isAsking());
     CHECK(panel.selection() == selectionOf(1));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
 }
 
 TEST_CASE("FullPanel: an invalid value of a config spec has its reason as its help, and its Reset sets the default")
@@ -3163,7 +3227,7 @@ TEST_CASE("FullPanel: a press on the Reset of a row sets the default of its sett
     // the switcher is turned on by it once, and not off again by a press on the room it was in
     CHECK(pressActs(panel, resetButton(0)));
     CHECK(valueOf(0) == model::Value(true));
-    CHECK(events.sent == Names{ "OnMCMSettingChange(Alpha, bOn:Main)", "OnMCMSettingChange|Alpha(Alpha, bOn:Main)" });
+    CHECK(store.isDirty(std::get<model::Setting>(rows[0])));
     CHECK_FALSE(pressActs(panel, resetButton(0)));
     CHECK(valueOf(0) == model::Value(true));
 
@@ -3194,7 +3258,7 @@ TEST_CASE("FullPanel: a row with no default has no Reset, and a press in its roo
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, resetButton(3)));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    CHECK(numberOf(store, panel, 0x800) == 1.0f);
 }
 
 TEST_CASE("FullPanel: a slider that is dragged and let go on its Reset is not reset")

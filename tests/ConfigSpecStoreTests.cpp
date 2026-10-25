@@ -145,7 +145,6 @@ TEST_CASE("ConfigSpecStore: a value is the file's, in the type of its control, a
         CHECK(value.reason.empty());
         CHECK_FALSE(session.store.isDirty(session.setting(row)));
     }
-    CHECK_FALSE(session.store.savesAtOnce());
     CHECK(session.store.dirtyCount() == 0);
 
     // a condition names a setting by its id

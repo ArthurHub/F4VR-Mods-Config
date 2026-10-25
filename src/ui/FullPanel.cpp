@@ -18,10 +18,7 @@ namespace
 {
     using namespace mods_config;
 
-    // what the help line says of a mod whose changes are not kept for a Save, while the ray is on no row
-    constexpr auto SAVED_AS_MADE = "Changes are saved as they are made";
-
-    // and of a mod whose changes wait for a Save, while none does
+    // what the help line says of a mod while no change waits for a Save and the ray is on no row
     constexpr auto NO_UNSAVED = "No unsaved changes";
 
     // and after a Save that wrote no change that takes effect after a restart, until the next change
@@ -238,19 +235,16 @@ namespace mods_config::ui
     }
 
     /**
-     * Gives the help line the status of the selected mod's editing session: that its changes are saved as
-     * they are made, how many changes are invalid, which block Save, why the last Save failed, until the next
-     * change, how many wait for a Save, with how many of them take effect after a restart, or the last Save,
-     * until the next change, with how many of the changes it wrote take effect after a restart. Nothing with
-     * no mod, and with no store.
+     * Gives the help line the status of the selected mod's editing session: how many changes are invalid,
+     * which block Save, why the last Save failed, until the next change, how many wait for a Save, with how
+     * many of them take effect after a restart, or the last Save, until the next change, with how many of the
+     * changes it wrote take effect after a restart. Nothing with no mod, and with no store.
      */
     void FullPanel::updateStatus()
     {
         auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
         if (!store) {
             _helpLine.setStatus({});
-        } else if (store->savesAtOnce()) {
-            _helpLine.setStatus(SAVED_AS_MADE);
         } else if (const auto invalid = store->invalidCount(); invalid > 0) {
             _helpLine.setStatus(std::format("{} invalid value{}", invalid, invalid == 1 ? "" : "s"), StatusLook::Invalid);
         } else if (const auto failure = store->saveFailure(); !failure.empty()) {
@@ -412,7 +406,7 @@ namespace mods_config::ui
 
     /**
      * Whether the selected mod has changes that wait for a Save, which the dialog asks about before the mod is
-     * left. An MCM mod has none: its changes are saved as they are made.
+     * left.
      */
     bool FullPanel::hasUnsavedChanges() const
     {
@@ -641,8 +635,8 @@ namespace mods_config::ui
      * The help line has the row of the page the ray is on, or the row of the tree with a help, or the button of
      * the title bar, until the ray is on another or leaves the page:
      * in the gap between two rows it keeps the row it has, so it does not flicker as the ray sweeps the rows.
-     * With no row it has the status of the selected mod's editing session: that its changes are saved as they
-     * are made, or how many wait for a Save.
+     * With no row it has the status of the selected mod's editing session: how many changes wait for a Save,
+     * or the last Save.
      * A press selects, or does what its button of the title bar does, once all of the panel is drawn, so a
      * frame is drawn with one selection.
      * It also tells whether a press did something in this frame, for the pulse of the hand that points.
@@ -819,37 +813,33 @@ namespace mods_config::ui
      * right, which keep their places. They are enabled while the selected mod has changes that wait for a
      * Save, also after a Save that failed, and are disabled on the menu's front page, which has no session.
      * Save is disabled while a change is invalid, which the status says. A press on Save writes the changes,
-     * and one on Discard takes them back. An MCM mod saves its changes as they are made, so it has no Discard
-     * and Save, and its help line has all of the footer's width.
+     * and one on Discard takes them back.
      */
     void FullPanel::drawFooter(const ImVec2& pos)
     {
         const float width = ImGui::GetContentRegionAvail().x;
         ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
 
-        float helpRight = pos.x + width - theme::SPACE_2;
         auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
-        if (!store || !store->savesAtOnce()) {
-            const float top = pos.y + (theme::FOOTER_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
-            const auto save = controlBox(helpRight - BUTTON_WIDTH, top, BUTTON_WIDTH);
-            const auto discard = controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
-            ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
-            if (button("Discard", discard, ButtonLook::Secondary)) {
-                store->discard();
-                _pressActed = true;
-            }
-            ImGui::BeginDisabled(store && store->invalidCount() > 0);
-            if (button("Save", save, ButtonLook::Primary)) {
-                // the status has the reason of a Save that failed, which the store keeps
-                std::ignore = store->save();
-                _pressActed = true;
-            }
-            ImGui::EndDisabled();
-            ImGui::EndDisabled();
-            updateStatus();
-            helpRight = discard.Min.x - theme::SPACE_3;
+        const float top = pos.y + (theme::FOOTER_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
+        const auto save = controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
+        const auto discard = controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
+        ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
+        if (button("Discard", discard, ButtonLook::Secondary)) {
+            store->discard();
+            _pressActed = true;
         }
+        ImGui::BeginDisabled(store && store->invalidCount() > 0);
+        if (button("Save", save, ButtonLook::Primary)) {
+            // the status has the reason of a Save that failed, which the store keeps
+            std::ignore = store->save();
+            _pressActed = true;
+        }
+        ImGui::EndDisabled();
+        ImGui::EndDisabled();
+        updateStatus();
 
+        const float helpRight = discard.Min.x - theme::SPACE_3;
         _helpLine.draw(ImVec2(pos.x + theme::SPACE_4, pos.y), helpRight - pos.x - theme::SPACE_4);
         ImGui::SetCursorScreenPos(pos);
         ImGui::Dummy(ImVec2(width, theme::FOOTER_HEIGHT));

@@ -70,11 +70,6 @@ namespace mods_config::spec
             return _options.of(setting);
         }
 
-        bool savesAtOnce() const override
-        {
-            return false;
-        }
-
         bool isDirty(const model::Setting& setting) const override;
         std::size_t dirtyCount() const override;
         std::size_t invalidCount() const override;
