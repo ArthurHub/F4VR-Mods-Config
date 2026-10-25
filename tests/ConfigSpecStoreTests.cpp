@@ -1162,6 +1162,27 @@ TEST_CASE("ConfigSpecStore: a live global or property is told to the mod's clien
     CHECK(hours == std::vector<float>{ 18.0f, 8.5f });
 }
 
+TEST_CASE("ConfigSpecStore: a Save that wrote something sends its F4SE message to each F4SE plugin of its config spec, after the client's batch")
+{
+    TestGame game;
+    Session session;
+    session.mod.f4sePlugins = { "MyPlugin", "F4VRBody" };
+    // how many messages were sent as the client is told the batch
+    std::vector<std::size_t> sentAtBatch;
+    session.store.clientCalls().addClient("MyMod", { .onSaved = [&](const model::SaveBatch&) {
+        sentAtBatch.push_back(game.actions.savedMessages.size());
+    } });
+    session.open(MOD_TOML);
+
+    REQUIRE(session.store.save());
+    CHECK(game.actions.savedMessages.empty());
+
+    CHECK(session.store.set(session.setting(1), 1.4f));
+    REQUIRE(session.store.save());
+    CHECK(game.actions.savedMessages == std::vector<std::string>{ "MyMod > MyPlugin", "MyMod > F4VRBody" });
+    CHECK(sentAtBatch == std::vector<std::size_t>{ 0 });
+}
+
 TEST_CASE("ConfigSpecStore: a Save tells the client once what it wrote, of any applies, and no Discard of a preview it wrote")
 {
     TestGame game;

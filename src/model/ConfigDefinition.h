@@ -790,6 +790,10 @@ namespace mods_config::model
         // a config spec's files, by the names it gives them. None for an MCM mod
         std::map<std::string, File> files;
 
+        // the F4SE plugins of a config spec's `f4sePluginRequirements`, by the names they register with F4SE, which a
+        // Save sends its F4SE message to. None for an MCM mod
+        std::vector<std::string> f4sePlugins;
+
         // a config spec's problems, in the order of its spec.json. None for an MCM mod
         std::vector<Problem> problems;
 

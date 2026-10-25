@@ -41,6 +41,15 @@ namespace
     }
 
     /**
+     * The F4SE messages of a Save that were sent, of all the tests.
+     */
+    std::vector<std::string>& sentMessages()
+    {
+        static std::vector<std::string> sent;
+        return sent;
+    }
+
+    /**
      * Whether Windows accepts the browser launch in a test.
      */
     bool& canOpenBrowser()
@@ -57,13 +66,15 @@ namespace test_actions
           commands(runCommands()),
           links(openedLinks()),
           inGame(formsInGame()),
-          browserAvailable(canOpenBrowser())
+          browserAvailable(canOpenBrowser()),
+          savedMessages(sentMessages())
     {
         called.clear();
         commands.clear();
         links.clear();
         inGame = true;
         browserAvailable = true;
+        savedMessages.clear();
     }
 }
 
@@ -97,5 +108,15 @@ namespace mods_config
     {
         openedLinks().push_back(link);
         return canOpenBrowser();
+    }
+
+    /**
+     * Keeps each F4SE message of a Save in place of sending it: the tests' own, which is linked in place of the mod's.
+     */
+    void sendSavedMessage(const std::string& modName, const std::vector<std::string>& plugins)
+    {
+        for (const auto& plugin : plugins) {
+            sentMessages().push_back(modName + " > " + plugin);
+        }
     }
 }

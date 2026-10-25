@@ -1772,18 +1772,36 @@ namespace
     }
 
     /**
+     * The plugins a list of a config spec's requirements names, in its order: none where it has no list, and an entry
+     * that is no text is left out.
+     */
+    std::vector<std::string> requiredPlugins(const Json& configSpec, const char* key)
+    {
+        std::vector<std::string> plugins;
+        const auto required = configSpec.find(key);
+        if (required == configSpec.end() || !required->is_array()) {
+            return plugins;
+        }
+        for (const auto& plugin : *required) {
+            if (plugin.is_string()) {
+                plugins.push_back(plugin.get<std::string>());
+            }
+        }
+        return plugins;
+    }
+
+    /**
      * The plugins of a list of a config spec's requirements that are not loaded, in its order. None with no check.
      */
     std::vector<std::string> findMissing(const Json& configSpec, const char* key, const spec::PluginCheck& isLoaded)
     {
         std::vector<std::string> missing;
-        const auto required = configSpec.find(key);
-        if (!isLoaded || required == configSpec.end() || !required->is_array()) {
+        if (!isLoaded) {
             return missing;
         }
-        for (const auto& plugin : *required) {
-            if (plugin.is_string() && !isLoaded(plugin.get_ref<const std::string&>())) {
-                missing.push_back(plugin.get<std::string>());
+        for (auto& plugin : requiredPlugins(configSpec, key)) {
+            if (!isLoaded(plugin)) {
+                missing.push_back(std::move(plugin));
             }
         }
         return missing;
@@ -1985,6 +2003,7 @@ namespace mods_config::spec
         }
         checkFields(configSpec, ROOT_FIELDS, reading);
         mod.help = readShownText(configSpec, "help", reading);
+        mod.f4sePlugins = requiredPlugins(configSpec, "f4sePluginRequirements");
         reading.files = loadFiles(configSpec, reading);
         reading.fileValues = readFiles(reading.files, folders);
         checkSharedLists(reading);

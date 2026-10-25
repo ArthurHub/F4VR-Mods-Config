@@ -44,7 +44,8 @@ namespace mods_config::spec
      * A setting takes effect as its `applies` says. A `live` one is previewed by the mod's client: it is told each valid
      * pending value, and a Discard as the value goes back to its baseline, by a set, Discard, or the end of the
      * session, one of the game after the game has it. A Save tells it no Discard: it tells the client once what it wrote,
-     * every setting with its value before and the files, after the actions ran. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
+     * every setting with its value before and the files, after the actions ran, and then each F4SE plugin of its
+     * config spec is sent the F4SE message of the Save. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
      * game is restarted.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */

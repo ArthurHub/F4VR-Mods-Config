@@ -134,7 +134,7 @@ A config spec's Save proceeds as follows, and an MCM mod's is in [MCM compatibil
 10. Write the dirty globals and properties into the game.
 11. Run the action of each setting that was written, in the order of the config spec, with its saved value.
 12. Call the client's `onSaved` with one batch: every setting that was written, with its value before the Save, and the files written. A Save that wrote nothing tells nothing.
-13. Send one final native notification and one equivalent Papyrus notification.
+13. Send one final native notification and one equivalent Papyrus notification, see [Final notifications](#final-notifications).
 14. Tell the player that the game has to be restarted, when a `restart` setting was written.
 
 Nothing is written before step 8, so a validation, parsing, or serialization problem, or a global or a property that is gone, leaves every file untouched. The game's values are written after the files, so a Save that fails changes none of them either. A Save that fails keeps every setting dirty, so the next Save tries them all again. The footer's status says why it failed, in the design system's SaveBar's Not saved state, until the next change, Save or Discard.
@@ -464,12 +464,14 @@ The framework side of this is listed in [CommonFramework work required](framewor
 
 Successful Save emits one notification through each supported ecosystem:
 
-- An F4SE plugin message for native listeners. The host, F4SE plugin `ModsConfigVR`, sends it to each F4SE plugin the config spec names in `f4sePluginRequirements`. The payload carries the config spec's `modName`.
+- An F4SE plugin message for native listeners. The host, F4SE plugin `ModsConfigVR`, sends it to each F4SE plugin the config spec names in `f4sePluginRequirements`, after the client's batch. Its type is the client header's `MODS_CONFIG_VR_SAVED_MESSAGE`, and its data is the config spec's `modName`, UTF-8 text that ends with a zero. It says that the mod's settings were saved, not what changed: a client's batch does.
 - An F4SE external Papyrus event for script mods, named `OnModsConfigVRSaved|<modName>`. A script registers for it with F4SE's `RegisterForExternalEvent`, and its callback receives the `modName`.
 
 Raw F4SE plugin messaging does not reach Papyrus by itself, so these are separate transports carrying the same semantic event.
 
-A native listener registers for the sender `ModsConfigVR`. F4SE accepts that registration only once the sender is loaded, so a client registers at `kPostLoad` or later.
+A Save that wrote nothing sends neither. One that wrote its files and failed on a global or a property that left the game sends both, as its files changed.
+
+A native listener registers for the sender `ModsConfigVR`, the client header's `MODS_CONFIG_VR_F4SE_NAME`. F4SE accepts that registration only once the sender is loaded, so a client registers at `kPostLoad` or later.
 
 Papyrus scripts cannot read INI, JSON, or TOML files on their own, so the Papyrus event tells a script that something changed but not what. The script reads the values through the [Papyrus API](#papyrus-api).
 

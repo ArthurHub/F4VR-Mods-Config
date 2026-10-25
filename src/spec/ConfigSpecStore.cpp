@@ -815,7 +815,8 @@ namespace mods_config::spec
      * is not there is created. The dirty settings of the game are written after every file, and the action of
      * each setting that was written runs then, in the order of the config spec, with the value written. The ones
      * written that take effect after a restart are kept for the mod, and how many they are is the last Save.
-     * Then the mod's client is told once what the Save wrote: each setting, with its value before, and the files.
+     * Then the mod's client is told once what the Save wrote: each setting, with its value before, and the files,
+     * and each F4SE plugin of its config spec is sent the F4SE message of the Save.
      * Nothing is written before every file has its new text, checked to read back, and every global and
      * property is in the game, and the files already written are put back when a write fails: a Save that
      * fails changes no file and no value of the game, and keeps every setting dirty.
@@ -940,6 +941,7 @@ namespace mods_config::spec
             }
             batch.revision = ++_saveRevisions[_modName];
             _clientCalls.sendSave(_modName, batch);
+            sendSavedMessage(_modName, _mod->f4sePlugins);
         }
         if (!saved) {
             return failed(saved.error());

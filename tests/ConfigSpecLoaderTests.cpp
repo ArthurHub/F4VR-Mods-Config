@@ -990,6 +990,8 @@ TEST_CASE("ConfigSpecLoader: a config spec whose required plugins are not all lo
     REQUIRE(mod);
     CHECK(mod->notAvailable.empty());
     CHECK(mod->frontPage.items.size() == 1);
+    // its F4SE plugins are kept, which a Save sends its F4SE message to
+    CHECK(mod->f4sePlugins == std::vector<std::string>{ "F4VRBody" });
     CHECK(reason(configSpecRequiring("", "")).empty());
 
     CHECK(reason(configSpecRequiring(R"("MyMod.esp", "SS2.esm")", "")) == "its plugin SS2.esm is not loaded");

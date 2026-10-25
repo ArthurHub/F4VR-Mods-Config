@@ -15,4 +15,7 @@ namespace mods_config
 
     // Opens a link with Windows' default handler. Returns whether Windows accepted it.
     bool openWebLink(const model::WebLink& link);
+
+    // Sends the F4SE message of a Save of a mod to each F4SE plugin of its config spec, with the mod's name.
+    void sendSavedMessage(const std::string& modName, const std::vector<std::string>& plugins);
 }
