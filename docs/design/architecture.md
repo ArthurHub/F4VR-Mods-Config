@@ -160,7 +160,7 @@ What passes between the DLLs is two interfaces of virtual functions. The host im
 - What the host passes is valid during the call, and the client copies what it keeps. What the client passes the host copies before the call returns. What a method answers goes through an interface the host passes it, as `IFunctionCall::setMessage`, so it can only be given while the method runs.
 - Every call, either way, is on the game's main thread. The host calls a client from its frame update, inside the guard of [A client that fails](#a-client-that-fails).
 
-The header has a C++ layer over the interfaces, `ModsConfigVRClient`, which is compiled into the client's DLL: an `IClient` that answers with the mod's lambdas, by name. A mod adds its functions, states, options and own config UIs to it at any time, and connects it once. Nothing of it crosses to the host.
+The header has a C++ layer over the interfaces, `ModsConfigVRClient`, which is compiled into the client's DLL: an `IClient` that answers with the mod's lambdas, by name. A mod adds its functions, states, options and quick launch entries to it at any time, and connects it once. Nothing of it crosses to the host.
 
 ### Versions
 
@@ -285,17 +285,18 @@ A mod's own UI is opened by a function of its client, from a button of its confi
 - `restoreMenu` reads the values of the shown mod again, as its UI can have changed them: a clean setting takes the value of its file, its global or its property, and a pending one stays the player's, as Save keeps it. `reloadValues` does the same for a client whose mod changes its values at another time while it is shown, as with a hotkey.
 - `openMenu` opens the menu at a mod and at a page of it by its `id`, at the mod's front page with no page, or at the menu's front page with no mod. A mod's wrist button or holotape opens its settings this way. While the menu is open on a mod with unsaved changes, the unsaved-changes dialog asks first. A mod or a page that is not there opens nothing, and the call returns false.
 
-The header's C++ client has it as one call, which registers the function and its quick launch entry, and minimizes the menu as the UI opens:
+The header's C++ client adds a quick launch entry with its function, so an entry always has one, and has the calls of the menu. A quick action is a function that does its work and returns its message; one that opens a UI minimizes the menu, and the mod restores it from whatever ends the UI:
 
 ```cpp
-ModsConfigVRClient::get().addConfigUI("openPipboyConfig", { .text = "FRIK: Pip-Boy", .help = "Moves the Pip-Boy on your wrist." },
-    [](std::string& message) {
+auto& client = ModsConfigVRClient::get();
+client.addQuickLaunch("openPipboyConfig", { .text = "FRIK: Pip-Boy", .help = "Moves the Pip-Boy on your wrist." },
+    [&client](const Params&) {
         if (!isSkeletonReady()) {
-            message = "The body is not ready yet.";
-            return false;
+            return FunctionResult{ .done = false, .message = "The body is not ready yet." };
         }
-        openPipboyConfigUI([] { ModsConfigVRClient::get().configUIClosed(); });
-        return true;
+        openPipboyConfigUI([&client] { client.restoreMenu(); });
+        client.minimizeMenu();
+        return FunctionResult{ .done = true };
     });
 ```
 
