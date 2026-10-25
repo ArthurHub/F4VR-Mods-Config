@@ -102,17 +102,17 @@ M117 lets a config spec's author edit its `spec.json` while the game runs. On th
 
 | #   | Repo      | Commit                                                                                      | Status |
 | --- | --------- | ------------------------------------------------------------------------------------------- | ------ |
-| M62 | mod       | docs: the native API: its binary interface, its versions and its calls                      | in review |
-| M63 | mod       | The native API: a client registers by name, with the client header                          | in review |
-| F28 | framework | `ModBase` registers the mod as a client                                                     | in review |
-| M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | in review |
-| M118 | mod      | A condition asks a state of the mod's client                                                | in review |
-| M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | in review |
-| M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | in review |
-| M66 | mod       | The quick launch section takes the mods that registered for it                              | in review |
-| F29 | framework | `ModBase` connects the header's C++ client, to which a mod adds what its client answers | in review |
-| M119 | mod      | The native API is two interfaces: the host asks a client by name, with a C++ client in the header | in review |
-| M67 | mod       | FRIK's config is opened from its quick launch entry, and the menu comes back when it closes | in review |
+| M62 | mod       | docs: the native API: its binary interface, its versions and its calls                      | done   |
+| M63 | mod       | The native API: a client registers by name, with the client header                          | done   |
+| F28 | framework | `ModBase` registers the mod as a client                                                     | done   |
+| M64 | mod       | A config spec's button runs its client's function, with the confirmation dialog             | done   |
+| M118 | mod      | A condition asks a state of the mod's client                                                | done   |
+| M113 | mod      | A client is told of the menu's events: the menu, its mod and its pages shown and left       | done   |
+| M65 | mod       | A client minimizes and restores the menu, and opens it at its mod and page                  | done   |
+| M66 | mod       | The quick launch section takes the mods that registered for it                              | done   |
+| F29 | framework | `ModBase` connects the header's C++ client, to which a mod adds what its client answers | done   |
+| M119 | mod      | The native API is two interfaces: the host asks a client by name, with a C++ client in the header | done   |
+| M67 | mod       | FRIK's config is opened from its quick launch entry, and the menu comes back when it closes | done   |
 
 M62 settles the [Native API](architecture.md#native-api): what it passes between DLLs, how its text is encoded, how its versions are told apart, and its calls. The API is two interfaces: the host's, which `ModsConfigVR.dll` exports, and the client's, which the host asks by name (M119). A button that opens the mod's own UI is a plain `CallNativeFunction`, whose function minimizes the menu and restores it, so the schema has nothing of its own for it.
 
