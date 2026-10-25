@@ -185,7 +185,7 @@ namespace mods_config::ui
             warnings += state.warnings;
         }
         const auto hidden = view.folded ? problemCounts(errors, warnings) : std::vector<MarkedCount>{};
-        drawFoldingHeading(HEADING, headingPos, width, view.folded, onHeading || headingRow.held, hidden);
+        drawFoldingHeading(HEADING, headingPos, width, view.folded, hidden);
         if (onHeading) {
             auto help = std::string(HEADING_HELP);
             if (!hidden.empty()) {

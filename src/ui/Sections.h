@@ -21,8 +21,7 @@ namespace mods_config::ui
         // the ray is on the row
         bool pointed = false;
 
-        // the trigger is held since a pull on the row, and was let go on it in this frame
-        bool held = false;
+        // the trigger was let go on the row in this frame, after a pull on it
         bool pressed = false;
     };
 

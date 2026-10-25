@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-21T12:00:00Z",
+    "at": "2026-10-25T12:00:00Z",
     "via": "Claude Code",
-    "note": "A package is now a config spec, in spec.json: the texts and mocks say so, and FullPanelPackageReport is FullPanelConfigSpecReport."
+    "note": "A heading's text starts space-3 into its row and lines up with the rows beside it; a row under no heading is at the content's left; every heading is green-muted, under the ray too."
   },
   "layout": "files",
   "libraries": [],

@@ -93,8 +93,8 @@ namespace mods_config::ui
     /**
      * Draws the heading of a section that folds in its row, which the page added at a place and in a width: an
      * arrow that points right while it is folded and down while it is open, its text, and a rule from it to the
-     * right edge of the rows, as a heading has. Its text and its arrow are muted, and brighter while the ray
-     * is on it. A press on the row folds or opens it.
+     * right edge of the rows, as a heading has. Its text and its arrow are muted, under the ray too. A press on the
+     * row folds or opens it.
      * Folded, it says at the right what it hides: how many of its settings are invalid, and how many wait for
      * a Save, and the help it tells while the ray is on it has that after the section's own.
      * Returns whether the section is folded, after a press in this frame.
@@ -125,7 +125,7 @@ namespace mods_config::ui
         if (hidden.unsaved > 0) {
             counts.push_back({ .mark = CountMark::Pending, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
         }
-        drawFoldingHeading(group.text, pos, width, folded, row.pointed || row.held, counts);
+        drawFoldingHeading(group.text, pos, width, folded, counts);
         return folded;
     }
 

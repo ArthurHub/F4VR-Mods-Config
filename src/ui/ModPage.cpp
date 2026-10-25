@@ -153,8 +153,7 @@ namespace
         const float width = ui::rowWidth();
         const auto row = ui::addRow(true);
         std::string help;
-        const bool folded =
-            page.sections.drawHeading(group, page.store, pos, width, { .shown = row.shown, .pointed = row.pointed, .held = row.held, .pressed = row.pressed }, help);
+        const bool folded = page.sections.drawHeading(group, page.store, pos, width, { .shown = row.shown, .pointed = row.pointed, .pressed = row.pressed }, help);
         page.drawn.pressActed = page.drawn.pressActed || row.pressed;
         if (row.pointed) {
             page.drawn.pointed = ui::PointedRow{ .text = group.text, .help = std::move(help) };
@@ -168,8 +167,8 @@ namespace
     /**
      * A section at the cursor: its heading, where it is shown, and the rows of its items under it, which are set
      * in a level. A section in a section is set in a level with what is in it, up to the third, so its heading
-     * starts where the outer section's rows do. While it is open and has rows its line runs from under the start
-     * of its heading's text down to its last row, and stops short of the rows, so its rows are seen to be its and
+     * starts where the outer section's rows do. While it is open and has rows its line runs from under its
+     * heading, `space-1` in, down to its last row, and stops short of the rows, so its rows are seen to be its and
      * not the outer section's. The depth is how many sections it is in.
      * A section that folds has a heading that a press folds or opens, and its rows are drawn while it is open.
      * One whose heading is not shown keeps its fold, and has no line. The heading of any other tells its help
@@ -304,8 +303,9 @@ namespace
     }
 
     /**
-     * Draws the items that are shown, each as its row, set in a level from the heading they are under, or from
-     * the content's left. An item that is not shown has no row and no room. A section that is not shown is
+     * Draws the items that are shown, each as its row, set in a level from the heading they are under. A row
+     * under no heading is at the content's left, as a heading's row is, so its text lines up with a heading's.
+     * An item that is not shown has no row and no room. A section that is not shown is
      * without its heading alone: its items are shown by their own conditions.
      * The depth is how many sections the items are in.
      */
@@ -315,8 +315,8 @@ namespace
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
             // a section sets in its heading and its rows itself
-            const bool isRow = !std::holds_alternative<model::Group>(item);
-            if (isRow) {
+            const bool setIn = depth > 0 && !std::holds_alternative<model::Group>(item);
+            if (setIn) {
                 ImGui::Indent(theme::SPACE_3);
             }
             const auto top = ImGui::GetCursorScreenPos();
@@ -328,7 +328,7 @@ namespace
             if (&item == page.focused) {
                 drawFocus(ImRect(top, ImVec2(top.x + ui::rowWidth(), ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y)), page.scrollToFocused);
             }
-            if (isRow) {
+            if (setIn) {
                 ImGui::Unindent(theme::SPACE_3);
             }
             ImGui::PopID();

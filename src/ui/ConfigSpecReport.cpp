@@ -88,7 +88,7 @@ namespace
         const float width = ui::rowWidth();
         const auto row = ui::addFoldingRow(id, folded);
         pressActed = pressActed || row.pressed;
-        ui::drawFoldingHeading(text, pos, width, folded, row.pointed || row.held, folded ? hidden : std::span<const ui::MarkedCount>(), mark);
+        ui::drawFoldingHeading(text, pos, width, folded, folded ? hidden : std::span<const ui::MarkedCount>(), mark);
         return row.pointed;
     }
 

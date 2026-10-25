@@ -243,7 +243,7 @@ namespace mods_config::ui
      */
     void drawPageText(const std::string_view text)
     {
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_1);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + HEADING_TEXT_INSET);
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
@@ -379,19 +379,21 @@ namespace mods_config::ui
     }
 
     /**
-     * The heading of a section of rows at the cursor: its text, `space-1` in, and a line from it to a right
-     * edge, where the rows end. ImGui draws the line to the right of the window's work area, past the rows into
-     * the room of the scroll bar, so that edge is the heading's while it is drawn.
+     * The heading of a section of rows at the cursor: its muted text, `space-3` in as a row's text is in its frame,
+     * and a line from it to a right edge, where the rows end. ImGui draws the line to the right of the window's
+     * work area, past the rows into the room of the scroll bar, so that edge is the heading's while it is drawn.
      */
     void sectionHeading(const std::string_view text, const float right)
     {
         auto* window = ImGui::GetCurrentWindow();
         const float workRight = window->WorkRect.Max.x;
         window->WorkRect.Max.x = right;
-        // the style's padding sets the text in further than a heading's is
-        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(theme::SPACE_1, ImGui::GetStyle().SeparatorTextPadding.y));
+        // the style's padding is not a heading's
+        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(HEADING_TEXT_INSET, ImGui::GetStyle().SeparatorTextPadding.y));
+        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
         // by its end: the text is a mod's, and ImGui would cut it at a "##"
         ImGui::SeparatorTextEx(0, text.data(), text.data() + text.size(), 0.0f);
+        ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         window->WorkRect.Max.x = workRight;
     }
@@ -774,29 +776,28 @@ namespace mods_config::ui
 
     /**
      * A heading that folds, in a row at a place and in a width: an arrow that points right while it is folded
-     * and down while it is open, its text, and a rule from it to the right edge, as a heading has. Its text and
-     * its arrow are muted, and brighter where it is emphasized, as under the ray. The counts of what it hides
-     * end the rule, in the detail size. A heading with the invalid mark or the warning mark has it before its text,
-     * and its text and its arrow are red or amber.
+     * and down while it is open, its text, and a rule from it to the right edge, as a heading has. The arrow
+     * starts where a heading's text does. Its text and its arrow are muted, under the ray too. The counts of what
+     * it hides end the rule, in the detail size. A heading with the invalid mark or the warning mark has it before
+     * its text, and its text and its arrow are red or amber.
      */
-    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const bool emphasized, const std::span<const MarkedCount> counts,
-        const TextMark mark)
+    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const std::span<const MarkedCount> counts, const TextMark mark)
     {
         // the room a rule keeps at the least, as the design system has it
         constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
-        auto color = emphasized ? theme::color::GREEN : theme::color::GREEN_MUTED;
+        auto color = theme::color::GREEN_MUTED;
         if (mark == TextMark::Invalid || mark == TextMark::Warning) {
             color = mark == TextMark::Invalid ? theme::color::RED : theme::color::AMBER;
         }
-        // where a heading's text starts
-        drawFoldArrow(ImVec2(pos.x + theme::SPACE_1, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
+        const float arrowLeft = pos.x + HEADING_TEXT_INSET;
+        drawFoldArrow(ImVec2(arrowLeft, pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), !folded, color);
         float ruleRight = pos.x + width;
         if (!counts.empty()) {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
             ruleRight = drawMarkedCounts(ruleRight - theme::SPACE_3, pos.y, counts) - theme::SPACE_2;
             ImGui::PopFont();
         }
-        float textLeft = pos.x + theme::SPACE_1 + FOLD_ARROW_SIZE + theme::SPACE_2;
+        float textLeft = arrowLeft + FOLD_ARROW_SIZE + theme::SPACE_2;
         if (mark != TextMark::None) {
             drawMark(mark, ImVec2(textLeft + WARNING_MARK_WIDTH * 0.5f, pos.y + theme::CONTROL_HEIGHT * 0.5f));
             textLeft += WARNING_MARK_WIDTH + theme::SPACE_2;

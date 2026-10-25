@@ -35,7 +35,7 @@ namespace
         const float width = ui::rowWidth();
         const auto row = ui::addFoldingRow(text, folded);
         drawn.pressActed = drawn.pressActed || row.pressed;
-        ui::drawFoldingHeading(text, pos, width, folded, row.pointed || row.held, {});
+        ui::drawFoldingHeading(text, pos, width, folded, {});
         if (row.pointed) {
             drawn.pointed = ui::PointedRow{ .text = text, .help = help };
         }
@@ -49,8 +49,8 @@ namespace
     void restartNotice(const std::string_view text)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        ui::drawRestartMark(pos.x + theme::SPACE_2, pos.y + ImGui::GetFontSize() * 0.5f);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + theme::SPACE_2 + ui::restartMarkWidth() + theme::SPACE_2);
+        ui::drawRestartMark(pos.x + ui::HEADING_TEXT_INSET, pos.y + ImGui::GetFontSize() * 0.5f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ui::HEADING_TEXT_INSET + ui::restartMarkWidth() + theme::SPACE_2);
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());

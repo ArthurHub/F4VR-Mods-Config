@@ -9,6 +9,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include "Theme.h"
 #include "model/ConfigDefinition.h"
 
 // What the parts of the panel draw with, in the look of the design system.
@@ -111,6 +112,10 @@ namespace mods_config::ui
     // how far the selected-row bar's tip extends past its right edge
     constexpr float SELECTED_BAR_TIP_DEPTH = 20.0f;
 
+    // where a heading's text starts in its row, as a row's text does in its frame, so a heading lines up with the
+    // rows beside it: and where the page's texts start, in from the content's left
+    constexpr float HEADING_TEXT_INSET = theme::SPACE_3;
+
     float mcmScale();
     float textWidth(std::string_view text);
     void drawPageText(std::string_view text);
@@ -141,8 +146,7 @@ namespace mods_config::ui
     float restartMarkWidth();
     void drawRestartMark(float left, float middle);
     float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);
-    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, bool emphasized, std::span<const MarkedCount> counts,
-        TextMark mark = TextMark::None);
+    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, std::span<const MarkedCount> counts, TextMark mark = TextMark::None);
     void drawPendingMark(const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);
     void drawWarningMark(const ImVec2& center);

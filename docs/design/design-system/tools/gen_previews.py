@@ -101,7 +101,7 @@ def collapse(title, open_=False, hover=False, depth=0, invalid=0, unsaved=0, mar
 
 def sub(heading, rows=''):
     """A section in a section: its heading and its rows set in a level, ending where the other rows do. While it is
-    open and has rows, a rule line runs from under the start of its heading's text down to the bottom of its last
+    open and has rows, a rule line runs from under its heading, space-1 in, down to the bottom of its last
     row, and turns there toward the rows; its rows' marks move a little right to clear it."""
     inner = f'<div class="mc-sub">{rows}</div>' if rows else ''
     return f'<div class="mc-in">{heading}{inner}</div>'

@@ -1130,6 +1130,12 @@ TEST_CASE("FullPanel render: a config spec's section in a section, with rows bef
     panel.setMods({ std::move(*mod) });
     panel.select({ .mod = 0, .page = {} });
     WARN("Saved " << renderToFile(panel, "config-spec-nested-sections", POINTER_AWAY));
+    // the ray on the row under no heading, whose frame starts where a heading's row does: a panel of its own, as
+    // a panel sets ImGui's style as its mod is selected
+    FullPanel pointedPanel;
+    pointedPanel.setMods(panel.mods());
+    pointedPanel.select({ .mod = 0, .page = {} });
+    WARN("Saved " << renderToFile(pointedPanel, "config-spec-top-level-row-hover", pageRow(0)));
 }
 
 TEST_CASE("FullPanel render: a config spec's sections that fold, folded with what they hide and open, with the ray on one", "[.render]")
