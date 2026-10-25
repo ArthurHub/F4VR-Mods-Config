@@ -76,7 +76,7 @@ What a row has beside its type:
 
 | Feature | How the menu handles it | |
 | --- | --- | --- |
-| `CallFunction` | As in MCM, on a button and on a value row, the row's after Save writes its value. A button of a mod with unsaved changes asks to save them first | M33, M34 |
+| `CallFunction` | As in MCM, on a button and on a value row, the row's after Save writes its value. A button of a mod with unsaved changes asks to save them first, or to run without saving | M33, M34 |
 | `CallGlobalFunction` | As in MCM | M40 |
 | `CallExternalFunction` | Not run: it calls a function of Flash, which the menu has none of | M40 |
 | `RunConsoleCommand`, `SendEvent`, and any other type | Not run: they are actions of a hotkey, which MCM runs, and MCM's menu runs none of them in a row | M40 |

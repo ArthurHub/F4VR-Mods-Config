@@ -564,7 +564,7 @@ MCM pages remain a compatibility source: their values are read and written as MC
 - Writes ModSettings through MCM's own `MCM.SetModSetting*` functions, so MCM's in-memory store and its settings file stay in agreement. It never writes MCM's settings files itself.
 - Reads and writes GlobalValue and PropertyValue sources directly, as MCM does.
 - Sends the existing `OnMCMSettingChange|ModName` external event after Save writes a change, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
-- Runs the supported MCM button actions. A script reads the saved values, so while the mod has unsaved changes a press asks to save them first, as a config spec's button does; see [Buttons](schema.md#buttons).
+- Runs the supported MCM button actions. A script reads the saved values, so while the mod has unsaved changes a press asks to save them first, or to run without saving, as a config spec's script button does; see [Buttons](schema.md#buttons).
 - Shows hotkeys read-only. MCM keeps dispatching them.
 
 How it handles each MCM feature is in [MCM support](mcm.md).

@@ -19,6 +19,7 @@
 
 #include <imgui.h>
 
+#include "TestActions.h"
 #include "TestClients.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
@@ -1801,4 +1802,47 @@ TEST_CASE("FullPanel render: a button's confirmation, a dangerous one, and the r
     }));
     WARN("Saved " << renderToFile(panel, "button-failed", pageRow(2), false, press(pageRow(2))));
     WARN("Saved " << renderToFile(panel, "button-not-in-dll", pageRow(3)));
+}
+
+TEST_CASE("FullPanel render: a script button of a mod with unsaved changes asks to save them first, also with its own confirmation and with an invalid one", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    test_actions::TestActions actions;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "textinput", "valueType": "float", "text": "Height", "default": 1.5, "valueOptions": { "min": 0.5, "max": 2.5 },
+              "storage": { "path": ["Main", "fHeight"] } },
+            { "type": "button", "text": "Apply the preset", "help": "Sets the values of the preset.", "buttonText": "Apply",
+              "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "ApplyPreset" } },
+            { "type": "button", "text": "Reset everything", "help": "Puts every value of the mod back.", "buttonText": "Reset",
+              "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "ResetAll" },
+              "confirmation": { "title": "Reset everything?", "message": "This puts every value of the mod back.", "dangerous": true } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = {} });
+    const auto& height = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+
+    const auto press = [&panel](const ImVec2 at) {
+        return [&panel, at] {
+            for (const bool pressed : { false, false, true, false, false }) {
+                test_panel::drawFrame(panel, at, pressed);
+            }
+        };
+    };
+    CHECK(store.set(height, "2"s));
+    WARN("Saved " << renderToFile(panel, "button-save-first-help", pageRow(1)));
+    WARN("Saved " << renderToFile(panel, "button-save-first", POINTER_AWAY, false, press(pageRow(1))));
+    panel.back();
+    WARN("Saved " << renderToFile(panel, "button-save-first-dangerous", POINTER_AWAY, false, press(pageRow(2))));
+    panel.back();
+    CHECK(store.set(height, "3"s));
+    WARN("Saved " << renderToFile(panel, "button-save-first-invalid", POINTER_AWAY, false, press(pageRow(1))));
 }

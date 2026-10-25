@@ -315,7 +315,7 @@ Help is one size and one color. An MCM config can have the tags of a [text row](
 
 The help of a setting also says when its change takes effect, with a mark of its `applies`: not known, as it is made, after Save, or after the game is restarted. Its row has no such mark, as one on every row takes room and says little: a pending row's mark is that one, in amber, so it shows both that the change waits for Save and when it takes effect. A count of pending changes, in a folded section's heading, in the status and in the unsaved-changes dialog, keeps one plain pending mark. See [When a change takes effect](schema.md#when-a-change-takes-effect). The marks are still to be designed.
 
-A button of a mod with unsaved changes says in its help that a press asks to save them first; see [Buttons](schema.md#buttons).
+A button that calls a script, of a mod with unsaved changes, says in its help that a press asks to save them first; see [Buttons](schema.md#buttons).
 
 A config spec's mod and its pages can have a help of their own, which the help line shows while the ray is on their row in the tree. An MCM mod and its pages have none. A mod that is [not available](#notices) has the reason there instead: the help line says why while the ray is on its row. A page that explains itself at length does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
 

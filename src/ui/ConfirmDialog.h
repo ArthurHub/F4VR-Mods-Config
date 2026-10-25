@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 
@@ -14,8 +15,19 @@ namespace mods_config::ui
     {
         None,
         Confirm,
+        RunWithoutSaving,
         Cancel,
     };
 
-    ConfirmAnswer drawConfirmDialog(const model::Button* button);
+    /**
+     * The unsaved changes of a button's mod, which its confirmation can save before it runs: how many, and how many
+     * of them are invalid, which cannot be saved.
+     */
+    struct SaveFirst
+    {
+        std::size_t count = 0;
+        std::size_t invalid = 0;
+    };
+
+    ConfirmAnswer drawConfirmDialog(const model::Button* button, const SaveFirst* saveFirst = nullptr);
 }

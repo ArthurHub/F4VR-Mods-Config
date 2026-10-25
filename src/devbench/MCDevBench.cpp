@@ -445,8 +445,10 @@ namespace mods_config::devbench
 
         /**
          * Runs the action of a button of the page that is shown, by its text, as a press on its row and then on the
-         * confirming button of its confirmation does. A button whose action the menu or its store does not run, or
-         * whose enabledWhen does not hold, is disabled, and is not run. The answer has what the run did.
+         * confirming button of its confirmation does: a script's function saves the unsaved changes first, as Save and
+         * run does, and an invalid one or a Save that fails runs nothing, unless it is run without saving. A button
+         * whose action the menu or its store does not run, or whose enabledWhen does not hold, is disabled, and is
+         * not run. The answer has what the run did.
          */
         json runButton(const json& args)
         {
@@ -470,6 +472,15 @@ namespace mods_config::devbench
             }
             if (const auto reason = store.notRunnable(button->action); !reason.empty()) {
                 throw std::runtime_error("the button is disabled: " + reason);
+            }
+            const bool saveFirst = std::holds_alternative<model::CallFunction>(button->action) && store.dirtyCount() > 0 && !args.value("withoutSaving", false);
+            if (saveFirst && store.invalidCount() > 0) {
+                throw std::runtime_error("the unsaved changes are saved first, and one of them is not valid");
+            }
+            if (saveFirst) {
+                if (const auto saved = store.save(); !saved) {
+                    throw std::runtime_error("the unsaved changes are saved first, and are not saved: " + saved.error());
+                }
             }
             const auto result = store.run(button->action);
             return { { "ran", result.ran }, { "failed", result.failed }, { "message", result.message }, { "session", sessionToJson(store) } };
@@ -717,8 +728,10 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "run",
-            .description = "run the action of a button of the page that is shown, by its text, as a press on its row does: a disabled button is not run",
-            .arguments = { { "text", { { "type", "string" }, { "description", "run: the button's text, as the page action has it" } } } },
+            .description = "run the action of a button of the page that is shown, by its text, as a press on its row does: a disabled button is not run, "
+                           "and a script's function saves the unsaved changes first, as Save and run does",
+            .arguments = { { "text", { { "type", "string" }, { "description", "run: the button's text, as the page action has it" } } },
+                { "withoutSaving", { { "type", "boolean" }, { "description", "run: run a script's function with the unsaved changes pending, as Run without saving does" } } } },
             .handler = &runButton,
         });
         f4cf::devbench::addAction({

@@ -481,6 +481,18 @@ namespace
         return { right - static_cast<float>(place) * (BUTTON_MIN_WIDTH + theme::SPACE_2) - theme::SPACE_4, bottom - theme::CONTROL_HEIGHT * 0.5f };
     }
 
+    /**
+     * A place in `Run without saving` of a button's confirmation that asks to save first, while it is shown: near
+     * the right of the button, left of `Save and run`, which is as wide as its text needs.
+     */
+    ImVec2 runWithoutSavingButton()
+    {
+        constexpr float BUTTON_MIN_WIDTH = 112.0f;
+        const auto saveAndRun = dialogButton(0, CONFIRMATION);
+        const float width = (std::max)(BUTTON_MIN_WIDTH, std::ceil(ImGui::CalcTextSize("Save and run").x + theme::SPACE_4 * 2.0f));
+        return { saveAndRun.x - width - theme::SPACE_2, saveAndRun.y };
+    }
+
     // the file of the mod of `twoConfigSpecs`, under the folder of My Games
     constexpr auto MY_MOD_FILE = R"(Mods_Config\MyMod\MyMod.toml)";
 
@@ -1444,7 +1456,7 @@ TEST_CASE("FullPanel: a config spec's button runs its console command while its 
     point(panel, pageRow(1));
     CHECK(panel.helpLine().text() == "Hide the HUD: Toggles the HUD.");
 
-    // the switcher's pending value enables it, with no Save
+    // the switcher's pending value enables it, with no Save: a console command reads no setting, so it does not ask
     CHECK(pressActs(panel, pageRow(0)));
     CHECK(pressActs(panel, pageRow(1)));
     CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "tm" } });
@@ -1531,6 +1543,122 @@ TEST_CASE("FullPanel: a button runs its mod's function after its confirmation, a
     drawFrames(panel, 2);
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Calibrate: Measures your height.");
+}
+
+TEST_CASE("FullPanel: a button of a mod with unsaved changes asks to save them first, and Save and run saves them and then runs it")
+{
+    const test_panel::PanelContext context;
+    auto globals = someGlobals();
+    test_actions::TestActions actions;
+    mcm::McmStore store;
+    auto mod = modOf("Alpha");
+    mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Off", 0x800));
+    mod.frontPage.items.push_back(model::Button{ .text = "Apply",
+        .help = "Applies it.",
+        .action = model::CallFunction{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .function = "Apply", .arguments = {} } });
+    FullPanel panel;
+    panel.setStore(model::Source::Mcm, &store);
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // with no change it runs at once
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.called.size() == 1);
+
+    // with one its help says so, and a press asks, which Back cancels with nothing saved or run
+    CHECK(pressActs(panel, pageRow(0)));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Apply: Applies it. A press asks to save the unsaved changes first.");
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    CHECK(isDialogShown(CONFIRMATION));
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.called.size() == 1);
+    CHECK(store.dirtyCount() == 1);
+
+    // Run without saving runs it with the change pending
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, runWithoutSavingButton()));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.called.size() == 2);
+    CHECK(store.dirtyCount() == 1);
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, dialogButton(0, CONFIRMATION)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    CHECK(store.dirtyCount() == 0);
+    CHECK(actions.called.size() == 3);
+}
+
+TEST_CASE("FullPanel: a script button's own confirmation asks to save the unsaved changes too, and its Save and run is disabled while one is invalid")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE, "[Main]\r\nfHeight = 1.5\r\n");
+    test_actions::TestActions actions;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "textinput", "valueType": "float", "text": "Height", "default": 1.5, "valueOptions": { "min": 0.5, "max": 2.5 },
+              "storage": { "path": ["Main", "fHeight"] } },
+            { "type": "button", "text": "Reset", "action": { "type": "CallFunction", "form": "MyMod.esp|800", "function": "ResetAll" },
+              "confirmation": { "title": "Reset everything?", "message": "Puts every value back.", "dangerous": true } },
+            { "type": "button", "text": "Hide the HUD", "action": { "type": "RunConsoleCommand", "command": "tm" } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& height = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+
+    // one dialog, whose Save and run is not pressed while the change is invalid, and Run without saving is
+    CHECK(store.set(height, "3"s));
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    CHECK(isDialogShown(CONFIRMATION));
+    CHECK_FALSE(pressActs(panel, dialogButton(0, CONFIRMATION)));
+    CHECK(isDialogShown(CONFIRMATION));
+    CHECK(actions.called.empty());
+    CHECK(pressActs(panel, runWithoutSavingButton()));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.called.size() == 1);
+    CHECK(store.dirtyCount() == 1);
+
+    CHECK(store.set(height, "2"s));
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, dialogButton(0, CONFIRMATION)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.called.size() == 2);
+    CHECK(fileText(myGames.path / MY_MOD_FILE) == "[Main]\r\nfHeight = 2.0\r\n");
+
+    // a console command reads no setting, so it runs with a change pending, and asks nothing
+    CHECK(store.set(height, "1"s));
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Hide the HUD");
+    CHECK(pressActs(panel, pageRow(2)));
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.commands.size() == 1);
 }
 
 TEST_CASE("FullPanel: the help line says that a hotkey is read-only, and a press on its row does nothing")

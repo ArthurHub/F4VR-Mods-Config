@@ -1,5 +1,8 @@
 #include "Buttons.h"
 
+#include <format>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <variant>
 
@@ -20,6 +23,19 @@ namespace
 
     // what the help line says of a run that failed with no message of its own
     constexpr auto FAILED = "It failed.";
+
+    // what the help of a button that calls a script says while its mod has unsaved changes
+    constexpr auto SAVE_FIRST_HELP = "A press asks to save the unsaved changes first.";
+
+    /**
+     * Whether a button's action reads the saved values of its mod, so a press asks to save its unsaved changes
+     * first: a script's function, which reads the globals, properties and ModSettings that Save writes. A console
+     * command, a link and a function of the mod's DLL, which has the `live` values as a preview, do not.
+     */
+    bool readsSavedValues(const model::Action& action)
+    {
+        return std::holds_alternative<model::CallFunction>(action);
+    }
 }
 
 namespace mods_config::ui
@@ -27,7 +43,8 @@ namespace mods_config::ui
     /**
      * The row of a button at the cursor: its text, and its button where a control ends, before the room of a Reset,
      * with its own text or `Run`. The whole row is pressed, so the button is only drawn, and a press runs the action
-     * in the store, or shows its confirmation first. A button with no action is disabled, and so is one whose action
+     * in the store, or shows its confirmation first: also one with none that calls a script while the store has
+     * unsaved changes, as the script reads the saved values, which its help says. A button with no action is disabled, and so is one whose action
      * the menu does not run or its store cannot run, which the reason says, and one whose enabledWhen does not hold.
      * After its text it has the invalid mark of a run that failed, the info mark of a result that is not read, or
      * the warning mark of a warning that holds. Returns the row for the help line while the ray is on it.
@@ -45,8 +62,9 @@ namespace mods_config::ui
         const auto* unknown = std::get_if<model::UnknownAction>(&button.action);
         auto reason = unknown ? unknown->reason : store ? store->notRunnable(button.action) : std::string();
         const bool runs = store && enabled && !unknown && !std::holds_alternative<model::NoAction>(button.action) && reason.empty();
+        const bool saveFirst = runs && readsSavedValues(button.action) && store->dirtyCount() > 0;
         if (runs && row.pressed) {
-            if (button.confirmation) {
+            if (button.confirmation || saveFirst) {
                 _confirming = &button;
                 pressActed = true;
             } else if (run(button, *store)) {
@@ -78,6 +96,9 @@ namespace mods_config::ui
         }
 
         PointedRow pointed{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason), .warning = warning };
+        if (saveFirst) {
+            pointed.help += pointed.help.empty() ? SAVE_FIRST_HELP : std::string(" ") + SAVE_FIRST_HELP;
+        }
         if (result && result->failed) {
             pointed.help = result->message;
             pointed.invalid = true;
@@ -89,22 +110,37 @@ namespace mods_config::ui
 
     /**
      * The confirmation of the button that shows it: its confirming button runs the button's action, and Cancel
-     * closes it with nothing run. Returns whether a press on it ran the action or closed it.
+     * closes it with nothing run. For a script, while the store has unsaved changes, the confirming button saves
+     * them first, and a Save that fails runs nothing, which the button's result says, and `Run without saving`
+     * runs it with them pending. A button with no confirmation of its own whose changes are gone, as Discard took
+     * them back, asks nothing more and is not run.
+     * Returns whether a press on it ran the action or closed it.
      */
     bool Buttons::drawDialog(model::Store* store)
     {
-        if (!store) {
+        std::optional<SaveFirst> saveFirst;
+        if (store && _confirming && readsSavedValues(_confirming->action) && store->dirtyCount() > 0) {
+            saveFirst = SaveFirst{ .count = store->dirtyCount(), .invalid = store->invalidCount() };
+        }
+        if (!store || (_confirming && !_confirming->confirmation && !saveFirst)) {
             _confirming = nullptr;
         }
-        const auto answer = drawConfirmDialog(_confirming);
+        const auto answer = drawConfirmDialog(_confirming, saveFirst ? &*saveFirst : nullptr);
         if (answer == ConfirmAnswer::None) {
             return false;
         }
         const auto* button = _confirming;
         _confirming = nullptr;
-        if (answer == ConfirmAnswer::Confirm) {
-            run(*button, *store);
+        if (answer == ConfirmAnswer::Cancel) {
+            return true;
         }
+        if (answer == ConfirmAnswer::Confirm && saveFirst) {
+            if (const auto saved = store->save(); !saved) {
+                _results.insert_or_assign(button, Result{ .failed = true, .message = std::format("Not run, as the changes are not saved: {}.", saved.error()) });
+                return true;
+            }
+        }
+        run(*button, *store);
         return true;
     }
 
