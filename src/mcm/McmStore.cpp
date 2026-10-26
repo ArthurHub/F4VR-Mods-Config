@@ -562,7 +562,8 @@ namespace mods_config::mcm
      * Writes the pending values, in the order of the config, and then runs the action of each row that is
      * written and tells the scripts it changed, in that order too, so a script that reads another setting
      * finds the saved value. After a ModSetting is written, a DLL that reads its MCM file as the pause menu
-     * closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left.
+     * closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left: once MCM wrote
+     * the file, which it does on Papyrus's time, see frameUpdate.
      * A global or a property that is not in the game fails the Save before anything is written. A ModSetting
      * is written through a call to Papyrus that gives no result, so what is written is not taken back.
      * Returns why a change is not written, which stays pending.
@@ -590,22 +591,31 @@ namespace mods_config::mcm
 
         std::vector<Pending> notWritten;
         std::vector<Pending> wrote;
-        bool modSettingWritten = false;
+        // the text MCM writes for each ModSetting written
+        std::map<std::string, std::string, std::less<>> modSettingTexts;
         for (auto& pending : _pending) {
             if (!write(*pending.setting, pending.value)) {
                 notWritten.push_back(std::move(pending));
                 continue;
             }
             const auto* modSetting = std::get_if<model::ModSettingStorage>(&pending.setting->storage);
-            modSettingWritten = modSettingWritten || (modSetting && _modSettings.find(modSetting->name));
+            if (const auto* text = modSetting ? _modSettings.find(modSetting->name) : nullptr) {
+                modSettingTexts.insert_or_assign(modSetting->name, *text);
+            }
             wrote.push_back(std::move(pending));
         }
         _pending = std::move(notWritten);
         for (const auto& [setting, value] : wrote) {
             written(*setting, value);
         }
-        if (modSettingWritten) {
-            sendPauseMenuEvents();
+        if (!modSettingTexts.empty()) {
+            if (!_pauseMenuWait) {
+                _pauseMenuWait.emplace();
+            }
+            _pauseMenuWait->framesLeft = PAUSE_MENU_WAIT_FRAMES;
+            for (auto& [name, text] : modSettingTexts) {
+                _pauseMenuWait->files[_modSettings.playerFile()].insert_or_assign(name, std::move(text));
+            }
         }
         _lastSave = 0;
         logger::info("Saved {} changes of '{}'", wrote.size(), _modName);
@@ -613,6 +623,31 @@ namespace mods_config::mcm
             return failed(std::format("{} is not written", storageName(*_pending.front().setting)));
         }
         return {};
+    }
+
+    /**
+     * Tells the game's listeners of its menus that the pause menu opened and closed, after a Save wrote a ModSetting,
+     * once MCM's player file has every ModSetting the Saves wrote: MCM writes it as it runs the call that sets one,
+     * which is queued to Papyrus, and a DLL reads its MCM file as the pause menu closes. After
+     * `PAUSE_MENU_WAIT_FRAMES` frames they are sent anyway, as for a value MCM had already and does not write again.
+     * The menu calls it every frame, also while it is closed.
+     */
+    void McmStore::frameUpdate()
+    {
+        if (!_pauseMenuWait) {
+            return;
+        }
+        const bool inFile = std::ranges::all_of(_pauseMenuWait->files, [](const auto& file) {
+            return McmModSettings::fileHas(file.first, file.second);
+        });
+        if (!inFile && --_pauseMenuWait->framesLeft > 0) {
+            return;
+        }
+        if (!inFile) {
+            logger::warn("MCM's file does not have the ModSettings a Save wrote after {} frames: the pause menu's events are sent anyway", PAUSE_MENU_WAIT_FRAMES);
+        }
+        _pauseMenuWait.reset();
+        sendPauseMenuEvents();
     }
 
     /**

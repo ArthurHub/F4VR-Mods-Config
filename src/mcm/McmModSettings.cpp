@@ -1,5 +1,6 @@
 #include "McmModSettings.h"
 
+#include <algorithm>
 #include <format>
 #include <type_traits>
 #include <variant>
@@ -152,6 +153,20 @@ namespace mods_config::mcm
     {
         const auto found = _values.find(name);
         return found != _values.end() ? &found->second : nullptr;
+    }
+
+    /**
+     * Whether a player's file of MCM has each ModSetting with its text, as MCM writes it as it sets one: a file that
+     * is not there has none.
+     */
+    bool McmModSettings::fileHas(const std::filesystem::path& file, const std::map<std::string, std::string, std::less<>>& texts)
+    {
+        std::map<std::string, std::string, std::less<>> values;
+        readIni(file, values);
+        return std::ranges::all_of(texts, [&values](const auto& text) {
+            const auto found = values.find(text.first);
+            return found != values.end() && found->second == text.second;
+        });
     }
 
     /**

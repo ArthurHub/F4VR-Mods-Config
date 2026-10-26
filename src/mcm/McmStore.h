@@ -47,17 +47,22 @@ namespace mods_config::mcm
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
      * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`. After a Save that
-     * wrote a ModSetting, the pause menu is told as opened and closed, with `sendPauseMenuEvents`.
+     * wrote a ModSetting, the pause menu is told as opened and closed, with `sendPauseMenuEvents`, once MCM's
+     * file has what it wrote: `frameUpdate` waits for it.
      * The `CallFunction` and the `CallGlobalFunction` of a button are run with `callFunction`, and so are
      * the ones of a value row, by the Save that writes its value, with the value in their arguments.
      */
     class McmStore : public model::Store
     {
     public:
+        // how many frames the pause menu's events wait at most for MCM's file to have what a Save wrote
+        static constexpr int PAUSE_MENU_WAIT_FRAMES = 300;
+
         explicit McmStore(std::filesystem::path mcmFolder = {});
 
         void menuOpened();
         void menuClosed();
+        void frameUpdate();
 
         void open(const model::Mod& mod) override;
         void close() override;
@@ -165,5 +170,18 @@ namespace mods_config::mcm
         // the last Save, until the next change or Discard: none of its changes takes effect after a restart that
         // the store knows of
         std::optional<std::size_t> _lastSave;
+
+        /**
+         * The ModSettings Saves wrote whose pause menu's events wait for MCM to write them: the text MCM writes for
+         * each, by its player's file, and how many frames more they wait.
+         */
+        struct PauseMenuWait
+        {
+            std::map<std::filesystem::path, std::map<std::string, std::string, std::less<>>> files;
+            int framesLeft = PAUSE_MENU_WAIT_FRAMES;
+        };
+
+        // none while no Save waits for them. It outlives the session, as MCM writes after the mod is left
+        std::optional<PauseMenuWait> _pauseMenuWait;
     };
 }

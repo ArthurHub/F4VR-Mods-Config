@@ -28,6 +28,13 @@ namespace mods_config::mcm
         const std::string* find(std::string_view name) const;
         const std::string* findDefault(std::string_view name) const;
         bool set(std::string_view name, const model::Value& value);
+        static bool fileHas(const std::filesystem::path& file, const std::map<std::string, std::string, std::less<>>& texts);
+
+        // the player's file of the mod, which MCM writes on every set. Empty with no folder of MCM
+        const std::filesystem::path& playerFile() const
+        {
+            return _playerFile;
+        }
 
         std::size_t size() const
         {

@@ -1050,16 +1050,33 @@ TEST_CASE("McmStore: a Save that wrote a ModSetting tells that the pause menu op
     CHECK(store.save().has_value());
     CHECK(events.sent.empty());
 
+    // they wait for MCM to write the player's file, which it does as Papyrus runs its call, also after the mod is left
     const auto on = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
     CHECK(store.set(on, true));
     CHECK(store.save().has_value());
-    CHECK(events.sent == Events{ "PauseMenu(opening)", "PauseMenu(closing)" });
-
-    // the menu closes with nothing more
-    events.sent.clear();
+    store.frameUpdate();
     store.close();
     store.menuClosed();
     CHECK(events.sent == Events{ "OnMCMMenuClose|MyMod", "OnMCMClose" });
+    events.sent.clear();
+    mcm.write("Settings/MyMod.ini", "[Main]\nbOn=1\n");
+    store.frameUpdate();
+    CHECK(events.sent == Events{ "PauseMenu(opening)", "PauseMenu(closing)" });
+    events.sent.clear();
+    store.frameUpdate();
+    CHECK(events.sent.empty());
+
+    // a file MCM does not write, as for a value it had already, is waited for a while
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    CHECK(store.set(on, false));
+    CHECK(store.save().has_value());
+    events.sent.clear();
+    for (int frame = 1; frame < McmStore::PAUSE_MENU_WAIT_FRAMES; ++frame) {
+        store.frameUpdate();
+    }
+    CHECK(events.sent.empty());
+    store.frameUpdate();
+    CHECK(events.sent == Events{ "PauseMenu(opening)", "PauseMenu(closing)" });
 }
 
 TEST_CASE("McmStore: the action of a button calls its function, and no other action is run")

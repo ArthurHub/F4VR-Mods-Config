@@ -291,6 +291,8 @@ namespace mods_config
      */
     void ConfigMenu::onFrameUpdate()
     {
+        // the pause menu's events of a Save wait for MCM's file, also after the menu is closed
+        _store.frameUpdate();
         // every frame, so a change of the config shows while the menu is open
         imgui::pointer().setStyle(g_config.pointerStyle);
         if (_developerToSave) {

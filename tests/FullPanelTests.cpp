@@ -1779,8 +1779,8 @@ TEST_CASE("FullPanel: a press on the row of a text input edits it, and Enter wri
     CHECK(events.sent.empty());
     CHECK(store.save().has_value());
 
-    // MCM's two events of the setting, and the pause menu's two, as a ModSetting is written
-    CHECK(events.sent.size() == 4);
+    // MCM's two events of the setting: the pause menu's wait for MCM to write its file, which it does not in a test
+    CHECK(events.sent.size() == 2);
 }
 
 TEST_CASE("FullPanel: a text input that is left by the keyboard's Done writes its text, and one that is cancelled writes nothing")
