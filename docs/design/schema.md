@@ -59,6 +59,8 @@ Author, website, Nexus ID, and mod version may be optional metadata later.
 
 Two config specs with the same `modName` are both [not available](ui-and-vr-interaction.md#notices). The host does not pick one of them.
 
+A mod that has a config spec and an MCM menu, matched by the config spec's `modName` and the MCM config's, is listed by its config spec alone: its MCM menu is left out, so a mod that ships a config spec beside its MCM menu is not listed twice.
+
 IDs are compared without regard to case, both a config spec's `modName` and the ids inside a config spec: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
 
 A native client is matched to its config spec by the config spec's `modName`. A CommonFramework mod's client registers under the mod's own name, so its config spec uses that name as its `modName`. The F4SE plugin name, when it differs, goes only in `f4sePluginRequirements`.

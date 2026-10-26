@@ -152,6 +152,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | M127 | mod      | A file takes its path from a state of its client         | in review |
 | M128 | mod      | design system: a pending row's Discard                  | in review |
 | M129 | mod      | A pending row's Discard                                  | in review |
+| M130 | mod      | A mod with a config spec and an MCM menu is listed by its config spec | in review |
 
 M120 to M125 give every mod one lifecycle before a client previews: a change waits for Save, and the menu says when a change takes effect only where a config spec says it. See [MCM compatibility](architecture.md#mcm-compatibility) and [When a change takes effect](schema.md#when-a-change-takes-effect).
 
@@ -173,6 +174,8 @@ M126, F35 and M127 are for a mod that loads its file from another path at runtim
 M70 sends the F4SE message of a Save to each F4SE plugin of the config spec's `f4sePluginRequirements`, after the client's batch, with the `modName` as its data: a native mod with no client reloads its settings from it. The message's type and its sender's name are in the client header, in both copies. The Papyrus event of a Save is M93's.
 
 M128 and M129 give a pending row a way back without the footer's Discard, which takes back every change of the mod: while a setting's change is pending, its Reset slot is Discard, an undo arrow, which takes back that setting's change alone, to its saved value. A setting with no default, as an MCM global, has it too. The help line names the saved value. M128 designs it, and M129 draws it, with the store's Discard of one setting.
+
+M130 is for a mod that ships a config spec beside its MCM menu, as FRIK does: it is listed once, by its config spec, and its MCM menu is left out, matched by `modName` without regard to case.
 
 The milestone comes before the controls of milestone 9 and the Focused view of milestone 10. Both are for tuning a value while the player sees its effect.
 

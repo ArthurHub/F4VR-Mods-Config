@@ -59,4 +59,5 @@ namespace mods_config::spec
     std::vector<model::Mod> loadConfigSpecs(const std::filesystem::path& configFolder, const model::Translations& translations = {}, const PluginChecks& plugins = {},
         const FileFolders& folders = {});
     std::vector<model::Mod> loadInstalledConfigSpecs(const model::Translations& translations = {});
+    std::vector<model::Mod> withConfigSpecs(std::vector<model::Mod> mcmMods, std::vector<model::Mod> configSpecs);
 }

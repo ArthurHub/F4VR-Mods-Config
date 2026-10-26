@@ -9,6 +9,7 @@
 #include <fstream>
 #include <map>
 #include <optional>
+#include <set>
 #include <span>
 #include <sstream>
 #include <tuple>
@@ -2158,5 +2159,26 @@ namespace mods_config::spec
         auto mods = loadConfigSpecs(CONFIG_SPEC_FOLDER, translations, gamePluginChecks(), gameFileFolders());
         logger::info("Loaded {} config specs from '{}'", mods.size(), CONFIG_SPEC_FOLDER);
         return mods;
+    }
+
+    /**
+     * Every mod the menu lists: the MCM mods and then the config specs. A mod that has both is shown by its config spec
+     * alone, matched by its `modName` without regard to case, also one that is not available: its MCM menu is left out.
+     */
+    std::vector<model::Mod> withConfigSpecs(std::vector<model::Mod> mcmMods, std::vector<model::Mod> configSpecs)
+    {
+        std::set<std::string> names;
+        for (const auto& mod : configSpecs) {
+            names.insert(common::str_tolower(mod.name));
+        }
+        std::erase_if(mcmMods, [&names](const model::Mod& mod) {
+            if (!names.contains(common::str_tolower(mod.name))) {
+                return false;
+            }
+            logger::info("The MCM menu of '{}' is left out: its config spec is listed", mod.name);
+            return true;
+        });
+        std::ranges::move(configSpecs, std::back_inserter(mcmMods));
+        return mcmMods;
     }
 }

@@ -1538,6 +1538,29 @@ TEST_CASE("ConfigSpecLoader: two config specs with one modName, in any case, are
     CHECK(mods[2].notAvailable.empty());
 }
 
+TEST_CASE("ConfigSpecLoader: a mod with an MCM menu and a config spec is listed by its config spec alone")
+{
+    const auto modOf = [](std::string name, const model::Source source) {
+        return model::Mod{ .name = std::move(name), .displayName = {}, .frontPage = {}, .pages = {}, .source = source };
+    };
+    std::vector<model::Mod> mcmMods;
+    mcmMods.push_back(modOf("FRIK", model::Source::Mcm));
+    mcmMods.push_back(modOf("Other", model::Source::Mcm));
+    mcmMods.push_back(modOf("Broken", model::Source::Mcm));
+    std::vector<model::Mod> configSpecs;
+    configSpecs.push_back(modOf("frik", model::Source::ConfigSpec));
+    configSpecs.push_back(modOf("Mine", model::Source::ConfigSpec));
+    // one that is not available too
+    configSpecs.push_back(modOf("Broken", model::Source::ConfigSpec));
+    configSpecs.back().notAvailable = "its spec.json cannot be read";
+
+    Lines names;
+    for (const auto& mod : spec::withConfigSpecs(std::move(mcmMods), std::move(configSpecs))) {
+        names.push_back(mod.name + (mod.source == model::Source::Mcm ? " (MCM)" : ""));
+    }
+    CHECK(names == Lines{ "Other (MCM)", "frik", "Mine", "Broken" });
+}
+
 TEST_CASE("ConfigSpecLoader: with no config specs' folder there are no mods")
 {
     const test_files::TempFolder folder;

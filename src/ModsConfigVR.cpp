@@ -56,8 +56,7 @@ namespace mods_config
 
         // once: what a mod's menu holds does not change while the game runs
         const auto translations = loadGameTranslations();
-        auto mods = mcm::loadInstalledMods(translations);
-        std::ranges::move(spec::loadInstalledConfigSpecs(translations), std::back_inserter(mods));
+        auto mods = spec::withConfigSpecs(mcm::loadInstalledMods(translations), spec::loadInstalledConfigSpecs(translations));
         _menu.setMods(std::move(mods), translations);
     }
 

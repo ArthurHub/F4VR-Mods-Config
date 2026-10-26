@@ -562,6 +562,7 @@ Mods Config VR does not replace MCM. It bridges to it: MCM stays installed and k
 
 - Mods Config VR and the config specs written for it do not require MCM.
 - MCM-backed mods appear only when MCM is installed. A mod with an MCM menu already requires MCM, because its scripts call MCM's Papyrus functions.
+- A mod that also has a config spec is listed by its config spec alone, and its MCM menu is left out; see [Required metadata](schema.md#required-metadata).
 - Without MCM, MCM menus are not shown, and a diagnostic says why.
 
 Replacing MCM would mean reimplementing its Papyrus functions, its setting store, and its hotkey dispatch, and asking players to uninstall it. Bridging is less work and cannot change how existing mods behave.
