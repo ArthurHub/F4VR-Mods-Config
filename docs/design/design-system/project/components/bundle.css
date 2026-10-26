@@ -6,6 +6,7 @@ body { margin: 0; font-family: var(--font-sans); font-weight: 500; color: var(--
 * { box-sizing: border-box; }
 svg.mc-ico { display: block; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 svg.mc-ico .fill { fill: currentColor; stroke: none; }
+svg.mc-ico.is-pending { color: var(--amber); }
 
 /* the game world behind the glass: a bright overcast sky over ground, the hard case for legibility */
 .mc-world { background: linear-gradient(#bcc6cc 0 58%, #4b4739 58% 100%); padding: 24px; min-height: 100vh; }

@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-25T18:00:00Z",
+    "at": "2026-10-26T18:00:00Z",
     "via": "Claude Code",
-    "note": "When a pending change takes effect: a broadcast, a disk or a power mark in amber in place of the pending dot, and the help line's amber tag (TakesEffect); the Help page's Saving section; every mod has the Save bar; a script's button can ask to save first."
+    "note": "A pending row's Reset slot is Discard, an amber undo arrow, which takes back that setting's change alone; the help line names the saved value it goes back to."
   },
   "layout": "files",
   "libraries": [],

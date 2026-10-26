@@ -10,7 +10,7 @@ A hand pose, a CommonFramework `h` key: a frame that shows how each finger bends
 - **The glyph** is 104 x 32, outlined in `frame-border`: a `green` bar for each finger, thumb to pinky, as tall as the finger is straight. A finger's height is the mean of its three joints, 0 bent and 1 straight, clamped to 0..1. It tells an open hand from a fist at a glance; the numbers are in the editor.
 - **The palm** is `t-body`: "palm 15°, 0°", its pitch and yaw.
 - A press anywhere on the row opens the editor.
-- Pending: the bars and the text in `amber`, the pending mark after the name, Reset shown.
+- Pending: the bars and the text in `amber`, the pending mark after the name, Discard in the Reset slot.
 - Invalid: a value the framework cannot read as a hand pose, as a finger with two numbers. The frame has no glyph and a `red` outline, the file's text in `red` with an ellipsis, and the invalid mark after the name. The help line gives the framework's reason: "thumb is not an array of four numbers, [prox, mid, dist, splay]".
 
 ## The editor

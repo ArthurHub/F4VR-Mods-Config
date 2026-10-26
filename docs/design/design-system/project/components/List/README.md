@@ -9,7 +9,7 @@ A list of texts, a CommonFramework `a` key: a frame that shows the entries, and 
 - The frame is 392 x 48, as wide as a dropdown's, in `track` with a `frame-border` outline. From the left: the entries in `t-body`, joined by commas, as many as fit and then an ellipsis; how many there are in `t-detail` `green-muted`; and the drawn down arrow. Then the Reset slot.
 - An empty list says `None` in `green-muted`, with no count.
 - A press anywhere on the row opens the editor.
-- Pending: the entries in `amber`, the pending mark after the name, Reset shown.
+- Pending: the entries in `amber`, the pending mark after the name, Discard in the Reset slot.
 - Invalid: a value the framework cannot read as an array of strings, as `"AddOnNode"`. The frame has a `red` outline, the file's text in `red`, no count, and the invalid mark after the name. The help line gives the framework's reason.
 
 ## The editor

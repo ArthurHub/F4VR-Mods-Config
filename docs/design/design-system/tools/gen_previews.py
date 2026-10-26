@@ -18,6 +18,8 @@ TRI_R = '<svg class="tri" viewBox="0 0 14 14"><path d="M4 2 L11 7 L4 12 Z"/></sv
 X = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>'
 MIN = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 17 H18"/></svg>'
 RESET = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M4 5 V10 H9"/><path d="M5.2 15 A7.5 7.5 0 1 0 6.6 7 L4 10"/></svg>'
+# an undo: an arrow to the left whose tail turns back down, in amber as the change it takes back
+DISCARD = '<svg class="mc-ico is-pending" viewBox="0 0 24 24"><path d="M9 4 L4 9 L9 14"/><path d="M4 9 H14 A5 5 0 0 1 14 19 H8"/></svg>'
 CHECK = '<svg class="mc-ico check" viewBox="0 0 24 24"><path d="M4 12.5 L9.5 18 L20 6.5"/></svg>'
 MINUS = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 12 H18"/></svg>'
 PLUS = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 12 H18 M12 6 V18"/></svg>'
@@ -46,33 +48,37 @@ def helpline(name, text, long=False, error=False, tag=''):
 def pagehelp(text):
     return f'<div class="mc-pagehelp t-body">{text}</div>'
 
-def reset_btn(show=True):
+def reset_btn(show=True, pending=False):
+    """The slot after a control: Reset, empty where it is not shown, and Discard in its place while the setting's change
+    is pending."""
+    if pending:
+        return f'<span class="mc-btn is-icon" title="Discard">{DISCARD}</span>'
     return f'<span class="mc-btn is-icon{"" if show else " is-slot"}" title="Reset">{RESET}</span>'
 
 def slider(value, pct, state='', vstate='', show_reset=False):
     return (f'<div class="main"><span class="mc-track {state}"><i class="fill" style="width:{pct*2.6:.0f}px"></i>'
             f'<i class="grab" style="left:{10+pct*2.6:.0f}px"></i></span>'
-            f'<span class="mc-value {vstate}">{value}</span></div>{reset_btn(show_reset)}')
+            f'<span class="mc-value {vstate}">{value}</span></div>{reset_btn(show_reset, "is-pending" in vstate)}')
 
 def toggle(on=True, pending=False, show_reset=False):
     cls = 'mc-toggle' + (' is-pending' if pending else '')
     off_cls = '' if on else ' class="is-off"'
     on_cls = ' class="is-on"' if on else ''
-    return f'<div class="main"><span class="{cls}"><span{off_cls}>Off</span><span{on_cls}>On</span></span></div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}"><span{off_cls}>Off</span><span{on_cls}>On</span></span></div>{reset_btn(show_reset, pending)}'
 
 def combo(label, open_=False, show_reset=False, pending=False):
     cls = 'mc-combo' + (' is-open' if open_ else '') + (' is-pending' if pending else '')
-    return f'<div class="main"><span class="{cls}"><span>{label}</span>{ARROW_D}</span></div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}"><span>{label}</span>{ARROW_D}</span></div>{reset_btn(show_reset, pending)}'
 
 def num_stepper(value, pending=False, show_reset=False):
     return (f'<div class="main"><span class="mc-stepper"><span class="mc-btn is-icon">{MINUS}</span>'
             f'<span class="mc-value{" is-pending" if pending else ""}" style="justify-content:center">{value}</span>'
-            f'<span class="mc-btn is-icon">{PLUS}</span></span></div>{reset_btn(show_reset)}')
+            f'<span class="mc-btn is-icon">{PLUS}</span></span></div>{reset_btn(show_reset, pending)}')
 
 def choice_stepper(label, pending=False, show_reset=False):
     return (f'<div class="main"><span class="mc-stepper"><span class="mc-btn is-icon">{TRI_L}</span>'
             f'<span class="label{" is-pending" if pending else ""}">{label}</span>'
-            f'<span class="mc-btn is-icon">{TRI_R}</span></span></div>{reset_btn(show_reset)}')
+            f'<span class="mc-btn is-icon">{TRI_R}</span></span></div>{reset_btn(show_reset, pending)}')
 
 MARK_RE = re.compile(r'<span class="mc-tag[^"]*"[^>]*>.*?</span>|<svg\b.*?</svg>', re.S)
 
@@ -265,6 +271,8 @@ da_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 {fbar(helpline('Brightness', "How bright the beam is. 1.00 is the game's own flashlight; above 1.25 the beam starts to wash out close surfaces. Default 1.00."))}
 <span class="t-detail mc-muted">A pending change of a setting whose mod says when it takes effect: its tag first, in amber</span>
 {fbar(helpline('Shadow size', 'How sharp the beam&#39;s shadows are. Larger costs frame time. (Default: 2048)', tag=ptag(RESTART, 'Restart')))}
+<span class="t-detail mc-muted">The ray is on a pending setting's Discard: the saved value it goes back to</span>
+{fbar(helpline('Brightness', 'Discard the change, back to 1.00.', tag=ptag(LIVE, 'Live')))}
 <span class="t-detail mc-muted">Help that needs a third line drops to t-detail; past three lines it ends in an ellipsis</span>
 {fbar(helpline('Hide HUD in Pip-Boy', "Hides the compass, health, action points and the ammo counter while the Pip-Boy is raised, and brings them back when it is lowered. Widgets that FallUI HUD does not own, such as quest markers from other mods, keep their own setting. Default off.", long=True))}
 <span class="t-detail mc-muted">A validation error comes first</span>
@@ -272,7 +280,7 @@ da_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 <span class="t-detail mc-muted">The ray is off the settings: the session status</span>
 <div class="mc-footer"><div class="status t-body"><span class="mc-dot"></span><span class="mc-amber">1 unsaved change</span></div><span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
 </div></div>'''
-write('DescriptionArea', page('<!-- @dsCard group="Settings" height=610 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->', 'Help line', da_body))
+write('DescriptionArea', page('<!-- @dsCard group="Settings" height=716 width=1170 subtitle="Left of the footer: an error, else help for the pointed setting, else the status" -->', 'Help line', da_body))
 
 # ---------------- SectionHeader ----------------
 sh_states = ''.join(f'<span class="t-detail mc-muted" style="height:56px;display:flex;align-items:center">{label}</span><div>{html}</div>' for label, html in [
@@ -315,7 +323,7 @@ def btn(label, kind='', state=''):
 b_rows = []
 for kind, label in [('is-primary', 'Save'), ('', 'Discard'), ('is-quiet', 'Cancel')]:
     b_rows.append('<div class="mc-line">' + ''.join(btn(label, kind, s) for s in ['', 'is-hover', 'is-active', 'is-focus', 'is-disabled']) + '</div>')
-b_rows.append('<div class="mc-line">' + ''.join(f'<span class="mc-btn is-icon {s}">{g}</span>' for g, s in [(RESET, ''), (RESET, 'is-hover'), (X, ''), (MIN, ''), ('<span class="t-body">?</span>', '')]) + '</div>')
+b_rows.append('<div class="mc-line">' + ''.join(f'<span class="mc-btn is-icon {s}">{g}</span>' for g, s in [(RESET, ''), (RESET, 'is-hover'), (DISCARD, ''), (X, ''), (MIN, ''), ('<span class="t-body">?</span>', '')]) + '</div>')
 cols = '<div class="mc-line t-detail mc-muted" style="gap:12px"><span style="width:112px">Idle</span><span style="width:112px">Hover</span><span style="width:112px">Pressed</span><span style="width:112px">Focused</span><span style="width:112px">Disabled</span></div>'
 bt_body = f'<div class="mc-world"><div class="mc-sheet mc-stack" style="width:680px;gap:12px">{cols}{"".join(b_rows)}</div></div>'
 write('Button', page('<!-- @dsCard group="Actions" height=380 width=740 subtitle="Primary, secondary, quiet, icon; five states" -->', 'Button', bt_body))
@@ -411,7 +419,7 @@ fo_body = f'''<div class="mc-world" style="display:flex;gap:24px;align-items:fle
 <div class="fhead"><span class="grow t-body">Immersive Flashlight VR</span><span class="mc-btn t-body" style="min-width:88px">Full</span><span class="mc-btn is-icon">{MIN}</span></div>
 <div class="mc-desc t-body"><span class="name">Brightness:</span> How bright the beam is. 1.00 is the game's own flashlight. Default 1.00.</div>
 <div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px"><span>Brightness</span>{DOT}</div>
-<div class="ctl t-body"><span class="mc-track is-pending"><i class="fill" style="width:170px"></i><i class="grab" style="left:180px"></i></span><span class="mc-value is-pending">1.25</span><span class="mc-btn is-icon">{RESET}</span></div></div>
+<div class="ctl t-body"><span class="mc-track is-pending"><i class="fill" style="width:170px"></i><i class="grab" style="left:180px"></i></span><span class="mc-value is-pending">1.25</span><span class="mc-btn is-icon">{DISCARD}</span></div></div>
 <div class="item"><div class="t-body">Beam mode</div>
 <div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label" style="flex:1;width:auto">Spot</span><span class="mc-btn is-icon">{TRI_R}</span></span><span class="mc-btn is-icon is-slot">{RESET}</span></div></div>
 <div class="mc-footer t-body"><div class="status">{DOT}<span class="mc-amber">1 unsaved</span></div>{btn('Discard')}{btn('Save', 'is-primary')}</div>
@@ -689,12 +697,12 @@ PLAY = ('<svg class="mc-ico" viewBox="0 0 24 24"><circle class="dot" cx="12" cy=
 def play_btn(state=''):
     return f'<span class="mc-btn is-icon{" " + state if state else ""}" title="Play">{PLAY}</span>'
 
-def haptic(name, state='', play='', show_reset=False, text=None, open_=False):
+def haptic(name, state='', play='', show_reset=False, text=None, open_=False, pending=False):
     """The frame (label, shape, arrow), Play and the Reset slot. An invalid value is its text, with no shape."""
     cls = 'mc-combo is-haptic' + (f' {state}' if state else '') + (' is-open' if open_ else '')
     label = text if text is not None else HAPTICS[name][0]
     shape = '' if state == 'is-invalid' else env(name)
-    return f'<div class="main"><span class="{cls}"><span>{label}</span>{shape}{ARROW_D}</span>{play_btn(play)}</div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}"><span>{label}</span>{shape}{ARROW_D}</span>{play_btn(play)}</div>{reset_btn(show_reset, pending or 'is-pending' in state)}'
 
 def h_option(name, state='', mark=None):
     check = CHECK if state == 'is-current' else '<span class="check"></span>'
@@ -714,7 +722,7 @@ h_states = h_sheet([
     ('Idle', row('Press haptic', haptic('Tick'))),
     ('Ray on Play', row('Press haptic', haptic('Tick', play='is-hover'), 'is-hover', mark=(656, 20))),
     ('Pending', row('Press haptic', haptic('DoubleClick', 'is-pending', show_reset=True), gutter=DOT)),
-    ('None', row('Press haptic', haptic('none', play='is-disabled', show_reset=True), gutter=DOT)),
+    ('None', row('Press haptic', haptic('none', play='is-disabled', show_reset=True, pending=True), gutter=DOT)),
     ('Invalid', row('Press haptic', haptic('none', 'is-invalid', 'is-disabled', True, text='Tik'), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Entry haptic', haptic('Heartbeat2'), 'is-disabled')),
 ])
@@ -736,7 +744,7 @@ h_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="wi
 h_focused = f"""<div class="mc-focused" style="height:auto">
 <div class="mc-desc t-body"><span class="name">Entry haptic:</span> Plays once when a hand enters the zone. Default Tick.</div>
 <div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px"><span>Entry haptic</span>{DOT}</div>
-<div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label is-haptic is-pending" style="flex:1;width:auto"><span>Success</span>{env('Success')}</span><span class="mc-btn is-icon">{TRI_R}</span></span>{play_btn()}<span class="mc-btn is-icon">{RESET}</span></div></div>
+<div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label is-haptic is-pending" style="flex:1;width:auto"><span>Success</span>{env('Success')}</span><span class="mc-btn is-icon">{TRI_R}</span></span>{play_btn()}<span class="mc-btn is-icon">{DISCARD}</span></div></div>
 </div>"""
 h_library = '<div class="mc-sheet mc-popup t-body" style="width:336px;border-color:var(--frame-border)">' + ''.join(h_option(n) for n in HAPTICS) + '</div>'
 h_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:auto 336px;gap:16px 24px;align-items:start">
@@ -774,7 +782,7 @@ def nums(c):
 def color_ctl(c, state='', show_reset=False, text=None, open_=False):
     cls = 'mc-combo is-color' + (f' {state}' if state else '') + (' is-open' if open_ else '')
     sw = '' if state == 'is-invalid' else swatch(c)
-    return f'<span class="{cls}">{sw}<span class="nums">{text if text is not None else nums(c)}</span>{ARROW_D}</span>{reset_btn(show_reset)}'
+    return f'<span class="{cls}">{sw}<span class="nums">{text if text is not None else nums(c)}</span>{ARROW_D}</span>{reset_btn(show_reset, 'is-pending' in state)}'
 
 def toml_text(c):
     return f'{{ rgb = [{c[0]}, {c[1]}, {c[2]}]' + (f', alpha = {c[3]}' if len(c) == 4 else '') + ' }'
@@ -958,10 +966,10 @@ def toml_binding(b):
             parts.append(f'{k} = "{v}"')
     return '{ ' + ', '.join(parts) + ' }'
 
-def binding_ctl(b, state='', show_reset=False, text=None, open_=False):
+def binding_ctl(b, state='', show_reset=False, text=None, open_=False, pending=False):
     cls = 'mc-combo is-binding' + (f' {state}' if state else '') + (' is-open' if open_ else '')
     ic = '' if state == 'is-invalid' else icons(b)
-    return f'<span class="{cls}">{ic}<span class="sent">{text if text is not None else sentence(b)}</span>{ARROW_D}</span>{reset_btn(show_reset)}'
+    return f'<span class="{cls}">{ic}<span class="sent">{text if text is not None else sentence(b)}</span>{ARROW_D}</span>{reset_btn(show_reset, pending or 'is-pending' in state)}'
 
 def part(label, ctl, disabled=False, hover=False, mark=None):
     mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
@@ -1033,7 +1041,7 @@ b_states = h_sheet([
     ('Chord', row('Open the menu', binding_ctl(OPEN))),
     ('Push', row('Scroll up', binding_ctl(SCROLL))),
     ('Push, off hand', row('Previous page', binding_ctl({'hand': 'offhand', 'type': 'axis', 'direction': 'left'}))),
-    ('None', row('Secondary binding', binding_ctl(NONE_B, show_reset=True), gutter=DOT)),
+    ('None', row('Secondary binding', binding_ctl(NONE_B, show_reset=True, pending=True), gutter=DOT)),
     ('Invalid', row('Grab binding', binding_ctl(GRAB, 'is-invalid', True, text='{ hand = "offhand", type = "tap", button = "thumbstik" }'), 'is-invalid', gutter=WARN)),
     ('Disabled', row('Recenter binding', binding_ctl({'hand': 'offhand', 'type': 'longpress', 'button': 'thumbstick'}), 'is-disabled')),
 ])
@@ -1097,7 +1105,7 @@ def list_ctl(items, state='', show_reset=False, text=None, open_=False):
     cls = 'mc-combo is-list' + (f' {state}' if state else '') + (' is-open' if open_ else '') + ('' if items or text else ' is-empty')
     shown = text if text is not None else (', '.join(items) if items else 'None')
     count = f'<span class="count t-detail">{len(items)}</span>' if items and text is None else ''
-    return f'<div class="main"><span class="{cls}"><span class="items">{shown}</span>{count}{ARROW_D}</span></div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}"><span class="items">{shown}</span>{count}{ARROW_D}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
 
 def entry(i, text, ordered=False, n=0, state='', mark=None):
     """An entry: its text in a frame, pressed to type it again; Up and Down where the order means something; Remove."""
@@ -1192,7 +1200,7 @@ def palm_text(p):
 def pose_ctl(p, state='', show_reset=False, text=None, open_=False):
     cls = 'mc-combo is-pose' + (f' {state}' if state else '') + (' is-open' if open_ else '')
     g = '' if state == 'is-invalid' else pose_glyph(p)
-    return f'<div class="main"><span class="{cls}">{g}<span class="nums">{text if text is not None else palm_text(p)}</span>{ARROW_D}</span></div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}">{g}<span class="nums">{text if text is not None else palm_text(p)}</span>{ARROW_D}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
 
 def finger(name, f, state='', mark=None):
     mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
@@ -1570,7 +1578,7 @@ def field(text, state='', num=False, length=None, show_reset=False):
     cls = 'mc-field' + (' is-num' if num else '') + (f' {state}' if state else '') + ('' if text else ' is-empty')
     shown = text if text else 'Empty'
     tail = f'<span class="len t-detail">{length}</span>' if length else ('' if 'is-editing' in state else PEN)
-    return f'<div class="main"><span class="{cls}"><span class="txt t-body">{shown}</span>{tail}</span></div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}"><span class="txt t-body">{shown}</span>{tail}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
 
 ti_states = h_sheet([
     ('Idle', row('Settlement name', field('Sanctuary Hills'))),
@@ -1633,7 +1641,7 @@ GOBOS = [('1_Clean', 'round'), ('2_LED_Array', 'led'), ('3_Dirty_Lens', 'dirty')
 def file_ctl(name, kind, state='', show_reset=False, open_=False, ext='.DDS'):
     cls = 'mc-combo is-file' + (f' {state}' if state else '') + (' is-open' if open_ else '')
     th = '' if state == 'is-invalid' or kind is None else gobo(kind)
-    return f'<div class="main"><span class="{cls}">{th}<span class="nm">{name}<span class="ext">{ext}</span></span>{ARROW_D}</span></div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}">{th}<span class="nm">{name}<span class="ext">{ext}</span></span>{ARROW_D}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
 
 def f_option(name, kind, current=False, hover=False, mark=None):
     mk = f'<span class="mc-mark" style="position:relative;margin-left:60px"></span>' if mark else ''
@@ -1687,7 +1695,7 @@ def xform_ctl(t, state='', show_reset=False, text=None, open_=False):
         m = lambda k, txt: txt if k in t else f'<span class="mc-muted">{txt}</span>'
         lines = (f'<span class="t-detail"><span class="k">pos</span>{m("pos", ", ".join(fnum(v) for v in p))}{"" if s_ == 1 else f"   ×{fnum(s_)}"}</span>'
                  f'<span class="t-detail"><span class="k">rot</span>{m("rot", ", ".join(fnum(v, True) for v in r))}</span>')
-    return f'<div class="main"><span class="{cls}"><span class="lines">{lines}</span>{ARROW_D}</span></div>{reset_btn(show_reset)}'
+    return f'<div class="main"><span class="{cls}"><span class="lines">{lines}</span>{ARROW_D}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
 
 def axis(label, v, state='', hover=False, mark=None, deg=False, unset=False):
     mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''

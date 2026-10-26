@@ -291,6 +291,7 @@ Every editable declarative setting must declare its default beside the setting d
 - Reset changes the pending value and participates in preview like any other edit.
 - Reset is not persisted until Save.
 - Discard restores the values from the start of the editing session, including any values changed through Reset.
+- While a setting's change is pending, its row has Discard in the place of Reset, which takes back that change alone, to the setting's saved value. Reset is back once the change is discarded.
 
 ## MCM controls
 

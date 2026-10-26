@@ -55,7 +55,7 @@ Every interactive item has these states, each told apart by more than color:
 | Focused | The thumbstick adjusts it: the last control pressed | A 2 px `green` ring, no fill | Track the last-activated id; draw the ring yourself |
 | Active | Trigger held, or a drag | `pressed` fill, 2 px `glow` outline, grab in `glow` | `IsItemActive()`; `ButtonActive`, `SliderGrabActive` |
 | Selected | The open page, the current option | Solid `green`, `on-green` text; a tree row ends in a 20 px tip | Push `ImGuiCol_Text` = `on-green` before the item |
-| Pending | Differs from the saved value | `amber` dot after the name; the value, fill and grab in `amber`; Reset shown | Store state; nothing in ImGui |
+| Pending | Differs from the saved value | `amber` dot after the name; the value, fill and grab in `amber`; Discard in the Reset slot | Store state; nothing in ImGui |
 | Invalid | Cannot be saved | The invalid mark after the name; value in `red` with a `red` outline; the reason in the help line | Store state |
 | Disabled | Condition off, plugin missing | The whole row at `opacity-disabled` and no hover | `BeginDisabled()` with `DisabledAlpha` 0.4 |
 
@@ -134,7 +134,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - A text field's pencil, 18 px, in `green-muted` (see `TextInput`).
 - A texture's thumbnail: the texture itself, 32 px in a row and 40 px in a list, on black (see `FileChoice`).
 - An activation sphere's mark: a 20 px ring over a glow, with a halo while its sphere is lit (see `ActivationSphere`).
-- Close, Minimize, Reset, minus and plus: 2.5 px strokes in a 24 px box centered in a 48 px button. Reset is a three-quarter arc with an arrowhead, drawn with `PathArcTo`.
+- Close, Minimize, Reset, Discard, minus and plus: 2.5 px strokes in a 24 px box centered in a 48 px button. Reset is a three-quarter arc with an arrowhead, drawn with `PathArcTo`. Discard is an undo: an arrow to the left whose tail turns back down in a half circle, in `amber`, as the pending change it takes back.
 - Play, which plays a haptic: a 5 px dot with two arcs on each side, in the same 24 px box.
 - A haptic pattern's shape: a quad for each keyframe over a 2 px base, 96 x 24 (see `Haptic`).
 - Up and Down, which move a list's entry: a chevron in the same 24 px box (see `List`).
@@ -146,7 +146,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 ## Words
 
 - Write plain, literal sentences. No exclamation marks, no jokes, no "please".
-- The commit is **Save**, never Apply. Its partners are **Discard** and **Cancel**. Per row it is **Reset**.
+- The commit is **Save**, never Apply. Its partners are **Discard** and **Cancel**. Per row it is **Reset**, and **Discard** while the row's change is pending.
 - Name what happened and what to do: "Must be 0.50 to 1.50", "Enter a value from 0.50 to 1.50, or Reset it to 1.00."
 - Every mod's changes wait for Save, an MCM mod's too. Say when a change takes effect only where the mod's config spec says it: the menu does not know it otherwise. Do not label MCM mods or group them apart.
 - An entry that opens the keyboard says so in words: "Type a new name". Do not end a label with an ellipsis: `…` is outside the font's range, and three dots read as a typo in this voice.

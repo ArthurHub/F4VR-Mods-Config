@@ -68,6 +68,7 @@ What the UI asks of the store:
 - The default of a setting, where it has one. Reset sets it, as any other value is set.
 - The options of a choice: the definition's, or the ones it reads in the game as the mod is selected, for a choice that takes them from a FormList or a property of a script. The MCM store reads them again as another page is shown, as MCM's menu does.
 - Whether a setting is dirty, and to Save and Discard.
+- The saved value of a dirty setting, which the Discard of its row gives it back, and that Discard, of the one setting.
 - To run an action.
 - To read its values again.
 
