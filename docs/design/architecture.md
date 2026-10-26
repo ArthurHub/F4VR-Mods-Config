@@ -280,6 +280,8 @@ A condition of a config spec can ask a state of its client, by its name; see [Co
 
 The host asks each state once a frame, only while the client's mod is shown, so the rows of one state cost one call. The method answers at once and changes nothing. A state the client does not answer, and every state of a client that is cut off, is not available.
 
+A file of a config spec can take its path from a state too, with `pathFromClientState`; see [Files](schema.md#files). The host asks that one as the mod is selected and as its values are read again.
+
 ### The mod's own UI
 
 A mod's own UI is opened by a function of its client, from a button of its config spec or from a quick launch entry. The function moves the menu out of the way itself, with the calls of the menu, which any DLL can make:
@@ -450,7 +452,7 @@ A CommonFramework mod does not need client code of its own. The framework regist
 2. A discard clears it.
 3. After a Save, the adapter clears the overrides of the settings the batch has. The file holds the values by then, so the mod reloads them from disk.
 
-The adapter acts only on a setting of the mod's own config file, which it knows by the file's absolute path. It needs only the path of the value and the value. The mod's own loading code applies it as it applies any reload. A mod that has a setting of another file, or of the game, handles it with its own handlers of the client.
+The adapter acts only on a setting of the mod's own config file, which it knows by the file's absolute path. The framework's client answers the state `configFile` with that path, the one the mod loaded (`ConfigBase::getConfigFilePath()`), and `modVersion` with the mod's version. A mod that loads another file at runtime, as FRIK loads `FRIK_FOLVR.toml` with Fallout London VR, has its config spec's file name `configFile` in `pathFromClientState`, so the menu reads, previews and saves the file the mod loaded, and the adapter's path matches it. It needs only the path of the value and the value. The mod's own loading code applies it as it applies any reload. A mod that has a setting of another file, or of the game, handles it with its own handlers of the client.
 
 A preview therefore does what a reload of the config file does, and no more. A mod that does more work for a value to take effect subscribes to the config's change of that key, which a preview, a discard and a Save tell as a change of the file does. A value that the mod reads only once, when the game starts, is changed by neither, so the mod's config spec marks that setting `restart`.
 

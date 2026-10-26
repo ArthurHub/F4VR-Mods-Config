@@ -144,6 +144,13 @@ Rules:
 - `root` initially supports `data`, the game's `Data` directory, and `myGames`, which is `Documents/My Games/Fallout4VR`. The Documents folder is located through Windows, as CommonFramework does, so a redirected Documents folder is followed.
 - A path is checked as written: absolute paths and `..` segments are rejected. Links are not resolved.
 - The file does not have to exist. The host creates it on the first Save that changes one of its settings.
+- `pathFromClientState` is optional: the name of a [state](architecture.md#a-clients-state) of the mod's native client whose text is the file's absolute path, for a mod that loads its file from another path at runtime. The host asks it as the mod is selected and as its values are read again, and reads, previews and saves that file while the client answers it with a path under `Data` or `Documents/My Games/Fallout4VR`. With no client, a client that is cut off or does not answer it, or a path elsewhere, which the log names, it uses the declared `root` and `path`. The file keeps its `format`, and its extension must match it too. A CommonFramework mod's client answers `configFile` with the path of the config file it loaded; see [CommonFramework adapter](architecture.md#commonframework-adapter).
+
+```json
+"main": { "format": "toml", "root": "myGames", "path": "Mods_Config/FRIK/FRIK.toml", "pathFromClientState": "configFile" }
+```
+
+FRIK loads `FRIK_FOLVR.toml` in place of `FRIK.toml` with Fallout London VR, unless its `bIgnoreFalloutLondonVR` is on, so its file names that state, and the menu edits the file FRIK loaded, whatever chose it.
 - A config spec may contain only informational content and buttons, or keep its settings in globals and script properties alone, and therefore need no file declaration.
 
 ## Pages

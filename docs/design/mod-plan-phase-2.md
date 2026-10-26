@@ -147,6 +147,9 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | F30 | framework | `ModBase`'s client previews through the config overrides | in review |
 | F31 | framework | config: a subscriber is told the change of its keys         | in review |
 | M70 | mod       | The F4SE message after a Save                            | in review |
+| M126 | mod      | docs: a file's path from its client                      | in review |
+| F35 | framework | `ModBase`'s client answers the path of its config file   | todo   |
+| M127 | mod      | A file takes its path from a state of its client         | todo   |
 
 M120 to M125 give every mod one lifecycle before a client previews: a change waits for Save, and the menu says when a change takes effect only where a config spec says it. See [MCM compatibility](architecture.md#mcm-compatibility) and [When a change takes effect](schema.md#when-a-change-takes-effect).
 
@@ -162,6 +165,8 @@ F31 is for a mod that does more work for a value to take effect, as one that reb
 M68 previews the settings whose `applies` is `live`, and no others: a valid pending value is told to its mod's client, that of a global or a property after the store writes it into the game, with the value it was told before, and a Discard back to the baseline as it is set back, discarded or its mod is left. A Save tells nothing: the saved batch is M69's. `IClient` grows `onChange`, and the framework's copy of the header is changed with it.
 
 M69 tells a client once what a Save of its config spec wrote, after the action of each setting ran: every setting it wrote, of any `applies`, with its value before the Save and the value written, the files it wrote, and a revision, which counts the Saves of the config spec that wrote something in this run of the game. A preview the Save wrote ends with it, with no Discard. `IClient` grows `onSaved`, and the C++ client `subscribeToSaves`, in both copies of the header.
+
+M126, F35 and M127 are for a mod that loads its file from another path at runtime: FRIK loads `FRIK_FOLVR.toml` in place of `FRIK.toml` with Fallout London VR, unless its `bIgnoreFalloutLondonVR` is on. A file's optional `pathFromClientState` names a state of the mod's client whose text is the file's absolute path, under `Data` or `My Games`, which the menu asks as the mod is selected and as its values are read again: it reads, previews and saves that file, and the declared path while the client does not answer it. F35 has the framework's client answer `configFile` with the path of the config file the mod loaded, so a CommonFramework mod's config spec names it and the mod writes no code. FRIK's config spec names it in a commit of FRIK's repository, on a framework with F35. See [Files](schema.md#files).
 
 M70 sends the F4SE message of a Save to each F4SE plugin of the config spec's `f4sePluginRequirements`, after the client's batch, with the `modName` as its data: a native mod with no client reloads its settings from it. The message's type and its sender's name are in the client header, in both copies. The Papyrus event of a Save is M93's.
 

@@ -241,6 +241,7 @@ The client and its functions:
 
 - When Mods Config VR is installed, `ModBase` registers the mod as a native client through the vendored client header, `ModsConfigVRApi.h`, the way it registers the devbench tool; see [Native API](architecture.md#native-api). It registers every mod, under `Settings.name`, and does not look for a config spec. The host matches the client to the config spec whose `modName` is that name. A `Settings` flag opts a mod out, like `devbenchTool`.
 - A mod adds functions to its client, each under a name, which the buttons of its config spec run, and states, each under a name, which the conditions of its config spec ask.
+- The client answers two states of its own for every mod: `modVersion`, the mod's version, and `configFile`, the absolute path of the config file the mod loaded, which a file of its config spec takes its path from with `pathFromClientState`.
 - A mod that has a config UI of its own gives the client how to open it, and tells the client when it has closed. The client registers it as a function and a quick launch entry, minimizes the menu as it opens, and restores the menu as it closes; see [The mod's own UI](architecture.md#the-mods-own-ui).
 - A mod can be told of the menu's events, as a page of its config spec is shown and left, to show in the world what the page sets; see [The client's events](architecture.md#the-clients-events).
 
