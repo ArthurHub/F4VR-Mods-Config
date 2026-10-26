@@ -1162,6 +1162,59 @@ TEST_CASE("ConfigSpecStore: a live global or property is told to the mod's clien
     CHECK(hours == std::vector<float>{ 18.0f, 8.5f });
 }
 
+TEST_CASE("ConfigSpecStore: a file takes its path from a state of its mod's client while that is a file of its format under its folders")
+{
+    constexpr auto OTHER_FILE = R"(Mods_Config\MyMod\MyMod_Other.toml)";
+    Session session;
+    session.mod.files.at("main").pathFromClientState = "configFile";
+    std::optional<model::Value> answer;
+    std::vector<std::string> told;
+    session.store.clientCalls().addClient("MyMod",
+        { .state =
+                [&answer](const std::string_view name) {
+                    return name == "configFile" ? answer : std::nullopt;
+                },
+            .onSaved =
+                [&told](const model::SaveBatch& batch) {
+                    for (const auto& file : batch.files) {
+                        told.push_back(file.path);
+                    }
+                } });
+    session.myGames.write(OTHER_FILE, "[Main]\r\nfScale = 1.4\r\n");
+    const auto other = (session.myGames.path / OTHER_FILE).string();
+
+    // the client answers the file it loaded, in any letter case
+    answer = common::str_tolower(other);
+    session.open(MOD_TOML);
+    CHECK(session.value(1).value == model::Value(1.4f));
+    CHECK(session.store.set(session.setting(1), 1.3f));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / OTHER_FILE) == "[Main]\r\nfScale = 1.3\r\n");
+    CHECK(readFile(session.myGames.path / MOD_FILE) == MOD_TOML);
+    REQUIRE(told.size() == 1);
+    CHECK(common::str_tolower(told[0]) == common::str_tolower(other));
+
+    // its declared path with no answer, a path outside its folders, and one of another format
+    const auto declared = [&session] {
+        session.store.close();
+        session.store.open(session.mod);
+        return session.value(1).value == model::Value(1.25f);
+    };
+    answer.reset();
+    CHECK(declared());
+    answer = (session.data.path.parent_path() / "MyMod.toml").string();
+    CHECK(declared());
+    answer = (session.myGames.path / R"(Mods_Config\MyMod\MyMod.ini)").string();
+    CHECK(declared());
+    answer = "Mods_Config/MyMod/MyMod_Other.toml";
+    CHECK(declared());
+
+    // it is asked again as the values are read again
+    answer = other;
+    session.store.readAgain();
+    CHECK(session.value(1).value == model::Value(1.3f));
+}
+
 TEST_CASE("ConfigSpecStore: a Save that wrote something sends its F4SE message to each F4SE plugin of its config spec, after the client's batch")
 {
     TestGame game;

@@ -151,6 +151,7 @@ namespace mods_config::spec
         void discardOnClient(ClientPreview& preview) const;
         model::ClientSetting clientSetting(const model::Setting& setting) const;
         model::ClientFile clientFile(const std::string& name) const;
+        std::filesystem::path pathOf(const model::File& file) const;
         void rollBack();
 
         // the folders a path of a config spec's file is from: the game's Data folder, and
@@ -171,6 +172,9 @@ namespace mods_config::spec
         // the files of the mod that is selected that the menu reads, by their names in its config spec. A file that
         // is not there is one too
         std::map<std::string, std::unique_ptr<ModFile>, std::less<>> _files;
+
+        // where each of those files is, as the session started: its root and its path, or the path its mod's client gives
+        std::map<std::string, std::filesystem::path, std::less<>> _filePaths;
 
         // the options of the choices of the mod that is selected, and the callbacks that give the options of a choice
         // that takes them from its mod's client

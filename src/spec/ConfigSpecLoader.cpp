@@ -267,7 +267,7 @@ namespace
         "content",
         "pages" };
     // a file of its `files`:
-    constexpr std::array<std::string_view, 3> FILE_FIELDS{ "format", "root", "path" };
+    constexpr std::array<std::string_view, 4> FILE_FIELDS{ "format", "root", "path", "pathFromClientState" };
     // a page:
     constexpr std::array<std::string_view, 9> PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
     // a row, by its type:
@@ -486,6 +486,16 @@ namespace
             checkFields(declared, FILE_FIELDS, reading);
             auto file = declared.is_object() ? loadFile(declared) : std::unexpected("it is not an object"s);
             if (file) {
+                // the state of the mod's client that gives its path, which its root and its path stand for while it is not
+                // answered
+                if (const auto state = declared.find("pathFromClientState"); state != declared.end()) {
+                    if (state->is_string() && !state->get_ref<const std::string&>().empty()) {
+                        file->pathFromClientState = state->get<std::string>();
+                    } else {
+                        const Into intoState(reading, "pathFromClientState");
+                        reading.report(model::Severity::Warning, "Its pathFromClientState is not the name of a state: the file is read from its root and its path.");
+                    }
+                }
                 files.emplace(name, std::move(*file));
             } else {
                 reading.report(model::Severity::Error, std::format("The file \"{}\" is left out: {}. Its settings are not available.", name, file.error()));

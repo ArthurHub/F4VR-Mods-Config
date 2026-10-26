@@ -8,7 +8,8 @@
     "config": {
       "format": "toml",
       "root": "myGames",
-      "path": "Mods_Config/ModsConfigVR/ModsConfigVR.toml"
+      "path": "Mods_Config/ModsConfigVR/ModsConfigVR.toml",
+      "pathFromClientState": "configFile"
     }
   },
   "defaultFile": "config",

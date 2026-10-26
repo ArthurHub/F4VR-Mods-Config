@@ -100,6 +100,29 @@ namespace
     }
 
     /**
+     * A path as the menu compares one with another: absolute, normal, with the separators of Windows and in lower case,
+     * as Windows matches a file's name with no regard to case.
+     */
+    std::string comparablePath(const std::filesystem::path& path)
+    {
+        std::error_code error;
+        const auto text = std::filesystem::absolute(path, error).lexically_normal().make_preferred().u8string();
+        return common::str_tolower(std::string(text.begin(), text.end()));
+    }
+
+    /**
+     * Whether a path is in a folder, or in a folder in it.
+     */
+    bool isInFolder(const std::filesystem::path& path, const std::filesystem::path& folder)
+    {
+        auto folderText = comparablePath(folder);
+        if (!folderText.ends_with('\\')) {
+            folderText += '\\';
+        }
+        return comparablePath(path).starts_with(folderText);
+    }
+
+    /**
      * The name of a config spec's file, which names it in a reason, as a reason of its file does.
      */
     std::string fileName(const model::File& file)
@@ -568,8 +591,7 @@ namespace mods_config::spec
                 read.notAvailable = "Not available: the menu does not read JSON files yet.";
                 continue;
             }
-            const auto& root = file.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder;
-            const auto path = root / filePath(file);
+            const auto path = _filePaths.insert_or_assign(name, pathOf(file)).first->second;
             auto& modFile = _files[name];
             modFile = file.format == model::FileFormat::Toml ? std::unique_ptr<ModFile>(std::make_unique<TomlFile>(path)) : std::make_unique<IniFile>(path);
             if (!std::filesystem::exists(path)) {
@@ -651,6 +673,41 @@ namespace mods_config::spec
     }
 
     /**
+     * Where a file of the mod is: the path the mod's client answers for its `pathFromClientState`, as a mod that loads
+     * another file at runtime has it, while that is a file of its format under the game's Data folder or `My Games`. Its
+     * root and its path otherwise: with no state, no client, a client that does not answer it, and another path, which
+     * the log names. The client is asked as the mod is selected and as its values are read again.
+     */
+    std::filesystem::path ConfigSpecStore::pathOf(const model::File& file) const
+    {
+        auto declared = (file.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder) / filePath(file);
+        if (file.pathFromClientState.empty()) {
+            return declared;
+        }
+        const auto answer = _clientCalls.state(_modName, file.pathFromClientState);
+        const auto* text = answer ? std::get_if<std::string>(&*answer) : nullptr;
+        if (!text) {
+            logger::debug("The client of '{}' gives no path in its state '{}': its file is '{}'", _modName, file.pathFromClientState, declared.string());
+            return declared;
+        }
+        std::filesystem::path given(std::u8string(text->begin(), text->end()));
+        const auto extension = given.extension().u8string();
+        const auto format = file.format == model::FileFormat::Toml ? ".toml" : file.format == model::FileFormat::Ini ? ".ini" : ".json";
+        if (!given.is_absolute() || common::str_tolower(std::string(extension.begin(), extension.end())) != format ||
+            !(isInFolder(given, _dataFolder) || isInFolder(given, _myGamesFolder))) {
+            logger::warn("The client of '{}' gives the path '{}' in its state '{}', which is no {} file under the game's Data folder or My Games: its file is '{}'",
+                _modName,
+                *text,
+                file.pathFromClientState,
+                format,
+                declared.string());
+            return declared;
+        }
+        logger::debug("The client of '{}' gives its file '{}' in its state '{}'", _modName, *text, file.pathFromClientState);
+        return given;
+    }
+
+    /**
      * Ends the session of the mod: its values are forgotten, also the pending ones, why a Save failed and the
      * last Save, and the game has the baseline of each setting that is previewed again. The settings that take
      * effect after a restart that its Saves wrote are kept.
@@ -667,6 +724,7 @@ namespace mods_config::spec
         _modDisplayName.clear();
         _mod = nullptr;
         _files.clear();
+        _filePaths.clear();
         _options.clear();
         _settingList.clear();
         _settings.clear();
@@ -1029,6 +1087,7 @@ namespace mods_config::spec
         auto before = std::move(_entries);
         _entries.clear();
         _files.clear();
+        _filePaths.clear();
         _settingList.clear();
         _settings.clear();
         _options.clear();
@@ -1191,8 +1250,11 @@ namespace mods_config::spec
         if (file == _mod->files.end()) {
             return { .name = name };
         }
-        const auto& root = file->second.root == model::FileRoot::Data ? _dataFolder : _myGamesFolder;
-        return { .name = name, .format = file->second.format, .path = (root / filePath(file->second)).make_preferred().string() };
+        const auto found = _filePaths.find(name);
+        auto path = found != _filePaths.end() ? found->second : pathOf(file->second);
+        // the API's texts are UTF-8
+        const auto text = path.make_preferred().u8string();
+        return { .name = name, .format = file->second.format, .path = std::string(text.begin(), text.end()) };
     }
 
     /**

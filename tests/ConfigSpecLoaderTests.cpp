@@ -1213,6 +1213,24 @@ TEST_CASE("ConfigSpecLoader: a file that is not written as the schema has it is 
     CHECK(std::get<model::UnknownStorage>(onlySetting(mod).storage).type == "file");
 }
 
+TEST_CASE("ConfigSpecLoader: a file can take its path from a state of its mod's client, and one that names no state is read from its path")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml", "pathFromClientState": "configFile" },
+            "noName": { "format": "ini", "root": "data", "path": "MyMod.ini", "pathFromClientState": 5 }
+        },
+        "content": [ { "type": "spacer" } ]
+    })");
+    CHECK(mod.files.at("main").pathFromClientState == "configFile");
+    CHECK(mod.files.at("main").path == "Mods_Config/MyMod/MyMod.toml");
+    CHECK(mod.files.at("noName").pathFromClientState.empty());
+    REQUIRE(mod.problems.size() == 1);
+    CHECK(mod.problems[0].severity == model::Severity::Warning);
+    CHECK(mod.problems[0].path == "files.noName.pathFromClientState");
+}
+
 TEST_CASE("ConfigSpecLoader: a setting has its default in the type of its value, and none of another type")
 {
     const auto mod = loaded(configSpecOf(R"(
@@ -1533,7 +1551,11 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec edits keys of its shipped
     const auto& mod = mods[0];
     CHECK(mod.notAvailable.empty());
     CHECK(mod.name == "ModsConfigVR");
-    CHECK(mod.files.at("config") == model::File{ .format = model::FileFormat::Toml, .root = model::FileRoot::MyGames, .path = "Mods_Config/ModsConfigVR/ModsConfigVR.toml" });
+    // the file the menu loaded, which the framework's client answers
+    CHECK(mod.files.at("config") == model::File{ .format = model::FileFormat::Toml,
+                                        .root = model::FileRoot::MyGames,
+                                        .path = "Mods_Config/ModsConfigVR/ModsConfigVR.toml",
+                                        .pathFromClientState = "configFile" });
 
     const auto shipped = toml::parse(readFile(MODS_CONFIG_SHIPPED_CONFIG));
     std::unordered_set<std::string> ids;

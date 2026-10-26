@@ -712,6 +712,10 @@ namespace mods_config::model
         // from its root, with `/` between its folders, as its config spec writes it
         std::string path;
 
+        // the state of the mod's client whose text is the file's absolute path, in place of its root and its path while
+        // the client answers it: empty for none
+        std::string pathFromClientState;
+
         bool operator==(const File&) const = default;
     };
 
