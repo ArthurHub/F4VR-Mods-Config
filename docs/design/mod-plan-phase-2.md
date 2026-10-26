@@ -136,23 +136,23 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 
 | #   | Repo      | Commit                                                   | Status |
 | --- | --------- | -------------------------------------------------------- | ------ |
-| M120 | mod      | docs: Save for every mod, and `applies` that is not known | in review |
-| M121 | mod      | An MCM mod's changes wait for a Save                     | in review |
-| M122 | mod      | A script button of a mod with unsaved changes asks to save first | in review |
-| M123 | mod      | `applies` is `unknown` where nothing says it, and the help line says it | in review |
-| M124 | mod      | design system: the marks of `applies`, and the Help page's legend | in review |
-| M125 | mod      | The marks of `applies` on a pending row and in the help line, and the Help page's legend | in review |
-| M68 | mod       | A client gets the preview and discard events             | in review |
-| M69 | mod       | A client gets the saved batch                            | in review |
-| F30 | framework | `ModBase`'s client previews through the config overrides | in review |
-| F31 | framework | config: a subscriber is told the change of its keys         | in review |
-| M70 | mod       | The F4SE message after a Save                            | in review |
-| M126 | mod      | docs: a file's path from its client                      | in review |
-| F35 | framework | `ModBase`'s client answers the path of its config file   | in review |
-| M127 | mod      | A file takes its path from a state of its client         | in review |
-| M128 | mod      | design system: a pending row's Discard                  | in review |
-| M129 | mod      | A pending row's Discard                                  | in review |
-| M130 | mod      | A mod with a config spec and an MCM menu is listed by its config spec | in review |
+| M120 | mod      | docs: Save for every mod, and `applies` that is not known | done   |
+| M121 | mod      | An MCM mod's changes wait for a Save                     | done   |
+| M122 | mod      | A script button of a mod with unsaved changes asks to save first | done   |
+| M123 | mod      | `applies` is `unknown` where nothing says it, and the help line says it | done   |
+| M124 | mod      | design system: the marks of `applies`, and the Help page's legend | done   |
+| M125 | mod      | The marks of `applies` on a pending row and in the help line, and the Help page's legend | done   |
+| M68 | mod       | A client gets the preview and discard events             | done   |
+| M69 | mod       | A client gets the saved batch                            | done   |
+| F30 | framework | `ModBase`'s client previews through the config overrides | done   |
+| F31 | framework | config: a subscriber is told the change of its keys         | done   |
+| M70 | mod       | The F4SE message after a Save                            | done   |
+| M126 | mod      | docs: a file's path from its client                      | done   |
+| F35 | framework | `ModBase`'s client answers the path of its config file   | done   |
+| M127 | mod      | A file takes its path from a state of its client         | done   |
+| M128 | mod      | design system: a pending row's Discard                  | done   |
+| M129 | mod      | A pending row's Discard                                  | done   |
+| M130 | mod      | A mod with a config spec and an MCM menu is listed by its config spec | done   |
 
 M120 to M125 give every mod one lifecycle before a client previews: a change waits for Save, and the menu says when a change takes effect only where a config spec says it. See [MCM compatibility](architecture.md#mcm-compatibility) and [When a change takes effect](schema.md#when-a-change-takes-effect).
 

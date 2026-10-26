@@ -65,7 +65,7 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 5   | Config specs with Save       | This mod's own TOML is edited from its config spec and saved, and the mod reloads its file                        | done   |
 | 6   | Config specs complete        | FRIK's TOML, an INI file and a script mod's globals are edited from config specs and saved, and a Save that fails changes no file | done   |
 | 7   | Actions and own UIs      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | done   |
-| 8   | Live preview             | A CommonFramework mod with a config spec previews a slider live, with no code of its own                          | todo   |
+| 8   | Live preview             | A CommonFramework mod with a config spec previews a slider live, with no code of its own                          | done   |
 | 9   | CommonFramework controls | Every setting of Immersive Flashlight VR is edited from its config spec                                           | todo   |
 | 10  | Focused view             | A setting is changed on the offhand panel while the player looks at its effect                                | todo   |
 | 11  | First release            | The mod is published, with the author's guide and a sample config spec                                            | todo   |
