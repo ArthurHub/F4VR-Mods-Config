@@ -155,13 +155,11 @@ namespace mods_config::mcm
         // the settings of the mod that is selected, by their ids
         std::map<std::string, const model::Setting*, std::less<>> _settings;
 
-        // the settings of the mod that is selected, in the order of its config, which a Save writes them in
-        std::vector<const model::Setting*> _settingList;
-
         // the values of the settings with no storage that were set, of the mod that is selected
         std::unordered_map<const model::Setting*, model::Value> _held;
 
-        // the changes of the mod that is selected that wait for a Save, in the order they were made
+        // the changes of the mod that is selected that wait for a Save, in the order each was last made, which a
+        // Save applies them in
         std::vector<Pending> _pending;
 
         // why the last Save did not write every change, until the next change, Save or Discard

@@ -311,17 +311,15 @@ namespace
     }
 
     /**
-     * Adds the settings of the items to the map, each by its id, and to the list in their order, with those of
-     * the groups among them.
+     * Adds the settings of the items to the map, each by its id, with those of the groups among them.
      */
-    void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings, std::vector<const model::Setting*>& list)
+    void addSettings(const std::vector<model::Item>& items, std::map<std::string, const model::Setting*, std::less<>>& settings)
     {
         for (const auto& item : items) {
             if (const auto* setting = std::get_if<model::Setting>(&item)) {
                 settings.try_emplace(setting->id, setting);
-                list.push_back(setting);
             } else if (const auto* group = std::get_if<model::Group>(&item)) {
-                addSettings(group->items, settings, list);
+                addSettings(group->items, settings);
             }
         }
     }
@@ -393,9 +391,9 @@ namespace mods_config::mcm
         _keybinds.load(_mcmFolder, mod.name);
         _options.read(mod);
         logger::debug("Read {} ModSettings and {} hotkeys of '{}' from MCM's files", _modSettings.size(), _keybinds.size(), mod.name);
-        addSettings(mod.frontPage.items, _settings, _settingList);
+        addSettings(mod.frontPage.items, _settings);
         for (const auto& page : mod.pages) {
-            addSettings(page.items, _settings, _settingList);
+            addSettings(page.items, _settings);
         }
         sendEvent("OnMCMMenuOpen");
         sendEvent("OnMCMMenuOpen|" + _modName);
@@ -417,7 +415,6 @@ namespace mods_config::mcm
         _options.clear();
         _held.clear();
         _settings.clear();
-        _settingList.clear();
         _pending.clear();
         _saveFailure.clear();
         _lastSave.reset();
@@ -559,9 +556,10 @@ namespace mods_config::mcm
     }
 
     /**
-     * Writes the pending values, in the order of the config, and then runs the action of each row that is
-     * written and tells the scripts it changed, in that order too, so a script that reads another setting
-     * finds the saved value. After a ModSetting is written, a DLL that reads its MCM file as the pause menu
+     * Saves the pending values in the order the player last changed each, as MCM's menu applies a change as it is
+     * made: one is written, then the action of its row runs and the scripts are told it changed, and then the next
+     * one is. So a row whose script sets other rows, as a preset, is applied before the changes the player made after
+     * it, which stay. After a ModSetting is written, a DLL that reads its MCM file as the pause menu
      * closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left: once MCM wrote
      * the file, which it does on Papyrus's time, see frameUpdate.
      * A global or a property that is not in the game fails the Save before anything is written. A ModSetting
@@ -583,14 +581,8 @@ namespace mods_config::mcm
             }
         }
 
-        // a setting the mod does not have, as in a test, is after those it has
-        const auto place = [this](const Pending& pending) {
-            return std::ranges::distance(_settingList.begin(), std::ranges::find(_settingList, pending.setting));
-        };
-        std::ranges::stable_sort(_pending, std::less(), place);
-
         std::vector<Pending> notWritten;
-        std::vector<Pending> wrote;
+        std::size_t wrote = 0;
         // the text MCM writes for each ModSetting written
         std::map<std::string, std::string, std::less<>> modSettingTexts;
         for (auto& pending : _pending) {
@@ -598,16 +590,14 @@ namespace mods_config::mcm
                 notWritten.push_back(std::move(pending));
                 continue;
             }
+            written(*pending.setting, pending.value);
             const auto* modSetting = std::get_if<model::ModSettingStorage>(&pending.setting->storage);
             if (const auto* text = modSetting ? _modSettings.find(modSetting->name) : nullptr) {
                 modSettingTexts.insert_or_assign(modSetting->name, *text);
             }
-            wrote.push_back(std::move(pending));
+            ++wrote;
         }
         _pending = std::move(notWritten);
-        for (const auto& [setting, value] : wrote) {
-            written(*setting, value);
-        }
         if (!modSettingTexts.empty()) {
             if (!_pauseMenuWait) {
                 _pauseMenuWait.emplace();
@@ -618,7 +608,7 @@ namespace mods_config::mcm
             }
         }
         _lastSave = 0;
-        logger::info("Saved {} changes of '{}'", wrote.size(), _modName);
+        logger::info("Saved {} changes of '{}'", wrote, _modName);
         if (!_pending.empty()) {
             return failed(std::format("{} is not written", storageName(*_pending.front().setting)));
         }

@@ -200,7 +200,7 @@ TEST_CASE("McmStore: a Save writes nothing while a global of a change is not in 
     CHECK(store.saveFailure().empty());
 }
 
-TEST_CASE("McmStore: a Save writes every change in the order of the config, then runs the action of each row and sends its event in that order")
+TEST_CASE("McmStore: a Save applies each change in the order the player last made it, with the action of its row and its event")
 {
     auto globals = someGlobals();
     TestEvents events;
@@ -221,17 +221,35 @@ TEST_CASE("McmStore: a Save writes every change in the order of the config, then
     const auto& firstSetting = std::get<model::Setting>(mod.frontPage.items[0]);
     const auto& secondSetting = std::get<model::Setting>(mod.pages[0].items[0]);
 
-    // set in the other order
+    // the second row is changed again after the first, which puts it after the first, as MCM's menu applies it
     CHECK(store.set(secondSetting, 1.5f));
     CHECK(store.set(firstSetting, true));
+    CHECK(store.set(secondSetting, 2.0f));
     events.sent.clear();
     CHECK(store.save().has_value());
     CHECK(globals.values.at({ PLUGIN, 0x801 }) == 1.0f);
-    CHECK(globals.values.at({ PLUGIN, 0x802 }) == 1.5f);
+    CHECK(globals.values.at({ PLUGIN, 0x802 }) == 2.0f);
     CHECK(
         events.sent ==
         Events{ "OnMCMSettingChange(MyMod, bFirst)", "OnMCMSettingChange|MyMod(MyMod, bFirst)", "OnMCMSettingChange(MyMod, fSecond)", "OnMCMSettingChange|MyMod(MyMod, fSecond)" });
-    REQUIRE(actions.called.size() == 1);
+
+    // and the other way
+    CHECK(store.set(firstSetting, false));
+    CHECK(store.set(secondSetting, 1.0f));
+    events.sent.clear();
+    CHECK(store.save().has_value());
+    CHECK(
+        events.sent ==
+        Events{ "OnMCMSettingChange(MyMod, bFirst)", "OnMCMSettingChange|MyMod(MyMod, bFirst)", "OnMCMSettingChange(MyMod, fSecond)", "OnMCMSettingChange|MyMod(MyMod, fSecond)" });
+    CHECK(store.set(secondSetting, 2.0f));
+    CHECK(store.set(firstSetting, true));
+    events.sent.clear();
+    CHECK(store.save().has_value());
+    CHECK(
+        events.sent ==
+        Events{ "OnMCMSettingChange(MyMod, fSecond)", "OnMCMSettingChange|MyMod(MyMod, fSecond)", "OnMCMSettingChange(MyMod, bFirst)", "OnMCMSettingChange|MyMod(MyMod, bFirst)" });
+    // the first row's action, once a Save
+    REQUIRE(actions.called.size() == 3);
     CHECK(actions.called[0].function == "First");
     CHECK(store.dirtyCount() == 0);
 }
