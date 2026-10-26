@@ -14,7 +14,7 @@ namespace mods_config::ui
 {
     /**
      * Which config specs the Developer section of the menu's front page lists: those that need attention, all of
-     * them, or the one Mods Config VR's settings name.
+     * them, or the one Mods Config FO4 VR's settings name.
      */
     enum class ShowConfigSpecs : std::uint8_t
     {
@@ -24,7 +24,7 @@ namespace mods_config::ui
     };
 
     /**
-     * The Developer tools as Mods Config VR's settings have them: whether they are on, which config specs the front
+     * The Developer tools as Mods Config FO4 VR's settings have them: whether they are on, which config specs the front
      * page's section lists, the config spec it lists alone, by its modName, and whether the section is folded.
      */
     struct DeveloperView

@@ -15,7 +15,7 @@ import struct
 import zlib
 from pathlib import Path
 
-OUTPUT = Path(__file__).resolve().parent.parent / "data/showcase/MCM/Config/ModsConfigVR_McmShowcase/lib.swf"
+OUTPUT = Path(__file__).resolve().parent.parent / "data/showcase/MCM/Config/ModsConfigFO4_McmShowcase/lib.swf"
 
 TWIPS = 20
 

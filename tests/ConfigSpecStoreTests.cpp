@@ -1425,12 +1425,12 @@ TEST_CASE("ConfigSpecStore: every setting of the mod's own config spec is availa
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
-    const auto folder = myGames.path / "Mods_Config" / "ModsConfigVR";
+    const auto folder = myGames.path / "Mods_Config" / "ModsConfigFO4VR";
     std::filesystem::create_directories(folder);
-    std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, folder / "ModsConfigVR.toml");
+    std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, folder / "ModsConfigFO4VR.toml");
     // the menu gives the options of its Config spec setting: none, and the config specs it lists
     ConfigSpecStore store({}, myGames.path);
-    store.clientCalls().addClient("ModsConfigVR",
+    store.clientCalls().addClient("ModsConfigFO4VR",
         test_clients::TestClient{ .options = { { "developerConfigSpec",
                                       [](const model::Setting&) {
                                           return std::vector<model::Option>{ { .value = std::string(), .text = "None" }, { .value = "MyMod"s, .text = "My Mod" } };

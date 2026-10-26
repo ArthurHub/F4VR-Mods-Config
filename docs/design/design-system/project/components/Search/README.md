@@ -30,7 +30,7 @@ The search of the mods and their settings: the tree's header is the field, a que
 
 ## The results
 
-While the query has text and no page of a result is selected, the content is the results: a page with the crumbs `MODS CONFIG VR » Search`.
+While the query has text and no page of a result is selected, the content is the results: a page with the crumbs `MODS CONFIG FO4 » Search`.
 
 - A line at the top in `green-muted`: "7 settings match “hol”. Change them here, or go to their page in the tree."
 - The settings that match, under a heading for each page, `<mod> » <page>`, or the mod's name for its front page, in the order of the tree. Each is the setting's own row, with its control, its pending state and its Reset: a value is changed here as on its page, and Save saves it.

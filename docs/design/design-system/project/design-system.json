@@ -15,11 +15,11 @@
     "by": "Arthur",
     "at": "2026-10-26T18:00:00Z",
     "via": "Claude Code",
-    "note": "A pending row's Reset slot is Discard, an amber undo arrow, which takes back that setting's change alone; the help line names the saved value it goes back to."
+    "note": "The mod is Mods Config FO4 VR: the title bar's first crumb is MODS CONFIG FO4, and the menu's own entry in the tree is Mods Config FO4."
   },
   "layout": "files",
   "libraries": [],
   "namespace": "ModsConfigVR",
   "sections": {},
-  "title": "Mods Config VR"
+  "title": "Mods Config FO4 VR"
 }

@@ -17,7 +17,7 @@ namespace mods_config::spec
     constexpr int SCHEMA_VERSION = 1;
 
     // where the config specs are, from the game's folder: a folder each, with its `spec.json`
-    constexpr auto CONFIG_SPEC_FOLDER = R"(Data\ModsConfigVR\Config)";
+    constexpr auto CONFIG_SPEC_FOLDER = R"(Data\ModsConfigFO4\Config)";
 
     /**
      * Whether a plugin is loaded, by its name: the game's check, or a test's.

@@ -20,7 +20,7 @@ namespace test_files
         {
             static std::atomic counter = 0;
             const auto time = std::chrono::steady_clock::now().time_since_epoch().count();
-            path = std::filesystem::temp_directory_path() / ("ModsConfigVR_tests_" + std::to_string(time) + "_" + std::to_string(counter++));
+            path = std::filesystem::temp_directory_path() / ("ModsConfigFO4VR_tests_" + std::to_string(time) + "_" + std::to_string(counter++));
             std::filesystem::create_directories(path);
         }
 

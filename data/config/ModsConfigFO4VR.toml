@@ -1,4 +1,4 @@
-[ModsConfigVR]
+[ModsConfigFO4VR]
 
 #
 # ---------------
@@ -148,7 +148,7 @@ sFlowText1 = ""
 sFlowText2 = ""
 
 # Selects an in-game live-tuning target; "none" or "" disables it and restores controller input.
-# Examples: "flag123"; "haptictest"; "ModsConfigVR::tSomeTransform"
+# Examples: "flag123"; "haptictest"; "ModsConfigFO4VR::tSomeTransform"
 # Guide: https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md
 sAdjustTarget = ""
 

@@ -7,7 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "ModsConfigVR.h"
+#include "ModsConfigFO4.h"
 #include "devbench/DevBench.h"
 #include "imgui/ImGuiPointer.h"
 #include "model/Conditions.h"
@@ -566,7 +566,7 @@ namespace mods_config::devbench
 
         json runOpen(const json&)
         {
-            if (!ModsConfigVR::isPlayerLoaded()) {
+            if (!ModsConfigFO4::isPlayerLoaded()) {
                 throw std::runtime_error("no save is loaded");
             }
             auto& menu = g_modsConfig.menu();
@@ -674,7 +674,7 @@ namespace mods_config::devbench
     void setupDevBenchTool()
     {
         f4cf::devbench::setToolDescription(
-            "Mods Config VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state and the mods it lists, show a mod, one of "
+            "Mods Config FO4 VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state and the mods it lists, show a mod, one of "
             "its pages or the Help page, go back, read the rows of the page with their values, set a value or its default, run a button, Save or Discard the "
             "changes, and answer the dialog that asks about unsaved changes");
 

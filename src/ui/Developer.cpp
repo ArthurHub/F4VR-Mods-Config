@@ -21,13 +21,13 @@ namespace
     constexpr auto HEADING_HELP = "The problems of each config spec, for its author: what the menu left out of it, and what it read that is likely not meant.";
     constexpr auto FILTER = "Show";
     constexpr auto FILTER_HELP =
-        "Which config specs this section lists: those that need attention, with an error or a warning or not loaded, all of them, or only the Config spec of Mods Config VR's "
+        "Which config specs this section lists: those that need attention, with an error or a warning or not loaded, all of them, or only the Config spec of Mods Config FO4 VR's "
         "settings.";
 
     // the tag of a config spec's row while it is read from its live copy
     constexpr auto LIVE_COPY_TAG = "Live copy";
 
-    // the options of the filter, as Mods Config VR's settings have them: the third is the name of its Config spec
+    // the options of the filter, as Mods Config FO4 VR's settings have them: the third is the name of its Config spec
     constexpr std::array FILTER_OPTIONS{ "Needing attention", "All" };
 
     /**

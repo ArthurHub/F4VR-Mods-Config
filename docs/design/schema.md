@@ -1,6 +1,6 @@
 # Declarative schema
 
-This document describes the current direction of the Mods Config VR declarative JSON format. It is a design specification, not a frozen versioned schema.
+This document describes the current direction of the Mods Config FO4 VR declarative JSON format. It is a design specification, not a frozen versioned schema.
 
 A config spec has what an MCM config has, by MCM's names wherever MCM has the same thing, and more. [A config spec and MCM](#a-config-spec-and-mcm) lists the differences.
 
@@ -9,7 +9,7 @@ The examples use a made-up mod, My Mod, that keeps its settings where a CommonFr
 ## Config spec location
 
 ```text
-Data/ModsConfigVR/Config/<ConfigSpecFolder>/spec.json
+Data/ModsConfigFO4/Config/<ConfigSpecFolder>/spec.json
 ```
 
 The folder name is organizational. The config spec's `modName` is its machine identity.
@@ -41,7 +41,7 @@ One `spec.json` is supported per config spec: a config spec has no includes or f
 
 ### Required metadata
 
-- `minSchemaVersion`: the lowest version of the Mods Config VR config spec schema that can read the config spec, as `minMcmVersion` is in an MCM config. See [Schema version](#schema-version).
+- `minSchemaVersion`: the lowest version of the Mods Config FO4 VR config spec schema that can read the config spec, as `minMcmVersion` is in an MCM config. See [Schema version](#schema-version).
 - `modName`: the stable, unique identity of the config spec, named as in an MCM config.
 - `displayName`: the mod's name as the player sees it, a localized text.
 - `files`: named settings-file declarations when the config spec has file-backed settings.
@@ -67,7 +67,7 @@ A native client is matched to its config spec by the config spec's `modName`. A 
 
 ### Schema version
 
-The schema has one version number, and it only grows. A config spec ships with its mod and is not updated when Mods Config VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every config spec written for an older version.
+The schema has one version number, and it only grows. A config spec ships with its mod and is not updated when Mods Config FO4 VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every config spec written for an older version.
 
 - `minSchemaVersion` is the lowest version that has everything the config spec uses. It is required, a whole number from 1: a config spec without it is not loaded, and the error is reported.
 - On a host below that version the config spec's mod is [not available](ui-and-vr-interaction.md#notices), and the reason names the version it needs.
@@ -79,15 +79,15 @@ The schema has one version number, and it only grows. A config spec ships with i
 `category` is optional: the name of the group the mod is listed under when the mod list is long. See [Mod categories](ui-and-vr-interaction.md#mod-categories).
 
 - It is a plain name in English, never a `$` token. Mods are grouped by the name itself, compared without regard to case, and two mods that use different tokens would be in two groups.
-- Mods Config VR ships a list of names, and an author uses one of them where it fits: `Gameplay`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `VR`, `Utilities`. The menu shows these in the game's language where it has the translation.
+- Mods Config FO4 VR ships a list of names, and an author uses one of them where it fits: `Gameplay`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `VR`, `Utilities`. The menu shows these in the game's language where it has the translation.
 - Any other name is accepted.
 - One category can be spelled in several ways, as case is not compared. A shipped name is shown as the list spells it. Any other name is shown as the player typed it, or else as the first mod in the list writes it.
 - An MCM config can have the same field, at its root.
 
-An MCM mod that is already published names no category. Mods Config VR ships a table that gives one to the mods it knows, in the file that also has the list of names:
+An MCM mod that is already published names no category. Mods Config FO4 VR ships a table that gives one to the mods it knows, in the file that also has the list of names:
 
 ```text
-Data/ModsConfigVR/Categories.json
+Data/ModsConfigFO4/Categories.json
 ```
 
 ```json
@@ -177,7 +177,7 @@ A page is a row in the navigation tree, under the mod or under another page. It 
 - A page's `content` is required and is not empty. A page with pages under it has rows of its own too.
 - A page's `help` is shown in the help line while the ray is on its row in the tree.
 - A page can have an `id`, unique among the config spec's pages. The mod's native client is told it as the page is shown and left, to show in the world what the page sets; see [The client's events](architecture.md#the-clients-events). A page with no `id` sends none.
-- A page's pages are rows under it in the tree, shown while it or one of them is selected, as a mod's pages are shown while the mod is selected. The breadcrumbs name every level, as `MODS CONFIG VR » My Mod » Body » Hands`. See [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior).
+- A page's pages are rows under it in the tree, shown while it or one of them is selected, as a mod's pages are shown while the mod is selected. The breadcrumbs name every level, as `MODS CONFIG FO4 » My Mod » Body » Hands`. See [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior).
 - A page can have `visibleWhen` and `enabledWhen`, using the same [conditions](#conditions) as rows. `visibleWhen` hides its navigation row and its children. `enabledWhen` leaves the row visible but disabled, with an explanation in the help line, and prevents opening it or its children.
 - What a page has goes down to the pages under it: its `defaultFile`, its `applies`, its `visibleWhen` and its `enabledWhen`. Page conditions also cover its content, combined with each row's own conditions.
 - If the selected page becomes hidden or disabled, the menu returns to the nearest visible, enabled parent, or the mod's front page. Unsaved changes stay pending. Direct page requests follow the same rule, including requests from a native client.
@@ -654,7 +654,7 @@ A choice can take its options from the mod's native client, for a list only the 
 
 The client registers a callback for the setting's id with the [native API](architecture.md#options-from-a-client), and the host calls it as the mod is selected. It returns the options in either form of `options`: texts, or values with their texts, the values in the setting's `valueType`. While no callback is registered for the setting, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options is invalid, and the `default` is any value of the setting's type, as for options from the game.
 
-Mods Config VR's own config spec uses it for its Config spec setting, whose options are the config specs the menu found: the menu registers that callback through the native API, with its own client.
+Mods Config FO4 VR's own config spec uses it for its Config spec setting, whose options are the config specs the menu found: the menu registers that callback through the native API, with its own client.
 
 ## Buttons
 

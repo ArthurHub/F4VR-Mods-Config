@@ -6,7 +6,7 @@
 #include <Windows.h>
 #include <shellapi.h>
 
-#include "api/ModsConfigVRApi.h"
+#include "api/ModsConfigFO4Api.h"
 #include "f4sevr/PapyrusUtils.h"
 
 using namespace mods_config;
@@ -185,7 +185,7 @@ namespace mods_config
     }
 
     /**
-     * Sends the F4SE message of a Save, `MODS_CONFIG_VR_SAVED_MESSAGE` of the client header, to each plugin, with the
+     * Sends the F4SE message of a Save, `MODS_CONFIG_FO4_SAVED_MESSAGE` of the client header, to each plugin, with the
      * mod's name as its data, text that ends with a zero. F4SE calls the plugin's listener of the menu's messages at
      * once, and a plugin with none gets nothing: the log says what F4SE answered.
      */
@@ -197,7 +197,7 @@ namespace mods_config
         }
         for (const auto& plugin : plugins) {
             const bool sent =
-                messaging->Dispatch(api::MODS_CONFIG_VR_SAVED_MESSAGE, const_cast<char*>(modName.c_str()), static_cast<std::uint32_t>(modName.size() + 1), plugin.c_str());
+                messaging->Dispatch(api::MODS_CONFIG_FO4_SAVED_MESSAGE, const_cast<char*>(modName.c_str()), static_cast<std::uint32_t>(modName.size() + 1), plugin.c_str());
             logger::debug("The F4SE message of the Save of '{}' {} sent to '{}'", modName, sent ? "is" : "is not", plugin);
         }
     }

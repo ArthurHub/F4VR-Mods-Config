@@ -1,4 +1,4 @@
-/* Mods Config VR — preview stylesheet.
+/* Mods Config FO4 VR — preview stylesheet.
    Recreates the ImGui panel in CSS at 1 layout pixel = 1 CSS pixel. Values come from tokens.css;
    the few literals here are geometry that ImGui computes (triangle tips, the mark) or the stand-in world. */
 

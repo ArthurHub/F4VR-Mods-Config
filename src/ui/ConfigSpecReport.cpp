@@ -258,7 +258,7 @@ namespace mods_config::ui
         if (!mod.liveCopy.empty()) {
             drawPageText(std::format("Read from the live copy, {}. It is read again each time it is saved.{}", mod.liveCopy, noProblems));
         } else {
-            const auto file = mod.folder.empty() ? std::string("its spec.json") : std::format(R"(Data\ModsConfigVR\Config\{}\spec.json)", mod.folder);
+            const auto file = mod.folder.empty() ? std::string("its spec.json") : std::format(R"(Data\ModsConfigFO4\Config\{}\spec.json)", mod.folder);
             drawPageText(std::format("Read from {}.{}", file, noProblems));
         }
         if (!mod.folder.empty()) {

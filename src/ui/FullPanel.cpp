@@ -64,7 +64,7 @@ namespace mods_config::ui
     }
 
     /**
-     * The Developer tools as Mods Config VR's settings have them, and what writes a change of their filter or
+     * The Developer tools as Mods Config FO4 VR's settings have them, and what writes a change of their filter or
      * their fold to the settings at once, which the menu does: the panel does not know the config. With the
      * tools on, the menu's front page has its Developer section. The view the panel has changes at once, so
      * the next frame shows the change before the menu writes it.

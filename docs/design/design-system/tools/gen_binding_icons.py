@@ -1,5 +1,5 @@
 """The binding icons for the previews: writes tools/binding_icons.json, every icon of the framework's set the mod
-ships (data/mod/Textures/ModsConfigVR/f4cf/bindings/) as PNG data, which gen_previews.py draws the InputBinding
+ships (data/mod/Textures/ModsConfigFO4/f4cf/bindings/) as PNG data, which gen_previews.py draws the InputBinding
 previews with, so the previews need no Pillow.
 
 The framework draws the icons (tools/gen_binding_icons.py in F4VR-CommonFramework) into its mod-template. Copy them
@@ -16,7 +16,7 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
-ICONS = ROOT / 'data' / 'mod' / 'Textures' / 'ModsConfigVR' / 'f4cf' / 'bindings'
+ICONS = ROOT / 'data' / 'mod' / 'Textures' / 'ModsConfigFO4' / 'f4cf' / 'bindings'
 
 
 def write_json():

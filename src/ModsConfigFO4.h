@@ -6,10 +6,10 @@
 
 namespace mods_config
 {
-    class ModsConfigVR : public ModBase
+    class ModsConfigFO4 : public ModBase
     {
     public:
-        ModsConfigVR()
+        ModsConfigFO4()
             : ModBase(Settings(Version::PROJECT, Version::NAME, &g_config, 32, true))
         {}
 
@@ -41,5 +41,5 @@ namespace mods_config
     };
 
     // The ONE global to rule them ALL
-    inline ModsConfigVR g_modsConfig;
+    inline ModsConfigFO4 g_modsConfig;
 }

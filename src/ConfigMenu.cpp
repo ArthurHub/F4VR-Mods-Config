@@ -130,7 +130,7 @@ namespace mods_config
      */
     void ConfigMenu::registerOwnOptions()
     {
-        api::ModsConfigVRClient::get().addOptions(DEVELOPER_CONFIG_SPEC_ID, [this] {
+        api::ModsConfigFO4Client::get().addOptions(DEVELOPER_CONFIG_SPEC_ID, [this] {
             std::vector<api::Option> options{ { .value = std::string(), .text = "None" } };
             for (const auto& mod : mods()) {
                 if (mod.source == model::Source::ConfigSpec) {
@@ -441,7 +441,7 @@ namespace mods_config
     {
         // the size of the design system's body text: it is read as the first canvas draws, and later calls do nothing
         imgui::setFontSizePixels(theme::FONT_SIZE);
-        _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigVR_Panel", g_config.panelWidth, g_config.panelHeight);
+        _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigFO4_Panel", g_config.panelWidth, g_config.panelHeight);
         applyPanelConfig();
         // the menu's one ImGui panel: at this size it needs a texture of its own, and a dropdown's list or a dialog opens inside it
         _panel->setDedicated(true);
@@ -608,21 +608,21 @@ namespace mods_config
 
     void ConfigMenu::createWristButtons()
     {
-        _minimizeButton = std::make_shared<UIButtonPanel>("ModsConfigVR_MinimizeButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+        _minimizeButton = std::make_shared<UIButtonPanel>("ModsConfigFO4_MinimizeButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
         _minimizeButton->setTopText("CLICK");
         _minimizeButton->setMiddleText("MINIMIZE");
         _minimizeButton->setOnPressHandler([this](UIButtonPanel*) {
             setMinimized(!isMinimized());
         });
 
-        const auto closeButton = std::make_shared<UIButtonPanel>("ModsConfigVR_CloseButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+        const auto closeButton = std::make_shared<UIButtonPanel>("ModsConfigFO4_CloseButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
         closeButton->setTopText("CLICK");
         closeButton->setMiddleText("CLOSE");
         closeButton->setOnPressHandler([this](UIButtonPanel*) {
             _askToCloseRequested = true;
         });
 
-        _wristButtons = std::make_shared<UIContainer>("ModsConfigVR_WristButtons", UIContainerLayout::HorizontalCenter, WRIST_BUTTON_GAP);
+        _wristButtons = std::make_shared<UIContainer>("ModsConfigFO4_WristButtons", UIContainerLayout::HorizontalCenter, WRIST_BUTTON_GAP);
         _wristButtons->addElement(_minimizeButton);
         _wristButtons->addElement(closeButton);
 

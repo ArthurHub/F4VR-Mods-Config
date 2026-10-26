@@ -17,7 +17,7 @@ namespace
     using namespace mods_config;
 
     // the menu's name: the first breadcrumb of the title bar, which stands for the menu's front page
-    constexpr auto TITLE = "MODS CONFIG VR";
+    constexpr auto TITLE = "MODS CONFIG FO4";
 
     // what stands between two breadcrumbs: U+00BB, as its bytes in UTF-8
     constexpr auto CRUMB_SEPARATOR = "\xC2\xBB";

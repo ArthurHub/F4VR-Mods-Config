@@ -16,7 +16,7 @@ namespace
     using namespace mods_config;
 
     // the folder of the mod's copy of the framework's binding icons, under the game's `Data\Textures`
-    constexpr std::string_view ICONS_FOLDER = "ModsConfigVR\\";
+    constexpr std::string_view ICONS_FOLDER = "ModsConfigFO4\\";
 
     // every icon is 80 px tall with its button in the middle, and is drawn at this part of its size, 40 px, inside the
     // 48 px line with room above and below, so a thumbstick does not touch the frame: every button at one scale

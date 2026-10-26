@@ -165,7 +165,7 @@ def flat_mods(open_mod=None, pages=(), selected=None, hover=None):
     """One install of 11 mods, the same in every Full panel mock: too many for the tree, so it scrolls."""
     out = []
     for m in ('Baka Fullscreen Pip-Boy', 'Better Locational Damage', 'Companion Command', 'FallUI - HUD', 'FRIK',
-              'Immersive Flashlight VR', 'Mods Config VR', 'Sim Settlements 2', 'Virtual Holsters', 'Virtual Reloads',
+              'Immersive Flashlight VR', 'Mods Config FO4', 'Sim Settlements 2', 'Virtual Holsters', 'Virtual Reloads',
               'Weather Overhaul'):
         st = 'is-disabled' if m == 'Sim Settlements 2' else ''
         if m == selected: st = 'is-selected'
@@ -358,7 +358,7 @@ home_tree = ''.join([
     tree_row('FallUI - HUD', arrow='r'),
     tree_row('FRIK', arrow='r', state='is-hover', mark=(120, 20)),
     tree_row('Immersive Flashlight VR', arrow='r'),
-    tree_row('Mods Config VR', arrow='r'),
+    tree_row('Mods Config FO4', arrow='r'),
     tree_row('Sim Settlements 2', arrow='r', state='is-disabled'),
     tree_row('Virtual Holsters', arrow='r'),
 ])
@@ -400,7 +400,7 @@ fp_rows = ''.join([
 ])
 fp_body = f'''<div class="mc-world">
 <div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-mod is-current">Immersive Flashlight VR</span></div>
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG FO4</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-mod is-current">Immersive Flashlight VR</span></div>
 <span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
 <div class="mc-body">
 {nav(fp_nav, '', 11)}
@@ -454,7 +454,7 @@ fpp_rows = ''.join([
 ])
 fpp_body = f'''<div class="mc-world">
 <div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-mod">Immersive Flashlight VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Beam</span></div>
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG FO4</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-mod">Immersive Flashlight VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Beam</span></div>
 <span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
 <div class="mc-body">
 {nav(fpp_nav, '', 11)}
@@ -483,10 +483,10 @@ def crumbs(parts, buttons=True, alone=True):
     width = ' style="width:calc(var(--panel-width) - 2 * var(--panel-padding))"' if alone else ''
     return f'<div class="mc-titlebar"{width}><div class="mc-crumbs t-title">{"".join(out)}</div>{btns}</div>'
 
-R = ('MODS CONFIG VR', '')
+R = ('MODS CONFIG FO4', '')
 bc_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:1184px">
 <span class="t-detail mc-muted">The menu's front page: the first crumb alone, selected</span>
-{crumbs([('MODS CONFIG VR', 'selected')])}
+{crumbs([('MODS CONFIG FO4', 'selected')])}
 <span class="t-detail mc-muted">A page of a page: a crumb for every level, each before the last pressed to go there</span>
 {crumbs([R, ('Immersive Flashlight VR', 'mod'), ('Hand mount', 'hover'), ('Off hand', 'current')])}
 <span class="t-detail mc-muted">Too long: the pages between the mod and the page become one "…", which is not pressed</span>
@@ -539,7 +539,7 @@ home_rows = ''.join([
 ])
 fph_body = f'''<div class="mc-world">
 <div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG VR</span></div>
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG FO4</span></div>
 <span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
 <div class="mc-body">
 {nav(home_nav, '', 11)}
@@ -590,7 +590,7 @@ fhp_rows = ''.join([
 ])
 fhp_body = f'''<div class="mc-world">
 <div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Help</span></div>
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG FO4</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Help</span></div>
 <span class="mc-btn is-icon t-body is-hover">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
 <div class="mc-body">
 {nav(fhp_nav, '', 11)}
@@ -604,12 +604,12 @@ fhp_body = f'''<div class="mc-world">
 write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The Help page over a page of a mod, scrolled to its end: each control with the buttons of the config, and what Save does with the marks of when a change takes effect" -->', 'Full panel, Help page', fhp_body))
 print('ok help')
 
-# ---------------- FullPanelCategories: Mods Config VR's own Categories page, with the tree grouped ----------------
+# ---------------- FullPanelCategories: Mods Config FO4 VR's own Categories page, with the tree grouped ----------------
 cat_tree = ''.join([
     cat_row('Audio', 2), cat_row('Characters', 3), cat_row('Combat', 6), cat_row('Gameplay', 5), cat_row('Interface', 3, open_=True),
     tree_row('Baka Fullscreen Pip-Boy', arrow='r', cat=True),
     tree_row('FallUI - HUD', arrow='r', cat=True),
-    tree_row('Mods Config VR', arrow='d', cat=True),
+    tree_row('Mods Config FO4', arrow='d', cat=True),
     tree_row('Categories', kind='page', state='is-selected', cat=True),
     cat_row('Settlements', 4), cat_row('Utilities', 2), cat_row('Visuals', 3), cat_row('VR', 4), cat_row('No category', 2),
 ])
@@ -634,7 +634,7 @@ cat_rows = ''.join([
 ])
 fpc_body = f'''<div class="mc-world">
 <div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-mod">Mods Config VR</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Categories</span></div>
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG FO4</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-mod">Mods Config FO4</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Categories</span></div>
 <span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
 <div class="mc-body">
 {nav(cat_tree, '', 34, offset=2 * (ROW_H + ROW_GAP))}
@@ -1885,7 +1885,7 @@ def footer_help(name, text, **kw):
     return f'<div class="mc-footer">{helpline(name, text, **kw)}</div>'
 
 dv_body = f"""<div class="mc-world mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">Mods Config VR's own page: the switch, which config specs the front page lists, and the one config spec it can list alone</span>
+<span class="t-detail mc-caption">Mods Config FO4 VR's own page: the switch, which config specs the front page lists, and the one config spec it can list alone</span>
 {h_sheet([
     ('Off as shipped', row('Developer tools', toggle(False))),
     ('On', row('Developer tools', toggle(True))),
@@ -1907,7 +1907,7 @@ dv_body = f"""<div class="mc-world mc-stack" style="gap:16px">
 ])}
 <span class="t-detail mc-caption">A config spec's row: a press opens its report</span>
 {h_sheet([
-    ('No problems', pkg_row('Mods Config VR')),
+    ('No problems', pkg_row('Mods Config FO4')),
     ('Warnings', pkg_row('Showcase', warnings=3)),
     ('Both', pkg_row('Immersive Flashlight VR', errors=2, warnings=5)),
     ('Live copy', pkg_row('Immersive Flashlight VR', errors=2, warnings=5, live=True)),
@@ -1948,7 +1948,7 @@ fd_rows = ''.join([
 ])
 fd_body = f'''<div class="mc-world">
 <div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG VR</span></div>
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG FO4</span></div>
 <span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
 <div class="mc-body">
 {nav(flat_mods(), '', 11)}
@@ -1963,7 +1963,7 @@ write('FullPanelDeveloper', page('<!-- @dsCard group="Developer" height=768 widt
 
 # ---------------- FullPanelConfigSpecReport: a config spec's report, with its live copy ----------------
 fr_rows = ''.join([
-    pagehelp('Read from the live copy, My Games\\Fallout4VR\\Mods_Config\\ModsConfigVR\\Dev\\ImmersiveFlashlightVR\\spec.json. It is read again each time it is saved.'),
+    pagehelp('Read from the live copy, My Games\\Fallout4VR\\Mods_Config\\ModsConfigFO4VR\\Dev\\ImmersiveFlashlightVR\\spec.json. It is read again each time it is saved.'),
     section('Live copy'),
     row('Read the live copy', toggle(True)),
     row('Reload', run_btn('Reload'), gutter=INFO),

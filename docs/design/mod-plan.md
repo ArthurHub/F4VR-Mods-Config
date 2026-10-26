@@ -4,7 +4,7 @@ The milestones that build the mod, in the order they are made, in three phases. 
 
 The menu supports everything MCM has before it gains anything new. It is built so that config specs and the native API are added later without redoing the UI: the UI draws one model, and MCM is the first source that fills it.
 
-A config spec is the new config format of [Declarative schema](schema.md): a mod's `spec.json` under `Data\ModsConfigVR\Config`.
+A config spec is the new config format of [Declarative schema](schema.md): a mod's `spec.json` under `Data\ModsConfigFO4\Config`.
 
 ## How the work is done
 

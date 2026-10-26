@@ -15,7 +15,7 @@ from pathlib import Path
 
 from gen_mcm_showcase_lib import checker, ruler, swatches
 
-OUTPUT = Path(__file__).resolve().parent.parent / "data/showcase/Textures/ModsConfigVR_Showcase"
+OUTPUT = Path(__file__).resolve().parent.parent / "data/showcase/Textures/ModsConfigFO4_Showcase"
 
 DDSD_CAPS = 0x1
 DDSD_HEIGHT = 0x2

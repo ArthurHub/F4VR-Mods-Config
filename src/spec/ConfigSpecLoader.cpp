@@ -2080,7 +2080,7 @@ namespace mods_config::spec
             mod.displayName = mod.name;
         }
         // a newer schema can say anything in another way, so nothing more of it is read
-        auto reason = *schemaVersion > SCHEMA_VERSION ? std::format("its spec.json needs a newer Mods Config VR, one that reads schema version {}", *schemaVersion)
+        auto reason = *schemaVersion > SCHEMA_VERSION ? std::format("its spec.json needs a newer Mods Config FO4 VR, one that reads schema version {}", *schemaVersion)
                                                       : findMissingRequirements(configSpec, plugins);
         if (!reason.empty()) {
             return notAvailableMod(std::move(mod.name), std::move(mod.displayName), std::move(reason));
@@ -2116,7 +2116,7 @@ namespace mods_config::spec
     }
 
     /**
-     * Loads the `spec.json` of every folder in the config specs' folder, which is `Data\ModsConfigVR\Config` in
+     * Loads the `spec.json` of every folder in the config specs' folder, which is `Data\ModsConfigFO4\Config` in
      * the game. A config spec that cannot be read is a mod that is not available, named by its folder, and so
      * are two config specs with one `modName`: neither is picked. Both are a problem of the config spec. A mod that is
      * not available has the reason in the log, and so has each problem of a config spec, with the config spec's name
@@ -2177,7 +2177,7 @@ namespace mods_config::spec
     }
 
     /**
-     * Loads the `spec.json` of every folder in the config specs' folder, which is `Data\ModsConfigVR\Config` in
+     * Loads the `spec.json` of every folder in the config specs' folder, which is `Data\ModsConfigFO4\Config` in
      * the game. A config spec that cannot be read is a mod that is not available, named by its folder, and so
      * are two config specs with one `modName`: neither is picked. Both are a problem of the config spec. A mod that is
      * not available has the reason in the log, and so has each problem of a config spec, with the config spec's name
@@ -2224,7 +2224,7 @@ namespace mods_config::spec
     }
 
     /**
-     * The config specs of the running game, from `Data\ModsConfigVR\Config` in the game's folder, with their
+     * The config specs of the running game, from `Data\ModsConfigFO4\Config` in the game's folder, with their
      * conditions on a plugin answered by the plugins the game loaded.
      */
     std::vector<model::Mod> loadInstalledConfigSpecs(const model::Translations& translations)

@@ -896,8 +896,8 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
     const auto mods = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR);
 
     REQUIRE(mods.size() == 1);
-    CHECK(mods[0].name == "ModsConfigVR_McmShowcase");
-    CHECK(mods[0].displayName == "Mods Config VR: MCM Compatibility");
+    CHECK(mods[0].name == "ModsConfigFO4_McmShowcase");
+    CHECK(mods[0].displayName == "Mods Config FO4: MCM Compatibility");
     CHECK_FALSE(mods[0].frontPage.items.empty());
     CHECK(mods[0].pages.size() == 10);
 

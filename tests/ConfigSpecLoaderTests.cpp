@@ -1042,7 +1042,7 @@ TEST_CASE("ConfigSpecLoader: a config spec's minSchemaVersion is required, and o
 
     const auto newer = spec::loadConfigSpec(configSpecOfVersion(std::to_string(spec::SCHEMA_VERSION + 1)));
     REQUIRE(newer);
-    CHECK(newer->notAvailable == std::format("its spec.json needs a newer Mods Config VR, one that reads schema version {}", spec::SCHEMA_VERSION + 1));
+    CHECK(newer->notAvailable == std::format("its spec.json needs a newer Mods Config FO4 VR, one that reads schema version {}", spec::SCHEMA_VERSION + 1));
     CHECK(newer->displayName == "My Mod");
     CHECK(newer->frontPage.items.empty());
 
@@ -1055,7 +1055,7 @@ TEST_CASE("ConfigSpecLoader: a config spec's minSchemaVersion is required, and o
                                 },
             .isF4sePluginLoaded = {} });
     REQUIRE(noApplies);
-    CHECK(noApplies->notAvailable == "its spec.json needs a newer Mods Config VR, one that reads schema version 99");
+    CHECK(noApplies->notAvailable == "its spec.json needs a newer Mods Config FO4 VR, one that reads schema version 99");
 }
 
 TEST_CASE("ConfigSpecLoader: a slider and a switcher with no valueType have the type of their control")
@@ -1577,11 +1577,11 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec edits keys of its shipped
     REQUIRE(mods.size() == 1);
     const auto& mod = mods[0];
     CHECK(mod.notAvailable.empty());
-    CHECK(mod.name == "ModsConfigVR");
+    CHECK(mod.name == "ModsConfigFO4VR");
     // the file the menu loaded, which the framework's client answers
     CHECK(mod.files.at("config") == model::File{ .format = model::FileFormat::Toml,
                                         .root = model::FileRoot::MyGames,
-                                        .path = "Mods_Config/ModsConfigVR/ModsConfigVR.toml",
+                                        .path = "Mods_Config/ModsConfigFO4VR/ModsConfigFO4VR.toml",
                                         .pathFromClientState = "configFile" });
 
     const auto shipped = toml::parse(readFile(MODS_CONFIG_SHIPPED_CONFIG));
@@ -1605,8 +1605,8 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     REQUIRE(mods.size() == 1);
     const auto& mod = mods[0];
     CHECK(mod.notAvailable.empty());
-    CHECK(mod.name == "ModsConfigVR_Showcase");
-    CHECK(mod.displayName == "Mods Config VR: Showcase");
+    CHECK(mod.name == "ModsConfigFO4_Showcase");
+    CHECK(mod.displayName == "Mods Config FO4: Showcase");
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
     REQUIRE(mod.pages.size() == 2);
@@ -1630,7 +1630,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,
     // and a read-only setting needs none
-    const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR) / "ModsConfigVR_Showcase" / "showcase.toml"));
+    const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR) / "ModsConfigFO4_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
     std::size_t readOnly = 0;

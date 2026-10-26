@@ -7,7 +7,7 @@ This document defines the initial control vocabulary and interaction rules. The 
 Every setting has four distinct concepts:
 
 - **Type**: the value stored by the target mod. A config spec's `valueType`.
-- **Control**: how Mods Config VR presents and edits that value. A config spec's `type`, as in an MCM config.
+- **Control**: how Mods Config FO4 VR presents and edits that value. A config spec's `type`, as in an MCM config.
 - **Storage**: where the value is read from and written to. A config spec's `storage`.
 - **Application policy**: when a change takes effect in the running mod: as it is made, after Save, after a restart, or not known. A config spec's `applies`.
 

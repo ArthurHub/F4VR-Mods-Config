@@ -1,6 +1,6 @@
 # CommonFramework work required
 
-Mods Config VR is built on F4VR-CommonFramework, and its design assumes capabilities the framework does not have yet. This document lists that work so it can be done in the framework first.
+Mods Config FO4 VR is built on F4VR-CommonFramework, and its design assumes capabilities the framework does not have yet. This document lists that work so it can be done in the framework first.
 
 It describes the framework at version 0.4.1 (unreleased), commit `4dd511a`. File paths are relative to the framework repository.
 
@@ -31,9 +31,9 @@ That makes four demands on the framework:
 | 10  | Override ownership                 | Previews beside other overrides     |
 | 11  | Images in canvases                 | MCM images and a config spec's images   |
 | 12  | Text entry and on-screen keyboard  | Typing a text, a value, or a search |
-| 13  | Mods Config VR client in `ModBase` | A mod's own UI and live preview without mod code |
+| 13  | Mods Config FO4 VR client in `ModBase` | A mod's own UI and live preview without mod code |
 
-Item 1 puts a panel on the offhand. Items 2 to 5 make a panel interactive, so it can be tested in the headset. Items 6 and 7 complete what the Full panel needs. Items 8 to 10 do not depend on the UI and can be done at any time. Items 11 and 12 are needed by what the menu shows, not by the panel itself. Item 11 depends on nothing else, so it can be done at any time. Item 13 needs the Mods Config VR native API to exist first. [Later work](#later-work) lists what can wait.
+Item 1 puts a panel on the offhand. Items 2 to 5 make a panel interactive, so it can be tested in the headset. Items 6 and 7 complete what the Full panel needs. Items 8 to 10 do not depend on the UI and can be done at any time. Items 11 and 12 are needed by what the menu shows, not by the panel itself. Item 11 depends on nothing else, so it can be done at any time. Item 13 needs the Mods Config FO4 VR native API to exist first. [Later work](#later-work) lists what can wait.
 
 The commits of items 1 to 10 are in the [Framework work plan](framework-plan.md), and those of items 11 to 13 in the [Mod work plan](mod-plan.md), with the mod's milestones that need them.
 
@@ -117,7 +117,7 @@ The reasoning behind the press latch is in the modding reference library, `knowl
 
 ### 6. Dedicated panel
 
-**Need.** Mods Config VR shows one ImGui panel at a time, and the Full panel is a large one. The panel has to be large enough for the whole Full layout and sharp at reading distance. Its dropdowns, popups, and confirmation dialogs open inside it and are ImGui's own: content calls `ImGui::BeginCombo`, `ImGui::BeginPopup`, and `ImGui::BeginPopupModal` as in any ImGui program.
+**Need.** Mods Config FO4 VR shows one ImGui panel at a time, and the Full panel is a large one. The panel has to be large enough for the whole Full layout and sharp at reading distance. Its dropdowns, popups, and confirmation dialogs open inside it and are ImGui's own: content calls `ImGui::BeginCombo`, `ImGui::BeginPopup`, and `ImGui::BeginPopupModal` as in any ImGui program.
 
 **Today.** All of a mod's canvases share one atlas of 1024 by 1024 layout pixels (`MAX_CANVAS_PIXEL_SIZE` in `src/imgui/ImGuiCanvas.h`), and the atlas is also ImGui's display (`io.DisplaySize` in `src/imgui/ImGuiLayer.cpp`). That suits several small panels. For one large panel it causes two problems:
 
@@ -149,13 +149,13 @@ The GPU time of a texture of the panel's size is checked with the existing perf 
 
 ## Live preview for CommonFramework mods
 
-Mods Config VR writes a mod's INI on Save, and the framework's file watcher reloads it. Before Save, live preview needs values that are applied in memory only.
+Mods Config FO4 VR writes a mod's INI on Save, and the framework's file watcher reloads it. Before Save, live preview needs values that are applied in memory only.
 
 The framework already has the mechanism. `ConfigBase::setConfigOverride`, `clearConfigOverride`, and `clearAllConfigOverrides` (`src/ConfigBase.h`) keep session overrides keyed by INI section and key, apply them over the file on every reload, and never write them to disk. Each mod's devbench tool drives them today (`set` and `clear` in `src/devbench/DevBench.cpp`), and FRIK exposes the same thing through its API.
 
 ### 8. Config reload safety
 
-**Need.** A Save from Mods Config VR always reaches the running mod, and config loads never overlap.
+**Need.** A Save from Mods Config FO4 VR always reaches the running mod, and config loads never overlap.
 
 **Today.** These come from reading `src/ConfigBase.cpp`. None was reproduced in game.
 
@@ -184,11 +184,11 @@ The framework already has the mechanism. `ConfigBase::setConfigOverride`, `clear
 
 ### 10. Override ownership
 
-**Need.** Several callers override a mod's config: the devbench tool, another mod through the mod's API, and the Mods Config VR client. A caller that clears its override must not remove another caller's.
+**Need.** Several callers override a mod's config: the devbench tool, another mod through the mod's API, and the Mods Config FO4 VR client. A caller that clears its override must not remove another caller's.
 
 **Today.** `ConfigBase` keeps one override per INI section and key, with no owner (`_overrides` in `src/ConfigBase.h`). A set replaces whatever is there, and a clear removes it, whoever set it. The devbench tool's `clear` with `all` calls `clearAllConfigOverrides`, which removes every caller's overrides. FRIK's API takes a `caller` name on set and clear and uses it only in a log line.
 
-Mods Config VR has a case of its own. It takes the opening gesture from FRIK by overriding a FRIK config key through FRIK's API. If the player previews that key in the menu, the preview replaces the override, and Discard or Save clears it.
+Mods Config FO4 VR has a case of its own. It takes the opening gesture from FRIK by overriding a FRIK config key through FRIK's API. If the player previews that key in the menu, the preview replaces the override, and Discard or Save clears it.
 
 **Work.**
 
@@ -227,19 +227,19 @@ Mods Config VR has a case of its own. It takes the opening gesture from FRIK by 
 
 **Done when.** A text field in a dedicated panel is typed into with SteamVR's keyboard and accepted, a field that is cancelled keeps the text it had, and a physical keyboard types into it too.
 
-## The client of Mods Config VR
+## The client of Mods Config FO4 VR
 
-### 13. Mods Config VR client in `ModBase`
+### 13. Mods Config FO4 VR client in `ModBase`
 
 **Need.** A CommonFramework mod gets live preview by shipping a config spec. It writes no client code. A mod that has a config UI of its own offers it to the menu, and a mod can add functions that the buttons of its config spec run.
 
-**Today.** `ModBase` registers a devbench tool for every mod after `onGameLoaded` (`src/ModBase.cpp`), using the vendored devbench client (`src/devbench/DevBenchAPI.h`). Nothing knows about Mods Config VR.
+**Today.** `ModBase` registers a devbench tool for every mod after `onGameLoaded` (`src/ModBase.cpp`), using the vendored devbench client (`src/devbench/DevBenchAPI.h`). Nothing knows about Mods Config FO4 VR.
 
 **Work.** In two parts. The menu needs the first for a mod's own UI, and the second for live preview.
 
 The client and its functions:
 
-- When Mods Config VR is installed, `ModBase` registers the mod as a native client through the vendored client header, `ModsConfigVRApi.h`, the way it registers the devbench tool; see [Native API](architecture.md#native-api). It registers every mod, under `Settings.name`, and does not look for a config spec. The host matches the client to the config spec whose `modName` is that name. A `Settings` flag opts a mod out, like `devbenchTool`.
+- When Mods Config FO4 VR is installed, `ModBase` registers the mod as a native client through the vendored client header, `ModsConfigFO4Api.h`, the way it registers the devbench tool; see [Native API](architecture.md#native-api). It registers every mod, under `Settings.name`, and does not look for a config spec. The host matches the client to the config spec whose `modName` is that name. A `Settings` flag opts a mod out, like `devbenchTool`.
 - A mod adds functions to its client, each under a name, which the buttons of its config spec run, and states, each under a name, which the conditions of its config spec ask.
 - The client answers two states of its own for every mod: `modVersion`, the mod's version, and `configFile`, the absolute path of the config file the mod loaded, which a file of its config spec takes its path from with `pathFromClientState`.
 - A mod that has a config UI of its own gives the client how to open it, and tells the client when it has closed. The client registers it as a function and a quick launch entry, minimizes the menu as it opens, and restores the menu as it closes; see [The mod's own UI](architecture.md#the-mods-own-ui).
@@ -253,7 +253,7 @@ The preview. The client maps the host's calls onto the overrides, under an owner
 
 It acts only on settings bound to the mod's own config file.
 
-This item depends on the native API of Mods Config VR, described in [Architecture and lifecycle](architecture.md#live-preview-api), so each part comes after the host has its side of it.
+This item depends on the native API of Mods Config FO4 VR, described in [Architecture and lifecycle](architecture.md#live-preview-api), so each part comes after the host has its side of it.
 
 **Done when.** A framework mod's own config UI is opened from the menu, and the menu comes back when it closes. A framework mod with a config spec and no client code previews a slider live, rolls back on Discard, and keeps the value after Save.
 
@@ -267,7 +267,7 @@ Each of these is made only if a milestone of the [Mod work plan](mod-plan.md) fi
 
 ## Not framework work
 
-These are handled in Mods Config VR or exist already:
+These are handled in Mods Config FO4 VR or exist already:
 
 - **The opening gesture.** Holding both thumbsticks is expressible as an input binding today: `primary longpress thumbstick 1.5 +offhand:thumbstick`, the binding FRIK uses for its own configuration. Taking the gesture over from FRIK goes through FRIK's API (`setConfigValueOverride`).
 - **FRIK integration.** vrui finds the fingertip and points the hand through FRIK's API by itself.

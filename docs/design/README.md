@@ -1,6 +1,6 @@
-# Mods Config VR design
+# Mods Config FO4 VR design
 
-Design documents for **Mods Config VR**, repository `F4VR-Mods-Config` and technical identifier `ModsConfigVR`.
+Design documents for **Mods Config FO4 VR**, repository `F4VR-Mods-Config` and technical identifier `ModsConfigFO4VR`.
 
 These documents capture the current product and architecture decisions. The order the mod is built in, and what the first release holds, is in the [Mod work plan](mod-plan.md). Items that still need design work are collected in [Open questions](open-questions.md).
 
@@ -54,15 +54,18 @@ Done in the code, and still to be drawn in the design system. A note leaves this
 
 ## Names
 
-- Player-facing name: **Mods Config VR**
-- Nexus title: **Mods Config VR**
+- Player-facing name: **Mods Config FO4 VR**
+- Nexus title: **Mods Config FO4 VR**
 - Repository: `F4VR-Mods-Config`
-- Technical identifier: `ModsConfigVR`
-- DLL: `ModsConfigVR.dll`
-- F4SE plugin name: `ModsConfigVR`
-- Papyrus script: `ModsConfigVR`
+- Short name, in the menu's title bar, its own config spec and the showcases: **Mods Config FO4**
+- Technical identifier, CMake's `NAME`: `ModsConfigFO4VR`
+- DLL: `ModsConfigFO4VR.dll`
+- F4SE plugin name: `ModsConfigFO4VR`
+- Config file: `My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`
+- Code names (the mod's class, the client header and its types): `ModsConfigFO4`
+- Papyrus script: `ModsConfigFO4`
 - C++ namespace: `mods_config`
-- Data root: `Data/ModsConfigVR`
+- Data root: `Data/ModsConfigFO4`
 
 The F4SE plugin name, the Papyrus script name, and the data root are public: other mods address messages to the first, call functions on the second, and install config specs under the third.
 
@@ -70,10 +73,10 @@ The F4SE plugin name, the Papyrus script name, and the data root are public: oth
 
 - Fallout 4 VR only. Flat Fallout 4 is not supported and not planned.
 - VR-native pointing and interaction, without exposing a desktop-style fake mouse to the player.
-- Mods own their settings and their real configuration files. Mods Config VR does not create a second settings store.
+- Mods own their settings and their real configuration files. Mods Config FO4 VR does not create a second settings store.
 - A declarative JSON config spec should be sufficient for ordinary settings menus.
 - A restricted C++ API adds live preview, functions that buttons run, states that conditions ask, and opening a mod's own UI.
-- A script-only mod needs only a config spec: its scripts read the saved values through Papyrus functions that Mods Config VR provides, or keep them in globals and properties, as an MCM mod does.
+- A script-only mod needs only a config spec: its scripts read the saved values through Papyrus functions that Mods Config FO4 VR provides, or keep them in globals and properties, as an MCM mod does.
 - Existing MCM menus retain their established storage and event behavior through a bridge to the installed MCM.
 - The game keeps running while the menu is open, so a `live` change is seen as it is made, and a saved one as the mod acts on it.
 - The architecture should leave room for advanced features without requiring them in the initial implementation.

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Mods Config VR is a shared, VR-first configuration menu for Fallout 4 VR mods. It improves the current MCM experience while preserving compatibility with existing MCM menus.
+Mods Config FO4 VR is a shared, VR-first configuration menu for Fallout 4 VR mods. It improves the current MCM experience while preserving compatibility with existing MCM menus.
 
 The host is an F4SE plugin built on F4VR-CommonFramework. Most of its UI is one Dear ImGui panel, placed in the framework's vrui layout and operated with a controller ray. What the panel needed from the framework is done; see the [Framework work plan](framework-plan.md). The framework work that is left is made with the mod's milestones.
 
@@ -12,7 +12,7 @@ The host owns navigation, interaction, persistence coordination, diagnostics, an
 
 Two sources fill one internal model:
 
-1. Mods Config VR declarative JSON config specs.
+1. Mods Config FO4 VR declarative JSON config specs.
 2. A bridge to MCM for existing Fallout 4 MCM menus.
 
 A mod's DLL can also register as a native client, through a restricted C++ API; see [Native API](#native-api). A client is not a third source. It adds to its mod's config spec: live preview, functions that buttons run, options and states that only its code knows, and entries of the quick launch section that open its own UI.
@@ -27,7 +27,7 @@ MCM config ───────────┘
 
 ## Ownership
 
-- Mods Config VR owns menu discovery, rendering, input, validation, and safe persistence.
+- Mods Config FO4 VR owns menu discovery, rendering, input, validation, and safe persistence.
 - A config spec definition describes the UI and binds controls to the mod's real settings: keys of its files, and globals and properties of its scripts.
 - A mod owns runtime interpretation and side effects.
 - F4VR-CommonFramework is linked statically into each client mod, so every mod has its own copy. Its config base keeps session overrides: values applied over the INI in memory and never written to disk. A generic adapter in the framework drives them for live preview; see [CommonFramework adapter](#commonframework-adapter).
@@ -45,7 +45,7 @@ The host cannot tell when a change takes effect in the running mod: a mod can re
 
 ## Persistence model
 
-Mods Config VR writes directly to each mod's declared configuration files. There is no host-owned mirror of every mod's settings.
+Mods Config FO4 VR writes directly to each mod's declared configuration files. There is no host-owned mirror of every mod's settings.
 
 Supported storage formats are:
 
@@ -149,20 +149,20 @@ It does not contain every changed setting. Native clients that need exact change
 
 ## Native API
 
-A mod's DLL talks to the host through `ModsConfigVRApi.h`, a client header the mod copies as it is, as a mod copies FRIK's `FRIKApi.h`. The framework carries a copy, and `ModBase` connects every CommonFramework mod's client with it; see [CommonFramework adapter](#commonframework-adapter).
+A mod's DLL talks to the host through `ModsConfigFO4Api.h`, a client header the mod copies as it is, as a mod copies FRIK's `FRIKApi.h`. The framework carries a copy, and `ModBase` connects every CommonFramework mod's client with it; see [CommonFramework adapter](#commonframework-adapter).
 
 ### Binary interface
 
-What passes between the DLLs is two interfaces of virtual functions. The host implements `ModsConfigVRApiV1`, and a client implements `IClient`, which it registers once. The host asks the client by name for what its config spec names: a function, a state, the options of a choice. So a client registers nothing by name, and a name the client does not answer is one it does not have.
+What passes between the DLLs is two interfaces of virtual functions. The host implements `ModsConfigFO4ApiV1`, and a client implements `IClient`, which it registers once. The host asks the client by name for what its config spec names: a function, a state, the options of a choice. So a client registers nothing by name, and a name the client does not answer is one it does not have.
 
-`ModsConfigVR.dll` exports one function, `ModsConfigVRAPI_GetApiV1`, which returns the host's interface for the whole run of the game. The header's `ModsConfigVRApiV1::initialize` finds the DLL with `GetModuleHandle` and calls the export, as `FRIKApi::initialize` does. F4SE has loaded the DLL of every plugin by `kPostLoad`, so a client calls it from then on. While Mods Config VR is not installed it fails, and the mod works without it. The API is not asked for with an F4SE message: F4SEVR's listeners do not reach a plugin in every load order, which is why devbench's client has the same export as its fallback.
+`ModsConfigFO4VR.dll` exports one function, `ModsConfigFO4API_GetApiV1`, which returns the host's interface for the whole run of the game. The header's `ModsConfigFO4ApiV1::initialize` finds the DLL with `GetModuleHandle` and calls the export, as `FRIKApi::initialize` does. F4SE has loaded the DLL of every plugin by `kPostLoad`, so a client calls it from then on. While Mods Config FO4 VR is not installed it fails, and the mod works without it. The API is not asked for with an F4SE message: F4SEVR's listeners do not reach a plugin in every load order, which is why devbench's client has the same export as its fallback.
 
 - An interface's methods take whole numbers of a fixed width, `float`, `bool`, enums on `std::uint32_t`, `const char*`, plain structs of those, and pointers to an interface. No `std::` type and no exception passes: each DLL has its own heap, and its own layout of them. An interface has single inheritance and no data, whose virtual table MSVC lays out as COM has it, and a method is only added at its end.
 - Text is UTF-8, and ends with a zero. A text of the client that the player sees, as the message of a function or the text of a quick launch entry, can be a `$` token, which the host translates as it translates a config spec's text.
 - What the host passes is valid during the call, and the client copies what it keeps. What the client passes the host copies before the call returns. What a method answers goes through an interface the host passes it, as `IFunctionCall::setMessage`, so it can only be given while the method runs.
 - Every call, either way, is on the game's main thread. The host calls a client from its frame update, inside the guard of [A client that fails](#a-client-that-fails).
 
-The header has a C++ layer over the interfaces, `ModsConfigVRClient`, which is compiled into the client's DLL: an `IClient` that answers with the mod's lambdas, by name. A mod adds its functions, states, options and quick launch entries to it at any time, and connects it once. Nothing of it crosses to the host.
+The header has a C++ layer over the interfaces, `ModsConfigFO4Client`, which is compiled into the client's DLL: an `IClient` that answers with the mod's lambdas, by name. A mod adds its functions, states, options and quick launch entries to it at any time, and connects it once. Nothing of it crosses to the host.
 
 ### Versions
 
@@ -177,11 +177,11 @@ The header has a C++ layer over the interfaces, `ModsConfigVRClient`, which is c
 namespace mods_config::api
 {
     // the host's side, which its DLL exports
-    class ModsConfigVRApiV1
+    class ModsConfigFO4ApiV1
     {
     public:
         virtual std::uint32_t getVersion() const = 0;
-        virtual const char* getModVersion() const = 0; // Mods Config VR's own version
+        virtual const char* getModVersion() const = 0; // Mods Config FO4 VR's own version
 
         // the client's entries of the quick launch section, one for each function
         virtual bool addQuickLaunch(IClient* client, const char* text, const char* help, const char* buttonText, const char* functionName) const = 0;
@@ -196,8 +196,8 @@ namespace mods_config::api
         virtual void restoreMenu() const = 0; // only while it is minimized, and reads the shown mod's values again
         virtual void reloadValues(IClient* client) const = 0; // reads its mod's values again, while it is shown
 
-        [[nodiscard]] static int initialize(std::uint32_t minVersion = MODS_CONFIG_VR_API_VERSION);
-        inline static const ModsConfigVRApiV1* inst = nullptr;
+        [[nodiscard]] static int initialize(std::uint32_t minVersion = MODS_CONFIG_FO4_API_VERSION);
+        inline static const ModsConfigFO4ApiV1* inst = nullptr;
     };
 
     // the client's side, which the host asks by name
@@ -294,7 +294,7 @@ A mod's own UI is opened by a function of its client, from a button of its confi
 The header's C++ client adds a quick launch entry with its function, so an entry always has one, and has the calls of the menu. A quick action is a function that does its work and returns its message; one that opens a UI minimizes the menu, and the mod restores it from whatever ends the UI:
 
 ```cpp
-auto& client = ModsConfigVRClient::get();
+auto& client = ModsConfigFO4Client::get();
 client.addQuickLaunch("openPipboyConfig", { .text = "FRIK: Pip-Boy", .help = "Moves the Pip-Boy on your wrist." },
     [&client](const Params&) {
         if (!isSkeletonReady()) {
@@ -446,7 +446,7 @@ The host calls a client inside a guard that catches a C++ exception and a fault,
 
 ### CommonFramework adapter
 
-A CommonFramework mod does not need client code of its own. The framework registers a generic adapter that maps the API onto the config base's session overrides of the mod's TOML config, which are keyed by the value's path in the file, under an owner of their own, `ModsConfigVR`:
+A CommonFramework mod does not need client code of its own. The framework registers a generic adapter that maps the API onto the config base's session overrides of the mod's TOML config, which are keyed by the value's path in the file, under an owner of their own, `ModsConfigFO4VR`:
 
 1. A preview sets an override for the setting's path.
 2. A discard clears it.
@@ -466,25 +466,25 @@ The framework side of this is listed in [CommonFramework work required](framewor
 
 Successful Save emits one notification through each supported ecosystem:
 
-- An F4SE plugin message for native listeners. The host, F4SE plugin `ModsConfigVR`, sends it to each F4SE plugin the config spec names in `f4sePluginRequirements`, after the client's batch. Its type is the client header's `MODS_CONFIG_VR_SAVED_MESSAGE`, and its data is the config spec's `modName`, UTF-8 text that ends with a zero. It says that the mod's settings were saved, not what changed: a client's batch does.
-- An F4SE external Papyrus event for script mods, named `OnModsConfigVRSaved|<modName>`. A script registers for it with F4SE's `RegisterForExternalEvent`, and its callback receives the `modName`.
+- An F4SE plugin message for native listeners. The host, F4SE plugin `ModsConfigFO4VR`, sends it to each F4SE plugin the config spec names in `f4sePluginRequirements`, after the client's batch. Its type is the client header's `MODS_CONFIG_FO4_SAVED_MESSAGE`, and its data is the config spec's `modName`, UTF-8 text that ends with a zero. It says that the mod's settings were saved, not what changed: a client's batch does.
+- An F4SE external Papyrus event for script mods, named `OnModsConfigFO4Saved|<modName>`. A script registers for it with F4SE's `RegisterForExternalEvent`, and its callback receives the `modName`.
 
 Raw F4SE plugin messaging does not reach Papyrus by itself, so these are separate transports carrying the same semantic event.
 
 A Save that wrote nothing sends neither. One that wrote its files and failed on a global or a property that left the game sends both, as its files changed.
 
-A native listener registers for the sender `ModsConfigVR`, the client header's `MODS_CONFIG_VR_F4SE_NAME`. F4SE accepts that registration only once the sender is loaded, so a client registers at `kPostLoad` or later.
+A native listener registers for the sender `ModsConfigFO4VR`, the client header's `MODS_CONFIG_FO4_F4SE_NAME`. F4SE accepts that registration only once the sender is loaded, so a client registers at `kPostLoad` or later.
 
 Papyrus scripts cannot read INI, JSON, or TOML files on their own, so the Papyrus event tells a script that something changed but not what. The script reads the values through the [Papyrus API](#papyrus-api).
 
 ## Papyrus API
 
-A script-only mod, a game plugin and scripts with no DLL, ships a config spec like any other mod, and its scripts read the saved values through functions that Mods Config VR provides. It needs neither MCM nor a DLL of its own.
+A script-only mod, a game plugin and scripts with no DLL, ships a config spec like any other mod, and its scripts read the saved values through functions that Mods Config FO4 VR provides. It needs neither MCM nor a DLL of its own.
 
 The functions are for a setting kept in a file. A script-only mod can instead keep a setting in a global or a property of its script, as an MCM mod does, which it reads itself; see [Global and script property](schema.md#global-and-script-property).
 
 ```papyrus
-Scriptname ModsConfigVR Native Hidden
+Scriptname ModsConfigFO4 Native Hidden
 
 bool Function GetModSettingBool(string asModName, string asSetting) native global
 int Function GetModSettingInt(string asModName, string asSetting) native global
@@ -492,13 +492,13 @@ float Function GetModSettingFloat(string asModName, string asSetting) native glo
 string Function GetModSettingString(string asModName, string asSetting) native global
 ```
 
-`asModName` is the config spec's `modName` and `asSetting` is the setting's `id`. The functions are named as MCM's `MCM.GetModSetting*` are, and a setting with no `id` of its own is named as MCM names a ModSetting, as `fPlayerHeight:MyMod`. So a script that moves from MCM to a config spec, and keeps its mod name, sections and keys, changes `MCM.` to `ModsConfigVR.` in its getter calls and nothing else in them. Both are matched without regard to case, because Papyrus does not preserve the case of a string.
+`asModName` is the config spec's `modName` and `asSetting` is the setting's `id`. The functions are named as MCM's `MCM.GetModSetting*` are, and a setting with no `id` of its own is named as MCM names a ModSetting, as `fPlayerHeight:MyMod`. So a script that moves from MCM to a config spec, and keeps its mod name, sections and keys, changes `MCM.` to `ModsConfigFO4.` in its getter calls and nothing else in them. Both are matched without regard to case, because Papyrus does not preserve the case of a string.
 
-The functions are global, so they need a compiled script and no game plugin. Mods Config VR ships `Data/Scripts/ModsConfigVR.pex`, with its source in `Data/Scripts/Source/User/` for authors to compile against, and the DLL registers the functions when it loads. MCM provides its `MCM.GetModSetting*` functions the same way.
+The functions are global, so they need a compiled script and no game plugin. Mods Config FO4 VR ships `Data/Scripts/ModsConfigFO4.pex`, with its source in `Data/Scripts/Source/User/` for authors to compile against, and the DLL registers the functions when it loads. MCM provides its `MCM.GetModSetting*` functions the same way.
 
-The API covers Mods Config VR config specs. A mod with an MCM menu keeps using MCM's functions.
+The API covers Mods Config FO4 VR config specs. A mod with an MCM menu keeps using MCM's functions.
 
-A mod that reads its settings this way requires Mods Config VR, as a mod with an MCM menu requires MCM.
+A mod that reads its settings this way requires Mods Config FO4 VR, as a mod with an MCM menu requires MCM.
 
 ### What a getter returns
 
@@ -523,7 +523,7 @@ After each successful Save, the host sends the config spec's Papyrus event, desc
 
 ```papyrus
 Event OnQuestInit()
-    RegisterForExternalEvent("OnModsConfigVRSaved|mymod", "OnConfigSaved")
+    RegisterForExternalEvent("OnModsConfigFO4Saved|mymod", "OnConfigSaved")
     LoadConfig()
 EndEvent
 
@@ -532,7 +532,7 @@ Function OnConfigSaved(string asModName)
 EndFunction
 
 Function LoadConfig()
-    fPlayerHeight = ModsConfigVR.GetModSettingFloat("mymod", "playerHeight")
+    fPlayerHeight = ModsConfigFO4.GetModSettingFloat("mymod", "playerHeight")
 EndFunction
 ```
 
@@ -558,9 +558,9 @@ Long-running progress and cancellation are deferred.
 
 ## MCM compatibility
 
-Mods Config VR does not replace MCM. It bridges to it: MCM stays installed and keeps ownership of its settings, its Papyrus functions, and its hotkeys, and Mods Config VR shows the same menus in VR.
+Mods Config FO4 VR does not replace MCM. It bridges to it: MCM stays installed and keeps ownership of its settings, its Papyrus functions, and its hotkeys, and Mods Config FO4 VR shows the same menus in VR.
 
-- Mods Config VR and the config specs written for it do not require MCM.
+- Mods Config FO4 VR and the config specs written for it do not require MCM.
 - MCM-backed mods appear only when MCM is installed. A mod with an MCM menu already requires MCM, because its scripts call MCM's Papyrus functions.
 - A mod that also has a config spec is listed by its config spec alone, and its MCM menu is left out; see [Required metadata](schema.md#required-metadata).
 - Without MCM, MCM menus are not shown, and a diagnostic says why.

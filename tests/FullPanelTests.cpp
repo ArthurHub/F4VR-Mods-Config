@@ -553,7 +553,7 @@ namespace
     ImVec2 modCrumb()
     {
         const float separator = crumbWidth("\xC2\xBB") - theme::SPACE_2 * 2.0f;
-        const float left = CONTENT_START + theme::SPACE_2 + crumbWidth("MODS CONFIG VR") + theme::SPACE_1 + separator + theme::SPACE_1;
+        const float left = CONTENT_START + theme::SPACE_2 + crumbWidth("MODS CONFIG FO4") + theme::SPACE_1 + separator + theme::SPACE_1;
         return { left + 20.0f, CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f };
     }
 
@@ -1003,7 +1003,7 @@ TEST_CASE("FullPanel: a page under a page has a breadcrumb for each page on the 
     auto panel = nestedPages();
     panel.select(pageOf({ 0, 0, 0 }));
     drawFrames(panel, 2);
-    const std::vector<const char*> crumbs{ "MODS CONFIG VR", "Alpha", "Body", "Hands", "Fingers" };
+    const std::vector<const char*> crumbs{ "MODS CONFIG FO4", "Alpha", "Body", "Hands", "Fingers" };
 
     // the last is where the player is: it is not pressed
     press(panel, crumbAt(crumbs, 4));
@@ -1023,7 +1023,7 @@ TEST_CASE("FullPanel: the pages between the mod and the page are one ellipsis wh
     auto panel = nestedPages("Calibration of the body", "Where the hands are held");
     panel.select(pageOf({ 0, 0, 0 }));
     drawFrames(panel, 2);
-    const std::vector<const char*> crumbs{ "MODS CONFIG VR", "Alpha", "\xE2\x80\xA6", "Fingers" };
+    const std::vector<const char*> crumbs{ "MODS CONFIG FO4", "Alpha", "\xE2\x80\xA6", "Fingers" };
 
     press(panel, crumbAt(crumbs, 2));
     CHECK(panel.selection() == pageOf({ 0, 0, 0 }));
@@ -1035,7 +1035,7 @@ TEST_CASE("FullPanel: the pages between the mod and the page are one ellipsis wh
     // the crumbs of a page whose name is short fit, so the page above it has its own
     panel.select(pageOf({ 0, 1 }));
     drawFrames(panel, 2);
-    press(panel, crumbAt({ "MODS CONFIG VR", "Alpha", "Calibration of the body", "Feet" }, 2));
+    press(panel, crumbAt({ "MODS CONFIG FO4", "Alpha", "Calibration of the body", "Feet" }, 2));
     CHECK(panel.selection() == pageOf({ 0 }));
 }
 
@@ -3902,7 +3902,7 @@ TEST_CASE("FullPanel: a report of a config spec that cannot be read tells its er
 namespace
 {
     // where the report says the live copy of the config spec of `reportPanel` is
-    constexpr auto LIVE_COPY = R"(My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\MyFolder\spec.json)";
+    constexpr auto LIVE_COPY = R"(My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\Dev\MyFolder\spec.json)";
 
     /**
      * The config spec of `reportPanel` as its live copy is read, by its name, with its page Beam or with no page.
@@ -4475,7 +4475,7 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     // the A button of the off hand is X on its controller, and the other binding is the same press, on another page
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Grab: Long press the X button on the off hand. Takes the item. Also the press of Other. (Default: Tap the trigger on the off hand)");
-    CHECK(std::ranges::contains(icons, R"(ModsConfigVR\f4cf\bindings\left-longpress-x.dds)"));
+    CHECK(std::ranges::contains(icons, R"(ModsConfigFO4\f4cf\bindings\left-longpress-x.dds)"));
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Grab: Reset to Tap the trigger on the off hand");
 
@@ -4491,7 +4491,7 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     drawFrames(panel, 2);
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text().starts_with("Grab: Long press the A button on the off hand."));
-    CHECK(std::ranges::contains(icons, R"(ModsConfigVR\f4cf\bindings\right-longpress-a.dds)"));
+    CHECK(std::ranges::contains(icons, R"(ModsConfigFO4\f4cf\bindings\right-longpress-a.dds)"));
 }
 
 namespace

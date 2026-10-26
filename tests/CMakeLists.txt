@@ -99,10 +99,10 @@ target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE
   # the MCM showcase, which is an optional file of the mod
   MODS_CONFIG_MCM_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/MCM/Config"
   # the mod's own config spec, and the config file it edits as the mod ships it
-  MODS_CONFIG_SPECS_DIR="${ROOT_DIR}/data/mod/ModsConfigVR/Config"
-  MODS_CONFIG_SHIPPED_CONFIG="${ROOT_DIR}/data/config/ModsConfigVR.toml"
+  MODS_CONFIG_SPECS_DIR="${ROOT_DIR}/data/mod/ModsConfigFO4/Config"
+  MODS_CONFIG_SHIPPED_CONFIG="${ROOT_DIR}/data/config/ModsConfigFO4VR.toml"
   # the config spec showcase, which is an optional file of the mod
-  MODS_CONFIG_SPEC_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/ModsConfigVR/Config"
+  MODS_CONFIG_SPEC_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/ModsConfigFO4/Config"
 )
 target_include_directories(${PROJECT_NAME}_tests PRIVATE ${BUILD_DIR}/include ${SOURCE_DIR})
 target_precompile_headers(${PROJECT_NAME}_tests PRIVATE ${SOURCE_DIR}/PCH.h)

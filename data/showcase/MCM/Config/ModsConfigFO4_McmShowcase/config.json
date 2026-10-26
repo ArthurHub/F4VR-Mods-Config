@@ -1,6 +1,6 @@
 {
-  "modName": "ModsConfigVR_McmShowcase",
-  "displayName": "Mods Config VR: MCM Compatibility",
+  "modName": "ModsConfigFO4_McmShowcase",
+  "displayName": "Mods Config FO4: MCM Compatibility",
   "minMcmVersion": 2,
   "sharedLists": { "weather": ["Clear", "Cloudy", "Rain", "Storm"] },
   "content": [
@@ -11,7 +11,7 @@
     },
     {
       "type": "text",
-      "text": "<p align='center'><font color='#AAAAAA' size='16'>Every kind of row an MCM config has, to see how each looks in Mods Config VR. Each page is one kind.</font></p>",
+      "text": "<p align='center'><font color='#AAAAAA' size='16'>Every kind of row an MCM config has, to see how each looks in Mods Config FO4 VR. Each page is one kind.</font></p>",
       "html": true
     },
     { "type": "spacer" },
@@ -520,7 +520,7 @@
           "help": "A GlobalValue of a plugin that is not installed.",
           "valueOptions": {
             "sourceType": "GlobalValue",
-            "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800"
+            "sourceForm": "ModsConfigFO4_NoSuchPlugin.esp|800"
           }
         },
         {
@@ -529,7 +529,7 @@
           "help": "A PropertyValueBool of a script of a plugin that is not installed.",
           "valueOptions": {
             "sourceType": "PropertyValueBool",
-            "sourceForm": "ModsConfigVR_NoSuchPlugin.esp|800",
+            "sourceForm": "ModsConfigFO4_NoSuchPlugin.esp|800",
             "propertyName": "bOn"
           }
         },
@@ -870,7 +870,7 @@
           "id": "iNoList:Choices",
           "valueOptions": {
             "sourceType": "ModSettingInt",
-            "listFromForm": "ModsConfigVR_McmShowcase.esp|800"
+            "listFromForm": "ModsConfigFO4_McmShowcase.esp|800"
           }
         },
         {
@@ -882,7 +882,7 @@
             "sourceType": "ModSettingInt",
             "listFromProperty": {
               "form": "Fallout4.esm|1D98E2",
-              "scriptName": "ModsConfigVR:NoSuchScript",
+              "scriptName": "ModsConfigFO4:NoSuchScript",
               "propertyName": "Names"
             }
           }
@@ -895,7 +895,7 @@
           "id": "sFile:Choices",
           "valueOptions": {
             "sourceType": "ModSettingString",
-            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase",
+            "path": "Data/MCM/Config/ModsConfigFO4_McmShowcase",
             "mask": "*.json"
           }
         },
@@ -906,7 +906,7 @@
           "id": "sAnyFile:Choices",
           "valueOptions": {
             "sourceType": "ModSettingString",
-            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase"
+            "path": "Data/MCM/Config/ModsConfigFO4_McmShowcase"
           }
         },
         {
@@ -916,7 +916,7 @@
           "id": "sNoFile:Choices",
           "valueOptions": {
             "sourceType": "ModSettingString",
-            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase",
+            "path": "Data/MCM/Config/ModsConfigFO4_McmShowcase",
             "mask": "*.nothing"
           }
         },
@@ -981,7 +981,7 @@
           "text": "The JSON files of this config",
           "help": "A dropdownFiles with no sourceType. It is kept nowhere.",
           "valueOptions": {
-            "path": "Data/MCM/Config/ModsConfigVR_McmShowcase",
+            "path": "Data/MCM/Config/ModsConfigFO4_McmShowcase",
             "mask": "*.json"
           }
         }
@@ -1151,7 +1151,7 @@
         },
         {
           "type": "image",
-          "libName": "ModsConfigVR_McmShowcase",
+          "libName": "ModsConfigFO4_McmShowcase",
           "className": "Swatches"
         },
         {
@@ -1160,7 +1160,7 @@
         },
         {
           "type": "image",
-          "libName": "ModsConfigVR_McmShowcase",
+          "libName": "ModsConfigFO4_McmShowcase",
           "className": "Ruler"
         },
         {
@@ -1169,7 +1169,7 @@
         },
         {
           "type": "image",
-          "libName": "ModsConfigVR_McmShowcase",
+          "libName": "ModsConfigFO4_McmShowcase",
           "className": "Checker"
         },
         {
@@ -1178,7 +1178,7 @@
         },
         {
           "type": "image",
-          "libName": "ModsConfigVR_McmShowcase",
+          "libName": "ModsConfigFO4_McmShowcase",
           "className": "Swatches",
           "width": 256,
           "height": 64
@@ -1186,7 +1186,7 @@
         { "type": "text", "text": "A class that the file does not have." },
         {
           "type": "image",
-          "libName": "ModsConfigVR_McmShowcase",
+          "libName": "ModsConfigFO4_McmShowcase",
           "className": "NoSuchImage",
           "width": 256,
           "height": 64

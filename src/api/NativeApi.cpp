@@ -1,20 +1,20 @@
-#include "ModsConfigVR.h"
-#include "ModsConfigVRApi.h"
+#include "ModsConfigFO4.h"
+#include "ModsConfigFO4Api.h"
 
 using namespace mods_config;
 
 namespace
 {
     /**
-     * Mods Config VR's side of the native API, which the menu and its native clients answer. A call of the menu is
+     * Mods Config FO4 VR's side of the native API, which the menu and its native clients answer. A call of the menu is
      * asked of it, which does it in its frame update.
      */
-    class HostApi final : public api::ModsConfigVRApiV1
+    class HostApi final : public api::ModsConfigFO4ApiV1
     {
     public:
         std::uint32_t getVersion() const override
         {
-            return api::MODS_CONFIG_VR_API_VERSION;
+            return api::MODS_CONFIG_FO4_API_VERSION;
         }
 
         const char* getModVersion() const override
@@ -69,7 +69,7 @@ namespace
 /**
  * The native API, which a client's header gets by this name with `GetProcAddress`.
  */
-extern "C" DLLEXPORT const api::ModsConfigVRApiV1* MODS_CONFIG_VR_CALL ModsConfigVRAPI_GetApiV1()
+extern "C" DLLEXPORT const api::ModsConfigFO4ApiV1* MODS_CONFIG_FO4_CALL ModsConfigFO4API_GetApiV1()
 {
     return &API;
 }

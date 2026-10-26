@@ -115,7 +115,7 @@ namespace
 
         bool add(const char* name, FakeClient& client)
         {
-            return clients.registerClient(name, api::MODS_CONFIG_VR_API_VERSION, &client);
+            return clients.registerClient(name, api::MODS_CONFIG_FO4_API_VERSION, &client);
         }
     };
 }
@@ -132,7 +132,7 @@ TEST_CASE("NativeClients: a client registers once by its name, without regard to
     // the same client under another name, and no name, no client or no version
     CHECK_FALSE(clients.add("Other", client));
     CHECK_FALSE(clients.add("", other));
-    CHECK_FALSE(clients.clients.registerClient("Other", api::MODS_CONFIG_VR_API_VERSION, nullptr));
+    CHECK_FALSE(clients.clients.registerClient("Other", api::MODS_CONFIG_FO4_API_VERSION, nullptr));
     CHECK_FALSE(clients.clients.registerClient("Other", 0, &other));
     CHECK_FALSE(clients.clients.nameOf(&other));
 }
@@ -395,11 +395,11 @@ TEST_CASE("NativeClients: a client is told a change of a live setting with where
     CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
 }
 
-TEST_CASE("ModsConfigVRApi: the C++ client hands a change to its handlers in its own types")
+TEST_CASE("ModsConfigFO4Api: the C++ client hands a change to its handlers in its own types")
 {
     // the client is one in the DLL, so the handler keeps what it is told in what it owns
     auto told = std::make_shared<std::vector<std::string>>();
-    auto& client = api::ModsConfigVRClient::get();
+    auto& client = api::ModsConfigFO4Client::get();
     client.subscribeToChanges([told](const api::Change& change) {
         std::string path;
         for (const auto name : change.path) {
@@ -476,10 +476,10 @@ TEST_CASE("NativeClients: a client is told what a Save wrote, each setting with 
     CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
 }
 
-TEST_CASE("ModsConfigVRApi: the C++ client hands what a Save wrote to its handlers in its own types")
+TEST_CASE("ModsConfigFO4Api: the C++ client hands what a Save wrote to its handlers in its own types")
 {
     auto told = std::make_shared<std::vector<std::string>>();
-    auto& client = api::ModsConfigVRClient::get();
+    auto& client = api::ModsConfigFO4Client::get();
     client.subscribeToSaves([told](const api::Saved& saved) {
         told->push_back(std::format("Save {}", saved.revision));
         for (const auto& file : saved.files) {
@@ -523,7 +523,7 @@ TEST_CASE("NativeClients: a client adds a quick launch entry for each of its fun
     CHECK(clients.calls.quickLaunch().size() == 2);
 }
 
-TEST_CASE("ModsConfigVRApi: the C++ client's Params read a parameter by its name, in its own type, and the fallback for one of another type")
+TEST_CASE("ModsConfigFO4Api: the C++ client's Params read a parameter by its name, in its own type, and the fallback for one of another type")
 {
     struct Call final : api::IFunctionCall
     {

@@ -201,7 +201,7 @@ The front page, drawn from the two, with the ray on "Enable the feature". Its he
 
 ```text
 ┌───────────────────────────────────────────────────────────────────┐
-│ MODS CONFIG VR » My Mod                                           │
+│ MODS CONFIG FO4 » My Mod                                          │
 ├───────────────────┬───────────────────────────────────────────────┤
 │ ▾ My Mod          │ General                                       │
 │     Advanced      │ Enable the feature                   [ On ]   │

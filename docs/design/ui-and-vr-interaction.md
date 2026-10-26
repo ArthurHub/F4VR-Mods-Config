@@ -2,7 +2,7 @@
 
 ## Visual direction
 
-Mods Config VR should feel like a large projected Pip-Boy interface rather than a desktop window floating in VR:
+Mods Config FO4 VR should feel like a large projected Pip-Boy interface rather than a desktop window floating in VR:
 
 - Translucent panel material
 - Strong outer border and section framing
@@ -15,9 +15,9 @@ Most of the UI is one Dear ImGui panel placed in a CommonFramework vrui layout (
 
 ## Opening the menu
 
-The menu opens by pressing in both thumbsticks and holding them, the gesture FRIK uses today for its own configuration (`primary longpress thumbstick 1.5 +offhand:thumbstick`). It is an ordinary CommonFramework input binding in `ModsConfigVR.toml`, so the player can change it.
+The menu opens by pressing in both thumbsticks and holding them, the gesture FRIK uses today for its own configuration (`primary longpress thumbstick 1.5 +offhand:thumbstick`). It is an ordinary CommonFramework input binding in `ModsConfigFO4VR.toml`, so the player can change it.
 
-When FRIK is installed, Mods Config VR takes the gesture over. It turns off FRIK's `sOpenConfigButton` binding for the session through FRIK's config override API, and FRIK's configuration is then opened from the quick launch section of the menu's front page. FRIK can integrate more closely later.
+When FRIK is installed, Mods Config FO4 VR takes the gesture over. It turns off FRIK's `sOpenConfigButton` binding for the session through FRIK's config override API, and FRIK's configuration is then opened from the quick launch section of the menu's front page. FRIK can integrate more closely later.
 
 The game is not paused while the menu is open, so a `live` change is seen as it is made, and a saved one as the mod acts on it.
 
@@ -31,7 +31,7 @@ The primary browsing and editing state.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ MODS CONFIG VR » Immersive Flashlight VR             [?] [Minimize] [X] │
+│ MODS CONFIG FO4 » Immersive Flashlight VR            [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
 │ Mods              │ General                                             │
 │                   │ Enabled                    [ On ]                   │
@@ -49,13 +49,13 @@ The primary browsing and editing state.
 ```
 
 - Navigation is on the left and selected mod content is on the right.
-- The navigation is a tree of the mods. [The menu's front page](#the-menus-front-page), which is what the menu opens on, has no row in it: no mod is selected. The first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
+- The navigation is a tree of the mods. [The menu's front page](#the-menus-front-page), which is what the menu opens on, has no row in it: no mod is selected. The first breadcrumb, `MODS CONFIG FO4`, goes to it, and is shown selected while it is open.
 - Selecting a mod expands it to show the mod's pages under it, and shows the mod's front page. A config spec's page can have pages of its own, which it shows under it the same way when it is selected.
 - The mod's front page has no row of its own in the tree: the mod's row is its row.
 - The tree keeps its place and its width, with or without a selected mod.
 - The player can select another mod at any time, without going to the front page first.
 - The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a config spec. A long list is grouped by category; see [Mod categories](#mod-categories).
-- The title bar shows where the player is, as breadcrumbs: `MODS CONFIG VR » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG VR` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG VR` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the pages between the mod and the page become one `…`, which is not pressed, and then the mod's name is shortened with an ellipsis. The first crumb and the last are not shortened.
+- The title bar shows where the player is, as breadcrumbs: `MODS CONFIG FO4 » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG FO4` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG FO4` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the pages between the mod and the page become one `…`, which is not pressed, and then the mod's name is shortened with an ellipsis. The first crumb and the last are not shortened.
 - The title bar has Help, Minimize and Close on its right, and the crumbs end before them. Help shows the [Help page](#the-help-page). Minimize and Close do what the wrist's buttons do: Minimize hides the panel as it is, and `Resume` on the wrist shows it again; Close closes the menu. The help line says what each does while the ray is on it.
 - The content pane has no heading of its own, so its height goes to settings.
 - The footer has Save and Discard on the right and the help line on the left; see [Help line](#help-line).
@@ -111,7 +111,7 @@ What the Full panel shows while no mod is selected. It is what the menu opens on
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ MODS CONFIG VR                                       [?] [Minimize] [X] │
+│ MODS CONFIG FO4                                      [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
 │ Mods              │ Settings for the mods you have installed. Pick a    │
 │                   │ mod on the left to see its settings.                │
@@ -129,9 +129,9 @@ What the Full panel shows while no mod is selected. It is what the menu opens on
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-- The page has no row in the tree. The first breadcrumb, `MODS CONFIG VR`, is its entry, and is shown selected while the page is open. No mod is selected or expanded.
+- The page has no row in the tree. The first breadcrumb, `MODS CONFIG FO4`, is its entry, and is shown selected while the page is open. No mod is selected or expanded.
 - The player comes back to it with that breadcrumb, and with Back from a mod's front page.
-- It starts with a text: what the menu is, how to start, and the version of Mods Config VR.
+- It starts with a text: what the menu is, how to start, and the version of Mods Config FO4 VR.
 - The [quick launch](#quick-launch) section and the [notices](#notices) follow, and, with Developer tools on, the [Developer](#developer-tools) section. A section with nothing in it is left out.
 - Nothing is edited here, so the page has no editing session. The help line shows the help of the quick launch entry the ray is on.
 - Back closes the menu; see [Back behavior](#back-behavior).
@@ -152,7 +152,7 @@ A mod that the menu found and cannot show is not available:
 
 - A plugin it requires is not loaded: a game plugin of an MCM config or of a config spec, or an F4SE plugin of a config spec.
 - Its MCM config or its spec.json cannot be read. It is then named by its folder, as in MCM.
-- Its spec.json needs a newer Mods Config VR, or another config spec has its `modName`.
+- Its spec.json needs a newer Mods Config FO4 VR, or another config spec has its `modName`.
 
 The player is told in two places:
 
@@ -165,7 +165,7 @@ A mod with a saved change that takes effect only after the game is restarted has
 
 ### Developer tools
 
-For a config spec's author. `Developer tools` is a switch in Mods Config VR's own settings, off as shipped: while it is off none of this is drawn. The log has every diagnostic either way.
+For a config spec's author. `Developer tools` is a switch in Mods Config FO4 VR's own settings, off as shipped: while it is off none of this is drawn. The log has every diagnostic either way.
 
 ```text
 ▾ Developer ──────────────────────────────────────────────────
@@ -176,11 +176,11 @@ Virtual Holsters                              ▲ Not loaded ▸
 ```
 
 - The menu's front page has a Developer section after the notices. Its heading folds, and folded it says the errors and the warnings of the config specs it lists. It stays folded as the author leaves it.
-- Its first row is a filter, a stepper that is written to the config at once: the config specs that need attention (an error, a warning, a live copy, or not loaded), all of them, or the one config spec named in the settings, with or without problems. The filter is in Mods Config VR's own settings too, with the dropdown that names that config spec.
+- Its first row is a filter, a stepper that is written to the config at once: the config specs that need attention (an error, a warning, a live copy, or not loaded), all of them, or the one config spec named in the settings, with or without problems. The filter is in Mods Config FO4 VR's own settings too, with the dropdown that names that config spec.
 - A row for each config spec the filter lists, alphabetical: its name, its live copy, and its errors and warnings, or that it has none, is not loaded or is not available. An MCM mod is never listed.
-- A press on the row opens the config spec's report, `MODS CONFIG VR » Developer » <mod>`. Back, and the `Developer` crumb, go back to the front page.
+- A press on the row opens the config spec's report, `MODS CONFIG FO4 » Developer » <mod>`. Back, and the `Developer` crumb, go back to the front page.
 - The report says where `spec.json` is read from, and has its live copy and its problems:
-  - `Read the live copy` copies the config spec's `spec.json` to `My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\<folder>\spec.json`, where there is none, and reads it in place of the installed file. The copy is read again each time it is saved, and Reload reads it at once. A read drops the mod's unsaved changes, and keeps the page that is open while it is still there. A copy that cannot be read is an error, and the mod keeps what it read last. Off reads the installed file again, and keeps the copy.
+  - `Read the live copy` copies the config spec's `spec.json` to `My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\Dev\<folder>\spec.json`, where there is none, and reads it in place of the installed file. The copy is read again each time it is saved, and Reload reads it at once. A read drops the mod's unsaved changes, and keeps the page that is open while it is still there. A copy that cannot be read is an error, and the mod keeps what it read last. Off reads the installed file again, and keeps the copy.
   - `Open` opens the copy in the desktop's editor for `.json`, and `Show` its folder.
   - The errors, then the warnings, each under a heading that folds. A problem is a row with its mark and message, and the help line says where it is: the page and the row, and the path in `spec.json`. A press on one that names a row goes to the row.
 
@@ -203,7 +203,7 @@ What the menu's controls do, with the buttons the player's config has for them. 
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ MODS CONFIG VR » Help                                [?] [Minimize] [X] │
+│ MODS CONFIG FO4 » Help                               [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
 │ Mods              │ How the menu is used, with the buttons your config  │
 │                   │ has.                                                │
@@ -218,7 +218,7 @@ What the menu's controls do, with the buttons the player's config has for them. 
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-- The crumbs are `MODS CONFIG VR » Help`. The tree keeps the selected mod and page, and so does the editing session: the Help page is shown in place of the page, which is not left.
+- The crumbs are `MODS CONFIG FO4 » Help`. The tree keeps the selected mod and page, and so does the editing session: the Help page is shown in place of the page, which is not left.
 - Back goes back to the page it was shown over. A row of the tree or the first crumb goes there, as from any page.
 - It is a text, then each control as `Name: text`, as the help line has a row's help: pointing and the trigger, the thumbstick's scroll and step, Back, moving the panel, Recenter, opening and closing the menu, and Minimize.
 - Then what Save does, and each mark of when a change takes effect with what it means: Save writes the changes, and each mod acts on them in its own way, which a config spec can say and an MCM mod cannot. A setting with no mark is one whose mod does not say.
@@ -295,7 +295,7 @@ Haptic feedback should be restrained and meaningful:
 
 The light pulse is given to the hand that points, in the frame its press does something: another page is shown, the Help page too, the menu is minimized or closed from the title bar, a quick launch entry is opened, a value is changed, the list of a dropdown is opened, Back goes a step back or closes the menu. A press that changes nothing gives none, as one on the row that is selected already. It is a pattern of the framework by its name, `Tick`, which can be changed and turned off.
 
-The pattern is `sPressHaptic` in `[Pointer]` of `ModsConfigVR.toml`, which the menu's own page edits with the [Haptic control](controls.md#haptic).
+The pattern is `sPressHaptic` in `[Pointer]` of `ModsConfigFO4VR.toml`, which the menu's own page edits with the [Haptic control](controls.md#haptic).
 
 ## Help line
 
@@ -342,7 +342,7 @@ The tree's header is a search field, which finds a setting by its name in every 
 - It finds the names as the player sees them: a mod's display name, a page's, a section's heading and a setting's text, of a config spec and of an MCM mod alike. Not the help. Each word of the query starts a word of the name, in any order, with case and accents ignored, so "hol siz" finds "Holster size".
 - A setting that a condition hides is not found. One that a condition disables is found, and is disabled in the results.
 - While the query has text, the tree has only the mods with a match, flat, each expanded to its pages that have a setting that matches, with how many. A mod whose name matches is there with its pages closed. The match is underlined in each name.
-- The content is the results, with the crumbs `MODS CONFIG VR » Search`: the settings that match, under a heading for each mod and page. Each is the setting's own row, changed here as on its page, and Save saves it.
+- The content is the results, with the crumbs `MODS CONFIG FO4 » Search`: the settings that match, under a heading for each mod and page. Each is the setting's own row, changed here as on its page, and Save saves it.
 - A press on a row of the tree goes to that page, with the query kept, and the rows that match are underlined there. Back goes back to the results.
 - Clear, in the field, empties the query and gives the tree back. Back from the results empties it too, and goes back to where the player was.
 - In the Focused panel there is no search: it shows the page that is selected.
@@ -361,14 +361,14 @@ A mod is hard to find in a list of many mods, so a long list is grouped by categ
 │   ▾ FallUI           │
 │       Inventory      │
 │       HUD            │
-│   ▸ Mods Config VR   │
+│   ▸ Mods Config FO4  │
 │ ▸ Settlements ──── 4 │
 │ ▸ No category ──── 2 │
 ```
 
-- With fewer than 30 mods the list is flat: the mods are the top level of the tree. With 30 or more, the categories are the top level and each mod is under its category. The number is a setting of Mods Config VR, and 0 groups a list of any length.
+- With fewer than 30 mods the list is flat: the mods are the top level of the tree. With 30 or more, the categories are the top level and each mod is under its category. The number is a setting of Mods Config FO4 VR, and 0 groups a list of any length.
 - A mod has one category or none, and categories do not nest.
-- A mod's category is the first of these that it has: the player's choice, the mod's own `category`, and the one in the table of known mods that Mods Config VR ships. See [Category](schema.md#category).
+- A mod's category is the first of these that it has: the player's choice, the mod's own `category`, and the one in the table of known mods that Mods Config FO4 VR ships. See [Category](schema.md#category).
 - A mod with none of them is under `No category`, which is the last row.
 - Categories are listed alphabetically, and so are the mods of each. A category with no mod is not shown.
 - Pressing a category opens or closes it, and does not select it. More than one can be open, and the category of the selected mod is open.
@@ -377,12 +377,12 @@ A mod is hard to find in a list of many mods, so a long list is grouped by categ
 
 ### Changing a mod's category
 
-The player can give a mod another category, to arrange the list as they like. Mods Config VR's own entry has a `Categories` page that the menu fills: a row for every mod, with a dropdown of category names.
+The player can give a mod another category, to arrange the list as they like. Mods Config FO4 VR's own entry has a `Categories` page that the menu fills: a row for every mod, with a dropdown of category names.
 
-- The dropdown has the names Mods Config VR ships and the names that are in use. `No category` is one of them, and takes a mod out of the category its author gave it. The last entry, `Type a new name`, opens the keyboard to type a name that is not in the list.
-- A row is an ordinary setting of Mods Config VR's own config spec. It is saved with Save, Discard takes it back, and Reset gives the mod the category it has without the player's choice.
+- The dropdown has the names Mods Config FO4 VR ships and the names that are in use. `No category` is one of them, and takes a mod out of the category its author gave it. The last entry, `Type a new name`, opens the keyboard to type a name that is not in the list.
+- A row is an ordinary setting of Mods Config FO4 VR's own config spec. It is saved with Save, Discard takes it back, and Reset gives the mod the category it has without the player's choice.
 - The tree is grouped again after Save.
-- The choices are kept in `Categories.toml` beside `ModsConfigVR.toml`, one key for each mod, named by its `modName`. A key whose text is empty is `No category`. `ModsConfigVR.toml` holds only the keys the mod ships.
+- The choices are kept in `Categories.toml` beside `ModsConfigFO4VR.toml`, one key for each mod, named by its `modName`. A key whose text is empty is `No category`. `ModsConfigFO4VR.toml` holds only the keys the mod ships.
 - Only a choice that differs from the category the mod has without it is kept, and Save removes the key of any other. So a mod that the player did not move, or that was reset, follows its own category and the table when they change.
 - The page is there while the list is flat too, so a list can be arranged before it is grouped.
 
@@ -409,4 +409,4 @@ A mod may have a UI of its own, opened by a button such as `Open FRIK Calibratio
 
 The mod's UI is not drawn inside the menu's panel. A UI that does not open leaves the menu as it is, and the help line says why. One that never shows the menu again leaves it minimized, and `Resume` on the wrist shows it. A mod can also open the menu at its own settings, from its wrist button or its holotape. See [The mod's own UI](architecture.md#the-mods-own-ui).
 
-FRIK's own configuration is the first case: once Mods Config VR takes over the gesture that opened it, FRIK's menu is reached this way.
+FRIK's own configuration is the first case: once Mods Config FO4 VR takes over the gesture that opened it, FRIK's menu is reached this way.

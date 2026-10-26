@@ -5,7 +5,7 @@ The navigation: every mod in one alphabetical list, with the selected mod expand
 **Provides:** each mod's display name, page names (with the pages under each) and availability; what is selected: a mod's front page, a page, or nothing while the menu's front page is open.
 
 - Fixed at `nav-width` in a `plate` pane, in the same place with or without a selected mod.
-- A `t-detail` `green-muted` header says `Mods` and the count. The menu's front page has no row of its own: the first breadcrumb, `MODS CONFIG VR`, is its entry, and is selected while it is open. No tree row is selected then.
+- A `t-detail` `green-muted` header says `Mods` and the count. The menu's front page has no row of its own: the first breadcrumb, `MODS CONFIG FO4`, is its entry, and is selected while it is open. No tree row is selected then.
 - Rows are `control-height` tall, `t-body`.
 - A mod's own row is its front page: it has no separate page row. Only the selected mod is expanded.
 - Selected: solid `green`, `on-green` text, square right end with a 20 px tip pointing at the content. Draw the tip with `AddTriangleFilled` in the room between the row and the scroll bar (see Scrolling).

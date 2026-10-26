@@ -1,31 +1,31 @@
 {
   "minSchemaVersion": 1,
-  "modName": "ModsConfigVR_Showcase",
-  "displayName": "Mods Config VR: Showcase",
+  "modName": "ModsConfigFO4_Showcase",
+  "displayName": "Mods Config FO4: Showcase",
   "help": "Every kind of row and setting a config spec has, to see how each looks and works. Each page is one kind.",
   "specVersion": 1,
   "pluginRequirements": ["Fallout4.esm"],
-  "f4sePluginRequirements": ["ModsConfigVR"],
+  "f4sePluginRequirements": ["ModsConfigFO4VR"],
   "files": {
     "showcase": {
       "format": "toml",
       "root": "data",
-      "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/showcase.toml"
+      "path": "ModsConfigFO4/Config/ModsConfigFO4_Showcase/showcase.toml"
     },
     "player": {
       "format": "toml",
       "root": "myGames",
-      "path": "Mods_Config/ModsConfigVR_Showcase/player.toml"
+      "path": "Mods_Config/ModsConfigFO4_Showcase/player.toml"
     },
     "ini": {
       "format": "ini",
       "root": "data",
-      "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/showcase.ini"
+      "path": "ModsConfigFO4/Config/ModsConfigFO4_Showcase/showcase.ini"
     },
     "invalid": {
       "format": "toml",
       "root": "data",
-      "path": "ModsConfigVR/Config/ModsConfigVR_Showcase/invalid.toml"
+      "path": "ModsConfigFO4/Config/ModsConfigFO4_Showcase/invalid.toml"
     },
     "outside": { "format": "toml", "root": "data", "path": "../showcase.toml" }
   },
@@ -41,7 +41,7 @@
   },
   "content": [
     { "type": "spacer" },
-    { "type": "image", "texture": "ModsConfigVR_Showcase/banner.dds", "width": 700 },
+    { "type": "image", "texture": "ModsConfigFO4_Showcase/banner.dds", "width": 720 },
     { "type": "spacer" },
     {
       "type": "section",
@@ -78,7 +78,7 @@
       "content": [
         {
           "type": "text",
-          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config VR. Each page is one kind."
+          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config FO4 VR. Each page is one kind."
         },
         { "type": "spacer" },
         {
@@ -302,7 +302,7 @@
         { "type": "spacer", "numLines": 3 },
         {
           "type": "text",
-          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config VR. Each page is one kind."
+          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config FO4 VR. Each page is one kind."
         }
       ],
       "pages": [
@@ -761,7 +761,7 @@
                 },
                 {
                   "type": "image",
-                  "texture": "ModsConfigVR_Showcase/swatches.dds"
+                  "texture": "ModsConfigFO4_Showcase/swatches.dds"
                 },
                 {
                   "type": "text",
@@ -769,7 +769,7 @@
                 },
                 {
                   "type": "image",
-                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "texture": "ModsConfigFO4_Showcase/checker.dds",
                   "width": 64,
                   "height": 64
                 },
@@ -779,7 +779,7 @@
                 },
                 {
                   "type": "image",
-                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "texture": "ModsConfigFO4_Showcase/checker.dds",
                   "width": 192
                 },
                 {
@@ -788,7 +788,7 @@
                 },
                 {
                   "type": "image",
-                  "texture": "ModsConfigVR_Showcase/ruler.dds"
+                  "texture": "ModsConfigFO4_Showcase/ruler.dds"
                 }
               ]
             },
@@ -812,7 +812,7 @@
                 },
                 {
                   "type": "image",
-                  "texture": "ModsConfigVR_Showcase/checker.dds",
+                  "texture": "ModsConfigFO4_Showcase/checker.dds",
                   "width": 64,
                   "height": 64,
                   "visibleWhen": { "setting": "showPicture", "equals": true }
@@ -1480,7 +1480,7 @@
                   "valueOptions": { "min": 0, "max": 10, "step": 0.5 },
                   "display": {
                     "unit": {
-                      "token": "$ModsConfigVR_Showcase_Seconds",
+                      "token": "$ModsConfigFO4_Showcase_Seconds",
                       "fallback": "s"
                     }
                   },
@@ -1726,7 +1726,7 @@
               "content": [
                 {
                   "type": "button",
-                  "text": "Mods Config VR on GitHub",
+                  "text": "Mods Config FO4 VR on GitHub",
                   "help": "Opens the project's GitHub page in your default desktop browser. The menu stays open in VR.",
                   "buttonText": "Open",
                   "action": {
@@ -1757,7 +1757,7 @@
                   "text": "A text of a token",
                   "help": "The text on its button is a token with a fallback.",
                   "buttonText": {
-                    "token": "$ModsConfigVR_Showcase_Apply",
+                    "token": "$ModsConfigFO4_Showcase_Apply",
                     "fallback": "Apply"
                   },
                   "action": {
@@ -2626,18 +2626,18 @@
         },
         {
           "pageDisplayName": {
-            "token": "$ModsConfigVR_Showcase_Texts",
+            "token": "$ModsConfigFO4_Showcase_Texts",
             "fallback": "Translations"
           },
           "help": {
-            "token": "$ModsConfigVR_Showcase_TextsHelp",
+            "token": "$ModsConfigFO4_Showcase_TextsHelp",
             "fallback": "Plain texts, tokens with a fallback, and a token with none."
           },
           "content": [
             {
               "type": "section",
               "text": {
-                "token": "$ModsConfigVR_Showcase_Forms",
+                "token": "$ModsConfigFO4_Showcase_Forms",
                 "fallback": "The three forms of a text"
               },
               "content": [
@@ -2653,11 +2653,11 @@
                   "type": "switcher",
                   "valueType": "bool",
                   "text": {
-                    "token": "$ModsConfigVR_Showcase_Fallback",
+                    "token": "$ModsConfigFO4_Showcase_Fallback",
                     "fallback": "A token with a fallback"
                   },
                   "help": {
-                    "token": "$ModsConfigVR_Showcase_FallbackHelp",
+                    "token": "$ModsConfigFO4_Showcase_FallbackHelp",
                     "fallback": "No translation file has its token, so it is its fallback."
                   },
                   "default": true,
@@ -2666,7 +2666,7 @@
                 {
                   "type": "switcher",
                   "valueType": "bool",
-                  "text": "$ModsConfigVR_Showcase_NoFallback",
+                  "text": "$ModsConfigFO4_Showcase_NoFallback",
                   "help": "A token with no fallback, which no translation file has, is shown as it is written.",
                   "default": true,
                   "storage": { "path": ["Texts", "bToken"] }
@@ -2726,7 +2726,7 @@
                   "text": "A global that is not in the game",
                   "help": "Its global is of a plugin the game does not have.",
                   "default": true,
-                  "storage": { "global": "ModsConfigVR_Showcase.esp|801" }
+                  "storage": { "global": "ModsConfigFO4_Showcase.esp|801" }
                 },
                 {
                   "type": "switcher",
@@ -2735,7 +2735,7 @@
                   "help": "Its form is of a plugin the game does not have.",
                   "default": true,
                   "storage": {
-                    "form": "ModsConfigVR_Showcase.esp|800",
+                    "form": "ModsConfigFO4_Showcase.esp|800",
                     "propertyName": "bOn"
                   }
                 },
@@ -2863,7 +2863,7 @@
                   "text": "A FormList that is not in the game",
                   "help": "Its listFromForm names a plugin that is not loaded, so it has no options and is not available.",
                   "default": 0,
-                  "valueOptions": { "listFromForm": "ModsConfigVR_Showcase.esp|800" },
+                  "valueOptions": { "listFromForm": "ModsConfigFO4_Showcase.esp|800" },
                   "storage": { "path": ["Mistakes", "iNoFormList"] }
                 }
               ]
@@ -3003,7 +3003,7 @@
                   "help": "Its form is of a plugin the game does not have: a press runs nothing, and the log says why.",
                   "action": {
                     "type": "CallFunction",
-                    "form": "ModsConfigVR_Showcase.esp|800",
+                    "form": "ModsConfigFO4_Showcase.esp|800",
                     "function": "ResetAll"
                   }
                 }
@@ -3066,7 +3066,7 @@
                 },
                 {
                   "type": "image",
-                  "texture": "ModsConfigVR_Showcase/missing.dds",
+                  "texture": "ModsConfigFO4_Showcase/missing.dds",
                   "width": 256,
                   "height": 64
                 },
@@ -3076,7 +3076,7 @@
                 },
                 {
                   "type": "image",
-                  "texture": "ModsConfigVR_Showcase/missing.dds"
+                  "texture": "ModsConfigFO4_Showcase/missing.dds"
                 },
                 { "type": "text", "text": "An image that names no texture:" },
                 { "type": "image" }

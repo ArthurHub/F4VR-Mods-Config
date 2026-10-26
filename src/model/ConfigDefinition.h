@@ -807,12 +807,12 @@ namespace mods_config::model
         // a config spec's problems, in the order of its spec.json. None for an MCM mod
         std::vector<Problem> problems;
 
-        // the folder of a config spec's spec.json, in `Data\ModsConfigVR\Config`. Empty for an MCM mod, and for a
+        // the folder of a config spec's spec.json, in `Data\ModsConfigFO4\Config`. Empty for an MCM mod, and for a
         // config spec that was read alone
         std::string folder;
 
         // the live copy a config spec's spec.json is read from, as its author's report says where it is. Empty
-        // while it is read from its folder in `Data\ModsConfigVR\Config`
+        // while it is read from its folder in `Data\ModsConfigFO4\Config`
         std::string liveCopy;
     };
 }

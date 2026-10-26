@@ -28,7 +28,7 @@ The commits of milestones 1 to 4 of the [Mod work plan](mod-plan.md), in which t
 
 M11 is [The menu's front page](ui-and-vr-interaction.md#the-menus-front-page), which is what the menu shows with no mod selected:
 
-- It is what the menu opens on. It has no row in the tree: the first breadcrumb, `MODS CONFIG VR`, goes to it, and is shown selected while it is open.
+- It is what the menu opens on. It has no row in the tree: the first breadcrumb, `MODS CONFIG FO4`, goes to it, and is shown selected while it is open.
 - It is like MCM's, and the section lists what differs.
 - The mods are a tree, as in [UI and VR interaction](ui-and-vr-interaction.md#navigation-behavior): a selected mod is expanded to show its pages, and its front page has no row.
 - It has a quick launch section, which opens a mod's own config UI.
@@ -70,7 +70,7 @@ M18 does what FallUI's own code does in MCM's menu, for FallUI and FallUI Workbe
 
 M19 draws the tags of a text row and removes those of a help, with one parser, as in [Text, spacers and images](schema.md#text-spacers-and-images). It runs after the translation of M17 and M18, because FallUI's `${Key}` tokens are inside the tags. The loader reads a help in M21, which then removes its tags.
 
-M101 adds an MCM config of our own, `data/showcase/MCM/Config/ModsConfigVR_McmShowcase/`, with every kind of row an MCM config has, in every look: the sizes, colors and aligns of a text, the options of each control, and what a config can get wrong. It has only what works in MCM too, so the two menus are compared on it: what the config spec schema adds to MCM would be a showcase of its own. It is tried in the headset as each commit draws a row, and grows with them. It is packaged with the other showcase in one optional archive, to show a mod's author how an MCM menu looks in the mod. It has no game plugin, so what needs one stays with the test mod of M37.
+M101 adds an MCM config of our own, `data/showcase/MCM/Config/ModsConfigFO4_McmShowcase/`, with every kind of row an MCM config has, in every look: the sizes, colors and aligns of a text, the options of each control, and what a config can get wrong. It has only what works in MCM too, so the two menus are compared on it: what the config spec schema adds to MCM would be a showcase of its own. It is tried in the headset as each commit draws a row, and grows with them. It is packaged with the other showcase in one optional archive, to show a mod's author how an MCM menu looks in the mod. It has no game plugin, so what needs one stays with the test mod of M37.
 
 M20 draws the four controls, and disabled, as they change nothing yet:
 
@@ -371,7 +371,7 @@ M42 reads the player's file of a ModSetting again as another page of its mod is 
 - MCM writes `Data\MCM\Settings\<mod>.ini` on every set, also one of a script, so the file has what MCM has in its memory. It is read again over the mod's defaults as another page of the mod is shown, also its front page. The mod's own `settings.ini` does not change while the game runs, and is not read again.
 - It is not read while a page is shown: no player expects a page to change under the ray. A script that sets a value as the player changes another shows it on the next page.
 - Hotkeys are not read again: MCM writes their file as its own menu closes, which is not open while this one is.
-- No mod of the test set sets a ModSetting while its page is shown. The trial sets one of the MCM showcase from the console, and shows another page and back: `cgf "MCM.SetModSettingBool" "ModsConfigVR_McmShowcase" "bOn:Switchers" false`.
+- No mod of the test set sets a ModSetting while its page is shown. The trial sets one of the MCM showcase from the console, and shows another page and back: `cgf "MCM.SetModSettingBool" "ModsConfigFO4_McmShowcase" "bOn:Switchers" false`.
 
 M43 is [MCM support](mcm.md): a table of every feature of an MCM config and of MCM VR, and how the menu handles each, checked against the MCM wiki and MCM VR's menu:
 

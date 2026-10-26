@@ -23,7 +23,7 @@ Status is one of `todo`, `in review`, or `done`.
 
 M1 is the first real change in the mod:
 
-- The opening gesture is a binding in `ModsConfigVR.ini`. With FRIK installed, FRIK's `sOpenConfigButton` is overridden through FRIK's API, which needs FRIK's API header in the mod.
+- The opening gesture is a binding in `ModsConfigFO4VR.ini`. With FRIK installed, FRIK's `sOpenConfigButton` is overridden through FRIK's API, which needs FRIK's API header in the mod.
 - The gesture opens one `UIImGuiPanel` attached to the HMD. Until the real content exists it holds one of each kind of control the menu uses: a button, a checkbox, a slider, a long list, a combo, and a confirmation dialog.
 - Two vrui buttons are attached to the offhand controller as the framework places them today, and are shown with the panel. They are the test case for item 1. Close closes the menu. The other one hides and shows the panel (Minimize and Resume), because nothing on the panel can be pressed yet.
 - Devbench actions open and close the menu, and its state says whether the menu is open or minimized.
@@ -64,7 +64,7 @@ Not an item of the requirements: the tool the placements above are tuned with.
 | F15 | framework | vrui: the dev layout is turned on by a debug flag and keeps its own file    | done      |
 | M4  | mod       | The wrist buttons on the wrist preset, the dev layout by the framework flag | done      |
 
-F15 turns the dev layout on with `bVRUIDevLayout` in `[Debug]`, which is not in the shipped INI, and devbench's `set` turns it on for a session. Its lines are in `ModsConfigVR_DevLayout.ini` beside the INI, a section for each attached root, and no longer in the mod's INI or in `ConfigBase`.
+F15 turns the dev layout on with `bVRUIDevLayout` in `[Debug]`, which is not in the shipped INI, and devbench's `set` turns it on for a session. Its lines are in `ModsConfigFO4VR_DevLayout.ini` beside the INI, a section for each attached root, and no longer in the mod's INI or in `ConfigBase`.
 
 M4 moves the submodule to F15 and uses what the framework brings since M3:
 
@@ -277,4 +277,4 @@ Items 11 to 13 are made with the mod's own milestones. Their commits are in the 
 
 - **Item 11, images in canvases.** The menu needs them first for MCM's images.
 - **Item 12, text entry and the on-screen keyboard.** The keyboard is SteamVR's, as the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md) has it.
-- **Item 13, the Mods Config VR client in `ModBase`.** It needs the host's native API, which does not exist yet.
+- **Item 13, the Mods Config FO4 VR client in `ModBase`.** It needs the host's native API, which does not exist yet.

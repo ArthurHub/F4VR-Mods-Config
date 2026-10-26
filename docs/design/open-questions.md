@@ -65,7 +65,7 @@ The getters and the save event are settled; see [Papyrus API](architecture.md#pa
 - How a color is returned to a script, which waits on the color storage encoding
 - Whether the getters are flagged to run without waiting (`NoWait`), which requires them to be thread-safe. MCM's are not flagged
 - How soon a getter sees a file that was changed outside the menu
-- Whether a script mod can treat Mods Config VR as optional. F4SE's `F4SE.GetPluginVersion` tells a script whether the plugin is loaded; what happens to a script that calls a missing `ModsConfigVR` script has to be checked in game
+- Whether a script mod can treat Mods Config FO4 VR as optional. F4SE's `F4SE.GetPluginVersion` tells a script whether the plugin is loaded; what happens to a script that calls a missing `ModsConfigFO4` script has to be checked in game
 - Whether the host also tells scripts to read their settings again after a save is loaded
 - Whether script mods get live preview: a preview event, and getters that return pending values
 - Whether scripts can change settings

@@ -2,8 +2,8 @@
 
 A config spec's report: the file it is read from, its live copy, and its problems, errors first.
 
-- The crumbs are `MODS CONFIG VR » Developer » <mod>`. `Developer` goes to the menu's front page, scrolled to its Developer section, and so does Back. No mod is selected in the tree, as on the front page.
-- The page's help says where `spec.json` is read from: where it is installed, `Data\ModsConfigVR\Config\<folder>\spec.json`, or its live copy, `My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\<folder>\spec.json`.
+- The crumbs are `MODS CONFIG FO4 » Developer » <mod>`. `Developer` goes to the menu's front page, scrolled to its Developer section, and so does Back. No mod is selected in the tree, as on the front page.
+- The page's help says where `spec.json` is read from: where it is installed, `Data\ModsConfigFO4\Config\<folder>\spec.json`, or its live copy, `My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\Dev\<folder>\spec.json`.
 
 ## Live copy
 

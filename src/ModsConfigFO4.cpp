@@ -1,4 +1,4 @@
-#include "ModsConfigVR.h"
+#include "ModsConfigFO4.h"
 
 #include "GameTranslations.h"
 #include "api/FRIKApi.h"
@@ -31,7 +31,7 @@ namespace
 
 namespace mods_config
 {
-    bool ModsConfigVR::isPlayerLoaded()
+    bool ModsConfigFO4::isPlayerLoaded()
     {
         const auto player = RE::PlayerCharacter::GetSingleton();
         return player && player->loadedData;
@@ -40,7 +40,7 @@ namespace mods_config
     /**
      * Run F4SE plugin load and initialize the plugin given the init handle.
      */
-    void ModsConfigVR::onModLoaded(const F4SE::LoadInterface*)
+    void ModsConfigFO4::onModLoaded(const F4SE::LoadInterface*)
     {
         devbench::setupDevBenchTool();
         // given to the menu as the framework connects the mod's client at kPostLoad
@@ -50,7 +50,7 @@ namespace mods_config
     /**
      * On game fully loaded initialize things that should be initialized only once.
      */
-    void ModsConfigVR::onGameLoaded()
+    void ModsConfigFO4::onGameLoaded()
     {
         takeOpenGestureFromFRIK();
 
@@ -63,7 +63,7 @@ namespace mods_config
     /**
      * Game session can be initialized multiple times as it is fired on new game and save loaded events.
      */
-    void ModsConfigVR::onGameSessionLoaded()
+    void ModsConfigFO4::onGameSessionLoaded()
     {
         _menu.close();
     }
@@ -71,7 +71,7 @@ namespace mods_config
     /**
      * On every frame if player is initialized.
      */
-    void ModsConfigVR::onFrameUpdate()
+    void ModsConfigFO4::onFrameUpdate()
     {
         if (!isPlayerLoaded()) {
             logger::sample(3000, "no player data - noop");
@@ -100,7 +100,7 @@ namespace mods_config
      * The menu opens with the gesture FRIK uses for its own config, so with FRIK installed its binding is
      * turned off for the session. FRIK is not required: without it only the gesture of this mod exists.
      */
-    void ModsConfigVR::takeOpenGestureFromFRIK()
+    void ModsConfigFO4::takeOpenGestureFromFRIK()
     {
         // the oldest API with isConfigOpen, which the menu's quick launch entry for FRIK asks
         const int err = FRIKApi::initialize(2);

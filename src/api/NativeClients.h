@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-#include "ModsConfigVRApi.h"
+#include "ModsConfigFO4Api.h"
 #include "model/ClientCalls.h"
 #include "model/Translations.h"
 

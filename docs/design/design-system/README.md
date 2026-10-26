@@ -1,6 +1,6 @@
-# Mods Config VR design system
+# Mods Config FO4 VR design system
 
-The look of the menu: colors, type, sizes, the Dear ImGui style, and how each component and panel is drawn, with mocks. It is the source of the Design System artifact [Mods Config VR](https://claude.ai/artifact/MardL45HgwNbZ3ERXcjZfJ), which shows it as a page; this folder is the copy under source control. What the menu does is decided in the [design documents](../README.md), mostly in [UI and VR interaction](../ui-and-vr-interaction.md).
+The look of the menu: colors, type, sizes, the Dear ImGui style, and how each component and panel is drawn, with mocks. It is the source of the Design System artifact [Mods Config FO4 VR](https://claude.ai/artifact/MardL45HgwNbZ3ERXcjZfJ), which shows it as a page; this folder is the copy under source control. What the menu does is decided in the [design documents](../README.md), mostly in [UI and VR interaction](../ui-and-vr-interaction.md).
 
 Start with [project/README.md](project/README.md): the rules, the mapping to `ImGuiStyle` and `ImGuiCol_`, and the index of the components.
 
@@ -21,7 +21,7 @@ The artifact also holds files its type writes when it is published: `api/`, `man
 `tools/` writes the generated files and checks a change before it is published. They need Python 3.11 or later; `render.py` and `measure.py` also need Playwright: `pip install playwright`, then `python -m playwright install chromium`.
 
 - `gen_previews.py`: writes every `preview.html` but the cover's. It draws the InputBinding previews with the framework's binding icons from `binding_icons.json`.
-- `gen_binding_icons.py`: writes `binding_icons.json` from the framework's binding icons the mod ships, `data/mod/Textures/ModsConfigVR/f4cf/bindings/`, for the InputBinding previews. The framework draws the icons (its `tools/gen_binding_icons.py`, into its `mod-template`); copy them into the mod and run this when they change. It needs Pillow (`pip install pillow`); `gen_previews.py` does not.
+- `gen_binding_icons.py`: writes `binding_icons.json` from the framework's binding icons the mod ships, `data/mod/Textures/ModsConfigFO4/f4cf/bindings/`, for the InputBinding previews. The framework draws the icons (its `tools/gen_binding_icons.py`, into its `mod-template`); copy them into the mod and run this when they change. It needs Pillow (`pip install pillow`); `gen_previews.py` does not.
 - `gen_theme.py`: writes [src/Theme.h](../../../src/Theme.h): every token as a C++ constant, the font sizes, and `applyStyle`, which sets the `ImGuiStyle` fields and `ImGuiCol_` colors from the tables of the ImGui style section of `project/README.md`. A value in those tables that differs from its token, or an unknown token, stops it. `--check` only reports whether the header is out of date.
 - `render.py [Name ...]`: compiles the tokens as the artifact does and saves a screenshot of each preview to `out/`, which git ignores.
 - `measure.py [Name ...]`: the tree's height, whether its rows overflow, and any name cut short, from the pages `render.py` saved.

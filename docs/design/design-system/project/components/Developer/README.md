@@ -1,12 +1,12 @@
 # Developer
 
-Developer tools, for a config spec's author: a switch and a filter in Mods Config VR's own settings, a Developer section on the menu's front page with a row for each config spec it lists, and each config spec's report of its problems.
+Developer tools, for a config spec's author: a switch and a filter in Mods Config FO4 VR's own settings, a Developer section on the menu's front page with a row for each config spec it lists, and each config spec's report of its problems.
 
 **Provides:** each config spec's name, its errors and warnings (the message, the page and the row it is on, and the path in `spec.json`, or the line and column of a file that cannot be read), whether it is read from its live copy, and when that was last read.
 
 ## Turning it on, and which config specs
 
-On Mods Config VR's own page, saved to `ModsConfigVR.toml`:
+On Mods Config FO4 VR's own page, saved to `ModsConfigFO4VR.toml`:
 
 - **Developer tools**, a switch, off as shipped. While it is off nothing here is drawn, so a player never sees it. The log has every problem either way.
 - **Show config specs**, a stepper: `Needing attention` (as shipped), `All`, or `Only one`.

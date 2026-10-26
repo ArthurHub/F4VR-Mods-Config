@@ -1,6 +1,6 @@
-# Mods Config VR
+# Mods Config FO4 VR
 
-> TODO: one-line tagline — what Mods Config VR does, for Fallout 4 VR.
+> TODO: one-line tagline — what Mods Config FO4 VR does, for Fallout 4 VR.
 
 TODO: a short paragraph on what the mod does and why a player wants it.
 
@@ -24,14 +24,14 @@ Built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFra
 enable it. Launch the game through F4SEVR (`f4sevr_loader.exe`).
 
 **Manual:** extract the archive into your `Fallout 4 VR` folder so the plugin lands at
-`Data\F4SE\Plugins\ModsConfigVR.dll`, then launch through F4SEVR.
+`Data\F4SE\Plugins\ModsConfigFO4VR.dll`, then launch through F4SEVR.
 
 ## Configuration
 
 Settings live in a TOML file created on first run at:
 
 ```
-%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigVR\ModsConfigVR.toml
+%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml
 ```
 
 Edits apply **live** while the game is running — no restart needed.
@@ -50,7 +50,7 @@ guide for the full toolchain (VS 2022/2026, CMake 4.2+, `VCPKG_ROOT`). Quick ver
 ```sh
 git clone --recurse-submodules https://github.com/ArthurHub/F4VR-Mods-Config.git
 cd F4VR-Mods-Config
-cmake --preset default      # generates build/ModsConfigVR.sln
+cmake --preset default      # generates build/ModsConfigFO4VR.sln
 ```
 
 Open the solution and build. To package, build the `package_mod` target in Release; it writes a versioned `.7z` under `build/package/`.
@@ -58,7 +58,7 @@ It also packs `data/showcase/` into one optional Showcase archive containing bot
 To profile with [Tracy](https://github.com/wolfpld/tracy), build the `Tracy` configuration (`cmake --build --preset tracy`): a Release build
 whose perf sites are also Tracy zones.
 
-The build also makes `ModsConfigVR_tests`, the unit tests of the code that does not need the game. Run them with
+The build also makes `ModsConfigFO4VR_tests`, the unit tests of the code that does not need the game. Run them with
 `ctest --test-dir build -C Release --output-on-failure`.
 
 Code style is enforced by clang-format through [pre-commit](https://pre-commit.com/): run `pre-commit install` once after cloning so

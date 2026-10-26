@@ -12,7 +12,7 @@ namespace mods_config::spec
     /**
      * The live copies of config specs' `spec.json`, for their authors: a copy of each in a folder of its own, which
      * the menu reads in place of the installed file while the config spec's switch is on, and reads again each time
-     * it is saved. A config spec is named by its folder in `Data\ModsConfigVR\Config`, which its copy's folder has
+     * it is saved. A config spec is named by its folder in `Data\ModsConfigFO4\Config`, which its copy's folder has
      * too. The switches are kept for this run of the game, and a copy is kept on the disk.
      */
     class LiveCopies
@@ -32,7 +32,7 @@ namespace mods_config::spec
     private:
         std::filesystem::path installedOf(std::string_view folder) const;
 
-        // the config specs' folders, `Data\ModsConfigVR\Config`, and the folder of their copies
+        // the config specs' folders, `Data\ModsConfigFO4\Config`, and the folder of their copies
         std::filesystem::path _installedFolder;
         std::filesystem::path _copiesFolder;
 

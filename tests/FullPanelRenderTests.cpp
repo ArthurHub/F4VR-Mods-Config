@@ -35,7 +35,7 @@
 
 // The Full panel drawn without the game and saved as an image, to look at a change of the UI before it is tried
 // in the headset. They check nothing, so they are not run with the other tests. Run them by their tag:
-//     ModsConfigVR_tests "[render]"
+//     ModsConfigFO4VR_tests "[render]"
 // Each says where its image is, a .bmp file in the build folder.
 
 using namespace mods_config;
@@ -720,9 +720,9 @@ TEST_CASE("FullPanel render: the pages of the mod's own config spec, with the ra
     REQUIRE(mods.size() == 1);
     // its values are the shipped config's, in a My Games folder of its own
     const test_files::TempFolder myGames;
-    const auto configFolder = myGames.path / "Mods_Config" / "ModsConfigVR";
+    const auto configFolder = myGames.path / "Mods_Config" / "ModsConfigFO4VR";
     std::filesystem::create_directories(configFolder);
-    std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, configFolder / "ModsConfigVR.toml");
+    std::filesystem::copy_file(MODS_CONFIG_SHIPPED_CONFIG, configFolder / "ModsConfigFO4VR.toml");
     spec::ConfigSpecStore store({}, myGames.path);
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in
@@ -1172,7 +1172,7 @@ TEST_CASE("FullPanel render: the values of the config spec showcase's file that 
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
-    select(panel, "Mods Config VR: Showcase", { "Detailed Examples", "Files" });
+    select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", "Files" });
 
     // they are at the end of the page, and the help line has the reason of the last
     const auto scrollToEnd = [&panel] {
@@ -1197,7 +1197,7 @@ TEST_CASE("FullPanel render: the ends of the config spec showcase's pages of row
         FullPanel panel;
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
-        select(panel, "Mods Config VR: Showcase", { "Detailed Examples", pageName });
+        select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", pageName });
         const auto scrollToEnd = [&panel] {
             test_panel::drawFrame(panel, pageRow(3));
             test_panel::drawFrame(panel, pageRow(3));
@@ -1223,7 +1223,7 @@ TEST_CASE("FullPanel render: the ends of the config spec showcase's pages of num
         FullPanel panel;
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
-        select(panel, "Mods Config VR: Showcase", { "Detailed Examples", pageName });
+        select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", pageName });
         const auto scrollToEnd = [&panel] {
             test_panel::drawFrame(panel, pageRow(3));
             test_panel::drawFrame(panel, pageRow(3));
@@ -1244,7 +1244,7 @@ TEST_CASE("FullPanel render: the config spec showcase's warnings, as shipped and
         FullPanel panel;
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
-        select(panel, "Mods Config VR: Showcase", { "Detailed Examples", "Warnings" });
+        select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", "Warnings" });
         // Shadows is set once its session is open, which the page's first frame opens
         const auto turnOn = [&panel, &store] {
             test_panel::drawFrame(panel, POINTER_AWAY);
@@ -1783,7 +1783,7 @@ TEST_CASE("FullPanel render: the front page's Developer section, open with the r
         std::vector<model::Mod> mods;
         mods.push_back(modOf("Baka Fullscreen Pip-Boy"));
         mods.push_back(configSpec("Immersive Flashlight VR", 2, 5));
-        mods.push_back(configSpec("Mods Config VR", 0, 0));
+        mods.push_back(configSpec("Mods Config FO4", 0, 0));
         mods.push_back(configSpec("Showcase", 0, 3));
         mods.push_back(configSpec("Virtual Holsters", 1, 0, "its spec.json cannot be read"));
         mods.push_back(configSpec("Sim Settlements 2", 0, 0, "its plugin SS2.esm is not loaded"));
@@ -1833,7 +1833,7 @@ TEST_CASE("FullPanel render: the config spec showcase read from its live copy: i
     const test_files::TempFolder myGames;
     spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
     const auto folder = mods[0].folder;
-    const auto copy = std::format(R"(My Games\Fallout4VR\Mods_Config\ModsConfigVR\Dev\{}\spec.json)", folder);
+    const auto copy = std::format(R"(My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\Dev\{}\spec.json)", folder);
 
     // a panel of its own for each image, as its style is set on the ImGui of its first draw: the showcase read
     // from its live copy, and the copy that cannot be read after it

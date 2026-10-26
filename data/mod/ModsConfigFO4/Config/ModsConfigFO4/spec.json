@@ -1,21 +1,21 @@
 {
   "minSchemaVersion": 1,
-  "modName": "ModsConfigVR",
-  "displayName": "Mods Config VR",
+  "modName": "ModsConfigFO4VR",
+  "displayName": "Mods Config FO4",
   "help": "This menu: the panel it is shown on, and the pointer you use it with.",
   "specVersion": 1,
   "files": {
     "config": {
       "format": "toml",
       "root": "myGames",
-      "path": "Mods_Config/ModsConfigVR/ModsConfigVR.toml",
+      "path": "Mods_Config/ModsConfigFO4VR/ModsConfigFO4VR.toml",
       "pathFromClientState": "configFile"
     }
   },
   "defaultFile": "config",
   "applies": "live",
   "content": [
-    { "type": "image", "texture": "ModsConfigVR/banner.dds", "width": 600 },
+    { "type": "image", "texture": "ModsConfigFO4/banner.dds", "width": 720 },
     {
       "type": "text",
       "text": "<font color='#AAAAAA' size=13>Version: {clientState:modVersion}</font>",
@@ -179,7 +179,7 @@
                 "duration": 1.5,
                 "modifier": { "hand": "offhand", "button": "thumbstick" }
               },
-              "storage": { "path": ["ModsConfigVR", "kOpenMenuBinding"] }
+              "storage": { "path": ["ModsConfigFO4VR", "kOpenMenuBinding"] }
             },
             {
               "type": "cf.inputBinding",
