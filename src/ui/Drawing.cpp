@@ -39,9 +39,6 @@ namespace
         ImGui::GetWindowDrawList()->AddPolyline(points.data(), static_cast<int>(points.size()), ImGui::GetColorU32(color), CHECK_THICKNESS);
     }
 
-    // a cell of a switcher, which has two, in the panel's pixels: not a token of the design system
-    constexpr float TOGGLE_CELL_WIDTH = 88.0f;
-
     // The size of a font tag that is drawn as the panel's body text. A config's sizes are those of MCM's menu,
     // where the ordinary text is about this size, so a text is as much larger or smaller than the rows as there.
     constexpr float MARKUP_BODY_SIZE = 20.0f;

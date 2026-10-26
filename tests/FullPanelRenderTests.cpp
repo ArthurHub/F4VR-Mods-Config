@@ -892,6 +892,73 @@ TEST_CASE("FullPanel render: the bindings of the config spec showcase, one pendi
     WARN("Saved " << renderToFile(panel, "config-spec-bindings", ImVec2(650.0f, 546.0f)));
 }
 
+TEST_CASE("FullPanel render: the editor of a binding under its row and over it, with the ray on a part, and a list of it open", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    // the window of a popup that is open, by its width: the editor, or a list over it
+    const auto openPopup = [](const float width) -> const ImGuiWindow* {
+        for (const auto* window : ImGui::GetCurrentContext()->Windows) {
+            if (window->Active && (window->Flags & ImGuiWindowFlags_Popup) && common::fEqual(window->Size.x, width)) {
+                return window;
+            }
+        }
+        return nullptr;
+    };
+    // a press at a place, which the frames before the image are drawn after
+    const auto press = [](FullPanel& panel, const ImVec2 at) {
+        for (const bool held : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, at, held);
+        }
+    };
+    // the rows of the page Bindings of Detailed Examples: Chord is the fourth under its heading, Push the fifth, and
+    // Suppressed the ninth
+    constexpr float ROWS_LEFT = 650.0f;
+    constexpr float FIRST_ROW = 162.0f;
+    // the panel's context lives while it is drawn, so the editor is opened in the frames before each image, which are
+    // drawn twice: first to find where the editor and its list are, and then with the ray on a part or an option of them
+    const auto render = [&](const std::string& name, const int row, const bool listOpen) {
+        ImVec2 editorAt;
+        ImVec2 listAt;
+        ImVec2 pointer = POINTER_AWAY;
+        for (int pass = 0; pass < 2; ++pass) {
+            const test_files::TempFolder myGames;
+            spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+            FullPanel panel;
+            panel.setStore(model::Source::ConfigSpec, &store);
+            panel.setMods(mods);
+            panel.select({ .mod = 0, .page = { 1, 10 } });
+            const auto open = [&] {
+                press(panel, ImVec2(ROWS_LEFT, FIRST_ROW + static_cast<float>(row) * theme::ROW_PITCH));
+                const auto* editor = openPopup(717.0f);
+                REQUIRE(editor);
+                editorAt = editor->Pos;
+                if (listOpen) {
+                    // How, the third part of the left column: the parts start under the header and the strip, and a
+                    // control after its label
+                    press(panel,
+                        ImVec2(editorAt.x + theme::SPACE_4 + 96.0f + theme::SPACE_2 + 60.0f, editorAt.y + 152.0f + 2.0f * theme::ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f));
+                    const auto* list = openPopup(226.0f);
+                    REQUIRE(list);
+                    listAt = list->Pos;
+                }
+            };
+            const auto saved = renderToFile(panel, name, pointer, false, open);
+            // While holding, the second part of the right column, or an option of the list
+            pointer = listOpen ? ImVec2(listAt.x + 60.0f, listAt.y + theme::SPACE_2 + 3.0f * (theme::CONTROL_HEIGHT + theme::SPACE_1) + theme::CONTROL_HEIGHT * 0.5f)
+                               : ImVec2(editorAt.x + 717.0f - theme::SPACE_4 - 160.0f, editorAt.y + 152.0f + theme::ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f);
+            if (pass == 1) {
+                WARN("Saved " << saved);
+            }
+        }
+    };
+    render("binding-editor", 3, false);
+    render("binding-editor-list", 3, true);
+    render("binding-editor-over", 8, false);
+    // a push of the thumbstick has the line of Direction
+    render("binding-editor-push", 4, false);
+}
+
 TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with values that wait for a Save", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);

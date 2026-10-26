@@ -576,8 +576,9 @@ namespace mods_config::ui
     /**
      * Goes one step back: the dialog is cancelled, with nothing saved or discarded, a button's confirmation is
      * cancelled, with nothing run, a slider that is dragged
-     * has the value it had before the drag, the list of a dropdown that is open is closed, and a text input that
-     * is edited keeps its value. With none of them, from the Help page to the page it was shown over, from a
+     * has the value it had before the drag, the list of a dropdown that is open is closed, a text input that
+     * is edited keeps its value, and the editor of a binding closes its list, or gives back the binding it had as it
+     * opened. With none of them, from the Help page to the page it was shown over, from a
      * config spec's report to the Developer section of the menu's front page, from the page a problem of a report
      * showed back to the report, from a page of a mod to the page it is under or to the mod's front page, and
      * from there to the menu's front page, which asks first while the mod has unsaved changes.
@@ -589,7 +590,7 @@ namespace mods_config::ui
             _leaving.reset();
             return true;
         }
-        if (_modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || showHelp(false)) {
+        if (_modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() || showHelp(false)) {
             return true;
         }
         if (_report) {

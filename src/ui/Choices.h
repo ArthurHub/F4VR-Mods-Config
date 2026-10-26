@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <optional>
+#include <span>
+#include <string_view>
 #include <vector>
 
 #include "Drawing.h"
@@ -23,7 +25,17 @@ namespace mods_config::ui
         bool pressed = false;
     };
 
+    /**
+     * What an open list of options did in the frame that is drawn: the option a press picked, and the one the ray is on.
+     */
+    struct ListDrawn
+    {
+        std::optional<std::size_t> picked;
+        std::optional<std::size_t> pointed;
+    };
+
     std::optional<std::size_t> chosenOption(const std::vector<model::Option>& options, const model::StoredValue& stored);
+    ListDrawn drawList(ImGuiID id, const ImRect& box, std::span<const std::string_view> texts, std::optional<std::size_t> chosen);
 
     /**
      * The steppers and the dropdowns of the page that is shown: how one is drawn, and how the player picks

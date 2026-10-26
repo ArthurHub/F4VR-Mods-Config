@@ -84,6 +84,7 @@ namespace
         ui::Sliders& sliders;
         ui::Choices& choices;
         ui::TextInputs& textInputs;
+        ui::BindingEditor& bindingEditor;
 
         ui::Sections& sections;
         ui::Buttons& buttons;
@@ -262,6 +263,7 @@ namespace
                     .sliders = page.sliders,
                     .choices = page.choices,
                     .textInputs = page.textInputs,
+                    .bindingEditor = page.bindingEditor,
                     .imageDrawer = page.imageDrawer,
                     .leftHanded = page.leftHanded,
                     .bindings = page.bindings });
@@ -402,6 +404,7 @@ namespace mods_config::ui
         PageDrawn drawn;
         _sliders.startFrame(thumbstickSideValue);
         _choices.startFrame(thumbstickSideValue);
+        _bindingEditor.startFrame(thumbstickSideValue);
         std::vector<const model::Setting*> bindings;
         addBindings(mod.frontPage.items, bindings);
         addBindings(mod.pages, bindings);
@@ -413,6 +416,7 @@ namespace mods_config::ui
                 .sliders = _sliders,
                 .choices = _choices,
                 .textInputs = _textInputs,
+                .bindingEditor = _bindingEditor,
                 .sections = _sections,
                 .buttons = _buttons,
                 .drawn = drawn,
@@ -420,6 +424,7 @@ namespace mods_config::ui
                 .scrollToFocused = _scrollToFocused });
         _sliders.endFrame();
         _choices.endFrame();
+        _bindingEditor.endFrame();
         if (_buttons.drawDialog(store)) {
             drawn.pressActed = true;
         }
@@ -472,6 +477,15 @@ namespace mods_config::ui
     }
 
     /**
+     * Closes the list that is open in the editor of a binding, or else gives back the binding and closes its editor,
+     * for Back. Returns false while no editor is open.
+     */
+    bool ModPage::cancelBindingEdit()
+    {
+        return _bindingEditor.cancel();
+    }
+
+    /**
      * Closes the confirmation a button shows with nothing run, for Back.
      * Returns false while none is shown.
      */
@@ -490,6 +504,7 @@ namespace mods_config::ui
         _sliders.reset();
         _choices.reset();
         _textInputs.reset();
+        _bindingEditor.reset();
         _sections.reset();
         _buttons.reset();
         _focused = nullptr;

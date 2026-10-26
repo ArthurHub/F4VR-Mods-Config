@@ -35,7 +35,7 @@ A binding is said as one sentence, the same in the row, the editor and the help 
 
 ## The editor
 
-A popup inside the content pane, 717 x 458, placed as the Color editor is: under its row, or over it, or as near as fits, never over the title bar and the footer.
+A popup inside the content pane, 717 x 458 with the line of Direction and 717 x 402 without it, placed as the Color editor is: under its row, or over it, or as near as fits, never over the title bar and the footer.
 
 - **Header**, 48 px: the setting's name.
 - **The binding**, a `plate` strip 64 px tall: the icons at 0.7 of their size, 56 px, and the full sentence, two `t-body` lines.
@@ -43,17 +43,19 @@ A popup inside the content pane, 717 x 458, placed as the Color editor is: under
 
 | Left column | Control | Right column | Control |
 | --- | --- | --- | --- |
-| Hand | Dropdown: Primary hand, Off hand, Right hand, Left hand | Duration, or Threshold for Push | Slider, track 114, value box `value-width` |
-| How | Dropdown: Tap, Press, Release, Long press, Double press, Hold, Touch, Push, None | While holding | Dropdown: Nothing, then each button on the same hand and on the other |
-| Button | Dropdown: Trigger, Grip, A, B, Thumbstick, System, as the chosen hand's controller prints them; Thumbstick, Trigger and Grip for Push | Suppress from the game | Toggle, Off and On (`suppress`), where the setting offers it |
-| Direction | Choice stepper: Up, Down, Left, Right | | |
+| Hand | Dropdown: None, then Primary hand, Off hand, Right hand, Left hand | Duration, or Threshold for Push | Slider, track 114, value box `value-width` |
+| Button | Dropdown: Trigger, Grip, A, B, Thumbstick, System, as the chosen hand's controller prints them | While holding | Dropdown: Nothing, then each button on the same hand and on the other |
+| How | Dropdown: Tap, Press, Release, Long press, Double press, Hold, Touch, Push, of those the button has: Push for the thumbstick, and Pull for the trigger and the grip, and Touch for every button but System | Suppress from the game | Toggle, Off and On (`suppress`), where the setting offers it |
+| Direction | Choice stepper: Up, Down, Left, Right, for a push of the thumbstick alone | | |
 
-- A part the chosen type does not have is disabled, and keeps its place: Direction but for Push, Duration for Tap, Press, Touch and Push (where it is Threshold), and every part but How for None. Its help line says why: "Direction: Only a push has a direction."
+- The button is picked before how it is worked, and How offers what that button has. A button that does not have the chosen way makes it a Tap. A pull of the trigger or the grip is its axis pushed `right`, as the framework reads it, and has no Direction.
+- None, the first option of Hand, turns the binding off, and a hand picked after it turns it on again, worked as it was before.
+- A part the chosen type does not have is disabled, and keeps its place: Duration for Tap, Press and Touch (and for Push it is Threshold), and every part but Hand for None. Its help line says why: "How: A binding that is off is not worked." Direction is there only for a push of the thumbstick: the editor grows a line for it, and has no empty line otherwise.
 - **Suppress from the game** is there only for a setting that offers it: `"valueOptions": { "suppress": true }`, which an activation sphere's two bindings have, as only a consumer that applies suppression gives it a meaning. Elsewhere its place is empty, and a `suppress` the file has is kept as it is. Its label takes two lines.
-- **Duration** runs from 0.1 to 3.0 s in steps of 0.05, **Threshold** from 0.10 to 1.00. At the type's default, 0.60 s for a long press, they write no key, and the help line says "Default".
+- **Duration** runs from 0.1 to 3.0 s in steps of 0.05, from 0 for a hold and a release, whose default is 0, and **Threshold** from 0.10 to 1.00. At the type's default, 0.60 s for a long press, they write no key, and the help line says "Default". The thumbstick steps it while the ray is on its line, as it steps a setting's slider.
 - **While holding**: "Nothing", then "Grip, same hand", "Grip, off hand" and so on for each button. The same hand writes a modifier with no `hand`; the other writes the other hand's word in the binding's own terms, `offhand` for `primary`, `left` for `right`.
 - Each dropdown is the Dropdown's list, opened over the editor, with each option's help in the help line: "Long press: Hold the button past a time, 0.6 s unless Duration says."
-- **Footer**, under a `rule` line: the table that will be written, `t-detail` `green-muted`, on the left; Cancel (quiet) and Done (primary) on the right.
+- **Footer**, under a `rule` line: Cancel (quiet) and Done (primary) on the right.
 - Every change sets the pending value as it is made, and a `live` binding is previewed. Done, or a press beside the editor, keeps it. Cancel and Back give back the binding it had when it opened.
 
 ## Focused panel

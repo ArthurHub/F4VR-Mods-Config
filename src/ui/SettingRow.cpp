@@ -287,6 +287,15 @@ namespace mods_config::ui
             }
             drawn.pressActed = drawn.pressActed || pulse;
         }
+        // before the row is known to be shown too: the editor of a binding lasts while its row is scrolled out of the page
+        BindingEdited edited;
+        if (isBinding) {
+            const auto rowBox = ImRect(pos, ImVec2(pos.x + width, pos.y + theme::CONTROL_HEIGHT));
+            edited = context.bindingEditor.edit(setting, *context.store, rowBox, rowPressed, context.leftHanded, context.imageDrawer);
+            stored = context.store->value(setting);
+            resets = resetsNow();
+            drawn.pressActed = drawn.pressActed || edited.pulse;
+        }
         // on the pending value, as it is after a press in this frame
         const auto warns = stored.invalid ? std::string_view() : warningOf(setting.warnings, context.store);
         const auto applies = context.store ? context.store->applies(setting) : std::nullopt;
@@ -295,9 +304,11 @@ namespace mods_config::ui
         dirty = stored.available && context.store->isDirty(setting);
         const bool discards = editable && dirty;
 
-        // the ray is on the list then, and the help line keeps the row of its dropdown
+        // the ray is on the list then, and the help line keeps the row of its dropdown, and so it does while the editor of
+        // a binding is open, where the ray is on none of its parts
         const bool listOpen = context.choices.isListOpen(setting);
-        if (row.pointed || listOpen) {
+        const bool editorOpen = context.bindingEditor.isOpen(setting);
+        if (row.pointed || listOpen || editorOpen) {
             warning = warns;
             if (!stored.available && !stored.reason.empty()) {
                 help = std::move(stored.reason);
@@ -310,6 +321,10 @@ namespace mods_config::ui
             } else if (!stored.reason.empty()) {
                 help = std::move(stored.reason);
                 invalid = stored.invalid;
+                if (isBinding && invalid) {
+                    help += defaultValue ? std::format(" Change the binding, or Reset it to {}.", valueName(setting, choiceOptions, *defaultValue, context.leftHanded))
+                                         : std::string(" Change the binding.");
+                }
             } else {
                 const auto defaultText = defaultValue ? std::format("(Default: {})", valueName(setting, choiceOptions, *defaultValue, context.leftHanded)) : std::string();
                 const auto ownHelp = setting.readOnly ? readOnlyHelp({}, setting.help) : setting.help;
@@ -321,6 +336,9 @@ namespace mods_config::ui
             }
             // the tag of when it takes effect is told as it is changed
             drawn.pointed = PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid, .applies = dirty ? applies : std::nullopt };
+        }
+        if (edited.pointed) {
+            drawn.pointed = std::move(edited.pointed);
         }
         if (!row.shown) {
             return drawn;
@@ -349,7 +367,7 @@ namespace mods_config::ui
         case model::SettingType::InputBinding: {
             // one whose value is not available has an empty frame
             const auto* text = std::get_if<std::string>(&stored.value);
-            left = drawBinding(right, pos.y, stored.available ? text : nullptr, look, context.leftHanded, context.imageDrawer);
+            left = drawBinding(right, pos.y, stored.available ? text : nullptr, look, editorOpen, context.leftHanded, context.imageDrawer);
             break;
         }
         }

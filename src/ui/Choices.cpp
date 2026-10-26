@@ -79,8 +79,8 @@ namespace
     /**
      * Where the list of a dropdown is, by the box of the dropdown and the number of its options: as wide as
      * the box, and as high as its options, up to the most it shows. It is under the box, or over it where
-     * the page has no room under it. Where the page has room for neither, it is at the bottom of the page,
-     * over the box. The list is so never over the title bar and the footer.
+     * the window it is in, the page or a binding's editor, has no room under it. Where it has room for neither, it
+     * is at the bottom of the window, over the box. The list is so never over the title bar and the footer.
      */
     ImRect listBox(const ImRect& box, const std::size_t options)
     {
@@ -185,7 +185,26 @@ namespace mods_config::ui
         _open = &setting;
         _openSeen = true;
 
-        const auto list = listBox(dropdownBox(right, top), options.size());
+        std::vector<std::string_view> texts;
+        texts.reserve(options.size());
+        for (const auto& option : options) {
+            texts.emplace_back(option.text);
+        }
+        return drawList(id, dropdownBox(right, top), texts, chosen).picked;
+    }
+
+    /**
+     * The list of options of a dropdown that is open, by its popup's id, at the box of its dropdown, inside the window it
+     * is drawn in: the page, or the editor of a binding. One with many options scrolls, from the chosen option as it
+     * opens. A press on an option picks it and closes the list. Nothing for a list that is not open.
+     * Returns the option that was picked, and the one the ray is on.
+     */
+    ListDrawn drawList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen)
+    {
+        if (!ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
+            return {};
+        }
+        const auto list = listBox(box, texts.size());
         ImGui::SetNextWindowPos(list.Min);
         ImGui::SetNextWindowSize(list.GetSize());
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(LIST_PADDING, LIST_PADDING));
@@ -194,18 +213,21 @@ namespace mods_config::ui
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         if (!shown) {
-            return std::nullopt;
+            return {};
         }
 
-        std::optional<std::size_t> picked;
+        ListDrawn drawn;
         // the options end a little before a scroll bar
         const float width = ImGui::GetContentRegionAvail().x - (ImGui::GetCurrentWindow()->ScrollbarY ? LIST_PADDING : 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, LIST_GAP));
-        for (std::size_t i = 0; i < options.size(); ++i) {
+        for (std::size_t i = 0; i < texts.size(); ++i) {
             ImGui::PushID(static_cast<int>(i));
-            if (listOption(options[i].text, chosen == i, width)) {
-                picked = i;
+            if (listOption(texts[i], chosen == i, width)) {
+                drawn.picked = i;
                 ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::IsItemHovered()) {
+                drawn.pointed = i;
             }
             if (chosen == i && ImGui::IsWindowAppearing()) {
                 ImGui::SetScrollHereY();
@@ -214,7 +236,7 @@ namespace mods_config::ui
         }
         ImGui::PopStyleVar();
         ImGui::EndPopup();
-        return picked;
+        return drawn;
     }
 
     /**

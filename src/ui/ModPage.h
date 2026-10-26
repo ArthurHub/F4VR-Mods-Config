@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 
+#include "BindingEditor.h"
 #include "Buttons.h"
 #include "Choices.h"
 #include "HelpLine.h"
@@ -46,6 +47,7 @@ namespace mods_config::ui
         bool cancelDrag();
         bool closeList();
         bool cancelEdit();
+        bool cancelBindingEdit();
         bool cancelConfirmation();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();
@@ -65,6 +67,9 @@ namespace mods_config::ui
 
         // its text inputs, and the one that is edited
         TextInputs _textInputs;
+
+        // the editor of its bindings, and the one that is open
+        BindingEditor _bindingEditor;
 
         // its sections that fold, and whether each is folded
         Sections _sections;

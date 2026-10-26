@@ -3,6 +3,7 @@
 #include <optional>
 #include <span>
 
+#include "BindingEditor.h"
 #include "Choices.h"
 #include "HelpLine.h"
 #include "PageImages.h"
@@ -21,6 +22,7 @@ namespace mods_config::ui
         Sliders& sliders;
         Choices& choices;
         TextInputs& textInputs;
+        BindingEditor& bindingEditor;
 
         // what a binding's icons are drawn with, and the player's handedness, which says what a button of a hand is
         // printed as

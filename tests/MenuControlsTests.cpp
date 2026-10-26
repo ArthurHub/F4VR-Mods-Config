@@ -44,6 +44,8 @@ TEST_CASE("MenuControls: a binding is one sentence, as the design system says it
         ui::bindingSentence({ .hand = Hand::Offhand, .type = ActivationType::AxisDirection, .axis = vrcf::Axis::Thumbstick, .direction = vrcf::Direction::Left, .threshold = 0.5f },
             false) == "Push the thumbstick left on the off hand, past 0.50");
     CHECK(ui::bindingSentence({ .type = ActivationType::Disabled }, false) == "None");
+    CHECK(ui::bindingSentence({ .hand = Hand::Right, .type = ActivationType::AxisDirection, .axis = vrcf::Axis::Trigger, .direction = vrcf::Direction::Right, .threshold = 0.7f },
+              false) == "Pull the trigger on the right hand, past 0.70");
 }
 
 TEST_CASE("MenuControls: a button is named as the controller of its hand prints it")

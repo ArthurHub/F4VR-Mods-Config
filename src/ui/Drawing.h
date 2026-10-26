@@ -101,6 +101,9 @@ namespace mods_config::ui
     // Reset. A binding's frame is as wide
     constexpr float DROPDOWN_WIDTH = theme::CONTROL_WIDTH - theme::CONTROL_HEIGHT - theme::SPACE_2;
 
+    // a cell of a switcher, Off or On, which has two, in the panel's pixels: not a token of the design system
+    constexpr float TOGGLE_CELL_WIDTH = 88.0f;
+
     // the box the arrow of a stepper's button and of a dropdown is drawn in
     constexpr float ARROW_SIZE = 14.0f;
 

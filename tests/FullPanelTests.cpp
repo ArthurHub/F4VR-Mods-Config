@@ -4479,9 +4479,11 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Grab: Reset to Tap the trigger on the off hand");
 
-    // a table the framework cannot read has no icon, and the framework's reason
+    // a table the framework cannot read has no icon, and the framework's reason, with what fixes it
     point(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Typo: Invalid: 'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system.");
+    CHECK(panel.helpLine().text() ==
+          "Typo: Invalid: 'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system. "
+          "Change the binding, or Reset it to Tap the trigger on the off hand.");
 
     // for a left-handed player the off hand is the right controller
     panel.setLeftHanded(true);
@@ -4490,4 +4492,152 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text().starts_with("Grab: Long press the A button on the off hand."));
     CHECK(std::ranges::contains(icons, R"(ModsConfigVR\f4cf\bindings\right-longpress-a.dds)"));
+}
+
+namespace
+{
+    /**
+     * The window of a popup that is open, by its width: the editor of a binding, or a list over it.
+     */
+    const ImGuiWindow* openPopup(const float width)
+    {
+        for (const auto* window : ImGui::GetCurrentContext()->Windows) {
+            if (window->Active && (window->Flags & ImGuiWindowFlags_Popup) && common::fEqual(window->Size.x, width)) {
+                return window;
+            }
+        }
+        return nullptr;
+    }
+
+    // the editor of a binding and its parts, as BindingEditor.cpp has them
+    constexpr float BINDING_EDITOR_WIDTH = 717.0f;
+    constexpr float BINDING_PART_WIDTH = 226.0f;
+
+    /**
+     * The middle of the control of a part of the editor of a binding that is open, by its column and its line.
+     */
+    ImVec2 bindingPart(const bool second, const int line)
+    {
+        const auto* editor = openPopup(BINDING_EDITOR_WIDTH);
+        REQUIRE(editor);
+        // the content's left, the header and the strip above the parts, and a part's label and its gap
+        const float contentLeft = editor->Pos.x + theme::SPACE_4;
+        const float partsTop = editor->Pos.y + theme::SPACE_4 + theme::CONTROL_HEIGHT + theme::SPACE_3 + 64.0f + theme::SPACE_3;
+        const float partLeft = second ? editor->Pos.x + BINDING_EDITOR_WIDTH - theme::SPACE_4 - (96.0f + theme::SPACE_2 + BINDING_PART_WIDTH) : contentLeft;
+        return { partLeft + 96.0f + theme::SPACE_2 + 60.0f, partsTop + static_cast<float>(line) * theme::ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f };
+    }
+
+    /**
+     * The middle of an option of the list of a part of the editor of a binding that is open, by its place, while the
+     * list is at its top.
+     */
+    ImVec2 bindingOption(const int place)
+    {
+        const auto* list = openPopup(BINDING_PART_WIDTH);
+        REQUIRE(list);
+        return { list->Pos.x + 60.0f, list->Pos.y + theme::SPACE_2 + static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_1) + theme::CONTROL_HEIGHT * 0.5f };
+    }
+}
+
+TEST_CASE("FullPanel: a press on a binding opens its editor, whose parts set it as they change, and Back closes a list and then gives the binding back")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE, "[Sphere]\r\nkGrab = { hand = \"offhand\", type = \"tap\", button = \"trigger\" }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.inputBinding", "text": "Grab", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+              "storage": { "path": ["Sphere", "kGrab"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& grab = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    const auto value = [&store, &grab] {
+        return std::get<std::string>(store.value(grab).value);
+    };
+
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    REQUIRE(openPopup(BINDING_EDITOR_WIDTH));
+    point(panel, bindingPart(false, 0));
+    CHECK(panel.helpLine().text() == "Hand: The hand the binding is pressed on, or None for a binding that is off.");
+    // a tap has no direction, whose line is empty, and no time
+    point(panel, bindingPart(false, 3));
+    CHECK(panel.helpLine().text().starts_with("Grab: Tap the trigger on the off hand."));
+    point(panel, bindingPart(true, 0));
+    CHECK(panel.helpLine().text() == "Duration: A tap, a press and a touch have no time.");
+
+    // How opens its list over the editor, and Back closes it alone
+    CHECK(pressActs(panel, bindingPart(false, 2)));
+    drawFrames(panel, 2);
+    REQUIRE(openPopup(BINDING_PART_WIDTH));
+    point(panel, bindingOption(3));
+    CHECK(panel.helpLine().text() == "Long press: Hold the button past a time, 0.6 s unless Duration says.");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(BINDING_PART_WIDTH));
+    CHECK(openPopup(BINDING_EDITOR_WIDTH));
+
+    // a choice sets the binding at once
+    CHECK(pressActs(panel, bindingPart(false, 2)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, bindingOption(3)));
+    drawFrames(panel, 2);
+    CHECK(value() == R"({ hand = "offhand", type = "longpress", button = "trigger" })");
+    CHECK(store.isDirty(grab));
+    point(panel, bindingPart(true, 0));
+    CHECK(panel.helpLine().text() == "Duration: How long the button is held before the binding fires. Default.");
+
+    // the thumbstick steps the time while the ray is on its line, once it is there a short time, by 0.05 s
+    pushFrames(panel, bindingPart(true, 0), 0.0f, 40);
+    pushFrames(panel, bindingPart(true, 0), 1.0f, 2);
+    panel.setThumbstickSideValue(0.0f);
+    drawFrames(panel, 1);
+    CHECK(value() == R"({ hand = "offhand", type = "longpress", button = "trigger", duration = 0.65 })");
+
+    // Back gives back the binding it had as the editor opened, and closes it
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(BINDING_EDITOR_WIDTH));
+    CHECK(value() == R"({ hand = "offhand", type = "tap", button = "trigger" })");
+    CHECK_FALSE(store.isDirty(grab));
+
+    // a press beside the editor keeps what it set
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, bindingPart(false, 2)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, bindingOption(4)));
+    drawFrames(panel, 2);
+    CHECK(value() == R"({ hand = "offhand", type = "double", button = "trigger" })");
+    point(panel, bindingPart(true, 0));
+    CHECK(panel.helpLine().text() == "Duration: The most time between the two presses. Default.");
+
+    // None, the first option of Hand, turns the binding off, and a hand turns it on again as it was worked
+    CHECK(pressActs(panel, bindingPart(false, 0)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, bindingOption(0)));
+    drawFrames(panel, 2);
+    CHECK(value() == R"({ type = "none" })");
+    point(panel, bindingPart(false, 2));
+    CHECK(panel.helpLine().text() == "How: A binding that is off is not worked.");
+    CHECK(pressActs(panel, bindingPart(false, 0)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, bindingOption(1)));
+    drawFrames(panel, 2);
+    CHECK(value() == R"({ hand = "primary", type = "double", button = "trigger" })");
+
+    press(panel, ImVec2(test_panel::PANEL_WIDTH * 0.5f, 30.0f));
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(BINDING_EDITOR_WIDTH));
+    CHECK(value() == R"({ hand = "primary", type = "double", button = "trigger" })");
 }

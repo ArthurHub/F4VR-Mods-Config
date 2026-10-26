@@ -1013,17 +1013,17 @@ def binding_editor(name, b, hover=None, mark=None, offers_suppress=False, style=
         tog = f'<span class="mc-toggle"><span{"" if sup else " class=is-off"}>Off</span><span{" class=is-on" if sup else ""}>On</span></span>'
         dirs = f'<span class="mc-stepper"><span class="mc-btn is-icon">{TRI_L}</span><span class="label">{b.get("direction", "up").capitalize()}</span><span class="mc-btn is-icon">{TRI_R}</span></span>'
         cells = [
-            part('Hand', pcombo(HAND_LABELS.get(b.get('hand', 'primary'))), none, hover == 'hand', mark if hover == 'hand' else None),
+            part('Hand', pcombo('None' if none else HAND_LABELS.get(b.get('hand', 'primary'))), False, hover == 'hand', mark if hover == 'hand' else None),
             part(dur_label, pslider(dval, dpct), none or not has_dur, hover == 'dur', mark if hover == 'dur' else None),
-            part('How', pcombo(HOW_LABELS[t]), False, hover == 'how', mark if hover == 'how' else None),
-            part('While holding', pcombo(hold), none, hover == 'hold', mark if hover == 'hold' else None),
             part('Button', pcombo(btn), none, hover == 'button', mark if hover == 'button' else None),
+            part('While holding', pcombo(hold), none, hover == 'hold', mark if hover == 'hold' else None),
+            part('How', pcombo('' if none else HOW_LABELS[t]), none, hover == 'how', mark if hover == 'how' else None),
             part('Suppress from the game', tog, none, hover == 'sup', mark if hover == 'sup' else None) if offers_suppress else '<div></div>',
-            part('Direction', dirs, t != 'axis', hover == 'dir', mark if hover == 'dir' else None),
+            part('Direction', dirs, False, hover == 'dir', mark if hover == 'dir' else None) if t == 'axis' and b.get('axis', 'thumbstick') == 'thumbstick' else '<div></div>',
             '<div></div>',
         ]
         parts_html = '<div class="parts t-body">' + ''.join(cells) + '</div>'
-    foot = (f'<div class="foot"><span class="toml t-detail">{toml_binding(b)}</span>'
+    foot = ('<div class="foot"><span class="grow"></span>'
             '<span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>')
     return f'<div class="mc-bindedit"{style}>{head}{strip}{parts_html}{foot}</div>'
 

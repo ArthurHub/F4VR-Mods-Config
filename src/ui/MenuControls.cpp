@@ -150,7 +150,8 @@ namespace mods_config::ui
      * A binding as one sentence, as the design system's InputBinding says it: the verb of its type, the button
      * as the controller prints it, the hand as the config names it, then its duration or its threshold, and the
      * button it is held with. "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on
-     * the off hand". A threshold is said when it is not the framework's own. "None" for a binding that is off.
+     * the off hand". A threshold is said when it is not the framework's own. A push of the trigger or the grip is a
+     * pull, with no side. "None" for a binding that is off.
      */
     std::string bindingSentence(const vrcf::InputBinding& binding, const bool leftHanded)
     {
@@ -159,7 +160,9 @@ namespace mods_config::ui
         }
         std::string sentence;
         if (binding.type == vrcf::ActivationType::AxisDirection) {
-            sentence = std::format("Push the {} {} on {}", vrcf::axisName(binding.axis), vrcf::directionName(binding.direction), handWords(binding.hand));
+            // the trigger and the grip are pulled, which has no side
+            sentence = binding.axis == vrcf::Axis::Thumbstick ? std::format("Push the thumbstick {} on {}", vrcf::directionName(binding.direction), handWords(binding.hand))
+                                                              : std::format("Pull the {} on {}", vrcf::axisName(binding.axis), handWords(binding.hand));
             if (!common::fEqual(binding.threshold, DEFAULT_THRESHOLD)) {
                 sentence += std::format(", past {:.2f}", binding.threshold);
             }

@@ -187,7 +187,7 @@ The milestone comes before the controls of milestone 9 and the Focused view of m
 | M75 | mod  | Color                                                                                  | todo   |
 | M76 | mod  | A choice of the files in a folder                                                      | todo   |
 | M77 | mod  | Haptic                                                                                 | todo   |
-| M78 | mod  | InputBinding                                                                           | todo   |
+| M78 | mod  | InputBinding                                                                           | done   |
 | M79 | mod  | Transform                                                                              | todo   |
 | M80 | mod  | ActivationSphere, a whole section                                                      | todo   |
 | M81 | mod  | The values of Immersive Flashlight that are left: lists, flags and the hand pose       | todo   |
