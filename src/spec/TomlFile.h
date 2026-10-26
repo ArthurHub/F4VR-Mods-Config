@@ -22,6 +22,7 @@ namespace mods_config::spec
 
         bool contains(std::span<const std::string> path) const override;
         std::expected<model::Value, std::string> value(std::span<const std::string> path, model::StoredType type) const override;
+        std::expected<std::string, std::string> tableText(std::span<const std::string> path) const override;
         std::string pathName(std::span<const std::string> path) const override;
 
     protected:

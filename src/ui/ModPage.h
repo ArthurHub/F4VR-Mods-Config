@@ -41,7 +41,8 @@ namespace mods_config::ui
     {
     public:
         void setImageDrawer(ImageDrawer drawer);
-        PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue);
+        void setLeftHanded(bool leftHanded);
+        PageDrawn draw(const model::Mod& mod, const model::Page& page, model::Store* store, float thumbstickSideValue);
         bool cancelDrag();
         bool closeList();
         bool cancelEdit();
@@ -52,6 +53,9 @@ namespace mods_config::ui
     private:
         // with none an image from pixels keeps its room, and a texture is drawn as one the game does not load
         ImageDrawer _imageDrawer;
+
+        // the player's handedness, which says what a button of a binding's hand is printed as
+        bool _leftHanded = false;
 
         // the sliders of the page that is shown, and how the player edits one
         Sliders _sliders;

@@ -12,6 +12,7 @@
 
 #include <imgui.h>
 
+#include "Bindings.h"
 #include "Drawing.h"
 #include "Numbers.h"
 #include "Theme.h"
@@ -102,6 +103,7 @@ namespace
             shown = ui::chosenOption(store.options(setting), { .value = *value, .available = true, .reason = {} }).has_value();
             break;
         case model::SettingType::TextInput:
+        case model::SettingType::InputBinding:
             shown = std::holds_alternative<std::string>(*value);
             break;
         }
@@ -112,10 +114,14 @@ namespace
      * A value of a setting as the help line names it, its default or its saved value: on and off for a switcher, the
      * number of a slider as its display writes it, with its unit, and the text of the option of a stepper and a
      * dropdown. The text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
-     * Empty for a value it has no name for, as one that is none of the options.
+     * A binding is its sentence, with the player's handedness. Empty for a value it has no name for, as one that is
+     * none of the options.
      */
-    std::string valueName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
+    std::string valueName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const bool leftHanded)
     {
+        if (setting.type == model::SettingType::InputBinding) {
+            return ui::bindingValueName(value, leftHanded);
+        }
         if (setting.type == model::SettingType::TextInput) {
             const auto* text = std::get_if<std::string>(&value);
             if (!text) {
@@ -241,6 +247,7 @@ namespace mods_config::ui
         const bool isSlider = editable && setting.type == model::SettingType::Slider && number && options.max > options.min;
         const bool isChoice = editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !choiceOptions.empty();
         const bool isText = editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(stored.value);
+        const bool isBinding = editable && setting.type == model::SettingType::InputBinding && std::holds_alternative<std::string>(stored.value);
 
         // before the row is known to be shown: a slider that is dragged out of the page is still held
         float value = number ? *number : options.min;
@@ -296,17 +303,21 @@ namespace mods_config::ui
                 help = std::move(stored.reason);
             } else if (discards && onSlot) {
                 const auto saved = context.store->savedValue(setting);
-                const auto savedName = saved ? valueName(setting, choiceOptions, *saved) : std::string();
+                const auto savedName = saved ? valueName(setting, choiceOptions, *saved, context.leftHanded) : std::string();
                 help = savedName.empty() ? std::string("Discard the change.") : std::format("Discard the change, back to {}.", savedName);
             } else if (resets && onSlot) {
-                help = std::format("Reset to {}", valueName(setting, choiceOptions, *defaultValue));
+                help = std::format("Reset to {}", valueName(setting, choiceOptions, *defaultValue, context.leftHanded));
             } else if (!stored.reason.empty()) {
                 help = std::move(stored.reason);
                 invalid = stored.invalid;
             } else {
-                const auto defaultText = defaultValue ? std::format("(Default: {})", valueName(setting, choiceOptions, *defaultValue)) : std::string();
+                const auto defaultText = defaultValue ? std::format("(Default: {})", valueName(setting, choiceOptions, *defaultValue, context.leftHanded)) : std::string();
                 const auto ownHelp = setting.readOnly ? readOnlyHelp({}, setting.help) : setting.help;
-                help = joinHelp({ ownHelp, numberDetail(setting, stored, value), defaultText });
+                // a binding is said in full first, as its row has no room for it, and names the bindings it is the same
+                // press as
+                const auto sentence = isBinding ? valueName(setting, choiceOptions, stored.value, context.leftHanded) + "." : std::string();
+                const auto samePress = isBinding ? samePressHelp(setting, context.bindings, *context.store, context.leftHanded) : std::string();
+                help = joinHelp({ sentence, ownHelp, numberDetail(setting, stored, value), samePress, defaultText });
             }
             // the tag of when it takes effect is told as it is changed
             drawn.pointed = PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid, .applies = dirty ? applies : std::nullopt };
@@ -317,7 +328,7 @@ namespace mods_config::ui
 
         const auto look = stored.invalid ? ValueLook::Invalid : dirty ? ValueLook::Pending : ValueLook::Saved;
         float left = right;
-        ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice && !isText);
+        ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice && !isText && !isBinding);
         switch (setting.type) {
         case model::SettingType::Switcher:
             left = drawSwitcher(right, pos.y, showsValue ? std::optional(on && *on) : std::nullopt, look);
@@ -333,6 +344,12 @@ namespace mods_config::ui
             // one whose value is not available has an empty box
             const auto* text = std::get_if<std::string>(&stored.value);
             left = context.textInputs.draw(setting, right, pos.y, stored.available && text ? fieldText(setting, *text) : std::string(), look);
+            break;
+        }
+        case model::SettingType::InputBinding: {
+            // one whose value is not available has an empty frame
+            const auto* text = std::get_if<std::string>(&stored.value);
+            left = drawBinding(right, pos.y, stored.available ? text : nullptr, look, context.leftHanded, context.imageDrawer);
             break;
         }
         }

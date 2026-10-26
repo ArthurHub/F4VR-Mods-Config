@@ -205,6 +205,8 @@ M74 settles what the design leaves open: a control that is bound to a whole sect
 
 The commits after M74 are split once it is written. Transform, InputBinding and ActivationSphere are each likely two: edited in the panel, then tuned in the world. Each of the values that are left is a commit of its own.
 
+M78 comes before M74, as FRIK's config spec needs it, and its design is done. Its config spec type is `cf.inputBinding`, as the value is in the framework's form. It is two commits: the first reads a binding and shows it as its icons and its sentence, invalid with the framework's reason, and names the bindings of its mod that are the same press, and the second opens its editor. Mods Config VR's own config spec gets its two bindings, and the config spec showcase a page of them.
+
 Immersive Flashlight's config spec and its client are commits in its own repository, on a framework with F29 and F30. They are made when the milestone needs them, and a build is enough.
 
 ## 10. Focused view

@@ -55,6 +55,15 @@ namespace mods_config::ui
     }
 
     /**
+     * The player's handedness, which says what a button of a binding's hand is printed as: the panel does not know the
+     * game, so the menu tells it.
+     */
+    void FullPanel::setLeftHanded(const bool leftHanded)
+    {
+        _modPage.setLeftHanded(leftHanded);
+    }
+
+    /**
      * The Developer tools as Mods Config VR's settings have them, and what writes a change of their filter or
      * their fold to the settings at once, which the menu does: the panel does not know the config. With the
      * tools on, the menu's front page has its Developer section. The view the panel has changes at once, so
@@ -716,7 +725,8 @@ namespace mods_config::ui
                 }
                 _reportScroll = ImGui::GetScrollY();
             } else if (_selection.mod) {
-                auto drawn = _modPage.draw(*selectedPage(), storeOf(_mods[*_selection.mod]), _thumbstickSideValue);
+                const auto& mod = _mods[*_selection.mod];
+                auto drawn = _modPage.draw(mod, *selectedPage(), storeOf(mod), _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
             } else {

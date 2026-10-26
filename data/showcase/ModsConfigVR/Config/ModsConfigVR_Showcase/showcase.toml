@@ -66,6 +66,17 @@ sCode = "ABC"
 sNotEmpty = "Sanctuary"
 iLimited = 5
 
+[Bindings]
+kTap = { hand = "offhand", type = "tap", button = "trigger" }
+kLongPress = { hand = "offhand", type = "longpress", button = "a" }
+kDouble = { hand = "primary", type = "double", button = "grip" }
+kChord = { hand = "primary", type = "longpress", button = "thumbstick", duration = 1.5, modifier = { hand = "offhand", button = "thumbstick" } }
+kPush = { hand = "primary", type = "axis", direction = "up" }
+kSystem = { hand = "primary", type = "press", button = "system" }
+kNone = { type = "none" }
+kSamePress = { hand = "offhand", type = "tap", button = "trigger" }
+kSuppressed = { hand = "primary", type = "tap", button = "grip", suppress = true }
+
 [Numbers]
 fStepDecimals = 1.25
 iWhole = 8

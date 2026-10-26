@@ -875,7 +875,7 @@ print('ok color')
 # ---------------- InputBinding: the framework's icon and a sentence, an editor of its parts, and Record ----------------
 import json as _json
 BICONS = _json.loads((Path(__file__).resolve().parent / 'binding_icons.json').read_text(encoding='utf-8'))
-BICON_SCALE = 0.55        # in a row: 44 px, inside the 48 px line
+BICON_SCALE = 0.5         # in a row: 40 px, inside the 48 px line
 BICON_SCALE_STRIP = 0.7   # in the editor's strip: 56 px
 LEFT_HANDED = False   # the previews are of a right-handed player: primary is the right controller
 

@@ -475,6 +475,10 @@ namespace mods_config
             .draw =
                 [this](const model::Image& image, const ImVec2& min, const ImVec2& max) {
                     drawImage(image, min, max);
+                },
+            .drawIcon =
+                [this](const std::string& texture, const ImVec2& min, const ImVec2& max, const ImU32 tint) {
+                    imgui::addImage(ImGui::GetWindowDrawList(), textureOf(texture), min, max, tint);
                 } });
         // In front of the player, and left there: a panel that follows the head moves under the ray.
         // The player moves it by holding it with the config's move button. When they walk away from it,
@@ -485,7 +489,8 @@ namespace mods_config
 
     /**
      * Gives the panel what the config has for it: its look, its size and scale, the width of its tree, its place from where it was put in
-     * front of the player, how it is moved: after a short press, where that is Back, the controls its Help page tells, and the Developer
+     * front of the player, how it is moved: after a short press, where that is Back, the controls its Help page tells, the player's
+     * handedness, which a binding's buttons are printed by, and the Developer
      * tools, whose filter and fold a press on the front page writes back from the frame update. It is called when
      * the menu opens, and when the config is loaded again while the menu is open, so a change of the file shows at once. The place is from
      * where the panel is now, also after a hand moved it.
@@ -500,6 +505,7 @@ namespace mods_config
             .move = g_config.moveButton,
             .recenter = g_config.recenterBinding,
             .leftHanded = f4vr::isLeftHandedMode() }));
+        _fullPanel.setLeftHanded(f4vr::isLeftHandedMode());
         _panel->setStyle({
             // Opaque, both of them: these are picked to match the widgets beside the panel, and an alpha
             // below 255 blends a colour toward whatever is behind it, which reads as the wrong colour

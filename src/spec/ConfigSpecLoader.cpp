@@ -22,6 +22,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/InputBindings.h"
 #include "model/TextMarkup.h"
 
 using namespace mods_config;
@@ -295,7 +296,7 @@ namespace
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
     // a setting's parts:
-    constexpr std::array<std::string_view, 11> VALUE_OPTIONS_FIELDS{ "min",
+    constexpr std::array<std::string_view, 12> VALUE_OPTIONS_FIELDS{ "min",
         "max",
         "step",
         "options",
@@ -305,7 +306,8 @@ namespace
         "listFromClientCallback",
         "allowEmpty",
         "minLength",
-        "maxLength" };
+        "maxLength",
+        "suppress" };
     constexpr std::array<std::string_view, 4> OPTION_FIELDS{ "value", "text", "help", "shortText" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
@@ -671,6 +673,7 @@ namespace
         SettingTypeName{ "stepper", model::SettingType::Stepper },
         SettingTypeName{ "dropdown", model::SettingType::Dropdown },
         SettingTypeName{ "textinput", model::SettingType::TextInput },
+        SettingTypeName{ "cf.inputBinding", model::SettingType::InputBinding },
     };
 
     /**
@@ -694,11 +697,19 @@ namespace
     /**
      * What a setting's value is, by its `valueType`. One with none, or with one that is not a type, has the
      * type of its control: a bool for a switcher, a number for a slider, the place of an option for a choice,
-     * and a text for a text input. One that is not a type is a warning.
+     * and a text for a text input. One that is not a type is a warning. A binding is the text of its table, so its
+     * `valueType` is a string, and another is a warning too.
      */
     model::StoredType loadValueType(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
     {
         const auto name = getText(row, "valueType");
+        if (type == model::SettingType::InputBinding) {
+            if (row.contains("valueType") && name != "string") {
+                const Into into(reading, "valueType");
+                reading.report(model::Severity::Warning, std::format("Its valueType {} is not string, which a binding is: it is read as string.", row["valueType"].dump()));
+            }
+            return model::StoredType::String;
+        }
         const auto found = std::ranges::find(VALUE_TYPES, name, &ValueTypeName::first);
         if (found != VALUE_TYPES.end()) {
             return found->second;
@@ -873,6 +884,9 @@ namespace
                 valueOptions.minLength = (std::max)(valueOptions.minLength, 1);
             }
         }
+        if (hasOptions && type == model::SettingType::InputBinding) {
+            valueOptions.suppress = getBool(*found, "suppress");
+        }
         if (!isChoice(type)) {
             return valueOptions;
         }
@@ -940,6 +954,52 @@ namespace
     }
 
     /**
+     * A JSON value as the TOML text of the same value: an object is an inline table and an array an array, whose
+     * keys and texts JSON writes as TOML writes them, and a bool and a number are themselves. A null is none, which
+     * no TOML value reads.
+     */
+    std::string tomlText(const Json& value)
+    {
+        if (value.is_object()) {
+            std::string text;
+            for (const auto& [key, item] : value.items()) {
+                text += std::format("{}{} = {}", text.empty() ? "{ " : ", ", Json(key).dump(), tomlText(item));
+            }
+            return text.empty() ? "{}" : text + " }";
+        }
+        if (value.is_array()) {
+            std::string text;
+            for (const auto& item : value) {
+                text += std::format("{}{}", text.empty() ? "[" : ", ", tomlText(item));
+            }
+            return text.empty() ? "[]" : text + "]";
+        }
+        return value.is_null() ? std::string() : value.dump();
+    }
+
+    /**
+     * The `default` of a binding: the binding's table as a JSON object, as `{ "hand": "offhand", "type": "tap",
+     * "button": "trigger" }`, which the framework reads as it reads the table of its config. It is the TOML text of
+     * the table as the framework writes it. None for a default that is no object, or no binding, which is an error
+     * of the config spec that is reported with the framework's reason, and the setting then has no Reset.
+     */
+    std::optional<model::Value> loadBindingDefault(const Json& row, ConfigSpecReading& reading)
+    {
+        const auto found = row.find("default");
+        if (found == row.end() || !found->is_object()) {
+            reading.report(model::Severity::Error, R"(It has no default binding, an object as { "hand": "offhand", "type": "tap", "button": "trigger" }: it has no Reset.)");
+            return std::nullopt;
+        }
+        const auto binding = model::parseBinding(tomlText(*found));
+        if (!binding) {
+            const Into into(reading, "default");
+            reading.report(model::Severity::Error, std::format("Its default is not a binding: {}. It has no Reset.", binding.error()));
+            return std::nullopt;
+        }
+        return model::bindingText(*binding);
+    }
+
+    /**
      * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
      * with one that is not one of its values: outside its limits, of a length it does not allow, or none of
      * its options. Both are errors of the config spec that are reported, and the setting then has no Reset.
@@ -947,6 +1007,9 @@ namespace
     std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& options,
         ConfigSpecReading& reading)
     {
+        if (type == model::SettingType::InputBinding) {
+            return loadBindingDefault(row, reading);
+        }
         auto value = getValue(row, "default", valueType);
         if (!value) {
             reading.report(model::Severity::Error, "It has no default of the type of its value: it has no Reset.");
@@ -1216,12 +1279,22 @@ namespace
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
      * config spec, which is reported: a condition names the first, and an author gives one of them an id of its
      * own. Its conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
+     * A binding is kept in a value of a TOML file, as the framework keeps it: in any other storage it is not
+     * available, which is reported.
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type, reading);
         auto storage = loadStorage(row, own.defaultFile, valueType, reading);
+        if (type == model::SettingType::InputBinding && !std::holds_alternative<model::UnknownStorage>(storage)) {
+            const auto* file = std::get_if<model::FileStorage>(&storage);
+            if (!file || reading.files.at(file->file).format != model::FileFormat::Toml) {
+                const Into into(reading, "storage");
+                reading.report(model::Severity::Error, "A binding is kept in a value of a TOML file, and it is not: it is not available.");
+                storage = model::UnknownStorage{ .type = "binding" };
+            }
+        }
         const bool readOnly = getBool(row, "readOnly");
         if (const auto* file = std::get_if<model::FileStorage>(&storage)) {
             if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {

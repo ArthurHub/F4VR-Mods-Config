@@ -1304,6 +1304,103 @@
           ]
         },
         {
+          "pageDisplayName": "Bindings",
+          "help": "Controller bindings of a CommonFramework mod: each is its icons and a sentence, and the help line says it in full.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Bindings",
+              "content": [
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Tap",
+                  "help": "A tap of a button on a hand.",
+                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+                  "storage": { "path": ["Bindings", "kTap"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Long press",
+                  "help": "The A button of the off hand, which is X on a left controller.",
+                  "default": { "hand": "offhand", "type": "longpress", "button": "a" },
+                  "storage": { "path": ["Bindings", "kLongPress"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Double press",
+                  "help": "Two presses of a button.",
+                  "default": { "hand": "primary", "type": "double", "button": "grip" },
+                  "storage": { "path": ["Bindings", "kDouble"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Chord",
+                  "help": "A long press while a button of the other hand is held: two icons.",
+                  "default": {
+                    "hand": "primary",
+                    "type": "longpress",
+                    "button": "thumbstick",
+                    "duration": 1.5,
+                    "modifier": { "hand": "offhand", "button": "thumbstick" }
+                  },
+                  "storage": { "path": ["Bindings", "kChord"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Push",
+                  "help": "A push of the thumbstick to a side.",
+                  "default": { "hand": "primary", "type": "axis", "direction": "up" },
+                  "storage": { "path": ["Bindings", "kPush"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "System button",
+                  "help": "The system button has no icon: its sentence alone.",
+                  "default": { "hand": "primary", "type": "press", "button": "system" },
+                  "storage": { "path": ["Bindings", "kSystem"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "None",
+                  "help": "A binding that is off.",
+                  "default": { "type": "none" },
+                  "storage": { "path": ["Bindings", "kNone"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Same press as Tap",
+                  "help": "The help line names the other binding that is the same press.",
+                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+                  "storage": { "path": ["Bindings", "kSamePress"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Suppressed",
+                  "help": "An activation sphere's binding, which offers Suppress from the game.",
+                  "default": { "hand": "primary", "type": "tap", "button": "grip", "suppress": true },
+                  "valueOptions": { "suppress": true },
+                  "storage": { "path": ["Bindings", "kSuppressed"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A typo",
+                  "help": "Its button is not a button.",
+                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+                  "storage": { "path": ["Bindings", "kTypo"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "pageDisplayName": "Numbers",
           "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
           "content": [
@@ -2649,6 +2746,13 @@
                   "help": "A global keeps a number, and its value is a text.",
                   "default": "noon",
                   "storage": { "global": "Fallout4.esm|38" }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A binding in an INI file",
+                  "help": "A binding is kept in a TOML file, as the framework keeps it.",
+                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+                  "storage": { "file": "ini", "section": "Mistakes", "key": "kBinding" }
                 }
               ]
             },

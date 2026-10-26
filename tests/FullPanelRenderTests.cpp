@@ -148,7 +148,8 @@ namespace
 
     /**
      * Fills one triangle of ImGui's, with the colors of its corners and the opacity of the font texture.
-     * A triangle of an image of a mod's page has the image's colors and opacity in place of them.
+     * A triangle of an image of a mod's page has the image's colors and opacity, times those of its corners, which
+     * tint an icon.
      */
     void fillTriangle(Image& image, const FontTexture& font, const model::ImagePixels* pixels, Corner a, Corner b, Corner c, const ImVec4& clip)
     {
@@ -188,7 +189,10 @@ namespace
                 const float v = mix(a.uv.y, b.uv.y, c.uv.y);
                 if (pixels) {
                     const auto color = sample(*pixels, u, v);
-                    image.blend(x, y, { color[0], color[1], color[2] }, color[3]);
+                    const auto tint = [&](const std::size_t channel) {
+                        return mix(a.color[channel], b.color[channel], c.color[channel]) / 255.0f;
+                    };
+                    image.blend(x, y, { color[0] * tint(0), color[1] * tint(1), color[2] * tint(2) }, color[3] * tint(3));
                     continue;
                 }
                 const float opacity = mix(a.color[3], b.color[3], c.color[3]) / 255.0f * font.sample(u, v);
@@ -263,9 +267,9 @@ namespace
     }
 
     /**
-     * A texture of the config spec showcase, by its path under its Textures folder, as the game loads it: read from
-     * its DDS file, whose pixels are not compressed, as blue, green, red and alpha from the top row. None for a
-     * file that is not there or not of that form. A file is read once.
+     * A texture of the config spec showcase, or of the mod's own as a binding's icon, by its path under its Textures
+     * folder, as the game loads it: read from its DDS file, whose pixels are not compressed, as blue, green, red and
+     * alpha from the top row. None for a file that is not there or not of that form. A file is read once.
      */
     const model::ImagePixels* showcaseTexture(const std::string& texture)
     {
@@ -274,7 +278,10 @@ namespace
             return found->second.get();
         }
         auto& kept = textures[texture];
-        const auto file = std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path() / "Textures" / texture;
+        auto file = std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path() / "Textures" / texture;
+        if (!std::filesystem::exists(file)) {
+            file = std::filesystem::path(MODS_CONFIG_SPECS_DIR).parent_path().parent_path() / "Textures" / texture;
+        }
         std::ifstream stream(file, std::ios::binary);
         const std::vector<std::uint8_t> bytes{ std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
         const auto read = [&bytes](const std::size_t at) {
@@ -320,6 +327,12 @@ namespace
                 [](const model::Image& image, const ImVec2& min, const ImVec2& max) {
                     const auto* pixels = image.pixels ? image.pixels.get() : showcaseTexture(image.texture);
                     ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(pixels)), min, max);
+                },
+            .drawIcon =
+                [](const std::string& texture, const ImVec2& min, const ImVec2& max, const ImU32 tint) {
+                    if (const auto* pixels = showcaseTexture(texture)) {
+                        ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(pixels)), min, max, ImVec2(0, 0), ImVec2(1, 1), tint);
+                    }
                 } });
         if (before) {
             before();
@@ -860,6 +873,23 @@ TEST_CASE("FullPanel render: the pages of the config spec showcase", "[.render]"
         }
     };
     renderPages(mods[0].pages);
+}
+
+TEST_CASE("FullPanel render: the bindings of the config spec showcase, one pending, with the ray on one that is the same press as another", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods(mods);
+    // the page Bindings of Detailed Examples
+    panel.select({ .mod = 0, .page = { 1, 10 } });
+    const auto& bindings = std::get<model::Group>(panel.mods()[0].pages[1].pages[10].items[0]);
+    CHECK(store.set(std::get<model::Setting>(bindings.items[2]), R"({ hand = "offhand", type = "double", button = "grip" })"s));
+    // the row of Same press as Tap, the eighth of the page under its heading
+    WARN("Saved " << renderToFile(panel, "config-spec-bindings", ImVec2(650.0f, 546.0f)));
 }
 
 TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with values that wait for a Save", "[.render]")

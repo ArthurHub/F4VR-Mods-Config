@@ -157,6 +157,31 @@ TEST_CASE("TomlFile: a write changes the values alone, and keeps the comments, t
     CHECK(mod.file.value(Path{ "Main", "sName" }, StoredType::String) == model::Value(std::string("D:\\Games")));
 }
 
+TEST_CASE("TomlFile: a table is read as its text, and a change of its text is written as the table")
+{
+    ModFile mod(
+        "[Sphere]\r\n"
+        "# the binding\r\n"
+        "kPrimaryBinding = { hand = \"off\", type = \"tap\",   button = \"trigger\" }   # tap\r\n"
+        "fRadius = 5.0\r\n");
+    CHECK(mod.file.tableText(Path{ "Sphere", "kPrimaryBinding" }) == std::string(R"({ hand = "off", type = "tap", button = "trigger" })"));
+    // any value, as a number, is its TOML text
+    CHECK(mod.file.tableText(Path{ "Sphere", "fRadius" }) == std::string("5.0"));
+    CHECK_FALSE(mod.file.tableText(Path{ "Sphere", "kMissing" }));
+
+    const std::vector<TomlFile::Change> changes{
+        { .path = { "Sphere", "kPrimaryBinding" }, .value = std::string(R"({ hand = "primary", type = "longpress", button = "a", duration = 1.5 })"), .table = true },
+        { .path = { "Sphere", "kSecondaryBinding" }, .value = std::string(R"({ type = "none" })"), .table = true },
+    };
+    REQUIRE(writeChanges(mod.file, changes));
+    CHECK(readFile(mod.path) ==
+          "[Sphere]\r\n"
+          "# the binding\r\n"
+          "kPrimaryBinding = { hand = \"primary\", type = \"longpress\", button = \"a\", duration = 1.5 }   # tap\r\n"
+          "fRadius = 5.0\r\n"
+          "kSecondaryBinding = { type = \"none\" }\r\n");
+}
+
 TEST_CASE("TomlFile: a value the file does not have is added, in its section or in a new one")
 {
     ModFile mod;

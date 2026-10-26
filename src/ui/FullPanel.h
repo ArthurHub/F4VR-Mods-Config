@@ -48,6 +48,7 @@ namespace mods_config::ui
         void setMods(std::vector<model::Mod> mods);
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
         void setControls(std::vector<ControlHelp> controls);
+        void setLeftHanded(bool leftHanded);
         void setMenuActions(MenuActions actions);
         void setDeveloper(DeveloperView view, std::function<void(const DeveloperView&)> write);
         void setLiveCopyAction(std::function<void(const std::string& folder, LiveCopyAction action)> act);

@@ -15,44 +15,18 @@ namespace
 {
     using namespace mods_config;
 
+    using ui::ARROW_SIZE;
+    using ui::ControlArrow;
+    using ui::DROPDOWN_WIDTH;
+
     // The sizes of a stepper and a dropdown that are not tokens of the design system, in the panel's pixels.
-    // The box an arrow is drawn in:
-    constexpr float ARROW_SIZE = 14.0f;
-    // the box of a dropdown, which fills the room of a control in its row: the control column without the room of Reset
-    constexpr float DROPDOWN_WIDTH = theme::CONTROL_WIDTH - theme::CONTROL_HEIGHT - theme::SPACE_2;
-    // the options of a list are this far from each other, and from the edge of the list
+    // The options of a list are this far from each other, and from the edge of the list
     constexpr float LIST_GAP = theme::SPACE_1;
     constexpr float LIST_PADDING = theme::SPACE_2;
     // the options a list shows at most: one with more scrolls
     constexpr std::size_t LIST_MAX_OPTIONS = 5;
     // The thumbstick steps a stepper from this far off its center, of 1 for a full push, as it steps a slider
     constexpr float STEP_PUSH = 0.6f;
-
-    enum class Arrow : std::uint8_t
-    {
-        Left,
-        Right,
-        Down,
-    };
-
-    /**
-     * A filled arrow around a point, as the buttons of a stepper and a dropdown have.
-     */
-    void drawArrow(const ImVec2& center, const Arrow arrow)
-    {
-        // the corners of each arrow in its box, as the design system draws them
-        static constexpr std::array<std::array<ImVec2, 3>, 3> CORNERS{ {
-            { ImVec2(10.0f, 2.0f), ImVec2(3.0f, 7.0f), ImVec2(10.0f, 12.0f) },
-            { ImVec2(4.0f, 2.0f), ImVec2(11.0f, 7.0f), ImVec2(4.0f, 12.0f) },
-            { ImVec2(2.0f, 4.0f), ImVec2(12.0f, 4.0f), ImVec2(7.0f, 11.0f) },
-        } };
-        const auto& corners = CORNERS[static_cast<std::size_t>(arrow)];
-        const ImVec2 origin(center.x - ARROW_SIZE * 0.5f, center.y - ARROW_SIZE * 0.5f);
-        const auto at = [&origin](const ImVec2& corner) {
-            return ImVec2(origin.x + corner.x, origin.y + corner.y);
-        };
-        ImGui::GetWindowDrawList()->AddTriangleFilled(at(corners[0]), at(corners[1]), at(corners[2]), ImGui::GetColorU32(theme::color::GREEN));
-    }
 
     /**
      * Where the parts of a stepper that ends at the right are: the box of its option, between the button to
@@ -89,11 +63,11 @@ namespace
      * A button of a stepper, with its arrow. One that goes nowhere is disabled. Any other has the look of
      * a control under the ray while the ray is on it, and a stronger one while the trigger is held on it.
      */
-    void drawStepButton(const ImRect& box, const Arrow arrow, const bool enabled, const bool pointed, const bool held)
+    void drawStepButton(const ImRect& box, const ControlArrow arrow, const bool enabled, const bool pointed, const bool held)
     {
         ImGui::BeginDisabled(!enabled);
         ui::drawButtonFrame(box, enabled && pointed, enabled && held);
-        drawArrow(box.GetCenter(), arrow);
+        ui::drawControlArrow(box.GetCenter(), arrow);
         ImGui::EndDisabled();
     }
 
@@ -263,7 +237,7 @@ namespace mods_config::ui
                 drawOutline(box.Min, box.Max, theme::color::GREEN);
             }
             drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, valueColor(look), option);
-            drawArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), Arrow::Down);
+            ui::drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
             return box.Min.x;
         }
 
@@ -272,10 +246,10 @@ namespace mods_config::ui
         const bool onPrevious = boxes.onPrevious(x);
         const bool onNext = boxes.onNext(x);
         const auto after = chosen ? *chosen + 1 : 0;
-        drawStepButton(boxes.previous, Arrow::Left, chosen && *chosen > 0, row.pointed && onPrevious, row.held && onPrevious);
+        drawStepButton(boxes.previous, ControlArrow::Left, chosen && *chosen > 0, row.pointed && onPrevious, row.held && onPrevious);
         drawFrame(boxes.option, look);
         drawTextIn(boxes.option, option, valueColor(look), 0.5f, theme::SPACE_3);
-        drawStepButton(boxes.next, Arrow::Right, after < options.size(), row.pointed && onNext, row.held && onNext);
+        drawStepButton(boxes.next, ControlArrow::Right, after < options.size(), row.pointed && onNext, row.held && onNext);
         return boxes.previous.Min.x;
     }
 

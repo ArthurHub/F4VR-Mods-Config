@@ -17,6 +17,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/InputBindings.h"
 
 using namespace mods_config;
 
@@ -133,8 +134,9 @@ namespace
 
     /**
      * A value of the type a setting keeps, as its control has it: a slider has a number, also for a whole
-     * number, and a text input that takes a number has the text of it. None for a value its control does not
-     * show: a switcher of anything but true or false, and a slider of a text.
+     * number, a text input that takes a number has the text of it, and a binding has its table's text as the
+     * framework writes it. None for a value its control does not show: a switcher of anything but true or false,
+     * a slider of a text, and a binding of anything but a text.
      */
     std::optional<model::Value> controlValue(const model::Setting& setting, const model::Value& stored)
     {
@@ -163,6 +165,11 @@ namespace
                 return std::format("{}", *number);
             }
             return stored;
+        case model::SettingType::InputBinding:
+            if (const auto* text = std::get_if<std::string>(&stored)) {
+                return model::canonicalBinding(*text);
+            }
+            break;
         }
         return std::nullopt;
     }
@@ -257,6 +264,11 @@ namespace
                 return value;
             }
             break;
+        case model::SettingType::InputBinding:
+            if (const auto* text = std::get_if<std::string>(&value)) {
+                return model::canonicalBinding(*text);
+            }
+            break;
         }
         return std::nullopt;
     }
@@ -264,11 +276,15 @@ namespace
     /**
      * What is wrong with a value of a setting, as its control has it, that is no value of it, as the end of a
      * sentence of the value: `is not from 0.5 to 1.5`. A text of a number that is none, a number outside the
-     * limits, a text of a length its setting does not allow, and none of the options of a choice. Empty for a
-     * value that is one.
+     * limits, a text of a length its setting does not allow, and none of the options of a choice. A table that is
+     * no binding has the framework's reason, a sentence of its own. Empty for a value that is one.
      */
     std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
+        if (setting.type == model::SettingType::InputBinding) {
+            const auto binding = model::parseBinding(std::get<std::string>(value));
+            return binding ? std::string() : binding.error();
+        }
         const auto& limits = setting.valueOptions;
         std::optional<float> number;
         if (setting.type == model::SettingType::Slider) {
@@ -299,14 +315,17 @@ namespace
 
     /**
      * Why a value the player set is no value of its setting, for the help line: the value and what is wrong
-     * with it, as `Invalid: 12 is not from 1 to 9.` A text of a text input is `the text`, as it can be long.
-     * Empty for a value that is one.
+     * with it, as `Invalid: 12 is not from 1 to 9.` A text of a text input is `the text`, as it can be long, and a
+     * binding has the framework's reason alone, as its row shows its text. Empty for a value that is one.
      */
     std::string typedReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
         const auto problem = problemOf(setting, options, value);
         if (problem.empty()) {
             return {};
+        }
+        if (setting.type == model::SettingType::InputBinding) {
+            return std::format("Invalid: {}.", problem);
         }
         const auto* text = std::get_if<std::string>(&value);
         const bool isText = setting.type == model::SettingType::TextInput && !isNumberField(setting);
@@ -340,12 +359,19 @@ namespace
 
     /**
      * Why a value in a file, as its control has it, is not one of its setting, as `problemOf` says. Empty for
-     * a value that is one. It names the value by its path and its file, as a reason of its file does.
+     * a value that is one. It names the value by its path and its file, as a reason of its file does, but for a
+     * binding, which has the framework's reason alone, as its row shows its text.
      */
     std::string invalidReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const std::string& path, const std::string& file)
     {
         const auto problem = problemOf(setting, options, value);
-        return problem.empty() ? std::string() : std::format("Invalid: {} is {} in {}, which {}.", path, valueText(value), file, problem);
+        if (problem.empty()) {
+            return {};
+        }
+        if (setting.type == model::SettingType::InputBinding) {
+            return std::format("Invalid: {}.", problem);
+        }
+        return std::format("Invalid: {} is {} in {}, which {}.", path, valueText(value), file, problem);
     }
 
     /**
@@ -542,6 +568,9 @@ namespace
         if (storage.type == "property") {
             return "Not available: its property names no form as a plugin and an id in hex, as MyMod.esp|800, or has no propertyName.";
         }
+        if (storage.type == "binding") {
+            return "Not available: a binding is kept in a value of a TOML file.";
+        }
         return storage.type == "file" ? "Not available: the setting names no file of its config spec, or no value of it." : "Not available: the setting has no storage.";
     }
 }
@@ -655,7 +684,11 @@ namespace mods_config::spec
                 entry.baseline = controlValue(*setting, *setting->defaultValue);
                 continue;
             }
-            auto stored = modFile->value(storage.path, setting->valueType);
+            // a binding is the text of its table, which its control reads
+            auto stored = setting->type != model::SettingType::InputBinding ? modFile->value(storage.path, setting->valueType)
+                                                                            : modFile->tableText(storage.path).transform([](std::string text) {
+                                                                                  return model::Value(std::move(text));
+                                                                              });
             if (!stored) {
                 if (setting->readOnly) {
                     entry.notAvailable = std::format("Not available: {}.", stored.error());
@@ -911,7 +944,7 @@ namespace mods_config::spec
                 const auto& entry = _entries.at(setting);
                 const auto* storage = std::get_if<model::FileStorage>(&setting->storage);
                 if (entry.pending && storage && storage->file == name) {
-                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending) });
+                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending), .table = setting->type == model::SettingType::InputBinding });
                     settings.push_back(setting);
                 }
             }

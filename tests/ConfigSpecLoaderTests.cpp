@@ -13,6 +13,8 @@
 
 #include "TestFiles.h"
 #include "common/CommonUtils.h"
+#include "common/TomlEditor.h"
+#include "model/InputBindings.h"
 #include "model/TextMarkup.h"
 #include "spec/ConfigSpecLoader.h"
 
@@ -134,7 +136,7 @@ namespace
 
     /**
      * Checks that a setting is kept in a value a TOML file has, and that its default is that value: a file
-     * a mod ships has the values the mod has without their keys.
+     * a mod ships has the values the mod has without their keys. A binding's table is the binding of its default.
      */
     void checkShippedDefault(const model::Setting& setting, const toml::table& shipped)
     {
@@ -145,7 +147,9 @@ namespace
         }
         REQUIRE(value);
         REQUIRE(setting.defaultValue);
-        if (const auto* on = std::get_if<bool>(&*setting.defaultValue)) {
+        if (setting.type == model::SettingType::InputBinding) {
+            CHECK(model::canonicalBinding(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
+        } else if (const auto* on = std::get_if<bool>(&*setting.defaultValue)) {
             CHECK(value.value<bool>() == *on);
         } else if (const auto* whole = std::get_if<int>(&*setting.defaultValue)) {
             CHECK(value.value<int>() == *whole);
@@ -1609,7 +1613,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(mod.pages[0].name == "Most Used");
     const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
-    CHECK(examples.pages.size() == 21);
+    CHECK(examples.pages.size() == 22);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -1790,7 +1794,7 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the 
         (problem.severity == model::Severity::Error ? errors : warnings) += 1;
     }
     // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
-    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[19].content[0].content[2].text" });
+    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[20].content[0].content[2].text" });
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }
@@ -1862,6 +1866,49 @@ TEST_CASE("ConfigSpecLoader: a valueType that is no type is a warning, and the s
     REQUIRE(settings.size() == 2);
     CHECK(settings[0].valueType == model::StoredType::String);
     CHECK(settings[1].valueType == model::StoredType::Float);
+}
+
+TEST_CASE("ConfigSpecLoader: a binding is the text of its table, with its default an object the framework reads, and offers suppress")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" },
+            "ini": { "format": "ini", "root": "myGames", "path": "MyMod.ini" }
+        },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.inputBinding", "text": "Grab", "default": { "type": "tap", "button": "Trigger", "hand": "off" },
+              "valueOptions": { "suppress": true }, "storage": { "path": ["Sphere", "kPrimaryBinding"] } },
+            { "type": "cf.inputBinding", "text": "Open", "valueType": "string",
+              "default": { "hand": "primary", "type": "longpress", "button": "thumbstick", "duration": 1.5, "modifier": { "hand": "offhand", "button": "thumbstick" } },
+              "storage": { "path": ["Main", "kOpen"] } },
+            { "type": "cf.inputBinding", "text": "Typo", "default": { "hand": "offhand", "type": "tap", "button": "thumbstik" }, "storage": { "path": ["Main", "kTypo"] } },
+            { "type": "cf.inputBinding", "text": "Text", "valueType": "int", "default": "tap trigger", "storage": { "path": ["Main", "kText"] } },
+            { "type": "cf.inputBinding", "text": "In an INI file", "default": { "type": "none" }, "storage": { "file": "ini", "section": "Main", "key": "kBinding" } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 5);
+    for (const auto& setting : settings) {
+        CHECK(setting.type == model::SettingType::InputBinding);
+        CHECK(setting.valueType == model::StoredType::String);
+    }
+    // the table as the framework writes it, with its words and the order of its keys
+    CHECK(settings[0].defaultValue == model::Value(std::string(R"({ hand = "offhand", type = "tap", button = "trigger" })")));
+    CHECK(settings[0].valueOptions.suppress);
+    CHECK(settings[1].defaultValue ==
+          model::Value(std::string(R"({ hand = "primary", type = "longpress", button = "thumbstick", duration = 1.5, modifier = { hand = "offhand", button = "thumbstick" } })")));
+    CHECK_FALSE(settings[1].valueOptions.suppress);
+    CHECK_FALSE(settings[2].defaultValue);
+    CHECK_FALSE(settings[3].defaultValue);
+    CHECK(std::holds_alternative<model::UnknownStorage>(settings[4].storage));
+    CHECK(problemLines(mod) ==
+          Lines{ "E Typo: Its default is not a binding: 'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system. It has no Reset. [Typo] "
+                 "content[2].default",
+              "E Text: It has no default binding, an object as { \"hand\": \"offhand\", \"type\": \"tap\", \"button\": \"trigger\" }: it has no Reset. [Text] content[3]",
+              "W Text: Its valueType \"int\" is not string, which a binding is: it is read as string. [Text] content[3].valueType",
+              "E In an INI file: A binding is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
 }
 
 TEST_CASE("ConfigSpecLoader: with the folders of its files, a setting whose path its file does not have is a warning")

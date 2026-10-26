@@ -97,6 +97,23 @@ namespace mods_config::ui
     // design system
     constexpr float TRACK_WIDTH = 280.0f;
 
+    // the box of a dropdown, which fills the room of a control in its row: the control column without the room of
+    // Reset. A binding's frame is as wide
+    constexpr float DROPDOWN_WIDTH = theme::CONTROL_WIDTH - theme::CONTROL_HEIGHT - theme::SPACE_2;
+
+    // the box the arrow of a stepper's button and of a dropdown is drawn in
+    constexpr float ARROW_SIZE = 14.0f;
+
+    /**
+     * Where an arrow of a stepper's button and of a dropdown points.
+     */
+    enum class ControlArrow : std::uint8_t
+    {
+        Left,
+        Right,
+        Down,
+    };
+
     // the strokes of a drawn icon, as the design system draws its icons in a box of 24
     constexpr float ICON_THICKNESS = 2.5f;
 
@@ -160,4 +177,5 @@ namespace mods_config::ui
     void drawInfoMark(const ImVec2& center);
     void drawMark(TextMark mark, const ImVec2& center);
     void drawFoldArrow(const ImVec2& topLeft, bool open, ImU32 color);
+    void drawControlArrow(const ImVec2& center, ControlArrow arrow);
 }

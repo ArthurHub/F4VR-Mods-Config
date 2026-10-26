@@ -17,7 +17,7 @@
 namespace mods_config::model
 {
     /**
-     * How a setting is edited, by MCM's names.
+     * How a setting is edited, by MCM's names, and a config spec's CommonFramework controls.
      */
     enum class SettingType : std::uint8_t
     {
@@ -26,6 +26,8 @@ namespace mods_config::model
         Stepper,
         Dropdown,
         TextInput,
+        // a controller binding of a CommonFramework mod: its value is the TOML text of the binding's inline table
+        InputBinding,
     };
 
     /**
@@ -94,6 +96,10 @@ namespace mods_config::model
         // a config spec's choice whose options its mod's client gives, by a callback it registers for the setting's
         // id (`listFromClientCallback`)
         bool clientOptions = false;
+
+        // a binding offers `suppress` to the player: one whose consumer hides its button from the game, as an
+        // activation sphere does
+        bool suppress = false;
     };
 
     /**

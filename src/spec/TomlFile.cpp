@@ -130,9 +130,23 @@ namespace mods_config::spec
     }
 
     /**
+     * The value at a path of tables and a key as the TOML text it is written as, whatever its type, as the file was
+     * last read or written: a table is inline, with its keys in the order the file has them. A value the file does not
+     * have is none, and the reason is returned.
+     */
+    std::expected<std::string, std::string> TomlFile::tableText(const std::span<const std::string> path) const
+    {
+        const auto node = find(path);
+        if (!node) {
+            return std::unexpected(std::format("{} is not in {}", pathText(path), name()));
+        }
+        return common::TomlEditor::Value(*node.node()).text();
+    }
+
+    /**
      * A text with values set in it: each replaces the text of the one the text has, and one it does not have is
-     * added. `common::TomlEditor` checks that each reads back. Returns the reason for a text that is no TOML, and
-     * for a value that cannot be set.
+     * added, and a change of a table's text is written as the table. `common::TomlEditor` checks that each reads back.
+     * Returns the reason for a text that is no TOML, and for a value that cannot be set.
      */
     std::expected<std::string, std::string> TomlFile::edit(const std::string& text, const std::span<const Change> changes) const
     {
@@ -143,7 +157,17 @@ namespace mods_config::spec
 
         std::vector<common::TomlEditor::Edit> edits;
         edits.reserve(changes.size());
-        for (const auto& [path, value] : changes) {
+        for (const auto& [path, value, table] : changes) {
+            if (table) {
+                // the table's text is a value of a document, which the edit writes as the table, in the order of its keys
+                const auto& tableValue = std::get<std::string>(value);
+                const auto document = common::parseToml(std::format("value = {}", tableValue));
+                if (!document || !document->get("value")) {
+                    return std::unexpected(std::format("{} cannot be written as {} in {}", pathText(path), tableValue, name()));
+                }
+                edits.push_back({ { path.begin(), path.end() }, common::TomlEditor::Value(*document->get("value")) });
+                continue;
+            }
             edits.push_back({ { path.begin(), path.end() },
                 std::visit(
                     [](const auto& typed) {

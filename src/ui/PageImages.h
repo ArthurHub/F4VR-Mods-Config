@@ -21,6 +21,10 @@ namespace mods_config::ui
 
         // draws an image's pixels or texture in the given rectangle
         std::function<void(const model::Image& image, const ImVec2& min, const ImVec2& max)> draw;
+
+        // draws an icon of the mod's own, by its path under `Data\Textures`, in the given rectangle, with its colors
+        // multiplied by the tint, as a binding's icon is drawn in the color of its text
+        std::function<void(const std::string& texture, const ImVec2& min, const ImVec2& max, ImU32 tint)> drawIcon;
     };
 
     void drawImage(const model::Image& image, const ImageDrawer& drawer, float width);

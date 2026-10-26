@@ -258,17 +258,17 @@ namespace mods_config::spec
     std::expected<std::string, std::string> IniFile::edit(const std::string& text, const std::span<const Change> changes) const
     {
         auto edited = text;
-        for (const auto& [path, value] : changes) {
-            if (!keyOf(path)) {
-                return std::unexpected(std::format("{} is no key of {}, which has a section and a key", pathName(path), name()));
+        for (const auto& change : changes) {
+            if (!keyOf(change.path)) {
+                return std::unexpected(std::format("{} is no key of {}, which has a section and a key", pathName(change.path), name()));
             }
-            set(edited, path, value);
+            set(edited, change.path, change.value);
         }
         const auto lines = parse(edited);
-        for (const auto& [path, value] : changes) {
-            const auto written = valueIn(edited, lines, path, typeOf(value));
-            if (!written || !isWritten(*written, value)) {
-                return std::unexpected(std::format("{} cannot be written as \"{}\" in {}", pathName(path), valueText(value, {}), name()));
+        for (const auto& change : changes) {
+            const auto written = valueIn(edited, lines, change.path, typeOf(change.value));
+            if (!written || !isWritten(*written, change.value)) {
+                return std::unexpected(std::format("{} cannot be written as \"{}\" in {}", pathName(change.path), valueText(change.value, {}), name()));
             }
         }
         return edited;

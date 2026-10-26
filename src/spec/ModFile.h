@@ -2,6 +2,7 @@
 
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <optional>
 #include <span>
 #include <string>
@@ -28,6 +29,9 @@ namespace mods_config::spec
         {
             std::vector<std::string> path;
             model::Value value;
+
+            // the value is the TOML text of a table, as a binding's, which is written as the table and not as a text
+            bool table = false;
         };
 
         explicit ModFile(std::filesystem::path path)
@@ -50,6 +54,15 @@ namespace mods_config::spec
          * The value at a path in a type, as the file was last read or written, or the reason it is not one.
          */
         virtual std::expected<model::Value, std::string> value(std::span<const std::string> path, model::StoredType type) const = 0;
+
+        /**
+         * The value at a path as the TOML text it is written as, whatever its type, as a binding's table, or the
+         * reason it is none. Only a TOML file has one.
+         */
+        virtual std::expected<std::string, std::string> tableText(std::span<const std::string> path) const
+        {
+            return std::unexpected(std::format("{} is not in a TOML file", pathName(path)));
+        }
 
         /**
          * A path as a reason names it.

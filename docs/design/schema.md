@@ -276,6 +276,7 @@ An explicit numeric `order` is not used for ordinary declarative content. Placem
 Every entry in a `content` array has a `type`, which says what the row is. The names are MCM's wherever MCM has the same row:
 
 - `switcher`, `slider`, `stepper`, `dropdown`, `textinput`: a setting, which is an editable value bound to a file, a global or a property of a script. The type is its control.
+- `cf.inputBinding`: a setting of a CommonFramework controller binding; see [CommonFramework values](#commonframework-values).
 - `section`: a heading with its own rows; see [Sections](#sections).
 - `button`: runs an action.
 - `text`, `spacer`, `image`: rows that hold no value; see [Text, spacers and images](#text-spacers-and-images).
@@ -317,6 +318,22 @@ Settings and button labels can set `"html": true` to style their `text` with the
 Every writable setting has an inline required `default`. Defaults use the same type and constraint validation as player values. The default is the value Reset applies, so it has to match the default the mod itself uses.
 
 A `textinput` whose `valueType` is `int` or `float` takes a number, as MCM's `textinputInt` and `textinputFloat` do. Its limits are the `min` and `max` of its `valueOptions`.
+
+### CommonFramework values
+
+A setting whose `type` starts with `cf.` edits a value in the form CommonFramework fixes for its TOML config; see [CommonFramework-specific controls](controls.md#commonframework-specific-controls). The prefix says the value is the framework's, so an author knows its words and its checks are the framework's too.
+
+`cf.inputBinding` is a controller binding, the inline table of a `k` key. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. `"valueOptions": { "suppress": true }` offers Suppress from the game in its editor, for a binding whose consumer applies it, as an activation sphere's.
+
+```json
+{
+  "type": "cf.inputBinding",
+  "text": "Grab",
+  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+  "valueOptions": { "suppress": true },
+  "storage": { "path": ["HeadActivation", "kPrimaryBinding"] }
+}
+```
 
 A setting's `id` is optional. A setting without one gets its id from its storage, as a name and where it is, joined by a colon:
 

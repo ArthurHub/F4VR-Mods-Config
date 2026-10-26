@@ -495,6 +495,51 @@ TEST_CASE("ConfigSpecStore: Save writes the dirty settings in the types of the f
     CHECK(session.store.dirtyCount() == 0);
 }
 
+TEST_CASE("ConfigSpecStore: a binding is its table's text as the framework writes it, invalid with the framework's reason, and Save writes it as the table")
+{
+    Session session(R"(
+        { "type": "cf.inputBinding", "text": "Grab", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+          "storage": { "path": ["Sphere", "kPrimary"] } },
+        { "type": "cf.inputBinding", "text": "Typo", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+          "storage": { "path": ["Sphere", "kTypo"] } },
+        { "type": "cf.inputBinding", "text": "Missing", "default": { "type": "none" }, "storage": { "path": ["Sphere", "kMissing"] } }
+    )");
+    session.open(
+        "[Sphere]\r\n"
+        "kPrimary = { button = \"Trigger\", hand = \"off\", type = \"tap\" }   # grab\r\n"
+        "kTypo = { hand = \"offhand\", type = \"tap\", button = \"thumbstik\" }\r\n");
+
+    // the file's words and order are the framework's, so the default is the same value
+    const auto grab = session.value(0);
+    CHECK(grab.value == model::Value(R"({ hand = "offhand", type = "tap", button = "trigger" })"s));
+    CHECK_FALSE(grab.invalid);
+    CHECK(session.store.defaultValue(session.setting(0)) == grab.value);
+
+    // a table the framework cannot read is shown as the file has it
+    const auto typo = session.value(1);
+    CHECK(typo.value == model::Value(R"({ hand = "offhand", type = "tap", button = "thumbstik" })"s));
+    CHECK(typo.invalid);
+    CHECK(typo.reason == "Invalid: 'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system.");
+    CHECK(session.value(2).value == model::Value(R"({ type = "none" })"s));
+
+    // a value the player sets is the framework's text too, and one that is no binding is invalid
+    CHECK(session.store.set(session.setting(0), R"({ type = "longpress", hand = "primary", button = "a" })"s));
+    CHECK(session.value(0).value == model::Value(R"({ hand = "primary", type = "longpress", button = "a" })"s));
+    CHECK(session.store.set(session.setting(2), R"({ hand = "offhand" })"s));
+    CHECK(session.value(2).invalid);
+    CHECK(session.value(2).reason == "Invalid: The type is missing, one of tap, press, longpress, double, hold, release, touch, axis, none.");
+    CHECK_FALSE(session.store.set(session.setting(0), 1.0f));
+    session.store.discard(session.setting(2));
+
+    CHECK(session.store.set(session.setting(1), R"({ type = "none" })"s));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Sphere]\r\n"
+          "kPrimary = { hand = \"primary\", type = \"longpress\", button = \"a\" }   # grab\r\n"
+          "kTypo = { type = \"none\" }\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+}
+
 TEST_CASE("ConfigSpecStore: Save keeps a value that changed in the file since the session started, but for one the player changed, and adds a key the file does not have")
 {
     Session session;

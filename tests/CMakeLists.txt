@@ -53,6 +53,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
   ${SOURCE_DIR}/model/ClientCalls.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
+  ${SOURCE_DIR}/model/InputBindings.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp
   ${SOURCE_DIR}/spec/IniFile.cpp
@@ -62,6 +63,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/spec/ConfigSpecStore.cpp
   ${SOURCE_DIR}/spec/TomlFile.cpp
   ${SOURCE_DIR}/model/Translations.cpp
+  ${SOURCE_DIR}/ui/Bindings.cpp
   ${SOURCE_DIR}/ui/Buttons.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
   ${SOURCE_DIR}/ui/ConfirmDialog.cpp

@@ -162,6 +162,33 @@
               "storage": { "path": ["Panel", "fMoveSmoothing"] }
             }
           ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Controls",
+          "content": [
+            {
+              "type": "cf.inputBinding",
+              "text": "Open the menu",
+              "help": "Opens and closes this menu. With FRIK installed, FRIK's own config no longer opens with it.",
+              "default": {
+                "hand": "primary",
+                "type": "longpress",
+                "button": "thumbstick",
+                "duration": 1.5,
+                "modifier": { "hand": "offhand", "button": "thumbstick" }
+              },
+              "storage": { "path": ["ModsConfigVR", "kOpenMenuBinding"] }
+            },
+            {
+              "type": "cf.inputBinding",
+              "text": "Recenter",
+              "help": "Puts the menu in front of you again, where you look now, also after you moved it.",
+              "default": { "hand": "offhand", "type": "longpress", "button": "thumbstick" },
+              "storage": { "path": ["Panel", "kRecenterBinding"] }
+            }
+          ]
         }
       ]
     },

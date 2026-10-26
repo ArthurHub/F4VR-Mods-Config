@@ -14,3 +14,7 @@ bInvalid = "yes"
 # in a section that is folded as the page is shown, which says it hides an invalid value
 [Folded]
 fPastMost = 2.0
+
+# a binding whose table the framework cannot read
+[Bindings]
+kTypo = { hand = "offhand", type = "tap", button = "thumbstik" }

@@ -987,4 +987,23 @@ namespace mods_config::ui
             ImGui::GetWindowDrawList()->AddTriangleFilled(at(4.0f, 2.0f), at(11.0f, 7.0f), at(4.0f, 12.0f), ImGui::GetColorU32(color));
         }
     }
+
+    /**
+     * A filled arrow around a point, as the buttons of a stepper and a dropdown have.
+     */
+    void drawControlArrow(const ImVec2& center, const ControlArrow arrow)
+    {
+        // the corners of each arrow in its box, as the design system draws them
+        static constexpr std::array<std::array<ImVec2, 3>, 3> CORNERS{ {
+            { ImVec2(10.0f, 2.0f), ImVec2(3.0f, 7.0f), ImVec2(10.0f, 12.0f) },
+            { ImVec2(4.0f, 2.0f), ImVec2(11.0f, 7.0f), ImVec2(4.0f, 12.0f) },
+            { ImVec2(2.0f, 4.0f), ImVec2(12.0f, 4.0f), ImVec2(7.0f, 11.0f) },
+        } };
+        const auto& corners = CORNERS[static_cast<std::size_t>(arrow)];
+        const ImVec2 origin(center.x - ARROW_SIZE * 0.5f, center.y - ARROW_SIZE * 0.5f);
+        const auto at = [&origin](const ImVec2& corner) {
+            return ImVec2(origin.x + corner.x, origin.y + corner.y);
+        };
+        ImGui::GetWindowDrawList()->AddTriangleFilled(at(corners[0]), at(corners[1]), at(corners[2]), ImGui::GetColorU32(theme::color::GREEN));
+    }
 }

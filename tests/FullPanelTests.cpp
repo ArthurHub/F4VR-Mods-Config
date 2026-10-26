@@ -4436,3 +4436,58 @@ TEST_CASE("FullPanel: a quick launch entry says its own button text, tells the r
     point(panel, flashlight);
     CHECK(panel.helpLine().text() == "Immersive Flashlight: Not available: its mod's client failed, and is cut off until the game is restarted.");
 }
+
+TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help line says in full, with the bindings that are the same press")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE,
+        "[Sphere]\r\n"
+        "kGrab = { hand = \"offhand\", type = \"longpress\", button = \"a\" }\r\n"
+        "kOther = { hand = \"offhand\", type = \"longpress\", button = \"a\", duration = 1.0 }\r\n"
+        "kTypo = { hand = \"offhand\", type = \"tap\", button = \"thumbstik\" }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.inputBinding", "text": "Grab", "help": "Takes the item.", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+              "storage": { "path": ["Sphere", "kGrab"] } },
+            { "type": "cf.inputBinding", "text": "Typo", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+              "storage": { "path": ["Sphere", "kTypo"] } }
+        ],
+        "pages": [ { "pageDisplayName": "More", "content": [
+            { "type": "cf.inputBinding", "text": "Other", "default": { "type": "none" }, "storage": { "path": ["Sphere", "kOther"] } }
+        ] } ]
+    })");
+    REQUIRE(mod);
+    std::vector<std::string> icons;
+    FullPanel panel;
+    panel.setImageDrawer({ .drawIcon = [&icons](const std::string& texture, const ImVec2&, const ImVec2&, ImU32) {
+        icons.push_back(texture);
+    } });
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    // the A button of the off hand is X on its controller, and the other binding is the same press, on another page
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Grab: Long press the X button on the off hand. Takes the item. Also the press of Other. (Default: Tap the trigger on the off hand)");
+    CHECK(std::ranges::contains(icons, R"(ModsConfigVR\f4cf\bindings\left-longpress-x.dds)"));
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Grab: Reset to Tap the trigger on the off hand");
+
+    // a table the framework cannot read has no icon, and the framework's reason
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Typo: Invalid: 'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system.");
+
+    // for a left-handed player the off hand is the right controller
+    panel.setLeftHanded(true);
+    icons.clear();
+    drawFrames(panel, 2);
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text().starts_with("Grab: Long press the A button on the off hand."));
+    CHECK(std::ranges::contains(icons, R"(ModsConfigVR\f4cf\bindings\right-longpress-a.dds)"));
+}
