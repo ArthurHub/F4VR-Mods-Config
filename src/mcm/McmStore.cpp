@@ -652,6 +652,34 @@ namespace mods_config::mcm
     }
 
     /**
+     * Takes back the pending value of one setting, so it has the value its storage has. It ends the last Save, and its
+     * failure, as a set does.
+     */
+    void McmStore::discard(const model::Setting& setting)
+    {
+        const auto erased = std::erase_if(_pending, [&setting](const Pending& pending) {
+            return pending.setting == &setting;
+        });
+        if (erased > 0) {
+            _saveFailure.clear();
+            _lastSave.reset();
+        }
+    }
+
+    /**
+     * The value a dirty setting's storage has now. None for a clean one, and for one whose storage has no value of it:
+     * an invalid value is shown as the setting's default.
+     */
+    std::optional<model::Value> McmStore::savedValue(const model::Setting& setting)
+    {
+        if (!isDirty(setting)) {
+            return std::nullopt;
+        }
+        auto current = stored(setting);
+        return current.available && !current.invalid ? std::optional(std::move(current.value)) : std::nullopt;
+    }
+
+    /**
      * A frame of the panel starts: a pending value that is the one its storage has now, as a script set it so, is
      * no change any more.
      */

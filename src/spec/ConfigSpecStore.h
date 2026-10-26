@@ -93,6 +93,8 @@ namespace mods_config::spec
         }
 
         void discard() override;
+        void discard(const model::Setting& setting) override;
+        std::optional<model::Value> savedValue(const model::Setting& setting) override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         model::StoredValue clientState(std::string_view name) override;
         void startFrame() override;

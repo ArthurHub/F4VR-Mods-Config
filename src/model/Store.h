@@ -156,6 +156,18 @@ namespace mods_config::model
         virtual void discard() = 0;
 
         /**
+         * Takes back the pending value of one setting, as its row's Discard does, so it has its baseline again and
+         * is clean. Nothing for a setting that is clean.
+         */
+        virtual void discard(const Setting& setting) = 0;
+
+        /**
+         * The value a dirty setting has again as its change is discarded: its saved value, in the type of its value.
+         * None for a setting that is clean, and for one whose saved value is not one of its type.
+         */
+        virtual std::optional<Value> savedValue(const Setting& setting) = 0;
+
+        /**
          * The key a hotkey is bound to, as a text: its name, with the keys that are held with it. It is not
          * available for a hotkey its source does not have.
          */

@@ -386,7 +386,8 @@ namespace
     }
 
     /**
-     * The middle of the Reset of a row of a page, by the row's place among the rows: in the room after its control.
+     * The middle of the Reset of a row of a page, by the row's place among the rows: in the room after its control,
+     * which is the row's Discard while its setting is dirty.
      */
     ImVec2 resetButton(const int place)
     {
@@ -3302,7 +3303,7 @@ TEST_CASE("FullPanel: a config spec's Reset is a change as any other, which Save
     CHECK(store.dirtyCount() == 0);
     CHECK_FALSE(pressActs(panel, resetButton(0)));
 
-    // a change of a setting whose file has its default is taken back by its Reset, which leaves it clean
+    // a change of a setting whose file has its default is taken back by its Discard, which leaves it clean
     CHECK_FALSE(pressActs(panel, resetButton(1)));
     CHECK(pressActs(panel, pageRow(1)));
     CHECK(store.isDirty(enable));
@@ -3311,6 +3312,52 @@ TEST_CASE("FullPanel: a config spec's Reset is a change as any other, which Save
     CHECK(store.dirtyCount() == 0);
     drawFrames(panel, 1);
     CHECK(panel.helpLine().status() == "No unsaved changes");
+}
+
+TEST_CASE("FullPanel: a pending row's Discard takes back its change alone, and the help line names the saved value")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nfScale = 1.5\r\nbEnable = false\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 2.0, "step": 0.1 }, "storage": { "path": ["Main", "fScale"] } },
+            { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& items = panel.mods()[0].frontPage.items;
+    const auto& scale = std::get<model::Setting>(items[0]);
+    const auto& enable = std::get<model::Setting>(items[1]);
+
+    // the slot of a dirty setting names its saved value, and its press takes back that change alone
+    CHECK(store.set(scale, 0.8f));
+    CHECK(store.set(enable, true));
+    drawFrames(panel, 1);
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Scale: Discard the change, back to 1.5.");
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK_FALSE(store.isDirty(scale));
+    CHECK(store.value(scale).value == model::Value(1.5f));
+    CHECK(store.isDirty(enable));
+
+    // clean, it is Reset again, which sets the default, and then is the Discard of that change
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Scale: Reset to 1.0");
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK(store.value(scale).value == model::Value(1.0f));
+    point(panel, resetButton(0));
+    CHECK(panel.helpLine().text() == "Scale: Discard the change, back to 1.5.");
+    CHECK(store.dirtyCount() == 2);
 }
 
 TEST_CASE("FullPanel: with no config spec store none of a config spec's values is available, and the MCM store's session ends for it")
@@ -3361,12 +3408,13 @@ TEST_CASE("FullPanel: a press on the Reset of a row sets the default of its sett
     drawFrames(panel, 2);
     events.sent.clear();
 
-    // the switcher is turned on by it once, and not off again by a press on the room it was in
+    // the switcher is turned on by it, and the room it was in is then its Discard, which takes that back
     CHECK(pressActs(panel, resetButton(0)));
     CHECK(valueOf(0) == model::Value(true));
     CHECK(store.isDirty(std::get<model::Setting>(rows[0])));
-    CHECK_FALSE(pressActs(panel, resetButton(0)));
-    CHECK(valueOf(0) == model::Value(true));
+    CHECK(pressActs(panel, resetButton(0)));
+    CHECK(valueOf(0) == model::Value(false));
+    CHECK_FALSE(store.isDirty(std::get<model::Setting>(rows[0])));
 
     CHECK(pressActs(panel, resetButton(1)));
     CHECK(valueOf(1) == model::Value(1.0f));
@@ -3375,11 +3423,14 @@ TEST_CASE("FullPanel: a press on the Reset of a row sets the default of its sett
     CHECK(pressActs(panel, resetButton(2)));
     CHECK(valueOf(2) == model::Value(1));
     CHECK_FALSE(isListOpen());
-    CHECK_FALSE(pressActs(panel, resetButton(2)));
+    CHECK(pressActs(panel, resetButton(2)));
+    CHECK(valueOf(2) == model::Value(2));
     CHECK_FALSE(isListOpen());
 
-    // a row that is changed is reset again
+    // a row that is changed is taken back by its Discard, and is then reset by its Reset
     CHECK(pressActs(panel, pageRow(0)));
+    CHECK(valueOf(0) == model::Value(true));
+    CHECK(pressActs(panel, resetButton(0)));
     CHECK(valueOf(0) == model::Value(false));
     CHECK(pressActs(panel, resetButton(0)));
     CHECK(valueOf(0) == model::Value(true));
@@ -3445,10 +3496,13 @@ TEST_CASE("FullPanel: the help line names the default of the row the ray is on, 
     point(panel, resetButton(3));
     CHECK(panel.helpLine().text() == "Global: What it does.");
 
-    // the Reset of a row at its default is disabled, and tells nothing
+    // a row that is reset is changed, and its Discard names the value it gives back, also one with no default
     press(panel, resetButton(0));
     point(panel, resetButton(0));
-    CHECK(panel.helpLine().text() == "Enabled: What it does. (Default: on)");
+    CHECK(panel.helpLine().text() == "Enabled: Discard the change, back to off.");
+    press(panel, pageRow(3));
+    point(panel, resetButton(3));
+    CHECK(panel.helpLine().text() == "Global: Discard the change, back to off.");
 }
 
 namespace

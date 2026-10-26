@@ -1024,6 +1024,37 @@ namespace mods_config::spec
     }
 
     /**
+     * Takes back the pending value of one setting: it has its baseline again, also an invalid one of its file, the game
+     * has the baseline of one it has a preview of, and the mod's client is told the Discard of one it was told the
+     * preview of. It ends the last Save, and its failure, as a set does.
+     */
+    void ConfigSpecStore::discard(const model::Setting& setting)
+    {
+        const auto found = _entries.find(&setting);
+        if (found == _entries.end() || !found->second.pending) {
+            return;
+        }
+        auto& entry = found->second;
+        _saveFailure.clear();
+        _lastSave.reset();
+        entry.pending.reset();
+        entry.pendingInvalid.clear();
+        if (_previews.contains(&setting)) {
+            preview(setting, entry);
+        }
+        previewToClient(setting, entry);
+    }
+
+    /**
+     * The baseline of a dirty setting: none for a clean one, and for one whose file has a value of another type.
+     */
+    std::optional<model::Value> ConfigSpecStore::savedValue(const model::Setting& setting)
+    {
+        const auto found = _entries.find(&setting);
+        return found != _entries.end() && found->second.pending ? found->second.baseline : std::nullopt;
+    }
+
+    /**
      * A config spec has no hotkeys.
      */
     model::StoredValue ConfigSpecStore::hotkey(const model::Hotkey&)

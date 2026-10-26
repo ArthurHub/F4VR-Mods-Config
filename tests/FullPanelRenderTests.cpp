@@ -619,7 +619,8 @@ TEST_CASE("FullPanel render: the Help page over a page of a mod, with the ray on
     }));
 }
 
-TEST_CASE("FullPanel render: the mark of when a pending change takes effect on each row, and the help line's tag of a live, a save and a restart one", "[.render]")
+TEST_CASE("FullPanel render: the mark of when a pending change takes effect on each row, the help line's tag of a live, a save and a restart one, and a pending row's Discard",
+    "[.render]")
 {
     const test_files::TempFolder myGames;
     myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
@@ -654,6 +655,10 @@ TEST_CASE("FullPanel render: the mark of when a pending change takes effect on e
     WARN("Saved " << renderToFile(panel, "applies-save", pageRow(1)));
     WARN("Saved " << renderToFile(panel, "applies-restart", pageRow(2)));
     WARN("Saved " << renderToFile(panel, "applies-unknown", pageRow(3)));
+
+    // with the ray on the Discard of the live one
+    const float slot = test_panel::PANEL_WIDTH - test_panel::CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2 - theme::CONTROL_HEIGHT * 0.5f;
+    WARN("Saved " << renderToFile(panel, "discard-hover", ImVec2(slot, pageRow(0).y)));
 }
 
 TEST_CASE("FullPanel render: a page under the tree's last rows is scrolled to", "[.render]")

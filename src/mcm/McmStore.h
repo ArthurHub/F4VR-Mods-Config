@@ -119,6 +119,8 @@ namespace mods_config::mcm
         }
 
         void discard() override;
+        void discard(const model::Setting& setting) override;
+        std::optional<model::Value> savedValue(const model::Setting& setting) override;
         void startFrame() override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         model::ActionResult run(const model::Action& action) override;

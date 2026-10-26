@@ -47,6 +47,28 @@ namespace
     }
 
     /**
+     * The Discard icon around a point, an undo: an arrowhead to the left, whose tail turns back down in a half circle,
+     * in amber as the pending change it takes back.
+     */
+    void drawDiscardIcon(const ImVec2& center)
+    {
+        // as the design system draws it, in a box of 24
+        constexpr float HALF_BOX = 12.0f;
+        const ImVec2 origin(center.x - HALF_BOX, center.y - HALF_BOX);
+        const auto at = [&origin](const float x, const float y) {
+            return ImVec2(origin.x + x, origin.y + y);
+        };
+        const auto color = ImGui::GetColorU32(theme::color::AMBER);
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathLineTo(at(4.0f, 9.0f));
+        drawList->PathArcTo(at(14.0f, 14.0f), 5.0f, -IM_PI / 2.0f, IM_PI / 2.0f);
+        drawList->PathLineTo(at(8.0f, 19.0f));
+        drawList->PathStroke(color, ui::ICON_THICKNESS);
+        const std::array head{ at(9.0f, 4.0f), at(4.0f, 9.0f), at(9.0f, 14.0f) };
+        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ui::ICON_THICKNESS);
+    }
+
+    /**
      * Whether two values of a setting are the same one. Two numbers are, when they are as near as a number
      * and the text of it in a file.
      */
@@ -87,15 +109,19 @@ namespace
     }
 
     /**
-     * A default of a setting as the help line names it: on and off for a switcher, the number of a slider
-     * as its display writes it, with its unit, and the text of the option of a stepper and a dropdown. The
-     * text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
+     * A value of a setting as the help line names it, its default or its saved value: on and off for a switcher, the
+     * number of a slider as its display writes it, with its unit, and the text of the option of a stepper and a
+     * dropdown. The text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
+     * Empty for a value it has no name for, as one that is none of the options.
      */
-    std::string defaultName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
+    std::string valueName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
         if (setting.type == model::SettingType::TextInput) {
-            const auto& text = std::get<std::string>(value);
-            return setting.valueType == model::StoredType::String ? std::format("\"{}\"", text) : ui::fieldText(setting, text);
+            const auto* text = std::get_if<std::string>(&value);
+            if (!text) {
+                return {};
+            }
+            return setting.valueType == model::StoredType::String ? std::format("\"{}\"", *text) : ui::fieldText(setting, *text);
         }
         if (const auto* on = std::get_if<bool>(&value)) {
             return *on ? "on" : "off";
@@ -181,20 +207,31 @@ namespace mods_config::ui
         // a read-only setting whose storage has no value shows none
         const bool showsValue = stored.available || !setting.readOnly;
 
-        // Reset is pressed a little beside it too, as a button of a stepper is. A press is its own when it
+        // the slot after the control is Discard while the setting is dirty, and Reset for one with a default
+        // otherwise. It is pressed a little beside it too, as a button of a stepper is. A press is its own when it
         // began there: a slider that is dragged and let go on it is not reset
         const auto& io = ImGui::GetIO();
-        const auto resetBox = controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
+        const auto slotBox = controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
         const auto defaultValue = stored.available ? defaultOf(setting, *context.store) : std::nullopt;
-        const bool onReset = defaultValue && row.pointed && io.MousePos.x >= resetBox.Min.x - theme::SPACE_1;
-        const bool resetHeld = onReset && io.MouseClickedPos[ImGuiMouseButton_Left].x >= resetBox.Min.x - theme::SPACE_1;
-        bool resets = editable && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
-        if (resets && resetHeld && row.pressed && context.store->set(setting, *defaultValue)) {
+        bool dirty = stored.available && context.store->isDirty(setting);
+        const bool onSlot = (dirty || defaultValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
+        const bool slotHeld = onSlot && io.MouseClickedPos[ImGuiMouseButton_Left].x >= slotBox.Min.x - theme::SPACE_1;
+        const auto resetsNow = [&] {
+            return editable && !dirty && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
+        };
+        bool resets = resetsNow();
+        if (slotHeld && row.pressed && ((editable && dirty) || resets)) {
+            if (dirty) {
+                context.store->discard(setting);
+                drawn.pressActed = true;
+            } else {
+                drawn.pressActed = context.store->set(setting, *defaultValue);
+            }
             stored = context.store->value(setting);
-            resets = false;
-            drawn.pressActed = true;
+            dirty = context.store->isDirty(setting);
+            resets = resetsNow();
         }
-        const bool rowPressed = row.pressed && !onReset;
+        const bool rowPressed = row.pressed && !onSlot;
 
         const auto& options = setting.valueOptions;
         const auto& choiceOptions = context.store ? context.store->options(setting) : options.options;
@@ -238,7 +275,8 @@ namespace mods_config::ui
             const auto typed = context.textInputs.edit(setting, right, pos.y, rowPressed, std::get<std::string>(stored.value), pulse);
             if (typed && context.store->set(setting, *typed)) {
                 stored = context.store->value(setting);
-                resets = editable && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
+                dirty = context.store->isDirty(setting);
+                resets = resetsNow();
             }
             drawn.pressActed = drawn.pressActed || pulse;
         }
@@ -246,31 +284,37 @@ namespace mods_config::ui
         const auto warns = stored.invalid ? std::string_view() : warningOf(setting.warnings, context.store);
         const auto applies = context.store ? context.store->applies(setting) : std::nullopt;
 
+        // a slider, a switcher and a choice can be set in this frame too
+        dirty = stored.available && context.store->isDirty(setting);
+        const bool discards = editable && dirty;
+
         // the ray is on the list then, and the help line keeps the row of its dropdown
         const bool listOpen = context.choices.isListOpen(setting);
         if (row.pointed || listOpen) {
             warning = warns;
             if (!stored.available && !stored.reason.empty()) {
                 help = std::move(stored.reason);
-            } else if (resets && onReset) {
-                help = std::format("Reset to {}", defaultName(setting, choiceOptions, *defaultValue));
+            } else if (discards && onSlot) {
+                const auto saved = context.store->savedValue(setting);
+                const auto savedName = saved ? valueName(setting, choiceOptions, *saved) : std::string();
+                help = savedName.empty() ? std::string("Discard the change.") : std::format("Discard the change, back to {}.", savedName);
+            } else if (resets && onSlot) {
+                help = std::format("Reset to {}", valueName(setting, choiceOptions, *defaultValue));
             } else if (!stored.reason.empty()) {
                 help = std::move(stored.reason);
                 invalid = stored.invalid;
             } else {
-                const auto defaultText = defaultValue ? std::format("(Default: {})", defaultName(setting, choiceOptions, *defaultValue)) : std::string();
+                const auto defaultText = defaultValue ? std::format("(Default: {})", valueName(setting, choiceOptions, *defaultValue)) : std::string();
                 const auto ownHelp = setting.readOnly ? readOnlyHelp({}, setting.help) : setting.help;
                 help = joinHelp({ ownHelp, numberDetail(setting, stored, value), defaultText });
             }
             // the tag of when it takes effect is told as it is changed
-            const bool pending = stored.available && context.store->isDirty(setting);
-            drawn.pointed = PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid, .applies = pending ? applies : std::nullopt };
+            drawn.pointed = PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid, .applies = dirty ? applies : std::nullopt };
         }
         if (!row.shown) {
             return drawn;
         }
 
-        const bool dirty = stored.available && context.store->isDirty(setting);
         const auto look = stored.invalid ? ValueLook::Invalid : dirty ? ValueLook::Pending : ValueLook::Saved;
         float left = right;
         ImGui::BeginDisabled(!isSwitcher && !isSlider && !isChoice && !isText);
@@ -300,10 +344,16 @@ namespace mods_config::ui
                                                : TextMark::None };
         drawLabel(pos, left - theme::SPACE_3, setting.text, setting.textRuns, marks);
         ImGui::EndDisabled();
-        if (defaultValue) {
-            ImGui::BeginDisabled(!resets);
-            drawButtonFrame(resetBox, resets && onReset, resets && onReset && resetHeld && row.held);
-            drawResetIcon(resetBox.GetCenter());
+        // a dirty setting that is disabled has its Discard disabled
+        if (dirty || defaultValue) {
+            const bool active = discards || (!dirty && resets);
+            ImGui::BeginDisabled(!active);
+            drawButtonFrame(slotBox, active && onSlot, active && onSlot && slotHeld && row.held);
+            if (dirty) {
+                drawDiscardIcon(slotBox.GetCenter());
+            } else {
+                drawResetIcon(slotBox.GetCenter());
+            }
             ImGui::EndDisabled();
         }
         return drawn;

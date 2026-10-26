@@ -701,6 +701,31 @@ TEST_CASE("ConfigSpecStore: every setting of the config spec showcase's INI file
     CHECK(store.dirtyCount() == 0);
 }
 
+TEST_CASE("ConfigSpecStore: a setting's own Discard takes back its change alone, and its saved value is its baseline")
+{
+    Session session;
+    session.open("[Main]\r\nbEnable = false\r\nfScale = 2.0\r\n");
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(session.store.set(session.setting(1), 1.0f));
+    CHECK(session.store.savedValue(session.setting(0)) == model::Value(false));
+
+    // an invalid value of the file is the saved value too
+    CHECK(session.store.savedValue(session.setting(1)) == model::Value(2.0f));
+
+    session.store.discard(session.setting(0));
+    CHECK_FALSE(session.store.isDirty(session.setting(0)));
+    CHECK(session.value(0).value == model::Value(false));
+    CHECK(session.store.isDirty(session.setting(1)));
+    CHECK_FALSE(session.store.savedValue(session.setting(0)));
+
+    // a clean setting has nothing to take back
+    session.store.discard(session.setting(0));
+    CHECK(session.store.dirtyCount() == 1);
+    session.store.discard(session.setting(1));
+    CHECK(session.value(1).invalid);
+    CHECK(session.store.dirtyCount() == 0);
+}
+
 TEST_CASE("ConfigSpecStore: Discard takes back every pending value, and writes nothing")
 {
     Session session;
@@ -815,6 +840,13 @@ TEST_CASE("ConfigSpecStore: a live setting of the game is previewed, and has its
     // set back to its baseline, the game has it again
     CHECK(session.store.set(session.setting(0), 8.5f));
     CHECK(common::fEqual(game.hour(), 8.5f));
+    CHECK(session.store.dirtyCount() == 1);
+
+    // its own Discard writes its baseline back, and leaves the other's change
+    CHECK(session.store.set(session.setting(0), 6.0f));
+    session.store.discard(session.setting(0));
+    CHECK(common::fEqual(game.hour(), 8.5f));
+    CHECK(game.mode() == model::Value(0));
     CHECK(session.store.dirtyCount() == 1);
 
     CHECK(session.store.set(session.setting(0), 6.0f));
@@ -1116,6 +1148,12 @@ TEST_CASE("ConfigSpecStore: a live setting of a file is previewed to its mod's c
     told.lines.clear();
     CHECK(session.store.set(session.setting(1), 1.25f));
     CHECK(told.lines == std::vector<std::string>{ "Discard fScale:Main main:Main.fScale 1.3 -> 1.25" });
+
+    // and so is its own Discard
+    told.lines.clear();
+    CHECK(session.store.set(session.setting(1), 1.4f));
+    session.store.discard(session.setting(1));
+    CHECK(told.lines == std::vector<std::string>{ "Preview fScale:Main main:Main.fScale 1.25 -> 1.4", "Discard fScale:Main main:Main.fScale 1.4 -> 1.25" });
 
     // an invalid value is not told, and the client keeps the preview before it
     told.lines.clear();

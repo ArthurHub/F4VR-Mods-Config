@@ -148,6 +148,14 @@ namespace
         void discard() override
         {}
 
+        void discard(const model::Setting&) override
+        {}
+
+        std::optional<model::Value> savedValue(const model::Setting&) override
+        {
+            return std::nullopt;
+        }
+
         model::StoredValue hotkey(const model::Hotkey&) override
         {
             return {};

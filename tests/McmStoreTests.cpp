@@ -153,6 +153,26 @@ TEST_CASE("McmStore: a change waits for a Save, a value set back is no change, a
     CHECK_FALSE(store.lastSave());
 }
 
+TEST_CASE("McmStore: a setting's own Discard takes back its change alone, and its saved value is its storage's")
+{
+    auto globals = someGlobals();
+    McmStore store;
+    const auto on = globalSetting(SettingType::Switcher, 0x801);
+    const auto strength = globalSetting(SettingType::Slider, 0x802);
+
+    CHECK(store.set(on, true));
+    CHECK(store.set(strength, 1.5f));
+    CHECK(store.savedValue(on) == model::Value(false));
+    CHECK(store.savedValue(strength) == model::Value(2.5f));
+
+    store.discard(strength);
+    CHECK_FALSE(store.isDirty(strength));
+    CHECK(store.value(strength).value == model::Value(2.5f));
+    CHECK_FALSE(store.savedValue(strength));
+    CHECK(store.isDirty(on));
+    CHECK(store.dirtyCount() == 1);
+}
+
 TEST_CASE("McmStore: a change whose global comes to have its value, as a script sets it, is no change any more")
 {
     auto globals = someGlobals();

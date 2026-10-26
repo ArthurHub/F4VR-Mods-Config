@@ -151,7 +151,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | F35 | framework | `ModBase`'s client answers the path of its config file   | in review |
 | M127 | mod      | A file takes its path from a state of its client         | in review |
 | M128 | mod      | design system: a pending row's Discard                  | in review |
-| M129 | mod      | A pending row's Discard                                  | todo   |
+| M129 | mod      | A pending row's Discard                                  | in review |
 
 M120 to M125 give every mod one lifecycle before a client previews: a change waits for Save, and the menu says when a change takes effect only where a config spec says it. See [MCM compatibility](architecture.md#mcm-compatibility) and [When a change takes effect](schema.md#when-a-change-takes-effect).
 

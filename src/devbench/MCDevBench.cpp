@@ -206,6 +206,8 @@ namespace mods_config::devbench
                 { "enabled", !setting.enabledWhen || model::holds(*setting.enabledWhen, &store) } };
             const auto defaultValue = store.defaultValue(setting);
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);
+            const auto saved = store.savedValue(setting);
+            row["saved"] = saved ? valueToJson(*saved) : json(nullptr);
             row["applies"] = appliesName(setting.applies);
             if (setting.type == model::SettingType::Slider) {
                 row["range"] = { { "min", setting.valueOptions.min }, { "max", setting.valueOptions.max }, { "step", setting.valueOptions.step } };
@@ -411,11 +413,20 @@ namespace mods_config::devbench
             return { { "saved", saved.has_value() }, { "reason", saved ? std::string() : saved.error() }, { "session", sessionToJson(store) } };
         }
 
-        json runDiscard(const json&)
+        /**
+         * Takes back the selected mod's changes, as the footer's Discard does, or the change of the setting of an id
+         * alone, as its row's Discard does.
+         */
+        json runDiscard(const json& args)
         {
             auto& store = selectedStore();
-            store.discard();
-            return { { "session", sessionToJson(store) } };
+            if (!args.contains("id")) {
+                store.discard();
+                return { { "session", sessionToJson(store) } };
+            }
+            const auto& setting = selectedSetting(args);
+            store.discard(setting);
+            return { { "setting", settingToJson(setting, store) }, { "session", sessionToJson(store) } };
         }
 
         /**
@@ -702,13 +713,13 @@ namespace mods_config::devbench
             .description = "the rows of the page that is shown, in their order, with the session (dirty: the changes that wait for a Save): each with its kind and depth "
                            "(a section's rows follow it, one deeper), shown (its condition holds), for a section its help, collapsible (it folds) and "
                            "collapsed (it starts folded), for a button its buttonText, runnable and enabled, and for a setting its id, type, value, available, invalid, "
-                           "reason, dirty, enabled, default, applies, and its range or options",
+                           "reason, dirty, saved (the value its row's Discard gives a dirty one back), enabled, default, applies, and its range or options",
             .handler = &runPage,
         });
         f4cf::devbench::addAction({
             .name = "setValue",
             .description = "set a setting of the selected mod in its store, as its control does: the change waits for a Save",
-            .arguments = { { "id", { { "type", "string" }, { "description", "setValue, reset: the setting's id, as the page action has it" } } },
+            .arguments = { { "id", { { "type", "string" }, { "description", "setValue, reset, discard: the setting's id, as the page action has it" } } },
                 { "value",
                     { { "description", "setValue: true or false for a switcher, a number for a slider, a text for a text input, an option's value or text for a choice" } } } },
             .handler = &runSetValue,
@@ -725,7 +736,7 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "discard",
-            .description = "take back the selected mod's changes, as the footer's Discard does",
+            .description = "take back the selected mod's changes, as the footer's Discard does, or with an id that setting's change alone, as its row's Discard does",
             .handler = &runDiscard,
         });
         f4cf::devbench::addAction({
