@@ -50,7 +50,6 @@ Mods Config FO4 VR writes directly to each mod's declared configuration files. T
 Supported storage formats are:
 
 - INI
-- JSON
 - TOML
 
 A TOML file is changed with the framework's `TomlEditor`, as a CommonFramework mod saves its own: a value is replaced where it is written, and a key the file does not have is added after the last value of its table. Comments, blank lines, key order, and how every other value is written are preserved.

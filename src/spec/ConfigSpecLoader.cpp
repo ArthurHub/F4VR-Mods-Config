@@ -439,12 +439,11 @@ namespace
     // what a file of a config spec is written in, by its `format`, which is also its extension
     constexpr std::array FILE_FORMATS{
         FormatName{ "ini", model::FileFormat::Ini },
-        FormatName{ "json", model::FileFormat::Json },
         FormatName{ "toml", model::FileFormat::Toml },
     };
 
     /**
-     * A file of a config spec's `files`, or the reason it is not one: a `format` of `ini`, `json` or `toml`,
+     * A file of a config spec's `files`, or the reason it is not one: a `format` of `ini` or `toml`,
      * which its extension is, a `root` of `data` or `myGames`, and a `path` from that root. The path is
      * checked as it is written: one that is absolute, or goes up with `..`, could be any file of the system.
      */
@@ -453,7 +452,7 @@ namespace
         const auto formatText = getText(declared, "format");
         const auto format = std::ranges::find(FILE_FORMATS, formatText, &FormatName::first);
         if (format == FILE_FORMATS.end()) {
-            return std::unexpected(std::format("its format '{}' is not ini, json or toml", formatText));
+            return std::unexpected(std::format("its format '{}' is not ini or toml", formatText));
         }
         const auto rootText = getText(declared, "root");
         if (rootText != "data" && rootText != "myGames") {
@@ -523,9 +522,6 @@ namespace
             return read;
         }
         for (const auto& [name, file] : files) {
-            if (file.format == model::FileFormat::Json) {
-                continue;
-            }
             const auto path = (file.root == model::FileRoot::Data ? folders.data : folders.myGames) / std::u8string(file.path.begin(), file.path.end());
             std::error_code error;
             if (!std::filesystem::is_regular_file(path, error)) {

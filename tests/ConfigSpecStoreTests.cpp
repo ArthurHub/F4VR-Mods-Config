@@ -67,7 +67,7 @@ namespace
 
     /**
      * A config spec with the given content as its front page, a TOML file `main` in My Games that is its default,
-     * an INI file `ini` in Data, and a JSON file `json` in Data.
+     * and an INI file `ini` in Data.
      */
     model::Mod configSpecOf(const std::string& content)
     {
@@ -75,8 +75,7 @@ namespace
             "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
             "files": {{
                 "main": {{ "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" }},
-                "ini": {{ "format": "ini", "root": "data", "path": "MyMod.ini" }},
-                "json": {{ "format": "json", "root": "data", "path": "MyMod.json" }}
+                "ini": {{ "format": "ini", "root": "data", "path": "MyMod.ini" }}
             }},
             "defaultFile": "main",
             "content": [ {} ]
@@ -414,13 +413,12 @@ TEST_CASE("ConfigSpecStore: a value in the file that is not one of its setting i
     CHECK(session.store.dirtyCount() == 2);
 }
 
-TEST_CASE("ConfigSpecStore: a setting of a file that cannot be read, of a file the menu does not read, or of no file is not available, with the reason")
+TEST_CASE("ConfigSpecStore: a setting of a file that cannot be read, or of no file is not available, with the reason")
 {
     // a game with no globals
     const test_globals::TestGlobals globals;
     Session session(R"(
         { "type": "switcher", "valueType": "bool", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } },
-        { "type": "switcher", "valueType": "bool", "text": "JSON", "default": true, "storage": { "file": "json", "path": ["Main", "bJson"] } },
         { "type": "switcher", "valueType": "bool", "text": "Global", "default": true, "storage": { "global": "MyMod.esp|800" } },
         { "type": "switcher", "valueType": "int", "text": "Of a number", "default": 1, "storage": { "path": ["Main", "iOn"] } }
     )");
@@ -429,10 +427,9 @@ TEST_CASE("ConfigSpecStore: a setting of a file that cannot be read, of a file t
     CHECK_FALSE(broken.available);
     CHECK(broken.reason.starts_with("Not available: "));
     CHECK(broken.reason.find("MyMod.toml") != std::string::npos);
-    CHECK(session.value(1).reason == "Not available: the menu does not read JSON files yet.");
-    CHECK(session.value(2).reason == "Not available: the global MyMod.esp|800 is not in the game.");
-    CHECK(session.value(3).reason == "Not available: its control does not show a value of its valueType.");
-    for (std::size_t row = 0; row < 4; ++row) {
+    CHECK(session.value(1).reason == "Not available: the global MyMod.esp|800 is not in the game.");
+    CHECK(session.value(2).reason == "Not available: its control does not show a value of its valueType.");
+    for (std::size_t row = 0; row < 3; ++row) {
         CHECK_FALSE(session.value(row).available);
         CHECK_FALSE(session.store.set(session.setting(row), false));
     }

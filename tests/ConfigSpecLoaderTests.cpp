@@ -1211,9 +1211,9 @@ TEST_CASE("ConfigSpecLoader: a file that is not written as the schema has it is 
     for (const auto& [name, file] : mod.files) {
         names.push_back(name);
     }
-    CHECK(names == Lines{ "ini", "json", "toml" });
+    CHECK(names == Lines{ "ini", "toml" });
     CHECK(mod.files.at("ini").format == model::FileFormat::Ini);
-    CHECK(mod.files.at("json").format == model::FileFormat::Json);
+    CHECK(mod.files.at("toml").format == model::FileFormat::Toml);
     CHECK(std::get<model::UnknownStorage>(onlySetting(mod).storage).type == "file");
 }
 
@@ -1696,7 +1696,7 @@ TEST_CASE("ConfigSpecLoader: a problem names its row, the pages and the row it i
         ]
     })");
     CHECK(problemLines(mod) == Lines{ "E On the front page: It has no storage: it is not available. [On the front page] content[0]",
-                                   "E spec.json: The file \"bad\" is left out: its format 'yaml' is not ini, json or toml. Its settings are not available. [] files.bad",
+                                   "E spec.json: The file \"bad\" is left out: its format 'yaml' is not ini or toml. Its settings are not available. [] files.bad",
                                    "E Beam angle: It has no storage: it is not available. [Beam \xE2\x80\xBA Beam angle] pages[0].content[0].content[0]",
                                    "W spacer: Unknown field \"lines\": it is not read. [Beam \xE2\x80\xBA Color \xE2\x80\xBA spacer] pages[0].pages[0].content[0].lines",
                                    "W Beam: Unknown field \"visibleWen\": it is not read. Did you mean \"visibleWhen\"? [Beam] pages[0].visibleWen" });

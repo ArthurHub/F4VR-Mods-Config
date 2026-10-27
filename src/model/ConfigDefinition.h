@@ -193,15 +193,15 @@ namespace mods_config::model
     };
 
     /**
-     * A value in a file of a config spec's mod: a key of an INI file, or a value of a TOML or a JSON file.
+     * A value in a file of a config spec's mod: a key of an INI file, or a value of a TOML file.
      */
     struct FileStorage
     {
         // the name its config spec gives the file, which is a file of its mod
         std::string file;
 
-        // the names that lead to the value: its section and its key in an INI file, and in a TOML or a JSON
-        // file the tables it is in and its key
+        // the names that lead to the value: its section and its key in an INI file, and in a TOML file the
+        // tables it is in and its key
         std::vector<std::string> path;
 
         bool operator==(const FileStorage&) const = default;
@@ -700,7 +700,6 @@ namespace mods_config::model
     enum class FileFormat : std::uint8_t
     {
         Ini,
-        Json,
         Toml,
     };
 

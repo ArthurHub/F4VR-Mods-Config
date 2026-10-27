@@ -126,9 +126,9 @@ Config specs may bind settings to multiple real files:
       "path": "Mods_Config/MyMod/MyMod.ini"
     },
     "calibration": {
-      "format": "json",
+      "format": "toml",
       "root": "myGames",
-      "path": "Mods_Config/MyMod/calibration.json"
+      "path": "Mods_Config/MyMod/calibration.toml"
     },
     "advanced": {
       "format": "toml",
@@ -142,7 +142,7 @@ Config specs may bind settings to multiple real files:
 Rules:
 
 - A target path is always explicit; there is no inferred settings file.
-- `format` is `ini`, `json`, or `toml`, and the file's extension must match it.
+- `format` is `ini` or `toml`, and the file's extension must match it.
 - `root` initially supports `data`, the game's `Data` directory, and `myGames`, which is `Documents/My Games/Fallout4VR`. The Documents folder is located through Windows, as CommonFramework does, so a redirected Documents folder is followed. The game's own INI files under `myGames`, as `Fallout4Custom.ini`, are valid targets: the game reads them as it starts, so their settings are `applies` `restart`.
 - A path is checked as written: absolute paths and `..` segments are rejected. Links are not resolved.
 - The file does not have to exist. The host creates it on the first Save that changes one of its settings, and a config spec cannot forbid it.
@@ -900,7 +900,7 @@ This is what an MCM config does, with the fallback added. The texts of an MCM co
 
 A config spec has what an MCM config has, by MCM's names, and more:
 
-- Its settings are kept in the mod's own INI, TOML and JSON files, and in globals and properties of its scripts.
+- Its settings are kept in the mod's own INI and TOML files, and in globals and properties of its scripts.
 - Every setting has a `default`, for Reset, and can be read-only. A number has its `display`.
 - A setting and a button can warn while a condition holds.
 - `applies` says when a change takes effect.

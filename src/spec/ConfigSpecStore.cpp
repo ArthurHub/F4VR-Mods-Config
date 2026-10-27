@@ -589,8 +589,7 @@ namespace mods_config::spec
      * not available, with the reason.
      * A file that is not there has none of its values, and a key the file does not have is its setting's
      * default: both are clean, and the first Save that changes one of them writes it. A file that cannot be
-     * read, or is no TOML, has its settings not available, with the reason, and so has a JSON file, which the
-     * menu does not read. A value that is not of its setting's type, outside its limits or no option of its choice is
+     * read, or is no TOML, has its settings not available, with the reason. A value that is not of its setting's type, outside its limits or no option of its choice is
      * invalid, with the reason: of the game, one that is no value of the setting's type is not available.
      * A choice that reads its options in the game reads them now, and is not available while its list is not
      * in the game.
@@ -617,10 +616,6 @@ namespace mods_config::spec
         std::map<std::string, FileOfSession, std::less<>> files;
         for (const auto& [name, file] : mod.files) {
             auto& read = files[name];
-            if (file.format == model::FileFormat::Json) {
-                read.notAvailable = "Not available: the menu does not read JSON files yet.";
-                continue;
-            }
             const auto path = _filePaths.insert_or_assign(name, pathOf(file)).first->second;
             auto& modFile = _files[name];
             modFile = file.format == model::FileFormat::Toml ? std::unique_ptr<ModFile>(std::make_unique<TomlFile>(path)) : std::make_unique<IniFile>(path);
@@ -726,7 +721,7 @@ namespace mods_config::spec
         }
         std::filesystem::path given(std::u8string(text->begin(), text->end()));
         const auto extension = given.extension().u8string();
-        const auto format = file.format == model::FileFormat::Toml ? ".toml" : file.format == model::FileFormat::Ini ? ".ini" : ".json";
+        const auto format = file.format == model::FileFormat::Toml ? ".toml" : ".ini";
         if (!given.is_absolute() || common::str_tolower(std::string(extension.begin(), extension.end())) != format ||
             !(isInFolder(given, _dataFolder) || isInFolder(given, _myGamesFolder))) {
             logger::warn("The client of '{}' gives the path '{}' in its state '{}', which is no {} file under the game's Data folder or My Games: its file is '{}'",
