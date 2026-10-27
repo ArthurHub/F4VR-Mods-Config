@@ -10,7 +10,7 @@ namespace mods_config
     {
     public:
         ModsConfigFO4()
-            : ModBase(Settings(Version::PROJECT, Version::NAME, &g_config, 32, true))
+            : ModBase(Settings(Version::PROJECT, Version::NAME, &g_config, 64, true))
         {}
 
         static bool isPlayerLoaded();
