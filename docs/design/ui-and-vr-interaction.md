@@ -210,9 +210,9 @@ What the menu's controls do, with the buttons the player's config has for them. 
 │ ▾ Flashlight      │ Controls ────────────────────────────────────────── │
 │     Beam          │ Point and press: Point at the menu with either      │
 │     Hand mount    │ hand, and pull the trigger on what the ray is on.   │
-│ ▸ FRIK            │ Back: Press the grip briefly on the hand that       │
-│ ▸ Holsters        │ points: one step back, and from the menu's front    │
-│                   │ page the menu closes.                               │
+│ ▸ FRIK            │ Back: Tap the grip on either hand, pointing at the  │
+│ ▸ Holsters        │ menu: one step back, and from the menu's front page │
+│                   │ the menu closes.                                    │
 ├───────────────────┴─────────────────────────────────────────────────────┤
 │ • 1 unsaved change                                  [Discard]  [Save]   │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -233,7 +233,7 @@ The panel is world-locked: it is spawned in front of the player, level, and then
 
 The panel is curved toward the player, so its sides are about as far away as its middle and nearly face the player.
 
-The player can move the panel. They point at it and hold the grip of the hand that points, for longer than the short press that is Back, and the panel follows that hand, smoothly and kept level, until the grip is released. It then stays where it was left. The button can be changed, and moving can be turned off.
+The player can move the panel. They point at it and hold the grip of the hand that points, for longer than the tap that is Back, and the panel follows that hand, smoothly and kept level, until the grip is released. It then stays where it was left. The move is a binding of any hand, the framework's world move (`UIManager::setWorldMoveBinding`): it can be changed, as a press that moves at once, and turned off.
 
 - Closing and reopening creates a fresh placement from the player's current position.
 - Resuming Full mode from Minimized also creates a fresh placement.
@@ -251,7 +251,7 @@ Whether world geometry hides the panel, and where the panel goes when a wall is 
 - Trigger activates controls and performs drags.
 - Thumbstick up and down scrolls the list under the pointer. Left and right steps the slider under the pointer, once the ray is on its row for a short time, and the stepper under the pointer, one option for a push.
 - A dropdown, popup, or confirmation opens inside the panel and stays within its edges, so the panel is the only surface the ray has to reach. A list too long for the panel scrolls inside its popup.
-- Back follows the navigation hierarchy; see [Back behavior](#back-behavior). It is a short press of the grip of the hand that points at the panel, and the button can be changed.
+- Back follows the navigation hierarchy; see [Back behavior](#back-behavior). It is a tap of the grip of the hand that points at the panel, and the binding can be changed.
 - Direct touch on the ImGui panel can be explored later.
 - There is no fake desktop mouse cursor or operating-system mouse emulation.
 
@@ -270,7 +270,7 @@ Nothing more is withheld while the menu is open. The player can point away from 
 
 ## Back behavior
 
-Back is a short press of the grip on the hand that points at the panel, either hand. Holding the grip longer moves the panel, and is not Back. That wand is hidden from the game, so the game does not get the press. A press while no ray is on the panel is the game's: the player who looks away to try a change does not step back or close the menu with it.
+Back is a tap of the grip on the hand that points at the panel, either hand: a binding of any hand, which fires only on the hand that points (`VRControllers.check(binding, hand)`), and one of a single hand only while that hand points. Holding the grip longer moves the panel, and is not Back: a long press that fires is never a tap. That wand is hidden from the game, so the game does not get the press. A press while no ray is on the panel is the game's: the player who looks away to try a change does not step back or close the menu with it.
 
 Back resolves the most local temporary interaction first:
 

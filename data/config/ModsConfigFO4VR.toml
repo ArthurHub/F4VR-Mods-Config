@@ -18,10 +18,10 @@
 # With FRIK installed, FRIK's own config no longer opens with this gesture.
 kOpenMenuBinding = { hand = "primary", type = "longpress", button = "thumbstick", duration = 1.5, modifier = { hand = "offhand", button = "thumbstick" } }
 
-# Back: a short press of this button on the hand that points at the menu. It goes one step back, and
-# closes the menu from its front page. Holding the button moves the menu, see sMoveButton in [Panel].
-# It is a button and not a binding: "grip", "a", "b" or "thumbstick". "none" turns Back off.
-sBackButton = "grip"
+# Back, on the hand that points at the menu: one step back, and from the menu's front page it closes the
+# menu. The default is to tap the grip of either hand. Holding the grip moves the menu, see kMoveBinding
+# in [Panel].
+kBackBinding = { hand = "any", type = "tap", button = "grip" }
 
 
 [Panel]
@@ -54,11 +54,11 @@ fTilt = 5.0
 # do not see through. Raise it if the text is hard to read against a bright sky.
 iBackgroundOpacity = 217
 
-# Moves the menu: point at it and hold this button on the hand that points. The menu follows that hand
-# until you let go, and stays where you leave it.
-# It is a button and not a binding: "grip", "a", "b" or "thumbstick". "none" turns moving off.
-# While it is also sBackButton, the menu moves only when the button is held: a short press is Back.
-sMoveButton = "grip"
+# Moves the menu: point at it and work this binding on the hand that points. The menu follows that hand
+# until you let go of the button, and stays where you leave it. The default is to hold the grip of either
+# hand for 0.3 s, longer than the tap of kBackBinding. A press moves it at once, and a tap, a double press,
+# a release or a thumbstick push does not move it.
+kMoveBinding = { hand = "any", type = "hold", button = "grip", duration = 0.3 }
 
 # How smoothly the menu follows the hand that moves it: the time it takes to catch up, in seconds. It
 # steadies the shake of the hand. Higher is steadier, and the menu trails the hand more. 0 is no smoothing.

@@ -41,6 +41,8 @@ namespace
             return "the right hand";
         case vrcf::Hand::Left:
             return "the left hand";
+        case vrcf::Hand::Any:
+            return "either hand";
         case vrcf::Hand::Primary:
         default:
             return "the primary hand";
@@ -62,6 +64,14 @@ namespace
         default:
             return "the " + vrcf::buttonName(button);
         }
+    }
+
+    /**
+     * A button as the controller of a hand prints it, and for either hand as both print it: "the A or X button".
+     */
+    std::string buttonOnHand(const vr::EVRButtonId button, const vrcf::Hand hand, const bool leftHanded)
+    {
+        return hand == vrcf::Hand::Any ? mods_config::ui::eitherHandButtonName(button) : buttonWords(button, isRightController(hand, leftHanded));
     }
 
     /**
@@ -125,14 +135,14 @@ namespace mods_config::ui
             { .name = "Scroll", .text = "Push the thumbstick up or down on the hand that points: the list the ray is on scrolls." },
             { .name = "Step a value", .text = "Push the thumbstick left or right on the hand that points: the slider or the choice the ray is on steps." },
         };
-        if (buttons.back) {
+        if (buttons.back.isEnabled()) {
             controls.push_back({ .name = "Back",
                 .text =
-                    std::format("Press {} briefly on the hand that points: one step back, and from the menu's front page the menu closes.", eitherHandButtonName(*buttons.back)) });
+                    std::format("{}, pointing at the menu: one step back, and from the menu's front page the menu closes.", bindingSentence(buttons.back, buttons.leftHanded)) });
         }
-        if (buttons.move) {
+        if (buttons.move.isEnabled()) {
             controls.push_back({ .name = "Move the menu",
-                .text = std::format("Point at the menu and hold {} on the hand that points. The menu follows the hand until you let go.", eitherHandButtonName(*buttons.move)) });
+                .text = std::format("{}, pointing at the menu: it follows the hand until you let go of the button.", bindingSentence(buttons.move, buttons.leftHanded)) });
         }
         if (buttons.recenter.isEnabled()) {
             controls.push_back({ .name = "Recenter",
@@ -167,15 +177,11 @@ namespace mods_config::ui
                 sentence += std::format(", past {:.2f}", binding.threshold);
             }
         } else {
-            sentence = std::format("{} {} on {}{}",
-                verbOf(binding.type),
-                buttonWords(binding.button, isRightController(binding.hand, leftHanded)),
-                handWords(binding.hand),
-                durationWords(binding));
+            sentence = std::format("{} {} on {}{}", verbOf(binding.type), buttonOnHand(binding.button, binding.hand, leftHanded), handWords(binding.hand), durationWords(binding));
         }
         if (binding.modifier) {
             const auto hand = binding.modifier->hand.value_or(binding.hand);
-            sentence += ", holding " + buttonWords(binding.modifier->button, isRightController(hand, leftHanded));
+            sentence += ", holding " + buttonOnHand(binding.modifier->button, hand, leftHanded);
             if (binding.modifier->hand) {
                 sentence += std::format(" on {}", handWords(*binding.modifier->hand));
             }
@@ -184,7 +190,7 @@ namespace mods_config::ui
     }
 
     /**
-     * A button of the hand that points, which is either hand: the A and B buttons are named with what the left
+     * A button of either hand, as a binding of any hand has it: the A and B buttons are named with what the left
      * controller prints, as "the A or X button".
      */
     std::string eitherHandButtonName(const vr::EVRButtonId button)

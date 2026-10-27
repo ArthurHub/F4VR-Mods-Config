@@ -12,6 +12,10 @@ namespace
     const char* POINTER_SECTION = "Pointer";
     const char* DEVELOPER_SECTION = "Developer";
 
+    // the shipped Back and move, as the TOML has them: a tap is shorter than 0.3 s, and the move takes hold after it
+    constexpr vrcf::InputBinding BACK_BINDING{ .hand = vrcf::Hand::Any, .type = vrcf::ActivationType::Tap, .button = vr::k_EButton_Grip };
+    constexpr vrcf::InputBinding MOVE_BINDING{ .hand = vrcf::Hand::Any, .type = vrcf::ActivationType::LongPress, .button = vr::k_EButton_Grip, .duration = 0.3f };
+
     // which config specs the Developer section lists, by the text the config has for each
     constexpr std::array<std::pair<std::string_view, mods_config::ui::ShowConfigSpecs>, 3> SHOW_CONFIG_SPECS{ {
         { "attention", mods_config::ui::ShowConfigSpecs::NeedingAttention },
@@ -36,8 +40,8 @@ namespace mods_config
                 .duration = 1.5f,
             });
 
-        // a word that is not a button, as "none" is, leaves the menu with no Back
-        backButton = vrcf::parseButton(config[DEFAULT_SECTION]["sBackButton"].value_or("grip"sv));
+        // a tap of the grip of the hand that points: a press held longer moves the panel
+        backBinding = getInputBindingValue(config, DEFAULT_SECTION, "kBackBinding", BACK_BINDING);
 
         // a panel has a size and stands in front of the player, whatever the file says
         const auto panel = config[PANEL_SECTION];
@@ -52,8 +56,8 @@ namespace mods_config
         treeWidth = std::clamp(panel["fTreeWidth"].value_or(8.0f), 4.0f, panelWidth - 9.0f);
         panelBackgroundOpacity = static_cast<std::uint8_t>(std::clamp(panel["iBackgroundOpacity"].value_or(217), 0, 255));
 
-        // a word that is not a button, as "none" is, leaves the panel not moved
-        moveButton = vrcf::parseButton(panel["sMoveButton"].value_or("grip"sv));
+        // the grip of the hand that points, held longer than a tap, which is Back
+        moveBinding = getInputBindingValue(config, PANEL_SECTION, "kMoveBinding", MOVE_BINDING);
         moveSmoothing = panel["fMoveSmoothing"].value_or(vrui::WORLD_MOVE_SMOOTH_SECONDS);
 
         // the offhand thumbstick pressed in and held

@@ -23,6 +23,8 @@ namespace
         .duration = 1.5f,
     };
     const InputBinding RECENTER{ .hand = Hand::Offhand, .type = ActivationType::LongPress, .button = vr::k_EButton_SteamVR_Touchpad };
+    const InputBinding BACK{ .hand = Hand::Any, .type = ActivationType::Tap, .button = vr::k_EButton_Grip };
+    const InputBinding MOVE{ .hand = Hand::Any, .type = ActivationType::LongPress, .button = vr::k_EButton_Grip, .duration = 0.3f };
 
     Names namesOf(const std::vector<ui::ControlHelp>& controls)
     {
@@ -56,7 +58,13 @@ TEST_CASE("MenuControls: a button is named as the controller of its hand prints 
     CHECK(ui::bindingSentence(offhandA, true) == "Long press the A button on the off hand");
     CHECK(ui::bindingSentence({ .hand = Hand::Left, .type = ActivationType::Press, .button = vr::k_EButton_ApplicationMenu }, true) == "Press the Y button on the left hand");
 
-    // the hand that points is either hand
+    // a binding of any hand is on either hand, whose letters are named for both controllers
+    CHECK(ui::bindingSentence({ .hand = Hand::Any, .type = ActivationType::Tap, .button = vr::k_EButton_A }, true) == "Tap the A or X button on either hand");
+    CHECK(ui::bindingSentence({ .hand = Hand::Primary,
+                                  .type = ActivationType::Press,
+                                  .button = vr::k_EButton_SteamVR_Trigger,
+                                  .modifier = vrcf::InputModifier{ .button = vr::k_EButton_ApplicationMenu, .hand = Hand::Any } },
+              false) == "Press the trigger on the primary hand, holding the B or Y button on either hand");
     CHECK(ui::eitherHandButtonName(vr::k_EButton_Grip) == "the grip");
     CHECK(ui::eitherHandButtonName(vr::k_EButton_A) == "the A or X button");
     CHECK(ui::eitherHandButtonName(vr::k_EButton_ApplicationMenu) == "the B or Y button");
@@ -64,13 +72,14 @@ TEST_CASE("MenuControls: a button is named as the controller of its hand prints 
 
 TEST_CASE("MenuControls: the Help page has the controls of the config, and leaves out the ones it turns off")
 {
-    const auto controls = ui::menuControls({ .openMenu = OPEN_MENU, .back = vr::k_EButton_Grip, .move = vr::k_EButton_Grip, .recenter = RECENTER, .leftHanded = false });
+    const auto controls = ui::menuControls({ .openMenu = OPEN_MENU, .back = BACK, .move = MOVE, .recenter = RECENTER, .leftHanded = false });
     CHECK(namesOf(controls) == Names{ "Point and press", "Scroll", "Step a value", "Back", "Move the menu", "Recenter", "Open and close the menu", "Minimize" });
-    CHECK(controls[3].text == "Press the grip briefly on the hand that points: one step back, and from the menu's front page the menu closes.");
+    CHECK(controls[3].text == "Tap the grip on either hand, pointing at the menu: one step back, and from the menu's front page the menu closes.");
+    CHECK(controls[4].text == "Long press the grip on either hand for 0.3 s, pointing at the menu: it follows the hand until you let go of the button.");
     CHECK(controls[5].text == "Long press the thumbstick on the off hand: the menu is put in front of you again, also after you moved it.");
     CHECK(controls[6].text == "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand.");
 
     const InputBinding none{ .type = ActivationType::Disabled };
-    const auto fewer = ui::menuControls({ .openMenu = OPEN_MENU, .back = std::nullopt, .move = std::nullopt, .recenter = none, .leftHanded = false });
+    const auto fewer = ui::menuControls({ .openMenu = OPEN_MENU, .back = none, .move = none, .recenter = none, .leftHanded = false });
     CHECK(namesOf(fewer) == Names{ "Point and press", "Scroll", "Step a value", "Open and close the menu", "Minimize" });
 }

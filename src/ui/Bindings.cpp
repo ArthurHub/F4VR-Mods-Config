@@ -27,12 +27,14 @@ namespace
     constexpr float ICON_WIDTH = 60.0f;
 
     /**
-     * The controller a hand of a binding is: the primary hand is the right one, unless the player is left-handed.
+     * The controller a hand of a binding is: the primary hand is the right one, unless the player is left-handed. Any
+     * hand is drawn as the primary hand, as the framework draws it.
      */
     vrcf::Hand controllerOf(const vrcf::Hand hand, const bool leftHanded)
     {
         switch (hand) {
         case vrcf::Hand::Primary:
+        case vrcf::Hand::Any:
             return leftHanded ? vrcf::Hand::Left : vrcf::Hand::Right;
         case vrcf::Hand::Offhand:
             return leftHanded ? vrcf::Hand::Right : vrcf::Hand::Left;

@@ -25,8 +25,8 @@ namespace mods_config::ui
     struct MenuButtons
     {
         vrcf::InputBinding openMenu;
-        std::optional<vr::EVRButtonId> back;
-        std::optional<vr::EVRButtonId> move;
+        vrcf::InputBinding back;
+        vrcf::InputBinding move;
         vrcf::InputBinding recenter;
         bool leftHanded = false;
     };

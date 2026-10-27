@@ -183,7 +183,21 @@
             },
             {
               "type": "cf.inputBinding",
-              "text": "Recenter",
+              "text": "Back menu navigation",
+              "help": "One step back in the menu, and from its front page it closes the menu: on the hand that points at the menu, where the binding is on that hand.",
+              "default": { "hand": "any", "type": "tap", "button": "grip" },
+              "storage": { "path": ["ModsConfigFO4VR", "kBackBinding"] }
+            },
+            {
+              "type": "cf.inputBinding",
+              "text": "Move the menu",
+              "help": "Point at the menu and work this on the hand that points: the menu follows the hand until you let go of the button. Make it longer than Back's tap on the same button.",
+              "default": { "hand": "any", "type": "longpress", "button": "grip", "duration": 0.3 },
+              "storage": { "path": ["Panel", "kMoveBinding"] }
+            },
+            {
+              "type": "cf.inputBinding",
+              "text": "Recenter menu",
               "help": "Puts the menu in front of you again, where you look now, also after you moved it.",
               "default": { "hand": "offhand", "type": "longpress", "button": "thumbstick" },
               "storage": { "path": ["Panel", "kRecenterBinding"] }

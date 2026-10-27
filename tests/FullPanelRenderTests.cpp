@@ -608,8 +608,8 @@ TEST_CASE("FullPanel render: the Help page over a page of a mod, with the ray on
             .button = vr::k_EButton_SteamVR_Touchpad,
             .modifier = vrcf::InputModifier{ .button = vr::k_EButton_SteamVR_Touchpad, .hand = vrcf::Hand::Offhand },
             .duration = 1.5f },
-        .back = vr::k_EButton_Grip,
-        .move = vr::k_EButton_Grip,
+        .back = { .hand = vrcf::Hand::Any, .type = vrcf::ActivationType::Tap, .button = vr::k_EButton_Grip },
+        .move = { .hand = vrcf::Hand::Any, .type = vrcf::ActivationType::LongPress, .button = vr::k_EButton_Grip, .duration = 0.3f },
         .recenter = { .hand = vrcf::Hand::Offhand, .type = vrcf::ActivationType::LongPress, .button = vr::k_EButton_SteamVR_Touchpad },
         .leftHanded = false,
     }));

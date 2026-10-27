@@ -576,8 +576,8 @@ fhp_rows = ''.join([
     control('Point and press', 'Point at the menu with either hand, and pull the trigger on what the ray is on.'),
     control('Scroll', 'Push the thumbstick up or down on the hand that points: the list the ray is on scrolls.'),
     control('Step a value', 'Push the thumbstick left or right on the hand that points: the slider or the choice the ray is on steps.'),
-    control('Back', "Press the grip briefly on the hand that points: one step back, and from the menu's front page the menu closes."),
-    control('Move the menu', 'Point at the menu and hold the grip on the hand that points. The menu follows the hand until you let go.'),
+    control('Back', "Tap the grip on either hand, pointing at the menu: one step back, and from the menu's front page the menu closes."),
+    control('Move the menu', 'Long press the grip on either hand for 0.3 s, pointing at the menu: it follows the hand until you let go of the button.'),
     control('Recenter', 'Long press the thumbstick on the off hand: the menu is put in front of you again, also after you moved it.'),
     control('Open and close the menu', 'Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand.'),
     control('Minimize', 'Minimize, on the title bar or on your offhand wrist, hides the menu as you left it. Resume on the wrist shows it again.'),
@@ -886,7 +886,7 @@ def printed(button, right):
     """A button as the controller prints it, as vrui::bindingLabel resolves it."""
     return {'a': 'A' if right else 'X', 'b': 'B' if right else 'Y'}.get(button, button)
 
-HAND_WORDS = {'primary': 'the primary hand', 'offhand': 'the off hand', 'right': 'the right hand', 'left': 'the left hand'}
+HAND_WORDS = {'primary': 'the primary hand', 'offhand': 'the off hand', 'right': 'the right hand', 'left': 'the left hand', 'any': 'either hand'}
 VERBS = {'tap': 'Tap', 'press': 'Press', 'release': 'Release', 'longpress': 'Long press', 'double': 'Double press', 'hold': 'Hold', 'touch': 'Touch'}
 
 def button_words(button, right):
@@ -983,7 +983,7 @@ def pslider(value, pct):
     return (f'<span class="mc-track"><i class="fill" style="width:{pct * 0.94:.0f}px"></i><i class="grab" style="left:{10 + pct * 0.94:.0f}px"></i></span>'
             f'<span class="mc-value">{value}</span>')
 
-HAND_LABELS = {'primary': 'Primary hand', 'offhand': 'Off hand', 'right': 'Right hand', 'left': 'Left hand'}
+HAND_LABELS = {'primary': 'Primary hand', 'offhand': 'Off hand', 'right': 'Right hand', 'left': 'Left hand', 'any': 'Any hand'}
 HOW_LABELS = dict(VERBS, axis='Push', none='None')
 
 def binding_editor(name, b, hover=None, mark=None, offers_suppress=False, style=''):
@@ -1047,7 +1047,7 @@ b_states = h_sheet([
 ])
 b_page_rows = ''.join([
     row('Open the menu', binding_ctl(OPEN, open_=True), 'is-active'),
-    row('Back button', choice_stepper('Grip')),
+    row('Back', binding_ctl({'hand': 'any', 'type': 'tap', 'button': 'grip'})),
     section('Panel'),
     row('Recenter binding', binding_ctl({'hand': 'offhand', 'type': 'longpress', 'button': 'thumbstick'})),
     row('Recenter distance', slider('60', 40)),

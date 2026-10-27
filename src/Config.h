@@ -26,8 +26,8 @@ namespace mods_config
         // Opens and closes the config menu
         vrcf::InputBinding openMenuBinding;
 
-        // Back: a short press of this button on the hand that points at the menu's panel. Nothing for no Back.
-        std::optional<vr::EVRButtonId> backButton;
+        // Back, on the hand that points at the menu's panel, where the binding is on that hand
+        vrcf::InputBinding backBinding;
 
         // The size of the menu's panel, with its text and its rows, and where it is put in front of the player:
         // how far, how much above the eyes, and tilted back by how many degrees. The distance and the elevation
@@ -53,9 +53,9 @@ namespace mods_config
         // watcher's thread. The menu clears it when it gives its panel the values again.
         std::atomic<bool> panelChanged = false;
 
-        // Moves the menu's panel while it is held with the pointer on the panel: a button of the hand that
-        // points. Nothing for a panel that is not moved.
-        std::optional<vr::EVRButtonId> moveButton;
+        // Moves the menu's panel, from when it fires with the pointer on the panel until its button is released, on
+        // the hand that points
+        vrcf::InputBinding moveBinding;
 
         // How smoothly the panel follows the hand that moves it: the time it takes to catch up, in seconds,
         // which steadies the hand's shake. 0 for no smoothing.

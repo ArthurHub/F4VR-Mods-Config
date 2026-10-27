@@ -31,10 +31,6 @@ namespace
     // tuned in the headset: 25 of the panel's own units at the shipped distance and scale, which are 20.
     constexpr float PANEL_CURVE_BY_DISTANCE = 1.25f;
 
-    // The longest a press of the Back button is held to be Back, in seconds. On the button that moves the panel,
-    // a press that is held longer moves it.
-    constexpr float SHORT_PRESS_SECONDS = 0.3f;
-
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
     constexpr float WRIST_BUTTON_HEIGHT = 2.2f;
     constexpr float WRIST_BUTTON_GAP = 0.2f;
@@ -311,8 +307,7 @@ namespace mods_config
         }
 
         const auto& pointer = imgui::pointer().state();
-        if (isOpen() && pointer.canvas && g_config.backButton &&
-            vrcf::VRControllers.isReleased(pointer.primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand, *g_config.backButton, SHORT_PRESS_SECONDS)) {
+        if (isOpen() && pointer.canvas && vrcf::VRControllers.check(g_config.backBinding, pointer.primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand)) {
             // before the step: the menu's front page closes the menu, and the pointer is gone with it
             pulse();
             back();
@@ -501,8 +496,8 @@ namespace mods_config
             _developerToSave = view;
         });
         _fullPanel.setControls(ui::menuControls({ .openMenu = g_config.openMenuBinding,
-            .back = g_config.backButton,
-            .move = g_config.moveButton,
+            .back = g_config.backBinding,
+            .move = g_config.moveBinding,
             .recenter = g_config.recenterBinding,
             .leftHanded = f4vr::isLeftHandedMode() }));
         _fullPanel.setLeftHanded(f4vr::isLeftHandedMode());
@@ -525,10 +520,8 @@ namespace mods_config
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(g_config.panelTilt, 0, 0));
         // the radius is in the panel's own units, so the curve is the same at any scale and distance
         _panel->setCurveRadius(PANEL_CURVE_BY_DISTANCE * g_config.panelDistance / g_config.panelScale);
-        g_uiManager->setWorldMoveButton(g_config.moveButton);
+        g_uiManager->setWorldMoveBinding(g_config.moveBinding);
         g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
-        // Back and the move are on one button as shipped: a short press of it is Back, and a longer one moves
-        g_uiManager->setWorldMoveHoldDelay(g_config.backButton == g_config.moveButton ? SHORT_PRESS_SECONDS : 0.0f);
     }
 
     /**

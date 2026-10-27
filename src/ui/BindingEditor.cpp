@@ -61,6 +61,7 @@ namespace
         Choice<vrcf::Hand>{ vrcf::Hand::Offhand, "Off hand", "The other hand: the left one, or the right one when you play left-handed." },
         Choice<vrcf::Hand>{ vrcf::Hand::Right, "Right hand", "The right controller, also when you play left-handed." },
         Choice<vrcf::Hand>{ vrcf::Hand::Left, "Left hand", "The left controller, also when you play left-handed." },
+        Choice<vrcf::Hand>{ vrcf::Hand::Any, "Any hand", "Either controller: the binding fires on the hand that works it." },
     };
 
     constexpr std::array TYPES{
@@ -231,6 +232,8 @@ namespace
             return "right hand";
         case vrcf::Hand::Left:
             return "left hand";
+        case vrcf::Hand::Any:
+            return "any hand";
         default:
             return "primary hand";
         }
@@ -238,11 +241,13 @@ namespace
 
     /**
      * The other hand of a binding, in the binding's own terms: the off hand of the primary hand, and the left hand of
-     * the right one.
+     * the right one. Any hand has no other, and its list offers a button held on either hand.
      */
     vrcf::Hand otherHand(const vrcf::Hand hand)
     {
         switch (hand) {
+        case vrcf::Hand::Any:
+            return vrcf::Hand::Any;
         case vrcf::Hand::Primary:
             return vrcf::Hand::Offhand;
         case vrcf::Hand::Offhand:
