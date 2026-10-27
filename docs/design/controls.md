@@ -214,7 +214,7 @@ Primary use: a controller binding of a mod, as an activation sphere's `kPrimaryB
 - Each change sets the pending value as it is made, and a `live` binding is previewed. Done, or a press beside the editor, keeps it. Cancel and Back give back the binding it had when it opened.
 - A key the type does not have is not written, and a Duration or Threshold at the type's default is left out, so the table stays as short as the framework's own examples.
 - A table the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
-- Another binding setting of the same mod that is the same press is named in the help line. It does not block Save.
+- Another binding setting of the same mod that is the same press is named in the help line. It does not block Save. Bindings of two mods are not checked against each other: FRIK, Immersive Flashlight and this menu each use the thumbsticks in their own context.
 - In the Focused panel a binding is shown and not edited, as a hotkey is: it is changed in the Full panel.
 
 The look is the design system's [InputBinding](design-system/project/components/InputBinding/README.md).

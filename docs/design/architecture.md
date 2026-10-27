@@ -64,11 +64,13 @@ An INI file is read as CommonFramework mods and SimpleIni read one, and changed 
 - A whole number is read in decimals, or in hex after `0x` as SimpleIni reads it, and is written in hex where the file has it so, with as many digits, as a form ID is.
 - A number is written as short as it reads back as the same number, with a decimal point. A value the file has already keeps its text, as `1.250`.
 
-Target paths are explicit and have no inferred default. Config specs may declare multiple files. Supported roots initially are the game `Data` directory and `Documents/My Games/Fallout4VR`. A path is checked as written: absolute paths and `..` segments are rejected, and the file extension must match the declared format. Links are not resolved, so a file that a mod manager deploys as a link is used as the game sees it.
+Target paths are explicit and have no inferred default. Config specs may declare multiple files. Supported roots initially are the game `Data` directory and `Documents/My Games/Fallout4VR`. A path is checked as written: absolute paths and `..` segments are rejected, and the file extension must match the declared format. Links are not resolved, so a file that a mod manager deploys as a link is used as the game sees it. The game's own INI files under `My Games/Fallout4VR`, as `Fallout4Custom.ini`, are valid targets: the game reads them as it starts, so their settings are `applies` `restart`.
 
 Files are written in place. The new content is serialized and verified in memory, then written over the existing file in one write. There are no temporary files, renames, or backup files. A file that is replaced instead of rewritten looks like a rename to a file watcher and can break the link a mod manager deployed it with; a file that is rewritten keeps working with both.
 
-A declared file does not have to exist. The host creates it, with any missing folders in its path, on the first Save that changes one of its settings, and the new file holds only those settings.
+A declared file does not have to exist. The host creates it, with any missing folders in its path, on the first Save that changes one of its settings, and the new file holds only those settings. A config spec cannot forbid it: a mod reads a file that holds some of its settings with its defaults for the rest.
+
+The host reads a mod's files as its session starts and writes them on Save, on the game thread. A config file is small, and each is read and written once.
 
 A config spec can also keep a setting in a global or a property of a script, which the host reads and writes in the game, as MCM does. Its value is in the save game, not in a file; see [Global and script property](schema.md#global-and-script-property).
 
@@ -113,6 +115,7 @@ For a global or a property the baseline is the game's value, and one that is not
 - **Key missing.** The setting shows its declared default and is clean. Save does not add the key unless the player changes the setting.
 - **Value present but invalid** (wrong type, outside its limits, or not one of the choice options). The row shows the stored text with an invalid marker and is clean. Editing or resetting the setting replaces it.
 - **File missing.** Every setting bound to the file shows its declared default and is clean. The first Save that changes one of them creates the file.
+- **File that cannot be read or parsed**, as one its owner is in the middle of rewriting. Every setting bound to the file is not available, with the reason, until the mod's values are read again.
 
 Only dirty settings can block Save. An invalid value that was already in the file does not, because the player did not enter it.
 
@@ -421,7 +424,7 @@ A Save tells the client its batch once, after the action of each setting ran. It
 
 The host owns the views and the text in them. They are valid during the callback, and a client copies what it keeps.
 
-Preview events occur only when a valid value of a `live` setting changes. Slider previews are coalesced to at most the useful render/update rate; they are not generated merely because a control is focused.
+Preview events occur only when a valid value of a `live` setting changes. A slider sets its value as the trigger is let go and at each step of the thumbstick, so a drag is one preview and nothing is coalesced. The ray on a control sends none.
 
 Special gameplay side effects can use an optional binding API later.
 
@@ -554,7 +557,7 @@ A config spec has one action of its own, which runs a function that the config s
 
 A function's result is success or failure, with an optional localized message. Confirmation metadata is declarative so buttons share one consistent VR dialog.
 
-Long-running progress and cancellation are deferred.
+An action shows no progress and cannot be cancelled: a function of a script is queued to Papyrus, which gives no result, and a function of the mod's DLL returns its result at once.
 
 ## MCM compatibility
 

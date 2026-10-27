@@ -53,8 +53,8 @@ Two mods of the author's other mod lists have some of these, and are installed b
 The milestones are in three phases, each in a file of its own with the commits of its milestones:
 
 - [Phase 1: MCM support](mod-plan-phase-1.md), milestones 1 to 4: the menu supports everything MCM has. It is done.
-- [Phase 2: First release](mod-plan-phase-2.md), milestones 5 to 11: config specs and the native API, up to the first release.
-- [Phase 3: After the first release](mod-plan-phase-3.md), milestones 12 to 15.
+- [Phase 2: First release](mod-plan-phase-2.md), milestones 5 to 10: config specs and the native API, up to the first release.
+- [Phase 3: After the first release](mod-plan-phase-3.md), milestones 11 to 14.
 
 | #   | Milestone                | Done when                                                                                                     | Status |
 | --- | ------------------------ | ------------------------------------------------------------------------------------------------------------- | ------ |
@@ -66,10 +66,9 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 6   | Config specs complete        | FRIK's TOML, an INI file and a script mod's globals are edited from config specs and saved, and a Save that fails changes no file | done   |
 | 7   | Actions and own UIs      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | done   |
 | 8   | Live preview             | A CommonFramework mod with a config spec previews a slider live, with no code of its own                          | done   |
-| 9   | CommonFramework controls | Every setting of Immersive Flashlight VR is edited from its config spec                                           | todo   |
-| 10  | Focused view             | A setting is changed on the offhand panel while the player looks at its effect                                | todo   |
-| 11  | First release            | The mod is published, with the author's guide and a sample config spec                                            | todo   |
+| 9   | CommonFramework controls | Every setting of Immersive Flashlight VR but its hand poses is edited from its config spec                        | todo   |
+| 10  | First release            | The mod is published, with the author's guide and a sample config spec                                            | todo   |
+| 11  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |
 | 12  | Localization and search  | A mod with no game plugin is shown in another language, and a setting is found by typing its name             | todo   |
-| 13  | Papyrus API              | A script-only mod reads its saved settings and is told of a Save                                              | todo   |
-| 14  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |
-| 15  | JSON files               | A setting in a JSON file is edited and saved                                                                  | todo   |
+| 13  | Advanced features        | A file of a folder is picked in a dropdown, and a hand pose of Immersive Flashlight VR is edited             | todo   |
+| 14  | Papyrus API              | A script-only mod reads its saved settings and is told of a Save                                              | todo   |

@@ -17,8 +17,8 @@ These documents capture the current product and architecture decisions. The orde
 - [Framework work plan](framework-plan.md) — the commits that deliver that work, and their status.
 - [Mod work plan](mod-plan.md) — the milestones that build the mod, from MCM support to the first release and after, in three phases. The commits of each milestone are in the file of its phase:
   - [Phase 1: MCM support](mod-plan-phase-1.md) — milestones 1 to 4, done.
-  - [Phase 2: First release](mod-plan-phase-2.md) — milestones 5 to 11.
-  - [Phase 3: After the first release](mod-plan-phase-3.md) — milestones 12 to 15.
+  - [Phase 2: First release](mod-plan-phase-2.md) — milestones 5 to 10.
+  - [Phase 3: After the first release](mod-plan-phase-3.md) — milestones 11 to 14.
 - [Open questions](open-questions.md) — deliberately deferred design topics without assigning them to a release.
 
 ## In review

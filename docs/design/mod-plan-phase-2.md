@@ -1,6 +1,6 @@
 # Mod work plan, phase 2: First release
 
-The commits of milestones 5 to 11 of the [Mod work plan](mod-plan.md): config specs and the native API, up to the first release. The plan has how the work is done, the MCM test set and the status of every milestone.
+The commits of milestones 5 to 10 of the [Mod work plan](mod-plan.md): config specs and the native API, up to the first release. The plan has how the work is done, the MCM test set and the status of every milestone.
 
 ## 5. Config specs with Save
 
@@ -177,7 +177,7 @@ M128 and M129 give a pending row a way back without the footer's Discard, which 
 
 M130 is for a mod that ships a config spec beside its MCM menu, as FRIK does: it is listed once, by its config spec, and its MCM menu is left out, matched by `modName` without regard to case.
 
-The milestone comes before the controls of milestone 9 and the Focused view of milestone 10. Both are for tuning a value while the player sees its effect.
+The milestone comes before the controls of milestone 9, which are for tuning a value while the player sees its effect.
 
 ## 9. CommonFramework controls
 
@@ -185,12 +185,11 @@ The milestone comes before the controls of milestone 9 and the Focused view of m
 | --- | ---- | -------------------------------------------------------------------------------------- | ------ |
 | M74 | mod  | docs: the CommonFramework controls, and how each key of Immersive Flashlight is edited | todo   |
 | M75 | mod  | Color                                                                                  | todo   |
-| M76 | mod  | A choice of the files in a folder                                                      | todo   |
 | M77 | mod  | Haptic                                                                                 | todo   |
 | M78 | mod  | InputBinding                                                                           | done   |
 | M79 | mod  | Transform                                                                              | todo   |
 | M80 | mod  | ActivationSphere, a whole section                                                      | todo   |
-| M81 | mod  | The values of Immersive Flashlight that are left: lists, flags and the hand pose       | todo   |
+| M81 | mod  | The values of Immersive Flashlight that are left: lists and flags                      | todo   |
 | F36 | framework | vrcf: a binding of any hand                                                       | done   |
 | F37 | framework | vrui: the world move is a binding                                                 | done   |
 | M131 | mod | Back and the move are bindings of any hand                                             | done   |
@@ -201,8 +200,8 @@ The milestone is measured by Immersive Flashlight's TOML. Beside numbers, switch
 - 13 transforms.
 - 3 activation spheres, each a section with a zone, bindings, haptics, an icon and a sphere.
 - 4 colors, each in one key.
-- 4 gobo textures, each the path of a file.
-- 4 hand poses.
+- 4 gobo textures, each the path of a file, a dropdown whose options its client gives (`listFromClientCallback`).
+- 4 hand poses, which are edited from milestone 13.
 - 5 lists of text, and a flags value.
 
 M74 settles what the design leaves open: a control that is bound to a whole section, and whether a transform is moved in the world with the framework's live tuning.
@@ -214,18 +213,7 @@ M78 comes before M74, as FRIK's config spec needs it, and its design is done. It
 F36, F37 and M131 make Back and the move bindings, which the mod's own config spec edits as its others. A binding's hand can be `any`, and `check(binding, hand)` asks whether it fires on the hand that points. The move takes hold when its binding fires, so a long press of the grip leaves its tap to Back, as the hold delay did. M132 keeps a binding from what does not work where it is used: Back takes no hold and no press of the trigger, which presses the menu's rows, and the move a press, a long press or a hold alone.
 Immersive Flashlight's config spec and its client are commits in its own repository, on a framework with F29 and F30. They are made when the milestone needs them, and a build is enough.
 
-## 10. Focused view
-
-| #   | Repo      | Commit                                                                          | Status |
-| --- | --------- | ------------------------------------------------------------------------------- | ------ |
-| M71 | mod       | docs: the Focused view: what it shows and how it is switched to                 | todo   |
-| M72 | mod       | The Focused panel on the offhand, with the selected page                        | todo   |
-| M73 | mod       | Full, Focused and Minimized are switched between, and keep the mod and the page | todo   |
-| F31 | framework | imgui: touch as a pointer, if a ray does not suit a panel on the own hand       | todo   |
-
-A change on the offhand panel shows as it is made where its `applies` is `live`, as it is previewed. Any other shows once it is saved, and the mod acts on it.
-
-## 11. First release
+## 10. First release
 
 | #   | Repo | Commit                                                                  | Status |
 | --- | ---- | ----------------------------------------------------------------------- | ------ |
