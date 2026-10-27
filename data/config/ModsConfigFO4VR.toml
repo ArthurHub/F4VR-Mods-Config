@@ -16,7 +16,7 @@
 
 # Opens and closes the config menu. The default is to press in both thumbsticks and hold them.
 # With FRIK installed, FRIK's own config no longer opens with this gesture.
-kOpenMenuBinding = { hand = "primary", type = "longpress", button = "thumbstick", duration = 1.5, modifier = { hand = "offhand", button = "thumbstick" } }
+kOpenMenuBinding = { hand = "primary", type = "longpress", button = "thumbstick", duration = 1.0, modifier = { hand = "offhand", button = "thumbstick" } }
 
 # Back, on the hand that points at the menu: one step back, and from the menu's front page it closes the
 # menu. The default is to tap the grip of either hand. Holding the grip moves the menu, see kMoveBinding
@@ -35,7 +35,7 @@ fScale = 6.0
 # How much room the menu has for its rows: its width and its height, in its own units, which fScale makes
 # larger. A larger menu shows more of a page, with its text at the same size. At least 16 by 10.
 fPanelWidth = 30.0
-fPanelHeight = 15.0
+fPanelHeight = 16.0
 
 # How wide the list of the mods on the left of the menu is, in the same units: the page beside it has the
 # rest of the width. Widen it if the names of your mods are cut short. 4 at least, and up to 9 less than
@@ -44,11 +44,11 @@ fTreeWidth = 8.0
 
 # Where the menu is put in front of you: how far from your eyes, and how much above them, in game units,
 # about 1.4 cm each. A negative height is below the eyes.
-fDistance = 120.0
-fHeight = -20.0
+fDistance = 160.0
+fHeight = -40.0
 
 # How far the top of the menu is tilted back, in degrees.
-fTilt = 5.0
+fTilt = 6.0
 
 # How much the menu's background hides the world behind it, 0 to 255: 0 is a clear menu, and 255 one you
 # do not see through. Raise it if the text is hard to read against a bright sky.
@@ -102,7 +102,7 @@ fMarkBorderWidth = 0.08
 
 # The thumbstick of the hand that points scrolls the menu. This is how fast, in lines of text a second
 # with the thumbstick pushed all the way. 0 is no scrolling.
-fScrollSpeed = 30.0
+fScrollSpeed = 50.0
 
 # The pulse the hand that points gets when its press does something in the menu, as showing a mod's page.
 # The name of a pattern: "Tick" is the lightest, "Click" is stronger. "none" is no pulse.

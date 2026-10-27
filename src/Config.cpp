@@ -14,7 +14,7 @@ namespace
 
     // the shipped Back and move, as the TOML has them: a tap is shorter than 0.3 s, and the move takes hold after it
     constexpr vrcf::InputBinding BACK_BINDING{ .hand = vrcf::Hand::Any, .type = vrcf::ActivationType::Tap, .button = vr::k_EButton_Grip };
-    constexpr vrcf::InputBinding MOVE_BINDING{ .hand = vrcf::Hand::Any, .type = vrcf::ActivationType::LongPress, .button = vr::k_EButton_Grip, .duration = 0.3f };
+    constexpr vrcf::InputBinding MOVE_BINDING{ .hand = vrcf::Hand::Any, .type = vrcf::ActivationType::HoldDown, .button = vr::k_EButton_Grip, .duration = 0.3f };
 
     // which config specs the Developer section lists, by the text the config has for each
     constexpr std::array<std::pair<std::string_view, mods_config::ui::ShowConfigSpecs>, 3> SHOW_CONFIG_SPECS{ {
@@ -37,7 +37,7 @@ namespace mods_config
                 .type = vrcf::ActivationType::LongPress,
                 .button = vr::k_EButton_SteamVR_Touchpad,
                 .modifier = vrcf::InputModifier{ vr::k_EButton_SteamVR_Touchpad, vrcf::Hand::Offhand },
-                .duration = 1.5f,
+                .duration = 1.0f,
             });
 
         // a tap of the grip of the hand that points: a press held longer moves the panel
@@ -46,12 +46,12 @@ namespace mods_config
         // a panel has a size and stands in front of the player, whatever the file says
         const auto panel = config[PANEL_SECTION];
         panelScale = (std::max)(panel["fScale"].value_or(6.0f), 1.0f);
-        panelDistance = (std::max)(panel["fDistance"].value_or(120.0f), 20.0f);
-        panelElevation = panel["fHeight"].value_or(-20.0f);
-        panelTilt = panel["fTilt"].value_or(5.0f);
+        panelDistance = (std::max)(panel["fDistance"].value_or(160.0f), 20.0f);
+        panelElevation = panel["fHeight"].value_or(-40.0f);
+        panelTilt = panel["fTilt"].value_or(6.0f);
         // a panel smaller than this has no room for the tree of the mods beside a page, and for the title bar and the footer
         panelWidth = (std::max)(panel["fPanelWidth"].value_or(30.0f), 16.0f);
-        panelHeight = (std::max)(panel["fPanelHeight"].value_or(15.0f), 10.0f);
+        panelHeight = (std::max)(panel["fPanelHeight"].value_or(16.0f), 10.0f);
         // a tree narrower than this cuts most names short, and the page beside it keeps room for its controls
         treeWidth = std::clamp(panel["fTreeWidth"].value_or(8.0f), 4.0f, panelWidth - 9.0f);
         panelBackgroundOpacity = static_cast<std::uint8_t>(std::clamp(panel["iBackgroundOpacity"].value_or(217), 0, 255));
