@@ -15,6 +15,7 @@ bInvalid = "yes"
 [Folded]
 fPastMost = 2.0
 
-# a binding whose table the framework cannot read
+# a binding whose table the framework cannot read, and one of a way its setting does not take
 [Bindings]
 kTypo = { hand = "offhand", type = "tap", button = "thumbstik" }
+kUntaken = { hand = "primary", type = "tap", button = "grip" }

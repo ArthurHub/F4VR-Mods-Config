@@ -277,13 +277,14 @@ namespace
      * What is wrong with a value of a setting, as its control has it, that is no value of it, as the end of a
      * sentence of the value: `is not from 0.5 to 1.5`. A text of a number that is none, a number outside the
      * limits, a text of a length its setting does not allow, and none of the options of a choice. A table that is
-     * no binding has the framework's reason, a sentence of its own. Empty for a value that is one.
+     * no binding has the framework's reason, a sentence of its own, and so does a binding of a hand, a way or a
+     * button its setting does not take. Empty for a value that is one.
      */
     std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
         if (setting.type == model::SettingType::InputBinding) {
             const auto binding = model::parseBinding(std::get<std::string>(value));
-            return binding ? std::string() : binding.error();
+            return binding ? model::untakenPart(*binding, setting.valueOptions) : binding.error();
         }
         const auto& limits = setting.valueOptions;
         std::optional<float> number;

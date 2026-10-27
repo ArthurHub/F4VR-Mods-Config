@@ -24,6 +24,7 @@
 #include "common/CommonUtils.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
+#include "vrcf/InputBindingParser.h"
 
 using namespace mods_config;
 
@@ -296,7 +297,7 @@ namespace
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
     // a setting's parts:
-    constexpr std::array<std::string_view, 12> VALUE_OPTIONS_FIELDS{ "min",
+    constexpr std::array<std::string_view, 15> VALUE_OPTIONS_FIELDS{ "min",
         "max",
         "step",
         "options",
@@ -307,7 +308,10 @@ namespace
         "allowEmpty",
         "minLength",
         "maxLength",
-        "suppress" };
+        "suppress",
+        "hands",
+        "types",
+        "buttons" };
     constexpr std::array<std::string_view, 4> OPTION_FIELDS{ "value", "text", "help", "shortText" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
@@ -856,8 +860,40 @@ namespace
     }
 
     /**
+     * A list of words of a binding's `valueOptions`, `hands`, `types` or `buttons`, read as the framework reads them
+     * in a binding. A word that is none of its part's is left out, and reported, and so is a value that is not a list.
+     * None for a list that is not there: the setting takes any.
+     */
+    template <typename T, typename Parse>
+    std::vector<T> loadBindingWords(const Json& options, const std::string_view key, Parse parse, const std::string_view part, ConfigSpecReading& reading)
+    {
+        std::vector<T> words;
+        const auto found = options.find(key);
+        if (found == options.end()) {
+            return words;
+        }
+        if (!found->is_array()) {
+            const Into into(reading, key);
+            reading.report(model::Severity::Warning, std::format("It is not a list of words: the binding takes any {}.", part.substr(part.find(' ') + 1)));
+            return words;
+        }
+        for (std::size_t place = 0; place < found->size(); ++place) {
+            const auto& item = (*found)[place];
+            const auto word = item.is_string() ? parse(item.get<std::string>()) : std::nullopt;
+            if (!word) {
+                const Into into(reading, key, place);
+                reading.report(model::Severity::Warning, std::format("{} is not {}, as the framework names it: it is left out.", item.dump(), part));
+                continue;
+            }
+            words.push_back(*word);
+        }
+        return words;
+    }
+
+    /**
      * The `valueOptions` of a setting: the least, the most and the step of a number, the fewest and the most
-     * characters of a text input of a text, and the options of a choice: its own `options`, the shared list
+     * characters of a text input of a text, the hands, the ways and the buttons a binding takes, and the options of a
+     * choice: its own `options`, the shared list
      * its `sharedOptions` names, where it reads them in the game, or that its mod's client gives them, with a
      * `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
      * is no whole number above 0 is none.
@@ -886,6 +922,9 @@ namespace
         }
         if (hasOptions && type == model::SettingType::InputBinding) {
             valueOptions.suppress = getBool(*found, "suppress");
+            valueOptions.hands = loadBindingWords<vrcf::Hand>(*found, "hands", vrcf::parseHand, "a hand", reading);
+            valueOptions.types = loadBindingWords<vrcf::ActivationType>(*found, "types", vrcf::parseActivationType, "a type", reading);
+            valueOptions.buttons = loadBindingWords<vr::EVRButtonId>(*found, "buttons", vrcf::parseButton, "a button", reading);
         }
         if (!isChoice(type)) {
             return valueOptions;
@@ -981,9 +1020,10 @@ namespace
      * The `default` of a binding: the binding's table as a JSON object, as `{ "hand": "offhand", "type": "tap",
      * "button": "trigger" }`, which the framework reads as it reads the table of its config. It is the TOML text of
      * the table as the framework writes it. None for a default that is no object, or no binding, which is an error
-     * of the config spec that is reported with the framework's reason, and the setting then has no Reset.
+     * of the config spec that is reported with the framework's reason, and the setting then has no Reset. So is one
+     * of a hand, a way or a button the setting does not take.
      */
-    std::optional<model::Value> loadBindingDefault(const Json& row, ConfigSpecReading& reading)
+    std::optional<model::Value> loadBindingDefault(const Json& row, const model::ValueOptions& options, ConfigSpecReading& reading)
     {
         const auto found = row.find("default");
         if (found == row.end() || !found->is_object()) {
@@ -994,6 +1034,11 @@ namespace
         if (!binding) {
             const Into into(reading, "default");
             reading.report(model::Severity::Error, std::format("Its default is not a binding: {}. It has no Reset.", binding.error()));
+            return std::nullopt;
+        }
+        if (const auto untaken = model::untakenPart(*binding, options); !untaken.empty()) {
+            const Into into(reading, "default");
+            reading.report(model::Severity::Error, std::format("Its default is not a binding it takes: {}. It has no Reset.", untaken));
             return std::nullopt;
         }
         return model::bindingText(*binding);
@@ -1008,7 +1053,7 @@ namespace
         ConfigSpecReading& reading)
     {
         if (type == model::SettingType::InputBinding) {
-            return loadBindingDefault(row, reading);
+            return loadBindingDefault(row, options, reading);
         }
         auto value = getValue(row, "default", valueType);
         if (!value) {

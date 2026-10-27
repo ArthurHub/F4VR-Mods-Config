@@ -43,13 +43,14 @@ A popup inside the content pane, 717 x 458 with the line of Direction and 717 x 
 
 | Left column | Control | Right column | Control |
 | --- | --- | --- | --- |
-| Hand | Dropdown: None, then Primary hand, Off hand, Right hand, Left hand | Duration, or Threshold for Push | Slider, track 114, value box `value-width` |
+| Hand | Dropdown: None, then Primary hand, Off hand, Right hand, Left hand, Any hand | Duration, or Threshold for Push | Slider, track 114, value box `value-width` |
 | Button | Dropdown: Trigger, Grip, A, B, Thumbstick, System, as the chosen hand's controller prints them | While holding | Dropdown: Nothing, then each button on the same hand and on the other |
 | How | Dropdown: Tap, Press, Release, Long press, Double press, Hold, Touch, Push, of those the button has: Push for the thumbstick, and Pull for the trigger and the grip, and Touch for every button but System | Suppress from the game | Toggle, Off and On (`suppress`), where the setting offers it |
 | Direction | Choice stepper: Up, Down, Left, Right, for a push of the thumbstick alone | | |
 
 - The button is picked before how it is worked, and How offers what that button has. A button that does not have the chosen way makes it a Tap. A pull of the trigger or the grip is its axis pushed `right`, as the framework reads it, and has no Direction.
 - None, the first option of Hand, turns the binding off, and a hand picked after it turns it on again, worked as it was before.
+- A setting can take some hands, ways and buttons alone (`"valueOptions": { "hands": [...], "types": [...], "buttons": [...] }`): Hand, Button and How list those, and a button with no way the setting takes is left out. A button that does not have the chosen way, or a way the setting does not take, makes it a Tap where the setting takes one, or the first way it takes. A part the file has that the setting does not take is shown as it is, and the value is invalid.
 - A part the chosen type does not have is disabled, and keeps its place: Duration for Tap, Press and Touch (and for Push it is Threshold), and every part but Hand for None. Its help line says why: "How: A binding that is off is not worked." Direction is there only for a push of the thumbstick: the editor grows a line for it, and has no empty line otherwise.
 - **Suppress from the game** is there only for a setting that offers it: `"valueOptions": { "suppress": true }`, which an activation sphere's two bindings have, as only a consumer that applies suppression gives it a meaning. Elsewhere its place is empty, and a `suppress` the file has is kept as it is. Its label takes two lines.
 - **Duration** runs from 0.1 to 3.0 s in steps of 0.05, from 0 for a hold and a release, whose default is 0, and **Threshold** from 0.10 to 1.00. At the type's default, 0.60 s for a long press, they write no key, and the help line says "Default". The thumbstick steps it while the ray is on its line, as it steps a setting's slider.

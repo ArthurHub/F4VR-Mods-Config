@@ -1649,7 +1649,13 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
             ++checked;
         }
     }
-    CHECK(withNoDefault == Lines{ "No default", "A default of another type", "A default outside its range", "No options", "No such shared list", "A default that is no option" });
+    CHECK(withNoDefault == Lines{ "No default",
+                               "A default of another type",
+                               "A default outside its range",
+                               "A binding's default it does not take",
+                               "No options",
+                               "No such shared list",
+                               "A default that is no option" });
     CHECK(checked >= 30);
     CHECK(readOnly == 9);
 }
@@ -1909,6 +1915,45 @@ TEST_CASE("ConfigSpecLoader: a binding is the text of its table, with its defaul
               "E Text: It has no default binding, an object as { \"hand\": \"offhand\", \"type\": \"tap\", \"button\": \"trigger\" }: it has no Reset. [Text] content[3]",
               "W Text: Its valueType \"int\" is not string, which a binding is: it is read as string. [Text] content[3].valueType",
               "E In an INI file: A binding is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+}
+
+TEST_CASE("ConfigSpecLoader: a binding takes the hands, the types and the buttons its lists name, as the framework names them")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.inputBinding", "text": "Back", "default": { "hand": "any", "type": "tap", "button": "grip" },
+              "valueOptions": { "hands": ["any", "Primary"], "types": ["tap", "longpress"], "buttons": ["grip", "b"] }, "storage": { "path": ["Main", "kBack"] } },
+            { "type": "cf.inputBinding", "text": "Any", "default": { "hand": "primary", "type": "axis", "direction": "up" }, "storage": { "path": ["Main", "kAny"] } },
+            { "type": "cf.inputBinding", "text": "Words", "default": { "hand": "primary", "type": "press", "button": "grip" },
+              "valueOptions": { "buttons": ["grip", "trigr", 3], "types": "press" }, "storage": { "path": ["Main", "kWords"] } },
+            { "type": "cf.inputBinding", "text": "Untaken", "default": { "hand": "primary", "type": "tap", "button": "grip" },
+              "valueOptions": { "types": ["press"] }, "storage": { "path": ["Main", "kUntaken"] } },
+            { "type": "cf.inputBinding", "text": "Off", "default": { "type": "none" }, "valueOptions": { "types": ["press"] }, "storage": { "path": ["Main", "kOff"] } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 5);
+    CHECK(settings[0].valueOptions.hands == std::vector{ vrcf::Hand::Any, vrcf::Hand::Primary });
+    CHECK(settings[0].valueOptions.types == std::vector{ vrcf::ActivationType::Tap, vrcf::ActivationType::LongPress });
+    CHECK(settings[0].valueOptions.buttons == std::vector{ vr::k_EButton_Grip, vr::k_EButton_ApplicationMenu });
+    CHECK(settings[1].valueOptions.hands.empty());
+    CHECK(settings[1].valueOptions.types.empty());
+    CHECK(settings[1].valueOptions.buttons.empty());
+    // a word that is none is left out, and a value that is no list takes any
+    CHECK(settings[2].valueOptions.buttons == std::vector{ vr::k_EButton_Grip });
+    CHECK(settings[2].valueOptions.types.empty());
+    CHECK(settings[2].defaultValue);
+    // a default it does not take is none, and a binding that is off is always taken
+    CHECK_FALSE(settings[3].defaultValue);
+    CHECK(settings[4].defaultValue);
+    CHECK(problemLines(mod) ==
+          Lines{ "W Words: \"trigr\" is not a button, as the framework names it: it is left out. [Words] content[2].valueOptions.buttons[1]",
+              "W Words: 3 is not a button, as the framework names it: it is left out. [Words] content[2].valueOptions.buttons[2]",
+              "W Words: It is not a list of words: the binding takes any type. [Words] content[2].valueOptions.types",
+              "E Untaken: Its default is not a binding it takes: 'tap' is not a way this binding takes, one of press. It has no Reset. [Untaken] content[3].default" });
 }
 
 TEST_CASE("ConfigSpecLoader: with the folders of its files, a setting whose path its file does not have is a warning")

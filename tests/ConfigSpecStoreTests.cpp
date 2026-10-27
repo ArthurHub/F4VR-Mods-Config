@@ -540,6 +540,32 @@ TEST_CASE("ConfigSpecStore: a binding is its table's text as the framework write
     CHECK(session.store.dirtyCount() == 0);
 }
 
+TEST_CASE("ConfigSpecStore: a binding of a hand, a type or a button its setting does not take is invalid, with what it takes")
+{
+    Session session(R"(
+        { "type": "cf.inputBinding", "text": "Back", "default": { "hand": "any", "type": "tap", "button": "grip" },
+          "valueOptions": { "hands": ["any"], "types": ["tap", "axis"], "buttons": ["grip", "thumbstick"] }, "storage": { "path": ["Menu", "kBack"] } }
+    )");
+    session.open("[Menu]\r\nkBack = { hand = \"primary\", type = \"tap\", button = \"grip\" }\r\n");
+    CHECK(session.value(0).invalid);
+    CHECK(session.value(0).reason == "Invalid: 'primary' is not a hand this binding takes, one of any.");
+
+    CHECK(session.store.set(session.setting(0), R"({ hand = "any", type = "press", button = "grip" })"s));
+    CHECK(session.value(0).reason == "Invalid: 'press' is not a way this binding takes, one of tap, axis.");
+    CHECK(session.store.set(session.setting(0), R"({ hand = "any", type = "tap", button = "menu" })"s));
+    CHECK(session.value(0).reason == "Invalid: 'menu' is not a button this binding takes, one of grip, thumbstick.");
+    CHECK_FALSE(session.store.save());
+
+    // a push is of its axis's button, and a binding that is off is taken
+    CHECK(session.store.set(session.setting(0), R"({ hand = "any", type = "axis", axis = "trigger", direction = "up" })"s));
+    CHECK(session.value(0).reason == "Invalid: 'trigger' is not a button this binding takes, one of grip, thumbstick.");
+    CHECK(session.store.set(session.setting(0), R"({ hand = "any", type = "axis", direction = "up" })"s));
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(session.store.set(session.setting(0), R"({ type = "none" })"s));
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(session.store.save());
+}
+
 TEST_CASE("ConfigSpecStore: Save keeps a value that changed in the file since the session started, but for one the player changed, and adds a key the file does not have")
 {
     Session session;

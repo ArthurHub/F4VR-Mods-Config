@@ -4641,3 +4641,55 @@ TEST_CASE("FullPanel: a press on a binding opens its editor, whose parts set it 
     CHECK_FALSE(openPopup(BINDING_EDITOR_WIDTH));
     CHECK(value() == R"({ hand = "primary", type = "double", button = "trigger" })");
 }
+
+TEST_CASE("FullPanel: the editor of a binding offers the types and the buttons its setting takes, and a button the binding's type does not fit changes it")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    // a tap, which the setting does not take
+    myGames.write(MY_MOD_FILE, "[Menu]\r\nkMove = { hand = \"primary\", type = \"tap\", button = \"grip\" }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.inputBinding", "text": "Move", "default": { "hand": "primary", "type": "press", "button": "grip" },
+              "valueOptions": { "types": ["press", "longpress", "hold"], "buttons": ["grip", "a"] }, "storage": { "path": ["Menu", "kMove"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& move = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    const auto value = [&store, &move] {
+        return std::get<std::string>(store.value(move).value);
+    };
+    CHECK(store.value(move).invalid);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    REQUIRE(openPopup(BINDING_EDITOR_WIDTH));
+
+    // Button has the grip and A alone, and A comes with the first type the setting takes, a press
+    CHECK(pressActs(panel, bindingPart(false, 1)));
+    drawFrames(panel, 2);
+    point(panel, bindingOption(1));
+    CHECK(panel.helpLine().text().starts_with("A: The lower face button"));
+    CHECK(pressActs(panel, bindingOption(1)));
+    drawFrames(panel, 2);
+    CHECK(value() == R"({ hand = "primary", type = "press", button = "a" })");
+    CHECK_FALSE(store.value(move).invalid);
+
+    // How has a press, a long press and a hold
+    CHECK(pressActs(panel, bindingPart(false, 2)));
+    drawFrames(panel, 2);
+    point(panel, bindingOption(1));
+    CHECK(panel.helpLine().text().starts_with("Long press: "));
+    CHECK(pressActs(panel, bindingOption(2)));
+    drawFrames(panel, 2);
+    CHECK(value() == R"({ hand = "primary", type = "hold", button = "a" })");
+}

@@ -323,7 +323,7 @@ A `textinput` whose `valueType` is `int` or `float` takes a number, as MCM's `te
 
 A setting whose `type` starts with `cf.` edits a value in the form CommonFramework fixes for its TOML config; see [CommonFramework-specific controls](controls.md#commonframework-specific-controls). The prefix says the value is the framework's, so an author knows its words and its checks are the framework's too.
 
-`cf.inputBinding` is a controller binding, the inline table of a `k` key. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. `"valueOptions": { "suppress": true }` offers Suppress from the game in its editor, for a binding whose consumer applies it, as an activation sphere's.
+`cf.inputBinding` is a controller binding, the inline table of a `k` key. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. `"valueOptions": { "suppress": true }` offers Suppress from the game in its editor, for a binding whose consumer applies it, as an activation sphere's. `hands`, `types` and `buttons` in its `valueOptions` are lists of the framework's words of each, which the binding takes alone, as a menu's Back that is no hold and no press of the trigger: its editor offers those, and a binding of another is invalid, with what it takes. The button of a push is its axis's, and a binding that is off is always taken. A list left out takes every one, and a word that is none of its part's is left out, with a warning. A `default` the setting does not take is an error, and it then has no Reset.
 
 ```json
 {
@@ -332,6 +332,16 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
   "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
   "valueOptions": { "suppress": true },
   "storage": { "path": ["HeadActivation", "kPrimaryBinding"] }
+}
+```
+
+```json
+{
+  "type": "cf.inputBinding",
+  "text": "Back",
+  "default": { "hand": "any", "type": "tap", "button": "grip" },
+  "valueOptions": { "types": ["tap", "press", "release", "longpress", "double"], "buttons": ["grip", "a", "b", "thumbstick"] },
+  "storage": { "path": ["ModsConfigFO4VR", "kBackBinding"] }
 }
 ```
 

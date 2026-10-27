@@ -76,6 +76,7 @@ kSystem = { hand = "primary", type = "press", button = "system" }
 kNone = { type = "none" }
 kSamePress = { hand = "offhand", type = "tap", button = "trigger" }
 kSuppressed = { hand = "primary", type = "tap", button = "grip", suppress = true }
+kLimited = { hand = "primary", type = "press", button = "grip" }
 
 [Numbers]
 fStepDecimals = 1.25
@@ -177,6 +178,8 @@ bToken = true
 fNoDefault = 5.0
 iWrongDefault = 2
 fOutsideDefault = 5.0
+kUntakenDefault = { hand = "primary", type = "tap", button = "grip" }
+kNoButton = { hand = "primary", type = "press", button = "grip" }
 bApplies = true
 bSameId = true
 iNoOptions = 0

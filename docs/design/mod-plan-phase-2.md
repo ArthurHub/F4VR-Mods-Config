@@ -194,6 +194,7 @@ The milestone comes before the controls of milestone 9 and the Focused view of m
 | F36 | framework | vrcf: a binding of any hand                                                       | done   |
 | F37 | framework | vrui: the world move is a binding                                                 | done   |
 | M131 | mod | Back and the move are bindings of any hand                                             | done   |
+| M132 | mod | A binding takes the hands, the types and the buttons its config spec names             | done   |
 
 The milestone is measured by Immersive Flashlight's TOML. Beside numbers, switches and choices it has:
 
@@ -210,7 +211,7 @@ The commits after M74 are split once it is written. Transform, InputBinding and 
 
 M78 comes before M74, as FRIK's config spec needs it, and its design is done. Its config spec type is `cf.inputBinding`, as the value is in the framework's form. It is two commits: the first reads a binding and shows it as its icons and its sentence, invalid with the framework's reason, and names the bindings of its mod that are the same press, and the second opens its editor. Mods Config FO4 VR's own config spec gets its two bindings, and the config spec showcase a page of them.
 
-F36, F37 and M131 make Back and the move bindings, which the mod's own config spec edits as its others. A binding's hand can be `any`, and `check(binding, hand)` asks whether it fires on the hand that points. The move takes hold when its binding fires, so a long press of the grip leaves its tap to Back, as the hold delay did.
+F36, F37 and M131 make Back and the move bindings, which the mod's own config spec edits as its others. A binding's hand can be `any`, and `check(binding, hand)` asks whether it fires on the hand that points. The move takes hold when its binding fires, so a long press of the grip leaves its tap to Back, as the hold delay did. M132 keeps a binding from what does not work where it is used: Back takes no hold and no press of the trigger, which presses the menu's rows, and the move a press, a long press or a hold alone.
 Immersive Flashlight's config spec and its client are commits in its own repository, on a framework with F29 and F30. They are made when the milestone needs them, and a build is enough.
 
 ## 10. Focused view

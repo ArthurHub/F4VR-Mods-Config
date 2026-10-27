@@ -406,6 +406,29 @@ namespace
         }
         return binding;
     }
+
+    /**
+     * Whether a binding can be worked a way with a button: the button has it, and the setting takes it.
+     */
+    bool fits(const vr::EVRButtonId button, const vrcf::ActivationType type, const model::ValueOptions& options)
+    {
+        return hasType(button, type) && model::takesType(options, type);
+    }
+
+    /**
+     * The way a button is worked when a binding comes to it with a way that does not fit it: a tap where the setting
+     * takes one, as every button has it, or the first way of the list that fits. A tap for a button none fits.
+     */
+    vrcf::ActivationType fittingType(const vr::EVRButtonId button, const model::ValueOptions& options)
+    {
+        if (fits(button, vrcf::ActivationType::Tap, options)) {
+            return vrcf::ActivationType::Tap;
+        }
+        const auto first = std::ranges::find_if(TYPES, [&](const auto& type) {
+            return fits(button, type.value, options);
+        });
+        return first != TYPES.end() ? first->value : vrcf::ActivationType::Tap;
+    }
 }
 
 namespace mods_config::ui
@@ -560,56 +583,79 @@ namespace mods_config::ui
             return drawn.picked;
         };
 
+        // the parts of the binding its setting takes: the lists offer them alone, and a part the file has that the
+        // setting does not take is shown as it is, which makes the value invalid
+        const auto& taken = setting.valueOptions;
+
         // the hand, or None, first, for a binding that is off: a hand turns it on again as it was worked before
         {
-            auto [texts, helps] = listOf(HANDS);
-            texts.insert(texts.begin(), "None");
-            helps.insert(helps.begin(), "The binding is off.");
-            const auto hand = placeOf(HANDS, _binding.hand);
-            const auto chosen = off ? std::optional<std::size_t>(0) : hand ? std::optional(*hand + 1) : std::nullopt;
-            const auto text = chosen ? std::string_view(texts[*chosen]) : std::string_view();
+            std::vector<vrcf::Hand> hands;
+            std::vector<std::string> texts{ "None" };
+            std::vector<std::string> helps{ "The binding is off." };
+            std::optional<std::size_t> chosen = off ? std::optional<std::size_t>(0) : std::nullopt;
+            for (const auto& hand : HANDS) {
+                if (!model::takesHand(taken, hand.value)) {
+                    continue;
+                }
+                if (!off && hand.value == _binding.hand) {
+                    chosen = texts.size();
+                }
+                hands.push_back(hand.value);
+                texts.emplace_back(hand.text);
+                helps.emplace_back(hand.help);
+            }
+            const auto own = placeOf(HANDS, _binding.hand);
+            const auto text = chosen ? std::string_view(texts[*chosen]) : own ? HANDS[*own].text : std::string_view();
             const auto help = std::string("The hand the binding is pressed on, or None for a binding that is off.");
             if (const auto picked = dropdown(Part::Hand, "Hand", partAt(false, 0), text, true, texts, helps, chosen, help)) {
-                const auto bound = _binding.type == vrcf::ActivationType::AxisDirection ? buttonOf(_binding.axis) : _binding.button;
+                const auto bound = model::boundButton(_binding);
                 if (*picked == 0) {
                     if (!off) {
                         _typeOn = _binding.type;
                     }
                     _binding = withButton(_binding, bound, vrcf::ActivationType::Disabled);
                 } else {
-                    _binding.hand = HANDS[*picked - 1].value;
+                    _binding.hand = hands[*picked - 1];
                     if (off) {
-                        _binding = withButton(_binding, bound, hasType(bound, _typeOn) ? _typeOn : vrcf::ActivationType::Tap);
+                        _binding = withButton(_binding, bound, fits(bound, _typeOn, taken) ? _typeOn : fittingType(bound, taken));
                     }
                 }
                 changed = true;
             }
         }
 
-        // the button, which a push moves the axis of
+        // the button, which a push moves the axis of: one with no way the setting takes is not offered
         const auto bound = push ? buttonOf(_binding.axis) : _binding.button;
         {
+            std::vector<vr::EVRButtonId> buttons;
             std::vector<std::string> texts;
             std::vector<std::string> helps;
             std::optional<std::size_t> chosen;
-            for (std::size_t place = 0; place < BUTTONS.size(); ++place) {
-                texts.emplace_back(buttonText(BUTTONS[place].button, _binding.hand, leftHanded));
-                helps.emplace_back(BUTTONS[place].help);
-                if (BUTTONS[place].button == bound) {
-                    chosen = place;
+            for (const auto& choice : BUTTONS) {
+                const bool worked = std::ranges::any_of(TYPES, [&](const auto& type) {
+                    return fits(choice.button, type.value, taken);
+                });
+                if (!model::takesButton(taken, choice.button) || !worked) {
+                    continue;
                 }
+                if (choice.button == bound) {
+                    chosen = buttons.size();
+                }
+                buttons.push_back(choice.button);
+                texts.emplace_back(buttonText(choice.button, _binding.hand, leftHanded));
+                helps.emplace_back(choice.help);
             }
             const auto help = off ? std::string("A binding that is off has no button.") : std::string("The button that is pressed, as the controller of its hand prints it.");
-            const auto text = chosen ? std::string_view(texts[*chosen]) : std::string_view();
+            const auto text = chosen ? std::string_view(texts[*chosen]) : buttonText(bound, _binding.hand, leftHanded);
             if (const auto picked = dropdown(Part::Button, "Button", partAt(false, 1), text, !off, texts, helps, chosen, help)) {
-                // a button that is not worked as the binding is makes it a tap
-                const auto next = BUTTONS[*picked].button;
-                _binding = withButton(_binding, next, hasType(next, _binding.type) || off ? _binding.type : vrcf::ActivationType::Tap);
+                // a button the binding's way does not fit is worked in a way that does
+                const auto next = buttons[*picked];
+                _binding = withButton(_binding, next, fits(next, _binding.type, taken) || off ? _binding.type : fittingType(next, taken));
                 changed = true;
             }
         }
 
-        // how the button is worked: the ways it has, of which a push of the trigger or the grip is a pull
+        // how the button is worked: the ways it has that the setting takes, of which a push of the trigger or the grip is a pull
         {
             const bool pulled = axisOf(bound).value_or(vrcf::Axis::Thumbstick) != vrcf::Axis::Thumbstick;
             std::vector<vrcf::ActivationType> types;
@@ -617,7 +663,7 @@ namespace mods_config::ui
             std::vector<std::string> helps;
             std::optional<std::size_t> chosen;
             for (const auto& type : TYPES) {
-                if (!hasType(bound, type.value)) {
+                if (!fits(bound, type.value, taken)) {
                     continue;
                 }
                 if (type.value == _binding.type) {
@@ -628,7 +674,8 @@ namespace mods_config::ui
                 texts.emplace_back(pull ? "Pull" : type.text);
                 helps.emplace_back(pull ? "Pull it past Threshold, as an axis, and not as a press of the button." : type.help);
             }
-            const auto text = chosen ? std::string_view(texts[*chosen]) : std::string_view();
+            const auto own = placeOf(TYPES, _binding.type);
+            const auto text = chosen ? std::string_view(texts[*chosen]) : own && !off ? TYPES[*own].text : std::string_view();
             const auto help = off ? std::string("A binding that is off is not worked.") : std::string("How the button is worked: the ways it has.");
             if (const auto picked = dropdown(Part::How, "How", partAt(false, 2), text, !off, texts, helps, chosen, help)) {
                 _binding = withButton(_binding, bound, types[*picked]);

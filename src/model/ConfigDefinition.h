@@ -11,6 +11,8 @@
 #include <variant>
 #include <vector>
 
+#include "vrcf/VRControllersManager.h"
+
 // The definition of the settings model: what a mod's menu holds, whatever it comes from. A loader fills it once,
 // and the UI draws it. See docs/design/model.md.
 
@@ -100,6 +102,12 @@ namespace mods_config::model
         // a binding offers `suppress` to the player: one whose consumer hides its button from the game, as an
         // activation sphere does
         bool suppress = false;
+
+        // the hands, the ways and the buttons a binding takes, as its config spec's `hands`, `types` and `buttons`
+        // name them, and none for any. The button of a push is its axis's, and a binding that is off is always taken
+        std::vector<vrcf::Hand> hands;
+        std::vector<vrcf::ActivationType> types;
+        std::vector<vr::EVRButtonId> buttons;
     };
 
     /**

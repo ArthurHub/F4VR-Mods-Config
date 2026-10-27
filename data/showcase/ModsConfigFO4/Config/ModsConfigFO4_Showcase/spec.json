@@ -1380,6 +1380,14 @@
                   "default": { "hand": "primary", "type": "tap", "button": "grip", "suppress": true },
                   "valueOptions": { "suppress": true },
                   "storage": { "path": ["Bindings", "kSuppressed"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Limited",
+                  "help": "It takes a press, a long press or a hold of the grip, A or B alone: its editor offers those.",
+                  "default": { "hand": "primary", "type": "press", "button": "grip" },
+                  "valueOptions": { "types": ["press", "longpress", "hold"], "buttons": ["grip", "a", "b"] },
+                  "storage": { "path": ["Bindings", "kLimited"] }
                 }
               ]
             },
@@ -1395,6 +1403,14 @@
                   "help": "Its button is not a button.",
                   "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
                   "storage": { "path": ["Bindings", "kTypo"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A way it does not take",
+                  "help": "It takes a press or a long press, and its file has a tap.",
+                  "default": { "hand": "primary", "type": "press", "button": "grip" },
+                  "valueOptions": { "types": ["press", "longpress"] },
+                  "storage": { "path": ["Bindings", "kUntaken"] }
                 }
               ]
             }
@@ -2785,6 +2801,22 @@
                   "default": 20.0,
                   "valueOptions": { "min": 0, "max": 10, "step": 1 },
                   "storage": { "path": ["Mistakes", "fOutsideDefault"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A binding's default it does not take",
+                  "help": "It takes a press alone, and its default is a tap, so it has no Reset.",
+                  "default": { "hand": "primary", "type": "tap", "button": "grip" },
+                  "valueOptions": { "types": ["press"] },
+                  "storage": { "path": ["Mistakes", "kUntakenDefault"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A word that is no button",
+                  "help": "Its buttons have \"trigr\", which is left out: it takes the grip alone.",
+                  "default": { "hand": "primary", "type": "press", "button": "grip" },
+                  "valueOptions": { "buttons": ["grip", "trigr"] },
+                  "storage": { "path": ["Mistakes", "kNoButton"] }
                 },
                 {
                   "type": "switcher",
