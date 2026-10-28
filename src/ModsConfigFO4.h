@@ -3,6 +3,7 @@
 #include "Config.h"
 #include "ConfigMenu.h"
 #include "ModBase.h"
+#include "f4vr/GameMenusHandler.h"
 
 namespace mods_config
 {
@@ -35,6 +36,9 @@ namespace mods_config
         void takeOpenGestureFromFRIK();
 
         ConfigMenu _menu;
+
+        // the game's menus opening and closing, as the loading screen that closes the menu
+        f4vr::GameMenusHandler _gameMenus;
 
         // FRIK's own open-config binding is turned off for the session
         bool _frikGestureTaken = false;

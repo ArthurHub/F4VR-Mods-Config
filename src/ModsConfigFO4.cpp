@@ -27,6 +27,9 @@ namespace
     constexpr std::uint32_t FRIK_API_CONFIG_OVERRIDE_VERSION = 4;
     constexpr auto FRIK_INI_SECTION = "Fallout4VRBody";
     constexpr auto FRIK_OPEN_CONFIG_KEY = "sOpenConfigButton";
+
+    // the game's main menu, which CommonLibF4 has no class of
+    constexpr std::string_view MAIN_MENU = "MainMenu";
 }
 
 namespace mods_config
@@ -53,6 +56,15 @@ namespace mods_config
     void ModsConfigFO4::onGameLoaded()
     {
         takeOpenGestureFromFRIK();
+
+        // A loading screen and the main menu close the menu, with its unsaved changes discarded and its live previews
+        // put back, before the world it showed them in is left. The event comes on the game thread, between frames.
+        _gameMenus.init([this](const std::string& menu, const bool opened) {
+            if (opened && (menu == RE::LoadingMenu::MENU_NAME || menu == MAIN_MENU) && _menu.isOpen()) {
+                logger::info("{} opened: close config menu, unsaved changes are discarded", menu);
+                _menu.close();
+            }
+        });
 
         // once: what a mod's menu holds does not change while the game runs
         const auto translations = loadGameTranslations();
