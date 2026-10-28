@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-26T18:00:00Z",
-    "via": "Claude Code",
-    "note": "The mod is Mods Config FO4 VR: the title bar's first crumb is MODS CONFIG FO4, and the menu's own entry in the tree is Mods Config FO4."
+    "at": "2026-10-28T16:00:00Z",
+    "via": "Claude (Cowork)",
+    "note": "As the code has them: the report's Live spec.json folds, with Overwrite, Edit on desktop and Reveal in file explorer; the front page's Quick launch and Notices fold, and an entry has its buttonText, a disabled state and its result; a page disabled by its condition; an image that is not loaded tells why; a text shows the client's states."
   },
   "layout": "files",
   "libraries": [],

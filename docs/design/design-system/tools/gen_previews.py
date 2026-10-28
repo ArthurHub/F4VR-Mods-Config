@@ -174,8 +174,8 @@ def flat_mods(open_mod=None, pages=(), selected=None, hover=None):
         out.append(tree_row(m, arrow='d' if m == open_mod else 'r', state=st, mark=mk))
         if m == open_mod:
             for pg in pages:
-                name, depth, arrow = (pg, 1, None) if isinstance(pg, str) else pg
-                pst = 'is-selected' if name == selected else ''
+                name, depth, arrow, pst = (pg, 1, None, '') if isinstance(pg, str) else (tuple(pg) + ('',))[:4]
+                if name == selected: pst = 'is-selected'
                 if hover and name == hover[0]: pst, pmk = 'is-hover', hover[1]
                 else: pmk = None
                 out.append(tree_row(name, kind='page', state=pst, mark=pmk, depth=depth, arrow=arrow))
@@ -362,7 +362,11 @@ home_tree = ''.join([
     tree_row('Sim Settlements 2', arrow='r', state='is-disabled'),
     tree_row('Virtual Holsters', arrow='r'),
 ])
-page_tree = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Beam')
+# a page whose enabledWhen does not hold is disabled, in its place; one whose visibleWhen does not hold is not there
+# under the ray, a disabled page has a row's hover look, and its name stays disabled
+DISABLED_CAL = '<span style="opacity:var(--opacity-disabled)">Calibration</span>'
+page_tree = flat_mods('Immersive Flashlight VR', ('Beam', (DISABLED_CAL, 1, None, 'is-disabled'), 'Hand mount'), selected='Beam',
+                      hover=(DISABLED_CAL, (64, 20)))
 # a config spec's page with pages of its own: open while one of them is selected, a level further in; another that has
 # pages is closed, its arrow pointing right
 NESTED_PAGES = (('Beam', 1, 'r'), ('Hand mount', 1, 'd'), ('Primary hand', 2, None), ('Off hand', 2, None), ('Battery', 1, None))
@@ -372,17 +376,20 @@ grouped_tree = ''.join([
     cat_row('Gameplay', 5), cat_row('Interface', 3), cat_row('Settlements', 4), cat_row('Utilities', 2),
     cat_row('Visuals', 3), cat_row('VR', 4), cat_row('No category', 2),
 ])
-mt_body = f'''<div class="mc-world" style="display:flex;gap:24px;align-items:flex-start">
+mt_body = f'''<div class="mc-world mc-stack" style="gap:16px"><div style="display:flex;gap:24px;align-items:flex-start">
 <div class="mc-stack"><span class="t-detail mc-caption">34 mods, grouped: the list scrolls</span>
 <div class="mc-sheet" style="width:336px;padding:0">{nav(grouped_tree, '', 34, height=TREE_H)}</div></div>
 <div class="mc-stack"><span class="t-detail mc-caption">7 mods: the list fits, no bar, its room kept</span>
 <div class="mc-sheet" style="width:336px;padding:0">{nav(home_tree, '', 7, height=TREE_H)}</div></div>
-<div class="mc-stack"><span class="t-detail mc-caption">11 mods, a page of a mod selected</span>
+<div class="mc-stack"><span class="t-detail mc-caption">11 mods, a page selected, a page disabled</span>
 <div class="mc-sheet" style="width:336px;padding:0">{nav(page_tree, '', 11, height=TREE_H)}</div></div>
 <div class="mc-stack"><span class="t-detail mc-caption">A page of a page: its page open, a level in</span>
 <div class="mc-sheet" style="width:336px;padding:0">{nav(nested_tree, '', 11, offset=4 * (ROW_H + ROW_GAP), height=TREE_H)}</div></div>
+</div>
+<span class="t-detail mc-caption">A page disabled by its enabledWhen: the help line says so before the page&#39;s help</span>
+<div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{helpline('Calibration', 'This page is disabled. Measures your height and the length of your arms.')}</div></div>
 </div>'''
-write('ModTree', page('<!-- @dsCard group="Navigation" height=660 width=1470 subtitle="Flat under 30 mods, grouped by category from 30; the pages of a page a level in; a bar while the list scrolls" -->', 'Mod tree', mt_body))
+write('ModTree', page('<!-- @dsCard group="Navigation" height=740 width=1470 subtitle="Flat under 30 mods, grouped by category from 30; the pages of a page a level in; a page disabled by its condition; a bar while the list scrolls" -->', 'Mod tree', mt_body))
 
 # ---------------- FullPanel ----------------
 fp_nav = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Immersive Flashlight VR')
@@ -525,33 +532,6 @@ fps_body = f'''<div class="mc-world">
 write('FullPanelSubpage', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="A page of a page: its page open in the tree, a crumb for each level, a section in a section" -->', 'Full panel, page of a page', fps_body))
 
 
-# ---------------- FullPanelHome: the menu's front page ----------------
-def launch_row(name, state='', mark=None):
-    return row(name, '<div class="main"><span class="mc-btn t-body" style="min-width:160px">Open</span></div>' + reset_btn(False), state, mark=mark)
-home_nav = flat_mods()
-home_rows = ''.join([
-    pagehelp('Settings for the mods you have installed. Pick a mod on the left to see its settings.<br>Version 1.0.0'),
-    section('Quick launch'),
-    launch_row('FRIK', 'is-hover', mark=(520, 20)),
-    launch_row('Virtual Holsters'),
-    section('Notices'),
-    pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.'),
-])
-fph_body = f'''<div class="mc-world">
-<div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG FO4</span></div>
-<span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
-<div class="mc-body">
-{nav(home_nav, '', 11)}
-<div class="mc-content">
-<div class="mc-scroll"><div class="rows">{home_rows}</div></div>
-</div>
-</div>
-<div class="mc-footer">{helpline('FRIK', "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.")}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
-</div>
-</div>'''
-write('FullPanelHome', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The menu front page: what the menu opens on, with quick launch" -->', 'Full panel, menu front page', fph_body))
-print('ok home')
 
 # ---------------- FullPanelHelp: the Help page, over a page of a mod ----------------
 def control(name, text):
@@ -1543,7 +1523,7 @@ rn_body = f"""<div class="mc-world mc-stack" style="gap:16px">
 {footer('<span class="mc-muted">Saved</span>', btn('Discard', '', 'is-disabled') + btn('Save', 'is-primary', 'is-disabled'))}
 </div>
 <span class="t-detail mc-caption">The menu's front page keeps it under Notices until the game is restarted</span>
-<div class="mc-sheet" style="width:772px">{section('Notices')}<div class="mc-notice t-body">{RTAG}<span>Restart the game: Immersive Flashlight VR has 1 saved change that takes effect then.</span></div>{pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.')}</div>
+<div class="mc-sheet" style="width:772px">{collapse('Notices', True)}<div class="mc-notice t-body">{RTAG}<span>Restart the game: Immersive Flashlight VR has 1 saved change that takes effect then.</span></div>{pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.')}</div>
 </div>"""
 write('RestartNotice', page('<!-- @dsCard group="Actions" height=910 width=1170 subtitle="A change that takes effect after a restart: its mark, its tag, the status after the Save that wrote it, and the front page notice" -->', 'Restart notice', rn_body))
 print('ok restart')
@@ -1614,13 +1594,20 @@ tr_page = ''.join([
     row('Calibrate height', run_btn('Calibrate')),
     '<div class="mc-spacer is-shown" style="height:42px" data-l="spacer, numLines 2"></div>',
     f'<div class="mc-image">{LOGO}</div>',
-    f'<div class="mc-image"><div class="missing t-detail" style="width:384px;height:96px">Missing: MyMod/config/banner.dds</div></div>',
+    f'<div class="mc-image"><div class="missing t-detail" style="width:384px;height:96px">Not loaded: MyMod/config/banner.dds</div></div>',
+])
+tr_states = ''.join([
+    f'<div class="mc-text t-body">Version 2.1.0. The battery is calibrated.</div>',
+    f'<div class="mc-text t-body">Version Unknown (version). The battery is Unknown (battery).</div>',
 ])
 tr_body = f"""<div class="mc-world mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">A text, plain and with tags; spacers (outlined here only); an image, and a missing one</span>
+<span class="t-detail mc-caption">A text, plain and with tags; spacers (outlined here only); an image, and one the game does not load</span>
 <div class="mc-sheet" style="width:772px">{tr_page}</div>
+<div class="mc-sheet" style="width:772px;padding:0"><div class="mc-footer">{helpline('MyMod/config/banner.dds', 'Not loaded: block-compressed DDS dimensions 1086x362 must both be multiples of 4.', error=True)}</div></div>
+<span class="t-detail mc-caption">"Version {{clientState:version}}. The battery is {{clientState:battery}}.": the client&#39;s states, and while it does not answer them</span>
+<div class="mc-sheet" style="width:772px">{tr_states}</div>
 </div>"""
-write('TextRows', page('<!-- @dsCard group="Settings" height=800 width=830 subtitle="Rows with no value: a text, plain or with MCM&#39;s tags; a spacer of one line or more; an image, and a missing one" -->', 'Text, spacer and image', tr_body))
+write('TextRows', page('<!-- @dsCard group="Settings" height=930 width=830 subtitle="Rows with no value: a text, plain or with MCM&#39;s tags, with the states of the mod&#39;s client; a spacer of one line or more; an image, and one that is not loaded" -->', 'Text, spacer and image', tr_body))
 print('ok text rows')
 
 # ---------------- FileChoice: a choice of the files in a folder, with a texture's thumbnail ----------------
@@ -1823,6 +1810,11 @@ as_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:77
 write('ActivationSphere', page('<!-- @dsCard group="Settings" height=830 width=1620 subtitle="An activation sphere: a section of the mod&#39;s TOML as one group, its zone, actions and haptics, its look folded; lit in the world while the ray is on it" -->', 'Activation sphere', as_body))
 print('ok sphere')
 
+def launch_row(name, button='Open', state='', mark=None, gutter=''):
+    """A quick launch entry, laid out as a setting's row: its name, and its button, which says the entry's buttonText or
+    Open. The whole row is pressed, so the button is only drawn."""
+    return row(name, run_btn(button), state, gutter=gutter, mark=mark)
+
 # ---------------- Developer: what a config spec's author sees with Developer tools on ----------------
 GO = f'<span class="mc-go">{ARROW_R}</span>'
 CAUTION_D = ('<svg class="mc-caution" viewBox="0 0 20 18"><path class="tri" d="M10 1.5 L18.5 16.5 H1.5 Z"/>'
@@ -1936,9 +1928,9 @@ write('Developer', page('<!-- @dsCard group="Developer" height=2080 width=1170 s
 # ---------------- FullPanelDeveloper: the menu's front page with Developer tools on ----------------
 fd_rows = ''.join([
     pagehelp('Settings for the mods you have installed. Pick a mod on the left to see its settings.<br>Version 1.0.0'),
-    section('Quick launch'),
+    collapse('Quick launch', True),
     launch_row('FRIK'),
-    section('Notices'),
+    collapse('Notices', True),
     pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.'),
     dev_fold('Developer'),
     show_row('Needing attention', 3, 12),
@@ -1962,29 +1954,120 @@ fd_body = f'''<div class="mc-world">
 write('FullPanelDeveloper', page('<!-- @dsCard group="Developer" height=768 width=1200 subtitle="The menu&#39;s front page with Developer tools on: a Developer section that folds, its filter, and a row for each config spec it lists" -->', 'Full panel, Developer section', fd_body))
 
 # ---------------- FullPanelConfigSpecReport: a config spec's report, with its live copy ----------------
+def live_fold(open_=True, stale=False, hover=False, mark=None):
+    """The sub-section of the live copy: a heading that folds, a level in under Live copy. Folded while the installed
+    spec.json is newer than the copy, it says so at the end of its rule, after the warning mark."""
+    marks = (f'<span class="marks t-detail mc-counts">{CAUTION_D}<span class="mc-amber">Installed is newer</span></span>'
+             if not open_ and stale else '')
+    mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
+    return (f'<div class="mc-collapse t-body{" is-hover" if hover else ""}">{ARROW_D if open_ else ARROW_R}'
+            f'<span>Live spec.json</span><span class="line"></span>{marks}{mk}</div>')
+
+OVERWRITE = 'Re-copy the installed spec.json'
+STALE = 'The installed spec.json is newer than the live copy.'
+H_OVERWRITE = "Copies the installed spec.json over the live copy, which loses the copy's edits, and reads it."
+def live_rows(reload_mark=INFO, stale=False, live=True, hover=None):
+    st = '' if live else 'is-disabled'
+    def r(name, label, gutter='', key=None):
+        if hover == key and live:
+            return row(name, run_btn(label), 'is-hover', gutter=gutter, mark=(620, 22))
+        return row(name, run_btn(label), st, gutter=gutter)
+    return ''.join([
+        r('Reload', 'Reload', reload_mark, 'reload'),
+        r(OVERWRITE + (CAUTION if stale else ''), 'Overwrite', key='overwrite'),
+        r('Edit on desktop', 'Open', key='edit'),
+        r('Reveal in file explorer', 'Open', key='reveal'),
+    ])
+
 fr_rows = ''.join([
     pagehelp('Read from the live copy, My Games\\Fallout4VR\\Mods_Config\\ModsConfigFO4VR\\Dev\\ImmersiveFlashlightVR\\spec.json. It is read again each time it is saved.'),
     section('Live copy'),
     row('Read the live copy', toggle(True)),
-    row('Reload', run_btn('Reload'), gutter=INFO),
-    row('Edit spec.json', run_btn('Open')),
-    row('Its folder', run_btn('Show')),
+    sub(live_fold(), live_rows(stale=True, hover='overwrite')),
     dev_fold('2 errors'),
-    diag(*D_DUP, state='is-hover', mark=(560, 22)),
+    diag(*D_DUP),
     diag(*D_STORE),
     dev_fold('5 warnings', False),
 ])
-fr_body = f'''<div class="mc-world">
-<div class="mc-panel">
+fr_panel = f'''<div class="mc-panel">
 {crumbs([R, ('Developer', ''), ('Immersive Flashlight VR', 'current')], alone=False)}
 <div class="mc-body">
 {nav(flat_mods(), '', 11)}
 <div class="mc-content">
-<div class="mc-scroll"><div class="rows" style="margin-top:-84px">{fr_rows}</div><div class="mc-scrollbar"><i style="top:13%;height:87%"></i></div></div>
+<div class="mc-scroll"><div class="rows" style="margin-top:-84px">{fr_rows}</div><div class="mc-scrollbar"><i style="top:12%;height:80%"></i></div></div>
 </div>
 </div>
-<div class="mc-footer">{helpline(*H_DUP)}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+<div class="mc-footer">{warnline(OVERWRITE, STALE, H_OVERWRITE)}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+</div>'''
+def sub_sheet(fold, rows='', switch=''):
+    return f'<div class="mc-sheet" style="width:908px">{section("Live copy")}{switch}{sub(fold, rows)}</div>'
+fr_body = f'''<div class="mc-world mc-stack" style="gap:16px">
+{fr_panel}
+<span class="t-detail mc-caption">Live spec.json folds, a level in under the switch, and is folded each time the menu opens. Folded, it says that the installed spec.json is newer than the copy</span>
+{sub_sheet(live_fold(False))}
+{sub_sheet(live_fold(False, stale=True, hover=True, mark=(600, 22)))}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+{footer_help('Live spec.json', 'Reload, overwrite, edit and reveal the live copy.')}
+{f'<div class="mc-footer">{warnline("Live spec.json", STALE, "Reload, overwrite, edit and reveal the live copy.")}</div>'}
+</div>
+<span class="t-detail mc-caption">Reload's result: the info mark until the ray leaves the row, and the invalid mark while the copy cannot be read. With the switch off, the rows are disabled</span>
+{sub_sheet(live_fold(), live_rows(reload_mark=WARN))}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+<div class="mc-footer">{doneline('Reload', 'Reloaded at 10:42:05: 2 unsaved changes were dropped.', 'Reads the live copy again now.')}</div>
+{footer_help('Reload', 'Read at 10:42:31: the live copy cannot be read. The menu shows the copy it read last.', error=True)}
+</div>
+{sub_sheet(live_fold(), live_rows(reload_mark='', live=False), row('Read the live copy', toggle(False)))}
+</div>'''
+write('FullPanelConfigSpecReport', page('<!-- @dsCard group="Developer" height=2280 width=1200 subtitle="A config spec&#39;s report: its live copy, with Live spec.json, which folds: Reload, Overwrite, edit and reveal; then its errors and its warnings, which fold" -->', 'Full panel, config spec report', fr_body))
+print('ok developer')
+
+# ---------------- FullPanelHome: the menu's front page ----------------
+home_nav = flat_mods()
+home_rows = ''.join([
+    pagehelp('Settings for the mods you have installed. Pick a mod on the left to see its settings.<br>Version 1.0.0'),
+    collapse('Quick launch', True),
+    launch_row('FRIK', state='is-hover', mark=(520, 20)),
+    launch_row('FRIK Pip-Boy', 'Configure'),
+    launch_row('Virtual Holsters', state='is-disabled'),
+    collapse('Notices', True),
+    f'<div class="mc-notice t-body">{RTAG}<span>Restart the game: Immersive Flashlight VR has 1 saved change that takes effect then.</span></div>',
+    pagehelp('Sim Settlements 2 is not available: its plugin SS2.esm is not loaded.'),
+])
+H_QUICK = 'Mods with a configuration of their own, which opens from here.'
+H_NOTICES = 'What needs your attention: a restart of the game, or a mod that is not available.'
+fph_panel = f'''<div class="mc-panel">
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG FO4</span></div>
+<span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
+<div class="mc-body">
+{nav(home_nav, '', 11)}
+<div class="mc-content">
+<div class="mc-scroll"><div class="rows">{home_rows}</div></div>
+</div>
+</div>
+<div class="mc-footer">{helpline('FRIK', "Opens FRIK's own configuration in the world: body height, arm length, and the weapon and Pip-Boy positions.")}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+</div>'''
+fph_body = f'''<div class="mc-world mc-stack" style="gap:16px">
+{fph_panel}
+<span class="t-detail mc-caption">Quick launch and Notices fold, and are open each time the menu opens. Under the ray a heading has a row&#39;s look, and its help in the help line</span>
+{h_sheet([
+    ('Open', collapse('Quick launch', True)),
+    ('Under the ray', collapse('Quick launch', False, hover=True, mark=(300, 22))),
+    ('Folded', collapse('Notices', False)),
+])}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+{footer_help('Quick launch', H_QUICK)}
+{footer_help('Notices', H_NOTICES)}
+</div>
+<span class="t-detail mc-caption">An entry of a mod&#39;s client: its buttonText, or Open. One whose function does not run is disabled, with the reason. What a press did is in the help line, in red when it failed</span>
+{h_sheet([
+    ('buttonText', launch_row('FRIK Pip-Boy', 'Configure')),
+    ('Disabled', launch_row('Virtual Holsters', state='is-disabled')),
+])}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+{footer_help('Virtual Holsters', "Needs Virtual Holsters' DLL, which is not loaded.")}
+<div class="mc-footer">{doneline('FRIK Pip-Boy', 'Opened the Pip-Boy configuration.', "Places the Pip-Boy on your wrist and in your hand.")}</div>
+{footer_help('FRIK Pip-Boy', 'Put the Pip-Boy away first, then try again.', error=True)}
 </div>
 </div>'''
-write('FullPanelConfigSpecReport', page('<!-- @dsCard group="Developer" height=768 width=1200 subtitle="A config spec&#39;s report: its live copy, Reload, the file and its folder, then its errors and its warnings, which fold" -->', 'Full panel, config spec report', fr_body))
-print('ok developer')
+write('FullPanelHome', page('<!-- @dsCard group="Panels" height=1620 width=1200 subtitle="The menu front page: what the menu opens on, with Quick launch and Notices, which fold" -->', 'Full panel, menu front page', fph_body))
+print('ok home')

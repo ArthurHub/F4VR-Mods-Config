@@ -49,7 +49,6 @@ Designs that are written and published to the design system but that Arthur has 
 
 Done in the code, and still to be drawn in the design system. A note leaves this list when the design system has it.
 
-- The menu's front page: Quick launch and Notices are headings that fold, as the Developer section's is, open each time the menu opens, each with its help in the help line ("Mods with a configuration of their own, which opens from here.", "What needs your attention: a restart of the game, or a mod that is not available."). Design system: [FullPanelHome](design-system/project/components/FullPanelHome/README.md) still has plain headings.
 - Tokens: the usage of `space-6` and of `red` in `tokens.json`, which `src/Theme.h` is generated from, still names the row's gutter, which is gone.
 
 ## Names

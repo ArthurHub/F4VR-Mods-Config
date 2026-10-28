@@ -2,7 +2,7 @@
 
 The navigation: every mod in one alphabetical list, with the selected mod expanded to its pages, and a config spec's page that has pages of its own expanded to them.
 
-**Provides:** each mod's display name, page names (with the pages under each) and availability; what is selected: a mod's front page, a page, or nothing while the menu's front page is open.
+**Provides:** each mod's display name, page names (with the pages under each, and whether each is shown and enabled) and availability; what is selected: a mod's front page, a page, or nothing while the menu's front page is open.
 
 - Fixed at `nav-width` in a `plate` pane, in the same place with or without a selected mod.
 - A `t-detail` `green-muted` header says `Mods` and the count. The menu's front page has no row of its own: the first breadcrumb, `MODS CONFIG FO4`, is its entry, and is selected while it is open. No tree row is selected then.
@@ -19,6 +19,14 @@ The navigation: every mod in one alphabetical list, with the selected mod expand
 - A mod always has its arrow: down while its pages are the rows under it, right otherwise. A mod with no pages has nothing to open, so its arrow stays right when it is selected.
 - A page has an arrow only when it has pages of its own: down while it or one of its pages is selected, and its pages are the rows under it, and right otherwise. Of the selected mod's pages, only the ones on the way to the selected page are expanded.
 - While the ray is on a page, the help line shows the page's help.
+
+## Pages with conditions
+
+A config spec's page can have a `visibleWhen` and an `enabledWhen`, which go down to the pages under it.
+
+- A page whose `visibleWhen` does not hold is not in the tree, with the pages under it.
+- A page whose `enabledWhen` does not hold is in its place, disabled: its name at `opacity-disabled`, with its arrow, closed, when it has pages. It is not pressed, and its pages are not shown. Under the ray it has a row's hover look, and the help line says "This page is disabled." before the page's help.
+- When the page that is shown comes to be hidden or disabled, as a setting changes, the menu shows the nearest page above it that is not, or the mod's front page. Its unsaved changes stay, and so does the Help page.
 
 ## Categories
 
