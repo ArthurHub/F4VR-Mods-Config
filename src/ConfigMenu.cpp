@@ -21,6 +21,7 @@
 #include "vrcf/VRControllersManager.h"
 #include "vrui/UIManager.h"
 #include "vrui/UIPanelStyle.h"
+#include "vrui/UITextPanel.h"
 
 using namespace vrui;
 
@@ -32,11 +33,17 @@ namespace
     constexpr float PANEL_CURVE_BY_DISTANCE = 1.25f;
 
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
-    constexpr float WRIST_BUTTON_HEIGHT = 2.2f;
-    constexpr float WRIST_BUTTON_GAP = 0.2f;
+    constexpr float WRIST_BUTTON_HEIGHT = 2.5f;
+    constexpr float WRIST_BUTTON_TEXT_HEIGHT = 0.5f;
+    constexpr float WRIST_TITLE_TEXT_HEIGHT = 0.75f;
+    constexpr float WRIST_BUTTON_GAP = 0.5f;
 
     // where the wrist buttons lie, from the framework's place on the wrist: position, then degrees around x, y and z
     const RE::NiTransform WRIST_BUTTONS_OFFSET = common::MatrixUtils::getTransform(0, 0, 0, 0, 0, 0);
+
+    // the icons of the wrist buttons, under the mod's `Data\Textures\ModsConfigFO4VR`
+    constexpr auto RESTORE_ICON = R"(vrui\restore.dds)";
+    constexpr auto EXIT_ICON = R"(vrui\exit.DDS)";
 
     // the id of the Config spec setting of the menu's own config spec, whose options the menu gives
     constexpr auto DEVELOPER_CONFIG_SPEC_ID = "developerConfigSpec";
@@ -175,7 +182,6 @@ namespace mods_config
         g_uiManager->detachElement(_wristButtons, true);
         _panel.reset();
         _wristButtons.reset();
-        _minimizeButton.reset();
         _imageTextures.clear();
         _configSpecTextures.clear();
         // the mod that is shown is left, which its scripts and its client are told before they are told of the menu
@@ -185,7 +191,7 @@ namespace mods_config
     }
 
     /**
-     * Closes the menu as the player does, with the gesture or Close on the wrist: while the mod that is shown
+     * Closes the menu as the player does, with the gesture or Exit on the wrist: while the mod that is shown
      * has unsaved changes the panel's dialog asks first, and its Save and Discard close the menu. A panel that
      * is minimized is shown again for it.
      */
@@ -202,7 +208,7 @@ namespace mods_config
     }
 
     /**
-     * Hide or show the panel. The offhand buttons stay either way.
+     * Hide the panel and show the offhand buttons in its place, or the other way round.
      * A panel that is shown again is put in front of the player, wherever it was left.
      */
     void ConfigMenu::setMinimized(const bool minimized)
@@ -214,7 +220,7 @@ namespace mods_config
             g_uiManager->recenterWorldElement(_panel);
         }
         _panel->setVisibility(!minimized);
-        _minimizeButton->setMiddleText(minimized ? "RESUME" : "MINIMIZE");
+        _wristButtons->setVisibility(minimized);
     }
 
     /**
@@ -249,7 +255,7 @@ namespace mods_config
 
     /**
      * Put the panel in front of the player again, where they look now.
-     * Nothing while the menu is minimized: Resume does it then.
+     * Nothing while the menu is minimized: Restore does it then.
      */
     void ConfigMenu::recenter()
     {
@@ -276,7 +282,7 @@ namespace mods_config
     }
 
     /**
-     * Applies what a press asked for: closing the menu, which Close on the wrist asks first, minimizing it,
+     * Applies what a press asked for: closing the menu, which Exit on the wrist asks first, minimizing it,
      * minimizing it and opening FRIK's config, or what a row of a config spec's live copy asks. And reads the live
      * copies that were saved, also while the menu is closed.
      * It is done here, in the mod's frame update, and not where the press is seen: a wrist button's handler
@@ -599,25 +605,44 @@ namespace mods_config
         return *loaded;
     }
 
+    /**
+     * The buttons on the offhand wrist under the menu's title, which show only while the panel is minimized: Restore
+     * shows the panel again, and Exit closes the menu, which asks first while the mod that is shown has unsaved changes.
+     */
     void ConfigMenu::createWristButtons()
     {
-        _minimizeButton = std::make_shared<UIButtonPanel>("ModsConfigFO4_MinimizeButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
-        _minimizeButton->setTopText("CLICK");
-        _minimizeButton->setMiddleText("MINIMIZE");
-        _minimizeButton->setOnPressHandler([this](UIButtonPanel*) {
-            setMinimized(!isMinimized());
+        const auto restoreButton = std::make_shared<UIButtonPanel>("ModsConfigFO4_RestoreButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+        restoreButton->setTextHeight(WRIST_BUTTON_TEXT_HEIGHT);
+        restoreButton->setImage(RESTORE_ICON);
+        restoreButton->setBottomText("RESTORE");
+        restoreButton->setOnPressHandler([this](UIButtonPanel*) {
+            setMinimized(false);
         });
 
-        const auto closeButton = std::make_shared<UIButtonPanel>("ModsConfigFO4_CloseButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
-        closeButton->setTopText("CLICK");
-        closeButton->setMiddleText("CLOSE");
-        closeButton->setOnPressHandler([this](UIButtonPanel*) {
+        const auto exitButton = std::make_shared<UIButtonPanel>("ModsConfigFO4_ExitButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);
+        exitButton->setTextHeight(WRIST_BUTTON_TEXT_HEIGHT);
+        exitButton->setImage(EXIT_ICON);
+        exitButton->setBottomText("EXIT");
+        exitButton->setOnPressHandler([this](UIButtonPanel*) {
             _askToCloseRequested = true;
         });
 
-        _wristButtons = std::make_shared<UIContainer>("ModsConfigFO4_WristButtons", UIContainerLayout::HorizontalCenter, WRIST_BUTTON_GAP);
-        _wristButtons->addElement(_minimizeButton);
-        _wristButtons->addElement(closeButton);
+        const auto buttons = std::make_shared<UIContainer>("ModsConfigFO4_WristButtonRow", UIContainerLayout::HorizontalCenter, WRIST_BUTTON_GAP);
+        buttons->addElement(restoreButton);
+        buttons->addElement(exitButton);
+
+        const auto title = std::make_shared<UITextPanel>("ModsConfigFO4_WristTitle");
+        title->setStyle(UIPanelStyle{ .color = F4VR_PANEL_STYLE.color });
+        title->setTextHeight(WRIST_TITLE_TEXT_HEIGHT);
+        title->setContent([](std::vector<TextRow>& rows) {
+            rows.emplace_back("MODS CONFIG", std::nullopt, render::TextDecoration::Underline);
+        });
+
+        // the title over the buttons: a column stacks its rows from the bottom up
+        _wristButtons = std::make_shared<UIContainer>("ModsConfigFO4_WristButtons", UIContainerLayout::VerticalUp, WRIST_BUTTON_GAP);
+        _wristButtons->addElement(buttons);
+        _wristButtons->addElement(title);
+        _wristButtons->setVisibility(false);
 
         g_uiManager->attachPresetToOffhandWrist(_wristButtons, WRIST_BUTTONS_OFFSET);
     }

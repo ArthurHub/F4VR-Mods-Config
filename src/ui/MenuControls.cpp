@@ -149,10 +149,11 @@ namespace mods_config::ui
                 .text = std::format("{}: the menu is put in front of you again, also after you moved it.", bindingSentence(buttons.recenter, buttons.leftHanded)) });
         }
         if (buttons.openMenu.isEnabled()) {
-            controls.push_back({ .name = "Open and close the menu", .text = bindingSentence(buttons.openMenu, buttons.leftHanded) + "." });
+            controls.push_back(
+                { .name = "Open and close the menu", .text = bindingSentence(buttons.openMenu, buttons.leftHanded) + ". While the menu is minimized it shows it again." });
         }
-        controls.push_back(
-            { .name = "Minimize", .text = "Minimize, on the title bar or on your offhand wrist, hides the menu as you left it. Resume on the wrist shows it again." });
+        controls.push_back({ .name = "Minimize",
+            .text = "Minimize, on the title bar, hides the menu as you left it, with Restore and Exit on your offhand wrist. Restore shows it again, and Exit closes it." });
         return controls;
     }
 

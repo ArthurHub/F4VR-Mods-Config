@@ -77,7 +77,7 @@ TEST_CASE("MenuControls: the Help page has the controls of the config, and leave
     CHECK(controls[3].text == "Tap the grip on either hand, pointing at the menu: one step back, and from the menu's front page the menu closes.");
     CHECK(controls[4].text == "Long press the grip on either hand for 0.3 s, pointing at the menu: it follows the hand until you let go of the button.");
     CHECK(controls[5].text == "Long press the thumbstick on the off hand: the menu is put in front of you again, also after you moved it.");
-    CHECK(controls[6].text == "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand.");
+    CHECK(controls[6].text == "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand. While the menu is minimized it shows it again.");
 
     const InputBinding none{ .type = ActivationType::Disabled };
     const auto fewer = ui::menuControls({ .openMenu = OPEN_MENU, .back = none, .move = none, .recenter = none, .leftHanded = false });

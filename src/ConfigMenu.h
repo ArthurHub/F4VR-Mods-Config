@@ -25,7 +25,7 @@ namespace mods_config
 {
     /**
      * The config menu: one ImGui panel that is put in front of the player and stays in the world, where the
-     * player can move it, and a row of buttons on the offhand that stays while the panel is minimized.
+     * player can move it, and a row of buttons on the offhand that shows while the panel is minimized.
      */
     class ConfigMenu
     {
@@ -89,7 +89,6 @@ namespace mods_config
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
-        std::shared_ptr<vrui::UIButtonPanel> _minimizeButton;
         bool _minimizeRequested = false;
         bool _closeRequested = false;
         bool _askToCloseRequested = false;

@@ -34,7 +34,7 @@ namespace
 
     // what the help line says of the title bar's buttons
     constexpr auto HELP_HELP = "What each control of the menu does, with the buttons your config has for it.";
-    constexpr auto MINIMIZE_HELP = "Hides the menu, as you left it. Resume on your offhand wrist shows it again.";
+    constexpr auto MINIMIZE_HELP = "Hides the menu, as you left it. Restore on your offhand wrist shows it again.";
     constexpr auto CLOSE_HELP = "Closes the menu.";
 
     // the least the mod's breadcrumb is shortened to, beside the long name of a page:

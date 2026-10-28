@@ -552,7 +552,7 @@ namespace mods_config::devbench
         }
 
         /**
-         * Hides the panel, as Minimize does, or shows it again in front of the player, as Resume does.
+         * Hides the panel, as Minimize does, or shows it again in front of the player, as Restore does.
          */
         json runMinimize(const json& args)
         {
@@ -768,7 +768,7 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "minimize",
-            .description = "hide the panel, as Minimize does, or show it again in front of the player, as Resume does",
+            .description = "hide the panel, as Minimize does, or show it again in front of the player, as Restore does",
             .arguments = { { "minimized", { { "type", "boolean" }, { "description", "minimize: false shows the panel again; true by default" } } } },
             .handler = &runMinimize,
         });
