@@ -294,6 +294,20 @@
               "storage": { "path": ["Pointer", "fScrollSpeed"] }
             }
           ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Feedback",
+          "content": [
+            {
+              "type": "cf.haptic",
+              "text": "Press haptic",
+              "help": "The pulse the hand that points gets when its press does something in the menu, as showing a mod's page.",
+              "default": "Tick",
+              "storage": { "path": ["Pointer", "sPressHaptic"] }
+            }
+          ]
         }
       ]
     },

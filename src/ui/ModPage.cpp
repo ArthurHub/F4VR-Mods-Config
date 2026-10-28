@@ -271,6 +271,9 @@ namespace
                 page.drawn.pointed = std::move(drawn.pointed);
             }
             page.drawn.pressActed = page.drawn.pressActed || drawn.pressActed;
+            if (drawn.haptic) {
+                page.drawn.haptic = drawn.haptic;
+            }
         }
 
         void operator()(const model::Group& group) const

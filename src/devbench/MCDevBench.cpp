@@ -146,6 +146,8 @@ namespace mods_config::devbench
                 return "textinput";
             case model::SettingType::InputBinding:
                 return "cf.inputBinding";
+            case model::SettingType::Haptic:
+                return "cf.haptic";
             }
             return "unknown";
         }
@@ -327,8 +329,8 @@ namespace mods_config::devbench
 
         /**
          * A value of the request in the type of a setting: a bool for a switcher, a number for a slider, a text
-         * for a text input and the TOML text of a binding's table, and for a choice the value of one of the options its
-         * store has, or its text.
+         * for a text input, the TOML text of a binding's table and the name of a haptic's pattern, and for a choice the
+         * value of one of the options its store has, or its text.
          */
         model::Value valueFromJson(const model::Setting& setting, const model::Store& store, const json& given)
         {
@@ -357,6 +359,12 @@ namespace mods_config::devbench
             case model::SettingType::InputBinding:
                 // the TOML text of the binding's table, which is no JSON value
                 return given.is_string() ? given.get<std::string>() : given.dump();
+            case model::SettingType::Haptic:
+                // the name of a pattern, which the store reads as the framework does, and one it does not have is invalid
+                if (!given.is_string()) {
+                    throw std::runtime_error("a haptic's value is the name of a pattern, or none");
+                }
+                return given.get<std::string>();
             case model::SettingType::Stepper:
             case model::SettingType::Dropdown:
                 for (const auto& option : store.options(setting)) {

@@ -78,6 +78,12 @@ kSamePress = { hand = "offhand", type = "tap", button = "trigger" }
 kSuppressed = { hand = "primary", type = "tap", button = "grip", suppress = true }
 kLimited = { hand = "primary", type = "press", button = "grip" }
 
+[Haptics]
+sTick = "Tick"
+sDoubleClick = "DoubleClick"
+sLong = "Heartbeat3"
+sNone = "none"
+
 [Numbers]
 fStepDecimals = 1.25
 iWhole = 8
@@ -180,6 +186,7 @@ iWrongDefault = 2
 fOutsideDefault = 5.0
 kUntakenDefault = { hand = "primary", type = "tap", button = "grip" }
 kNoButton = { hand = "primary", type = "press", button = "grip" }
+sNoPattern = "Tick"
 bApplies = true
 bSameId = true
 iNoOptions = 0

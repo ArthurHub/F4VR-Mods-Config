@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -34,14 +35,17 @@ namespace mods_config::ui
         std::optional<std::size_t> pointed;
     };
 
+    // draws more of an option of a list, in its box, after its text: whether it is the chosen one says its colors
+    using OptionDecoration = std::function<void(std::size_t option, const ImRect& box, bool chosen)>;
+
     std::optional<std::size_t> chosenOption(const std::vector<model::Option>& options, const model::StoredValue& stored);
-    ListDrawn drawList(ImGuiID id, const ImRect& box, std::span<const std::string_view> texts, std::optional<std::size_t> chosen);
+    ListDrawn drawList(ImGuiID id, const ImRect& box, std::span<const std::string_view> texts, std::optional<std::size_t> chosen, const OptionDecoration& decorate = {});
 
     /**
-     * The steppers and the dropdowns of the page that is shown: how one is drawn, and how the player picks
+     * The steppers, the dropdowns and the haptics of the page that is shown: how one is drawn, and how the player picks
      * an option of one. A stepper goes to the option before and after, by its buttons and by the thumbstick,
-     * and a dropdown opens its list over the page. A choice has the options its store answers, which are given
-     * with it.
+     * and a dropdown opens its list over the page, as a haptic does, which has its pattern's shape and a Play button.
+     * A choice has the options its store answers, which are given with it.
      * It points into the page that is shown, so it is reset as another page is.
      */
     class Choices
@@ -51,9 +55,16 @@ namespace mods_config::ui
         std::optional<std::size_t> edit(const model::Setting& setting, const std::vector<model::Option>& options, float right, float top, const ChoiceRow& row,
             std::optional<std::size_t> chosen, bool& pulse);
         float draw(const model::Setting& setting, const std::vector<model::Option>& options, float right, float top, const ChoiceRow& row, std::optional<std::size_t> chosen,
-            ValueLook look) const;
+            ValueLook look, std::string_view unchosenText = {}) const;
         void endFrame();
         bool isListOpen(const model::Setting& setting) const;
+
+        // the option of the open list the ray is on, and none
+        std::optional<std::size_t> pointedOption() const
+        {
+            return _pointedOption;
+        }
+
         bool closeList();
         void reset();
 
@@ -66,6 +77,9 @@ namespace mods_config::ui
 
         // the list of that dropdown was open in the frame that is drawn
         bool _openSeen = false;
+
+        // the option of that list the ray is on
+        std::optional<std::size_t> _pointedOption;
 
         // the list is closed as the next frame starts
         bool _close = false;

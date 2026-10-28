@@ -130,6 +130,15 @@ namespace mods_config::ui
             return _pressActed;
         }
 
+        /**
+         * The pattern a press on a haptic played in the frame that was drawn last: its Play button, or an option
+         * picked in its list. The hand that points plays it in place of the pulse, as it is the press's feedback.
+         */
+        std::optional<vrcf::HapticPattern> hapticPlayed() const
+        {
+            return _hapticPlayed;
+        }
+
     private:
         /**
          * What the player was about to do as the dialog asks what to do with the unsaved changes: show
@@ -216,6 +225,9 @@ namespace mods_config::ui
 
         // a press did something in the last draw
         bool _pressActed = false;
+
+        // the pattern a press on a haptic played in the frame that was drawn last
+        std::optional<vrcf::HapticPattern> _hapticPlayed;
 
         // how far the thumbstick of the hand that points is pushed to a side, as the menu tells it
         float _thumbstickSideValue = 0.0f;

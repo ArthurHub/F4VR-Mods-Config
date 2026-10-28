@@ -1417,6 +1417,61 @@
           ]
         },
         {
+          "pageDisplayName": "Haptics",
+          "help": "Haptic patterns of a CommonFramework mod: each shows its shape, and Play plays it on the hand that points.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Haptics",
+              "content": [
+                {
+                  "type": "cf.haptic",
+                  "text": "Tap",
+                  "help": "The lightest tap.",
+                  "default": "Tick",
+                  "storage": { "path": ["Haptics", "sTick"] }
+                },
+                {
+                  "type": "cf.haptic",
+                  "text": "Double click",
+                  "help": "Two quick taps. A file can write it as \"double click\" too, as the framework reads it.",
+                  "default": "DoubleClick",
+                  "storage": { "path": ["Haptics", "sDoubleClick"] }
+                },
+                {
+                  "type": "cf.haptic",
+                  "text": "Long pattern",
+                  "help": "A pattern longer than its box is drawn narrower, so it fits.",
+                  "default": "Heartbeat3",
+                  "storage": { "path": ["Haptics", "sLong"] }
+                },
+                {
+                  "type": "cf.haptic",
+                  "text": "None",
+                  "help": "No pulse: it has no shape, and Play is disabled.",
+                  "default": "none",
+                  "storage": { "path": ["Haptics", "sNone"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A name the framework does not have: its text in red, and no shape.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.haptic",
+                  "text": "A typo",
+                  "help": "Its file has Tik.",
+                  "default": "Tick",
+                  "storage": { "path": ["Haptics", "sTypo"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "pageDisplayName": "Numbers",
           "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
           "content": [
@@ -2817,6 +2872,13 @@
                   "default": { "hand": "primary", "type": "press", "button": "grip" },
                   "valueOptions": { "buttons": ["grip", "trigr"] },
                   "storage": { "path": ["Mistakes", "kNoButton"] }
+                },
+                {
+                  "type": "cf.haptic",
+                  "text": "A haptic's default that is no pattern",
+                  "help": "Its default is \"Tik\", which the framework does not have, so it has no Reset.",
+                  "default": "Tik",
+                  "storage": { "path": ["Mistakes", "sNoPattern"] }
                 },
                 {
                   "type": "switcher",

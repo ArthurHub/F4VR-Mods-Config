@@ -1613,7 +1613,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(mod.pages[0].name == "Most Used");
     const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
-    CHECK(examples.pages.size() == 22);
+    CHECK(examples.pages.size() == 23);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -1653,6 +1653,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
                                "A default of another type",
                                "A default outside its range",
                                "A binding's default it does not take",
+                               "A haptic's default that is no pattern",
                                "No options",
                                "No such shared list",
                                "A default that is no option" });
@@ -1800,7 +1801,7 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the 
         (problem.severity == model::Severity::Error ? errors : warnings) += 1;
     }
     // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
-    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[20].content[0].content[2].text" });
+    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[21].content[0].content[2].text" });
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }
@@ -1915,6 +1916,38 @@ TEST_CASE("ConfigSpecLoader: a binding is the text of its table, with its defaul
               "E Text: It has no default binding, an object as { \"hand\": \"offhand\", \"type\": \"tap\", \"button\": \"trigger\" }: it has no Reset. [Text] content[3]",
               "W Text: Its valueType \"int\" is not string, which a binding is: it is read as string. [Text] content[3].valueType",
               "E In an INI file: A binding is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+}
+
+TEST_CASE("ConfigSpecLoader: a haptic is the name of a pattern, with None and the framework's patterns as its options")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.haptic", "text": "Entry", "default": "double click", "storage": { "path": ["Sphere", "sEntryHaptic"] } },
+            { "type": "cf.haptic", "text": "Off", "valueType": "int", "default": "off", "storage": { "path": ["Sphere", "sOff"] } },
+            { "type": "cf.haptic", "text": "Typo", "default": "Tik", "storage": { "path": ["Sphere", "sTypo"] } },
+            { "type": "cf.haptic", "text": "No text", "default": 2, "storage": { "path": ["Sphere", "sNoText"] } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 4);
+    for (const auto& setting : settings) {
+        CHECK(setting.type == model::SettingType::Haptic);
+        CHECK(setting.valueType == model::StoredType::String);
+        REQUIRE(setting.valueOptions.options.size() == 19);
+        CHECK(setting.valueOptions.options.front() == model::Option{ .value = "none"s, .text = "None" });
+        CHECK(setting.valueOptions.options[3] == model::Option{ .value = "DoubleClick"s, .text = "Double click" });
+    }
+    // a default is read as the framework reads it, and written as the library names it
+    CHECK(settings[0].defaultValue == model::Value("DoubleClick"s));
+    CHECK(settings[1].defaultValue == model::Value("none"s));
+    CHECK_FALSE(settings[2].defaultValue);
+    CHECK_FALSE(settings[3].defaultValue);
+    CHECK(problemLines(mod) == Lines{ "W Off: Its valueType \"int\" is not string, which a haptic is: it is read as string. [Off] content[1].valueType",
+                                   "E Typo: Its default \"Tik\" is not a haptic pattern of the framework: it has no Reset. [Typo] content[2].default",
+                                   "E No text: It has no default haptic, a text as \"Tick\" or \"none\": it has no Reset. [No text] content[3]" });
 }
 
 TEST_CASE("ConfigSpecLoader: a binding takes the hands, the types and the buttons its lists name, as the framework names them")

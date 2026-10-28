@@ -12,6 +12,7 @@
 #include "TextInputs.h"
 #include "model/ConfigDefinition.h"
 #include "model/Store.h"
+#include "vrcf/VRControllersHaptic.h"
 
 namespace mods_config::ui
 {
@@ -38,6 +39,10 @@ namespace mods_config::ui
     {
         std::optional<PointedRow> pointed;
         bool pressActed = false;
+
+        // the pattern a press played: a haptic's Play, or an option picked in its list. It is the press's feedback, in
+        // place of the menu's pulse
+        std::optional<vrcf::HapticPattern> haptic;
     };
 
     SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context);

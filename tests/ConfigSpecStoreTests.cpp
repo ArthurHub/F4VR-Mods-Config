@@ -537,6 +537,53 @@ TEST_CASE("ConfigSpecStore: a binding is its table's text as the framework write
     CHECK(session.store.dirtyCount() == 0);
 }
 
+TEST_CASE("ConfigSpecStore: a haptic is its pattern's name as the framework writes it, and a name it does not have is invalid")
+{
+    Session session(R"(
+        { "type": "cf.haptic", "text": "Entry", "default": "Tick", "storage": { "path": ["Sphere", "sEntry"] } },
+        { "type": "cf.haptic", "text": "Off", "default": "Tick", "storage": { "path": ["Sphere", "sOff"] } },
+        { "type": "cf.haptic", "text": "Typo", "default": "Tick", "storage": { "path": ["Sphere", "sTypo"] } },
+        { "type": "cf.haptic", "text": "Missing", "default": "none", "storage": { "path": ["Sphere", "sMissing"] } }
+    )");
+    session.open(
+        "[Sphere]\r\n"
+        "sEntry = \"double click\"   # entry\r\n"
+        "sOff = \"off\"\r\n"
+        "sTypo = \"Tik\"\r\n");
+
+    // the file's text is matched as the framework reads it, and is clean
+    CHECK(session.value(0).value == model::Value("DoubleClick"s));
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(session.value(1).value == model::Value("none"s));
+    CHECK(session.store.dirtyCount() == 0);
+
+    // a name the framework does not have is shown as the file has it
+    const auto typo = session.value(2);
+    CHECK(typo.value == model::Value("Tik"s));
+    CHECK(typo.invalid);
+    CHECK(typo.reason == "Invalid: Tik is not a haptic pattern, so none plays.");
+    CHECK(session.value(3).value == model::Value("none"s));
+    CHECK(session.store.options(session.setting(0)).size() == 19);
+
+    // a value the player sets is the library's name too, and one that is none is invalid
+    CHECK(session.store.set(session.setting(3), "ramp-up"s));
+    CHECK(session.value(3).value == model::Value("RampUp"s));
+    CHECK(session.store.set(session.setting(1), "Bzz"s));
+    CHECK(session.value(1).invalid);
+    session.store.discard(session.setting(1));
+    CHECK_FALSE(session.store.set(session.setting(0), 1.0f));
+
+    CHECK(session.store.set(session.setting(2), "Success"s));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Sphere]\r\n"
+          "sEntry = \"double click\"   # entry\r\n"
+          "sOff = \"off\"\r\n"
+          "sTypo = \"Success\"\r\n"
+          "sMissing = \"RampUp\"\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+}
+
 TEST_CASE("ConfigSpecStore: a binding of a hand, a type or a button its setting does not take is invalid, with what it takes")
 {
     Session session(R"(

@@ -17,6 +17,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/Haptics.h"
 #include "model/InputBindings.h"
 
 using namespace mods_config;
@@ -31,9 +32,12 @@ namespace
         return setting.type == model::SettingType::TextInput && setting.valueType != model::StoredType::String;
     }
 
+    /**
+     * Whether a setting is a choice of its options: a stepper, a dropdown, and a haptic, whose options are the menu's.
+     */
     bool isChoice(const model::Setting& setting)
     {
-        return setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown;
+        return setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown || setting.type == model::SettingType::Haptic;
     }
 
     /**
@@ -134,9 +138,9 @@ namespace
 
     /**
      * A value of the type a setting keeps, as its control has it: a slider has a number, also for a whole
-     * number, a text input that takes a number has the text of it, and a binding has its table's text as the
-     * framework writes it. None for a value its control does not show: a switcher of anything but true or false,
-     * a slider of a text, and a binding of anything but a text.
+     * number, a text input that takes a number has the text of it, and a binding has its table's text and a haptic
+     * its pattern's name as the framework writes them. None for a value its control does not show: a switcher of
+     * anything but true or false, a slider of a text, and a binding and a haptic of anything but a text.
      */
     std::optional<model::Value> controlValue(const model::Setting& setting, const model::Value& stored)
     {
@@ -168,6 +172,11 @@ namespace
         case model::SettingType::InputBinding:
             if (const auto* text = std::get_if<std::string>(&stored)) {
                 return model::canonicalBinding(*text);
+            }
+            break;
+        case model::SettingType::Haptic:
+            if (const auto* text = std::get_if<std::string>(&stored)) {
+                return model::canonicalHaptic(*text);
             }
             break;
         }
@@ -269,6 +278,11 @@ namespace
                 return model::canonicalBinding(*text);
             }
             break;
+        case model::SettingType::Haptic:
+            if (const auto* text = std::get_if<std::string>(&value)) {
+                return model::canonicalHaptic(*text);
+            }
+            break;
         }
         return std::nullopt;
     }
@@ -278,13 +292,17 @@ namespace
      * sentence of the value: `is not from 0.5 to 1.5`. A text of a number that is none, a number outside the
      * limits, a text of a length its setting does not allow, and none of the options of a choice. A table that is
      * no binding has the framework's reason, a sentence of its own, and so does a binding of a hand, a way or a
-     * button its setting does not take. Empty for a value that is one.
+     * button its setting does not take. A name of no haptic pattern is a sentence of its own too. Empty for a value
+     * that is one.
      */
     std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
         if (setting.type == model::SettingType::InputBinding) {
             const auto binding = model::parseBinding(std::get<std::string>(value));
             return binding ? model::untakenPart(*binding, setting.valueOptions) : binding.error();
+        }
+        if (setting.type == model::SettingType::Haptic) {
+            return model::findHaptic(value) ? std::string() : std::format("{} is not a haptic pattern, so none plays", std::get<std::string>(value));
         }
         const auto& limits = setting.valueOptions;
         std::optional<float> number;
@@ -317,7 +335,8 @@ namespace
     /**
      * Why a value the player set is no value of its setting, for the help line: the value and what is wrong
      * with it, as `Invalid: 12 is not from 1 to 9.` A text of a text input is `the text`, as it can be long, and a
-     * binding has the framework's reason alone, as its row shows its text. Empty for a value that is one.
+     * binding has the framework's reason alone, as its row shows its text, as a haptic has its own. Empty for a value
+     * that is one.
      */
     std::string typedReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
@@ -325,7 +344,7 @@ namespace
         if (problem.empty()) {
             return {};
         }
-        if (setting.type == model::SettingType::InputBinding) {
+        if (setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic) {
             return std::format("Invalid: {}.", problem);
         }
         const auto* text = std::get_if<std::string>(&value);
@@ -361,7 +380,7 @@ namespace
     /**
      * Why a value in a file, as its control has it, is not one of its setting, as `problemOf` says. Empty for
      * a value that is one. It names the value by its path and its file, as a reason of its file does, but for a
-     * binding, which has the framework's reason alone, as its row shows its text.
+     * binding, which has the framework's reason alone, as its row shows its text, and a haptic, which names its text.
      */
     std::string invalidReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const std::string& path, const std::string& file)
     {
@@ -369,7 +388,7 @@ namespace
         if (problem.empty()) {
             return {};
         }
-        if (setting.type == model::SettingType::InputBinding) {
+        if (setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic) {
             return std::format("Invalid: {}.", problem);
         }
         return std::format("Invalid: {} is {} in {}, which {}.", path, valueText(value), file, problem);

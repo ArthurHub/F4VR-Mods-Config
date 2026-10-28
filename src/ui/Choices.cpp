@@ -9,7 +9,9 @@
 #include <imgui_internal.h>
 
 #include "Drawing.h"
+#include "Haptics.h"
 #include "Theme.h"
+#include "model/Haptics.h"
 
 namespace
 {
@@ -71,9 +73,64 @@ namespace
         ImGui::EndDisabled();
     }
 
-    ImRect dropdownBox(const float right, const float top)
+    /**
+     * The box of a dropdown that ends at the right, which its list opens at: a haptic's is its frame, before its Play
+     * button.
+     */
+    ImRect dropdownBox(const model::Setting& setting, const float right, const float top)
     {
+        if (setting.type == model::SettingType::Haptic) {
+            return ui::HapticBoxes(right, top).frame;
+        }
         return ui::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
+    }
+
+    /**
+     * The pattern of a haptic's option, and none for None and for a value that is no haptic.
+     */
+    std::optional<vrcf::HapticPattern> patternOf(const model::Value& value)
+    {
+        const auto* haptic = model::findHaptic(value);
+        return haptic ? haptic->pattern : std::nullopt;
+    }
+
+    /**
+     * Where a pattern's shape is in a box that ends with something of the given width at its right: in the middle of
+     * its height, `space-3` before that.
+     */
+    ImVec2 shapeIn(const ImRect& box, const float after)
+    {
+        return { box.Max.x - after - theme::SPACE_3 - ui::HAPTIC_SHAPE_WIDTH, box.GetCenter().y - ui::HAPTIC_SHAPE_HEIGHT * 0.5f };
+    }
+
+    /**
+     * A haptic that ends at the right: its frame, as a dropdown's, with its text and the shape of its option's pattern
+     * before the arrow, and its Play button after it. The text and the shape are in the color of its value's look, and
+     * a value that is no option has its text alone. Play is disabled for None and for no option. Returns its left edge.
+     */
+    float drawHaptic(const ui::HapticBoxes& boxes, const std::string_view text, const model::Option* option, const ui::ValueLook look, const bool listOpen,
+        const ui::ChoiceRow& row)
+    {
+        const auto& box = boxes.frame;
+        const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
+        const auto shape = shapeIn(box, theme::SPACE_4 + ARROW_SIZE);
+        ui::drawFrame(box, look);
+        if (listOpen) {
+            ui::drawOutline(box.Min, box.Max, theme::color::GREEN);
+        }
+        ui::drawText(box.Min.x + theme::SPACE_4, shape.x - theme::SPACE_3, box.Min.y, theme::CONTROL_HEIGHT, ui::valueColor(look), text);
+        if (option && look != ui::ValueLook::Invalid) {
+            ui::drawHapticShape(shape, patternOf(option->value), ImGui::GetColorU32(ui::valueColor(look)), ImGui::GetColorU32(theme::color::RULE));
+        }
+        ui::drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
+
+        const bool plays = option && patternOf(option->value).has_value();
+        const bool onPlay = boxes.onPlay(ImGui::GetIO().MousePos.x);
+        ImGui::BeginDisabled(!plays);
+        ui::drawButtonFrame(boxes.play, plays && row.pointed && onPlay, plays && row.held && onPlay);
+        ui::drawPlayIcon(boxes.play.GetCenter());
+        ImGui::EndDisabled();
+        return box.Min.x;
     }
 
     /**
@@ -139,11 +196,16 @@ namespace mods_config::ui
      * last. A press anywhere else on its row goes to the option after, and from the last to the first, as
      * in MCM's menu. A push of the thumbstick to a side, while the ray is on the row, goes to the option
      * before or after as the buttons do.
-     * A press on the row of a dropdown opens its list, which tells that the hand gets its pulse.
+     * A press on the row of a dropdown opens its list, which tells that the hand gets its pulse, and so does one on the
+     * row of a haptic but on its Play button, which the row plays.
      */
     std::optional<std::size_t> Choices::edit(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
         const std::optional<std::size_t> chosen, bool& pulse)
     {
+        if (setting.type == model::SettingType::Haptic) {
+            const bool onPlay = HapticBoxes(right, top).onPlay(ImGui::GetIO().MousePos.x);
+            return editList(setting, options, right, top, { .pointed = row.pointed, .held = row.held, .pressed = row.pressed && !onPlay }, chosen, pulse);
+        }
         if (setting.type == model::SettingType::Dropdown) {
             return editList(setting, options, right, top, row, chosen, pulse);
         }
@@ -168,7 +230,7 @@ namespace mods_config::ui
      * The list of a dropdown: a press on the row opens it, at the box of the dropdown. One with many
      * options scrolls, from the chosen option as it opens. A press on an option picks it and closes the
      * list, and a press beside the list closes it and does nothing else: ImGui gives the page under an open
-     * list no press.
+     * list no press. The list of a haptic has each pattern's shape after its option's text.
      * Returns the option that was picked, and none.
      */
     std::optional<std::size_t> Choices::editList(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
@@ -190,16 +252,29 @@ namespace mods_config::ui
         for (const auto& option : options) {
             texts.emplace_back(option.text);
         }
-        return drawList(id, dropdownBox(right, top), texts, chosen).picked;
+        OptionDecoration decorate;
+        if (setting.type == model::SettingType::Haptic) {
+            decorate = [&options](const std::size_t option, const ImRect& box, const bool isChosen) {
+                // on the chosen option's solid fill, the shape is in the color on green, over its base at 40%
+                const auto color = isChosen ? theme::color::ON_GREEN : theme::color::GREEN;
+                const auto base = isChosen ? (theme::color::ON_GREEN & ~IM_COL32_A_MASK) | (theme::color::RULE & IM_COL32_A_MASK) : theme::color::RULE;
+                drawHapticShape(shapeIn(box, theme::SPACE_4 - theme::SPACE_3), patternOf(options[option].value), ImGui::GetColorU32(color), ImGui::GetColorU32(base));
+            };
+        }
+        const auto drawn = drawList(id, dropdownBox(setting, right, top), texts, chosen, decorate);
+        _pointedOption = drawn.pointed;
+        return drawn.picked;
     }
 
     /**
      * The list of options of a dropdown that is open, by its popup's id, at the box of its dropdown, inside the window it
      * is drawn in: the page, or the editor of a binding. One with many options scrolls, from the chosen option as it
-     * opens. A press on an option picks it and closes the list. Nothing for a list that is not open.
+     * opens. A press on an option picks it and closes the list. Nothing for a list that is not open. An option can have
+     * more drawn after its text.
      * Returns the option that was picked, and the one the ray is on.
      */
-    ListDrawn drawList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen)
+    ListDrawn drawList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen,
+        const OptionDecoration& decorate)
     {
         if (!ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
             return {};
@@ -226,6 +301,9 @@ namespace mods_config::ui
                 drawn.picked = i;
                 ImGui::CloseCurrentPopup();
             }
+            if (decorate) {
+                decorate(i, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()), chosen == i);
+            }
             if (ImGui::IsItemHovered()) {
                 drawn.pointed = i;
             }
@@ -244,15 +322,20 @@ namespace mods_config::ui
      * its value's look, and none where it is at no option. Returns its left edge.
      * A stepper is the option in a box, between a button to the option before it and one to the option
      * after. A dropdown is the option at the left of its box, and an arrow at the right. The box has its
-     * outline in the full color while its list is open.
+     * outline in the full color while its list is open. A haptic is a dropdown with its pattern's shape before the
+     * arrow, and a Play button after its box. A value that is at no option shows the text given for it, as a haptic
+     * shows a name the framework does not have.
      */
     float Choices::draw(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
-        const std::optional<std::size_t> chosen, const ValueLook look) const
+        const std::optional<std::size_t> chosen, const ValueLook look, const std::string_view unchosenText) const
     {
-        const auto option = chosen ? std::string_view(options[*chosen].text) : std::string_view();
+        const auto option = chosen ? std::string_view(options[*chosen].text) : unchosenText;
 
+        if (setting.type == model::SettingType::Haptic) {
+            return drawHaptic(HapticBoxes(right, top), option, chosen ? &options[*chosen] : nullptr, look, isListOpen(setting), row);
+        }
         if (setting.type == model::SettingType::Dropdown) {
-            const auto box = dropdownBox(right, top);
+            const auto box = dropdownBox(setting, right, top);
             const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
             drawFrame(box, look);
             if (isListOpen(setting)) {
@@ -282,6 +365,7 @@ namespace mods_config::ui
     {
         if (!_openSeen) {
             _open = nullptr;
+            _pointedOption.reset();
         }
     }
 
@@ -310,6 +394,7 @@ namespace mods_config::ui
     {
         _open = nullptr;
         _openSeen = false;
+        _pointedOption.reset();
         _close = true;
         _step = 0;
     }

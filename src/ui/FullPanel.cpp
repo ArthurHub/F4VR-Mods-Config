@@ -632,6 +632,7 @@ namespace mods_config::ui
         _leaving.reset();
         _pageChanged = true;
         _pressActed = false;
+        _hapticPlayed.reset();
         _thumbstickSideValue = 0.0f;
         _modPage.reset();
         _helpLine.clear();
@@ -659,6 +660,7 @@ namespace mods_config::ui
         }
 
         _pressActed = false;
+        _hapticPlayed.reset();
         if (auto* const store = selectedStore()) {
             // the states of the mod's client are asked again in each frame
             store->startFrame();
@@ -730,6 +732,7 @@ namespace mods_config::ui
                 auto drawn = _modPage.draw(mod, *selectedPage(), storeOf(mod), _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
+                _hapticPlayed = drawn.haptic;
             } else {
                 auto drawn = _frontPage.draw(frontPageMods());
                 pointed = std::move(drawn.pointed);

@@ -895,6 +895,41 @@ TEST_CASE("FullPanel render: the bindings of the config spec showcase, one pendi
     WARN("Saved " << renderToFile(panel, "config-spec-bindings", ImVec2(650.0f, 546.0f)));
 }
 
+TEST_CASE("FullPanel render: the haptics of the config spec showcase, one pending, with the ray on Play, and the list of one open", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    const auto panelOf = [&mods, &store] {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods(mods);
+        // the page Haptics of Detailed Examples
+        panel.select({ .mod = 0, .page = { 1, 11 } });
+        return panel;
+    };
+    // where a control ends at the right, and the rows of the page under its heading
+    const float right = test_panel::PANEL_WIDTH - test_panel::CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2 - theme::CONTROL_HEIGHT - theme::SPACE_2;
+    const auto row = [](const int place) {
+        return pageRow(place).y + theme::SPACE_6;
+    };
+
+    auto panel = panelOf();
+    const auto& haptics = std::get<model::Group>(panel.mods()[0].pages[1].pages[11].items[0]);
+    CHECK(store.set(std::get<model::Setting>(haptics.items[0]), "Success"s));
+    WARN("Saved " << renderToFile(panel, "config-spec-haptics", ImVec2(right - theme::CONTROL_HEIGHT * 0.5f, row(1))));
+
+    // the list of the second, with the ray on an option of it
+    auto listed = panelOf();
+    const auto open = [&listed, &row] {
+        for (const bool held : { false, false, true, false, false }) {
+            test_panel::drawFrame(listed, ImVec2(700.0f, row(1)), held);
+        }
+    };
+    WARN("Saved " << renderToFile(listed, "config-spec-haptics-list", ImVec2(right - 150.0f, row(1) + theme::ROW_PITCH * 2.0f), false, open));
+}
+
 TEST_CASE("FullPanel render: the editor of a binding under its row and over it, with the ray on a part, and a list of it open", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);

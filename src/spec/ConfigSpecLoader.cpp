@@ -22,6 +22,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/Haptics.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
 #include "vrcf/InputBindingParser.h"
@@ -674,6 +675,7 @@ namespace
         SettingTypeName{ "dropdown", model::SettingType::Dropdown },
         SettingTypeName{ "textinput", model::SettingType::TextInput },
         SettingTypeName{ "cf.inputBinding", model::SettingType::InputBinding },
+        SettingTypeName{ "cf.haptic", model::SettingType::Haptic },
     };
 
     /**
@@ -697,16 +699,19 @@ namespace
     /**
      * What a setting's value is, by its `valueType`. One with none, or with one that is not a type, has the
      * type of its control: a bool for a switcher, a number for a slider, the place of an option for a choice,
-     * and a text for a text input. One that is not a type is a warning. A binding is the text of its table, so its
-     * `valueType` is a string, and another is a warning too.
+     * and a text for a text input. One that is not a type is a warning. A binding is the text of its table and a
+     * haptic the name of its pattern, so their `valueType` is a string, and another is a warning too.
      */
     model::StoredType loadValueType(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
     {
         const auto name = getText(row, "valueType");
-        if (type == model::SettingType::InputBinding) {
+        if (type == model::SettingType::InputBinding || type == model::SettingType::Haptic) {
             if (row.contains("valueType") && name != "string") {
                 const Into into(reading, "valueType");
-                reading.report(model::Severity::Warning, std::format("Its valueType {} is not string, which a binding is: it is read as string.", row["valueType"].dump()));
+                reading.report(model::Severity::Warning,
+                    std::format("Its valueType {} is not string, which a {} is: it is read as string.",
+                        row["valueType"].dump(),
+                        type == model::SettingType::Haptic ? "haptic" : "binding"));
             }
             return model::StoredType::String;
         }
@@ -892,7 +897,7 @@ namespace
      * choice: its own `options`, the shared list
      * its `sharedOptions` names, where it reads them in the game, or that its mod's client gives them, with a
      * `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
-     * is no whole number above 0 is none.
+     * is no whole number above 0 is none. A haptic's options are the menu's: None and the framework's patterns.
      * A choice with none of them has no options, and is reported, so it is disabled.
      */
     model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, ConfigSpecReading& reading)
@@ -921,6 +926,9 @@ namespace
             valueOptions.hands = loadBindingWords<vrcf::Hand>(*found, "hands", vrcf::parseHand, "a hand", reading);
             valueOptions.types = loadBindingWords<vrcf::ActivationType>(*found, "types", vrcf::parseActivationType, "a type", reading);
             valueOptions.buttons = loadBindingWords<vr::EVRButtonId>(*found, "buttons", vrcf::parseButton, "a button", reading);
+        }
+        if (type == model::SettingType::Haptic) {
+            valueOptions.options = model::hapticChoiceOptions();
         }
         if (!isChoice(type)) {
             return valueOptions;
@@ -1041,6 +1049,27 @@ namespace
     }
 
     /**
+     * The `default` of a haptic: the name of a pattern, as the framework reads it, so `"double click"` is DoubleClick,
+     * and `"none"` for no pattern. None for a default that is no text, or names no pattern, which is an error of the
+     * config spec that is reported, and the setting then has no Reset.
+     */
+    std::optional<model::Value> loadHapticDefault(const Json& row, ConfigSpecReading& reading)
+    {
+        const auto found = row.find("default");
+        if (found == row.end() || !found->is_string()) {
+            reading.report(model::Severity::Error, R"(It has no default haptic, a text as "Tick" or "none": it has no Reset.)");
+            return std::nullopt;
+        }
+        model::Value value = model::canonicalHaptic(found->get<std::string>());
+        if (!model::findHaptic(value)) {
+            const Into into(reading, "default");
+            reading.report(model::Severity::Error, std::format("Its default {} is not a haptic pattern of the framework: it has no Reset.", found->dump()));
+            return std::nullopt;
+        }
+        return value;
+    }
+
+    /**
      * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
      * with one that is not one of its values: outside its limits, of a length it does not allow, or none of
      * its options. Both are errors of the config spec that are reported, and the setting then has no Reset.
@@ -1050,6 +1079,9 @@ namespace
     {
         if (type == model::SettingType::InputBinding) {
             return loadBindingDefault(row, options, reading);
+        }
+        if (type == model::SettingType::Haptic) {
+            return loadHapticDefault(row, reading);
         }
         auto value = getValue(row, "default", valueType);
         if (!value) {

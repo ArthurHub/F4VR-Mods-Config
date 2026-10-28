@@ -19,3 +19,7 @@ fPastMost = 2.0
 [Bindings]
 kTypo = { hand = "offhand", type = "tap", button = "thumbstik" }
 kUntaken = { hand = "primary", type = "tap", button = "grip" }
+
+# a haptic of a name the framework does not have
+[Haptics]
+sTypo = "Tik"

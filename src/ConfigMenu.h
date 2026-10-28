@@ -74,6 +74,7 @@ namespace mods_config
         void applyPanelConfig();
         void createWristButtons();
         static void pulse();
+        static vrcf::Hand pointingHand();
         static float getThumbstickSideValue();
         void drawImage(const model::Image& image, const ImVec2& min, const ImVec2& max);
         std::optional<ImVec2> textureSize(const std::string& texture);

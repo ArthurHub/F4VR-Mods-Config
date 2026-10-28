@@ -53,6 +53,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
   ${SOURCE_DIR}/model/ClientCalls.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
+  ${SOURCE_DIR}/model/Haptics.cpp
   ${SOURCE_DIR}/model/InputBindings.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp
@@ -72,6 +73,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/Drawing.cpp
   ${SOURCE_DIR}/ui/FrontPage.cpp
   ${SOURCE_DIR}/ui/FullPanel.cpp
+  ${SOURCE_DIR}/ui/Haptics.cpp
   ${SOURCE_DIR}/ui/HelpLine.cpp
   ${SOURCE_DIR}/ui/HelpPage.cpp
   ${SOURCE_DIR}/ui/MenuControls.cpp

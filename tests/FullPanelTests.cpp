@@ -4497,6 +4497,89 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
 namespace
 {
     /**
+     * A press at a place on the panel. Returns the pattern a press on a haptic played in one of its frames, and none.
+     */
+    std::optional<vrcf::HapticPattern> pressPlays(FullPanel& panel, const ImVec2 at)
+    {
+        std::optional<vrcf::HapticPattern> played;
+        for (const bool pressed : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, at, pressed);
+            if (panel.hapticPlayed()) {
+                played = panel.hapticPlayed();
+            }
+        }
+        return played;
+    }
+
+    /**
+     * The middle of the Play button of a haptic of a row of a page, by the row's place among the rows: after its frame.
+     */
+    ImVec2 playButton(const int place)
+    {
+        return { controlRight() - theme::CONTROL_HEIGHT * 0.5f, pageRow(place).y };
+    }
+}
+
+TEST_CASE("FullPanel: a haptic plays its pattern on Play and as an option is picked, and the help line has each option's help")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE,
+        "[Sphere]\r\n"
+        "sEntry = \"Tick\"\r\n"
+        "sNone = \"none\"\r\n"
+        "sTypo = \"Tik\"\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.haptic", "text": "Entry", "help": "Plays as a hand enters.", "default": "Tick", "storage": { "path": ["Sphere", "sEntry"] } },
+            { "type": "cf.haptic", "text": "None", "default": "Tick", "storage": { "path": ["Sphere", "sNone"] } },
+            { "type": "cf.haptic", "text": "Typo", "default": "Tick", "storage": { "path": ["Sphere", "sTypo"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& entry = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Entry: Plays as a hand enters. (Default: Tick)");
+    point(panel, playButton(0));
+    CHECK(panel.helpLine().text() == "Entry: Plays Tick on the hand that points.");
+
+    // Play plays the value, and opens no list
+    CHECK(pressPlays(panel, playButton(0)) == vrcf::HapticPattern::Tick);
+    CHECK_FALSE(isListOpen());
+    CHECK_FALSE(store.isDirty(entry));
+
+    // the list has each option's help, with its length, and a pick plays it, and sets it
+    CHECK_FALSE(pressPlays(panel, pageRow(0)));
+    CHECK(isListOpen());
+    point(panel, listOption(0, 3));
+    CHECK(panel.helpLine().text() == "Double click: Two quick taps. For turning something on, or a change of mode. 0.11 s.");
+    CHECK(pressPlays(panel, listOption(0, 3)) == vrcf::HapticPattern::DoubleClick);
+    CHECK_FALSE(isListOpen());
+    CHECK(store.value(entry).value == model::Value("DoubleClick"s));
+    CHECK(store.isDirty(entry));
+
+    // None and a name the framework does not have play nothing, and a press on Play opens no list
+    CHECK_FALSE(pressPlays(panel, playButton(1)));
+    CHECK_FALSE(isListOpen());
+    CHECK_FALSE(pressPlays(panel, playButton(2)));
+    CHECK_FALSE(isListOpen());
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Typo: Invalid: Tik is not a haptic pattern, so none plays. Pick one, or Reset it to Tick.");
+}
+
+namespace
+{
+    /**
      * The window of a popup that is open, by its width: the editor of a binding, or a list over it.
      */
     const ImGuiWindow* openPopup(const float width)

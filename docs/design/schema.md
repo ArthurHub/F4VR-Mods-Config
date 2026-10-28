@@ -277,6 +277,7 @@ Every entry in a `content` array has a `type`, which says what the row is. The n
 
 - `switcher`, `slider`, `stepper`, `dropdown`, `textinput`: a setting, which is an editable value bound to a file, a global or a property of a script. The type is its control.
 - `cf.inputBinding`: a setting of a CommonFramework controller binding; see [CommonFramework values](#commonframework-values).
+- `cf.haptic`: a setting of a CommonFramework haptic pattern; see [CommonFramework values](#commonframework-values).
 - `section`: a heading with its own rows; see [Sections](#sections).
 - `button`: runs an action.
 - `text`, `spacer`, `image`: rows that hold no value; see [Text, spacers and images](#text-spacers-and-images).
@@ -342,6 +343,17 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
   "default": { "hand": "any", "type": "tap", "button": "grip" },
   "valueOptions": { "types": ["tap", "press", "release", "longpress", "double"], "buttons": ["grip", "a", "b", "thumbstick"] },
   "storage": { "path": ["ModsConfigFO4VR", "kBackBinding"] }
+}
+```
+
+`cf.haptic` is a haptic pattern, the text of an `s` key: the name of a pattern of the framework's library, or `"none"`. Its `valueType` is `string`, and its options are the menu's, None and the framework's patterns, so it has no `valueOptions`. A text is read as the framework reads it, with no regard to case, spaces, underscores and hyphens, so `"double click"` is DoubleClick, and `"off"` and an empty text are none. A changed value is written as the library names it. Its `default` is the name of a pattern: one the framework does not have is an error, and it then has no Reset. A name the framework does not have in the file is invalid.
+
+```json
+{
+  "type": "cf.haptic",
+  "text": "Entry haptic",
+  "default": "Tick",
+  "storage": { "path": ["HeadActivation", "sEntryHaptic"] }
 }
 ```
 

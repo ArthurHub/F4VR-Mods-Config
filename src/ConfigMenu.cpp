@@ -446,7 +446,10 @@ namespace mods_config
         _panel->setContent([this] {
             _fullPanel.setThumbstickSideValue(getThumbstickSideValue());
             _fullPanel.draw();
-            if (_fullPanel.pressActed()) {
+            // a pattern a press played is its feedback, in place of the pulse
+            if (const auto played = _fullPanel.hapticPlayed()) {
+                vrcf::VRHaptics.trigger(pointingHand(), *played);
+            } else if (_fullPanel.pressActed()) {
                 pulse();
             }
         });
@@ -535,7 +538,15 @@ namespace mods_config
         if (!g_config.pressHaptic) {
             return;
         }
-        vrcf::VRHaptics.trigger(imgui::pointer().state().primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand, *g_config.pressHaptic);
+        vrcf::VRHaptics.trigger(pointingHand(), *g_config.pressHaptic);
+    }
+
+    /**
+     * The hand that points at the panel, which gets the pulse of its press and plays the pattern a haptic's press plays.
+     */
+    vrcf::Hand ConfigMenu::pointingHand()
+    {
+        return imgui::pointer().state().primaryHand ? vrcf::Hand::Primary : vrcf::Hand::Offhand;
     }
 
     /**

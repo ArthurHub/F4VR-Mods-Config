@@ -30,6 +30,9 @@ namespace mods_config::model
         TextInput,
         // a controller binding of a CommonFramework mod: its value is the TOML text of the binding's inline table
         InputBinding,
+        // a haptic of a CommonFramework mod: its value is the name of a pattern of the framework's library, or `none`,
+        // which are its options
+        Haptic,
     };
 
     /**

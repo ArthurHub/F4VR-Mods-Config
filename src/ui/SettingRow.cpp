@@ -15,10 +15,12 @@
 
 #include "Bindings.h"
 #include "Drawing.h"
+#include "Haptics.h"
 #include "Numbers.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
 #include "model/Conditions.h"
+#include "model/Haptics.h"
 
 namespace
 {
@@ -55,6 +57,7 @@ namespace
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
+        case model::SettingType::Haptic:
             shown = ui::chosenOption(store.options(setting), { .value = *value, .available = true, .reason = {} }).has_value();
             break;
         case model::SettingType::TextInput:
@@ -92,6 +95,15 @@ namespace
         }
         const auto option = ui::chosenOption(options, { .value = value, .available = true, .reason = {} });
         return option ? options[*option].text : std::string();
+    }
+
+    /**
+     * The pattern a value of a haptic plays, and none for None and for a value that is no haptic.
+     */
+    std::optional<vrcf::HapticPattern> hapticPattern(const model::Value& value)
+    {
+        const auto* haptic = model::findHaptic(value);
+        return haptic ? haptic->pattern : std::nullopt;
     }
 
     /**
@@ -170,6 +182,7 @@ namespace
             dirty = stored.available && context.store->isDirty(setting);
             onSlot = (dirty || defaultValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
             slotHeld = onSlot && io.MouseClickedPos[ImGuiMouseButton_Left].x >= slotBox.Min.x - theme::SPACE_1;
+            onPlay = setting.type == model::SettingType::Haptic && row.pointed && !onSlot && ui::HapticBoxes(right, pos.y).onPlay(io.MousePos.x);
             resets = resetsNow();
         }
 
@@ -220,6 +233,9 @@ namespace
         bool onSlot = false;
         bool slotHeld = false;
         bool resets = false;
+
+        // the ray is on the Play button of a haptic
+        bool onPlay = false;
     };
 
     /**
@@ -233,6 +249,9 @@ namespace
         // the control is a binding that can be edited, which its help says in full
         bool binding = false;
 
+        // the control is a haptic that can be edited, whose Play button plays its value
+        bool haptic = false;
+
         // the value of a slider, as a drag has it
         float sliderValue = 0.0f;
         std::optional<std::size_t> chosen;
@@ -241,6 +260,9 @@ namespace
 
         // a press changed a value or began an interaction
         bool pulse = false;
+
+        // the pattern a press played
+        std::optional<vrcf::HapticPattern> played;
     };
 
     /**
@@ -266,6 +288,7 @@ namespace
      * Edits the control of a setting row with the pointer, and sets a change in the store. It runs before the row is
      * known to be shown: a slider that is dragged out of the page is still held, the list of a dropdown and the editor
      * of a binding are not a part of their row, and the edit of a text lasts while its row is scrolled out of the page.
+     * A haptic plays its value as its Play button is pressed, and an option as it is picked.
      */
     ControlEdited editControl(SettingRowState& state)
     {
@@ -276,13 +299,16 @@ namespace
         const auto* number = std::get_if<float>(&state.stored.value);
         const bool isSwitcher = state.editable && setting.type == model::SettingType::Switcher && on;
         const bool isSlider = state.editable && setting.type == model::SettingType::Slider && number && options.max > options.min;
-        const bool isChoice = state.editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown) && !state.choiceOptions.empty();
+        const bool isHaptic = state.editable && setting.type == model::SettingType::Haptic;
+        const bool isChoice =
+            state.editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown || isHaptic) && !state.choiceOptions.empty();
         const bool isText = state.editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(state.stored.value);
         const bool isBinding = state.editable && setting.type == model::SettingType::InputBinding && std::holds_alternative<std::string>(state.stored.value);
         const bool rowPressed = state.row.pressed && !state.onSlot;
 
         ControlEdited edited{ .editable = isSwitcher || isSlider || isChoice || isText || isBinding,
             .binding = isBinding,
+            .haptic = isHaptic && isChoice,
             .sliderValue = number ? *number : options.min,
             .chosen = ui::chosenOption(state.choiceOptions, state.stored),
             .choiceRow = { .pointed = isChoice && state.row.pointed, .held = isChoice && state.row.held, .pressed = isChoice && rowPressed } };
@@ -306,7 +332,13 @@ namespace
                 edited.chosen = picked;
                 pulse = true;
             }
-            edited.pulse = edited.pulse || pulse;
+            // a haptic plays the option picked, also the one it is at already, and its value on Play
+            if (edited.haptic && picked) {
+                edited.played = hapticPattern(state.choiceOptions[*picked].value);
+            } else if (edited.haptic && rowPressed && state.onPlay) {
+                edited.played = hapticPattern(state.stored.value);
+            }
+            edited.pulse = edited.pulse || pulse || edited.played.has_value();
         }
         if (isText) {
             bool pulse = false;
@@ -328,7 +360,8 @@ namespace
     /**
      * What the help line says of a setting row the ray is on, on its value as it is after a press in this frame: why
      * the value is not available, what the slot does while the ray is on it, why the value is invalid, or the row's
-     * help, with its number, the bindings it is the same press as, and its default.
+     * help, with its number, the bindings it is the same press as, and its default. On a haptic's Play button it is
+     * what Play plays, and while its list is open it is the help of the option the ray is on.
      */
     ui::PointedRow pointedRow(SettingRowState& state, const ControlEdited& edited, const std::string_view warning, const std::optional<model::Applies> applies)
     {
@@ -338,8 +371,15 @@ namespace
         const auto nameOf = [&](const model::Value& value) {
             return valueName(setting, state.choiceOptions, value, context.leftHanded);
         };
+        if (edited.haptic && context.choices.isListOpen(setting)) {
+            if (const auto option = context.choices.pointedOption(); option && *option < state.choiceOptions.size()) {
+                const auto* haptic = model::findHaptic(state.choiceOptions[*option].value);
+                return ui::PointedRow{ .text = state.choiceOptions[*option].text, .help = haptic ? model::hapticHelp(*haptic) : std::string() };
+            }
+        }
         std::string help;
         bool invalid = false;
+        const auto playing = edited.haptic && state.onPlay ? hapticPattern(stored.value) : std::nullopt;
         if (!stored.available && !stored.reason.empty()) {
             help = std::move(stored.reason);
         } else if (state.discards() && state.onSlot) {
@@ -348,11 +388,16 @@ namespace
             help = savedName.empty() ? std::string("Discard the change.") : std::format("Discard the change, back to {}.", savedName);
         } else if (state.resets && state.onSlot) {
             help = std::format("Reset to {}", nameOf(*state.defaultValue));
+        } else if (playing) {
+            help = std::format("Plays {} on the hand that points.", nameOf(stored.value));
         } else if (!stored.reason.empty()) {
             help = std::move(stored.reason);
             invalid = stored.invalid;
             if (edited.binding && invalid) {
                 help += state.defaultValue ? std::format(" Change the binding, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Change the binding.");
+            }
+            if (edited.haptic && invalid) {
+                help += state.defaultValue ? std::format(" Pick one, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Pick one.");
             }
         } else {
             const auto defaultText = state.defaultValue ? std::format("(Default: {})", nameOf(*state.defaultValue)) : std::string();
@@ -394,6 +439,13 @@ namespace
         case model::SettingType::Dropdown:
             left = context.choices.draw(setting, state.choiceOptions, right, top, edited.choiceRow, state.showsValue ? edited.chosen : std::nullopt, look);
             break;
+        case model::SettingType::Haptic: {
+            // a name the framework does not have shows as its file has it
+            const auto* text = std::get_if<std::string>(&stored.value);
+            const auto unchosen = stored.available && text ? std::string_view(*text) : std::string_view();
+            left = context.choices.draw(setting, state.choiceOptions, right, top, edited.choiceRow, state.showsValue ? edited.chosen : std::nullopt, look, unchosen);
+            break;
+        }
         case model::SettingType::TextInput: {
             // one whose value is not available has an empty box
             const auto* text = std::get_if<std::string>(&stored.value);
@@ -457,6 +509,7 @@ namespace mods_config::ui
         drawn.pressActed = pressSlot(state);
         auto edited = editControl(state);
         drawn.pressActed = drawn.pressActed || edited.pulse;
+        drawn.haptic = edited.played;
 
         // on the pending value, as it is after a press in this frame: a slider, a switcher and a choice can be set in
         // this frame too

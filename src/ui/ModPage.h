@@ -13,6 +13,7 @@
 #include "TextInputs.h"
 #include "model/ConfigDefinition.h"
 #include "model/Store.h"
+#include "vrcf/VRControllersHaptic.h"
 
 namespace mods_config::ui
 {
@@ -29,6 +30,9 @@ namespace mods_config::ui
         // a dropdown, started the edit of a text input, ran the action of a button, or folded or opened a
         // section. Or the thumbstick stepped a slider or a stepper
         bool pressActed = false;
+
+        // the pattern a press on a haptic played, which is its feedback in place of the pulse
+        std::optional<vrcf::HapticPattern> haptic;
     };
 
     /**

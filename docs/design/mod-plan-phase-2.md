@@ -185,7 +185,7 @@ The milestone comes before the controls of milestone 9, which are for tuning a v
 | --- | ---- | -------------------------------------------------------------------------------------- | ------ |
 | M74 | mod  | docs: the CommonFramework controls, and how each key of Immersive Flashlight is edited | todo   |
 | M75 | mod  | Color                                                                                  | todo   |
-| M77 | mod  | Haptic                                                                                 | todo   |
+| M77 | mod  | Haptic                                                                                 | done   |
 | M78 | mod  | InputBinding                                                                           | done   |
 | M79 | mod  | Transform                                                                              | todo   |
 | M80 | mod  | ActivationSphere, a whole section                                                      | todo   |
@@ -207,6 +207,8 @@ The milestone is measured by Immersive Flashlight's TOML. Beside numbers, switch
 M74 settles what the design leaves open: a control that is bound to a whole section, and whether a transform is moved in the world with the framework's live tuning.
 
 The commits after M74 are split once it is written. Transform, InputBinding and ActivationSphere are each likely two: edited in the panel, then tuned in the world. Each of the values that are left is a commit of its own.
+
+M77 comes before M74 too, as its design is done. Its config spec type is `cf.haptic`, a text of the framework's pattern names, whose options are the menu's. Its row is a dropdown that shows each pattern's shape, with Play, and a press that plays a pattern is the press's feedback in place of the menu's pulse. Mods Config FO4 VR's own config spec gets its press haptic, and the config spec showcase a page of haptics.
 
 M78 comes before M74, as FRIK's config spec needs it, and its design is done. Its config spec type is `cf.inputBinding`, as the value is in the framework's form. It is two commits: the first reads a binding and shows it as its icons and its sentence, invalid with the framework's reason, and names the bindings of its mod that are the same press, and the second opens its editor. Mods Config FO4 VR's own config spec gets its two bindings, and the config spec showcase a page of them.
 
