@@ -49,6 +49,7 @@ namespace mods_config
         panelDistance = (std::max)(panel["fDistance"].value_or(160.0f), 20.0f);
         panelElevation = panel["fHeight"].value_or(-40.0f);
         panelTilt = panel["fTilt"].value_or(6.0f);
+        panelCurve = (std::max)(panel["fCurve"].value_or(1.0f), 0.0f);
         // a panel smaller than this has no room for the tree of the mods beside a page, and for the title bar and the footer
         panelWidth = (std::max)(panel["fPanelWidth"].value_or(30.0f), 16.0f);
         panelHeight = (std::max)(panel["fPanelHeight"].value_or(16.0f), 10.0f);

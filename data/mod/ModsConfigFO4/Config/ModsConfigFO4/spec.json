@@ -130,6 +130,15 @@
             {
               "type": "slider",
               "valueType": "float",
+              "text": "Curve",
+              "help": "How much the menu curves around you: at 1 its sides are as far from your eyes as its middle, higher is flatter, and 0 is a flat menu.",
+              "default": 1.0,
+              "valueOptions": { "min": 0.0, "max": 3.0, "step": 0.05 },
+              "storage": { "path": ["Panel", "fCurve"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
               "text": "Recenter distance",
               "help": "The menu is put in front of you again when you are further than this from it, in game units. 0 leaves it where it is. A change applies the next time the menu opens.",
               "default": 350.0,

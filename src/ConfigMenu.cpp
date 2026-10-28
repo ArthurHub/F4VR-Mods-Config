@@ -27,11 +27,6 @@ using namespace vrui;
 
 namespace
 {
-    // The radius the panel is curved at toward the player, for its distance: a higher radius is a flatter
-    // panel. At 1 the sides are as far from the player as the middle. It is a little flatter than that, as
-    // tuned in the headset: 25 of the panel's own units at the shipped distance and scale, which are 20.
-    constexpr float PANEL_CURVE_BY_DISTANCE = 1.25f;
-
     constexpr float WRIST_BUTTON_WIDTH = 3.0f;
     constexpr float WRIST_BUTTON_HEIGHT = 2.5f;
     constexpr float WRIST_BUTTON_TEXT_HEIGHT = 0.5f;
@@ -525,8 +520,8 @@ namespace mods_config
         _panel->setScale(g_config.panelScale);
         _panel->setPosition(0, g_config.panelDistance, g_config.panelElevation);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(g_config.panelTilt, 0, 0));
-        // the radius is in the panel's own units, so the curve is the same at any scale and distance
-        _panel->setCurveRadius(PANEL_CURVE_BY_DISTANCE * g_config.panelDistance / g_config.panelScale);
+        // the radius is in the panel's own units, so the curve is the same at any scale and distance; 0 is flat
+        _panel->setCurveRadius(g_config.panelCurve * g_config.panelDistance / g_config.panelScale);
         g_uiManager->setWorldMoveBinding(g_config.moveBinding);
         g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
     }

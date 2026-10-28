@@ -50,6 +50,10 @@ fHeight = -40.0
 # How far the top of the menu is tilted back, in degrees.
 fTilt = 6.0
 
+# How much the menu curves around you: at 1 its sides are as far from your eyes as its middle, higher is
+# flatter, and 0 is a flat menu. It keeps its curve at any fDistance and fScale.
+fCurve = 1.0
+
 # How much the menu's background hides the world behind it, 0 to 255: 0 is a clear menu, and 255 one you
 # do not see through. Raise it if the text is hard to read against a bright sky.
 iBackgroundOpacity = 217

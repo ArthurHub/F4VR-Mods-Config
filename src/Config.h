@@ -37,6 +37,10 @@ namespace mods_config
         float panelElevation = 0.0f;
         float panelTilt = 0.0f;
 
+        // How much the panel curves toward the player, as its radius over its distance: at 1 its sides are as far from
+        // the player as its middle, higher is flatter, and 0 is flat.
+        float panelCurve = 0.0f;
+
         // The room on the panel for its rows, in the panel's own units, which the scale makes larger: a larger
         // panel shows more of a page, with its text at the same size.
         float panelWidth = 0.0f;
