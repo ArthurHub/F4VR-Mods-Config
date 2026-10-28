@@ -1131,7 +1131,7 @@ TEST_CASE("FullPanel: the help line has the help of the title bar's button the r
     drawFrames(panel, 2);
 
     point(panel, titleButton(HELP_BUTTON));
-    CHECK(panel.helpLine().text() == "Help: What each control of the menu does, with the buttons your config has for it.");
+    CHECK(panel.helpLine().text() == "Help: How the menu works, with the buttons your config has.");
     point(panel, titleButton(MINIMIZE_BUTTON));
     CHECK(panel.helpLine().text() == "Minimize: Hides the menu, as you left it. Restore on your offhand wrist shows it again.");
     point(panel, titleButton(CLOSE_BUTTON));

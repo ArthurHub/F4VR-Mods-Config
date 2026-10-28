@@ -25,52 +25,6 @@ namespace
     using namespace mods_config;
 
     /**
-     * The Reset icon around a point: most of a circle, open at its left, with an arrowhead at its upper end.
-     */
-    void drawResetIcon(const ImVec2& center)
-    {
-        // as the design system draws it, in a box of 24: the circle from its lower left end around its
-        // right to its upper left end, in radians
-        constexpr float HALF_BOX = 12.0f;
-        constexpr float RADIUS = 7.5f;
-        constexpr float ARC_START = 2.744f;
-        constexpr float ARC_END = -2.396f;
-        const ImVec2 origin(center.x - HALF_BOX, center.y - HALF_BOX);
-        const auto at = [&origin](const float x, const float y) {
-            return ImVec2(origin.x + x, origin.y + y);
-        };
-        const auto color = ImGui::GetColorU32(theme::color::GREEN);
-        auto* drawList = ImGui::GetWindowDrawList();
-        drawList->PathArcTo(at(12.1f, 12.1f), RADIUS, ARC_START, ARC_END);
-        drawList->PathLineTo(at(4.0f, 10.0f));
-        drawList->PathStroke(color, ui::ICON_THICKNESS);
-        const std::array head{ at(4.0f, 5.0f), at(4.0f, 10.0f), at(9.0f, 10.0f) };
-        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ui::ICON_THICKNESS);
-    }
-
-    /**
-     * The Discard icon around a point, an undo: an arrowhead to the left, whose tail turns back down in a half circle,
-     * in amber as the pending change it takes back.
-     */
-    void drawDiscardIcon(const ImVec2& center)
-    {
-        // as the design system draws it, in a box of 24
-        constexpr float HALF_BOX = 12.0f;
-        const ImVec2 origin(center.x - HALF_BOX, center.y - HALF_BOX);
-        const auto at = [&origin](const float x, const float y) {
-            return ImVec2(origin.x + x, origin.y + y);
-        };
-        const auto color = ImGui::GetColorU32(theme::color::AMBER);
-        auto* drawList = ImGui::GetWindowDrawList();
-        drawList->PathLineTo(at(4.0f, 9.0f));
-        drawList->PathArcTo(at(14.0f, 14.0f), 5.0f, -IM_PI / 2.0f, IM_PI / 2.0f);
-        drawList->PathLineTo(at(8.0f, 19.0f));
-        drawList->PathStroke(color, ui::ICON_THICKNESS);
-        const std::array head{ at(9.0f, 4.0f), at(4.0f, 9.0f), at(9.0f, 14.0f) };
-        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ui::ICON_THICKNESS);
-    }
-
-    /**
      * Whether two values of a setting are the same one. Two numbers are, when they are as near as a number
      * and the text of it in a file.
      */
@@ -477,9 +431,9 @@ namespace
         ImGui::BeginDisabled(!active);
         ui::drawButtonFrame(state.slotBox, active && state.onSlot, active && state.onSlot && state.slotHeld && state.row.held);
         if (state.dirty) {
-            drawDiscardIcon(state.slotBox.GetCenter());
+            ui::drawDiscardIcon(state.slotBox.GetCenter());
         } else {
-            drawResetIcon(state.slotBox.GetCenter());
+            ui::drawResetIcon(state.slotBox.GetCenter());
         }
         ImGui::EndDisabled();
     }

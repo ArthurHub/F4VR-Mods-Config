@@ -178,6 +178,8 @@ namespace mods_config::ui
     void drawInvalidMark(const ImVec2& center);
     void drawWarningMark(const ImVec2& center);
     void drawInfoMark(const ImVec2& center);
+    void drawResetIcon(const ImVec2& center, float scale = 1.0f);
+    void drawDiscardIcon(const ImVec2& center, float scale = 1.0f);
     void drawMark(TextMark mark, const ImVec2& center);
     void drawFoldArrow(const ImVec2& topLeft, bool open, ImU32 color);
     void drawControlArrow(const ImVec2& center, ControlArrow arrow);

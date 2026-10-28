@@ -70,16 +70,41 @@ TEST_CASE("MenuControls: a button is named as the controller of its hand prints 
     CHECK(ui::eitherHandButtonName(vr::k_EButton_ApplicationMenu) == "the B or Y button");
 }
 
-TEST_CASE("MenuControls: the Help page has the controls of the config, and leaves out the ones it turns off")
+TEST_CASE("MenuControls: the Help page says a binding short, with no time, and a press of both hands as one")
+{
+    CHECK(ui::shortBindingSentence(OPEN_MENU, false) == "Long press both thumbsticks");
+    CHECK(ui::shortBindingSentence(OPEN_MENU, true) == "Long press both thumbsticks");
+    CHECK(ui::shortBindingSentence(MOVE, false) == "Long press the grip on either hand");
+    CHECK(ui::shortBindingSentence(
+              { .hand = Hand::Right, .type = ActivationType::Press, .button = vr::k_EButton_A, .modifier = vrcf::InputModifier{ .button = vr::k_EButton_A, .hand = Hand::Left } },
+              false) == "Press the A and X buttons");
+    CHECK(ui::shortBindingSentence(
+              { .hand = Hand::Offhand, .type = ActivationType::AxisDirection, .axis = vrcf::Axis::Thumbstick, .direction = vrcf::Direction::Left, .threshold = 0.5f },
+              false) == "Push the thumbstick left on the off hand");
+
+    // a button held on the same hand, or another button, is no press of both
+    CHECK(ui::shortBindingSentence({ .hand = Hand::Primary,
+                                       .type = ActivationType::LongPress,
+                                       .button = vr::k_EButton_SteamVR_Touchpad,
+                                       .modifier = vrcf::InputModifier{ .button = vr::k_EButton_SteamVR_Touchpad } },
+              false) == "Long press the thumbstick on the primary hand, holding the thumbstick");
+    CHECK(ui::shortBindingSentence({ .hand = Hand::Primary,
+                                       .type = ActivationType::Press,
+                                       .button = vr::k_EButton_SteamVR_Trigger,
+                                       .modifier = vrcf::InputModifier{ .button = vr::k_EButton_Grip, .hand = Hand::Offhand } },
+              false) == "Press the trigger on the primary hand, holding the grip on the off hand");
+}
+
+TEST_CASE("MenuControls: the Help page's Navigation has the controls of the config, and leaves out the ones it turns off")
 {
     const auto controls = ui::menuControls({ .openMenu = OPEN_MENU, .back = BACK, .move = MOVE, .recenter = RECENTER, .leftHanded = false });
-    CHECK(namesOf(controls) == Names{ "Point and press", "Scroll", "Step a value", "Back", "Move the menu", "Recenter", "Open and close the menu", "Minimize" });
-    CHECK(controls[3].text == "Tap the grip on either hand, pointing at the menu: one step back, and from the menu's front page the menu closes.");
-    CHECK(controls[4].text == "Long press the grip on either hand for 0.3 s, pointing at the menu: it follows the hand until you let go of the button.");
-    CHECK(controls[5].text == "Long press the thumbstick on the off hand: the menu is put in front of you again, also after you moved it.");
-    CHECK(controls[6].text == "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand. While the menu is minimized it shows it again.");
+    CHECK(namesOf(controls) == Names{ "Open and close", "Pointing at the menu", "Back", "Move the menu", "Recenter", "Minimize" });
+    CHECK(controls[0].text == "Long press both thumbsticks. While the menu is minimized it shows it again.");
+    CHECK(controls[2].text == "Tap the grip on either hand while pointing at the menu.");
+    CHECK(controls[3].text == "Long press the grip on either hand while pointing at the menu: it follows the hand until you let go.");
+    CHECK(controls[4].text == "Long press the thumbstick on the off hand: the menu is put in front of you again. It also comes back by itself when you walk away from it.");
 
     const InputBinding none{ .type = ActivationType::Disabled };
-    const auto fewer = ui::menuControls({ .openMenu = OPEN_MENU, .back = none, .move = none, .recenter = none, .leftHanded = false });
-    CHECK(namesOf(fewer) == Names{ "Point and press", "Scroll", "Step a value", "Open and close the menu", "Minimize" });
+    const auto fewer = ui::menuControls({ .openMenu = none, .back = none, .move = none, .recenter = none, .leftHanded = false });
+    CHECK(namesOf(fewer) == Names{ "Pointing at the menu", "Minimize" });
 }

@@ -380,8 +380,9 @@ namespace mods_config
     }
 
     /**
-     * Asks the menu to show itself again where it was, for a mod's client whose UI closed: only while it is minimized,
-     * so a menu the player showed or closed is left as it is. Its values are read again then.
+     * Asks the menu to show itself again where it was, as Restore on the wrist and the opening gesture do, and a mod's
+     * client whose UI closed: only while it is minimized, so a menu the player showed or closed is left as it is. Its
+     * values are read again then, as the mod's own UI can have changed them.
      */
     void ConfigMenu::requestRestore()
     {
@@ -616,7 +617,7 @@ namespace mods_config
         restoreButton->setImage(RESTORE_ICON);
         restoreButton->setBottomText("RESTORE");
         restoreButton->setOnPressHandler([this](UIButtonPanel*) {
-            setMinimized(false);
+            requestRestore();
         });
 
         const auto exitButton = std::make_shared<UIButtonPanel>("ModsConfigFO4_ExitButton", WRIST_BUTTON_WIDTH, WRIST_BUTTON_HEIGHT);

@@ -120,65 +120,63 @@ namespace
             return {};
         }
     }
-}
 
-namespace mods_config::ui
-{
     /**
-     * The controls of the menu that its Help page tells, with the buttons and the bindings of the config, as
-     * the player's controllers print them. A control the config turns off is left out.
+     * Whether a binding is a press of one button on both controllers, the button with the same button of the other
+     * hand held: "Long press both thumbsticks". Either hand is on neither.
      */
-    std::vector<ControlHelp> menuControls(const MenuButtons& buttons)
+    bool isBothHandsChord(const vrcf::InputBinding& binding, const bool leftHanded)
     {
-        std::vector<ControlHelp> controls{
-            { .name = "Point and press", .text = "Point at the menu with either hand, and pull the trigger on what the ray is on." },
-            { .name = "Scroll", .text = "Push the thumbstick up or down on the hand that points: the list the ray is on scrolls." },
-            { .name = "Step a value", .text = "Push the thumbstick left or right on the hand that points: the slider or the choice the ray is on steps." },
-        };
-        if (buttons.back.isEnabled()) {
-            controls.push_back({ .name = "Back",
-                .text =
-                    std::format("{}, pointing at the menu: one step back, and from the menu's front page the menu closes.", bindingSentence(buttons.back, buttons.leftHanded)) });
-        }
-        if (buttons.move.isEnabled()) {
-            controls.push_back({ .name = "Move the menu",
-                .text = std::format("{}, pointing at the menu: it follows the hand until you let go of the button.", bindingSentence(buttons.move, buttons.leftHanded)) });
-        }
-        if (buttons.recenter.isEnabled()) {
-            controls.push_back({ .name = "Recenter",
-                .text = std::format("{}: the menu is put in front of you again, also after you moved it.", bindingSentence(buttons.recenter, buttons.leftHanded)) });
-        }
-        if (buttons.openMenu.isEnabled()) {
-            controls.push_back(
-                { .name = "Open and close the menu", .text = bindingSentence(buttons.openMenu, buttons.leftHanded) + ". While the menu is minimized it shows it again." });
-        }
-        controls.push_back({ .name = "Minimize",
-            .text = "Minimize, on the title bar, hides the menu as you left it, with Restore and Exit on your offhand wrist. Restore shows it again, and Exit closes it." });
-        return controls;
+        const auto& modifier = binding.modifier;
+        return modifier && modifier->hand && modifier->button == binding.button && binding.hand != vrcf::Hand::Any && *modifier->hand != vrcf::Hand::Any &&
+               isRightController(binding.hand, leftHanded) != isRightController(*modifier->hand, leftHanded);
     }
 
     /**
-     * A binding as one sentence, as the design system's InputBinding says it: the verb of its type, the button
-     * as the controller prints it, the hand as the config names it, then its duration or its threshold, and the
-     * button it is held with. "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on
-     * the off hand". A threshold is said when it is not the framework's own. A push of the trigger or the grip is a
+     * A button of both controllers, as their prints name it together: "both thumbsticks", "the A and X buttons".
+     */
+    std::string bothHandsButtonWords(const vr::EVRButtonId button)
+    {
+        switch (button) {
+        case vr::k_EButton_A:
+            return "the A and X buttons";
+        case vr::k_EButton_ApplicationMenu:
+            return "the B and Y buttons";
+        case vr::k_EButton_System:
+            return "both system buttons";
+        default:
+            return "both " + vrcf::buttonName(button) + "s";
+        }
+    }
+
+    /**
+     * A binding as one sentence: the verb of its type, the button as the controller prints it, the hand as the config
+     * names it, then its duration or its threshold when `withTimes`, and the button it is held with. Without the times, a
+     * press of one button on both controllers is said as one press of both. A push of the trigger or the grip is a
      * pull, with no side. "None" for a binding that is off.
      */
-    std::string bindingSentence(const vrcf::InputBinding& binding, const bool leftHanded)
+    std::string sentenceOf(const vrcf::InputBinding& binding, const bool leftHanded, const bool withTimes)
     {
         if (!binding.isEnabled()) {
             return "None";
+        }
+        if (!withTimes && binding.type != vrcf::ActivationType::AxisDirection && isBothHandsChord(binding, leftHanded)) {
+            return std::format("{} {}", verbOf(binding.type), bothHandsButtonWords(binding.button));
         }
         std::string sentence;
         if (binding.type == vrcf::ActivationType::AxisDirection) {
             // the trigger and the grip are pulled, which has no side
             sentence = binding.axis == vrcf::Axis::Thumbstick ? std::format("Push the thumbstick {} on {}", vrcf::directionName(binding.direction), handWords(binding.hand))
                                                               : std::format("Pull the {} on {}", vrcf::axisName(binding.axis), handWords(binding.hand));
-            if (!common::fEqual(binding.threshold, DEFAULT_THRESHOLD)) {
+            if (withTimes && !common::fEqual(binding.threshold, DEFAULT_THRESHOLD)) {
                 sentence += std::format(", past {:.2f}", binding.threshold);
             }
         } else {
-            sentence = std::format("{} {} on {}{}", verbOf(binding.type), buttonOnHand(binding.button, binding.hand, leftHanded), handWords(binding.hand), durationWords(binding));
+            sentence = std::format("{} {} on {}{}",
+                verbOf(binding.type),
+                buttonOnHand(binding.button, binding.hand, leftHanded),
+                handWords(binding.hand),
+                withTimes ? durationWords(binding) : std::string());
         }
         if (binding.modifier) {
             const auto hand = binding.modifier->hand.value_or(binding.hand);
@@ -188,6 +186,60 @@ namespace mods_config::ui
             }
         }
         return sentence;
+    }
+}
+
+namespace mods_config::ui
+{
+    /**
+     * The Navigation section of the Help page, as the design system's FullPanelHelp has it: how the menu is opened,
+     * pointed at, moved and minimized, with the buttons and the bindings of the config in their short sentence. A
+     * control the config turns off is left out.
+     */
+    std::vector<ControlHelp> menuControls(const MenuButtons& buttons)
+    {
+        std::vector<ControlHelp> controls;
+        if (buttons.openMenu.isEnabled()) {
+            controls.push_back(
+                { .name = "Open and close", .text = shortBindingSentence(buttons.openMenu, buttons.leftHanded) + ". While the menu is minimized it shows it again." });
+        }
+        controls.push_back(
+            { .name = "Pointing at the menu", .text = "That hand's trigger and thumbstick work the menu, and the game does not get them: you do not fire or turn by accident." });
+        if (buttons.back.isEnabled()) {
+            controls.push_back({ .name = "Back", .text = shortBindingSentence(buttons.back, buttons.leftHanded) + " while pointing at the menu." });
+        }
+        if (buttons.move.isEnabled()) {
+            controls.push_back(
+                { .name = "Move the menu", .text = shortBindingSentence(buttons.move, buttons.leftHanded) + " while pointing at the menu: it follows the hand until you let go." });
+        }
+        if (buttons.recenter.isEnabled()) {
+            controls.push_back({ .name = "Recenter",
+                .text = shortBindingSentence(buttons.recenter, buttons.leftHanded) +
+                        ": the menu is put in front of you again. It also comes back by itself when you walk away from it." });
+        }
+        controls.push_back({ .name = "Minimize",
+            .text = "On the title bar: the menu is hidden as you left it, unsaved changes too. Your offhand wrist then has Restore, which shows it again with its "
+                    "values read again, and Exit, which closes it." });
+        return controls;
+    }
+
+    /**
+     * A binding as one sentence, as the design system's InputBinding says it, with its duration or its threshold:
+     * "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand". A threshold
+     * is said when it is not the framework's own.
+     */
+    std::string bindingSentence(const vrcf::InputBinding& binding, const bool leftHanded)
+    {
+        return sentenceOf(binding, leftHanded, true);
+    }
+
+    /**
+     * A binding as the Help page says it, shorter than its sentence: with no time or threshold, and a press of one
+     * button on both controllers as one press of both, "Long press both thumbsticks".
+     */
+    std::string shortBindingSentence(const vrcf::InputBinding& binding, const bool leftHanded)
+    {
+        return sentenceOf(binding, leftHanded, false);
     }
 
     /**

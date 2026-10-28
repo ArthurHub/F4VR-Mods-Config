@@ -33,7 +33,7 @@ namespace
     constexpr auto DEVELOPER_CRUMB = "Developer";
 
     // what the help line says of the title bar's buttons
-    constexpr auto HELP_HELP = "What each control of the menu does, with the buttons your config has for it.";
+    constexpr auto HELP_HELP = "How the menu works, with the buttons your config has.";
     constexpr auto MINIMIZE_HELP = "Hides the menu, as you left it. Restore on your offhand wrist shows it again.";
     constexpr auto CLOSE_HELP = "Closes the menu.";
 

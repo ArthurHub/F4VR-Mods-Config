@@ -81,7 +81,7 @@ namespace mods_config
         // the gesture shows a minimized menu again, as Restore on the wrist does
         if (vrcf::VRControllers.check(g_config.openMenuBinding)) {
             if (_menu.isMinimized()) {
-                _menu.setMinimized(false);
+                _menu.requestRestore();
             } else if (_menu.isOpen()) {
                 _menu.askToClose();
             } else {

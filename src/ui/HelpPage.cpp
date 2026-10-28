@@ -1,7 +1,6 @@
 #include "HelpPage.h"
 
 #include <array>
-#include <optional>
 #include <string>
 #include <string_view>
 
@@ -14,51 +13,174 @@ namespace
 {
     using namespace mods_config;
 
+    // the column of a line's mark, as wide as the largest mark, and the space after it
+    constexpr float MARK_COLUMN = 20.0f;
+
+    // the part of their size the Reset and the Discard icon are drawn at in the column, from their box of 24
+    constexpr float ICON_SCALE = MARK_COLUMN / 24.0f;
+
     /**
-     * A line of the page as the help line has a row's help, `Name: text`, wrapped to the page's width, after the mark
-     * of when a pending change takes effect, for a line that tells one.
+     * The mark a line of the page starts with, as its row draws it.
      */
-    void drawHelpText(const std::string_view name, const std::string_view text, const std::optional<model::Applies> mark = std::nullopt)
+    enum class LineMark : std::uint8_t
+    {
+        None,
+        Live,
+        Save,
+        Restart,
+        NoMark,
+        Discard,
+        Reset,
+        Invalid,
+        Warning,
+        Info,
+    };
+
+    /**
+     * A line of the page: its name in its color, its text, and the mark it starts with.
+     */
+    struct PageLine
+    {
+        std::string_view name;
+        std::string_view text;
+        LineMark mark = LineMark::None;
+        ImU32 nameColor = theme::color::GREEN;
+    };
+
+    /**
+     * Draws a line's mark in the middle of its column.
+     */
+    void drawLineMark(const LineMark mark, const ImVec2& center)
+    {
+        switch (mark) {
+        case LineMark::Live:
+            ui::drawAppliesMark(model::Applies::Live, center);
+            break;
+        case LineMark::Save:
+            ui::drawAppliesMark(model::Applies::Save, center);
+            break;
+        case LineMark::Restart:
+            ui::drawAppliesMark(model::Applies::Restart, center);
+            break;
+        case LineMark::NoMark:
+            ui::drawAppliesMark(model::Applies::Unknown, center);
+            break;
+        case LineMark::Discard:
+            ui::drawDiscardIcon(center, ICON_SCALE);
+            break;
+        case LineMark::Reset:
+            ui::drawResetIcon(center, ICON_SCALE);
+            break;
+        case LineMark::Invalid:
+            ui::drawInvalidMark(center);
+            break;
+        case LineMark::Warning:
+            ui::drawWarningMark(center);
+            break;
+        case LineMark::Info:
+            ui::drawInfoMark(center);
+            break;
+        default:
+            break;
+        }
+    }
+
+    /**
+     * A line of the page as the help line has a row's help, `Name: text`, wrapped to the page's width with as many lines
+     * as it needs. A line with a mark has it first, in a column of its own, `space-2` before the name.
+     */
+    void drawLine(const PageLine& line)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float markRoom = mark ? ui::pendingMarkWidth(*mark) + theme::SPACE_2 : 0.0f;
+        const float markRoom = line.mark != LineMark::None ? MARK_COLUMN + theme::SPACE_2 : 0.0f;
         const float left = pos.x + ui::HEADING_TEXT_INSET;
         const float width = ImGui::GetContentRegionAvail().x - ui::HEADING_TEXT_INSET - theme::SPACE_2 - markRoom;
-        const auto label = std::string(name) + ": ";
-        const std::array pieces{ ui::TextPiece{ .text = label, .color = theme::color::GREEN }, ui::TextPiece{ .text = text, .color = theme::color::GREEN_MUTED } };
+        const auto label = std::string(line.name) + ": ";
+        const std::array pieces{ ui::TextPiece{ .text = label, .color = line.nameColor }, ui::TextPiece{ .text = line.text, .color = theme::color::GREEN_MUTED } };
         const int lines = ui::countTextLines(pieces, width);
-        if (mark) {
-            ui::drawAppliesMark(*mark, ImVec2(left + ui::pendingMarkWidth(*mark) * 0.5f, pos.y + ImGui::GetFontSize() * 0.5f));
+        if (line.mark != LineMark::None) {
+            drawLineMark(line.mark, ImVec2(left + MARK_COLUMN * 0.5f, pos.y + ImGui::GetFontSize() * 0.5f));
         }
         ui::drawTextPieces(pieces, ImVec2(left + markRoom, pos.y), width, lines);
         ImGui::Dummy(ImVec2(width, static_cast<float>(lines) * ImGui::GetFontSize()));
     }
+
+    /**
+     * The heading of a section of the page, which does not fold: `space-2` under the line before it, and a row of a
+     * control's height with its text in the middle, right above its first line, as the design system's heading is. The page's lines are as tall as
+     * their text, so it does not take that room from the rows around it as a heading on a mod's page does.
+     */
+    void drawHeading(const std::string_view heading)
+    {
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_2);
+        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(ImGui::GetStyle().SeparatorTextPadding.x, (theme::CONTROL_HEIGHT - ImGui::GetFontSize()) * 0.5f));
+        ui::sectionHeading(heading, ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x);
+        ImGui::PopStyleVar();
+        // the first line starts under the heading's row, with no spacing of its own
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
+    }
+
+    /**
+     * A section of the page: its heading and its lines.
+     */
+    void drawSection(const std::string_view heading, const auto& lines)
+    {
+        drawHeading(heading);
+        for (const auto& line : lines) {
+            drawLine(line);
+        }
+    }
+
+    const std::array CHANGES{
+        PageLine{ .name = "Save",
+            .text = "Nothing is written until you press Save. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first." },
+        PageLine{ .name = "Undo one change",
+            .text = "A changed value is amber, and the undo arrow after it takes back that change alone. Discard, in the footer, takes back all of them.",
+            .mark = LineMark::Discard },
+        PageLine{ .name = "Reset", .text = "Sets the mod's default, which waits for Save too. The help line names the default.", .mark = LineMark::Reset },
+        PageLine{ .name = "Buttons", .text = "A button that runs a mod's script asks you to save first, as the script reads the saved values." },
+        PageLine{ .name = "When a change takes effect", .text = "A mod can say it, with a mark after the row's name:" },
+        PageLine{ .name = "Live",
+            .text = "The mod applies the change as you make it, so you see it in the game before you save. It is still unsaved: Save keeps it, and Discard, or "
+                    "leaving without saving, puts the old value back in the game too.",
+            .mark = LineMark::Live },
+        PageLine{ .name = "Save", .text = "The mod applies it when you save.", .mark = LineMark::Save },
+        PageLine{ .name = "Restart", .text = "It applies after the game is restarted. The menu's front page reminds you until then.", .mark = LineMark::Restart },
+        PageLine{ .name = "No mark", .text = "The mod does not say, as no MCM mod does. Save writes it all the same.", .mark = LineMark::NoMark },
+    };
+
+    const std::array MARKS{
+        PageLine{ .name = "Amber value", .text = "Changed, not saved yet.", .nameColor = theme::color::AMBER },
+        PageLine{ .name = "Red value", .text = "Invalid: the help line says why.", .mark = LineMark::Invalid, .nameColor = theme::color::RED },
+        PageLine{ .name = "Warning", .text = "Something to know about the value as it is: the help line says what.", .mark = LineMark::Warning },
+        PageLine{ .name = "Result", .text = "A button gave a result: point at its row to read it.", .mark = LineMark::Info },
+        PageLine{ .name = "Greyed row", .text = "Point at it: the help line says why it cannot be changed.", .nameColor = theme::color::DISABLED },
+    };
+
+    const std::array MCM{
+        PageLine{ .name = "Save", .text = "Changes wait for Save here, where MCM's own menu writes each one as you make it." },
+        PageLine{ .name = "Hotkeys", .text = "A mod's hotkeys are shown, not edited: change them in MCM." },
+        PageLine{ .name = "A mod that is greyed", .text = "It cannot be shown: point at it to see why, and the front page lists it under Notices." },
+    };
 }
 
 namespace mods_config::ui
 {
     /**
-     * Draws the Help page's introduction and control descriptions, wrapped to the page's width, then what Save does
-     * and what each mark of when a change takes effect means, as the design system's FullPanelHelp has it.
-     * Control names are green and their descriptions use the muted text color.
+     * Draws the Help page as the design system's FullPanelHelp has it: its introduction, then four sections that do not
+     * fold, Navigation with the controls of the player's config the menu gives, Changes, Marks, and what differs from
+     * MCM's menu. Each line is `Name: text`, its name green or in the color it tells, after its mark where it has one.
      */
     void drawHelpPage(const std::vector<ControlHelp>& controls)
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
-        drawPageText("How the menu is used, with the buttons your config has.");
-        sectionHeading("Controls", ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x);
+        drawPageText("How the menu works, with the buttons your config has.");
+        drawHeading("Navigation");
         for (const auto& control : controls) {
-            drawHelpText(control.name, control.text);
+            drawLine({ .name = control.name, .text = control.text });
         }
-
-        sectionHeading("Saving", ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x);
-        drawHelpText("Save",
-            "Writes the changes of the mod you are on, and the mod acts on them in its own way. A mod can say when: a changed row then has its mark, and the "
-            "help line its tag.");
-        drawHelpText("Live", "As you change it. Discard takes it back.", model::Applies::Live);
-        drawHelpText("Save", "After Save.", model::Applies::Save);
-        drawHelpText("Restart", "After the game is restarted.", model::Applies::Restart);
-        drawHelpText("No mark", "The mod does not say, as no MCM mod does. Save writes it all the same.", model::Applies::Unknown);
+        drawSection("Changes", CHANGES);
+        drawSection("Marks", MARKS);
+        drawSection("MCM", MCM);
     }
-
 }

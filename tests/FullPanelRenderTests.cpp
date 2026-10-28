@@ -622,14 +622,17 @@ TEST_CASE("FullPanel render: the Help page over a page of a mod, with the ray on
         }
     }));
 
-    // scrolled to its end, as the thumbstick scrolls it: what Save does, and the marks of when a change takes effect
+    // scrolled as the thumbstick scrolls it: to Changes, with the marks of when a change takes effect, and to its end,
+    // with Marks and MCM
     const ImVec2 content(800.0f, 400.0f);
-    WARN("Saved " << renderToFile(panel, "help-page-saving", content, false, [&panel, content] {
-        for (int frame = 0; frame < 20; ++frame) {
-            ImGui::GetIO().AddMouseWheelEvent(0.0f, -5.0f);
-            test_panel::drawFrame(panel, content);
-        }
-    }));
+    for (const auto& [name, frames] : { std::pair{ "help-page-changes", 2 }, std::pair{ "help-page-end", 20 } }) {
+        WARN("Saved " << renderToFile(panel, name, content, false, [&panel, content, frames] {
+            for (int frame = 0; frame < frames; ++frame) {
+                ImGui::GetIO().AddMouseWheelEvent(0.0f, -5.0f);
+                test_panel::drawFrame(panel, content);
+            }
+        }));
+    }
 }
 
 TEST_CASE("FullPanel render: the mark of when a pending change takes effect on each row, the help line's tag of a live, a save and a restart one, and a pending row's Discard",

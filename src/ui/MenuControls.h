@@ -9,7 +9,8 @@
 namespace mods_config::ui
 {
     /**
-     * A control of the menu on the Help page: what it does, and how it is worked with the player's config.
+     * A line of the Help page's Navigation: what a control of the menu does, and how it is worked with the player's
+     * config.
      */
     struct ControlHelp
     {
@@ -33,5 +34,6 @@ namespace mods_config::ui
 
     std::vector<ControlHelp> menuControls(const MenuButtons& buttons);
     std::string bindingSentence(const vrcf::InputBinding& binding, bool leftHanded);
+    std::string shortBindingSentence(const vrcf::InputBinding& binding, bool leftHanded);
     std::string eitherHandButtonName(vr::EVRButtonId button);
 }

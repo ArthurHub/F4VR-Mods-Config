@@ -950,6 +950,48 @@ namespace mods_config::ui
     }
 
     /**
+     * The Reset icon around a point: most of a circle, open at its left, with an arrowhead at its upper end, as the
+     * design system draws it in a box of 24, at a part of that size. The stroke keeps its width.
+     */
+    void drawResetIcon(const ImVec2& center, const float scale)
+    {
+        // the circle from its lower left end around its right to its upper left end, in radians
+        constexpr float RADIUS = 7.5f;
+        constexpr float ARC_START = 2.744f;
+        constexpr float ARC_END = -2.396f;
+        const auto at = [&center, scale](const float x, const float y) {
+            return ImVec2(center.x + (x - 12.0f) * scale, center.y + (y - 12.0f) * scale);
+        };
+        const auto color = ImGui::GetColorU32(theme::color::GREEN);
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathArcTo(at(12.1f, 12.1f), RADIUS * scale, ARC_START, ARC_END);
+        drawList->PathLineTo(at(4.0f, 10.0f));
+        drawList->PathStroke(color, ICON_THICKNESS);
+        const std::array head{ at(4.0f, 5.0f), at(4.0f, 10.0f), at(9.0f, 10.0f) };
+        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ICON_THICKNESS);
+    }
+
+    /**
+     * The Discard icon around a point, an undo: an arrowhead to the left, whose tail turns back down in a half circle,
+     * in amber as the pending change it takes back. As the design system draws it in a box of 24, at a part of that
+     * size. The stroke keeps its width.
+     */
+    void drawDiscardIcon(const ImVec2& center, const float scale)
+    {
+        const auto at = [&center, scale](const float x, const float y) {
+            return ImVec2(center.x + (x - 12.0f) * scale, center.y + (y - 12.0f) * scale);
+        };
+        const auto color = ImGui::GetColorU32(theme::color::AMBER);
+        auto* drawList = ImGui::GetWindowDrawList();
+        drawList->PathLineTo(at(4.0f, 9.0f));
+        drawList->PathArcTo(at(14.0f, 14.0f), 5.0f * scale, -IM_PI / 2.0f, IM_PI / 2.0f);
+        drawList->PathLineTo(at(8.0f, 19.0f));
+        drawList->PathStroke(color, ICON_THICKNESS);
+        const std::array head{ at(9.0f, 4.0f), at(4.0f, 9.0f), at(9.0f, 14.0f) };
+        drawList->AddPolyline(head.data(), static_cast<int>(head.size()), color, ICON_THICKNESS);
+    }
+
+    /**
      * A mark of a text around a point: the warning mark, the invalid mark or the info mark, and nothing for none.
      */
     void drawMark(const TextMark mark, const ImVec2& center)
