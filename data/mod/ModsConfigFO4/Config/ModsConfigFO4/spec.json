@@ -15,7 +15,7 @@
   "defaultFile": "config",
   "applies": "live",
   "content": [
-    { "type": "image", "texture": "ModsConfigFO4/banner.dds", "width": 720 },
+    { "type": "image", "texture": "ModsConfigFO4VR/banner.dds", "width": 720 },
     {
       "type": "text",
       "text": "<font color='#AAAAAA' size=13>Version: {clientState:modVersion}</font>",

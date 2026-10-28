@@ -4475,7 +4475,7 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     // the A button of the off hand is X on its controller, and the other binding is the same press, on another page
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Grab: Long press the X button on the off hand. Takes the item. Also the press of Other. (Default: Tap the trigger on the off hand)");
-    CHECK(std::ranges::contains(icons, R"(ModsConfigFO4\f4cf\bindings\left-longpress-x.dds)"));
+    CHECK(std::ranges::contains(icons, R"(ModsConfigFO4VR\f4cf\bindings\left-longpress-x.dds)"));
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Grab: Reset to Tap the trigger on the off hand");
 
@@ -4491,7 +4491,7 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     drawFrames(panel, 2);
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text().starts_with("Grab: Long press the A button on the off hand."));
-    CHECK(std::ranges::contains(icons, R"(ModsConfigFO4\f4cf\bindings\right-longpress-a.dds)"));
+    CHECK(std::ranges::contains(icons, R"(ModsConfigFO4VR\f4cf\bindings\right-longpress-a.dds)"));
 }
 
 namespace
