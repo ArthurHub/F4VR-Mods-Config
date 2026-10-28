@@ -456,7 +456,7 @@ namespace mods_config::mcm
      * time. A ModSetting is the one of the mod that is selected, as its files had it when they were last read,
      * or as a Save wrote it since.
      * A property of a script is read from the script now too.
-     * A ModSetting that is in neither of MCM's files is what MCM reads for it, until a Save holds it.
+     * A ModSetting that is in neither of MCM's files is what MCM reads for it, until it is set and held.
      * A global that is not in the game is not available, with the reason, and neither is a property that is
      * not in the game, a value of a storage the store does not read, and a choice whose list of options is not
      * in the game.
@@ -509,7 +509,9 @@ namespace mods_config::mcm
     /**
      * Sets the pending value of a setting, as its storage reads it back once a Save writes it: a slider of a
      * whole number has the nearest one. A value that is the one its storage has leaves the setting clean.
-     * A setting with no storage is held at once, with the action of its row and MCM's event, as nothing writes it.
+     * A setting with no storage is held at once, with the action of its row and MCM's event, as nothing writes it,
+     * and so is a ModSetting that is in neither of MCM's files, which MCM does not set: as Sim Settlements 2's
+     * switchers that show a group, which would else wait for a Save that writes nothing.
      * A text input that takes a number is set to the text of the number that is typed, as MCM's menu shows it.
      * A value that is set ends the last Save, and its failure.
      * Returns false for a value that is not set: one of a storage that is not available or that the store does
@@ -526,7 +528,8 @@ namespace mods_config::mcm
             }
             value = std::move(*text);
         }
-        if (std::holds_alternative<model::NoStorage>(setting.storage)) {
+        const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage);
+        if (std::holds_alternative<model::NoStorage>(setting.storage) || (modSetting && !_modSettings.find(modSetting->name))) {
             write(setting, value);
             written(setting, value);
             return true;
@@ -779,7 +782,7 @@ namespace mods_config::mcm
      * The value a setting has once a value is written to its storage, as the storage keeps it and the row reads
      * it: a bool of a choice is its first option or its second, and a whole number of a slider the nearest one.
      * None for a value its storage does not keep, as a text for a number, and for a storage the store does not
-     * write. A ModSetting that is in neither of MCM's files is held as it is.
+     * write.
      */
     std::optional<model::Value> McmStore::readBack(const model::Setting& setting, const model::Value& value) const
     {
@@ -788,9 +791,6 @@ namespace mods_config::mcm
             return number ? fromNumber(setting, std::get<float>(*number)) : std::nullopt;
         }
         if (const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage)) {
-            if (!_modSettings.find(modSetting->name)) {
-                return value;
-            }
             const auto typed = typedValue(modSetting->type, value);
             if (!typed || keepsText(setting)) {
                 return typed;

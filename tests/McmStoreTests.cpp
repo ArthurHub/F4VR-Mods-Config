@@ -589,10 +589,16 @@ TEST_CASE("McmStore: a ModSetting MCM does not have is held while its mod is sel
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
 
     // MCM has the ModSettings of its files alone, and its menu holds another, as Sim Settlements 2 has a
-    // switcher that shows a group. It is off again as the mod is selected again
-    const auto missing = modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool);
+    // switcher that shows a group. It is held at once, never waits for a Save, and is off again as the mod is
+    // selected again
+    TestEvents events;
+    auto missing = modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool);
+    missing.sourceId = "bMissing:Main";
     CHECK(store.set(missing, true));
     CHECK(store.value(missing).value == model::Value(true));
+    CHECK_FALSE(store.isDirty(missing));
+    CHECK(store.dirtyCount() == 0);
+    CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, bMissing:Main)", "OnMCMSettingChange|MyMod(MyMod, bMissing:Main)" });
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
     CHECK(store.value(missing).value == model::Value(false));
 
