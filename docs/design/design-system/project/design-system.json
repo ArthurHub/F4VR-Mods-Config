@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-28T16:00:00Z",
+    "at": "2026-10-28T15:45:00Z",
     "via": "Claude (Cowork)",
-    "note": "As the code has them: the report's Live spec.json folds, with Overwrite, Edit on desktop and Reveal in file explorer; the front page's Quick launch and Notices fold, and an entry has its buttonText, a disabled state and its result; a page disabled by its condition; an image that is not loaded tells why; a text shows the client's states."
+    "note": "FullPanelHelp: the Help page in four sections, Navigation, Changes, Marks and MCM, with what the menu does its own way: Back cancels first, the hand that points is hidden from the game, Minimize and the wrist's Restore and Exit, and what Live means."
   },
   "layout": "files",
   "libraries": [],

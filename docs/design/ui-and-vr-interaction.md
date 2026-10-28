@@ -199,20 +199,20 @@ MCM's Cancel closes its menu from the list of mods, as Back does here from the f
 
 ## The Help page
 
-What the menu's controls do, with the buttons the player's config has for them. Help in the title bar shows it, over where the player is.
+How the menu works, with the buttons the player's config has: not what every VR player knows, as pointing and scrolling, but what this menu does its own way. Help in the title bar shows it, over where the player is.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ MODS CONFIG FO4 » Help                               [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
-│ Mods              │ How the menu is used, with the buttons your config  │
+│ Mods              │ How the menu works, with the buttons your config    │
 │                   │ has.                                                │
-│ ▾ Flashlight      │ Controls ────────────────────────────────────────── │
-│     Beam          │ Point and press: Point at the menu with either      │
-│     Hand mount    │ hand, and pull the trigger on what the ray is on.   │
-│ ▸ FRIK            │ Back: Tap the grip on either hand, pointing at the  │
-│ ▸ Holsters        │ menu: one step back, and from the menu's front page │
-│                   │ the menu closes.                                    │
+│ ▾ Flashlight      │ Navigation ──────────────────────────────────────── │
+│     Beam          │ Pointing at the menu: That hand's trigger and       │
+│     Hand mount    │ thumbstick work the menu, and the game does not get │
+│ ▸ FRIK            │ them.                                               │
+│ ▸ Holsters        │ Back: Tap the grip on either hand while pointing at │
+│                   │ the menu.                                           │
 ├───────────────────┴─────────────────────────────────────────────────────┤
 │ • 1 unsaved change                                  [Discard]  [Save]   │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -220,9 +220,12 @@ What the menu's controls do, with the buttons the player's config has for them. 
 
 - The crumbs are `MODS CONFIG FO4 » Help`. The tree keeps the selected mod and page, and so does the editing session: the Help page is shown in place of the page, which is not left.
 - Back goes back to the page it was shown over. A row of the tree or the first crumb goes there, as from any page.
-- It is a text, then each control as `Name: text`, as the help line has a row's help: pointing and the trigger, the thumbstick's scroll and step, Back, moving the panel, Recenter, opening and closing the menu, and Minimize.
-- Then what Save does, and each mark of when a change takes effect with what it means: Save writes the changes, and each mod acts on them in its own way, which a config spec can say and an MCM mod cannot. A setting with no mark is one whose mod does not say.
-- A button and a binding are said as the config has them, in the sentence of the [InputBinding](design-system/project/components/InputBinding/README.md) control, as the controllers print their buttons: "Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand". Back and the move are on the hand that points, either hand, so an A button is "the A or X button". A control the config turns off is left out.
+- It is a text, then four sections, each line as `Name: text`, as the help line has a row's help. None folds: the page scrolls.
+  - **Navigation**: opening and closing the menu, which also shows a minimized one; that the hand that points works the menu and the game does not get its trigger and thumbstick; Back; moving the panel; Recenter, which also happens by itself; and Minimize, with Restore and Exit on the wrist.
+  - **Changes**: that nothing is written until Save, for each mod, and that leaving one with changes asks; the undo arrow of one change and Discard; Reset; a button that runs a script, which asks to save first; and each mark of when a change takes effect with what it means. `Live` is the one that needs saying: the mod applies the change as it is made, so it is seen in the game before Save, and Discard or leaving without saving puts the old value back in the game too.
+  - **Marks**: the amber and the red value, the warning mark, a button's result, and a greyed row, which says why in the help line.
+  - **MCM**: what differs from MCM's menu: changes wait for Save, a mod's hotkeys are only shown, and a mod that cannot be shown is greyed, with why. It is always there.
+- A button and a binding are said as the config has them, as the controllers print their buttons, and shorter than the sentence of the [InputBinding](design-system/project/components/InputBinding/README.md) control: no time or threshold, and a chord of the same button on both hands as one press of both, "Long press both thumbsticks". Back and the move are on the hand that points, either hand, so an A button is "the A or X button". A control the config turns off is left out.
 - Nothing on it is pressed.
 
 ## Full-panel placement

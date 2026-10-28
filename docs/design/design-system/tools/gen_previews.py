@@ -533,56 +533,6 @@ write('FullPanelSubpage', page('<!-- @dsCard group="Panels" height=768 width=120
 
 
 
-# ---------------- FullPanelHelp: the Help page, over a page of a mod ----------------
-def control(name, text):
-    """A control of the menu on the Help page, as the help line has a row's help: "Name: text"."""
-    return f'<div class="mc-control t-body"><span class="name">{name}:</span> {text}</div>'
-
-def legend(mark, name, text):
-    """A mark of when a change takes effect on the Help page: the mark in amber, then "Name: text"."""
-    return f'<div class="mc-control t-body"><span class="name">{mark}{name}:</span> {text}</div>'
-
-def legend(mark, name, text):
-    """A mark of when a change takes effect on the Help page: the mark in amber, then "Name: text"."""
-    return f'<div class="mc-control t-body"><span class="name">{mark}{name}:</span> {text}</div>'
-
-def legend(mark, name, text):
-    """A mark of when a change takes effect on the Help page: the mark in amber, then "Name: text"."""
-    return f'<div class="mc-control t-body"><span class="name">{mark}{name}:</span> {text}</div>'
-fhp_nav = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Beam')
-fhp_rows = ''.join([
-    pagehelp('How the menu is used, with the buttons your config has.'),
-    section('Controls'),
-    control('Point and press', 'Point at the menu with either hand, and pull the trigger on what the ray is on.'),
-    control('Scroll', 'Push the thumbstick up or down on the hand that points: the list the ray is on scrolls.'),
-    control('Step a value', 'Push the thumbstick left or right on the hand that points: the slider or the choice the ray is on steps.'),
-    control('Back', "Tap the grip on either hand, pointing at the menu: one step back, and from the menu's front page the menu closes."),
-    control('Move the menu', 'Long press the grip on either hand for 0.3 s, pointing at the menu: it follows the hand until you let go of the button.'),
-    control('Recenter', 'Long press the thumbstick on the off hand: the menu is put in front of you again, also after you moved it.'),
-    control('Open and close the menu', 'Long press the thumbstick on the primary hand for 1.5 s, holding the thumbstick on the off hand.'),
-    control('Minimize', 'Minimize, on the title bar or on your offhand wrist, hides the menu as you left it. Resume on the wrist shows it again.'),
-    section('Saving'),
-    control('Save', 'Writes the changes of the mod you are on, and the mod acts on them in its own way. A mod can say when: a changed row then has its mark, and the help line its tag.'),
-    legend(LIVE, 'Live', 'As you change it. Discard takes it back.'),
-    legend(SAVE, 'Save', 'After Save.'),
-    legend(RESTART, 'Restart', 'After the game is restarted.'),
-    legend(DOT, 'No mark', 'The mod does not say, as no MCM mod does. Save writes it all the same.'),
-])
-fhp_body = f'''<div class="mc-world">
-<div class="mc-panel">
-<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG FO4</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Help</span></div>
-<span class="mc-btn is-icon t-body is-hover">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
-<div class="mc-body">
-{nav(fhp_nav, '', 11)}
-<div class="mc-content">
-<div class="mc-scroll"><div class="rows" style="margin-top:-330px">{fhp_rows}</div><div class="mc-scrollbar"><i style="top:38%;height:62%"></i></div></div>
-</div>
-</div>
-<div class="mc-footer">{helpline('Help', 'What each control of the menu does, with the buttons your config has for it.')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
-</div>
-</div>'''
-write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The Help page over a page of a mod, scrolled to its end: each control with the buttons of the config, and what Save does with the marks of when a change takes effect" -->', 'Full panel, Help page', fhp_body))
-print('ok help')
 
 # ---------------- FullPanelCategories: Mods Config FO4 VR's own Categories page, with the tree grouped ----------------
 cat_tree = ''.join([
@@ -948,7 +898,8 @@ def toml_binding(b):
 
 def binding_ctl(b, state='', show_reset=False, text=None, open_=False, pending=False):
     cls = 'mc-combo is-binding' + (f' {state}' if state else '') + (' is-open' if open_ else '')
-    ic = '' if state == 'is-invalid' else icons(b)
+    # a value that is no binding is its text; one its setting does not take (is-untaken) keeps its icons, in red
+    ic = '' if 'is-invalid' in state and 'is-untaken' not in state else icons(b)
     return f'<span class="{cls}">{ic}<span class="sent">{text if text is not None else sentence(b)}</span>{ARROW_D}</span>{reset_btn(show_reset, pending or 'is-pending' in state)}'
 
 def part(label, ctl, disabled=False, hover=False, mark=None):
@@ -1066,7 +1017,41 @@ b_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908
 {b_list}
 </div>
 </div>"""
-write('InputBinding', page('<!-- @dsCard group="Settings" height=1600 width=1760 subtitle="The icon and a sentence; the editor of its parts, with and without Suppress; the Focused panel" -->', 'Input binding', b_body))
+BACK = {'hand': 'any', 'type': 'tap', 'button': 'grip'}
+BACK_TAKES = 'hands any; types tap, axis; buttons grip, thumbstick'
+def b_list_of(label, options, current, width=300, hover=None):
+    """A part of the editor with its list open: its options, the current one checked."""
+    blank = '<span class="check"></span>'
+    opts = ''.join(
+        f'<div class="mc-option{" is-current" if o == current else ""}{" is-hover" if o == hover else ""}">'
+        f'{CHECK if o == current else blank}<span>{o}</span></div>' for o in options)
+    return (f'<div class="mc-stack" style="gap:8px;width:{width}px"><span class="t-detail mc-muted">{label}</span>'
+            f'<div class="mc-popup t-body" style="position:static;width:{width}px">{opts}</div></div>')
+b_takes = f"""<div class="mc-sheet mc-stack" style="width:1660px;gap:16px">
+<div style="display:flex;gap:24px;align-items:flex-start">
+{b_list_of('Hand, any setting', ['None', 'Primary hand', 'Off hand', 'Right hand', 'Left hand', 'Any hand'], 'Off hand', hover='Any hand')}
+{b_list_of('Hand, Back', ['None', 'Any hand'], 'Any hand')}
+{b_list_of('Button, Back', ['Grip', 'Thumbstick'], 'Grip')}
+{b_list_of('How, Back, the grip', ['Tap', 'Pull'], 'Tap')}
+{b_list_of('How, Back, the thumbstick', ['Tap', 'Push'], 'Push')}
+</div>
+</div>
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+<div class="mc-footer">{helpline('Any hand', 'Either controller: the binding fires on the hand that works it.')}</div>
+</div>
+{h_sheet([
+    ('Taken', row('Back', binding_ctl(BACK))),
+    ('Not taken', row('Back', binding_ctl({'hand': 'primary', 'type': 'tap', 'button': 'grip'}, 'is-invalid is-untaken', True), 'is-invalid', gutter=WARN)),
+])}
+<div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
+<div class="mc-footer">{helpline('Back', "'primary' is not a hand this binding takes, one of any. Change the binding, or Reset it to Tap the grip on either hand.", error=True)}</div>
+</div>"""
+b_body = b_body[:b_body.rindex('</div>')] + f"""<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
+<span class="t-detail mc-caption">The editor's lists. A setting can take some hands, ways and buttons alone, as Back takes ({BACK_TAKES}): Hand, Button and How list those, and How what the button has of them. A binding it does not take is invalid, in red with its icons</span>
+{b_takes}
+</div>
+</div>"""
+write('InputBinding', page('<!-- @dsCard group="Settings" height=2330 width=1760 subtitle="The icon and a sentence; the editor of its parts, with and without Suppress; its lists, and a setting that takes some hands, ways and buttons alone; the Focused panel" -->', 'Input binding', b_body))
 print('ok binding')
 
 # ---------------- List: a list of texts, an `a` key; the row says its entries, the editor has one line each ----------------
@@ -2071,3 +2056,62 @@ fph_body = f'''<div class="mc-world mc-stack" style="gap:16px">
 </div>'''
 write('FullPanelHome', page('<!-- @dsCard group="Panels" height=1620 width=1200 subtitle="The menu front page: what the menu opens on, with Quick launch and Notices, which fold" -->', 'Full panel, menu front page', fph_body))
 print('ok home')
+
+# ---------------- FullPanelHelp: the Help page, over a page of a mod ----------------
+def control(name, text):
+    """A line of the Help page, as the help line has a row's help: "Name: text"."""
+    return f'<div class="mc-control t-body"><span class="name">{name}:</span> {text}</div>'
+
+def legend(mark, name, text):
+    """A line of the Help page after its mark, as the rows draw it: the mark, then "Name: text"."""
+    return f'<div class="mc-control t-body"><span class="name"><span class="mk">{mark}</span>{name}:</span> {text}</div>'
+
+# the player's config as shipped, right-handed: the bindings are said as the InputBinding sentence says them
+HELP_ROWS = [
+    pagehelp('How the menu works, with the buttons your config has.'),
+    section('Navigation'),
+    control('Open and close', 'Long press both thumbsticks. While the menu is minimized it shows it again.'),
+    control('Pointing at the menu', "That hand's trigger and thumbstick work the menu, and the game does not get them: you do not fire or turn by accident."),
+    control('Back', 'Tap the grip on either hand while pointing at the menu.'),
+    control('Move the menu', 'Long press the grip on either hand while pointing at the menu: it follows the hand until you let go.'),
+    control('Recenter', 'Long press the thumbstick on the off hand: the menu is put in front of you again. It also comes back by itself when you walk away from it.'),
+    control('Minimize', 'On the title bar: the menu is hidden as you left it, unsaved changes too. Your offhand wrist then has Restore, which shows it again with its values read again, and Exit, which closes it.'),
+    section('Changes'),
+    control('Save', 'Nothing is written until you press Save. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first.'),
+    legend(DISCARD, 'Undo one change', 'A changed value is amber, and the undo arrow after it takes back that change alone. Discard, in the footer, takes back all of them.'),
+    legend(RESET, 'Reset', 'Sets the mod&#39;s default, which waits for Save too. The help line names the default.'),
+    control('Buttons', 'A button that runs a mod&#39;s script asks you to save first, as the script reads the saved values.'),
+    control('When a change takes effect', 'A mod can say it, with a mark after the row&#39;s name:'),
+    legend(LIVE, 'Live', 'The mod applies the change as you make it, so you see it in the game before you save. It is still unsaved: Save keeps it, and Discard, or leaving without saving, puts the old value back in the game too.'),
+    legend(SAVE, 'Save', 'The mod applies it when you save.'),
+    legend(RESTART, 'Restart', 'It applies after the game is restarted. The menu&#39;s front page reminds you until then.'),
+    legend(DOT, 'No mark', 'The mod does not say, as no MCM mod does. Save writes it all the same.'),
+    section('Marks'),
+    control('<span class="mc-amber">Amber value</span>', 'Changed, not saved yet.'),
+    legend(WARN, '<span class="mc-red">Red value</span>', 'Invalid: the help line says why.'),
+    legend(CAUTION, 'Warning', 'Something to know about the value as it is: the help line says what.'),
+    legend(DONE, 'Result', 'A button gave a result: point at its row to read it.'),
+    control('<span style="opacity:var(--opacity-disabled)">Greyed row</span>', 'Point at it: the help line says why it cannot be changed.'),
+    section('MCM'),
+    control('Save', 'Changes wait for Save here, where MCM&#39;s own menu writes each one as you make it.'),
+    control('Hotkeys', 'A mod&#39;s hotkeys are shown, not edited: change them in MCM.'),
+    control('A mod that is greyed', 'It cannot be shown: point at it to see why, and the front page lists it under Notices.'),
+]
+fhp_nav = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Beam')
+fhp_body = f'''<div class="mc-world mc-stack" style="gap:16px">
+<div class="mc-panel">
+<div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb">MODS CONFIG FO4</span><span class="mc-crumb-sep">»</span><span class="mc-crumb is-current">Help</span></div>
+<span class="mc-btn is-icon t-body is-hover">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
+<div class="mc-body">
+{nav(fhp_nav, '', 11)}
+<div class="mc-content">
+<div class="mc-scroll"><div class="rows">{''.join(HELP_ROWS)}</div><div class="mc-scrollbar"><i style="top:0;height:34%"></i></div></div>
+</div>
+</div>
+<div class="mc-footer">{helpline('Help', 'How the menu works, with the buttons your config has.')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+</div>
+<span class="t-detail mc-caption">The whole page, as it scrolls: Navigation, Changes, Marks and MCM, none folding. The bindings are said short, with no times</span>
+<div class="mc-sheet" style="width:772px">{''.join(HELP_ROWS)}</div>
+</div>'''
+write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=2110 width=1200 subtitle="The Help page over a page of a mod: Navigation with the buttons of the config, Changes with what Save and each mark of when a change takes effect mean, Marks, and MCM" -->', 'Full panel, Help page', fhp_body))
+print('ok help')

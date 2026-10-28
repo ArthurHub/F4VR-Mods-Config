@@ -82,6 +82,11 @@ svg.mc-ico.is-pending { color: var(--amber); }
 /* a control of the menu on the Help page, as the help line has a row's help */
 .mc-control { color: var(--green-muted); padding: 0 var(--space-2) var(--space-2) var(--space-3); }
 .mc-control .name { color: var(--green); }
+/* the Help page's marks, in a column of their own, each at the size its row draws it */
+.mc-control .name .mk { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: var(--space-2); vertical-align: -4px; }
+.mc-control .name .mk > * { margin: 0; }
+.mc-control .name .mk > .mc-ico { width: 20px; height: 20px; }
+.mc-control .name .mk > svg:not([class]) { width: 14px; height: 14px; fill: var(--green); }
 
 /* ---------- section heading (ImGui::SeparatorText) ---------- */
 /* a heading's text, and a folding heading's arrow, start space-3 into its row, as a row's name does in its frame, so
@@ -298,6 +303,7 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .mc-combo.is-binding.is-pending { color: var(--amber); }
 .mc-combo.is-binding.is-pending > svg { color: var(--green); }
 .mc-combo.is-binding.is-invalid > .sent { color: var(--red); }
+.mc-combo.is-binding.is-untaken { color: var(--red); }
 .mc-bindedit { position: absolute; width: 717px; height: 458px; background: var(--popup); border: var(--border-frame) solid var(--green); border-radius: var(--radius-popup); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); z-index: 2; }
 .mc-bindedit .head { height: var(--control-height); flex: none; display: flex; align-items: center; gap: var(--space-2); }
 .mc-bindedit .head .grow { flex: 1; }
