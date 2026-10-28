@@ -748,8 +748,7 @@ def picker(c):
 def color_editor(name, before, now, hover=None, mark=None, focused=False, style=''):
     head = (f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">Before</span>{swatch(before, True)}'
             f'<span class="t-detail mc-muted" style="margin-left:8px">Now</span>{swatch(now, True)}</div>')
-    side = (f'<div class="mc-channels"{" style=width:100%" if focused else ""}>{channels(now, hover, mark)}'
-            f'<span class="t-detail mc-muted" style="padding-left:64px">{toml_text(now)}</span></div>')
+    side = f'<div class="mc-channels"{" style=width:100%" if focused else ""}>{channels(now, hover, mark)}</div>'
     body = f'<div class="body">{"" if focused else picker(now)}{side}</div>'
     foot = '<div class="foot"><span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>'
     short = '' if len(now) == 4 or focused else ' is-rgb'

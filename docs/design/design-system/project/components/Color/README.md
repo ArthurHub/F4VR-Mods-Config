@@ -9,7 +9,7 @@ A CommonFramework color: a frame that shows the color as a swatch and as its num
 A color whose opacity means nothing, as a light's, is RGB only: `"valueOptions": { "alpha": false }`. Then:
 
 - The swatch is the color opaque, with no checkerboard half, and the numbers are "255, 214, 170".
-- The editor has Red, Green and Blue only, so it is 56 px shorter: 717 x 358. Its Before and Now swatches are opaque, and the text under the channels is `{ rgb = [255, 214, 170] }`.
+- The editor has Red, Green and Blue only, so it is 56 px shorter: 717 x 358. Its Before and Now swatches are opaque.
 - Only `rgb` is written. An `alpha` that the file has is kept as it is, and not shown.
 
 ## The row
@@ -31,7 +31,6 @@ A popup inside the content pane, 717 x 414: `popup` background, a 2 px `green` b
   - A track is a gradient of that channel from 0 to 255 with the other channels as they are (`AddRectFilledMultiColor`), outlined in `frame-border`. Alpha's is the color from transparent to opaque over the checkerboard.
   - The grab is hollow, 20 x 40: a 2 px `green` ring around a 2 px `on-green` ring, so it shows on any color. While dragged its outer ring is `glow`.
   - The thumbstick steps the channel the ray is on by 1, and faster while it is held, as a slider's. This is how a color is set exactly.
-- Under the channels, in `t-detail` `green-muted`: the text that will be written, `{ rgb = [255, 190, 120], alpha = 200 }`.
 - **Footer**, under a `rule` line: Cancel (quiet) and Done (primary) on the right, 160 px each.
 - Every change sets the pending value as it is made, and a `live` color is previewed as it is dragged. Done, or a press beside the editor, closes it and keeps the color. Cancel and Back close it and give back the color it had when it opened.
 - While the ray is on a part of it, the help line says what it does: "Green: The green of the color, 0 to 255. The thumbstick steps it by 1." "Before: The color when the editor opened. Press it to go back to it."
