@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 4.2)
 # >>> Project
 set(NAME "ModsConfigFO4VR")
 set(FRIENDLY_NAME "Mods Config FO4 VR")
-set(VERSION 0.8.0)
+set(VERSION 0.8.1)
 
 message(">>> Start build for '${NAME}' v${VERSION}")
 
