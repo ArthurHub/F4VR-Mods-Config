@@ -71,7 +71,7 @@ A declared file does not have to exist. The host creates it, with any missing fo
 
 The host reads a mod's files as its session starts and writes them on Save, on the game thread. A config file is small, and each is read and written once.
 
-A config spec can also keep a setting in a global or a property of a script, which the host reads and writes in the game, as MCM does. Its value is in the save game, not in a file; see [Global and script property](schema.md#global-and-script-property).
+A config spec can also keep a setting in a global or a property of a script, which the host reads and writes in the game, as MCM does. Its value is in the save game, not in a file; see [Global and script property](schema.md#global-and-script-property). And it can keep one in a state of the mod's native client, whose value is in the memory of the mod's DLL, which applies it; see [A client's state](#a-clients-state).
 
 ## External changes
 
@@ -89,9 +89,9 @@ A mod that changes its own values while its menu is open, as FRIK's own UI saves
 
 Only one mod has an active editing session.
 
-1. Selecting a mod reads its files, globals and properties, and captures the values as the session baseline.
+1. Selecting a mod reads its files, globals, properties and its client's states, and captures the values as the session baseline.
 2. Player edits update a pending model.
-3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host, and then sent to the client too, which can do what more it needs.
+3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host, and then sent to the client too, which can do what more it needs. A state of the client is sent to the client, which applies it.
 4. Focused and minimized modes retain the same session.
 5. Save establishes a new baseline.
 6. Discard restores the baseline and rolls back live previews.
@@ -108,7 +108,7 @@ An MCM mod has the same session, with no preview: see [MCM compatibility](#mcm-c
 
 ### Values at session start
 
-For a global or a property the baseline is the game's value, and one that is not in the game is not available, with the reason, as an MCM row is. For a key of a file, the file is the source of the baseline, whatever state it is in:
+For a global or a property the baseline is the game's value, and one that is not in the game is not available, with the reason, as an MCM row is. For a state of the client it is the client's answer, and a state it does not answer is not available, with the reason; an answer of another type, outside its limits or no option of its choice is invalid, as a file's value is. For a key of a file, the file is the source of the baseline, whatever state it is in:
 
 - **Key present and valid.** The value is the baseline.
 - **Key missing.** The setting shows its declared default and is clean. Save does not add the key unless the player changes the setting.
@@ -130,12 +130,12 @@ A config spec's Save proceeds as follows, and an MCM mod's is in [MCM compatibil
 4. Apply the dirty settings.
 5. Serialize each file to a memory buffer.
 6. Parse each buffer and check that every dirty setting reads back with its intended value.
-7. Check that every dirty global and property is still in the game. One that is not fails the Save.
+7. Check that every dirty global and property is still in the game, and that the client of every dirty state is there and not cut off. One that is not fails the Save.
 8. Write each buffer over its file, creating a file that does not exist, with any missing folders in its path.
 9. If a write fails, write the content read in step 2 back to the files already written, delete the files this Save created, and report the failure. The folders it created stay. The Save stops there.
 10. Write the dirty globals and properties into the game.
 11. Run the action of each setting that was written, in the order of the config spec, with its saved value.
-12. Call the client's `onSaved` with one batch: every setting that was written, with its value before the Save, and the files written. A Save that wrote nothing tells nothing.
+12. Call the client's `onSaved` with one batch: every setting that was written, with its value before the Save, and the files written. A state of the client is written by this call, which the client applies it from. A Save that wrote nothing tells nothing.
 13. Send one final native notification and one equivalent Papyrus notification, see [Final notifications](#final-notifications).
 14. Tell the player that the game has to be restarted, when a `restart` setting was written.
 
@@ -284,6 +284,20 @@ The host asks each state once a frame, only while the client's mod is shown, so 
 
 A file of a config spec can take its path from a state too, with `pathFromClientState`; see [Files](schema.md#files). The host asks that one as the mod is selected and as its values are read again.
 
+A setting can be kept in a state, a value in the memory of the mod's DLL; see [Client state](schema.md#client-state). The host asks it as the mod is selected and as its values are read again, as a file's value, and writes nothing: a change reaches the client as a change of any setting does, through `onChange` for a `live` one and `onSaved` for what a Save wrote, whose storage names the state. The header's C++ client takes a setter with a state, and calls it with the value of each of those changes of a setting kept in it, before the mod's own handlers:
+
+```cpp
+client.addState("pipboyType",
+    [] { return std::optional<Value>(readPipboyType()); },
+    [](const Value& value) { applyPipboyType(std::get<int>(value)); });
+```
+
+- A `live` one has its setter called with each valid pending value, with its baseline on Discard, and again with the value at Save, which it has already. A setter applies a value, so a value applied twice changes nothing.
+- A setter applies, and does not persist. A mod that keeps the value after the game is restarted writes it in its handler of the Saves, which a preview does not reach.
+- A setter cannot refuse a value: the host has checked it against its setting, and by the time a Save tells the client, it has written its files.
+- A state with no setter is not changed, and its setting is `readOnly`. The host cannot see a setter, so a setting that is not marked so is edited, and its changes reach no setter.
+- The mod tells the menu a change it made itself, as its own UI's, with `reloadValues`: a clean setting takes the new value, and a pending one stays the player's.
+
 ### The mod's own UI
 
 A mod's own UI is opened by a function of its client, from a button of its config spec or from a quick launch entry. The function moves the menu out of the way itself, with the calls of the menu, which any DLL can make:
@@ -361,6 +375,7 @@ struct StorageView
     std::string_view form;                  // a global, or the form of a script property
     std::string_view scriptName;            // a script property
     std::string_view propertyName;          // a script property
+    std::string_view clientState;           // a state of the client
 };
 
 struct ValueOptionsView
@@ -419,7 +434,7 @@ struct SaveBatch
 
 A Save tells the client its batch once, after the action of each setting ran. It has every setting the Save wrote, whatever its `applies`, so a mod applies a `save` setting from it, as it is written. A `live` setting the client shows a preview of is told no Discard: the batch has it, and the file or the game has the value. A Save that wrote some settings and failed on a global that left the game has those it wrote.
 
-`SettingView` exposes the stable setting ID, value type, default, value options, and resolved storage. It does not require the client to parse the declarative config spec. The header passes its id, its type and its storage in a file: the file's name, format and absolute path, and the names that lead to the value, its section and key in an INI file and its tables and key in a TOML file. A setting kept in the game has no file, and its form, with a property's script and name: the host writes its value into the game before it tells the client, which can do what more it needs.
+`SettingView` exposes the stable setting ID, value type, default, value options, and resolved storage. It does not require the client to parse the declarative config spec. The header passes its id, its type and its storage in a file: the file's name, format and absolute path, and the names that lead to the value, its section and key in an INI file and its tables and key in a TOML file. A setting kept in the game has no file, and its form, with a property's script and name: the host writes its value into the game before it tells the client, which can do what more it needs. A setting kept in a state of the client has the state's name alone: the host writes nothing, and the client applies the value.
 
 The host owns the views and the text in them. They are valid during the callback, and a client copies what it keeps.
 
@@ -454,7 +469,7 @@ A CommonFramework mod does not need client code of its own. The framework regist
 2. A discard clears it.
 3. After a Save, the adapter clears the overrides of the settings the batch has. The file holds the values by then, so the mod reloads them from disk.
 
-The adapter acts only on a setting of the mod's own config file, which it knows by the file's absolute path. The framework's client answers the state `configFile` with that path, the one the mod loaded (`ConfigBase::getConfigFilePath()`), and `modVersion` with the mod's version. A mod that loads another file at runtime, as FRIK loads `FRIK_FOLVR.toml` with Fallout London VR, has its config spec's file name `configFile` in `pathFromClientState`, so the menu reads, previews and saves the file the mod loaded, and the adapter's path matches it. It needs only the path of the value and the value. The mod's own loading code applies it as it applies any reload. A mod that has a setting of another file, or of the game, handles it with its own handlers of the client.
+The adapter acts only on a setting of the mod's own config file, which it knows by the file's absolute path. The framework's client answers the state `configFile` with that path, the one the mod loaded (`ConfigBase::getConfigFilePath()`), and `modVersion` with the mod's version. A mod that loads another file at runtime, as FRIK loads `FRIK_FOLVR.toml` with Fallout London VR, has its config spec's file name `configFile` in `pathFromClientState`, so the menu reads, previews and saves the file the mod loaded, and the adapter's path matches it. It needs only the path of the value and the value. The mod's own loading code applies it as it applies any reload. A mod that has a setting of another file, or of the game, handles it with its own handlers of the client, and one kept in a state with the state's setter.
 
 A preview therefore does what a reload of the config file does, and no more. A mod that does more work for a value to take effect subscribes to the config's change of that key, which a preview, a discard and a Save tell as a change of the file does. A value that the mod reads only once, when the game starts, is changed by neither, so the mod's config spec marks that setting `restart`.
 

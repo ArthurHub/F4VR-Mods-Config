@@ -153,6 +153,8 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | M128 | mod      | design system: a pending row's Discard                  | done   |
 | M129 | mod      | A pending row's Discard                                  | done   |
 | M130 | mod      | A mod with a config spec and an MCM menu is listed by its config spec | done   |
+| M134 | mod      | docs: a setting kept in a state of its client            | done   |
+| M135 | mod      | A setting kept in a state of its client                  | todo   |
 
 M120 to M125 give every mod one lifecycle before a client previews: a change waits for Save, and the menu says when a change takes effect only where a config spec says it. See [MCM compatibility](architecture.md#mcm-compatibility) and [When a change takes effect](schema.md#when-a-change-takes-effect).
 
@@ -176,6 +178,8 @@ M70 sends the F4SE message of a Save to each F4SE plugin of the config spec's `f
 M128 and M129 give a pending row a way back without the footer's Discard, which takes back every change of the mod: while a setting's change is pending, its Reset slot is Discard, an undo arrow, which takes back that setting's change alone, to its saved value. A setting with no default, as an MCM global, has it too. The help line names the saved value. M128 designs it, and M129 draws it, with the store's Discard of one setting.
 
 M130 is for a mod that ships a config spec beside its MCM menu, as FRIK does: it is listed once, by its config spec, and its MCM menu is left out, matched by `modName` without regard to case.
+
+M134 and M135 are for a value that is in the memory of a mod's DLL and in no file, as FRIK's Pip-Boy type, which it takes from the game's settings. A setting's `storage` can be `clientState`, a state of the mod's client: its baseline is the client's answer, as the mod is selected and as its values are read again, and a change reaches the client through `onChange` and `onSaved`, as any setting's does, with the state's name in its storage, so `IClient` has no other method. The header's C++ client takes a setter with `addState`, which it calls with the value of each of those changes, and a state with none is a `readOnly` setting's. The loader warns of an `action` on one, which runs before the client applies the Save. M135 changes `StorageView` and `Change` in both copies of the header, in place, as V1 is not released. The config spec showcase has no client, so a unit test covers it, with a state of the tests' own. See [Client state](schema.md#client-state) and [A client's state](architecture.md#a-clients-state).
 
 The milestone comes before the controls of milestone 9, which are for tuning a value while the player sees its effect.
 

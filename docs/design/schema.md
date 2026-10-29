@@ -375,6 +375,7 @@ A setting's `id` is optional. A setting without one gets its id from its storage
 - A JSON or TOML value: the last name of its path, and the names before it joined with dots, as `fScale:Panel` for `["Panel", "fScale"]`. A path of two is named as an INI key is, so a mod that moves its config from INI to TOML keeps its ids. A path of one is its name alone.
 - A global: its form, as `MyMod.esp|1234`.
 - A property of a script: its name and its form, as `fStrength:MyMod.esp|800`.
+- A state of the mod's client: its name, as `pipboyType`.
 
 An author gives an id to a setting that something names, a condition or a script, when the name should stay the same after its key is renamed or moved.
 
@@ -435,7 +436,7 @@ A setting that Save does not write runs nothing: one the player did not change, 
 
 ## Storage
 
-A setting's `storage` says where its value is kept: a key of one of the config spec's files, a global, or a property of a script. It is apart from the setting's `id`.
+A setting's `storage` says where its value is kept: a key of one of the config spec's files, a global, a property of a script, or a state of the mod's native client. It is apart from the setting's `id`.
 
 ### INI
 
@@ -496,6 +497,29 @@ A form is named as in an MCM config, by its plugin and its id in that plugin. `s
 - A global or a property that is not in the game is not available, and its row says why, as an MCM row does.
 
 A config spec has no MCM ModSetting storage: it does not need MCM, and a key of its own file, read through the Papyrus API, is what a ModSetting is for an MCM mod.
+
+### Client state
+
+```json
+{
+  "type": "dropdown",
+  "valueType": "int",
+  "text": "Pip-Boy",
+  "default": 0,
+  "applies": "live",
+  "valueOptions": { "options": ["On the wrist", "Projected"] },
+  "storage": { "clientState": "pipboyType" }
+}
+```
+
+A value that is in the memory of the mod's DLL, and in no file, is a state of the mod's native client, by its name, as a condition and a file's `pathFromClientState` ask it: a value the mod takes from the game's settings, as which Pip-Boy the player uses, or one it measures. The client answers it, and applies a value the menu gives it; see [A client's state](architecture.md#a-clients-state).
+
+- It has a config spec's lifecycle, as a global has: a change is pending until Save, and Discard drops it. A `live` one is applied as it is changed, and its value from before is applied again on Discard.
+- The menu keeps it nowhere. A mod that keeps it after the game is restarted writes it itself, as a Save tells it what it wrote.
+- A state the client gives no setter is not changed, so its setting is `readOnly`: a value the mod shows the player, as a measured height, with no file.
+- A condition on the setting names it by its `id`, and has its pending value. A `clientState` condition on the same name has the client's value, which is the preview of a `live` one.
+- With no client, a client that is cut off, or a state it does not answer, the setting is not available, and its row says why.
+- A setting's `action` runs before the client is told what a Save wrote, and the client applies the value itself, so an `action` on it is a warning of the config spec.
 
 ## Sections
 
@@ -605,7 +629,7 @@ A condition can ask a state of the mod's native client, for what only the mod's 
 }
 ```
 
-- `clientState` names a state the client registered, by its name; see [A client's state](architecture.md#a-clients-state). It is a value of a type, as a setting's is, and takes the same operators. With none, it holds while the state is on, as a switch's value does.
+- `clientState` names a state the client registered, by its name; see [A client's state](architecture.md#a-clients-state). It is a value of a type, as a setting's is, and takes the same operators. With none, it holds while the state is on, as a switch's value does. A state that is a setting's storage is asked by the setting's `id`, for its pending value; see [Client state](#client-state).
 - The host asks the client as the page is drawn, so a row follows the state as it changes.
 - While the client has not registered the state, or the mod has no client, the state is not available, as a value that cannot be read: the row is shown, and the warning is not told.
 
