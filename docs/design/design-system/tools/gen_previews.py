@@ -2076,7 +2076,7 @@ HELP_ROWS = [
     control('Recenter', 'Long press the thumbstick on the off hand: the menu is put in front of you again. It also comes back by itself when you walk away from it.'),
     control('Minimize', 'On the title bar: the menu is hidden as you left it, unsaved changes too. Your offhand wrist then has Restore, which shows it again with its values read again, and Exit, which closes it.'),
     section('Changes'),
-    control('Save', 'Save keeps your changes, and Discard takes them back. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first.'),
+    control('Save', 'A change waits for Save, which writes it, and Discard takes it back. An MCM mod&#39;s change is made at once instead: see MCM below. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first.'),
     legend(DISCARD, 'Undo one change', 'A changed value is amber, and the undo arrow after it takes back that change alone. Discard, in the footer, takes back all of them.'),
     legend(RESET, 'Reset', 'Sets the mod&#39;s default, as any other change. The help line names the default.'),
     control('Buttons', 'A button that runs a mod&#39;s script asks you to save first, as the script reads the saved values. An MCM mod&#39;s does not ask.'),
@@ -2112,5 +2112,5 @@ fhp_body = f'''<div class="mc-world mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">The whole page, as it scrolls: Navigation, Changes, Marks and MCM, none folding. The bindings are said short, with no times</span>
 <div class="mc-sheet" style="width:772px">{''.join(HELP_ROWS)}</div>
 </div>'''
-write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=2110 width=1200 subtitle="The Help page over a page of a mod: Navigation with the buttons of the config, Changes with what Save and each mark of when a change takes effect mean, Marks, and MCM" -->', 'Full panel, Help page', fhp_body))
+write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=2150 width=1200 subtitle="The Help page over a page of a mod: Navigation with the buttons of the config, Changes with what Save and each mark of when a change takes effect mean, Marks, and MCM" -->', 'Full panel, Help page', fhp_body))
 print('ok help')

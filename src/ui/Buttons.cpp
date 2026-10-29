@@ -36,6 +36,15 @@ namespace
     {
         return std::holds_alternative<model::CallFunction>(action);
     }
+
+    /**
+     * Whether a press on a button asks to save its mod's unsaved changes first: its action reads the saved values, and
+     * its store keeps the changes for a Save. An MCM mod's store writes a change as it is made, so its script has it.
+     */
+    bool asksToSaveFirst(const model::Action& action, const model::Store& store)
+    {
+        return readsSavedValues(action) && !store.writesChangesAtOnce() && store.dirtyCount() > 0;
+    }
 }
 
 namespace mods_config::ui
@@ -43,8 +52,8 @@ namespace mods_config::ui
     /**
      * The row of a button at the cursor: its text, and its button where a control ends, before the room of a Reset,
      * with its own text or `Run`. The whole row is pressed, so the button is only drawn, and a press runs the action
-     * in the store, or shows its confirmation first: also one with none that calls a script while the store has
-     * unsaved changes, as the script reads the saved values, which its help says. A button with no action is disabled, and so is one whose action
+     * in the store, or shows its confirmation first: also one with none that calls a script while the store keeps
+     * unsaved changes for a Save, as the script reads the saved values, which its help says. A button with no action is disabled, and so is one whose action
      * the menu does not run or its store cannot run, which the reason says, and one whose enabledWhen does not hold.
      * After its text it has the invalid mark of a run that failed, the info mark of a result that is not read, or
      * the warning mark of a warning that holds. Returns the row for the help line while the ray is on it.
@@ -62,7 +71,7 @@ namespace mods_config::ui
         const auto* unknown = std::get_if<model::UnknownAction>(&button.action);
         auto reason = unknown ? unknown->reason : store ? store->notRunnable(button.action) : std::string();
         const bool runs = store && enabled && !unknown && !std::holds_alternative<model::NoAction>(button.action) && reason.empty();
-        const bool saveFirst = runs && readsSavedValues(button.action) && store->dirtyCount() > 0;
+        const bool saveFirst = runs && asksToSaveFirst(button.action, *store);
         if (runs && row.pressed) {
             if (button.confirmation || saveFirst) {
                 _confirming = &button;
@@ -119,7 +128,7 @@ namespace mods_config::ui
     bool Buttons::drawDialog(model::Store* store)
     {
         std::optional<SaveFirst> saveFirst;
-        if (store && _confirming && readsSavedValues(_confirming->action) && store->dirtyCount() > 0) {
+        if (store && _confirming && asksToSaveFirst(_confirming->action, *store)) {
             saveFirst = SaveFirst{ .count = store->dirtyCount(), .invalid = store->invalidCount() };
         }
         if (!store || (_confirming && !_confirming->confirmation && !saveFirst)) {

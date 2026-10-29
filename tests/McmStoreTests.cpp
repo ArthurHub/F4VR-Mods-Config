@@ -9,6 +9,7 @@
 #include "TestFiles.h"
 #include "TestGlobals.h"
 #include "TestProperties.h"
+#include "common/CommonUtils.h"
 #include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
 #include "model/Conditions.h"
@@ -90,23 +91,22 @@ TEST_CASE("McmStore: a switcher of a global is on at 1, and off at any other num
     CHECK(store.value(globalSetting(SettingType::Switcher, 0x803)).value == model::Value(false));
 }
 
-TEST_CASE("McmStore: a switcher waits for a Save, which writes it to its global as 1 and 0")
+TEST_CASE("McmStore: a switcher is written to its global as 1 and 0 as it is set, and a Save keeps it")
 {
     auto globals = someGlobals();
     McmStore store;
     const auto setting = globalSetting(SettingType::Switcher, 0x801);
 
     CHECK(store.set(setting, true));
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 1.0f));
     CHECK(store.value(setting).value == model::Value(true));
     CHECK(store.isDirty(setting));
     CHECK(store.save().has_value());
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 1.0f);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 1.0f));
     CHECK_FALSE(store.isDirty(setting));
 
     CHECK(store.set(setting, false));
-    CHECK(store.save().has_value());
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 0.0f));
     CHECK(store.value(setting).value == model::Value(false));
 }
 
@@ -122,7 +122,7 @@ TEST_CASE("McmStore: a choice is written to its global as the place of its optio
     CHECK(store.value(setting).value == model::Value(1));
 }
 
-TEST_CASE("McmStore: a change waits for a Save, a value set back is no change, and Discard takes the changes back")
+TEST_CASE("McmStore: a change is written as it is made, a value set back is no change, and Discard writes the changes back")
 {
     auto globals = someGlobals();
     McmStore store;
@@ -134,6 +134,7 @@ TEST_CASE("McmStore: a change waits for a Save, a value set back is no change, a
     CHECK(store.set(on, true));
     CHECK(store.set(strength, 1.5f));
     CHECK(store.dirtyCount() == 2);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 1.0f));
 
     // set back to the value of its global
     CHECK(store.set(strength, 2.5f));
@@ -143,7 +144,7 @@ TEST_CASE("McmStore: a change waits for a Save, a value set back is no change, a
     store.discard();
     CHECK(store.dirtyCount() == 0);
     CHECK(store.value(on).value == model::Value(false));
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 0.0f));
 
     // a Save, which says it wrote no change that takes effect after a restart, until the next change
     CHECK(store.set(on, true));
@@ -153,7 +154,7 @@ TEST_CASE("McmStore: a change waits for a Save, a value set back is no change, a
     CHECK_FALSE(store.lastSave());
 }
 
-TEST_CASE("McmStore: a setting's own Discard takes back its change alone, and its saved value is its storage's")
+TEST_CASE("McmStore: a setting's own Discard writes back its change alone, and its saved value is the one it had before")
 {
     auto globals = someGlobals();
     McmStore store;
@@ -165,15 +166,20 @@ TEST_CASE("McmStore: a setting's own Discard takes back its change alone, and it
     CHECK(store.savedValue(on) == model::Value(false));
     CHECK(store.savedValue(strength) == model::Value(2.5f));
 
+    // the value it had before the first change
+    CHECK(store.set(strength, 2.0f));
+    CHECK(store.savedValue(strength) == model::Value(2.5f));
+
     store.discard(strength);
     CHECK_FALSE(store.isDirty(strength));
     CHECK(store.value(strength).value == model::Value(2.5f));
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x802 }), 2.5f));
     CHECK_FALSE(store.savedValue(strength));
     CHECK(store.isDirty(on));
     CHECK(store.dirtyCount() == 1);
 }
 
-TEST_CASE("McmStore: a change whose global comes to have its value, as a script sets it, is no change any more")
+TEST_CASE("McmStore: a change whose global a script sets back to the value it had before is no change any more")
 {
     auto globals = someGlobals();
     McmStore store;
@@ -182,23 +188,24 @@ TEST_CASE("McmStore: a change whose global comes to have its value, as a script 
     CHECK(store.set(on, true));
     CHECK(store.set(strength, 1.5f));
 
-    globals.values[{ PLUGIN, 0x801 }] = 1.0f;
+    globals.values[{ PLUGIN, 0x801 }] = 0.0f;
     globals.values[{ PLUGIN, 0x802 }] = 2.0f;
     store.startFrame();
     CHECK_FALSE(store.isDirty(on));
 
-    // one whose global the script set to another value stays the player's, and a Save writes it
+    // one whose global the script set to another value stays a change, which Discard writes back
     CHECK(store.isDirty(strength));
-    CHECK(store.value(strength).value == model::Value(1.5f));
-    CHECK(store.save().has_value());
-    CHECK(globals.values.at({ PLUGIN, 0x802 }) == 1.5f);
+    CHECK(store.value(strength).value == model::Value(2.0f));
+    store.discard();
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x802 }), 2.5f));
 }
 
-TEST_CASE("McmStore: a Save writes nothing while a global of a change is not in the game, and keeps every change")
+TEST_CASE("McmStore: Discard writes back the changes whose global is in the game, and a Save does not fail")
 {
     auto globals = someGlobals();
     TestEvents events;
     McmStore store;
+    store.open(model::Mod{ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
     auto on = globalSetting(SettingType::Switcher, 0x801);
     on.sourceId = "bOn";
     const auto strength = globalSetting(SettingType::Slider, 0x802);
@@ -207,20 +214,18 @@ TEST_CASE("McmStore: a Save writes nothing while a global of a change is not in 
     events.sent.clear();
 
     globals.values.erase({ PLUGIN, 0x802 });
-    const auto saved = store.save();
-    REQUIRE_FALSE(saved);
-    CHECK(saved.error() == "the global 802 of MyMod.esp is not in the game");
-    CHECK(store.saveFailure() == saved.error());
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 0.0f);
-    CHECK(store.dirtyCount() == 2);
-    CHECK(events.sent.empty());
+    store.discard();
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 0.0f));
+    CHECK_FALSE(globals.values.contains({ PLUGIN, 0x802 }));
+    CHECK(store.dirtyCount() == 0);
+    CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, bOn)", "OnMCMSettingChange|MyMod(MyMod, bOn)" });
 
-    // until the next change
-    CHECK(store.set(on, false));
+    CHECK(store.set(on, true));
+    CHECK(store.save().has_value());
     CHECK(store.saveFailure().empty());
 }
 
-TEST_CASE("McmStore: a Save applies each change in the order the player last made it, with the action of its row and its event")
+TEST_CASE("McmStore: a change runs the action of its row and sends its event as it is made, and Discard does in the reverse order")
 {
     auto globals = someGlobals();
     TestEvents events;
@@ -240,37 +245,36 @@ TEST_CASE("McmStore: a Save applies each change in the order the player last mad
     store.open(mod);
     const auto& firstSetting = std::get<model::Setting>(mod.frontPage.items[0]);
     const auto& secondSetting = std::get<model::Setting>(mod.pages[0].items[0]);
+    events.sent.clear();
 
-    // the second row is changed again after the first, which puts it after the first, as MCM's menu applies it
     CHECK(store.set(secondSetting, 1.5f));
+    CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, fSecond)", "OnMCMSettingChange|MyMod(MyMod, fSecond)" });
     CHECK(store.set(firstSetting, true));
-    CHECK(store.set(secondSetting, 2.0f));
-    events.sent.clear();
-    CHECK(store.save().has_value());
-    CHECK(globals.values.at({ PLUGIN, 0x801 }) == 1.0f);
-    CHECK(globals.values.at({ PLUGIN, 0x802 }) == 2.0f);
-    CHECK(
-        events.sent ==
-        Events{ "OnMCMSettingChange(MyMod, bFirst)", "OnMCMSettingChange|MyMod(MyMod, bFirst)", "OnMCMSettingChange(MyMod, fSecond)", "OnMCMSettingChange|MyMod(MyMod, fSecond)" });
+    REQUIRE(actions.called.size() == 1);
+    CHECK(actions.called[0].function == "First");
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 1.0f));
 
-    // and the other way
-    CHECK(store.set(firstSetting, false));
+    // a Save writes nothing, runs nothing and sends nothing
+    events.sent.clear();
+    CHECK(store.save().has_value());
+    CHECK(events.sent.empty());
+    CHECK(actions.called.size() == 1);
+    CHECK(store.dirtyCount() == 0);
+
+    // the second row is changed again after the first, so Discard sets it back first, and the first after it
     CHECK(store.set(secondSetting, 1.0f));
-    events.sent.clear();
-    CHECK(store.save().has_value());
-    CHECK(
-        events.sent ==
-        Events{ "OnMCMSettingChange(MyMod, bFirst)", "OnMCMSettingChange|MyMod(MyMod, bFirst)", "OnMCMSettingChange(MyMod, fSecond)", "OnMCMSettingChange|MyMod(MyMod, fSecond)" });
+    CHECK(store.set(firstSetting, false));
     CHECK(store.set(secondSetting, 2.0f));
-    CHECK(store.set(firstSetting, true));
     events.sent.clear();
-    CHECK(store.save().has_value());
+    actions.called.clear();
+    store.discard();
     CHECK(
         events.sent ==
         Events{ "OnMCMSettingChange(MyMod, fSecond)", "OnMCMSettingChange|MyMod(MyMod, fSecond)", "OnMCMSettingChange(MyMod, bFirst)", "OnMCMSettingChange|MyMod(MyMod, bFirst)" });
-    // the first row's action, once a Save
-    REQUIRE(actions.called.size() == 3);
+    REQUIRE(actions.called.size() == 1);
     CHECK(actions.called[0].function == "First");
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 1.0f));
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x802 }), 1.5f));
     CHECK(store.dirtyCount() == 0);
 }
 
@@ -381,7 +385,7 @@ TEST_CASE("McmStore: a property of a script is read every time, in the type its 
     CHECK(store.value(propertySetting(SettingType::Switcher, "bOn", Type::Bool)).value == model::Value(false));
 }
 
-TEST_CASE("McmStore: a property of a script is written by Save, in the type of its row")
+TEST_CASE("McmStore: a property of a script is written as it is set, in the type of its row")
 {
     auto properties = someProperties();
     McmStore store;
@@ -392,8 +396,6 @@ TEST_CASE("McmStore: a property of a script is written by Save, in the type of i
     CHECK(store.set(on, false));
     CHECK(store.set(strength, 0.5f));
     CHECK(store.set(name, "Diamond City"s));
-    CHECK(properties.values.at({ PLUGIN, 0x800, "", "bOn" }) == model::Value(true));
-    CHECK(store.save().has_value());
     CHECK(properties.values.at({ PLUGIN, 0x800, "", "bOn" }) == model::Value(false));
     CHECK(properties.values.at({ PLUGIN, 0x800, "", "fStrength" }) == model::Value(0.5f));
     CHECK(properties.values.at({ PLUGIN, 0x800, "", "sName" }) == model::Value("Diamond City"s));
@@ -402,7 +404,6 @@ TEST_CASE("McmStore: a property of a script is written by Save, in the type of i
     const auto mode = propertySetting(SettingType::Slider, "iMode", Type::Int);
     CHECK(store.set(mode, 6.6f));
     CHECK(store.value(mode).value == model::Value(7.0f));
-    CHECK(store.save().has_value());
     CHECK(properties.values.at({ PLUGIN, 0x800, "", "iMode" }) == model::Value(7));
 
     // a text for a number is not written
@@ -534,14 +535,14 @@ TEST_CASE("McmStore: a ModSetting is read as its mod is selected, and from the p
     CHECK(store.value(on).value == model::Value(false));
     CHECK(store.value(strength).value == model::Value(1.3f));
 
-    // a change stays the player's, and one that was saved is read again: a test has no MCM that writes the file
+    // a change has its value at once, and is read again as MCM writes it: a test has no MCM, so it writes the file
     CHECK(store.set(on, true));
-    store.pageShown();
     CHECK(store.value(on).value == model::Value(true));
-    CHECK(store.save().has_value());
-    CHECK(store.value(on).value == model::Value(true));
+    mcm.write("Settings/MyMod.ini", "[Main]\nfStrength=1.300000\nbOn=1\n");
     store.pageShown();
-    CHECK(store.value(on).value == model::Value(false));
+    store.startFrame();
+    CHECK(store.value(on).value == model::Value(true));
+    CHECK(store.isDirty(on));
 
     // a ModSetting that is held is in neither file, and is kept
     const auto missing = modSetting(SettingType::Switcher, "bMissing:Main", Type::Bool);
@@ -1047,7 +1048,7 @@ TEST_CASE("McmStore: a mod that is shown and left sends MCM's events of it")
     CHECK(events.sent.empty());
 }
 
-TEST_CASE("McmStore: a setting that is saved sends MCM's event, with its mod and the id of its row")
+TEST_CASE("McmStore: a setting that is set sends MCM's event, with its mod and the id of its row")
 {
     auto globals = someGlobals();
     TestEvents events;
@@ -1058,25 +1059,23 @@ TEST_CASE("McmStore: a setting that is saved sends MCM's event, with its mod and
     auto withId = globalSetting(SettingType::Switcher, 0x801);
     withId.sourceId = "bOn";
     CHECK(store.set(withId, true));
-    CHECK(events.sent.empty());
-    CHECK(store.save().has_value());
     CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, bOn)", "OnMCMSettingChange|MyMod(MyMod, bOn)" });
 
     // a row with no id in its config, as MCM's menu sends none for it
     events.sent.clear();
     const auto noId = globalSetting(SettingType::Switcher, 0x801);
     CHECK(store.set(noId, false));
-    CHECK(store.save().has_value());
     CHECK(events.sent.empty());
 
-    // a value that is not written
+    // a value that is not written, and one that is the value its global has already
     auto missing = globalSetting(SettingType::Switcher, 0x1234);
     missing.sourceId = "bMissing";
     CHECK_FALSE(store.set(missing, true));
+    CHECK(store.set(withId, false));
     CHECK(events.sent.empty());
 }
 
-TEST_CASE("McmStore: a Save that wrote a ModSetting tells that the pause menu opened and closed, and only that one")
+TEST_CASE("McmStore: a Save of a session that wrote a ModSetting tells that the pause menu opened and closed, and only that one")
 {
     const test_files::TempFolder mcm;
     mcm.write("Config/MyMod/settings.ini", "[Main]\nbOn=0\n");
@@ -1110,9 +1109,21 @@ TEST_CASE("McmStore: a Save that wrote a ModSetting tells that the pause menu op
     store.frameUpdate();
     CHECK(events.sent.empty());
 
-    // a file MCM does not write, as for a value it had already, is waited for a while
+    // nothing before a Save, and a session that ends with a change keeps it, as a Save does
     store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
     CHECK(store.set(on, false));
+    events.sent.clear();
+    store.frameUpdate();
+    CHECK(events.sent.empty());
+    mcm.write("Settings/MyMod.ini", "[Main]\nbOn=0\n");
+    store.close();
+    events.sent.clear();
+    store.frameUpdate();
+    CHECK(events.sent == Events{ "PauseMenu(opening)", "PauseMenu(closing)" });
+
+    // a file MCM does not write, as for a value it had already, is waited for a while
+    store.open({ .name = "MyMod", .displayName = {}, .frontPage = {}, .pages = {} });
+    CHECK(store.set(on, true));
     CHECK(store.save().has_value());
     events.sent.clear();
     for (int frame = 1; frame < McmStore::PAUSE_MENU_WAIT_FRAMES; ++frame) {
@@ -1150,7 +1161,7 @@ TEST_CASE("McmStore: the action of a button calls its function, and no other act
     CHECK(actions.called.size() == 2);
 }
 
-TEST_CASE("McmStore: a setting that is saved runs the action of its row, with the value in its arguments")
+TEST_CASE("McmStore: a setting that is set runs the action of its row, with the value in its arguments")
 {
     auto globals = someGlobals();
     TestActions actions;
@@ -1172,25 +1183,21 @@ TEST_CASE("McmStore: a setting that is saved runs the action of its row, with th
     auto switcher = globalSetting(SettingType::Switcher, 0x801);
     switcher.action = call;
     CHECK(store.set(switcher, true));
-    CHECK(store.save().has_value());
     REQUIRE(actions.called.size() == 1);
     CHECK(actions.called[0].function == "Apply");
     CHECK(actions.called[0].arguments == Arguments{ 1.0f, true, 1, "Is 1 of {value}"s, "kept"s });
     CHECK(actions.called[0].valueArguments.empty());
     CHECK(store.set(switcher, false));
-    CHECK(store.save().has_value());
     CHECK(actions.called[1].arguments == Arguments{ 0.0f, false, 0, "Is 0 of {value}"s, "kept"s });
 
     // a number, which a whole number cuts at its point, and the place of a choice's option
     auto slider = globalSetting(SettingType::Slider, 0x802);
     slider.action = call;
     CHECK(store.set(slider, 1.75f));
-    CHECK(store.save().has_value());
     CHECK(actions.called[2].arguments == Arguments{ 1.75f, true, 1, "Is 1.75 of {value}"s, "kept"s });
     auto choice = globalSetting(SettingType::Dropdown, 0x803);
     choice.action = call;
     CHECK(store.set(choice, 1));
-    CHECK(store.save().has_value());
     CHECK(actions.called[3].arguments == Arguments{ 1.0f, true, 1, "Is 1 of {value}"s, "kept"s });
 
     // a text, which is 0 as a number, of a setting with no storage, which runs it as it is set
@@ -1208,7 +1215,6 @@ TEST_CASE("McmStore: a setting that is saved runs the action of its row, with th
         .arguments = { ""s },
         .valueArguments = { { .place = 0, .text = "{value}", .type = Type::Bool } } };
     CHECK(store.set(global, true));
-    CHECK(store.save().has_value());
     REQUIRE(actions.called.size() == 6);
     CHECK(actions.called[5].script == "M8rJourney");
     CHECK(actions.called[5].arguments == Arguments{ true });
@@ -1232,7 +1238,6 @@ TEST_CASE("McmStore: no action is run for a value that is not set, nor one the s
     auto other = globalSetting(SettingType::Switcher, 0x801);
     other.action = model::UnknownAction{ .type = "CallExternalFunction", .reason = {} };
     CHECK(store.set(other, true));
-    CHECK(store.save().has_value());
     CHECK(actions.called.empty());
 
     // a function of a form that is not in the game: the value is set, and its event is sent
@@ -1241,8 +1246,7 @@ TEST_CASE("McmStore: no action is run for a value that is not set, nor one the s
     withId.sourceId = "bOn";
     withId.action = call;
     CHECK(store.set(withId, true));
-    CHECK(store.save().has_value());
     CHECK(actions.called.empty());
-    CHECK(globals.values.at({ PLUGIN, 0x803 }) == 1.0f);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x803 }), 1.0f));
     CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, bOn)", "OnMCMSettingChange|MyMod(MyMod, bOn)" });
 }

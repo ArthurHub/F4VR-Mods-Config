@@ -5,6 +5,7 @@
 #include <cmath>
 #include <format>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <variant>
 
@@ -335,7 +336,7 @@ namespace
     }
 
     /**
-     * Where a setting keeps its value, as the reason of a Save that cannot write it names it.
+     * Where a setting keeps its value, as the log names it for a change that is not written.
      */
     std::string storageName(const model::Setting& setting)
     {
@@ -400,12 +401,18 @@ namespace mods_config::mcm
     }
 
     /**
-     * Ends the session of the mod: its values are forgotten, also the pending ones, why a Save failed and the
-     * last Save, and the scripts are told that it is left, which they are not with no mod.
+     * Ends the session of the mod: its values are forgotten, and the scripts are told that it is left, which they are
+     * not with no mod. A change the player made stays, as the panel asks to Save or Discard before it leaves a mod with
+     * one: one that is still there is kept, as by a Save, so a DLL that reads MCM's file is told of a ModSetting it
+     * wrote.
      * It does not read the mod, which can be gone by now: the menu's mods are replaced before it is called.
      */
     void McmStore::close()
     {
+        if (!_changes.empty()) {
+            logger::info("The session of '{}' ends with {} changes, which are kept", _modName, _changes.size());
+        }
+        waitForPauseMenu();
         if (!_modName.empty()) {
             sendEvent("OnMCMMenuClose|" + _modName);
         }
@@ -415,8 +422,7 @@ namespace mods_config::mcm
         _options.clear();
         _held.clear();
         _settings.clear();
-        _pending.clear();
-        _saveFailure.clear();
+        _changes.clear();
         _lastSave.reset();
     }
 
@@ -438,17 +444,11 @@ namespace mods_config::mcm
     }
 
     /**
-     * The value of a setting: its pending value, or else the one its storage has now. One whose storage is
-     * not available is not, with the reason, also while it has a pending value.
+     * The value of a setting, as its storage has it now: a change is written as it is made.
      */
     model::StoredValue McmStore::value(const model::Setting& setting)
     {
-        auto current = stored(setting);
-        const auto pending = std::ranges::find(_pending, &setting, &Pending::setting);
-        if (current.available && pending != _pending.end()) {
-            current.value = pending->value;
-        }
-        return current;
+        return stored(setting);
     }
 
     /**
@@ -507,13 +507,15 @@ namespace mods_config::mcm
     }
 
     /**
-     * Sets the pending value of a setting, as its storage reads it back once a Save writes it: a slider of a
-     * whole number has the nearest one. A value that is the one its storage has leaves the setting clean.
-     * A setting with no storage is held at once, with the action of its row and MCM's event, as nothing writes it,
-     * and so is a ModSetting that is in neither of MCM's files, which MCM does not set: as Sim Settlements 2's
-     * switchers that show a group, which would else wait for a Save that writes nothing.
+     * Sets a setting, as MCM's menu does: its value is written where its storage says, as it reads it back, then
+     * the action of its row runs and the scripts are told it changed. A slider of a whole number has the nearest one.
+     * A value that is the one its storage has changes nothing. The setting is dirty while its value is not the one
+     * it had before the player first changed it, which Discard writes back.
+     * A setting with no storage is held, with the action of its row and MCM's event, and is never dirty, as nothing
+     * writes it, and so is a ModSetting that is in neither of MCM's files, which MCM does not set: as Sim Settlements
+     * 2's switchers that show a group.
      * A text input that takes a number is set to the text of the number that is typed, as MCM's menu shows it.
-     * A value that is set ends the last Save, and its failure.
+     * A value that is set ends the last Save.
      * Returns false for a value that is not set: one of a storage that is not available or that the store does
      * not write, one its storage does not keep, and a text that is no number, for a text input that takes one.
      */
@@ -534,88 +536,71 @@ namespace mods_config::mcm
             written(setting, value);
             return true;
         }
-        const auto current = stored(setting);
+        auto current = stored(setting);
         auto read = current.available ? readBack(setting, value) : std::nullopt;
         if (!read) {
             return false;
         }
-        _saveFailure.clear();
+        if (isSameValue(*read, current.value)) {
+            return true;
+        }
+        if (!change(setting, *read)) {
+            return false;
+        }
         _lastSave.reset();
-        std::erase_if(_pending, [&setting](const Pending& pending) {
-            return pending.setting == &setting;
-        });
-        if (!isSameValue(*read, current.value)) {
-            _pending.push_back({ .setting = &setting, .value = std::move(*read) });
+        const auto before = std::ranges::find(_changes, &setting, &Change::setting);
+        auto baseline = before != _changes.end() ? std::move(before->baseline) : std::move(current.value);
+        if (before != _changes.end()) {
+            _changes.erase(before);
+        }
+        if (!isSameValue(*read, baseline)) {
+            _changes.push_back({ .setting = &setting, .baseline = std::move(baseline) });
         }
         return true;
     }
 
     /**
-     * Whether a setting has a change that waits for a Save.
+     * Whether the player changed a setting from the value it had before, which a Save keeps.
      */
     bool McmStore::isDirty(const model::Setting& setting) const
     {
-        return std::ranges::contains(_pending, &setting, &Pending::setting);
+        return std::ranges::contains(_changes, &setting, &Change::setting);
     }
 
     /**
-     * Saves the pending values in the order the player last changed each, as MCM's menu applies a change as it is
-     * made: one is written, then the action of its row runs and the scripts are told it changed, and then the next
-     * one is. So a row whose script sets other rows, as a preset, is applied before the changes the player made after
-     * it, which stay. After a ModSetting is written, a DLL that reads its MCM file as the pause menu
-     * closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left: once MCM wrote
-     * the file, which it does on Papyrus's time, see frameUpdate.
-     * A global or a property that is not in the game fails the Save before anything is written. A ModSetting
-     * is written through a call to Papyrus that gives no result, so what is written is not taken back.
-     * Returns why a change is not written, which stays pending.
+     * Keeps the changes, which are written already: their values are the settings' baselines now. Then, where the
+     * session wrote a ModSetting since its last Save, a DLL that reads its MCM file as the pause menu closes is told
+     * that it did, as it is when MCM's menu, which is in the pause menu, is left: once MCM wrote the file, which it
+     * does on Papyrus's time, see frameUpdate. The DLL is told at a Save alone, as the events go to every listener
+     * of the game's menus.
      */
     std::expected<void, std::string> McmStore::save()
     {
-        _saveFailure.clear();
-        _lastSave.reset();
-        const auto failed = [this](std::string reason) {
-            logger::warn("The changes of '{}' are not saved: {}", _modName, reason);
-            _saveFailure = reason;
-            return std::unexpected(std::move(reason));
-        };
-        for (const auto& pending : _pending) {
-            if (!stored(*pending.setting).available) {
-                return failed(std::format("{} is not in the game", storageName(*pending.setting)));
-            }
-        }
-
-        std::vector<Pending> notWritten;
-        std::size_t wrote = 0;
-        // the text MCM writes for each ModSetting written
-        std::map<std::string, std::string, std::less<>> modSettingTexts;
-        for (auto& pending : _pending) {
-            if (!write(*pending.setting, pending.value)) {
-                notWritten.push_back(std::move(pending));
-                continue;
-            }
-            written(*pending.setting, pending.value);
-            const auto* modSetting = std::get_if<model::ModSettingStorage>(&pending.setting->storage);
-            if (const auto* text = modSetting ? _modSettings.find(modSetting->name) : nullptr) {
-                modSettingTexts.insert_or_assign(modSetting->name, *text);
-            }
-            ++wrote;
-        }
-        _pending = std::move(notWritten);
-        if (!modSettingTexts.empty()) {
-            if (!_pauseMenuWait) {
-                _pauseMenuWait.emplace();
-            }
-            _pauseMenuWait->framesLeft = PAUSE_MENU_WAIT_FRAMES;
-            for (auto& [name, text] : modSettingTexts) {
-                _pauseMenuWait->files[_modSettings.playerFile()].insert_or_assign(name, std::move(text));
-            }
-        }
+        logger::info("Saved {} changes of '{}'", _changes.size(), _modName);
+        _changes.clear();
+        waitForPauseMenu();
         _lastSave = 0;
-        logger::info("Saved {} changes of '{}'", wrote, _modName);
-        if (!_pending.empty()) {
-            return failed(std::format("{} is not written", storageName(*_pending.front().setting)));
-        }
         return {};
+    }
+
+    /**
+     * Has the pause menu's events wait for MCM's file to have each ModSetting the session wrote since its last Save.
+     * Nothing for a session that wrote none.
+     */
+    void McmStore::waitForPauseMenu()
+    {
+        if (_modSettingsWritten.empty()) {
+            return;
+        }
+        if (!_pauseMenuWait) {
+            _pauseMenuWait.emplace();
+        }
+        _pauseMenuWait->framesLeft = PAUSE_MENU_WAIT_FRAMES;
+        auto& file = _pauseMenuWait->files[_modSettings.playerFile()];
+        for (auto& [name, text] : _modSettingsWritten) {
+            file.insert_or_assign(name, std::move(text));
+        }
+        _modSettingsWritten.clear();
     }
 
     /**
@@ -644,53 +629,55 @@ namespace mods_config::mcm
     }
 
     /**
-     * Takes back the pending values, so each setting has the value its storage has. The last Save is over, also
-     * one that failed.
+     * Sets the settings the player changed back to the values they had before, in the reverse of the order each was
+     * last changed, as a change is made: each is written, the action of its row runs and the scripts are told. So a
+     * preset that is set back runs its script with the preset it had, which sets its rows back. What a script did
+     * that the value set back does not undo stays. The last Save is over.
      */
     void McmStore::discard()
     {
-        _pending.clear();
-        _saveFailure.clear();
+        auto changes = std::move(_changes);
+        _changes.clear();
+        for (const auto& [setting, baseline] : changes | std::views::reverse) {
+            change(*setting, baseline);
+        }
         _lastSave.reset();
     }
 
     /**
-     * Takes back the pending value of one setting, so it has the value its storage has. It ends the last Save, and its
-     * failure, as a set does.
+     * Sets one setting the player changed back to the value it had before, as discard does. It ends the last Save, as
+     * a set does.
      */
     void McmStore::discard(const model::Setting& setting)
     {
-        const auto erased = std::erase_if(_pending, [&setting](const Pending& pending) {
-            return pending.setting == &setting;
-        });
-        if (erased > 0) {
-            _saveFailure.clear();
-            _lastSave.reset();
+        const auto found = std::ranges::find(_changes, &setting, &Change::setting);
+        if (found == _changes.end()) {
+            return;
         }
+        const auto baseline = std::move(found->baseline);
+        _changes.erase(found);
+        change(setting, baseline);
+        _lastSave.reset();
     }
 
     /**
-     * The value a dirty setting's storage has now. None for a clean one, and for one whose storage has no value of it:
-     * an invalid value is shown as the setting's default.
+     * The value a dirty setting had before the player changed it, which its Discard writes back. None for a clean one.
      */
     std::optional<model::Value> McmStore::savedValue(const model::Setting& setting)
     {
-        if (!isDirty(setting)) {
-            return std::nullopt;
-        }
-        auto current = stored(setting);
-        return current.available && !current.invalid ? std::optional(std::move(current.value)) : std::nullopt;
+        const auto found = std::ranges::find(_changes, &setting, &Change::setting);
+        return found != _changes.end() ? std::optional(found->baseline) : std::nullopt;
     }
 
     /**
-     * A frame of the panel starts: a pending value that is the one its storage has now, as a script set it so, is
-     * no change any more.
+     * A frame of the panel starts: a setting whose storage has the value it had before the player changed it, as a
+     * script set it back, is no change any more.
      */
     void McmStore::startFrame()
     {
-        std::erase_if(_pending, [this](const Pending& pending) {
-            const auto current = stored(*pending.setting);
-            return current.available && isSameValue(current.value, pending.value);
+        std::erase_if(_changes, [this](const Change& change) {
+            const auto current = stored(*change.setting);
+            return current.available && isSameValue(current.value, change.baseline);
         });
     }
 
@@ -737,6 +724,25 @@ namespace mods_config::mcm
     {
         const auto* call = std::get_if<model::CallFunction>(&action);
         return { .ran = call && callFunction(*call), .failed = false, .message = {} };
+    }
+
+    /**
+     * Makes a change of a setting, as MCM's menu does: its value is written, then the action of its row runs and the
+     * scripts are told. A ModSetting written is kept for the pause menu's events of the next Save. Returns false for a
+     * value that is not written, as of a global or a property that is no longer in the game: nothing else is done.
+     */
+    bool McmStore::change(const model::Setting& setting, const model::Value& value)
+    {
+        if (!write(setting, value)) {
+            logger::warn("A change of '{}' of '{}' is not written: {} is not in the game", setting.text, _modName, storageName(setting));
+            return false;
+        }
+        written(setting, value);
+        const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage);
+        if (const auto* text = modSetting ? _modSettings.find(modSetting->name) : nullptr) {
+            _modSettingsWritten.insert_or_assign(modSetting->name, *text);
+        }
+        return true;
     }
 
     /**

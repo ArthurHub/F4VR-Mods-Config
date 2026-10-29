@@ -133,12 +133,13 @@ namespace
 
     const std::array CHANGES{
         PageLine{ .name = "Save",
-            .text = "Nothing is written until you press Save. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first." },
+            .text = "A change waits for Save, which writes it, and Discard takes it back. An MCM mod's change is made at once instead: see MCM below. Changes are kept "
+                    "for each mod, and leaving a mod or closing the menu with unsaved changes asks first." },
         PageLine{ .name = "Undo one change",
             .text = "A changed value is amber, and the undo arrow after it takes back that change alone. Discard, in the footer, takes back all of them.",
             .mark = LineMark::Discard },
-        PageLine{ .name = "Reset", .text = "Sets the mod's default, which waits for Save too. The help line names the default.", .mark = LineMark::Reset },
-        PageLine{ .name = "Buttons", .text = "A button that runs a mod's script asks you to save first, as the script reads the saved values." },
+        PageLine{ .name = "Reset", .text = "Sets the mod's default, as any other change. The help line names the default.", .mark = LineMark::Reset },
+        PageLine{ .name = "Buttons", .text = "A button that runs a mod's script asks you to save first, as the script reads the saved values. An MCM mod's does not ask." },
         PageLine{ .name = "When a change takes effect", .text = "A mod can say it, with a mark after the row's name:" },
         PageLine{ .name = "Live",
             .text = "The mod applies the change as you make it, so you see it in the game before you save. It is still unsaved: Save keeps it, and Discard, or "
@@ -146,7 +147,7 @@ namespace
             .mark = LineMark::Live },
         PageLine{ .name = "Save", .text = "The mod applies it when you save.", .mark = LineMark::Save },
         PageLine{ .name = "Restart", .text = "It applies after the game is restarted. The menu's front page reminds you until then.", .mark = LineMark::Restart },
-        PageLine{ .name = "No mark", .text = "The mod does not say, as no MCM mod does. Save writes it all the same.", .mark = LineMark::NoMark },
+        PageLine{ .name = "No mark", .text = "The mod does not say, as no MCM mod does. Save keeps it all the same.", .mark = LineMark::NoMark },
     };
 
     const std::array MARKS{
@@ -158,9 +159,9 @@ namespace
     };
 
     const std::array MCM{
-        PageLine{ .name = "Save", .text = "Changes wait for Save here, where MCM's own menu writes each one as you make it." },
-        PageLine{ .name = "Hotkeys", .text = "A mod's hotkeys are shown, not edited: change them in MCM." },
-        PageLine{ .name = "A mod that is greyed", .text = "It cannot be shown: point at it to see why, and the front page lists it under Notices." },
+        PageLine{ .name = "Save",
+            .text = "A change is made as you make it, as in MCM's own menu, so you see it in the game and a button's script reads it. It is still unsaved: Save keeps "
+                    "it, and Discard sets it back and runs the mod's script for it again. Some mods require save notification to apply the changes." },
     };
 }
 

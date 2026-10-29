@@ -15,7 +15,7 @@
     "by": "Arthur",
     "at": "2026-10-29T12:00:00Z",
     "via": "Claude Code",
-    "note": "An MCM change is made as the player makes it, and Save keeps it and Discard sets it back: the Help page's Changes and MCM sections, SaveBar, and an MCM mod's script button, which does not ask to save first."
+    "note": "An MCM change is made as the player makes it, and Save keeps it and Discard sets it back: the Help page's Changes and MCM sections, whose Save says that a change waits for Save but an MCM mod's, SaveBar, and an MCM mod's script button, which does not ask to save first."
   },
   "layout": "files",
   "libraries": [],

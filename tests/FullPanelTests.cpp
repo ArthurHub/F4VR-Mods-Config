@@ -1546,7 +1546,7 @@ TEST_CASE("FullPanel: a button runs its mod's function after its confirmation, a
     CHECK(panel.helpLine().text() == "Calibrate: Measures your height.");
 }
 
-TEST_CASE("FullPanel: a button of a mod with unsaved changes asks to save them first, and Save and run saves them and then runs it")
+TEST_CASE("FullPanel: a script button of an MCM mod runs at once with its changes, as they are made already")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
@@ -1563,43 +1563,16 @@ TEST_CASE("FullPanel: a button of a mod with unsaved changes asks to save them f
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
 
-    // with no change it runs at once
-    CHECK(pressActs(panel, pageRow(1)));
-    drawFrames(panel, 2);
-    CHECK_FALSE(isDialogShown(CONFIRMATION));
-    CHECK(actions.called.size() == 1);
-
-    // with one its help says so, and a press asks, which Back cancels with nothing saved or run
     CHECK(pressActs(panel, pageRow(0)));
+    CHECK(store.dirtyCount() == 1);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x800 }), 1.0f));
     point(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Apply: Applies it. A press asks to save the unsaved changes first.");
+    CHECK(panel.helpLine().text() == "Apply: Applies it.");
     CHECK(pressActs(panel, pageRow(1)));
-    drawFrames(panel, 2);
-    CHECK(isDialogShown(CONFIRMATION));
-    CHECK(panel.back());
     drawFrames(panel, 2);
     CHECK_FALSE(isDialogShown(CONFIRMATION));
     CHECK(actions.called.size() == 1);
     CHECK(store.dirtyCount() == 1);
-
-    // Run without saving runs it with the change pending
-    CHECK(pressActs(panel, pageRow(1)));
-    drawFrames(panel, 2);
-    CHECK(pressActs(panel, runWithoutSavingButton()));
-    drawFrames(panel, 2);
-    CHECK_FALSE(isDialogShown(CONFIRMATION));
-    CHECK(actions.called.size() == 2);
-    CHECK(store.dirtyCount() == 1);
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
-
-    CHECK(pressActs(panel, pageRow(1)));
-    drawFrames(panel, 2);
-    CHECK(pressActs(panel, dialogButton(0, CONFIRMATION)));
-    drawFrames(panel, 2);
-    CHECK_FALSE(isDialogShown(CONFIRMATION));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
-    CHECK(store.dirtyCount() == 0);
-    CHECK(actions.called.size() == 3);
 }
 
 TEST_CASE("FullPanel: a script button's own confirmation asks to save the unsaved changes too, and its Save and run is disabled while one is invalid")
@@ -1629,8 +1602,19 @@ TEST_CASE("FullPanel: a script button's own confirmation asks to save the unsave
     drawFrames(panel, 2);
     const auto& height = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
 
-    // one dialog, whose Save and run is not pressed while the change is invalid, and Run without saving is
+    // its help says it asks, and Back cancels it with nothing saved or run
     CHECK(store.set(height, "3"s));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Reset: A press asks to save the unsaved changes first.");
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    CHECK(isDialogShown(CONFIRMATION));
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.called.empty());
+
+    // one dialog, whose Save and run is not pressed while the change is invalid, and Run without saving is
     CHECK(pressActs(panel, pageRow(1)));
     drawFrames(panel, 2);
     CHECK(isDialogShown(CONFIRMATION));
@@ -1777,10 +1761,11 @@ TEST_CASE("FullPanel: a press on the row of a text input edits it, and Enter wri
     pressKey(panel, ImGuiKey_Enter);
     CHECK(ImGui::GetActiveID() == 0);
     CHECK(textOf(store, panel, 0) == model::Value("Diamond City East"s));
-    CHECK(events.sent.empty());
-    CHECK(store.save().has_value());
 
-    // MCM's two events of the setting: the pause menu's wait for MCM to write its file, which it does not in a test
+    // MCM's two events of the setting. A Save sends none: the pause menu's wait for MCM to write its file, which it
+    // does not in a test
+    CHECK(events.sent.size() == 2);
+    CHECK(store.save().has_value());
     CHECK(events.sent.size() == 2);
 }
 
@@ -3072,7 +3057,7 @@ TEST_CASE("FullPanel: the dialog's Save that fails stays on the mod with the rea
     CHECK(fileText(file) == "[Main]\r\nbEnable = false\r\nfHeight = 1.5\r\n");
 }
 
-TEST_CASE("FullPanel: an MCM mod's changes wait for a Save, so it asks before it is left, and its Save writes them")
+TEST_CASE("FullPanel: an MCM mod's change is made at once, it asks before it is left, and its Discard writes it back")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
@@ -3081,17 +3066,17 @@ TEST_CASE("FullPanel: an MCM mod's changes wait for a Save, so it asks before it
     drawFrames(panel, 2);
 
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 0.0f);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x800 }), 1.0f));
     CHECK(pressActs(panel, treeRow(1)));
     drawFrames(panel, 2);
     CHECK(panel.isAsking());
     CHECK(panel.selection() == selectionOf(0));
 
-    CHECK(pressActs(panel, dialogButton(DIALOG_SAVE)));
+    CHECK(pressActs(panel, dialogButton(DIALOG_DISCARD)));
     drawFrames(panel, 2);
     CHECK_FALSE(panel.isAsking());
     CHECK(panel.selection() == selectionOf(1));
-    CHECK(globals.values.at({ PLUGIN, 0x800 }) == 1.0f);
+    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x800 }), 0.0f));
 }
 
 TEST_CASE("FullPanel: an invalid value of a config spec has its reason as its help, and its Reset sets the default")

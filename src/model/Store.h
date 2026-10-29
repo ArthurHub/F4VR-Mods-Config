@@ -98,7 +98,8 @@ namespace mods_config::model
         virtual const std::vector<Option>& options(const Setting& setting) const = 0;
 
         /**
-         * Whether a setting is dirty: its value is not the one its session started with, and waits for a Save.
+         * Whether a setting is dirty: its value is not the one its session started with, or the last Save kept, and
+         * waits for a Save, or is written already, which a Save keeps and a Discard writes back.
          */
         virtual bool isDirty(const Setting& setting) const = 0;
 
@@ -106,6 +107,15 @@ namespace mods_config::model
          * How many settings of the session are dirty.
          */
         virtual std::size_t dirtyCount() const = 0;
+
+        /**
+         * Whether a change is written as it is set, as an MCM mod's is, so a script reads it before a Save, which then
+         * only keeps it.
+         */
+        virtual bool writesChangesAtOnce() const
+        {
+            return false;
+        }
 
         /**
          * How many dirty settings are invalid: the player set them to no value of theirs, and Save writes

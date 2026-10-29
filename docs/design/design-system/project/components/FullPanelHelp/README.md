@@ -16,7 +16,7 @@ The Help page: how the menu works, with the buttons the player's config has. It 
   - Recenter: the binding, then "the menu is put in front of you again. It also comes back by itself when you walk away from it."
   - Minimize: "On the title bar: the menu is hidden as you left it, unsaved changes too. Your offhand wrist then has Restore, which shows it again with its values read again, and Exit, which closes it."
 - **Changes**:
-  - Save: "Save keeps your changes, and Discard takes them back. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first."
+  - Save: "A change waits for Save, which writes it, and Discard takes it back. An MCM mod's change is made at once instead: see MCM below. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first."
   - Undo one change, after the undo arrow in `amber`: "A changed value is amber, and the undo arrow after it takes back that change alone. Discard, in the footer, takes back all of them."
   - Reset, after its mark: "Sets the mod's default, as any other change. The help line names the default."
   - Buttons: "A button that runs a mod's script asks you to save first, as the script reads the saved values. An MCM mod's does not ask."

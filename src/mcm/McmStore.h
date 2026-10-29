@@ -33,10 +33,12 @@ namespace mods_config::mcm
     void sendPauseMenuEvents();
 
     /**
-     * The store of an MCM mod: a value is read from where its storage says, and a change is pending until a
-     * Save writes it there, or a Discard drops it. Nothing is previewed.
+     * The store of an MCM mod: a value is read from where its storage says, and a change is written there as it
+     * is made, as MCM's menu writes it, with the action of its row and MCM's event. A setting the player changed is
+     * dirty while its value is not the one its session started with, or the last Save kept: Save keeps it, and
+     * Discard writes that value back the same way.
      * A setting with no storage is held here, from the value a setting has with none, while its mod is selected,
-     * and is set at once: nothing writes it, so it is never dirty.
+     * and is never dirty, as nothing writes it.
      * A ModSetting is read from MCM's files as its mod is selected, and the player's file again as another
      * of its pages is shown, as a script can set one. It is written through MCM. It alone has a default: the
      * value of the mod's own file.
@@ -46,11 +48,11 @@ namespace mods_config::mcm
      * A global is read and written with `getGlobal` and `setGlobal`, and a property of a script with
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
-     * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`. After a Save that
-     * wrote a ModSetting, the pause menu is told as opened and closed, with `sendPauseMenuEvents`, once MCM's
-     * file has what it wrote: `frameUpdate` waits for it.
+     * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`. After a Save of a
+     * session that wrote a ModSetting, the pause menu is told as opened and closed, with `sendPauseMenuEvents`,
+     * once MCM's file has what it wrote: `frameUpdate` waits for it.
      * The `CallFunction` and the `CallGlobalFunction` of a button are run with `callFunction`, and so are
-     * the ones of a value row, by the Save that writes its value, with the value in their arguments.
+     * the ones of a value row, as its value is written, with the value in their arguments.
      */
     class McmStore : public model::Store
     {
@@ -81,7 +83,12 @@ namespace mods_config::mcm
 
         std::size_t dirtyCount() const override
         {
-            return _pending.size();
+            return _changes.size();
+        }
+
+        bool writesChangesAtOnce() const override
+        {
+            return true;
         }
 
         // a value that is no value of its setting is not set
@@ -113,9 +120,10 @@ namespace mods_config::mcm
 
         std::expected<void, std::string> save() override;
 
+        // a Save writes nothing, so it does not fail
         std::string_view saveFailure() const override
         {
-            return _saveFailure;
+            return {};
         }
 
         void discard() override;
@@ -126,17 +134,19 @@ namespace mods_config::mcm
         model::ActionResult run(const model::Action& action) override;
 
     private:
-        // a change of a setting that waits for a Save, in the type of its row
-        struct Pending
+        // a setting the player changed, with the value it had before, in the type of its row
+        struct Change
         {
             const model::Setting* setting;
-            model::Value value;
+            model::Value baseline;
         };
 
         model::StoredValue stored(const model::Setting& setting);
         std::optional<model::Value> readBack(const model::Setting& setting, const model::Value& value) const;
+        bool change(const model::Setting& setting, const model::Value& value);
         bool write(const model::Setting& setting, const model::Value& value);
         void written(const model::Setting& setting, const model::Value& value) const;
+        void waitForPauseMenu();
 
         // MCM's folder, which is `Data\MCM` in the game. With none no ModSetting is available
         std::filesystem::path _mcmFolder;
@@ -160,12 +170,13 @@ namespace mods_config::mcm
         // the values of the settings with no storage that were set, of the mod that is selected
         std::unordered_map<const model::Setting*, model::Value> _held;
 
-        // the changes of the mod that is selected that wait for a Save, in the order each was last made, which a
-        // Save applies them in
-        std::vector<Pending> _pending;
+        // the settings of the mod that is selected that the player changed, in the order each was last changed:
+        // Discard sets them back in the reverse of it
+        std::vector<Change> _changes;
 
-        // why the last Save did not write every change, until the next change, Save or Discard
-        std::string _saveFailure;
+        // the text MCM writes for each ModSetting the session wrote since its last Save, by its name, which the
+        // pause menu's events of the next Save wait for
+        std::map<std::string, std::string, std::less<>> _modSettingsWritten;
 
         // the last Save, until the next change or Discard: none of its changes takes effect after a restart that
         // the store knows of
