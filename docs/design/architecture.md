@@ -17,7 +17,7 @@ Two sources fill one internal model:
 
 A mod's DLL can also register as a native client, through a restricted C++ API; see [Native API](#native-api). A client is not a third source. It adds to its mod's config spec: live preview, functions that buttons run, options and states that only its code knows, and entries of the quick launch section that open its own UI.
 
-The UI does not show which source a mod's menu comes from. A change of either waits for Save, and what differs is in the mod's store: an MCM change is written through MCM, and a config spec's into its files and the game. See [The settings model](model.md).
+The UI does not show which source a mod's menu comes from. Both have the Save bar, and what differs is in the mod's store: an MCM change is made at once through MCM, as MCM's menu makes it, and Save keeps it, and a config spec's waits for Save, which writes it into its files and the game. See [The settings model](model.md).
 
 ```text
 Declarative config spec ──┐
@@ -104,7 +104,7 @@ A pending value that returns to its baseline is sent to the preview adapter as `
 
 Reset-to-default is an ordinary pending edit. It is not persisted until Save.
 
-An MCM mod has the same session, with no preview: see [MCM compatibility](#mcm-compatibility).
+An MCM mod has the same session, and each of its changes is made in the game as the player makes it, as a `live` one is previewed: see [MCM compatibility](#mcm-compatibility).
 
 ### Values at session start
 
@@ -589,20 +589,21 @@ MCM pages remain a compatibility source: their values are read and written as MC
 - Reads each mod's MCM `config.json` and its declared default settings.
 - Writes ModSettings through MCM's own `MCM.SetModSetting*` functions, so MCM's in-memory store and its settings file stay in agreement. It never writes MCM's settings files itself.
 - Reads and writes GlobalValue and PropertyValue sources directly, as MCM does.
-- Sends the existing `OnMCMSettingChange|ModName` external event after Save writes a change, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
-- Runs the supported MCM button actions. A script reads the saved values, so while the mod has unsaved changes a press asks to save them first, or to run without saving, as a config spec's script button does; see [Buttons](schema.md#buttons).
+- Sends the existing `OnMCMSettingChange|ModName` external event as a change is made and as Discard sets it back, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
+- Runs the supported MCM button actions. A script reads the values the player sees, as each change is made already, so a press does not ask to save first, as a config spec's script button does; see [Buttons](schema.md#buttons).
 - Shows hotkeys read-only. MCM keeps dispatching them.
 
 How it handles each MCM feature is in [MCM support](mcm.md).
 
 `MCM.RefreshMenu()` stays MCM's own function and refreshes MCM's own menu. The bridge cannot observe the call, so it reads MCM's settings file again as another page of the mod is shown.
 
-An MCM change is pending until Save, as a config spec's is, and Discard drops it, where MCM's menu writes each change at once. So every mod has one lifecycle, with the Save bar, and a script gets what MCM's menu gives it, in MCM's order, at Save. MCM mods are not marked or grouped apart in the UI.
+An MCM change is made as the player makes it, as MCM's menu makes it, so the player sees it in the game, and a script gets what MCM's menu gives it, in MCM's order. It is still a change of the session, with the Save bar and the unsaved-changes dialog: Save keeps it, and Discard sets it back. So every mod has one lifecycle. MCM mods are not marked or grouped apart in the UI.
 
-- A clean value is still read in every frame, so a change a script makes shows. A pending one stays the player's, and is clean again where the game's value comes to equal it. A setting with no storage is held by the store and is never dirty.
-- Nothing is previewed.
-- Save applies the dirty settings in the order the player last changed each, as MCM's menu applies a change as it is made: it writes one, a global and a property into the game and a ModSetting through `MCM.SetModSetting*`, runs the row's action with the value and sends `OnMCMSettingChange`, and then does the next. So a row whose script sets other rows, as a preset, is applied before the changes the player made after it, which stay. A config spec's Save writes every setting before it runs an action instead, as its actions are written for it. Then, where it wrote a ModSetting, it tells the game's listeners that the pause menu opened and closed, so a DLL that reads MCM's file as the pause menu closes reads it. MCM writes its file as Papyrus runs the queued call that sets the ModSetting, so the events wait, from frame to frame, until MCM's file has every ModSetting the Save wrote, and are sent after a few seconds anyway, as for a value MCM had already and does not write again. They wait also after the menu is closed.
-- A ModSetting's write is queued to Papyrus and gives no result, so an MCM mod's Save does not fail once it writes, and is not taken back.
+- A change writes the value, a global and a property into the game and a ModSetting through `MCM.SetModSetting*`, runs the row's action with the value and sends `OnMCMSettingChange`. A global or a property that is no longer in the game is not written, and its row is not available, with the reason.
+- A setting's baseline is its value as its session starts, and after a Save the value it kept. A setting the player changed is dirty while its value is not its baseline. Only the player's changes are dirty: a row that a script sets, as a preset sets its rows, is not, and keeps what the script set. A clean value is still read in every frame, so a change a script makes shows. A setting with no storage is held by the store and is never dirty.
+- Discard sets the dirty settings back to their baselines, in the reverse of the order the player last changed each, as a change is made: it writes each, runs its row's action with the value and sends its event. So a preset that is set back runs its script with the preset it had, which sets its rows back. A row's own Discard sets that setting back alone, the same way. Discard is what the player would do by hand, as MCM's menu has no undo: what a script did that the value set back does not undo stays, as the rows of a preset whose old value is one its script applies nothing for.
+- Save writes nothing: the values it keeps become the baseline. Then, where the session wrote a ModSetting since the last Save, it tells the game's listeners that the pause menu opened and closed, so a DLL that reads MCM's file as the pause menu closes reads it. Those events go to every listener of the game's menus, so such a DLL gets the changes at Save, and not as each is made. MCM writes its file as Papyrus runs the queued call that sets the ModSetting, so the events wait, from frame to frame, until MCM's file has every ModSetting the session wrote, and are sent after a few seconds anyway, as for a value MCM had already and does not write again. They wait also after the menu is closed.
+- A ModSetting's write is queued to Papyrus and gives no result, so a change of one does not fail once it is written.
 
 When the mod acts on a change is the mod's, and an MCM config has no field for it: a script reads a global when it needs it, and a DLL can read MCM's settings file only when the game starts. So an MCM setting's `applies` is `unknown`. A mod that needs a restart says so in its own text, which the menu shows.
 

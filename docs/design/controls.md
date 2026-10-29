@@ -296,4 +296,4 @@ Every editable declarative setting must declare its default beside the setting d
 
 ## MCM controls
 
-The MCM bridge should preserve the existing MCM control vocabulary and behavior as faithfully as practical instead of translating every control into a more powerful native concept. MCM's controls are not marked as MCM's, and their changes wait for Save as a config spec's do.
+The MCM bridge should preserve the existing MCM control vocabulary and behavior as faithfully as practical instead of translating every control into a more powerful native concept. MCM's controls are not marked as MCM's, and their changes are made as MCM's menu makes them, with the Save bar, which keeps them or sets them back.

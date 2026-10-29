@@ -74,10 +74,10 @@ What the UI asks of the store:
 
 There are two stores, and what happens around a change is theirs:
 
-- **The MCM store** reads a clean value in every frame, and a set changes the pending value, with no preview. Save writes the dirty values where their storage says, then runs each row's action and sends MCM's event. See [MCM compatibility](architecture.md#mcm-compatibility).
+- **The MCM store** reads a clean value in every frame. A set writes the value where its storage says, runs the row's action and sends MCM's event, as MCM's menu does, and the setting is dirty while its value is not its baseline. Discard sets the dirty values back the same way, in the reverse of the order they were changed, and Save keeps them as the baseline. See [MCM compatibility](architecture.md#mcm-compatibility).
 - **The config spec store** reads the files, and the globals and properties, when the mod is selected. A set changes the pending value, and that of a `live` setting is previewed: to the mod's client for a key of a file, and into the game by the store itself for a global or a property. Save writes the values and then runs the actions of the settings it wrote. Save and Discard are as in [Architecture and lifecycle](architecture.md#editing-session).
 
-Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's, and every change is saved on Save. The second is the mod's, and a config spec can say it with `applies`:
+Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's: a config spec's change is saved on Save, and an MCM change as it is made. The second is the mod's, and a config spec can say it with `applies`:
 
 | `applies`  | The mod acts on it                                     |
 | ---------- | ------------------------------------------------------ |
@@ -86,7 +86,7 @@ Two things are kept apart: when a change is saved, and when the running mod acts
 | `save`     | After Save                                             |
 | `restart`  | After the game is restarted                            |
 
-So a `live` setting is never saved by being previewed. And an MCM change that is saved is not always in effect: Unlimited Survival Mode's DLL reads MCM's settings file itself, and its page says in a text row that its settings need a restart. The menu shows such a text as MCM does, and claims no more than that the change is saved.
+So a `live` setting is never saved by being previewed. And an MCM change that is made is not always in effect: Unlimited Survival Mode's DLL reads MCM's settings file itself, and its page says in a text row that its settings need a restart. The menu shows such a text as MCM does, and claims no more than that the change is made.
 
 A value has a state, and a row whose value is not ready says why:
 
@@ -215,10 +215,10 @@ The front page, drawn from the two, with the ray on "Enable the feature". Its he
 A press on "Enable the feature":
 
 1. The UI sets `main/2` to off.
-2. The MCM store holds off as its pending value. `main/2` is dirty.
+2. The MCM store writes 0 to the global, runs `OnToggle` with the value, and sends MCM's event. `main/2` is dirty.
 3. The UI asks for the values again. `main/2` is off, so the Strength row is not visible.
 
-When the ray leaves the rows, the help line goes back to the status, which counts one unsaved change. Save writes 0 to the global, runs `OnToggle` with the value, and sends MCM's event.
+When the ray leaves the rows, the help line goes back to the status, which counts one unsaved change. Save keeps it. Discard writes 1 to the global, runs `OnToggle` with it, and sends MCM's event again.
 
 ### A config spec
 

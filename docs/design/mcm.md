@@ -62,9 +62,9 @@ What a row has beside its type:
 
 | Feature | How the menu handles it | |
 | --- | --- | --- |
-| `GlobalValue` | As in MCM: read in every frame. A change is written by Save | M25 |
-| `ModSettingBool`, `Int`, `Float`, `String` | As in MCM: read from MCM's two files as the mod is selected and as another page is shown, and written through `MCM.SetModSetting*` by Save | M29, M30, M42 |
-| `PropertyValueBool`, `Int`, `Float`, `String` | As in MCM, with `scriptName`: read in every frame. A change is written by Save | M32 |
+| `GlobalValue` | As in MCM: read in every frame, and written as it is changed | M25, M138 |
+| `ModSettingBool`, `Int`, `Float`, `String` | As in MCM: read from MCM's two files as the mod is selected and as another page is shown, and written through `MCM.SetModSetting*` as it is changed | M29, M30, M42, M138 |
+| `PropertyValueBool`, `Int`, `Float`, `String` | As in MCM, with `scriptName`: read in every frame, and written as it is changed | M32, M138 |
 | No `sourceType` | As in MCM: the value is held while the mod is selected, and is never an unsaved change | M25 |
 | A value that is not available | The row is disabled, and the help line says why | M25 |
 | The default of a ModSetting | Its Reset, which MCM's menu does not have | M102 |
@@ -76,7 +76,7 @@ What a row has beside its type:
 
 | Feature | How the menu handles it | |
 | --- | --- | --- |
-| `CallFunction` | As in MCM, on a button and on a value row, the row's after Save writes its value. A button of a mod with unsaved changes asks to save them first, or to run without saving | M33, M34 |
+| `CallFunction` | As in MCM, on a button and on a value row, the row's after its value is written, and again as Discard sets it back. A button runs with the changes made, and does not ask to save first | M33, M34, M138 |
 | `CallGlobalFunction` | As in MCM | M40 |
 | `CallExternalFunction` | Not run: it calls a function of Flash, which the menu has none of | M40 |
 | `RunConsoleCommand`, `SendEvent`, and any other type | Not run: they are actions of a hotkey, which MCM runs, and MCM's menu runs none of them in a row | M40 |
@@ -97,15 +97,15 @@ What a row has beside its type:
 
 | Feature | How the menu handles it | |
 | --- | --- | --- |
-| A change is saved as it is made | A change waits for Save, as a config spec's does, and its `applies` is `unknown`: see [MCM compatibility](architecture.md#mcm-compatibility) | M25 |
+| A change is saved as it is made | As in MCM, and it is a change of the session until Save keeps it or Discard sets it back, which runs its row's action and sends its event again. Its `applies` is `unknown`: see [MCM compatibility](architecture.md#mcm-compatibility) | M25, M138 |
 | `OnMCMOpen`, `OnMCMClose` | As in MCM | M31 |
 | `OnMCMMenuOpen`, `OnMCMMenuOpen\|<mod>`, `OnMCMMenuClose\|<mod>` | Sent as a mod is selected and left, also as the menu closes, where MCM's menu sends none | M31 |
-| `OnMCMSettingChange`, `OnMCMSettingChange\|<mod>` | As in MCM, after the action, once Save has written every change | M31, M34 |
+| `OnMCMSettingChange`, `OnMCMSettingChange\|<mod>` | As in MCM, after the action, as a change is made, and as Discard sets it back | M31, M34, M138 |
 | MCM's Papyrus functions: `GetModSetting*`, `SetModSetting*`, `RefreshMenu`, `IsInstalled`, `GetVersionCode` | MCM's own, which keep working. `RefreshMenu` refreshes MCM's menu alone, and this menu reads every value again by itself | M42 |
 | Hotkeys | MCM binds and runs them, for a key of the keyboard, the mouse or a gamepad. The menu shows them read-only. A button of a VR controller is no key MCM runs a hotkey for, and the menu does not add one | M35 |
 | MCM's `Hotkey manager` and `MCM Settings` | Not listed: a mod's hotkeys are on its own pages | M11 |
-| A DLL that reads MCM's file as the pause menu closes, which MCM's menu is in | After a Save that wrote a ModSetting, the menu tells the game's listeners that the pause menu opened and closed, so the DLL reads its file | M105 |
-| The game is paused while MCM's menu is open | The game keeps running, so a script acts on a saved change while the menu is open | |
+| A DLL that reads MCM's file as the pause menu closes, which MCM's menu is in | After a Save of a session that wrote a ModSetting, the menu tells the game's listeners that the pause menu opened and closed, so the DLL reads its file. It gets the changes at Save, and not as each is made | M105, M138 |
+| The game is paused while MCM's menu is open | The game keeps running, so a script acts on a change while the menu is open | |
 
 ## What MCM's authors work around
 
