@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-29T12:00:00Z",
+    "at": "2026-10-29T18:00:00Z",
     "via": "Claude Code",
-    "note": "An MCM change is made as the player makes it, and Save keeps it and Discard sets it back: the Help page's Changes and MCM sections, whose Save says that a change waits for Save but an MCM mod's, SaveBar, and an MCM mod's script button, which does not ask to save first."
+    "note": "An MCM mod has the MCM tag at the right of its row in the tree, and its pending status says its changes are made and not saved: ModTree, SaveBar and the Help page's MCM section. The selected row's tip is inside the row, so the tree keeps room on its right only for its scroll bar."
   },
   "layout": "files",
   "libraries": [],

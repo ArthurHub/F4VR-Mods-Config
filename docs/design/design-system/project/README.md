@@ -54,7 +54,7 @@ Every interactive item has these states, each told apart by more than color:
 | Hover | The ray is on it | `hover` fill and a 2 px `frame-border` outline round the whole row | `IsItemHovered()`; draw the outline with `AddRect` |
 | Focused | The thumbstick adjusts it: the last control pressed | A 2 px `green` ring, no fill | Track the last-activated id; draw the ring yourself |
 | Active | Trigger held, or a drag | `pressed` fill, 2 px `glow` outline, grab in `glow` | `IsItemActive()`; `ButtonActive`, `SliderGrabActive` |
-| Selected | The open page, the current option | Solid `green`, `on-green` text; a tree row ends in a 20 px tip | Push `ImGuiCol_Text` = `on-green` before the item |
+| Selected | The open page, the current option | Solid `green`, `on-green` text; a tree row ends in a 10 px tip inside it | Push `ImGuiCol_Text` = `on-green` before the item |
 | Pending | Differs from the saved value | `amber` dot after the name; the value, fill and grab in `amber`; Discard in the Reset slot | Store state; nothing in ImGui |
 | Invalid | Cannot be saved | The invalid mark after the name; value in `red` with a `red` outline; the reason in the help line | Store state |
 | Disabled | Condition off, plugin missing | The whole row at `opacity-disabled` and no hover | `BeginDisabled()` with `DisabledAlpha` 0.4 |
@@ -140,7 +140,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - Up and Down, which move a list's entry: a chevron in the same 24 px box (see `List`).
 - A hand pose: a bar for each finger in a 104 x 32 frame, as tall as the finger is straight (see `HandPose`).
 - Search: a 6 px-radius circle with a handle, 20 px; a match is a 2 px line under its letters (see `Search`).
-- The selected row's tip: `AddTriangleFilled`, 20 px deep, the row's height.
+- The selected row's tip: inside the row, 10 px deep, the row's height, drawn with the bar as one shape.
 - Help is the text `?`.
 
 ## Words
@@ -148,7 +148,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - Write plain, literal sentences. No exclamation marks, no jokes, no "please".
 - The commit is **Save**, never Apply. Its partners are **Discard** and **Cancel**. Per row it is **Reset**, and **Discard** while the row's change is pending.
 - Name what happened and what to do: "Must be 0.50 to 1.50", "Enter a value from 0.50 to 1.50, or Reset it to 1.00."
-- Every mod has the Save bar, an MCM mod's too: a config spec's change waits for Save, and an MCM change is made as it is made, as in MCM's menu, and Save keeps it. Say when a change takes effect only where the mod's config spec says it: the menu does not know it otherwise. Do not label MCM mods or group them apart.
+- Every mod has the Save bar, an MCM mod's too: a config spec's change waits for Save, and an MCM change is made as it is made, as in MCM's menu, and Save keeps it. Say when a change takes effect only where the mod's config spec says it: the menu does not know it otherwise. An MCM mod has the `MCM` tag in the tree, as its change is made at once: do not group MCM mods apart or mark them anywhere else.
 - An entry that opens the keyboard says so in words: "Type a new name". Do not end a label with an ellipsis: `…` is outside the font's range, and three dots read as a typo in this voice.
 - Help reads "Name: help": the setting's name in `green`, a colon, the help in `green-muted`. Do not repeat the name on a line of its own or write "help".
 - Counts use the number and the noun: "1 unsaved change", "3 pages".

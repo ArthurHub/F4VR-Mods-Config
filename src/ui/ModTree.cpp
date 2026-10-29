@@ -1,6 +1,7 @@
 #include "ModTree.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -19,8 +20,8 @@ namespace
     // The tree's sizes that are not tokens of the design system, in the panel's pixels.
     // Its header:
     constexpr float HEADER_HEIGHT = 40.0f;
-    // the room it keeps on its right, for that tip and for its scroll bar:
-    constexpr float RIGHT_ROOM = ui::SELECTED_BAR_TIP_DEPTH + theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
+    // the room it keeps on the right of its rows, for its scroll bar with space-1 on each side:
+    constexpr float RIGHT_ROOM = theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
     // the column the arrow of a row is in the middle of, which every row keeps:
     constexpr float ARROW_COLUMN = 16.0f;
     // and the gap from it to the name, 2 px less than space-2:
@@ -28,6 +29,15 @@ namespace
 
     // the deepest level a row is set in to: a row further in is set in as one of it, so its name keeps its room
     constexpr int MAX_INDENT_LEVEL = 3;
+
+    // the tag of an MCM mod's row, and what the help line says of it, as its change is made at once
+    constexpr auto MCM_TAG = "MCM";
+    constexpr auto MCM_HELP = "An MCM menu: a change is made in the game as you make it. Save keeps it, and Discard sets it back.";
+    // a tag's font size, a little over half the detail size, the room between its text and its outline, and its
+    // gap from the row's right edge
+    constexpr float TAG_FONT_SIZE = 10.0f;
+    constexpr float TAG_PADDING = 1.0f;
+    constexpr float TAG_GAP = theme::SPACE_2;
 
     /**
      * The arrow before the name of a row: none for a page with no pages, down for a row whose pages are the
@@ -59,14 +69,47 @@ namespace
     }
 
     /**
+     * A row's tag, ending at `right` in the middle of the row: its text in green in an outline close around it,
+     * in the color of a section's rule, or both in the color of a text on a fill. Returns its left edge.
+     */
+    float drawRowTag(const float right, const float rowTop, const std::string_view tag, const bool onFill)
+    {
+        ImGui::PushFont(nullptr, TAG_FONT_SIZE);
+        const float inside = TAG_PADDING + theme::BORDER_FRAME;
+        const float height = TAG_FONT_SIZE + inside * 2.0f;
+        const float width = std::ceil(ui::textWidth(tag) + inside * 2.0f);
+        const ImVec2 min(std::floor(right - width), std::floor(rowTop + (theme::CONTROL_HEIGHT - height) * 0.5f));
+        const ImVec2 max(min.x + width, min.y + height);
+        ui::drawOutline(min, max, onFill ? theme::color::ON_GREEN : theme::color::RULE);
+        ui::drawText(min.x + inside, max.x, min.y, height, onFill ? theme::color::ON_GREEN : theme::color::GREEN, tag);
+        ImGui::PopFont();
+        return min.x;
+    }
+
+    /**
+     * The name of a row from its left, and its tag at the row's right where it has one, as an MCM mod's: the tag
+     * is inside the row, so the row's look under the ray has it, and the name ends in an ellipsis before it, so
+     * the tags of the rows line up.
+     */
+    void drawName(const float left, const ImVec2& min, const ImVec2& max, const ImU32 color, const std::string_view name, const std::string_view tag, const bool onFill)
+    {
+        float right = max.x - theme::SPACE_3;
+        if (!tag.empty()) {
+            right = drawRowTag(max.x - TAG_GAP, min.y, tag, onFill) - theme::SPACE_2;
+        }
+        ui::drawText(left + ARROW_COLUMN + ARROW_GAP, right, min.y, theme::CONTROL_HEIGHT, color, name);
+    }
+
+    /**
      * A row of the tree at the cursor, in the width of every row: a mod's at level 0, and a page's a level
      * further in than the mod or the page it is under. Its name is set in by its level, after the column of its
-     * arrow, which every row keeps, so the names of a level line up whether or not they have one. The selected
-     * row is a solid bar, and any other has the look of a row under the ray. With `show`, a selected row that is
-     * not whole in the shown rows is scrolled to. Returns whether the row was pressed, and tells whether the ray
-     * is on it.
+     * arrow, which every row keeps, so the names of a level line up whether or not they have one, and has its
+     * tag after it, where it has one. The selected row is a solid bar, whose tip is inside the row, and any
+     * other has the look of a row under the ray. With `show`, a selected row that is not whole in
+     * the shown rows is scrolled to. Returns whether the row was pressed, and tells whether the ray is on it.
      */
-    bool treeRow(const std::string_view name, const int level, const Arrow arrow, const bool selected, const bool show, const float width, bool& pointed)
+    bool treeRow(const std::string_view name, const std::string_view tag, const int level, const Arrow arrow, const bool selected, const bool show, const float width,
+        bool& pointed)
     {
         const auto min = ImGui::GetCursorScreenPos();
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
@@ -91,16 +134,16 @@ namespace
         if (arrow != Arrow::None) {
             drawArrow(left, min.y, arrow == Arrow::Open, color);
         }
-        ui::drawText(left + ARROW_COLUMN + ARROW_GAP, max.x - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, color, name);
+        drawName(left, min, max, color, name, tag, selected);
         return pressed;
     }
 
     /**
-     * The row of a mod or page that is not available, at the cursor, in the width of every row. It is disabled: it
-     * has the look of a row under the ray, so the reason in the help line is seen to be its, and none of a
-     * press, which does nothing. Returns whether the ray is on the row.
+     * The row of a mod or page that is not available, at the cursor, in the width of every row, with its tag
+     * where it has one. It is disabled: it has the look of a row under the ray, so the reason in the help line is
+     * seen to be its, and none of a press, which does nothing. Returns whether the ray is on the row.
      */
-    bool disabledRow(const std::string_view name, const int level, const Arrow arrow, const float width)
+    bool disabledRow(const std::string_view name, const std::string_view tag, const int level, const Arrow arrow, const float width)
     {
         const auto min = ImGui::GetCursorScreenPos();
         ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
@@ -115,7 +158,7 @@ namespace
         if (arrow != Arrow::None) {
             drawArrow(left, min.y, false, theme::color::GREEN);
         }
-        ui::drawText(left + ARROW_COLUMN + ARROW_GAP, min.x + width - theme::SPACE_3, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, name);
+        drawName(left, min, ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT), theme::color::GREEN, name, tag, false);
         ImGui::EndDisabled();
         return pointed;
     }
@@ -128,9 +171,11 @@ namespace mods_config::ui
      * and the rows scroll under it.
      * The selected mod's own row is its front page, and it is open when it has pages: they are the rows under it,
      * and so are the pages of a page of it that is open.
-     * A mod that is not available is a disabled row, in its place, which says why while the ray is on it.
+     * A mod that is not available is a disabled row, in its place, which says why while the ray is on it. An
+     * MCM mod's row has the MCM tag, as its change is made at once, which its help says.
      * Returns what a pressed row selects, and the row the ray is on where it has something to say: the reason
-     * of a mod that is not available, or the help of a mod or a page, which a config spec gives them.
+     * of a mod that is not available, the help of an MCM mod, or the help of a mod or a page, which a config spec
+     * gives them.
      */
     TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height, model::Store* store)
     {
@@ -166,20 +211,22 @@ namespace mods_config::ui
                     const auto& mod = mods[modIndex];
                     const bool selected = selection.mod == modIndex;
                     const bool open = selected && !mod.pages.empty();
+                    const bool mcm = mod.source == model::Source::Mcm;
+                    const std::string_view tag = mcm ? MCM_TAG : "";
                     ImGui::PushID(static_cast<int>(modIndex));
                     if (!mod.notAvailable.empty()) {
-                        if (disabledRow(mod.displayName, 0, Arrow::Closed, rowWidth)) {
+                        if (disabledRow(mod.displayName, tag, 0, Arrow::Closed, rowWidth)) {
                             drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
                         }
                         ImGui::PopID();
                         continue;
                     }
                     bool pointed = false;
-                    if (treeRow(mod.displayName, 0, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed)) {
+                    if (treeRow(mod.displayName, tag, 0, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed)) {
                         drawn.pressed = Selection{ .mod = modIndex, .page = {} };
                     }
-                    if (pointed && !mod.help.empty()) {
-                        drawn.pointed = PointedRow{ .text = mod.displayName, .help = mod.help };
+                    if (pointed && (mcm || !mod.help.empty())) {
+                        drawn.pointed = PointedRow{ .text = mod.displayName, .help = mcm ? MCM_HELP : mod.help };
                     }
                     if (open) {
                         std::vector<std::size_t> path;
@@ -216,8 +263,8 @@ namespace mods_config::ui
             ImGui::PushID(static_cast<int>(pageIndex));
             bool pointed = false;
             if (!enabled) {
-                pointed = disabledRow(page.name, static_cast<int>(path.size()), arrow, rowWidth);
-            } else if (treeRow(page.name, static_cast<int>(path.size()), arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
+                pointed = disabledRow(page.name, {}, static_cast<int>(path.size()), arrow, rowWidth);
+            } else if (treeRow(page.name, {}, static_cast<int>(path.size()), arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
             if (pointed && (!enabled || !page.help.empty())) {

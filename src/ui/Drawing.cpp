@@ -451,16 +451,17 @@ namespace mods_config::ui
     }
 
     /**
-     * The bar of the selected row: a solid fill that ends in a tip, in the room the tree keeps beside its rows.
-     * It is one shape, so no seam shows between the bar and its tip.
+     * The bar of the selected row: a solid fill that ends in a tip inside the row, which starts
+     * `SELECTED_BAR_TIP_DEPTH` from its right edge and points at the edge's middle. It is one shape, so no seam
+     * shows between the bar and its tip.
      */
     void drawSelectedBar(const ImVec2& min, const ImVec2& max)
     {
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->PathArcToFast(ImVec2(min.x + theme::RADIUS_FRAME, min.y + theme::RADIUS_FRAME), theme::RADIUS_FRAME, 6, 9);
-        drawList->PathLineTo(ImVec2(max.x, min.y));
-        drawList->PathLineTo(ImVec2(max.x + SELECTED_BAR_TIP_DEPTH, (min.y + max.y) * 0.5f));
-        drawList->PathLineTo(max);
+        drawList->PathLineTo(ImVec2(max.x - SELECTED_BAR_TIP_DEPTH, min.y));
+        drawList->PathLineTo(ImVec2(max.x, (min.y + max.y) * 0.5f));
+        drawList->PathLineTo(ImVec2(max.x - SELECTED_BAR_TIP_DEPTH, max.y));
         drawList->PathArcToFast(ImVec2(min.x + theme::RADIUS_FRAME, max.y - theme::RADIUS_FRAME), theme::RADIUS_FRAME, 3, 6);
         drawList->PathFillConvex(theme::color::GREEN);
     }

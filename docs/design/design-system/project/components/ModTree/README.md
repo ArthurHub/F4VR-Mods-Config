@@ -8,8 +8,9 @@ The navigation: every mod in one alphabetical list, with the selected mod expand
 - A `t-detail` `green-muted` header says `Mods` and the count. The menu's front page has no row of its own: the first breadcrumb, `MODS CONFIG FO4`, is its entry, and is selected while it is open. No tree row is selected then.
 - Rows are `control-height` tall, `t-body`.
 - A mod's own row is its front page: it has no separate page row. Only the selected mod is expanded.
-- Selected: solid `green`, `on-green` text, square right end with a 20 px tip pointing at the content. Draw the tip with `AddTriangleFilled` in the room between the row and the scroll bar (see Scrolling).
+- Selected: solid `green`, `on-green` text, ending in a tip inside the row that points at the content: it starts 10 px from the row's right edge and points at the edge's middle. Draw the bar and its tip as one shape, so no seam shows.
 - Hover: `hover` with a `frame-border` outline.
+- An MCM mod has the `MCM` tag at the right of its row, as its change is made in the game as the player makes it, where a config spec's waits for Save: its text 10 px in `green`, 1 px inside a `border-frame` outline in `rule`, 8 px from the row's right edge, inside the row, so its hover look has it. On the selected bar the text and the outline are `on-green`, and the tip starts over the tag. The name ends in an ellipsis `space-2` before it, so the tags of the rows line up. While the ray is on the row the help line says "An MCM menu: a change is made in the game as you make it. Save keeps it, and Discard sets it back." A config spec's mod has no tag.
 - Not available (a required plugin is not loaded, or the config cannot be read): disabled at `opacity-disabled`, in its place by name. It is not selected and has no pages. The reason is in the help line while the ray is on the row ("Sim Settlements 2: Not available: its plugin SS2.esm is not loaded.") and in the menu front page's notices.
 
 ## Levels
@@ -44,8 +45,8 @@ About nine rows fit in the Full panel's tree, so most lists scroll: a flat list 
 
 - The `Mods` header stays. The rows scroll under it with the thumbstick while the ray is on the tree.
 - While the rows are longer than their area, a `scrollbar-size` bar shows on the right of the pane, styled as the content pane's: `track`, with a `frame-border` grab.
-- Its room is always kept. The pane's right padding is 44 px: the selected row's 20 px tip, `space-1`, `scrollbar-size`, `space-1`. Rows are a fixed 284 px wide (`nav-width` minus both paddings), so nothing moves when the bar appears or goes.
+- Its room is always kept. The pane's right padding is 24 px: `space-1`, `scrollbar-size`, `space-1`. Rows are a fixed 304 px wide (`nav-width` minus both paddings), so nothing moves when the bar appears or goes.
 - In ImGui: the rows in a child window, each drawn at that fixed width rather than `GetContentRegionAvail().x`, which narrows by `ScrollbarSize` when the bar appears. Not `ImGuiWindowFlags_AlwaysVerticalScrollbar`: it draws a full-length grab when nothing scrolls.
 - A row selected from outside the tree (a breadcrumb, Back, the panel shown again) is scrolled into view: `SetScrollHereY()` on it when it is outside the visible rows. A category opened near the bottom scrolls to show its first mods.
 
-Don't group, badge or color mods by where their menu comes from (MCM or a config spec).
+Don't group or color mods by where their menu comes from (MCM or a config spec): the `MCM` tag is the one mark, as an MCM change is made at once.

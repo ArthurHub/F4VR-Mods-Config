@@ -17,7 +17,7 @@ Two sources fill one internal model:
 
 A mod's DLL can also register as a native client, through a restricted C++ API; see [Native API](#native-api). A client is not a third source. It adds to its mod's config spec: live preview, functions that buttons run, options and states that only its code knows, and entries of the quick launch section that open its own UI.
 
-The UI does not show which source a mod's menu comes from. Both have the Save bar, and what differs is in the mod's store: an MCM change is made at once through MCM, as MCM's menu makes it, and Save keeps it, and a config spec's waits for Save, which writes it into its files and the game. See [The settings model](model.md).
+The tree marks an MCM mod with the `MCM` tag, as its change is made at once, and shows no other difference of the source. Both have the Save bar, and what differs is in the mod's store: an MCM change is made at once through MCM, as MCM's menu makes it, and Save keeps it, and a config spec's waits for Save, which writes it into its files and the game. See [The settings model](model.md).
 
 ```text
 Declarative config spec ──┐
@@ -597,7 +597,7 @@ How it handles each MCM feature is in [MCM support](mcm.md).
 
 `MCM.RefreshMenu()` stays MCM's own function and refreshes MCM's own menu. The bridge cannot observe the call, so it reads MCM's settings file again as another page of the mod is shown.
 
-An MCM change is made as the player makes it, as MCM's menu makes it, so the player sees it in the game, and a script gets what MCM's menu gives it, in MCM's order. It is still a change of the session, with the Save bar and the unsaved-changes dialog: Save keeps it, and Discard sets it back. So every mod has one lifecycle. MCM mods are not marked or grouped apart in the UI.
+An MCM change is made as the player makes it, as MCM's menu makes it, so the player sees it in the game, and a script gets what MCM's menu gives it, in MCM's order. It is still a change of the session, with the Save bar and the unsaved-changes dialog: Save keeps it, and Discard sets it back. So every mod has one lifecycle. MCM mods are not grouped apart in the UI: an MCM mod's row in the tree has the `MCM` tag, which tells the player that its changes are made at once, and its status counts them as made and not saved.
 
 - A change writes the value, a global and a property into the game and a ModSetting through `MCM.SetModSetting*`, runs the row's action with the value and sends `OnMCMSettingChange`. A global or a property that is no longer in the game is not written, and its row is not available, with the reason.
 - A setting's baseline is its value as its session starts, and after a Save the value it kept. A setting the player changed is dirty while its value is not its baseline. Only the player's changes are dirty: a row that a script sets, as a preset sets its rows, is not, and keeps what the script set. A clean value is still read in every frame, so a change a script makes shows. A setting with no storage is held by the store and is never dirty.

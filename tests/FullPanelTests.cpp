@@ -40,6 +40,9 @@ namespace
     constexpr float TREE_HEADER_HEIGHT = 40.0f;
     constexpr float TREE_ROW_PITCH = theme::CONTROL_HEIGHT + theme::SPACE_1;
 
+    // what the help line says of an MCM mod's row in the tree
+    constexpr auto MCM_ROW_HELP = "An MCM menu: a change is made in the game as you make it. Save keeps it, and Discard sets it back.";
+
     model::Mod modOf(const std::string& name, const Names& pages = {})
     {
         model::Mod mod{ .name = name, .displayName = name, .frontPage = {}, .pages = {} };
@@ -751,9 +754,9 @@ TEST_CASE("FullPanel: a mod that is not available is a row of the tree, which a 
     CHECK(panel.selection() == Selection{});
     CHECK(panel.helpLine().text() == "Beta: Not available: its plugin Beta.esp is not loaded.");
 
-    // the help leaves with the ray, as the tree's rows have no help of their own
+    // the help leaves with the ray, for the help of the row it is on
     point(panel, treeRow(2));
-    CHECK(panel.helpLine().text().empty());
+    CHECK(panel.helpLine().text() == "Gamma: " + std::string(MCM_ROW_HELP));
 
     // nor is it selected from outside the tree, as the devbench tool selects
     CHECK_FALSE(panel.select(selectionOf(1)));
@@ -767,17 +770,23 @@ TEST_CASE("FullPanel: the help line has the help of a mod and of a page whose ro
 {
     const test_panel::PanelContext context;
     auto mod = modOf("Alpha", { "First", "Second" });
+    mod.source = model::Source::ConfigSpec;
     mod.help = "What Alpha is.";
     mod.pages[0].help = "What its first page is.";
+    auto noHelp = modOf("Beta");
+    noHelp.source = model::Source::ConfigSpec;
     FullPanel panel;
-    panel.setMods({ std::move(mod), modOf("Beta") });
+    panel.setMods({ std::move(mod), std::move(noHelp), modOf("Gamma") });
     drawFrames(panel, 2);
 
     point(panel, treeRow(0));
     CHECK(panel.helpLine().text() == "Alpha: What Alpha is.");
-    // a mod with no help has none, as an MCM mod
+    // a mod with no help has none
     point(panel, treeRow(1));
     CHECK(panel.helpLine().text().empty());
+    // and an MCM mod's says that its change is made at once
+    point(panel, treeRow(2));
+    CHECK(panel.helpLine().text() == "Gamma: " + std::string(MCM_ROW_HELP));
 
     panel.select(selectionOf(0));
     point(panel, treeRow(1));
@@ -1321,9 +1330,9 @@ TEST_CASE("FullPanel: the help line keeps its row where the page has none, until
     point(panel, pageRow(NO_PAGE_ROW));
     CHECK(panel.helpLine().text() == "Enable the feature: Turns the feature on.");
 
-    // on the tree
+    // on the tree, for the help of the mod's row
     point(panel, treeRow(0));
-    CHECK(panel.helpLine().text().empty());
+    CHECK(panel.helpLine().text() == "Alpha: " + std::string(MCM_ROW_HELP));
 
     // and off the panel
     point(panel, pageRow(2));
@@ -2106,7 +2115,8 @@ TEST_CASE("FullPanel: the help line says that an MCM mod has no unsaved changes,
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Off: What it does.");
     CHECK(pressActs(panel, pageRow(0)));
-    CHECK(panel.helpLine().status() == "1 unsaved change");
+    // which is in the game already, and not saved
+    CHECK(panel.helpLine().status() == "1 change made, not saved");
 
     // an MCM config does not say when a change takes effect, so a pending row has no tag
     CHECK(panel.helpLine().tag().empty());

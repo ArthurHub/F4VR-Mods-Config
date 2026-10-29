@@ -42,10 +42,10 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-scrollbar i { position: absolute; left: 3px; right: 3px; border-radius: var(--radius-frame); background: var(--frame-border); }
 
 /* ---------- navigation tree ---------- */
-/* right padding: the selected row's 20 px tip, space-1, the scroll bar's room (always kept), space-1 */
-.mc-nav { position: relative; width: var(--nav-width); flex: none; background: var(--plate); border-radius: var(--radius-popup); padding: var(--space-2) calc(20px + var(--space-1) + var(--scrollbar-size) + var(--space-1)) var(--space-2) var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); overflow: hidden; }
-/* the rows scroll under the fixed Mods header; the box reaches over the tip so the tip is not clipped */
-.mc-nav-rows { flex: 1; min-height: 0; overflow: hidden; margin-right: -20px; padding-right: 20px; }
+/* right padding: space-1, the scroll bar's room (always kept), space-1 */
+.mc-nav { position: relative; width: var(--nav-width); flex: none; background: var(--plate); border-radius: var(--radius-popup); padding: var(--space-2) calc(var(--space-1) + var(--scrollbar-size) + var(--space-1)) var(--space-2) var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); overflow: hidden; }
+/* the rows scroll under the fixed Mods header */
+.mc-nav-rows { flex: 1; min-height: 0; overflow: hidden; }
 .mc-nav-rows > .list { display: flex; flex-direction: column; gap: var(--space-1); }
 .mc-nav > .mc-scrollbar { position: absolute; right: var(--space-1); top: calc(var(--space-2) + 40px + var(--space-1)); bottom: var(--space-2); }
 .mc-nav-head { height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-2); color: var(--green-muted); }
@@ -60,8 +60,11 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-tree-row.d3 { padding-left: calc(var(--space-2) + 3 * var(--space-4)); }
 .mc-tree-row.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
 .mc-tree-row.is-selected { background: var(--green); color: var(--on-green); border-radius: var(--radius-frame) 0 0 var(--radius-frame); }
-/* the Pip-Boy tip: the selected bar points at the content it opened */
-.mc-tree-row.is-selected::after { content: ""; position: absolute; top: 0; right: -20px; border-left: 20px solid var(--green); border-top: 24px solid transparent; border-bottom: 24px solid transparent; }
+/* the Pip-Boy tip, inside the row: the selected bar points at the content it opened, from 10 px left of its right edge */
+.mc-tree-row.is-selected { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+/* an MCM mod's tag: 10 px text 1 px inside a rule outline, 8 px from the row's right edge (its padding is space-3) */
+.mc-tree-row .mc-tree-tag { flex: none; margin-right: calc(8px - var(--space-3)); padding: 1px; font-size: 10px; line-height: 10px; border: var(--border-frame) solid var(--rule); border-radius: var(--radius-frame); color: var(--green); }
+.mc-tree-row.is-selected .mc-tree-tag { border-color: var(--on-green); color: var(--on-green); }
 .mc-tree-row.is-disabled { opacity: var(--opacity-disabled); }
 /* a category groups mods when the list is long: pressed to open or close, never selected */
 .mc-cat { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) 0 var(--space-2); border-radius: var(--radius-frame); color: var(--green-muted); white-space: nowrap; }

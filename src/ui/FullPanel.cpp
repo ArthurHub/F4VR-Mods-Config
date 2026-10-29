@@ -245,9 +245,10 @@ namespace mods_config::ui
 
     /**
      * Gives the help line the status of the selected mod's editing session: how many changes are invalid,
-     * which block Save, why the last Save failed, until the next change, how many wait for a Save, with how
-     * many of them take effect after a restart, or the last Save, until the next change, with how many of the
-     * changes it wrote take effect after a restart. Nothing with no mod, and with no store.
+     * which block Save, why the last Save failed, until the next change, how many wait for a Save, or of an MCM
+     * mod how many are made and not saved, with how many of them take effect after a restart, or the last Save,
+     * until the next change, with how many of the changes it wrote take effect after a restart. Nothing with no
+     * mod, and with no store.
      */
     void FullPanel::updateStatus()
     {
@@ -259,7 +260,10 @@ namespace mods_config::ui
         } else if (const auto failure = store->saveFailure(); !failure.empty()) {
             _helpLine.setStatus(std::format("Not saved: {}.", failure), StatusLook::Invalid);
         } else if (const auto dirty = store->dirtyCount(); dirty > 0) {
-            auto status = std::format("{} unsaved change{}", dirty, dirty == 1 ? "" : "s");
+            // an MCM change is in the game already, as it is made: Save keeps it
+            const bool made = _mods[*_selection.mod].source == model::Source::Mcm;
+            const auto* plural = dirty == 1 ? "" : "s";
+            auto status = made ? std::format("{} change{} made, not saved", dirty, plural) : std::format("{} unsaved change{}", dirty, plural);
             if (const auto restarts = store->dirtyRestartCount(); restarts > 0) {
                 status += std::format(", {} take{} effect after a restart", restarts, restarts == 1 ? "s" : "");
             }

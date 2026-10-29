@@ -132,8 +132,8 @@ namespace mods_config::ui
     // the box of the mark of when a pending change takes effect, which is drawn in place of the dot
     constexpr float APPLIES_MARK_WIDTH = 16.0f;
 
-    // how far the selected-row bar's tip extends past its right edge
-    constexpr float SELECTED_BAR_TIP_DEPTH = 20.0f;
+    // how far from the selected-row bar's right edge its tip starts, inside the row
+    constexpr float SELECTED_BAR_TIP_DEPTH = 10.0f;
 
     // where a heading's text starts in its row, as a row's text does in its frame, so a heading lines up with the
     // rows beside it: and where the page's texts start, in from the content's left

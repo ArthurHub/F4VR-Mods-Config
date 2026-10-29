@@ -125,17 +125,25 @@ def sub(heading, rows=''):
     inner = f'<div class="mc-sub">{rows}</div>' if rows else ''
     return f'<div class="mc-in">{heading}{inner}</div>'
 
+# the mods of the mocks whose menu is MCM's, which have the MCM tag in the tree
+MCM_MODS = {'Baka Fullscreen Pip-Boy', 'Better Locational Damage', 'Companion Command', 'FallUI - HUD', 'Sim Settlements 2',
+            'Virtual Reloads', 'Weather Overhaul'}
+
+def mcm_tag(name, kind='mod'):
+    """The MCM tag after the name of an MCM mod's row, at the row's right."""
+    return '<span class="mc-tree-tag">MCM</span>' if kind == 'mod' and name in MCM_MODS else ''
+
 def tree_row(name, kind='mod', state='', arrow=None, mark=None, cat=False, depth=None):
     """A row of the tree. Each level is set in by IndentSpacing (space-8), up to the third: a mod's pages are a level
     in, a page's pages a level further, and in a grouped tree the category is the top. Every row keeps the arrow's
     column, so the names of a level line up: a mod always has its arrow, and a page has one only when it has pages
-    of its own."""
+    of its own. An MCM mod has the MCM tag at its right."""
     if depth is None:
         depth = (1 if kind == 'page' else 0) + (1 if cat else 0)
     a = {'r': ARROW_R, 'd': ARROW_D, None: ''}[arrow]
     cls = 'mc-tree-row t-body' + (f' d{min(depth, 3)}' if depth else '') + (f' {state}' if state else '')
     mk = f'<span class="mc-mark" style="right:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    return f'<div class="{cls}"><span class="arrow">{a}</span><span class="name">{name}</span>{mk}</div>'
+    return f'<div class="{cls}"><span class="arrow">{a}</span><span class="name">{name}</span>{mcm_tag(name, kind)}{mk}</div>'
 
 def cat_row(name, count, open_=False, state='', mark=None):
     """A category: opened and closed by pressing it, never selected. Its rule and count set it apart from a mod."""
@@ -336,12 +344,14 @@ sb_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 {footer('<span class="mc-muted">No unsaved changes</span>', btn('Discard', '', 'is-disabled') + btn('Save', 'is-primary', 'is-disabled'))}
 <span class="t-detail mc-muted">Pending</span>
 {footer(DOT + '<span class="mc-amber">1 unsaved change</span>', btn('Discard') + btn('Save', 'is-primary'))}
+<span class="t-detail mc-muted">Pending, of an MCM mod: the change is made in the game already, and Save keeps it</span>
+{footer(DOT + '<span class="mc-amber">1 change made, not saved</span>', btn('Discard') + btn('Save', 'is-primary'))}
 <span class="t-detail mc-muted">Blocked by an invalid value</span>
 {footer(WARN + '<span class="mc-red">2 invalid values</span>', btn('Discard') + btn('Save', 'is-primary', 'is-disabled'))}
 <span class="t-detail mc-muted">Not saved: a Save that failed</span>
 {footer(WARN + '<span class="mc-red">Not saved: showcase.toml cannot be written.</span>', btn('Discard') + btn('Save', 'is-primary'))}
 </div></div>'''
-write('SaveBar', page('<!-- @dsCard group="Actions" height=560 width=1180 subtitle="Clean, pending, blocked, not saved: every mod, MCM too" -->', 'Save bar', sb_body))
+write('SaveBar', page('<!-- @dsCard group="Actions" height=660 width=1180 subtitle="Clean, pending, an MCM mod&#39;s pending, blocked, not saved: every mod, MCM too" -->', 'Save bar', sb_body))
 
 # ---------------- ConfirmDialog ----------------
 cd_body = f'''<div class="mc-world"><div class="mc-sheet mc-scrim" style="width:820px;height:400px;padding:0">
@@ -1274,7 +1284,7 @@ def s_row(name, q, kind='mod', count=None, state='', depth=None, arrow=None, mar
     cls = 'mc-tree-row t-body' + (f' d{depth}' if depth else '') + (f' {state}' if state else '')
     c = f'<span class="count t-detail">{count}</span>' if count else ''
     mk = f'<span class="mc-mark" style="right:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    return f'<div class="{cls}"><span class="arrow">{a}</span><span class="name">{hit(name, q)}</span>{c}{mk}</div>'
+    return f'<div class="{cls}"><span class="arrow">{a}</span><span class="name">{hit(name, q)}</span>{c}{mcm_tag(name, kind)}{mk}</div>'
 
 def nav_search(field, rows, height=None):
     st = f' style="height:{height}px"' if height else ''
@@ -2092,6 +2102,7 @@ HELP_ROWS = [
     legend(DONE, 'Result', 'A button gave a result: point at its row to read it.'),
     control('<span style="opacity:var(--opacity-disabled)">Greyed row</span>', 'Point at it: the help line says why it cannot be changed.'),
     section('MCM'),
+    control('MCM tag', 'A mod whose menu is MCM&#39;s has it after its name in the list of mods, as its changes work as below.'),
     control('Save', 'A change is made as you make it, as in MCM&#39;s own menu, so you see it in the game and a button&#39;s script reads it. It is still unsaved: Save keeps it, and Discard, or leaving without saving, sets it back and runs the mod&#39;s script for it again.'),
     control('Hotkeys', 'A mod&#39;s hotkeys are shown, not edited: change them in MCM.'),
     control('A mod that is greyed', 'It cannot be shown: point at it to see why, and the front page lists it under Notices.'),
