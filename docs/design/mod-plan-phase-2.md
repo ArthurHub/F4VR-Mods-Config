@@ -154,7 +154,7 @@ M67 has FRIK add its own entry, in a commit of FRIK's repository on a framework 
 | M129 | mod      | A pending row's Discard                                  | done   |
 | M130 | mod      | A mod with a config spec and an MCM menu is listed by its config spec | done   |
 | M134 | mod      | docs: a setting kept in a state of its client            | done   |
-| M135 | mod      | A setting kept in a state of its client                  | todo   |
+| M135 | mod      | A setting kept in a state of its client                  | done   |
 
 M120 to M125 give every mod one lifecycle before a client previews: a change waits for Save, and the menu says when a change takes effect only where a config spec says it. See [MCM compatibility](architecture.md#mcm-compatibility) and [When a change takes effect](schema.md#when-a-change-takes-effect).
 

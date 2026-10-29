@@ -47,6 +47,8 @@ namespace mods_config::spec
      * every setting with its value before and the files, after the actions ran, and then each F4SE plugin of its
      * config spec is sent the F4SE message of the Save. The store keeps the ones that take effect after a restart that a Save wrote, for each mod, until the
      * game is restarted.
+     * A setting can be kept in a state of the mod's client, which the client answers as the mod is selected and applies
+     * as it is told a change: a preview of a `live` one, its Discard, and what a Save wrote. The store writes nothing.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
     class ConfigSpecStore : public model::Store
@@ -148,6 +150,7 @@ namespace mods_config::spec
         };
 
         void readValues(const model::Mod& mod);
+        void readClientState(const model::Setting& setting, const model::ClientStateStorage& state, Entry& entry) const;
         void preview(const model::Setting& setting, const Entry& entry);
         void previewToClient(const model::Setting& setting, const Entry& entry);
         void discardOnClient(ClientPreview& preview) const;

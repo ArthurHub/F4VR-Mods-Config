@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <map>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <variant>
@@ -136,12 +138,12 @@ namespace
     }
 
     /**
-     * A setting as its mod's client is told it: its id, its file and its path in it, or its form and a property's
-     * script and name.
+     * A setting as its mod's client is told it: its id, its file and its path in it, its form and a property's
+     * script and name, or its state.
      */
     std::string settingText(const model::ClientSetting& setting)
     {
-        std::string where = setting.file ? setting.file->name + ":" : setting.form;
+        std::string where = setting.file ? setting.file->name + ":" : !setting.clientState.empty() ? "state " + setting.clientState : setting.form;
         for (const auto& name : setting.path) {
             where += (where.ends_with(':') ? "" : ".") + name;
         }
@@ -1654,4 +1656,152 @@ TEST_CASE("ConfigSpecStore: values read again take a clean setting's new value, 
     session.store.discard();
     CHECK(globals.values.at({ "MyMod.esp", 0x800 }) == 1.0f);
     CHECK(session.store.dirtyCount() == 0);
+}
+
+namespace
+{
+    // a setting kept in a state of the mod's client, of each kind: a live one, one that waits for a Save, and a read-only one
+    constexpr auto STATE_SETTINGS = R"(
+        { "type": "dropdown", "valueType": "int", "text": "Pip-Boy", "default": 0, "valueOptions": { "options": ["Wrist", "Projected"] },
+          "storage": { "clientState": "pipboyType" } },
+        { "type": "slider", "valueType": "float", "text": "Scale", "default": 1.0, "applies": "save", "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "clientState": "scale" } },
+        { "type": "slider", "valueType": "float", "text": "Height", "readOnly": true, "storage": { "clientState": "height" } }
+    )";
+
+    /**
+     * The client of the mod `MyMod`, whose states are the values a test gives it, and which keeps the changes and the
+     * Saves it is told, each as a line, as `ToldChanges` does.
+     */
+    struct StateClient
+    {
+        std::map<std::string, model::Value, std::less<>> states;
+        std::vector<std::string> told;
+
+        explicit StateClient(ConfigSpecStore& store)
+        {
+            store.clientCalls().addClient("MyMod",
+                { .state =
+                        [this](const std::string_view name) {
+                            const auto found = states.find(name);
+                            return found != states.end() ? std::optional(found->second) : std::nullopt;
+                        },
+                    .onChange =
+                        [this](const model::SettingChange& change) {
+                            told.push_back(std::format("{} {} {} -> {}",
+                                change.phase == model::ChangePhase::Discard ? "Discard" : "Preview",
+                                settingText(change.setting),
+                                textOf(change.previous),
+                                textOf(change.value)));
+                        },
+                    .onSaved =
+                        [this](const model::SaveBatch& batch) {
+                            told.push_back(std::format("Save {}", batch.revision));
+                            for (const auto& saved : batch.settings) {
+                                told.push_back(std::format("  {} {} -> {}", settingText(saved.setting), textOf(saved.before), textOf(saved.value)));
+                            }
+                        } });
+        }
+    };
+}
+
+TEST_CASE("ConfigSpecStore: a setting of a state of its mod's client has the client's answer as its baseline, and one it does not answer is not available")
+{
+    Session session(STATE_SETTINGS);
+    session.open(MOD_TOML);
+    CHECK(session.value(0).reason == "Not available: needs My Mod's DLL, which is not loaded.");
+    CHECK_FALSE(session.value(0).available);
+    CHECK_FALSE(session.store.set(session.setting(0), 1));
+
+    StateClient client(session.store);
+    client.states = { { "pipboyType", 1 }, { "scale", 1.25f }, { "height", 1.8f } };
+    session.store.open(session.mod);
+    CHECK(session.value(0).value == model::Value(1));
+    CHECK(session.value(1).value == model::Value(1.25f));
+    CHECK(session.value(2).value == model::Value(1.8f));
+    for (std::size_t row = 0; row < 3; ++row) {
+        CHECK(session.value(row).available);
+        CHECK_FALSE(session.value(row).invalid);
+        CHECK_FALSE(session.store.isDirty(session.setting(row)));
+    }
+    // a read-only one is not set
+    CHECK_FALSE(session.store.set(session.setting(2), 1.7f));
+
+    // a whole number is a number, and an answer that is no value of its setting is invalid, as one of another type,
+    // which a read-only one does not show
+    client.states = { { "pipboyType", 5 }, { "scale", 1 }, { "height", "tall"s } };
+    session.store.open(session.mod);
+    CHECK(session.value(0).invalid);
+    CHECK(session.value(0).reason.starts_with("Invalid: the state pipboyType is 5 in its mod's DLL, which "));
+    CHECK(session.value(1).value == model::Value(1.0f));
+    CHECK_FALSE(session.value(1).invalid);
+    CHECK(session.value(2).reason == "Not available: the state height of its mod's client is \"tall\", which is no value of the setting's valueType.");
+    client.states["scale"] = "big"s;
+    session.store.open(session.mod);
+    CHECK(session.value(1).reason == "Invalid: the state scale of its mod's client is \"big\", which is no value of the setting's valueType.");
+
+    // one the client does not answer, and every one of a client that is cut off
+    client.states.erase("pipboyType");
+    session.store.open(session.mod);
+    CHECK(session.value(0).reason == "Not available: My Mod's DLL does not answer its state 'pipboyType'.");
+    session.store.clientCalls().cutOff("MyMod");
+    session.store.open(session.mod);
+    CHECK(session.value(1).reason == "Not available: its mod's client failed, and is cut off until the game is restarted.");
+    session.store.close();
+}
+
+TEST_CASE("ConfigSpecStore: a setting of a state is written by its client alone, as a live one is previewed and discarded, and as a Save tells it")
+{
+    Session session(STATE_SETTINGS);
+    StateClient client(session.store);
+    client.states = { { "pipboyType", 0 }, { "scale", 1.0f }, { "height", 1.8f } };
+    session.open(MOD_TOML);
+
+    // a live one is told as it is set and set back, and one that is not live waits for a Save
+    CHECK(session.store.set(session.setting(0), 1));
+    CHECK(session.store.set(session.setting(1), 1.25f));
+    session.store.discard(session.setting(0));
+    CHECK(session.store.set(session.setting(0), 1));
+    CHECK(client.told ==
+          std::vector<std::string>{ "Preview pipboyType state pipboyType 0 -> 1", "Discard pipboyType state pipboyType 1 -> 0", "Preview pipboyType state pipboyType 0 -> 1" });
+
+    // a Save tells the client what it wrote, with no Discard of the preview, and writes no file
+    client.told.clear();
+    REQUIRE(session.store.save());
+    CHECK(client.told == std::vector<std::string>{ "Save 1", "  pipboyType state pipboyType 0 -> 1", "  scale state scale 1 -> 1.25" });
+    CHECK(readFile(session.myGames.path / MOD_FILE) == MOD_TOML);
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(0).value == model::Value(1));
+
+    // a Save with no client to tell writes nothing, and keeps the change dirty
+    CHECK(session.store.set(session.setting(1), 1.5f));
+    session.store.clientCalls().cutOff("MyMod");
+    const auto saved = session.store.save();
+    REQUIRE_FALSE(saved);
+    CHECK(saved.error() == "My Mod's DLL is not loaded, or its client is cut off");
+    CHECK(session.store.isDirty(session.setting(1)));
+    session.store.discard();
+}
+
+TEST_CASE("ConfigSpecStore: a state read again keeps the baseline of its preview, and a clean one takes the client's new value")
+{
+    Session session(STATE_SETTINGS);
+    StateClient client(session.store);
+    client.states = { { "pipboyType", 0 }, { "scale", 1.0f }, { "height", 1.8f } };
+    session.open(MOD_TOML);
+    CHECK(session.store.set(session.setting(0), 1));
+
+    // the client applied the preview, and the mod changed another value itself
+    client.states["pipboyType"] = 1;
+    client.states["scale"] = 1.4f;
+    session.store.readAgain();
+    CHECK(session.value(1).value == model::Value(1.4f));
+    CHECK_FALSE(session.store.isDirty(session.setting(1)));
+    CHECK(session.value(0).value == model::Value(1));
+    CHECK(session.store.isDirty(session.setting(0)));
+
+    // its Discard gives the client the value before the preview
+    client.told.clear();
+    session.store.discard();
+    CHECK(client.told == std::vector<std::string>{ "Discard pipboyType state pipboyType 1 -> 0" });
 }

@@ -318,7 +318,7 @@ namespace
     constexpr std::array<std::string_view, 4> OPTION_FIELDS{ "value", "text", "help", "shortText" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
-    constexpr std::array<std::string_view, 8> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName" };
+    constexpr std::array<std::string_view, 9> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName", "clientState" };
     constexpr std::array<std::string_view, 2> WARNING_FIELDS{ "when", "text" };
     // an action, of a button or a setting, and a button's confirmation:
     constexpr std::array<std::string_view, 8> ACTION_FIELDS{ "type", "function", "params", "form", "scriptName", "script", "command", "url" };
@@ -579,11 +579,11 @@ namespace
     /**
      * Where a setting keeps its value: a global, as `{ "global": "MyMod.esp|1234" }`, a property of a script,
      * by its `form`, its `propertyName` and its `scriptName`, which is optional, in the setting's `valueType`,
-     * or a value of the file its `storage` names, or else of the nearest `defaultFile` above it. The value of a
-     * file is named by its `path`, or by its `section` and its `key`, as an INI key is. A storage that is not
-     * written as one, as a form that is not a plugin and an id in hex, a property with no name, or no file of
-     * the config spec or no value of it, as a path of more than two in an INI file, is one the menu does not read,
-     * and is reported.
+     * a state of the mod's client, by its `clientState`, or a value of the file its `storage` names, or else of the
+     * nearest `defaultFile` above it. The value of a file is named by its `path`, or by its `section` and its `key`,
+     * as an INI key is. A storage that is not written as one, as a form that is not a plugin and an id in hex, a
+     * property or a state with no name, or no file of the config spec or no value of it, as a path of more than two
+     * in an INI file, is one the menu does not read, and is reported.
      */
     model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, ConfigSpecReading& reading)
     {
@@ -617,6 +617,13 @@ namespace
                 std::format("Its property \"{}\" of the form \"{}\" is not a name, and a plugin and an id in hex, as MyMod.esp|800: it is not available.", name, formText));
             return model::UnknownStorage{ .type = "property" };
         }
+        if (storage->contains("clientState")) {
+            if (auto name = getText(*storage, "clientState"); !name.empty()) {
+                return model::ClientStateStorage{ .name = std::move(name) };
+            }
+            reading.report(model::Severity::Error, "Its clientState names no state of its mod's client: it is not available.");
+            return model::UnknownStorage{ .type = "clientState" };
+        }
 
         std::vector<std::string> path;
         if (const auto names = storage->find("path"); names != storage->end() && names->is_array()) {
@@ -645,11 +652,14 @@ namespace
      * The id a setting gets from where its value is kept: the last name of its path, and the names before it
      * joined by dots, as `fScale:Panel` for `Panel`, `fScale`. A path of two is named as MCM names a key of an
      * INI file, so a mod that moves from INI to TOML keeps its ids. A path of one is its name alone. A global is
-     * its form, as `MyMod.esp|1234`, and a property of a script its name and its form, as `fStrength:MyMod.esp|800`.
-     * Empty for a storage the menu does not read.
+     * its form, as `MyMod.esp|1234`, a property of a script its name and its form, as `fStrength:MyMod.esp|800`, and a
+     * state of the mod's client its name. Empty for a storage the menu does not read.
      */
     std::string idOf(const model::Storage& storage)
     {
+        if (const auto* state = std::get_if<model::ClientStateStorage>(&storage)) {
+            return state->name;
+        }
         if (const auto* global = std::get_if<model::GlobalStorage>(&storage)) {
             return std::format("{}|{:X}", global->plugin, global->formId);
         }
@@ -1353,12 +1363,18 @@ namespace
     /**
      * What a setting runs as Save writes its value: an action as a button's, of which a parameter that is
      * exactly `"{value}"` is the value written, in the setting's `valueType`. A setting with no `action` runs
-     * nothing, and so does one whose action the menu does not run, which is reported.
+     * nothing, and so does one whose action the menu does not run, which is reported. The action of a setting kept in
+     * a state of its mod's client is a warning: it runs before the client is told the Save, which applies the value.
      */
-    model::Action loadSettingAction(const Json& row, const model::StoredType valueType, ConfigSpecReading& reading)
+    model::Action loadSettingAction(const Json& row, const model::Storage& storage, const model::StoredType valueType, ConfigSpecReading& reading)
     {
         if (!row.contains("action")) {
             return model::NoAction{};
+        }
+        if (std::holds_alternative<model::ClientStateStorage>(storage)) {
+            const Into into(reading, "action");
+            reading.report(model::Severity::Warning,
+                "It is kept in a state of its mod's client, which applies the value as a Save tells it: its action runs before that, so the client does not have the value yet.");
         }
         auto action = loadAction(row, reading);
         if (std::holds_alternative<model::WebLink>(action)) {
@@ -1430,7 +1446,7 @@ namespace
         auto text = getLabel(row, reading);
         auto help = readShownText(row, "help", reading);
         auto display = loadDisplay(row, reading);
-        auto action = loadSettingAction(row, valueType, reading);
+        auto action = loadSettingAction(row, storage, valueType, reading);
         return model::Setting{ .id = std::move(id),
             .sourceId = {},
             .type = type,

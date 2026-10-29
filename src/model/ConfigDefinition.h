@@ -217,6 +217,17 @@ namespace mods_config::model
     };
 
     /**
+     * A state of a config spec's mod's native client: a value in the memory of the mod's DLL, which the client answers by
+     * its name and applies as it is told a change of it.
+     */
+    struct ClientStateStorage
+    {
+        std::string name;
+
+        bool operator==(const ClientStateStorage&) const = default;
+    };
+
+    /**
      * A storage the menu does not read: the value of its setting is not available.
      */
     struct UnknownStorage
@@ -230,7 +241,7 @@ namespace mods_config::model
     /**
      * Where the value of a setting is kept. Only the store reads it.
      */
-    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, UnknownStorage>;
+    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, ClientStateStorage, UnknownStorage>;
 
     /**
      * When a change of a setting takes effect in the running mod, as its config spec says it: the menu cannot tell.

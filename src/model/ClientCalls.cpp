@@ -83,6 +83,26 @@ namespace mods_config::model
     }
 
     /**
+     * Why a state of a mod is not available, which the row of a setting kept in it says: its mod has no client, as its
+     * DLL is not loaded, its client is cut off, or does not answer it.
+     */
+    std::string ClientCalls::notAnswered(const std::string_view modName, const std::string_view displayName, const std::string_view name) const
+    {
+        if (!_clients.contains(common::str_tolower(std::string(modName)))) {
+            return std::format("Not available: needs {}'s DLL, which is not loaded.", displayName);
+        }
+        return find(modName) ? std::format("Not available: {}'s DLL does not answer its state '{}'.", displayName, name) : std::string(CUT_OFF);
+    }
+
+    /**
+     * Whether a mod has a client that is asked: one that is there and is not cut off.
+     */
+    bool ClientCalls::isConnected(const std::string_view modName) const
+    {
+        return find(modName) != nullptr;
+    }
+
+    /**
      * The options of a choice of a mod, which its client gives, or why there are none.
      */
     std::expected<std::vector<Option>, std::string> ClientCalls::options(const std::string_view modName, const Setting& setting) const

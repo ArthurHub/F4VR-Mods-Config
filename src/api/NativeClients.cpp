@@ -108,7 +108,8 @@ namespace
     }
 
     /**
-     * A setting's view as the API passes it, with where its value is kept: a file, or none for one of the game. It
+     * A setting's view as the API passes it, with where its value is kept: a file, or none for one of the game or of a
+     * state of the client. It
      * points into the setting it is made of and into itself, so it is valid while the setting is, and is not copied.
      */
     class HostSettingView
@@ -133,7 +134,8 @@ namespace
                     .pathCount = static_cast<std::uint32_t>(_path.size()),
                     .form = text(setting.form),
                     .scriptName = text(setting.script),
-                    .propertyName = text(setting.property) } };
+                    .propertyName = text(setting.property),
+                    .clientState = text(setting.clientState) } };
         }
 
         HostSettingView(const HostSettingView&) = delete;

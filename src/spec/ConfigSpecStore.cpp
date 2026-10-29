@@ -454,12 +454,15 @@ namespace
     }
 
     /**
-     * A global or a property as a reason names it: `the global Fallout4.esm|38`.
+     * A global, a property or a state of the mod's client as a reason names it: `the global Fallout4.esm|38`.
      */
     std::string gameName(const model::Storage& storage)
     {
         if (const auto* global = std::get_if<model::GlobalStorage>(&storage)) {
             return "the global " + formText(global->plugin, global->formId);
+        }
+        if (const auto* state = std::get_if<model::ClientStateStorage>(&storage)) {
+            return std::format("the state {} of its mod's client", state->name);
         }
         const auto& property = std::get<model::PropertyStorage>(storage);
         return std::format("the property {} of {}", property.name, formText(property.plugin, property.formId));
@@ -467,7 +470,7 @@ namespace
 
     /**
      * Where a setting that is saved keeps its value, as a key that stays the same as its config spec is read
-     * again: the name of its file in the config spec with its path, or its global or its property.
+     * again: the name of its file in the config spec with its path, or its global, its property or its state.
      */
     std::string storageKey(const model::Setting& setting)
     {
@@ -621,6 +624,9 @@ namespace
         if (storage.type == "property") {
             return "Not available: its property names no form as a plugin and an id in hex, as MyMod.esp|800, or has no propertyName.";
         }
+        if (storage.type == "clientState") {
+            return "Not available: its clientState names no state of its mod's client.";
+        }
         if (storage.type == "binding") {
             return "Not available: a binding is kept in a value of a TOML file.";
         }
@@ -717,6 +723,10 @@ namespace mods_config::spec
                 }
                 continue;
             }
+            if (const auto* state = std::get_if<model::ClientStateStorage>(&setting->storage)) {
+                readClientState(*setting, *state, entry);
+                continue;
+            }
             const auto& storage = std::get<model::FileStorage>(setting->storage);
             const auto file = files.find(storage.file);
             if (file == files.end() || !file->second.notAvailable.empty()) {
@@ -753,6 +763,34 @@ namespace mods_config::spec
             }
         }
         logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
+    }
+
+    /**
+     * Reads the baseline of a setting kept in a state of the mod's client: the client's answer, in the type of the
+     * setting's value as a value of the game is. A state the client does not answer is not available, with the reason,
+     * and an answer of another type is invalid, as a value of a file is, or not available for a read-only setting.
+     */
+    void ConfigSpecStore::readClientState(const model::Setting& setting, const model::ClientStateStorage& state, Entry& entry) const
+    {
+        const auto answer = _clientCalls.state(_modName, state.name);
+        if (!answer) {
+            entry.notAvailable = _clientCalls.notAnswered(_modName, _modDisplayName, state.name);
+            return;
+        }
+        const auto typed = asType(*answer, setting.valueType);
+        if (!typed) {
+            const auto reason = std::format("{} is {}, which is no value of the setting's valueType", gameName(setting.storage), valueText(*answer));
+            if (setting.readOnly) {
+                entry.notAvailable = std::format("Not available: {}.", reason);
+            } else {
+                entry.invalid = std::format("Invalid: {}.", reason);
+            }
+            return;
+        }
+        entry.baseline = controlValue(setting, *typed);
+        if (!setting.readOnly) {
+            entry.invalid = invalidReason(setting, _options.of(setting), *entry.baseline, "the state " + state.name, "its mod's DLL");
+        }
     }
 
     /**
@@ -957,9 +995,10 @@ namespace mods_config::spec
      * each setting that was written runs then, in the order of the config spec, with the value written. The ones
      * written that take effect after a restart are kept for the mod, and how many they are is the last Save.
      * Then the mod's client is told once what the Save wrote: each setting, with its value before, and the files,
-     * and each F4SE plugin of its config spec is sent the F4SE message of the Save.
-     * Nothing is written before every file has its new text, checked to read back, and every global and
-     * property is in the game, and the files already written are put back when a write fails: a Save that
+     * and each F4SE plugin of its config spec is sent the F4SE message of the Save. A setting kept in a state of the
+     * client is written by that alone, as the client applies it.
+     * Nothing is written before every file has its new text, checked to read back, every global and property is
+     * in the game, and the client of every state is there, and the files already written are put back when a write fails: a Save that
      * fails changes no file and no value of the game, and keeps every setting dirty.
      * Returns the reason, which is in the log too, for a Save that does not write every dirty setting, as
      * `showcase.toml cannot be written`. While a dirty setting is invalid nothing is written, and the reason
@@ -1008,11 +1047,17 @@ namespace mods_config::spec
             saves.push_back({ .name = name, .file = file.get(), .settings = std::move(settings) });
         }
         for (const auto* setting : _settingList) {
-            if (_entries.at(setting).pending && isInGame(setting->storage)) {
+            if (!_entries.at(setting).pending) {
+                continue;
+            }
+            if (isInGame(setting->storage)) {
                 if (const auto stored = readGame(*setting); !stored) {
                     logger::warn("The changes of '{}' are not saved, as a setting of the game is not available: {}", _modName, stored.error());
                     return failed(stored.error());
                 }
+            } else if (std::holds_alternative<model::ClientStateStorage>(setting->storage) && !_clientCalls.isConnected(_modName)) {
+                logger::warn("The changes of '{}' are not saved, as its client, which keeps {}, is not there or is cut off", _modName, gameName(setting->storage));
+                return failed(std::format("{}'s DLL is not loaded, or its client is cut off", _modDisplayName));
             }
         }
 
@@ -1057,6 +1102,12 @@ namespace mods_config::spec
             }
             _previews.erase(setting);
             wrote(setting);
+        }
+        // the client applies a state of its own as the batch tells it
+        for (const auto* setting : _settingList) {
+            if (_entries.at(setting).pending && std::holds_alternative<model::ClientStateStorage>(setting->storage)) {
+                wrote(setting);
+            }
         }
 
         std::size_t restarts = 0;
@@ -1190,8 +1241,8 @@ namespace mods_config::spec
     /**
      * Reads the values of the mod's files and of the game again, as its own UI can have changed them while the menu
      * was minimized. A clean setting takes its new value as its baseline. A pending one stays the player's, as Save
-     * keeps it, and is clean where the new value is the player's. One the game has a preview of keeps its baseline:
-     * the game has the preview.
+     * keeps it, and is clean where the new value is the player's. One the game or the mod's client has a preview of
+     * keeps its baseline: the game, or the state, has the preview.
      */
     void ConfigSpecStore::readAgain()
     {
@@ -1211,7 +1262,7 @@ namespace mods_config::spec
             if (found == before.end() || !entry.notAvailable.empty()) {
                 continue;
             }
-            if (_previews.contains(setting)) {
+            if (_previews.contains(setting) || (std::holds_alternative<model::ClientStateStorage>(setting->storage) && _clientPreviews.contains(setting))) {
                 entry.baseline = found->second.baseline;
             }
             const auto& pending = found->second.pending;
@@ -1296,13 +1347,15 @@ namespace mods_config::spec
     /**
      * Tells the mod's client the change of a `live` setting: its valid pending value, as a Preview, with the value it was
      * told before, its baseline at first, and a Discard back to the baseline as the setting is clean again. A setting of
-     * the game is in it already, as the store previews it first, and the client can do what more it needs. An invalid
-     * pending value leaves the client with the preview before it. Nothing for a setting that is not `live`.
+     * the game is in it already, as the store previews it first, and the client can do what more it needs. One of a
+     * state of the client is applied by the client as it is told it. An invalid pending value leaves the client with the
+     * preview before it. Nothing for a setting that is not `live`.
      */
     void ConfigSpecStore::previewToClient(const model::Setting& setting, const Entry& entry)
     {
-        const auto* storage = std::get_if<model::FileStorage>(&setting.storage);
-        if (setting.applies != model::Applies::Live || (!storage && !isInGame(setting.storage)) || !_mod) {
+        const bool told =
+            std::holds_alternative<model::FileStorage>(setting.storage) || isInGame(setting.storage) || std::holds_alternative<model::ClientStateStorage>(setting.storage);
+        if (setting.applies != model::Applies::Live || !told || !_mod) {
             return;
         }
         const auto found = _clientPreviews.find(&setting);
@@ -1335,8 +1388,8 @@ namespace mods_config::spec
     }
 
     /**
-     * A setting as the mod's client is told it: its id and type, and where it is kept, in a file of the mod or in the
-     * game.
+     * A setting as the mod's client is told it: its id and type, and where it is kept, in a file of the mod, in the game
+     * or in a state of the client.
      */
     model::ClientSetting ConfigSpecStore::clientSetting(const model::Setting& setting) const
     {
@@ -1350,6 +1403,8 @@ namespace mods_config::spec
             told.form = formText(property->plugin, property->formId);
             told.script = property->script;
             told.property = property->name;
+        } else if (const auto* state = std::get_if<model::ClientStateStorage>(&setting.storage)) {
+            told.clientState = state->name;
         }
         return told;
     }

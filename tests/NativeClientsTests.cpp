@@ -385,6 +385,19 @@ TEST_CASE("NativeClients: a client is told a change of a live setting with where
     clients.calls.sendChange("MyMod", property);
     CHECK(game == "no file MyMod.esp|800 MyMod:Config fScale");
 
+    // a setting of a state of the client has no file and no form, and the state's name
+    std::string state;
+    client.change = [&state](const api::SettingChange* change) {
+        const auto& storage = change->setting->storage;
+        state = std::format("{} {} {}", storage.file ? "file" : "no file", storage.form ? "form" : "no form", storage.clientState);
+    };
+    auto kept = scaleChange();
+    kept.setting.file.reset();
+    kept.setting.path.clear();
+    kept.setting.clientState = "scale";
+    clients.calls.sendChange("MyMod", kept);
+    CHECK(state == "no file no form scale");
+
     // one that throws is cut off
     FakeClient broken;
     broken.change = [](const api::SettingChange*) {
@@ -495,6 +508,67 @@ TEST_CASE("ModsConfigFO4Api: the C++ client hands what a Save wrote to its handl
     const api::SaveBatch batch{ .settings = &saved, .settingCount = 1, .writtenFiles = &file, .fileCount = 1, .revision = 7 };
     static_cast<api::IClient&>(client).onSaved(&batch);
     CHECK(*told == std::vector<std::string>{ "Save 7", "file main MyMod.ini", "iMode MyMod.esp|800 iMode 2 -> 1" });
+}
+
+TEST_CASE("ModsConfigFO4Api: the C++ client applies a change of a setting kept in a state with the state's setter, before its handlers")
+{
+    // the handlers of the tests before stay on the one client: they take a change of a text and a Save of a whole number
+    auto told = std::make_shared<std::vector<std::string>>();
+    auto& client = api::ModsConfigFO4Client::get();
+    CHECK(client.addState(
+        "sTheme",
+        [] {
+            return std::optional<api::Value>("dark"s);
+        },
+        [told](const api::Value& value) {
+            told->push_back("set " + std::get<std::string>(value));
+        }));
+    CHECK(client.addState(
+        "iPipboy",
+        [] {
+            return std::optional<api::Value>(0);
+        },
+        [told](const api::Value& value) {
+            told->push_back(std::format("set {}", std::get<int>(value)));
+        }));
+    CHECK(client.addState("sShown", [] {
+        return std::optional<api::Value>("on"s);
+    }));
+    client.subscribeToChanges([told](const api::Change& change) {
+        told->push_back(std::format("told {} {}", change.id, change.clientState));
+    });
+
+    const api::SettingView theme{ .id = "theme", .valueType = api::ValueType::String, .storage = { .clientState = "sTheme" } };
+    const api::SettingChange preview{ .setting = &theme,
+        .previousValue = { .type = api::ValueType::String, .text = "dark" },
+        .value = { .type = api::ValueType::String, .text = "light" },
+        .phase = api::ChangePhase::Preview };
+    const api::SettingChange discard{ .setting = &theme,
+        .previousValue = { .type = api::ValueType::String, .text = "light" },
+        .value = { .type = api::ValueType::String, .text = "dark" },
+        .phase = api::ChangePhase::Discard };
+    static_cast<api::IClient&>(client).onChange(&preview);
+    static_cast<api::IClient&>(client).onChange(&discard);
+    // a Discard has the baseline as its value
+    CHECK(*told == std::vector<std::string>{ "set light", "told theme sTheme", "set dark", "told theme sTheme" });
+
+    // a state with no setter is not applied
+    told->clear();
+    const api::SettingView shown{ .id = "shown", .valueType = api::ValueType::String, .storage = { .clientState = "sShown" } };
+    const api::SettingChange change{ .setting = &shown,
+        .previousValue = { .type = api::ValueType::String, .text = "on" },
+        .value = { .type = api::ValueType::String, .text = "off" },
+        .phase = api::ChangePhase::Preview };
+    static_cast<api::IClient&>(client).onChange(&change);
+    CHECK(*told == std::vector<std::string>{ "told shown sShown" });
+
+    // what a Save wrote
+    told->clear();
+    const api::SettingView pipboy{ .id = "pipboy", .valueType = api::ValueType::Int, .storage = { .clientState = "iPipboy" } };
+    const api::SavedSetting saved{ .setting = &pipboy, .baselineValue = { .type = api::ValueType::Int, .intValue = 0 }, .value = { .type = api::ValueType::Int, .intValue = 1 } };
+    const api::SaveBatch batch{ .settings = &saved, .settingCount = 1, .revision = 1 };
+    static_cast<api::IClient&>(client).onSaved(&batch);
+    CHECK(*told == std::vector<std::string>{ "set 1" });
 }
 
 TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions")

@@ -1150,6 +1150,35 @@ TEST_CASE("ConfigSpecLoader: a setting is kept in a global, or in a property of 
     CHECK(settings[3].id == "bOn:MyMod.esp|800");
 }
 
+TEST_CASE("ConfigSpecLoader: a setting is kept in a state of its mod's client, by its name, which is its id")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "dropdown", "valueType": "int", "text": "Pip-Boy", "default": 0, "valueOptions": { "options": ["Wrist", "Projected"] },
+          "storage": { "clientState": "pipboyType" } },
+        { "type": "slider", "text": "Height", "readOnly": true, "storage": { "clientState": "height" } },
+        { "type": "switcher", "text": "No name", "default": true, "storage": { "clientState": "" } },
+        { "type": "switcher", "text": "With an action", "default": true, "storage": { "clientState": "bOn" },
+          "action": { "type": "RunConsoleCommand", "command": "tm" } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 4);
+    CHECK(settings[0].storage == model::Storage(model::ClientStateStorage{ .name = "pipboyType" }));
+    CHECK(settings[0].id == "pipboyType");
+    CHECK(settings[1].storage == model::Storage(model::ClientStateStorage{ .name = "height" }));
+    CHECK(settings[2].storage == model::Storage(model::UnknownStorage{ .type = "clientState" }));
+    CHECK(settings[2].id.empty());
+
+    // an action runs before the client applies what a Save wrote, which is a warning, and it still runs
+    CHECK(std::holds_alternative<model::ConsoleCommand>(settings[3].action));
+    REQUIRE(mod.problems.size() == 2);
+    CHECK(mod.problems[0].severity == model::Severity::Error);
+    CHECK(mod.problems[0].message == "Its clientState names no state of its mod's client: it is not available.");
+    CHECK(mod.problems[0].path == "content[2].storage");
+    CHECK(mod.problems[1].severity == model::Severity::Warning);
+    CHECK(mod.problems[1].message.starts_with("It is kept in a state of its mod's client"));
+    CHECK(mod.problems[1].path == "content[3].action");
+}
+
 TEST_CASE("ConfigSpecLoader: a setting that names no file of its config spec, or no value, is kept where the menu does not read")
 {
     const auto mod = loaded(R"({

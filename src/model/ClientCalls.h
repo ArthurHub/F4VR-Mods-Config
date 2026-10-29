@@ -61,8 +61,8 @@ namespace mods_config::model
     /**
      * A setting of a mod, as its client is told it: its id and type, and where it is kept. A setting of a file has the
      * file, and the names that lead to the value in it. One of the game has no file, and its form, as `MyMod.esp|800`,
-     * with a property's script and name. It holds what it needs, as a Discard is told as the session ends, when the mod
-     * can be gone.
+     * with a property's script and name, and one of a state of the client the state's name alone. It holds what it
+     * needs, as a Discard is told as the session ends, when the mod can be gone.
      */
     struct ClientSetting
     {
@@ -73,6 +73,7 @@ namespace mods_config::model
         std::string form;
         std::string script;
         std::string property;
+        std::string clientState;
     };
 
     /**
@@ -160,6 +161,8 @@ namespace mods_config::model
         std::string notRunnable(std::string_view modName, std::string_view displayName, std::string_view name) const;
         FunctionResult call(std::string_view modName, std::string_view name, const std::vector<NamedArgument>& arguments) const;
         std::optional<Value> state(std::string_view modName, std::string_view name) const;
+        std::string notAnswered(std::string_view modName, std::string_view displayName, std::string_view name) const;
+        bool isConnected(std::string_view modName) const;
         std::expected<std::vector<Option>, std::string> options(std::string_view modName, const Setting& setting) const;
         void send(std::string_view modName, ClientEvent event, std::string_view pageId = {}) const;
         void sendToAll(ClientEvent event) const;
