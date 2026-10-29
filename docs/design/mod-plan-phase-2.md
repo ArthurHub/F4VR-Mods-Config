@@ -226,7 +226,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | #   | Repo | Commit                                                                  | Status |
 | --- | ---- | ----------------------------------------------------------------------- | ------ |
 | M136 | mod | docs: an MCM change is made as it is made, and Discard sets it back     | done   |
-| M137 | mod | design system: the Help page and the buttons of an MCM mod              | todo   |
+| M137 | mod | design system: the Help page and the buttons of an MCM mod              | done   |
 | M138 | mod | An MCM change is made as it is made, and Discard sets it back           | todo   |
 | M82 | mod  | The version rules of the config spec schema and of the native API           | todo   |
 | M83 | mod  | An open session on a save load, a loading screen and the player's death | todo   |

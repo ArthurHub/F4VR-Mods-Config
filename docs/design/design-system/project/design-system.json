@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-28T15:45:00Z",
-    "via": "Claude (Cowork)",
-    "note": "FullPanelHelp: the Help page in four sections, Navigation, Changes, Marks and MCM, with what the menu does its own way: Back cancels first, the hand that points is hidden from the game, Minimize and the wrist's Restore and Exit, and what Live means."
+    "at": "2026-10-29T12:00:00Z",
+    "via": "Claude Code",
+    "note": "An MCM change is made as the player makes it, and Save keeps it and Discard sets it back: the Help page's Changes and MCM sections, SaveBar, and an MCM mod's script button, which does not ask to save first."
   },
   "layout": "files",
   "libraries": [],

@@ -28,7 +28,7 @@ With a `confirmation`, a press opens it first, as the unsaved-changes dialog is 
 
 ## Unsaved changes first
 
-A script reads the saved values, so while its mod has unsaved changes a press on a `CallFunction` or a `CallGlobalFunction` asks first, in the same dialog: its title is the confirmation's, or `Unsaved changes`, and it says how many changes there are and that the button's script reads the saved values.
+A script reads the saved values, so while its mod has unsaved changes a press on a `CallFunction` or a `CallGlobalFunction` asks first, in the same dialog: its title is the confirmation's, or `Unsaved changes`, and it says how many changes there are and that the button's script reads the saved values. An MCM mod's button does not ask: its changes are made as the player makes them.
 
 - Cancel (quiet), `Run without saving` (secondary), and `Save and run`, which is primary, or `red` for a dangerous confirmation. It stands for the confirming button, so a button never asks twice.
 - `Save and run` is disabled while a change is invalid, as Save is, and the text asks to fix or discard it. `Run without saving` stays enabled.
