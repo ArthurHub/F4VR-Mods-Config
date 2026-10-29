@@ -17,6 +17,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/Colors.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
 
@@ -24,6 +25,14 @@ using namespace mods_config;
 
 namespace
 {
+    /**
+     * Whether a setting's value is the TOML text of an inline table of its file: a binding's and a color's.
+     */
+    bool isTable(const model::Setting& setting)
+    {
+        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Color;
+    }
+
     /**
      * Whether a setting is a text input that takes a number.
      */
@@ -138,9 +147,10 @@ namespace
 
     /**
      * A value of the type a setting keeps, as its control has it: a slider has a number, also for a whole
-     * number, a text input that takes a number has the text of it, and a binding has its table's text and a haptic
-     * its pattern's name as the framework writes them. None for a value its control does not show: a switcher of
-     * anything but true or false, a slider of a text, and a binding and a haptic of anything but a text.
+     * number, a text input that takes a number has the text of it, a binding has its table's text and a haptic its
+     * pattern's name as the framework writes them, and a color its table's text with the keys it has. None for a value
+     * its control does not show: a switcher of anything but true or false, a slider of a text, and a binding, a haptic
+     * and a color of anything but a text.
      */
     std::optional<model::Value> controlValue(const model::Setting& setting, const model::Value& stored)
     {
@@ -177,6 +187,11 @@ namespace
         case model::SettingType::Haptic:
             if (const auto* text = std::get_if<std::string>(&stored)) {
                 return model::canonicalHaptic(*text);
+            }
+            break;
+        case model::SettingType::Color:
+            if (const auto* text = std::get_if<std::string>(&stored)) {
+                return model::canonicalColor(*text);
             }
             break;
         }
@@ -283,6 +298,11 @@ namespace
                 return model::canonicalHaptic(*text);
             }
             break;
+        case model::SettingType::Color:
+            if (const auto* text = std::get_if<std::string>(&value)) {
+                return model::canonicalColor(*text);
+            }
+            break;
         }
         return std::nullopt;
     }
@@ -292,8 +312,8 @@ namespace
      * sentence of the value: `is not from 0.5 to 1.5`. A text of a number that is none, a number outside the
      * limits, a text of a length its setting does not allow, and none of the options of a choice. A table that is
      * no binding has the framework's reason, a sentence of its own, and so does a binding of a hand, a way or a
-     * button its setting does not take. A name of no haptic pattern is a sentence of its own too. Empty for a value
-     * that is one.
+     * button its setting does not take. A name of no haptic pattern is a sentence of its own too, and so is a table that
+     * is no color, with the framework's reason. Empty for a value that is one.
      */
     std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
@@ -303,6 +323,10 @@ namespace
         }
         if (setting.type == model::SettingType::Haptic) {
             return model::findHaptic(value) ? std::string() : std::format("{} is not a haptic pattern, so none plays", std::get<std::string>(value));
+        }
+        if (setting.type == model::SettingType::Color) {
+            const auto color = model::parseColorTable(std::get<std::string>(value));
+            return color ? std::string() : color.error();
         }
         const auto& limits = setting.valueOptions;
         std::optional<float> number;
@@ -333,6 +357,15 @@ namespace
     }
 
     /**
+     * Whether what is wrong with a value of a setting is a sentence of its own, which its reason says alone: a binding's
+     * and a color's, which are the framework's, and a haptic's.
+     */
+    bool ownSentence(const model::Setting& setting)
+    {
+        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic || setting.type == model::SettingType::Color;
+    }
+
+    /**
      * Why a value the player set is no value of its setting, for the help line: the value and what is wrong
      * with it, as `Invalid: 12 is not from 1 to 9.` A text of a text input is `the text`, as it can be long, and a
      * binding has the framework's reason alone, as its row shows its text, as a haptic has its own. Empty for a value
@@ -344,7 +377,7 @@ namespace
         if (problem.empty()) {
             return {};
         }
-        if (setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic) {
+        if (ownSentence(setting)) {
             return std::format("Invalid: {}.", problem);
         }
         const auto* text = std::get_if<std::string>(&value);
@@ -388,7 +421,7 @@ namespace
         if (problem.empty()) {
             return {};
         }
-        if (setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic) {
+        if (ownSentence(setting)) {
             return std::format("Invalid: {}.", problem);
         }
         return std::format("Invalid: {} is {} in {}, which {}.", path, valueText(value), file, problem);
@@ -591,6 +624,9 @@ namespace
         if (storage.type == "binding") {
             return "Not available: a binding is kept in a value of a TOML file.";
         }
+        if (storage.type == "color") {
+            return "Not available: a color is kept in a value of a TOML file.";
+        }
         return storage.type == "file" ? "Not available: the setting names no file of its config spec, or no value of it." : "Not available: the setting has no storage.";
     }
 }
@@ -699,11 +735,10 @@ namespace mods_config::spec
                 entry.baseline = controlValue(*setting, *setting->defaultValue);
                 continue;
             }
-            // a binding is the text of its table, which its control reads
-            auto stored = setting->type != model::SettingType::InputBinding ? modFile->value(storage.path, setting->valueType)
-                                                                            : modFile->tableText(storage.path).transform([](std::string text) {
-                                                                                  return model::Value(std::move(text));
-                                                                              });
+            // a binding and a color are the text of their table, which their control reads
+            auto stored = !isTable(*setting) ? modFile->value(storage.path, setting->valueType) : modFile->tableText(storage.path).transform([](std::string text) {
+                return model::Value(std::move(text));
+            });
             if (!stored) {
                 if (setting->readOnly) {
                     entry.notAvailable = std::format("Not available: {}.", stored.error());
@@ -959,7 +994,7 @@ namespace mods_config::spec
                 const auto& entry = _entries.at(setting);
                 const auto* storage = std::get_if<model::FileStorage>(&setting->storage);
                 if (entry.pending && storage && storage->file == name) {
-                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending), .table = setting->type == model::SettingType::InputBinding });
+                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending), .table = isTable(*setting) });
                     settings.push_back(setting);
                 }
             }

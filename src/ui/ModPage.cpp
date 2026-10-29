@@ -85,6 +85,7 @@ namespace
         ui::Choices& choices;
         ui::TextInputs& textInputs;
         ui::BindingEditor& bindingEditor;
+        ui::ColorEditor& colorEditor;
 
         ui::Sections& sections;
         ui::Buttons& buttons;
@@ -264,6 +265,7 @@ namespace
                     .choices = page.choices,
                     .textInputs = page.textInputs,
                     .bindingEditor = page.bindingEditor,
+                    .colorEditor = page.colorEditor,
                     .imageDrawer = page.imageDrawer,
                     .leftHanded = page.leftHanded,
                     .bindings = page.bindings });
@@ -408,6 +410,7 @@ namespace mods_config::ui
         _sliders.startFrame(thumbstickSideValue);
         _choices.startFrame(thumbstickSideValue);
         _bindingEditor.startFrame(thumbstickSideValue);
+        _colorEditor.startFrame(thumbstickSideValue);
         std::vector<const model::Setting*> bindings;
         addBindings(mod.frontPage.items, bindings);
         addBindings(mod.pages, bindings);
@@ -420,6 +423,7 @@ namespace mods_config::ui
                 .choices = _choices,
                 .textInputs = _textInputs,
                 .bindingEditor = _bindingEditor,
+                .colorEditor = _colorEditor,
                 .sections = _sections,
                 .buttons = _buttons,
                 .drawn = drawn,
@@ -428,6 +432,7 @@ namespace mods_config::ui
         _sliders.endFrame();
         _choices.endFrame();
         _bindingEditor.endFrame();
+        _colorEditor.endFrame();
         if (_buttons.drawDialog(store)) {
             drawn.pressActed = true;
         }
@@ -489,6 +494,14 @@ namespace mods_config::ui
     }
 
     /**
+     * Gives back the color and closes its editor, for Back. Returns false while no editor is open.
+     */
+    bool ModPage::cancelColorEdit()
+    {
+        return _colorEditor.cancel();
+    }
+
+    /**
      * Closes the confirmation a button shows with nothing run, for Back.
      * Returns false while none is shown.
      */
@@ -508,6 +521,7 @@ namespace mods_config::ui
         _choices.reset();
         _textInputs.reset();
         _bindingEditor.reset();
+        _colorEditor.reset();
         _sections.reset();
         _buttons.reset();
         _focused = nullptr;

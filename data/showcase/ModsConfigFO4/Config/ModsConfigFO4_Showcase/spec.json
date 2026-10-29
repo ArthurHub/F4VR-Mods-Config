@@ -1472,6 +1472,55 @@
           ]
         },
         {
+          "pageDisplayName": "Colors",
+          "help": "Colors of a CommonFramework mod: each is a swatch and its numbers, and a press opens its editor.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Colors",
+              "content": [
+                {
+                  "type": "cf.color",
+                  "text": "Ray color",
+                  "help": "A color and how opaque it is: the right half of its swatch is over a checkerboard.",
+                  "default": { "rgb": [190, 255, 190], "alpha": 200 },
+                  "storage": { "path": ["Colors", "cRay"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "Faint",
+                  "help": "A low alpha: the checkerboard shows through.",
+                  "default": { "rgb": [255, 120, 60], "alpha": 40 },
+                  "storage": { "path": ["Colors", "cFaint"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "Light color",
+                  "help": "A light's color, whose opacity means nothing: it is RGB only.",
+                  "default": { "rgb": [255, 214, 170] },
+                  "valueOptions": { "alpha": false },
+                  "storage": { "path": ["Colors", "cLight"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.color",
+                  "text": "Out of range",
+                  "help": "Its red is 300, which is not in 0..255.",
+                  "default": { "rgb": [190, 255, 190], "alpha": 200 },
+                  "storage": { "path": ["Colors", "cOutOfRange"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "pageDisplayName": "Numbers",
           "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
           "content": [
@@ -2824,6 +2873,13 @@
                   "help": "A binding is kept in a TOML file, as the framework keeps it.",
                   "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
                   "storage": { "file": "ini", "section": "Mistakes", "key": "kBinding" }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "A color in an INI file",
+                  "help": "A color is kept in a TOML file, as the framework keeps it.",
+                  "default": { "rgb": [255, 255, 255] },
+                  "storage": { "file": "ini", "section": "Mistakes", "key": "cColor" }
                 }
               ]
             },
@@ -2879,6 +2935,13 @@
                   "help": "Its default is \"Tik\", which the framework does not have, so it has no Reset.",
                   "default": "Tik",
                   "storage": { "path": ["Mistakes", "sNoPattern"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "A color's default that is no color",
+                  "help": "Its default has a key \"colour\", which a color does not have, so it has no Reset.",
+                  "default": { "colour": [255, 0, 0] },
+                  "storage": { "path": ["Mistakes", "cNoColor"] }
                 },
                 {
                   "type": "switcher",

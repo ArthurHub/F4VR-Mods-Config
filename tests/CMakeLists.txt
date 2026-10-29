@@ -52,6 +52,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/mcm/SwfImages.cpp
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
   ${SOURCE_DIR}/model/ClientCalls.cpp
+  ${SOURCE_DIR}/model/Colors.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
   ${SOURCE_DIR}/model/Haptics.cpp
   ${SOURCE_DIR}/model/InputBindings.cpp
@@ -68,6 +69,8 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/Bindings.cpp
   ${SOURCE_DIR}/ui/Buttons.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
+  ${SOURCE_DIR}/ui/ColorEditor.cpp
+  ${SOURCE_DIR}/ui/Colors.cpp
   ${SOURCE_DIR}/ui/ConfirmDialog.cpp
   ${SOURCE_DIR}/ui/Developer.cpp
   ${SOURCE_DIR}/ui/Drawing.cpp

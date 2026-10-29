@@ -184,7 +184,7 @@ The milestone comes before the controls of milestone 9, which are for tuning a v
 | #   | Repo | Commit                                                                                 | Status |
 | --- | ---- | -------------------------------------------------------------------------------------- | ------ |
 | M74 | mod  | docs: the CommonFramework controls, and how each key of Immersive Flashlight is edited | todo   |
-| M75 | mod  | Color                                                                                  | todo   |
+| M75 | mod  | Color                                                                                  | done   |
 | M77 | mod  | Haptic                                                                                 | done   |
 | M78 | mod  | InputBinding                                                                           | done   |
 | M79 | mod  | Transform                                                                              | todo   |
@@ -207,6 +207,8 @@ The milestone is measured by Immersive Flashlight's TOML. Beside numbers, switch
 M74 settles what the design leaves open: a control that is bound to a whole section, and whether a transform is moved in the world with the framework's live tuning.
 
 The commits after M74 are split once it is written. Transform, InputBinding and ActivationSphere are each likely two: edited in the panel, then tuned in the world. Each of the values that are left is a commit of its own.
+
+M75 comes before M74 too, as its design is done. Its config spec type is `cf.color`, the TOML text of the framework's table, read over its default's channels as the framework reads it. Its row is a swatch and its numbers, and a press opens its editor, a picker and a slider for each channel, which sets the color as it changes. Mods Config FO4 VR's own config spec gets the pointer's three colors, and the config spec showcase a page of colors. The design system has an RGB-only editor 56 px shorter, which the picker does not fit: it is as tall as the other.
 
 M77 comes before M74 too, as its design is done. Its config spec type is `cf.haptic`, a text of the framework's pattern names, whose options are the menu's. Its row is a dropdown that shows each pattern's shape, with Play, and a press that plays a pattern is the press's feedback in place of the menu's pulse. Mods Config FO4 VR's own config spec gets its press haptic, and the config spec showcase a page of haptics.
 

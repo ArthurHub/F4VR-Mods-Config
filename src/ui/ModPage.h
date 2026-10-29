@@ -6,6 +6,7 @@
 #include "BindingEditor.h"
 #include "Buttons.h"
 #include "Choices.h"
+#include "ColorEditor.h"
 #include "HelpLine.h"
 #include "PageImages.h"
 #include "Sections.h"
@@ -52,6 +53,7 @@ namespace mods_config::ui
         bool closeList();
         bool cancelEdit();
         bool cancelBindingEdit();
+        bool cancelColorEdit();
         bool cancelConfirmation();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();
@@ -74,6 +76,9 @@ namespace mods_config::ui
 
         // the editor of its bindings, and the one that is open
         BindingEditor _bindingEditor;
+
+        // the editor of its colors, and the one that is open
+        ColorEditor _colorEditor;
 
         // its sections that fold, and whether each is folded
         Sections _sections;

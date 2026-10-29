@@ -278,6 +278,7 @@ Every entry in a `content` array has a `type`, which says what the row is. The n
 - `switcher`, `slider`, `stepper`, `dropdown`, `textinput`: a setting, which is an editable value bound to a file, a global or a property of a script. The type is its control.
 - `cf.inputBinding`: a setting of a CommonFramework controller binding; see [CommonFramework values](#commonframework-values).
 - `cf.haptic`: a setting of a CommonFramework haptic pattern; see [CommonFramework values](#commonframework-values).
+- `cf.color`: a setting of a CommonFramework color; see [CommonFramework values](#commonframework-values).
 - `section`: a heading with its own rows; see [Sections](#sections).
 - `button`: runs an action.
 - `text`, `spacer`, `image`: rows that hold no value; see [Text, spacers and images](#text-spacers-and-images).
@@ -354,6 +355,17 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
   "text": "Entry haptic",
   "default": "Tick",
   "storage": { "path": ["HeadActivation", "sEntryHaptic"] }
+}
+```
+
+`cf.color` is a color, the inline table of a `c` key, `{ rgb = [r, g, b], alpha = a }`, each a whole number in 0..255 and each key optional. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. The color shown is the one the framework reads: the keys the value has, over the default's channels. A changed value is written with the keys it had and the key of the part that changed. `"valueOptions": { "alpha": false }` is a color whose opacity means nothing, as a light's: it shows and edits no alpha, and writes `rgb` alone. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
+
+```json
+{
+  "type": "cf.color",
+  "text": "Ray color",
+  "default": { "rgb": [190, 255, 190], "alpha": 200 },
+  "storage": { "path": ["Pointer", "cRayColor"] }
 }
 ```
 

@@ -14,6 +14,7 @@
 #include "TestGlobals.h"
 #include "TestProperties.h"
 #include "common/CommonUtils.h"
+#include "model/Colors.h"
 #include "spec/ConfigSpecLoader.h"
 #include "spec/ConfigSpecStore.h"
 
@@ -534,6 +535,53 @@ TEST_CASE("ConfigSpecStore: a binding is its table's text as the framework write
           "[Sphere]\r\n"
           "kPrimary = { hand = \"primary\", type = \"longpress\", button = \"a\" }   # grab\r\n"
           "kTypo = { type = \"none\" }\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+}
+
+TEST_CASE("ConfigSpecStore: a color is its table's text with the keys it has, invalid with the framework's reason, and Save writes it as the table")
+{
+    Session session(R"(
+        { "type": "cf.color", "text": "Ray", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "path": ["Pointer", "cRay"] } },
+        { "type": "cf.color", "text": "Mark", "default": { "rgb": [215, 255, 215], "alpha": 180 }, "storage": { "path": ["Pointer", "cMark"] } },
+        { "type": "cf.color", "text": "Out", "default": { "rgb": [215, 255, 215], "alpha": 100 }, "storage": { "path": ["Pointer", "cOut"] } }
+    )");
+    session.open(
+        "[Pointer]\r\n"
+        "cRay = { alpha = 200, rgb = [190,255,190] }   # ray\r\n"
+        "cMark = { alpha = 60 }\r\n"
+        "cOut = { rgb = [300, 0, 0] }\r\n");
+
+    // the file's keys and spaces are the menu's, so the default is the same value, and one key alone stays alone
+    CHECK(session.value(0).value == model::Value("{ rgb = [190, 255, 190], alpha = 200 }"s));
+    CHECK(session.store.defaultValue(session.setting(0)) == session.value(0).value);
+    CHECK(session.value(1).value == model::Value("{ alpha = 60 }"s));
+    CHECK_FALSE(session.value(1).invalid);
+    // its channels are the framework's: the keys it has over its default's
+    CHECK(model::colorOf(session.setting(1), session.value(1).value) == render::Color::rgba(215, 255, 215, 60));
+
+    // a table the framework cannot read is shown as the file has it
+    const auto out = session.value(2);
+    CHECK(out.value == model::Value("{ rgb = [300, 0, 0] }"s));
+    CHECK(out.invalid);
+    CHECK(out.reason == "Invalid: rgb has a number that is not a whole number in 0..255.");
+    CHECK(session.store.dirtyCount() == 0);
+
+    // a value the player sets is the menu's text too, and one that is no color is invalid
+    CHECK(session.store.set(session.setting(1), "{alpha=60,rgb=[1,2,3]}"s));
+    CHECK(session.value(1).value == model::Value("{ rgb = [1, 2, 3], alpha = 60 }"s));
+    CHECK(session.store.set(session.setting(0), "{ colour = [1, 2, 3] }"s));
+    CHECK(session.value(0).invalid);
+    CHECK(session.value(0).reason == "Invalid: it has the key 'colour', which is not rgb or alpha.");
+    session.store.discard(session.setting(0));
+    CHECK_FALSE(session.store.set(session.setting(0), 1.0f));
+
+    CHECK(session.store.set(session.setting(2), "{ rgb = [255, 0, 0] }"s));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Pointer]\r\n"
+          "cRay = { alpha = 200, rgb = [190,255,190] }   # ray\r\n"
+          "cMark = { rgb = [1, 2, 3], alpha = 60 }\r\n"
+          "cOut = { rgb = [255, 0, 0] }\r\n");
     CHECK(session.store.dirtyCount() == 0);
 }
 

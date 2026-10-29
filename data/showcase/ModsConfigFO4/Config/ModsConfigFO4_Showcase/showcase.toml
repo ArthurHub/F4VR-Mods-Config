@@ -84,6 +84,11 @@ sDoubleClick = "DoubleClick"
 sLong = "Heartbeat3"
 sNone = "none"
 
+[Colors]
+cRay = { rgb = [190, 255, 190], alpha = 200 }
+cFaint = { rgb = [255, 120, 60], alpha = 40 }
+cLight = { rgb = [255, 214, 170] }
+
 [Numbers]
 fStepDecimals = 1.25
 iWhole = 8
@@ -187,6 +192,7 @@ fOutsideDefault = 5.0
 kUntakenDefault = { hand = "primary", type = "tap", button = "grip" }
 kNoButton = { hand = "primary", type = "press", button = "grip" }
 sNoPattern = "Tick"
+cNoColor = { rgb = [255, 0, 0] }
 bApplies = true
 bSameId = true
 iNoOptions = 0

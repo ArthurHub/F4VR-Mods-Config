@@ -590,7 +590,8 @@ namespace mods_config::ui
             _leaving.reset();
             return true;
         }
-        if (_modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() || showHelp(false)) {
+        if (_modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() || _modPage.cancelColorEdit() ||
+            showHelp(false)) {
             return true;
         }
         if (_report) {

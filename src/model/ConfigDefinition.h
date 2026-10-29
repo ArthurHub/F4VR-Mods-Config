@@ -33,6 +33,8 @@ namespace mods_config::model
         // a haptic of a CommonFramework mod: its value is the name of a pattern of the framework's library, or `none`,
         // which are its options
         Haptic,
+        // a color of a CommonFramework mod: its value is the TOML text of the color's inline table
+        Color,
     };
 
     /**
@@ -111,6 +113,10 @@ namespace mods_config::model
         std::vector<vrcf::Hand> hands;
         std::vector<vrcf::ActivationType> types;
         std::vector<vr::EVRButtonId> buttons;
+
+        // a color has an opacity, which a color whose opacity means nothing, as a light's, has not
+        // (`"alpha": false`): it is RGB only
+        bool alpha = true;
     };
 
     /**

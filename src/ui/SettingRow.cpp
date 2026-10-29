@@ -14,6 +14,7 @@
 #include <imgui.h>
 
 #include "Bindings.h"
+#include "Colors.h"
 #include "Drawing.h"
 #include "Haptics.h"
 #include "Numbers.h"
@@ -62,6 +63,7 @@ namespace
             break;
         case model::SettingType::TextInput:
         case model::SettingType::InputBinding:
+        case model::SettingType::Color:
             shown = std::holds_alternative<std::string>(*value);
             break;
         }
@@ -72,13 +74,16 @@ namespace
      * A value of a setting as the help line names it, its default or its saved value: on and off for a switcher, the
      * number of a slider as its display writes it, with its unit, and the text of the option of a stepper and a
      * dropdown. The text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
-     * A binding is its sentence, with the player's handedness. Empty for a value it has no name for, as one that is
-     * none of the options.
+     * A binding is its sentence, with the player's handedness, and a color its numbers. Empty for a value it has no name
+     * for, as one that is none of the options.
      */
     std::string valueName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const bool leftHanded)
     {
         if (setting.type == model::SettingType::InputBinding) {
             return ui::bindingValueName(value, leftHanded);
+        }
+        if (setting.type == model::SettingType::Color) {
+            return ui::colorValueName(setting, value);
         }
         if (setting.type == model::SettingType::TextInput) {
             const auto* text = std::get_if<std::string>(&value);
@@ -252,11 +257,15 @@ namespace
         // the control is a haptic that can be edited, whose Play button plays its value
         bool haptic = false;
 
+        // the control is a color that can be edited, in its editor
+        bool color = false;
+
         // the value of a slider, as a drag has it
         float sliderValue = 0.0f;
         std::optional<std::size_t> chosen;
         ui::ChoiceRow choiceRow;
         ui::BindingEdited bindingEdited;
+        ui::ColorEdited colorEdited;
 
         // a press changed a value or began an interaction
         bool pulse = false;
@@ -304,11 +313,13 @@ namespace
             state.editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown || isHaptic) && !state.choiceOptions.empty();
         const bool isText = state.editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(state.stored.value);
         const bool isBinding = state.editable && setting.type == model::SettingType::InputBinding && std::holds_alternative<std::string>(state.stored.value);
+        const bool isColor = state.editable && setting.type == model::SettingType::Color && std::holds_alternative<std::string>(state.stored.value);
         const bool rowPressed = state.row.pressed && !state.onSlot;
 
-        ControlEdited edited{ .editable = isSwitcher || isSlider || isChoice || isText || isBinding,
+        ControlEdited edited{ .editable = isSwitcher || isSlider || isChoice || isText || isBinding || isColor,
             .binding = isBinding,
             .haptic = isHaptic && isChoice,
+            .color = isColor,
             .sliderValue = number ? *number : options.min,
             .chosen = ui::chosenOption(state.choiceOptions, state.stored),
             .choiceRow = { .pointed = isChoice && state.row.pointed, .held = isChoice && state.row.held, .pressed = isChoice && rowPressed } };
@@ -354,6 +365,12 @@ namespace
             state.refresh();
             edited.pulse = edited.pulse || edited.bindingEdited.pulse;
         }
+        if (isColor) {
+            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + theme::CONTROL_HEIGHT));
+            edited.colorEdited = context.colorEditor.edit(setting, *context.store, rowBox, rowPressed);
+            state.refresh();
+            edited.pulse = edited.pulse || edited.colorEdited.pulse;
+        }
         return edited;
     }
 
@@ -398,6 +415,9 @@ namespace
             }
             if (edited.haptic && invalid) {
                 help += state.defaultValue ? std::format(" Pick one, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Pick one.");
+            }
+            if (edited.color && invalid) {
+                help += state.defaultValue ? std::format(" Pick a color, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Pick a color.");
             }
         } else {
             const auto defaultText = state.defaultValue ? std::format("(Default: {})", nameOf(*state.defaultValue)) : std::string();
@@ -457,6 +477,12 @@ namespace
             const auto* text = std::get_if<std::string>(&stored.value);
             const bool editorOpen = context.bindingEditor.isOpen(setting);
             left = ui::drawBinding(right, top, stored.available ? text : nullptr, look, editorOpen, context.leftHanded, context.imageDrawer);
+            break;
+        }
+        case model::SettingType::Color: {
+            // one whose value is not available has an empty frame
+            const auto* text = std::get_if<std::string>(&stored.value);
+            left = ui::drawColor(setting, right, top, stored.available ? text : nullptr, look, context.colorEditor.isOpen(setting));
             break;
         }
         }
@@ -519,11 +545,14 @@ namespace mods_config::ui
 
         // the ray is on the list then, and the help line keeps the row of its dropdown, and so it does while the editor of
         // a binding is open, where the ray is on none of its parts
-        if (state.row.pointed || context.choices.isListOpen(setting) || context.bindingEditor.isOpen(setting)) {
+        if (state.row.pointed || context.choices.isListOpen(setting) || context.bindingEditor.isOpen(setting) || context.colorEditor.isOpen(setting)) {
             drawn.pointed = pointedRow(state, edited, warning, applies);
         }
         if (edited.bindingEdited.pointed) {
             drawn.pointed = std::move(edited.bindingEdited.pointed);
+        }
+        if (edited.colorEdited.pointed) {
+            drawn.pointed = std::move(edited.colorEdited.pointed);
         }
         if (!state.row.shown) {
             return drawn;

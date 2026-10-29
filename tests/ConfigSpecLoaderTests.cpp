@@ -14,6 +14,7 @@
 #include "TestFiles.h"
 #include "common/CommonUtils.h"
 #include "common/TomlEditor.h"
+#include "model/Colors.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
 #include "spec/ConfigSpecLoader.h"
@@ -149,6 +150,8 @@ namespace
         REQUIRE(setting.defaultValue);
         if (setting.type == model::SettingType::InputBinding) {
             CHECK(model::canonicalBinding(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
+        } else if (setting.type == model::SettingType::Color) {
+            CHECK(model::canonicalColor(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
         } else if (const auto* on = std::get_if<bool>(&*setting.defaultValue)) {
             CHECK(value.value<bool>() == *on);
         } else if (const auto* whole = std::get_if<int>(&*setting.defaultValue)) {
@@ -1613,7 +1616,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(mod.pages[0].name == "Most Used");
     const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
-    CHECK(examples.pages.size() == 23);
+    CHECK(examples.pages.size() == 24);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -1654,6 +1657,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
                                "A default outside its range",
                                "A binding's default it does not take",
                                "A haptic's default that is no pattern",
+                               "A color's default that is no color",
                                "No options",
                                "No such shared list",
                                "A default that is no option" });
@@ -1801,7 +1805,7 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the 
         (problem.severity == model::Severity::Error ? errors : warnings) += 1;
     }
     // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
-    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[21].content[0].content[2].text" });
+    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[22].content[0].content[2].text" });
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }
@@ -1916,6 +1920,45 @@ TEST_CASE("ConfigSpecLoader: a binding is the text of its table, with its defaul
               "E Text: It has no default binding, an object as { \"hand\": \"offhand\", \"type\": \"tap\", \"button\": \"trigger\" }: it has no Reset. [Text] content[3]",
               "W Text: Its valueType \"int\" is not string, which a binding is: it is read as string. [Text] content[3].valueType",
               "E In an INI file: A binding is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+}
+
+TEST_CASE("ConfigSpecLoader: a color is the text of its table, with its default an object the framework reads, and can be RGB only")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" },
+            "ini": { "format": "ini", "root": "myGames", "path": "MyMod.ini" }
+        },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.color", "text": "Ray", "default": { "alpha": 200, "rgb": [190, 255, 190] }, "storage": { "path": ["Pointer", "cRay"] } },
+            { "type": "cf.color", "text": "Light", "valueType": "int", "default": { "rgb": [255, 214, 170] }, "valueOptions": { "alpha": false },
+              "storage": { "path": ["Light", "cColor"] } },
+            { "type": "cf.color", "text": "Out of range", "default": { "rgb": [300, 0, 0] }, "storage": { "path": ["Light", "cOut"] } },
+            { "type": "cf.color", "text": "Text", "default": "red", "storage": { "path": ["Light", "cText"] } },
+            { "type": "cf.color", "text": "In an INI file", "default": { "alpha": 10 }, "storage": { "file": "ini", "section": "Main", "key": "cColor" } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 5);
+    for (const auto& setting : settings) {
+        CHECK(setting.type == model::SettingType::Color);
+        CHECK(setting.valueType == model::StoredType::String);
+    }
+    // the table with the keys it has, rgb before alpha
+    CHECK(settings[0].defaultValue == model::Value("{ rgb = [190, 255, 190], alpha = 200 }"s));
+    CHECK(settings[0].valueOptions.alpha);
+    CHECK(settings[1].defaultValue == model::Value("{ rgb = [255, 214, 170] }"s));
+    CHECK_FALSE(settings[1].valueOptions.alpha);
+    CHECK_FALSE(settings[2].defaultValue);
+    CHECK_FALSE(settings[3].defaultValue);
+    CHECK(std::holds_alternative<model::UnknownStorage>(settings[4].storage));
+    CHECK(problemLines(mod) ==
+          Lines{ "W Light: Its valueType \"int\" is not string, which a color is: it is read as string. [Light] content[1].valueType",
+              "E Out of range: Its default is not a color: rgb has a number that is not a whole number in 0..255. It has no Reset. [Out of range] content[2].default",
+              "E Text: It has no default color, an object as { \"rgb\": [255, 255, 255], \"alpha\": 255 }: it has no Reset. [Text] content[3]",
+              "E In an INI file: A color is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
 }
 
 TEST_CASE("ConfigSpecLoader: a haptic is the name of a pattern, with None and the framework's patterns as its options")

@@ -55,6 +55,22 @@
       "content": [
         {
           "type": "section",
+          "text": "Scrolling",
+          "content": [
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Scroll speed",
+              "help": "How fast the thumbstick of the hand that points scrolls the menu, in lines a second when pushed all the way. 0 is no scrolling.",
+              "default": 50.0,
+              "valueOptions": { "min": 0.0, "max": 100.0, "step": 1.0 },
+              "storage": { "path": ["Pointer", "fScrollSpeed"] }
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
           "text": "Size",
           "content": [
             {
@@ -195,22 +211,37 @@
               "text": "Back menu navigation",
               "help": "One step back in the menu, and from its front page it closes the menu: on the hand that points at the menu, where the binding is on that hand.",
               "default": { "hand": "any", "type": "tap", "button": "grip" },
-              "valueOptions": { "types": ["tap", "press", "release", "longpress", "double"], "buttons": ["grip", "a", "b", "thumbstick"] },
+              "valueOptions": {
+                "types": ["tap", "press", "release", "longpress", "double"],
+                "buttons": ["grip", "a", "b", "thumbstick"]
+              },
               "storage": { "path": ["ModsConfigFO4VR", "kBackBinding"] }
             },
             {
               "type": "cf.inputBinding",
               "text": "Move the menu",
               "help": "Point at the menu and work this on the hand that points: the menu follows the hand until you let go of the button. Make it longer than Back's tap on the same button.",
-              "default": { "hand": "any", "type": "hold", "button": "grip", "duration": 0.3 },
-              "valueOptions": { "types": ["press", "longpress", "hold"], "buttons": ["grip", "a", "b", "thumbstick"] },
+              "default": {
+                "hand": "any",
+                "type": "hold",
+                "button": "grip",
+                "duration": 0.3
+              },
+              "valueOptions": {
+                "types": ["press", "longpress", "hold"],
+                "buttons": ["grip", "a", "b", "thumbstick"]
+              },
               "storage": { "path": ["Panel", "kMoveBinding"] }
             },
             {
               "type": "cf.inputBinding",
               "text": "Recenter menu",
               "help": "Puts the menu in front of you again, where you look now, also after you moved it.",
-              "default": { "hand": "offhand", "type": "longpress", "button": "thumbstick" },
+              "default": {
+                "hand": "offhand",
+                "type": "longpress",
+                "button": "thumbstick"
+              },
               "storage": { "path": ["Panel", "kRecenterBinding"] }
             }
           ]
@@ -251,6 +282,13 @@
               "default": 4.0,
               "valueOptions": { "min": 0.0, "max": 20.0, "step": 0.5 },
               "storage": { "path": ["Pointer", "fRayFade"] }
+            },
+            {
+              "type": "cf.color",
+              "text": "Color",
+              "help": "The color of the ray, and how opaque it is.",
+              "default": { "rgb": [190, 255, 190], "alpha": 200 },
+              "storage": { "path": ["Pointer", "cRayColor"] }
             }
           ]
         },
@@ -276,22 +314,20 @@
               "default": 0.08,
               "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
               "storage": { "path": ["Pointer", "fMarkBorderWidth"] }
-            }
-          ]
-        },
-        { "type": "spacer" },
-        {
-          "type": "section",
-          "text": "Scrolling",
-          "content": [
+            },
             {
-              "type": "slider",
-              "valueType": "float",
-              "text": "Scroll speed",
-              "help": "How fast the thumbstick of the hand that points scrolls the menu, in lines a second when pushed all the way. 0 is no scrolling.",
-              "default": 50.0,
-              "valueOptions": { "min": 0.0, "max": 100.0, "step": 1.0 },
-              "storage": { "path": ["Pointer", "fScrollSpeed"] }
+              "type": "cf.color",
+              "text": "Color",
+              "help": "The color of the mark, and how opaque it is.",
+              "default": { "rgb": [215, 255, 215], "alpha": 180 },
+              "storage": { "path": ["Pointer", "cMarkColor"] }
+            },
+            {
+              "type": "cf.color",
+              "text": "Border color",
+              "help": "The color of the mark's border, and how opaque it is.",
+              "default": { "rgb": [215, 255, 215], "alpha": 100 },
+              "storage": { "path": ["Pointer", "cMarkBorderColor"] }
             }
           ]
         },

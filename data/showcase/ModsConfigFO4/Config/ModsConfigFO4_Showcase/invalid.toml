@@ -23,3 +23,7 @@ kUntaken = { hand = "primary", type = "tap", button = "grip" }
 # a haptic of a name the framework does not have
 [Haptics]
 sTypo = "Tik"
+
+# a color the framework cannot read
+[Colors]
+cOutOfRange = { rgb = [300, 0, 0] }

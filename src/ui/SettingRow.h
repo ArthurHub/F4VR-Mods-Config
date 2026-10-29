@@ -5,6 +5,7 @@
 
 #include "BindingEditor.h"
 #include "Choices.h"
+#include "ColorEditor.h"
 #include "HelpLine.h"
 #include "PageImages.h"
 #include "PageRows.h"
@@ -24,6 +25,7 @@ namespace mods_config::ui
         Choices& choices;
         TextInputs& textInputs;
         BindingEditor& bindingEditor;
+        ColorEditor& colorEditor;
 
         // what a binding's icons are drawn with, and the player's handedness, which says what a button of a hand is
         // printed as

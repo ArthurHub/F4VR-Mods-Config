@@ -22,6 +22,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/Colors.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
@@ -298,7 +299,7 @@ namespace
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
     // a setting's parts:
-    constexpr std::array<std::string_view, 15> VALUE_OPTIONS_FIELDS{ "min",
+    constexpr std::array<std::string_view, 16> VALUE_OPTIONS_FIELDS{ "min",
         "max",
         "step",
         "options",
@@ -312,7 +313,8 @@ namespace
         "suppress",
         "hands",
         "types",
-        "buttons" };
+        "buttons",
+        "alpha" };
     constexpr std::array<std::string_view, 4> OPTION_FIELDS{ "value", "text", "help", "shortText" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
@@ -676,6 +678,7 @@ namespace
         SettingTypeName{ "textinput", model::SettingType::TextInput },
         SettingTypeName{ "cf.inputBinding", model::SettingType::InputBinding },
         SettingTypeName{ "cf.haptic", model::SettingType::Haptic },
+        SettingTypeName{ "cf.color", model::SettingType::Color },
     };
 
     /**
@@ -699,19 +702,21 @@ namespace
     /**
      * What a setting's value is, by its `valueType`. One with none, or with one that is not a type, has the
      * type of its control: a bool for a switcher, a number for a slider, the place of an option for a choice,
-     * and a text for a text input. One that is not a type is a warning. A binding is the text of its table and a
-     * haptic the name of its pattern, so their `valueType` is a string, and another is a warning too.
+     * and a text for a text input. One that is not a type is a warning. A binding and a color are the text of their
+     * table and a haptic the name of its pattern, so their `valueType` is a string, and another is a warning too.
      */
     model::StoredType loadValueType(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
     {
         const auto name = getText(row, "valueType");
-        if (type == model::SettingType::InputBinding || type == model::SettingType::Haptic) {
+        if (type == model::SettingType::InputBinding || type == model::SettingType::Haptic || type == model::SettingType::Color) {
             if (row.contains("valueType") && name != "string") {
                 const Into into(reading, "valueType");
                 reading.report(model::Severity::Warning,
                     std::format("Its valueType {} is not string, which a {} is: it is read as string.",
                         row["valueType"].dump(),
-                        type == model::SettingType::Haptic ? "haptic" : "binding"));
+                        type == model::SettingType::Haptic  ? "haptic"
+                        : type == model::SettingType::Color ? "color"
+                                                            : "binding"));
             }
             return model::StoredType::String;
         }
@@ -897,7 +902,8 @@ namespace
      * choice: its own `options`, the shared list
      * its `sharedOptions` names, where it reads them in the game, or that its mod's client gives them, with a
      * `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
-     * is no whole number above 0 is none. A haptic's options are the menu's: None and the framework's patterns.
+     * is no whole number above 0 is none. A haptic's options are the menu's: None and the framework's patterns. A color
+     * has an alpha unless its `alpha` is false.
      * A choice with none of them has no options, and is reported, so it is disabled.
      */
     model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, ConfigSpecReading& reading)
@@ -929,6 +935,10 @@ namespace
         }
         if (type == model::SettingType::Haptic) {
             valueOptions.options = model::hapticChoiceOptions();
+        }
+        if (hasOptions && type == model::SettingType::Color) {
+            const auto alpha = found->find("alpha");
+            valueOptions.alpha = alpha == found->end() || !alpha->is_boolean() || alpha->get<bool>();
         }
         if (!isChoice(type)) {
             return valueOptions;
@@ -1049,6 +1059,28 @@ namespace
     }
 
     /**
+     * The `default` of a color: the color's table as a JSON object, as `{ "rgb": [190, 255, 190], "alpha": 200 }`, which
+     * the framework reads as it reads the table of its config. It is the TOML text of the table, with the keys it has.
+     * None for a default that is no object, or no color, which is an error of the config spec that is reported with
+     * the framework's reason, and the setting then has no Reset.
+     */
+    std::optional<model::Value> loadColorDefault(const Json& row, ConfigSpecReading& reading)
+    {
+        const auto found = row.find("default");
+        if (found == row.end() || !found->is_object()) {
+            reading.report(model::Severity::Error, R"(It has no default color, an object as { "rgb": [255, 255, 255], "alpha": 255 }: it has no Reset.)");
+            return std::nullopt;
+        }
+        const auto color = model::parseColorTable(tomlText(*found));
+        if (!color) {
+            const Into into(reading, "default");
+            reading.report(model::Severity::Error, std::format("Its default is not a color: {}. It has no Reset.", color.error()));
+            return std::nullopt;
+        }
+        return model::colorText(*color);
+    }
+
+    /**
      * The `default` of a haptic: the name of a pattern, as the framework reads it, so `"double click"` is DoubleClick,
      * and `"none"` for no pattern. None for a default that is no text, or names no pattern, which is an error of the
      * config spec that is reported, and the setting then has no Reset.
@@ -1082,6 +1114,9 @@ namespace
         }
         if (type == model::SettingType::Haptic) {
             return loadHapticDefault(row, reading);
+        }
+        if (type == model::SettingType::Color) {
+            return loadColorDefault(row, reading);
         }
         auto value = getValue(row, "default", valueType);
         if (!value) {
@@ -1352,20 +1387,22 @@ namespace
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
      * config spec, which is reported: a condition names the first, and an author gives one of them an id of its
      * own. Its conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
-     * A binding is kept in a value of a TOML file, as the framework keeps it: in any other storage it is not
-     * available, which is reported.
+     * A binding and a color are kept in a value of a TOML file, as the framework keeps them: in any other storage they
+     * are not available, which is reported.
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type, reading);
         auto storage = loadStorage(row, own.defaultFile, valueType, reading);
-        if (type == model::SettingType::InputBinding && !std::holds_alternative<model::UnknownStorage>(storage)) {
+        const bool isTable = type == model::SettingType::InputBinding || type == model::SettingType::Color;
+        if (isTable && !std::holds_alternative<model::UnknownStorage>(storage)) {
             const auto* file = std::get_if<model::FileStorage>(&storage);
             if (!file || reading.files.at(file->file).format != model::FileFormat::Toml) {
+                const auto* kind = type == model::SettingType::Color ? "color" : "binding";
                 const Into into(reading, "storage");
-                reading.report(model::Severity::Error, "A binding is kept in a value of a TOML file, and it is not: it is not available.");
-                storage = model::UnknownStorage{ .type = "binding" };
+                reading.report(model::Severity::Error, std::format("A {} is kept in a value of a TOML file, and it is not: it is not available.", kind));
+                storage = model::UnknownStorage{ .type = kind };
             }
         }
         const bool readOnly = getBool(row, "readOnly");

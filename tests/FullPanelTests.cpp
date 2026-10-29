@@ -4776,3 +4776,119 @@ TEST_CASE("FullPanel: the editor of a binding offers the types and the buttons i
     drawFrames(panel, 2);
     CHECK(value() == R"({ hand = "primary", type = "hold", button = "a" })");
 }
+
+namespace
+{
+    // the editor of a color, as ColorEditor.cpp has it
+    constexpr float COLOR_EDITOR_WIDTH = 717.0f;
+
+    /**
+     * The track of a channel of the editor of a color that is open, by the channel's place: red, green, blue and alpha.
+     */
+    ImRect colorTrack(const int channel)
+    {
+        const auto* editor = openPopup(COLOR_EDITOR_WIDTH);
+        REQUIRE(editor);
+        const float contentRight = editor->Pos.x + COLOR_EDITOR_WIDTH - theme::SPACE_4;
+        const float top = editor->Pos.y + theme::SPACE_4 + theme::CONTROL_HEIGHT + theme::SPACE_3 + static_cast<float>(channel) * theme::ROW_PITCH;
+        return { contentRight - 368.0f + 56.0f + theme::SPACE_2, top, contentRight - theme::VALUE_WIDTH - theme::SPACE_2, top + theme::CONTROL_HEIGHT };
+    }
+
+    /**
+     * The place of a channel's track where its grab is at a value.
+     */
+    ImVec2 colorTrackAt(const int channel, const int value)
+    {
+        const auto track = colorTrack(channel);
+        const float least = track.Min.x + theme::GRAB_WIDTH * 0.5f;
+        const float most = track.Max.x - theme::GRAB_WIDTH * 0.5f;
+        return { least + (most - least) * static_cast<float>(value) / 255.0f, track.GetCenter().y };
+    }
+}
+
+TEST_CASE("FullPanel: a press on a color opens its editor, whose channels set it as they change, and Back gives the color back")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE,
+        "[Pointer]\r\n"
+        "cRay = { rgb = [190, 255, 190], alpha = 200 }\r\n"
+        "cLight = { rgb = [255, 214, 170] }\r\n"
+        "cOut = { rgb = [300, 0, 0] }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.color", "text": "Ray", "help": "The ray's color.", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "path": ["Pointer", "cRay"] } },
+            { "type": "cf.color", "text": "Light", "default": { "rgb": [255, 214, 170] }, "valueOptions": { "alpha": false }, "storage": { "path": ["Pointer", "cLight"] } },
+            { "type": "cf.color", "text": "Out", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "path": ["Pointer", "cOut"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& ray = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    const auto& light = std::get<model::Setting>(panel.mods()[0].frontPage.items[1]);
+    const auto value = [&store](const model::Setting& setting) {
+        return std::get<std::string>(store.value(setting).value);
+    };
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Ray: The ray's color. (Default: 190, 255, 190, alpha 200)");
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Out: Invalid: rgb has a number that is not a whole number in 0..255. Pick a color, or Reset it to 190, 255, 190, alpha 200.");
+
+    // a channel is set as its track is pressed, and the help line says what it is
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    REQUIRE(openPopup(COLOR_EDITOR_WIDTH));
+    point(panel, colorTrackAt(1, 128));
+    CHECK(panel.helpLine().text() == "Green: The green of the color, 0 to 255. The thumbstick steps it by 1.");
+    CHECK(pressActs(panel, colorTrackAt(0, 0)));
+    CHECK(value(ray) == "{ rgb = [0, 255, 190], alpha = 200 }");
+    CHECK(store.isDirty(ray));
+
+    // the thumbstick steps the channel the ray is on by 1, once it is there a short time
+    pushFrames(panel, colorTrackAt(2, 128), 0.0f, 40);
+    pushFrames(panel, colorTrackAt(2, 128), 1.0f, 2);
+    panel.setThumbstickSideValue(0.0f);
+    drawFrames(panel, 1);
+    CHECK(value(ray) == "{ rgb = [0, 255, 191], alpha = 200 }");
+
+    // Back gives back the color it had as the editor opened, and closes it
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(COLOR_EDITOR_WIDTH));
+    CHECK(value(ray) == "{ rgb = [190, 255, 190], alpha = 200 }");
+    CHECK_FALSE(store.isDirty(ray));
+
+    // Done keeps the alpha it set
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, colorTrackAt(3, 255)));
+    CHECK(value(ray) == "{ rgb = [190, 255, 190], alpha = 255 }");
+    const auto* editor = openPopup(COLOR_EDITOR_WIDTH);
+    REQUIRE(editor);
+    const ImVec2 done(editor->Pos.x + COLOR_EDITOR_WIDTH - theme::SPACE_4 - 80.0f, editor->Pos.y + editor->Size.y - theme::SPACE_4 - theme::CONTROL_HEIGHT * 0.5f);
+    CHECK(pressActs(panel, done));
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(COLOR_EDITOR_WIDTH));
+    CHECK(value(ray) == "{ rgb = [190, 255, 190], alpha = 255 }");
+
+    // a color that is RGB only has no alpha: its numbers and its editor have none
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Light: (Default: 255, 214, 170)");
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    point(panel, colorTrackAt(3, 128));
+    CHECK_FALSE(panel.helpLine().text().starts_with("Alpha"));
+    CHECK(pressActs(panel, colorTrackAt(0, 255)));
+    CHECK(value(light) == "{ rgb = [255, 214, 170] }");
+    CHECK(pressActs(panel, colorTrackAt(1, 0)));
+    CHECK(value(light) == "{ rgb = [255, 0, 170] }");
+}
