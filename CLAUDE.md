@@ -181,3 +181,17 @@ Pulled via vcpkg (`vcpkg.json`) with a **pinned baseline** required for CommonLi
 - `spdlog`, `nlohmann-json`, `simpleini` (MCM's ModSettings files are INI), `tomlplusplus` (the framework's config), `thomasmonkman-filewatch`, `args`, `rapidcsv`, `rsm-mmio`, `xbyak`, `cpptrace`, `imgui` (with `dx11-binding` and `win32-binding`, for the framework's Dear ImGui UI layer, at 1.92.9 from the pinned baseline), `catch2` (for the unit tests), `zlib` (an MCM mod's `lib.swf` is compressed with it)
 
 The vcpkg baseline **must not be changed** without verifying CommonLibF4 still builds; it is pinned to `5cd4931b18d49c77074703cf293a7837ac7506fa`, the framework's own baseline.
+
+## Agent skills
+
+### Issue tracker
+
+Track issues and specs in GitHub Issues. Read `docs/agents/issue-tracker.md` before working with tickets.
+
+### Triage labels
+
+Use the five default triage roles. Read `docs/agents/triage-labels.md` before applying triage labels.
+
+### Domain docs
+
+Use a single-context layout. Read `docs/agents/domain.md` before exploring domain concepts or architectural decisions.
