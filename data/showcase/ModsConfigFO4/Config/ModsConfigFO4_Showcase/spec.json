@@ -1973,6 +1973,303 @@
             },
             {
               "type": "section",
+              "text": "Style and icon",
+              "content": [
+                {
+                  "type": "button",
+                  "text": "An important button",
+                  "help": "Its style draws its outline, text and icon in the accent color, so a button that matters is not missed.",
+                  "buttonText": "Calibrate",
+                  "style": "important",
+                  "icon": "target",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: an important button"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "Important with no icon",
+                  "help": "A style needs no icon.",
+                  "buttonText": "Find",
+                  "style": "important",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: important with no icon"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "A dangerous button",
+                  "help": "Its style draws it in red and always asks first: it has no confirmation, so it asks with its own text and this help.",
+                  "buttonText": "Delete",
+                  "style": "dangerous",
+                  "icon": "trash",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: nothing was deleted"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "An icon with no style",
+                  "help": "An icon needs no style: it is drawn in the color of the text.",
+                  "buttonText": "Listen",
+                  "icon": "sound",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: an icon with no style"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "An icon and a long text",
+                  "help": "The text on its button is too long beside its icon, and ends in an ellipsis.",
+                  "buttonText": "Show a notification now",
+                  "icon": "eye",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: an icon and a long text"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "Important and disabled",
+                  "help": "Its enabledWhen asks for the Buttons enabled switcher: it fades in the color of its style while it is off.",
+                  "buttonText": "Open",
+                  "style": "important",
+                  "icon": "window",
+                  "enabledWhen": {
+                    "setting": "buttonsEnabled",
+                    "equals": true
+                  },
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: important and enabled"]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Every icon",
+              "isCollapsible": true,
+              "collapsed": true,
+              "content": [
+                {
+                  "type": "button",
+                  "text": "The icon play",
+                  "icon": "play",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon play"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon stop",
+                  "icon": "stop",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon stop"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon bolt",
+                  "icon": "bolt",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon bolt"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon target",
+                  "icon": "target",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon target"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon check",
+                  "icon": "check",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon check"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon window",
+                  "icon": "window",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon window"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon external",
+                  "icon": "external",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon external"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon link",
+                  "icon": "link",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon link"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon gear",
+                  "icon": "gear",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon gear"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon import",
+                  "icon": "import",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon import"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon export",
+                  "icon": "export",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon export"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon copy",
+                  "icon": "copy",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon copy"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon eye",
+                  "icon": "eye",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon eye"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon hand",
+                  "icon": "hand",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon hand"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon sound",
+                  "icon": "sound",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon sound"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon pin",
+                  "icon": "pin",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon pin"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon refresh",
+                  "icon": "refresh",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon refresh"]
+                  }
+                },
+                {
+                  "type": "button",
+                  "text": "The icon trash",
+                  "icon": "trash",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: the icon trash"]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "section",
               "text": "Not run",
               "content": [
                 {
@@ -3107,6 +3404,19 @@
               "type": "section",
               "text": "Buttons",
               "content": [
+                {
+                  "type": "button",
+                  "text": "A style and an icon that are not ones",
+                  "help": "Its style and its icon are none the menu has, so it is drawn without them.",
+                  "style": "loud",
+                  "icon": "rocket",
+                  "action": {
+                    "type": "CallGlobalFunction",
+                    "script": "Debug",
+                    "function": "Notification",
+                    "params": ["Showcase: a style and an icon that are not ones"]
+                  }
+                },
                 {
                   "type": "button",
                   "text": "No action",

@@ -67,6 +67,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/Translations.cpp
   ${SOURCE_DIR}/ui/BindingEditor.cpp
   ${SOURCE_DIR}/ui/Bindings.cpp
+  ${SOURCE_DIR}/ui/ButtonIcons.cpp
   ${SOURCE_DIR}/ui/Buttons.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
   ${SOURCE_DIR}/ui/ColorEditor.cpp

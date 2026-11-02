@@ -230,6 +230,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M138 | mod | An MCM change is made as it is made, and Discard sets it back           | in review |
 | M139 | mod | An MCM mod has the MCM tag in the tree                                  | in review |
 | M140 | mod | An MCM mod's Save bar says Keep and Revert                              | in review |
+| M141 | mod | A config spec's button has a style and an icon                          | in review |
 | M82 | mod  | The version rules of the config spec schema and of the native API           | todo   |
 | M83 | mod  | An open session on a save load, a loading screen and the player's death | todo   |
 | M84 | mod  | The menu without FRIK, and without MCM                                  | todo   |
@@ -242,6 +243,8 @@ M136 to M138 make an MCM change as MCM's menu makes it, so the player sees it in
 M139 marks an MCM mod in the tree, as its change is made at once where a config spec's waits for Save: the `MCM` tag at the right of its row, which its help and the Help page explain, and its pending status says its changes are made. The selected row's tip is inside the row, so the tree's rows are wider. See [ModTree](design-system/project/components/ModTree/README.md).
 
 M140 names what an MCM mod's Save bar does: its Save writes nothing, so Keep and Revert are its buttons, of the footer and of the dialog that asks before the mod is left, its status says `1 change made`, `Kept` and `No changes made`, and a row's undo says Revert. A config spec's stay Save and Discard, as its Save writes the files. See [SaveBar](design-system/project/components/SaveBar/README.md).
+
+M141 lets a config spec make a button stand out: `important` draws it in the accent color and `dangerous` in red, which always asks first, with a confirmation made from the button where it has none. A button can have one of the menu's 18 drawn icons, and an `OpenURL` has `link`. See [ButtonRow](design-system/project/components/ButtonRow/README.md).
 
 The config spec format and the native API are public from this release, so M82 settles how both change later.
 

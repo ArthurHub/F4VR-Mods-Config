@@ -19,8 +19,8 @@ namespace
     // and the least a button of it is, which is wider for a longer word:
     constexpr float DIALOG_BUTTON_MIN_WIDTH = 112.0f;
 
-    // the ring around a dangerous button while the ray is on it, outside its box
-    constexpr float DANGER_RING = 2.0f;
+    // the ring around a button, outside its box
+    constexpr float BUTTON_RING = 2.0f;
 
     // the room of the mark of the chosen option, before the text of every option of a list
     constexpr float CHECK_SIZE = 20.0f;
@@ -560,6 +560,20 @@ namespace mods_config::ui
     }
 
     /**
+     * The ring around a button, outside its box, as a dangerous one has it under the ray and a button of a row's style
+     * while it is pressed.
+     */
+    void drawButtonRing(const ImRect& box, const ImU32 color)
+    {
+        ImGui::GetWindowDrawList()->AddRect(ImVec2(box.Min.x - BUTTON_RING, box.Min.y - BUTTON_RING),
+            ImVec2(box.Max.x + BUTTON_RING, box.Max.y + BUTTON_RING),
+            ImGui::GetColorU32(color),
+            theme::RADIUS_FRAME + BUTTON_RING,
+            0,
+            BUTTON_RING);
+    }
+
+    /**
      * Adds an icon button in its box and draws its frame; the caller draws the icon.
      * Returns whether it was pressed and tells whether the ray is on it.
      */
@@ -593,12 +607,7 @@ namespace mods_config::ui
         } else if (look == ButtonLook::Danger) {
             drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(theme::color::RED), theme::RADIUS_FRAME);
             if (pointed || held) {
-                drawList->AddRect(ImVec2(box.Min.x - DANGER_RING, box.Min.y - DANGER_RING),
-                    ImVec2(box.Max.x + DANGER_RING, box.Max.y + DANGER_RING),
-                    ImGui::GetColorU32(theme::color::RED),
-                    theme::RADIUS_FRAME + DANGER_RING,
-                    0,
-                    DANGER_RING);
+                drawButtonRing(box, theme::color::RED);
             }
         } else if (look == ButtonLook::Secondary || pointed || held) {
             drawButtonFrame(box, pointed, held);

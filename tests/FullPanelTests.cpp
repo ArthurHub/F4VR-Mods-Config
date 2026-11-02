@@ -1555,6 +1555,38 @@ TEST_CASE("FullPanel: a button runs its mod's function after its confirmation, a
     CHECK(panel.helpLine().text() == "Calibrate: Measures your height.");
 }
 
+TEST_CASE("FullPanel: a dangerous button with no confirmation asks first, and an important one runs at once")
+{
+    const test_panel::PanelContext context;
+    test_actions::TestActions actions;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "content": [
+            { "type": "button", "text": "Delete", "help": "It cannot be taken back.", "style": "dangerous", "action": { "type": "RunConsoleCommand", "command": "delete" } },
+            { "type": "button", "text": "Calibrate", "style": "important", "icon": "target", "action": { "type": "RunConsoleCommand", "command": "calibrate" } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(isDialogShown(CONFIRMATION));
+    CHECK(actions.commands.empty());
+    CHECK(pressActs(panel, dialogButton(0, CONFIRMATION)));
+    drawFrames(panel, 2);
+    CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "delete" } });
+
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK_FALSE(isDialogShown(CONFIRMATION));
+    CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "delete" }, model::ConsoleCommand{ "calibrate" } });
+}
+
 TEST_CASE("FullPanel: a script button of an MCM mod runs at once with its changes, as they are made already")
 {
     const test_panel::PanelContext context;

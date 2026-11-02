@@ -158,6 +158,7 @@ namespace mods_config::ui
     void drawFrame(const ImRect& box, ValueLook look = ValueLook::Saved);
     float drawSwitcher(float right, float top, std::optional<bool> on, ValueLook look);
     void drawButtonFrame(const ImRect& box, bool pointed, bool held);
+    void drawButtonRing(const ImRect& box, ImU32 color);
     bool iconButton(const char* id, const ImRect& box, bool& pointed);
     bool button(const char* label, const ImRect& box, ButtonLook look);
     bool beginDialog(const char* id, bool asked, ImU32 border);

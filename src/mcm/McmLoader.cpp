@@ -845,6 +845,8 @@ namespace
                 .textRuns = std::move(textRuns),
                 .help = getHelp(row, texts),
                 .buttonText = {},
+                .style = {},
+                .icon = {},
                 .action = loadAction(row),
                 .visibleWhen = {},
                 .enabledWhen = {},

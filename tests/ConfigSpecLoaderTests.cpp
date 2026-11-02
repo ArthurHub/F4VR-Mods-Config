@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <format>
@@ -457,6 +458,90 @@ TEST_CASE("ConfigSpecLoader: OpenURL loads a desktop web link without a native c
     const auto& button = std::get<model::Button>(mod.frontPage.items[0]);
     CHECK(button.buttonText == "Open");
     CHECK(button.action == model::Action(model::WebLink{ "https://example.com/docs?q=a%20b#buttons" }));
+}
+
+TEST_CASE("ConfigSpecLoader: a button has a style and an icon, and an OpenURL has the link icon with none")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "button", "text": "Calibrate", "style": "important", "icon": "target", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "button", "text": "Plain", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "button", "text": "Docs", "action": { "type": "OpenURL", "url": "https://example.com" } },
+        { "type": "button", "text": "Site", "icon": "external", "action": { "type": "OpenURL", "url": "https://example.com" } }
+    )"));
+    CHECK(mod.problems.empty());
+    const auto button = [&mod](const std::size_t place) -> const model::Button& {
+        return std::get<model::Button>(mod.frontPage.items[place]);
+    };
+    CHECK(button(0).style == model::ButtonStyle::Important);
+    CHECK(button(0).icon == model::ButtonIcon::Target);
+    CHECK(button(1).style == model::ButtonStyle::None);
+    CHECK(button(1).icon == model::ButtonIcon::None);
+    CHECK(button(2).icon == model::ButtonIcon::Link);
+    CHECK(button(3).icon == model::ButtonIcon::External);
+}
+
+TEST_CASE("ConfigSpecLoader: each icon of a button is read by its name")
+{
+    constexpr std::array
+        NAMES{ "play", "stop", "bolt", "target", "check", "window", "external", "link", "gear", "import", "export", "copy", "eye", "hand", "sound", "pin", "refresh", "trash" };
+    std::string rows;
+    for (const auto* name : NAMES) {
+        rows += std::format(R"({}{{ "type": "button", "text": "{}", "icon": "{}", "action": {{ "type": "RunConsoleCommand", "command": "tm" }} }})",
+            rows.empty() ? "" : ",",
+            name,
+            name);
+    }
+    const auto mod = loaded(configSpecOf(rows));
+    CHECK(mod.problems.empty());
+    REQUIRE(mod.frontPage.items.size() == NAMES.size());
+    for (std::size_t place = 0; place < NAMES.size(); ++place) {
+        CAPTURE(NAMES[place]);
+        CHECK(static_cast<std::size_t>(std::get<model::Button>(mod.frontPage.items[place]).icon) == place + 1);
+    }
+}
+
+TEST_CASE("ConfigSpecLoader: a dangerous button always asks first, in red, and a dangerous confirmation makes its button dangerous")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "button", "text": "Delete every holster", "help": "It cannot be taken back.", "buttonText": "Delete", "style": "dangerous",
+          "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "button", "text": "<b>Wipe</b>", "html": true, "style": "dangerous", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "button", "text": "Own", "style": "dangerous", "action": { "type": "RunConsoleCommand", "command": "tm" },
+          "confirmation": { "title": "Are you sure?", "message": "Really.", "confirm": "Yes" } },
+        { "type": "button", "text": "Red", "action": { "type": "RunConsoleCommand", "command": "tm" }, "confirmation": { "title": "Reset?", "dangerous": true } },
+        { "type": "button", "text": "Both", "style": "important", "action": { "type": "RunConsoleCommand", "command": "tm" }, "confirmation": { "dangerous": true } },
+        { "type": "button", "text": "Quiet", "style": "important", "action": { "type": "RunConsoleCommand", "command": "tm" } }
+    )"));
+    CHECK(mod.problems.empty());
+    const auto button = [&mod](const std::size_t place) -> const model::Button& {
+        return std::get<model::Button>(mod.frontPage.items[place]);
+    };
+
+    // with no confirmation it asks with its text and its help, and its confirming button says what it does
+    REQUIRE(button(0).confirmation);
+    CHECK(button(0).style == model::ButtonStyle::Dangerous);
+    CHECK(button(0).confirmation->title == "Delete every holster?");
+    CHECK(button(0).confirmation->message == "It cannot be taken back.");
+    CHECK(button(0).confirmation->confirm.empty());
+    CHECK(button(0).confirmation->dangerous);
+
+    // the plain text of a label with tags, and no message with no help
+    REQUIRE(button(1).confirmation);
+    CHECK(button(1).confirmation->title == "Wipe?");
+    CHECK(button(1).confirmation->message.empty());
+
+    // its own confirmation stays, in red
+    REQUIRE(button(2).confirmation);
+    CHECK(button(2).confirmation->title == "Are you sure?");
+    CHECK(button(2).confirmation->confirm == "Yes");
+    CHECK(button(2).confirmation->dangerous);
+
+    // a dangerous confirmation makes it dangerous, also over another style
+    CHECK(button(3).style == model::ButtonStyle::Dangerous);
+    CHECK(button(4).style == model::ButtonStyle::Dangerous);
+
+    CHECK(button(5).style == model::ButtonStyle::Important);
+    CHECK_FALSE(button(5).confirmation);
 }
 
 TEST_CASE("ConfigSpecLoader: OpenURL is only available for buttons, so saving a setting never opens a browser")
@@ -1712,6 +1797,24 @@ namespace
         }
         return lines;
     }
+}
+
+TEST_CASE("ConfigSpecLoader: a style or an icon that is none the menu has is a warning, and the button is drawn without it")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "button", "text": "Loud", "style": "loud", "icon": "rocket", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "button", "text": "Number", "style": 1, "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "button", "text": "Docs", "icon": "rocket", "action": { "type": "OpenURL", "url": "https://example.com" } }
+    )"));
+    const auto& loud = std::get<model::Button>(mod.frontPage.items[0]);
+    CHECK(loud.style == model::ButtonStyle::None);
+    CHECK(loud.icon == model::ButtonIcon::None);
+    CHECK(std::get<model::Button>(mod.frontPage.items[1]).style == model::ButtonStyle::None);
+    CHECK(std::get<model::Button>(mod.frontPage.items[2]).icon == model::ButtonIcon::Link);
+    CHECK(problemLines(mod) == Lines{ R"(W Loud: Its icon "rocket" is none the menu has: the button is drawn without it. [Loud] content[0].icon)",
+                                   R"(W Loud: Its style "loud" is none the menu has: the button is drawn without it. [Loud] content[0].style)",
+                                   R"(W Number: Its style 1 is none the menu has: the button is drawn without it. [Number] content[1].style)",
+                                   R"(W Docs: Its icon "rocket" is none the menu has: the button is drawn without it. [Docs] content[2].icon)" });
 }
 
 TEST_CASE("ConfigSpecLoader: a problem names its row, the pages and the row it is on, and its path in spec.json")

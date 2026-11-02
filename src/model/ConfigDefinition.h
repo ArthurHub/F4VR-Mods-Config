@@ -545,6 +545,42 @@ namespace mods_config::model
     };
 
     /**
+     * How a config spec makes a button stand out. A dangerous one always asks first, in red.
+     */
+    enum class ButtonStyle : std::uint8_t
+    {
+        None,
+        Important,
+        Dangerous,
+    };
+
+    /**
+     * The drawn mark a config spec can give a button, before its text.
+     */
+    enum class ButtonIcon : std::uint8_t
+    {
+        None,
+        Play,
+        Stop,
+        Bolt,
+        Target,
+        Check,
+        Window,
+        External,
+        Link,
+        Gear,
+        Import,
+        Export,
+        Copy,
+        Eye,
+        Hand,
+        Sound,
+        Pin,
+        Refresh,
+        Trash,
+    };
+
+    /**
      * A row that runs an action.
      */
     struct Button
@@ -555,6 +591,10 @@ namespace mods_config::model
 
         // the text on its button: a config spec's button can have one. Empty for `Run`
         std::string buttonText;
+
+        // how it stands out and its mark: a config spec's button can have them
+        ButtonStyle style = ButtonStyle::None;
+        ButtonIcon icon = ButtonIcon::None;
         Action action;
         std::optional<Condition> visibleWhen;
 

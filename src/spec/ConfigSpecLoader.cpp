@@ -294,7 +294,8 @@ namespace
         "applies",
         "visibleWhen",
         "enabledWhen" };
-    constexpr std::array<std::string_view, 10> BUTTON_FIELDS{ "type", "text", "help", "html", "buttonText", "action", "confirmation", "warnings", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 12>
+        BUTTON_FIELDS{ "type", "text", "help", "html", "buttonText", "style", "icon", "action", "confirmation", "warnings", "visibleWhen", "enabledWhen" };
     constexpr std::array<std::string_view, 4> TEXT_ROW_FIELDS{ "type", "text", "html", "visibleWhen" };
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
@@ -323,6 +324,28 @@ namespace
     // an action, of a button or a setting, and a button's confirmation:
     constexpr std::array<std::string_view, 8> ACTION_FIELDS{ "type", "function", "params", "form", "scriptName", "script", "command", "url" };
     constexpr std::array<std::string_view, 4> CONFIRMATION_FIELDS{ "title", "message", "confirm", "dangerous" };
+
+    // the names a config spec gives a button's `style` and its `icon`
+    constexpr std::array<std::pair<std::string_view, model::ButtonStyle>, 2> BUTTON_STYLES{ { { "important", model::ButtonStyle::Important },
+        { "dangerous", model::ButtonStyle::Dangerous } } };
+    constexpr std::array<std::pair<std::string_view, model::ButtonIcon>, 18> BUTTON_ICONS{ { { "play", model::ButtonIcon::Play },
+        { "stop", model::ButtonIcon::Stop },
+        { "bolt", model::ButtonIcon::Bolt },
+        { "target", model::ButtonIcon::Target },
+        { "check", model::ButtonIcon::Check },
+        { "window", model::ButtonIcon::Window },
+        { "external", model::ButtonIcon::External },
+        { "link", model::ButtonIcon::Link },
+        { "gear", model::ButtonIcon::Gear },
+        { "import", model::ButtonIcon::Import },
+        { "export", model::ButtonIcon::Export },
+        { "copy", model::ButtonIcon::Copy },
+        { "eye", model::ButtonIcon::Eye },
+        { "hand", model::ButtonIcon::Hand },
+        { "sound", model::ButtonIcon::Sound },
+        { "pin", model::ButtonIcon::Pin },
+        { "refresh", model::ButtonIcon::Refresh },
+        { "trash", model::ButtonIcon::Trash } } };
 
     /**
      * A text the player sees, where the reading is, as `getShownText` reads one. A token that the language has
@@ -1340,21 +1363,69 @@ namespace
     }
 
     /**
-     * A button: its text, its action, the text on its button, `buttonText`, which is `Run` without one, and what it
-     * asks before it runs. Its conditions and its warnings are read once every setting of the config spec is
-     * (`loadConditions`).
+     * What a button's key names, of the names it can have. None for a button with no such key, and for a name that is
+     * none of them, which is reported: the button is drawn without it.
+     */
+    template <typename Named, std::size_t COUNT>
+    Named readButtonName(const Json& row, const char* key, const std::array<std::pair<std::string_view, Named>, COUNT>& names, ConfigSpecReading& reading)
+    {
+        const auto found = row.find(key);
+        if (found == row.end()) {
+            return Named::None;
+        }
+        const auto name = found->is_string() ? found->get<std::string>() : std::string();
+        const auto named = std::ranges::find_if(names, [&name](const auto& entry) {
+            return entry.first == name;
+        });
+        if (named != names.end()) {
+            return named->second;
+        }
+        const Into into(reading, key);
+        reading.report(model::Severity::Warning, std::format("Its {} {} is none the menu has: the button is drawn without it.", key, found->dump()));
+        return Named::None;
+    }
+
+    /**
+     * Makes a button dangerous where its `style` or its confirmation says so: its confirmation is red, and a button
+     * with none asks with what it says itself, so a press always asks first.
+     */
+    void applyDangerous(model::Button& button)
+    {
+        if (button.confirmation && button.confirmation->dangerous) {
+            button.style = model::ButtonStyle::Dangerous;
+        }
+        if (button.style != model::ButtonStyle::Dangerous) {
+            return;
+        }
+        if (!button.confirmation) {
+            button.confirmation = model::Confirmation{ .title = button.text.empty() ? std::string() : button.text + "?", .message = button.help, .confirm = {}, .dangerous = true };
+        }
+        button.confirmation->dangerous = true;
+    }
+
+    /**
+     * A button: its text, its action, the text on its button, `buttonText`, which is `Run` without one, its `style` and
+     * its `icon`, an `OpenURL` having `link` without one, and what it asks before it runs. Its conditions and its
+     * warnings are read once every setting of the config spec is (`loadConditions`).
      */
     model::Button loadButton(const Json& row, ConfigSpecReading& reading)
     {
-        return model::Button{ .text = getLabel(row, reading),
+        auto button = model::Button{ .text = getLabel(row, reading),
             .textRuns = getLabelRuns(row, reading.translations),
             .help = readShownText(row, "help", reading),
             .buttonText = readShownText(row, "buttonText", reading),
+            .style = readButtonName(row, "style", BUTTON_STYLES, reading),
+            .icon = readButtonName(row, "icon", BUTTON_ICONS, reading),
             .action = loadAction(row, reading),
             .visibleWhen = {},
             .enabledWhen = {},
             .warnings = {},
             .confirmation = loadConfirmation(row, reading) };
+        if (button.icon == model::ButtonIcon::None && std::holds_alternative<model::WebLink>(button.action)) {
+            button.icon = model::ButtonIcon::Link;
+        }
+        applyDangerous(button);
+        return button;
     }
 
     // the parameter of a setting's action that is its value

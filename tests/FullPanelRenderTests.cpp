@@ -2043,6 +2043,70 @@ TEST_CASE("FullPanel render: a button's confirmation, a dangerous one, and the r
     WARN("Saved " << renderToFile(panel, "button-not-in-dll", pageRow(3)));
 }
 
+TEST_CASE("FullPanel render: a button's style and its icon, under the ray, pressed and disabled, and every icon", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "FRIK", "applies": "save",
+        "content": [
+            { "type": "button", "text": "Hide the HUD", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+            { "type": "button", "text": "Calibrate height", "help": "Measures your height.", "buttonText": "Calibrate", "style": "important", "icon": "target",
+              "action": { "type": "RunConsoleCommand", "command": "tm" } },
+            { "type": "button", "text": "Open the body setup", "buttonText": "Open", "style": "important", "icon": "window",
+              "action": { "type": "CallNativeFunction", "function": "setup" } },
+            { "type": "button", "text": "Delete every holster", "help": "It cannot be taken back.", "buttonText": "Delete", "style": "dangerous", "icon": "trash",
+              "action": { "type": "RunConsoleCommand", "command": "tm" } },
+            { "type": "button", "text": "Reset all settings", "buttonText": "Reset", "style": "dangerous", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+            { "type": "button", "text": "Find the panel", "style": "important", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+            { "type": "button", "text": "A long text beside an icon", "buttonText": "Show a notification now", "icon": "eye", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+            { "type": "button", "text": "Documentation", "buttonText": "Open", "action": { "type": "OpenURL", "url": "https://example.com" } }
+        ]
+    })");
+    REQUIRE(mod);
+
+    // the icons a row each, with no style and in the accent
+    std::string icons;
+    bool accent = false;
+    for (const auto* name :
+        { "play", "stop", "bolt", "target", "check", "window", "external", "link", "gear", "import", "export", "copy", "eye", "hand", "sound", "pin", "refresh", "trash" }) {
+        icons += std::format(R"({}{{ "type": "button", "text": "{}", "buttonText": "{}", "icon": "{}", {} "action": {{ "type": "RunConsoleCommand", "command": "tm" }} }})",
+            icons.empty() ? "" : ",",
+            name,
+            name,
+            name,
+            accent ? R"("style": "important",)" : "");
+        accent = !accent;
+    }
+    auto iconMod = spec::loadConfigSpec(R"({ "minSchemaVersion": 1, "modName": "Icons", "displayName": "Icons", "applies": "save", "content": [)" + icons + "] }");
+    REQUIRE(iconMod);
+
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod), std::move(*iconMod) });
+    panel.select({ .mod = 0, .page = {} });
+
+    WARN("Saved " << renderToFile(panel, "button-styles", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "button-style-hover", pageRow(1)));
+    WARN("Saved " << renderToFile(panel, "button-style-pressed", pageRow(1), true));
+    WARN("Saved " << renderToFile(panel, "button-style-dangerous-pressed", pageRow(3), true));
+    WARN("Saved " << renderToFile(panel, "button-style-dangerous-asks", POINTER_AWAY, false, [&panel] {
+        for (const bool pressed : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, pageRow(3), pressed);
+        }
+    }));
+    panel.back();
+
+    panel.select({ .mod = 1, .page = {} });
+    WARN("Saved " << renderToFile(panel, "button-icons", POINTER_AWAY));
+    WARN("Saved " << renderToFile(panel, "button-icons-end", POINTER_AWAY, false, [&panel] {
+        test_panel::drawFrame(panel, pageRow(3));
+        test_panel::drawFrame(panel, pageRow(3));
+        ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+        test_panel::drawFrame(panel, pageRow(3));
+    }));
+}
+
 TEST_CASE("FullPanel render: a script button of a mod with unsaved changes asks to save them first, also with its own confirmation and with an invalid one", "[.render]")
 {
     const test_files::TempFolder myGames;
