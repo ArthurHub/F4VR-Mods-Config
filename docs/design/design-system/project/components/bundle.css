@@ -479,24 +479,30 @@ svg.mc-ico.spin { width: 20px; height: 20px; }
 .mc-option.is-file { gap: var(--space-3); }
 .mc-option.is-current .ext { color: var(--on-green); opacity: 0.6; }
 
-/* ---------- transform: position, rotation and scale; an editor of steppers and a step size ---------- */
+/* ---------- transform: position, rotation and scale; an editor of sliders, and its column on the wrist ---------- */
 .mc-combo.is-xform { justify-content: flex-start; gap: var(--space-3); }
 .mc-combo.is-xform > .lines { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 18px; }
 .mc-combo.is-xform > .lines > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .mc-combo.is-xform .k { display: inline-block; width: 30px; color: var(--green-muted); }
 .mc-combo.is-xform.is-pending > .lines { color: var(--amber); }
 .mc-combo.is-xform.is-invalid > .lines { color: var(--red); }
-.mc-xformedit .body { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2) var(--space-6); }
-.mc-xformedit .grp { color: var(--green-muted); padding: 0 0 var(--space-1); border-bottom: var(--border-frame) solid var(--rule); }
-.mc-axis { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-frame); }
-.mc-axis .lbl { width: 72px; flex: none; }
-.mc-axis .mc-value { flex: 1; width: auto; justify-content: center; }
-.mc-axis .mc-value.is-unset { color: var(--green-muted); }
-.mc-axis.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); }
-.mc-seg { display: inline-flex; height: 40px; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); overflow: hidden; }
-.mc-seg > span { display: grid; place-items: center; padding: 0 var(--space-3); color: var(--green-muted); }
-.mc-seg > span + span { border-left: var(--border-frame) solid var(--frame-border); }
-.mc-seg > span.is-on { background: var(--green); color: var(--on-green); }
+.mc-xformedit { width: 560px; }
+.mc-xformedit .lines { display: flex; flex-direction: column; gap: var(--space-1); }
+.mc-xformedit .foot .mc-btn { min-width: 0; padding: 0 var(--space-4); }
+.mc-xline { position: relative; height: var(--control-height); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); border-radius: var(--radius-frame); }
+.mc-xline .lbl { width: 96px; flex: none; }
+.mc-xline.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); }
+/* the wrist while a transform is adjusted in the world: vrui panels in F4VR_PANEL_STYLE, as wide as the two buttons */
+.mc-tunetitle { color: var(--green); font-size: 24px; line-height: 30px; }
+.mc-tunebox { width: 312px; box-sizing: border-box; background: var(--glass-widget); border: var(--border-widget) solid var(--green); border-radius: var(--radius-widget); padding: 8px 12px; color: var(--green); }
+.mc-tunebox.is-values { display: flex; justify-content: center; gap: var(--space-3); padding: 8px 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-tunebox.is-values .p { color: var(--amber); }
+.mc-tunebox.is-controls { display: flex; flex-direction: column; gap: 2px; }
+.mc-tunebox .ln { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); height: 40px; white-space: nowrap; }
+.mc-tunebox .half { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); }
+.mc-tunebox .ic { display: flex; align-items: center; gap: 2px; }
+.mc-tunebox .ic.is-pair { gap: 10px; }
+.mc-tunebox .mc-bplus { margin: 0 2px; }
 
 /* ---------- activation sphere: a section of the mod's TOML drawn as one group ---------- */
 .mc-section .sphere { width: 20px; height: 20px; flex: none; margin-right: calc(var(--space-1) - var(--space-3)); }

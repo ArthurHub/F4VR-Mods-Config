@@ -279,6 +279,7 @@ Every entry in a `content` array has a `type`, which says what the row is. The n
 - `cf.inputBinding`: a setting of a CommonFramework controller binding; see [CommonFramework values](#commonframework-values).
 - `cf.haptic`: a setting of a CommonFramework haptic pattern; see [CommonFramework values](#commonframework-values).
 - `cf.color`: a setting of a CommonFramework color; see [CommonFramework values](#commonframework-values).
+- `cf.transform`: a setting of a CommonFramework transform; see [CommonFramework values](#commonframework-values).
 - `section`: a heading with its own rows; see [Sections](#sections).
 - `button`: runs an action.
 - `text`, `spacer`, `image`: rows that hold no value; see [Text, spacers and images](#text-spacers-and-images).
@@ -366,6 +367,30 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
   "text": "Ray color",
   "default": { "rgb": [190, 255, 190], "alpha": 200 },
   "storage": { "path": ["Pointer", "cRayColor"] }
+}
+```
+
+`cf.transform` is where a mesh, a light or a zone sits on its node, the inline table of a `t` key, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, with the rotation in degrees and each key optional. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. A key the value leaves out is what the framework reads for it: no move, no rotation, a scale of 1. A changed value is written with the keys it had and the key of the part that changed. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
+
+Its `valueOptions` has `position`, `rotation` and `scale`, the three parts its editor has a slider for, each `true`, `false` or the range of its sliders:
+
+- `true`, or the part left out, is on, with the part's own range: a position -50 to 50 by 1, a rotation -180° to 180° by 1°, a scale 0.1 to 3 by 0.1.
+- `false` is off: the row, the editor and Adjust in world leave the part out, and its value is kept as the file has it. A transform has at least one part on: one with none is an error.
+- An object is on, with its `min`, `max` and `step`, each optional and the part's own where it is left out. A position's and a rotation's can also have one of an axis, `x`, `y` and `z` or `heading`, `roll` and `attitude`, an object of its own `min`, `max` and `step` over the part's.
+
+A range whose `min` is not below its `max`, or whose `step` is not above 0, is an error, and the part has its own range. A value outside its slider's range is not invalid, as the framework reads it: it is shown as it is, and a step or a drag brings it in. A value is not rounded to its step, and an angle is not wrapped.
+
+```json
+{
+  "type": "cf.transform",
+  "text": "Body grab zone",
+  "default": { "pos": [0.0, 0.0, 12.0], "scale": 1.0 },
+  "valueOptions": {
+    "position": { "min": -10, "max": 10, "step": 0.1, "z": { "min": 0, "max": 40 } },
+    "rotation": false,
+    "scale": { "min": 0.5, "max": 2.0 }
+  },
+  "storage": { "path": ["BodyActivation", "tZone"] }
 }
 ```
 

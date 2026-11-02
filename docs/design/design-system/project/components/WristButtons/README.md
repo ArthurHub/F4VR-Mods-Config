@@ -9,6 +9,7 @@ The vrui buttons on the offhand wrist while the panel is minimized: Restore and 
 - Over them, 0.5 units apart, the title `MODS CONFIG`, 0.75 units tall and underlined, in `green` (`UITextPanel`), so the player knows whose buttons they are.
 - **Restore** shows the panel again, as it was, with the shown mod's values read again. The opening gesture does the same while the menu is minimized.
 - **Exit** closes the menu: while the mod that is shown has unsaved changes, the panel is shown with the unsaved-changes dialog first ([ConfirmDialog](../ConfirmDialog/README.md)).
+- While a transform is adjusted in the world, the wrist has the transform's own column in place of these: its name, its values, its controls, and Cancel and Done; see [Transform](../Transform/README.md#adjust-in-world).
 - With FRIK they are pressed with the index fingertip. How they are pressed without FRIK is an open question in the design.
 
 These are not ImGui: their text is drawn by `render::TextFont` in the same Roboto Medium.

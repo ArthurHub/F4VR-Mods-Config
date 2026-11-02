@@ -4,7 +4,8 @@ The design questions that are still open. The order the mod is built in is in th
 
 ## CommonFramework-specific controls
 
-- How a transform's In the world tunes a key of another mod: the framework's live tuning tunes only its own mod's keys.
+- How a transform's Adjust in world tunes a key of another mod: the framework's live tuning tunes only its own mod's keys, and does not hand the value back.
+- Grabbing a transform: the player grabs the object the transform places and moves it with the hand to where it should be. The menu needs where the object is in the world, and to turn a place of the hand back into the transform's value, through the node it sits on. A proposal is a callback that, without side effects, gives the world positions of the configured position and of three axis offsets from it in one frame, from which an invertible affine mapping converts back to config coordinates, also for an attachment that moves. The API, what the framework can answer by itself, and a mapping that cannot be inverted are open.
 - How the client is told which group of an activation sphere the ray is on, so the sphere is lit in the world.
 - How a config spec names a section that is an activation sphere.
 

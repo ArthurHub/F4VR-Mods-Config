@@ -1705,54 +1705,83 @@ fc_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:90
 write('FileChoice', page('<!-- @dsCard group="Settings" height=1100 width=960 subtitle="A choice of the files in a folder: the name, a texture&#39;s thumbnail, the folder&#39;s list; not in the folder; an empty folder" -->', 'Choice of files', fc_body))
 print('ok file choice')
 
-# ---------------- Transform: pos, rot and scale; steppers with a step size, and tuning in the world ----------------
-def fnum(v, deg=False):
-    t = f'{v:.2f}'.rstrip('0').rstrip('.') if v != int(v) else f'{int(v)}'
+# ---------------- Transform: pos, rot and scale; an editor of sliders, and Adjust in world on the wrist ----------------
+def fnum(v, deg=False, dec=None):
+    """A number as the row and the value box write it: with `dec` decimals, or as few as it needs, and ° for an angle."""
+    if dec is not None:
+        t = f'{v:.{dec}f}'
+    else:
+        t = f'{v:.2f}'.rstrip('0').rstrip('.') if v != int(v) else f'{int(v)}'
     return t + ('°' if deg else '')
 
-def xform_ctl(t, state='', show_reset=False, text=None, open_=False):
+def xform_ctl(t, state='', show_reset=False, text=None, open_=False, rot=True):
+    """The row's control: position and scale on the first line, rotation on the second; a key the value leaves out muted,
+    a part the config spec turns off left out."""
     cls = 'mc-combo is-xform' + (f' {state}' if state else '') + (' is-open' if open_ else '')
     if text is not None:
         lines = f'<span class="t-body">{text}</span>'
     else:
         p, r, s_ = t.get('pos', [0, 0, 0]), t.get('rot', [0, 0, 0]), t.get('scale', 1)
         m = lambda k, txt: txt if k in t else f'<span class="mc-muted">{txt}</span>'
-        lines = (f'<span class="t-detail"><span class="k">pos</span>{m("pos", ", ".join(fnum(v) for v in p))}{"" if s_ == 1 else f"   ×{fnum(s_)}"}</span>'
-                 f'<span class="t-detail"><span class="k">rot</span>{m("rot", ", ".join(fnum(v, True) for v in r))}</span>')
+        lines = f'<span class="t-detail"><span class="k">pos</span>{m("pos", ", ".join(fnum(v) for v in p))}{"" if s_ == 1 else f"   ×{fnum(s_)}"}</span>'
+        if rot:
+            lines += f'<span class="t-detail"><span class="k">rot</span>{m("rot", ", ".join(fnum(v, True) for v in r))}</span>'
     return f'<div class="main"><span class="{cls}"><span class="lines">{lines}</span>{ARROW_D}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
 
-def axis(label, v, state='', hover=False, mark=None, deg=False, unset=False):
+def xline(label, v, lo, hi, dec, deg=False, pending=False, hover=False, mark=None):
+    """A line of the editor: its name, then the slider with its step arrows and its value box."""
+    pct = max(0, min(100, (v - lo) / (hi - lo) * 100))
+    st = 'is-pending' if pending else ''
     mk = f'<span class="mc-mark" style="left:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    vs = ' is-unset' if unset else (f' {state}' if state else '')
-    return (f'<div class="mc-axis{" is-hover" if hover else ""}"><span class="lbl t-detail">{label}</span>'
-            f'<span class="mc-btn is-icon">{MINUS}</span><span class="mc-value t-body{vs}">{fnum(v, deg)}</span>'
-            f'<span class="mc-btn is-icon">{PLUS}</span>{mk}</div>')
+    return (f'<div class="mc-xline{" is-hover" if hover else ""}"><span class="lbl t-body">{label}</span>'
+            f'{slide(pct, st)}<span class="mc-value t-body {st}">{fnum(v, deg, dec)}</span>{mk}</div>')
 
-def xform_editor(name, t, changed=(), hover=None, mark=None, unset=(), style=''):
-    p, r, s_ = t.get('pos', [0, 0, 0]), t.get('rot', [0, 0, 0]), t.get('scale', 1)
-    st = lambda k: 'is-pending' if k in changed else ''
-    head = (f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">Step</span>'
-            f'<span class="mc-seg t-detail"><span>Fine</span><span class="is-on">Normal</span><span>Coarse</span></span></div>')
-    left = (f'<div class="mc-stack"><span class="grp t-detail">Position</span>'
-            + ''.join(axis(l, p[i], st(l), hover == l, mark if hover == l else None, unset=l in unset) for i, l in enumerate(('X', 'Y', 'Z')))
-            + axis('Scale', s_, st('Scale'), hover == 'Scale', unset='Scale' in unset) + '</div>')
-    right = (f'<div class="mc-stack"><span class="grp t-detail">Rotation</span>'
-             + ''.join(axis(l, r[i], st(l), hover == l, mark if hover == l else None, True, l in unset) for i, l in enumerate(('Heading', 'Roll', 'Attitude')))
-             + '</div>')
-    foot = (f'<div class="foot"><span class="mc-btn t-body">In the world</span><span class="grow"></span>'
+def xform_editor(name, lines, style=''):
+    foot = (f'<div class="foot"><span class="mc-btn t-body is-run is-important">{BTN_ICONS["hand"]}Adjust in world</span><span class="grow"></span>'
             f'<span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>')
-    return f'<div class="mc-editor mc-xformedit"{style}>{head}<div class="body">{left}{right}</div>{foot}</div>'
+    return (f'<div class="mc-editor mc-xformedit"{style}><div class="head"><span class="grow t-body">{name}</span></div>'
+            f'<div class="lines">{"".join(lines)}</div>{foot}</div>')
+
+# the wrist while it is adjusted in the world: the title, the values on one line, the controls, Cancel and Done
+TUNE_CANCEL = '<svg class="ico" viewBox="0 0 40 40"><path d="M10 10 L30 30 M30 10 L10 30"/></svg>'
+TUNE_DONE = '<svg class="ico" viewBox="0 0 40 40"><path d="M8 21 L17 30 L33 11"/></svg>'
+def tb(n):
+    return bicon(n, 0.5)
+def tune_controls(pos=True, rot=True, scale=True):
+    lines = []
+    if pos:
+        lines.append(f'<div class="ln"><span class="t-body">MOVE</span><span class="ic is-pair">{tb("right-thumbstick")}{tb("left-thumbstick")}</span></div>')
+    mods = ([('ROTATE', tb('left-hold-grip'))] if rot else []) + ([('SCALE', tb('left-hold-x'))] if scale else [])
+    if not pos:
+        for t, i in mods:   # no MOVE line: the stick goes on the modifier's line
+            lines.append(f'<div class="ln"><span class="t-body">{t}</span><span class="ic">{i}<span class="mc-bplus t-body">+</span>{tb("right-thumbstick")}</span></div>')
+    elif mods:
+        lines.append('<div class="ln">' + ''.join(f'<span class="half"><span class="t-body">+ {t}</span><span class="ic">{i}</span></span>' for t, i in mods) + '</div>')
+    return '<div class="mc-tunebox is-controls">' + ''.join(lines) + '</div>'
+def tune_wrist(name, values, note, **parts):
+    vals = '<div class="mc-tunebox is-values t-detail">' + ''.join(f'<span>{v}</span>' for v in values) + '</div>'
+    return (f'<div class="mc-stack" style="gap:8px;align-items:center"><div class="mc-wristcol" style="gap:12px">'
+            f'<span class="mc-tunetitle">Mods Config: {name}</span>{vals}{tune_controls(**parts)}'
+            f'<div class="mc-wrist">{wb("CANCEL", TUNE_CANCEL)}{wb("DONE", TUNE_DONE)}</div></div>'
+            f'<span class="t-detail mc-caption">{note}</span></div>')
+pend = lambda t: f'<span class="p">{t}</span>'
 
 MESH = {'pos': [9.37, -5.86, -5.13], 'rot': [20.72, 0.0, 90.0], 'scale': 1.5}
 MESH_NEW = {'pos': [9.37, -4.86, -5.13], 'rot': [20.72, 0.0, 90.0], 'scale': 1.5}
-TILT = {'rot': [0.0, -5.0, 0.0], 'scale': 1.0}
 xf_states = h_sheet([
     ('Idle', row('Flashlight mesh', xform_ctl(MESH))),
     ('Keys left out', row('Head light tilt', xform_ctl({'rot': [0.0, -5.0, 0.0]}))),
+    ('Rotation off', row('Body grab zone', xform_ctl({'pos': [0.0, 0.0, 12.0], 'scale': 1.2}, rot=False))),
     ('Under the ray', row('Flashlight mesh', xform_ctl(MESH), 'is-hover', mark=(560, 22))),
     ('Pending', row('Flashlight mesh', xform_ctl(MESH_NEW, 'is-pending', True), gutter=DOT)),
     ('Invalid', row('Weapon mount', xform_ctl({}, 'is-invalid', True, text='{ pos = [0, 0], scale = 1 }'), 'is-invalid', gutter=WARN)),
 ])
+POS, ROT, SCL = (-20, 20, 2), (-180, 180, 0), (0.1, 3.0, 1)
+xf_full = [
+    xline('X', 9.37, *POS), xline('Y', -4.86, *POS, pending=True, hover=True, mark=(200, 22)), xline('Z', -5.13, *POS),
+    xline('Heading', 20.72, -180, 180, 2, deg=True), xline('Roll', 0, *ROT, deg=True), xline('Attitude', 90, *ROT, deg=True),
+    xline('Scale', 1.5, *SCL),
+]
 xf_rows = ''.join([
     section('Hand mount'),
     row('Flashlight mesh', xform_ctl(MESH_NEW, 'is-pending', True, open_=True), 'is-active', gutter=DOT),
@@ -1763,29 +1792,42 @@ xf_rows = ''.join([
     row('Overhand grip pose', pose_ctl(POSE_OVER)),
     row('Switch grip with', combo('Grip, double press')),
     row('Mount height', slider('4.0', 40)),
+    row('Beam angle', slider('40°', 30)),
+    row('Beam shadows', toggle(True)),
 ])
-xf_page = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:531px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+xf_page = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:640px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
 {xf_rows}
-{xform_editor('Flashlight mesh', MESH_NEW, changed=('Y',), hover='Y', mark=(140, 22), style=' style="left:27px;top:20px"')}
+{xform_editor('Flashlight mesh', xf_full, ' style="left:180px;top:20px"')}
 </div>
-<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Y', 'Moves the flashlight mesh along Y by 0.1 a step. The thumbstick steps it. Your flashlight shows it.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Y', 'Moves the flashlight mesh along Y, -20 to 20, by 0.01 a step. Default -5.86.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
 </div>"""
-xf_left_out = xform_editor('Head light tilt', {'pos': [0, 0, 0], 'rot': [0.0, -5.0, 0.0], 'scale': 1}, unset=('X', 'Y', 'Z', 'Scale'), style=' style="position:static"')
-xf_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 717px;gap:16px 24px;align-items:start">
+xf_rot_only = xform_editor('Head light tilt', [xline('Heading', 0, *ROT, deg=True), xline('Roll', -5, *ROT, deg=True), xline('Attitude', 0, *ROT, deg=True)], ' style="position:static"')
+xf_pos_scale = xform_editor('Body grab zone', [xline('X', 0, -10, 10, 1), xline('Y', 0, -10, 10, 1), xline('Z', 12.0, 0, 40, 1), xline('Scale', 1.2, 0.5, 2, 1)], ' style="position:static"')
+xf_wrist = ''.join([
+    tune_wrist('Flashlight mesh', ['9.37, ' + pend('-4.86') + ', -5.13', '20.72°, 0°, 90°', '×1.50'], 'All three'),
+    tune_wrist('Overhand mesh', ['6.57, -5.47, 0.56', pend('-82.00°') + ', 0°, 0°'], 'Scale off', scale=False),
+    tune_wrist('Body grab zone', ['0.0, 0.0, 12.0', pend('×1.30')], 'Rotation off', rot=False),
+    tune_wrist('Head light tilt', ['0°, ' + pend('-7°') + ', 0°'], 'Rotation only', pos=False, scale=False),
+])
+xf_body = f"""<div class="mc-world mc-stack" style="gap:24px">
+<div style="display:grid;grid-template-columns:908px 560px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The row: position and scale on one line, rotation on the next</span>
+<span class="t-detail mc-caption">The row: position and scale on one line, rotation on the next; a part that is off is left out</span>
 {xf_states}
 </div>
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">Keys the value leaves out, in muted: no move, a scale of 1</span>
-{xf_left_out}
+<span class="t-detail mc-caption">Rotation only: three lines</span>
+{xf_rot_only}
+<span class="t-detail mc-caption">Rotation off, Z 0 to 40, scale 0.5 to 2</span>
+{xf_pos_scale}
 </div>
-<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
-<span class="t-detail mc-caption">The editor over its row, where the pane has no room under it: a stepper for each axis, a step size, and In the world</span>
+</div>
+<span class="t-detail mc-caption">The editor: a slider a line, only the parts that are on, no headings; Adjust in world in the important style. The ray on Y, which is changed</span>
 {xf_page}
-</div>
+<span class="t-detail mc-caption">Adjust in world: the panel minimized, the offhand wrist has the name, the values as they change, the controls, Cancel and Done</span>
+<div style="display:flex;gap:40px;align-items:flex-start">{xf_wrist}</div>
 </div>"""
-write('Transform', page('<!-- @dsCard group="Settings" height=1180 width=1720 subtitle="A transform: position, rotation and scale in the row; an editor of steppers with a step size, and In the world" -->', 'Transform', xf_body))
+write('Transform', page('<!-- @dsCard group="Settings" height=2060 width=1540 subtitle="A transform: position, rotation and scale in the row; an editor of sliders; Adjust in world on the wrist" -->', 'Transform', xf_body))
 print('ok transform')
 
 # ---------------- ActivationSphere: a section of the TOML drawn as one group, its sphere lit in the world ----------------

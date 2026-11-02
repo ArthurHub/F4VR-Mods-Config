@@ -248,10 +248,17 @@ The look is the design system's [HandPose](design-system/project/components/Hand
 
 Primary use: where a mesh, a light or a zone sits on its node, as Immersive Flashlight's 13 transforms.
 
-- The row shows the position and the scale on one line and the rotation on the next. A key the value leaves out is shown as what it means, muted: no move, no rotation, a scale of 1.
-- A press on the row opens the editor, a popup in the content pane: a stepper for X, Y, Z and Scale, and for Heading, Roll and Attitude, and a step size of Fine, Normal or Coarse for all of them. The thumbstick steps the line the ray is on.
-- A `live` transform moves as it is stepped. Done, or a press beside the editor, keeps it. Cancel and Back give back the value it had when it opened.
-- In the world hands it to the framework's live tuning, with the menu minimized and Done and Cancel on the wrist, and brings the tuned value back as the pending value. It needs the framework to tune another mod's key, and is not shown until it can.
+- The row shows the position and the scale on one line and the rotation on the next. A key the value leaves out is shown as what it means, muted: no move, no rotation, a scale of 1. A part the config spec turns off is left out.
+- A press on the row opens its editor, a popup in the content pane: a slider for each axis of each part that is on, X, Y and Z, Heading, Roll and Attitude, and Scale, one a line, with no headings. A slider has the range and the step the config spec gives the part or the axis, or the part's own; see [CommonFramework values](schema.md#commonframework-values). It is the setting row's slider, with its step arrows, and the thumbstick steps the line the ray is on.
+- A value keeps the decimals it has where they are finer than its step, so a file's 20.72° is not shown as 21°. A value outside its slider's range is shown as it is, with its grab at the end: a step or a drag brings it in.
+- A `live` transform moves as it is changed. Done, or a press beside the editor, keeps the value pending. Cancel and Back give back the value it had when the editor opened. Save writes the file.
+- **Adjust in world**, in the editor's footer in the `important` style with the hand icon, tunes it with the controllers while the player looks at the object. The panel is minimized, and the offhand wrist has, in place of Restore and Exit, the setting's name after `Mods Config: `, its values on one line as they change, the controls of the parts that are on, and Cancel and Done.
+  - The controls are the framework's live tuning: the thumbsticks move it, the right stick X and Y and the left stick Z, holding the offhand grip makes the right stick rotate it, and holding the offhand A makes it scale it. A part that is off does not move, and its control is not shown.
+  - All controller input is taken from the game while it is tuned. Each change is the pending value, previewed as the editor's are.
+  - Done brings the panel back with the editor open and the tuned value pending. Cancel gives back the value it had when Adjust in world started, so the editor's changes before it stay.
+  - A game menu that opens ends the tuning as Cancel does. A loading screen or the main menu closes the menu, and its session's changes are discarded. A target that goes away, as a weapon that is put away, ends it as Cancel does, with the reason in the help line.
+  - It needs the framework to tune a key of another mod, and to hand the value back; see [Later work](framework-requirements.md#later-work). Until it can, the button is not shown.
+- Grabbing the object with the hand and moving it to where it should be is the next part of the design; see [Open questions](open-questions.md#commonframework-specific-controls).
 - A changed value is written with the keys the file had and the key that changed.
 
 The look is the design system's [Transform](design-system/project/components/Transform/README.md).

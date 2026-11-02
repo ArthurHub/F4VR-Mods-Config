@@ -1,42 +1,49 @@
 # Transform
 
-A CommonFramework transform, a `t` key, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }` with each key optional: where a mesh, a light or a zone sits on its node. A frame that shows the numbers, and an editor with a stepper for each axis, which hands off to tuning in the world.
+A row of position, rotation and scale, which opens an editor of sliders, and tunes it in the world from the wrist. Behavior is defined in [Controls](../../../../controls.md#transform); storage and the ranges in [Schema](../../../../schema.md#commonframework-values).
 
-**Provides:** the setting's name, its value (the TOML text), its default, its state, and the keys the value has.
+**Provides:** the setting's name, its value (the TOML text), its default, its state, the keys the value has, the parts that are on and their ranges.
 
-## The row
+## Row
 
-- The frame is 392 x 48: two `t-detail` lines in tabular digits, then the drawn down arrow. The first is `pos` and the position, and `×1.5` after it when the scale is not 1; the second is `rot` and the three angles in degrees. `pos` and `rot` are `green-muted`, 30 px wide, so the numbers line up.
-- A key the value leaves out is drawn as what it means, in `green-muted`: `0, 0, 0` for no move or no rotation, and no `×` for a scale of 1.
-- A press anywhere on the row opens the editor.
+- A 392 x 48 frame: two `t-detail` lines in tabular digits, then the drawn down arrow. The first is `pos` and the position, and `×1.5` after it when the scale is not 1; the second is `rot` and the three angles in degrees. `pos` and `rot` are `green-muted`, 30 px wide, so the numbers line up.
+- A key the value leaves out is drawn as what it means, in `green-muted`: `0, 0, 0` for no move or no rotation, and no `×` for a scale of 1. A part the config spec turns off is left out of the row; with rotation off the row is the one line.
 - Pending: the numbers in `amber`, the pending mark after the name. Invalid: a value the framework cannot read, its text as the file has it in `red`, a `red` outline, and the invalid mark after the name; the help line has the framework's reason.
+- A press anywhere on the row opens the editor.
 
-## The editor
+## Editor
 
-A popup inside the content pane, 717 wide, placed as the Color editor is. `popup` background, a 2 px `green` border, `radius-popup`, `space-4` padding.
+A popup inside the content pane, 560 wide, under its row, over it, or as near as it fits, as the Color editor is placed. `popup` background, a 2 px `green` border, `radius-popup`, `space-4` padding.
 
-- **Header**, 48 px: the setting's name in `t-body`, and on the right "Step" in `t-detail` `green-muted` and a choice of three, `Fine`, `Normal` and `Coarse`, the chosen one solid `green`. It sets the step of every stepper: 0.1, 1 or 10 for a position, 1°, 5° or 15° for an angle, 0.01, 0.05 or 0.1 for the scale. `Normal` when the editor opens; the choice is kept for the session.
-- **Body**, two columns with a `t-detail` `green-muted` heading over a `rule` line each:
-  - Position: X, Y and Z, then Scale.
-  - Rotation: Heading, Roll and Attitude, the names the framework gives them.
-  - A line is 48 px: its name in `t-detail` (72 px), minus, the value box, plus. The value box is as wide as fits, centered, two decimals at most, degrees with `°`. Hover: the line's.
-  - A press on minus or plus steps it, and holding repeats faster. The thumbstick steps the line the ray is on, as a slider's.
-  - A key the value leaves out shows its meaning in `green-muted` until it is changed.
-  - A changed value is in `amber`.
-- **Footer**, under a `rule` line: In the world (secondary) on the left, Cancel (quiet) and Done (primary) on the right.
-- Every change sets the pending value as it is made, and a `live` transform is previewed: the mesh or the light moves as it is stepped.
+- **Header**, 48 px: the setting's name in `t-body`.
+- **Lines**, `space-1` apart, one for each axis of each part that is on, in this order: X, Y, Z, Heading, Roll, Attitude, Scale. No headings: the names say which part each is. A transform with rotation off has four lines, one of rotation only three.
+  - A line is 48 px: its name in `t-body`, 96 px, then the [Slider](../Slider/README.md) with its step arrows, the 224 px track and its value box. Hover: the line's, the `hover` fill and the `frame-border` outline.
+  - Its range and its step are the config spec's for the part or the axis, or the part's own: a position -50 to 50 by 1, a rotation -180° to 180° by 1°, a scale 0.1 to 3 by 0.1.
+  - The value box has the step's decimals, or the value's own where they are finer, so a file's 20.72° is `20.72°` with a step of 1°. Degrees have `°`.
+  - A value outside the range is shown as it is, with the grab at its end and that end's arrow disabled.
+  - A changed value is amber, its fill and grab too.
+- **Footer**, under a `rule` line: **Adjust in world** on the left, a button in the `important` style, the `accent` outline and text, with the `hand` icon before its text ([ButtonRow](../ButtonRow/README.md)); Cancel (quiet) and Done (primary) on the right.
+- Every change sets the pending value as it is made, and a `live` transform is previewed: the mesh or the light moves as it is changed.
 - Done, or a press beside the editor, closes it and keeps the value. Cancel and Back close it and give back the value it had when it opened.
-- While the ray is on a line, the help line says what it moves and by how much: "Y: Moves the flashlight mesh along Y by 0.1 a step. The thumbstick steps it."
+- While the ray is on a line, the help line says what it moves, its range and step, and the default: "Y: Moves the flashlight mesh along Y, -20 to 20, by 0.01 a step. Default -5.86."
 
-## In the world
+## Adjust in world
 
-- In the world hands the transform to the framework's live tuning (`DebugAdjuster`), which moves the object with the controllers while the player looks at it. The menu minimizes, as for a quick launch entry, and the wrist has `Done` and `Cancel` for it.
-- `Done` takes the tuned value as the pending value and brings the menu back with the editor open; `Cancel` gives back the value from before.
-- Open: the framework's tuning works on its own mod's keys today. Tuning another mod's key, and handing back the value, is framework work; until then In the world is not shown.
+The panel is minimized, and the offhand wrist has a column of its own in place of Restore and Exit ([WristButtons](../WristButtons/README.md)). It is vrui, not ImGui: the framework's primitive panels in `F4VR_PANEL_STYLE` and `F4VR_BUTTON_STYLE`, as Immersive Flashlight's and FRIK's own config UIs are. From the top, 0.25 units apart:
+
+- **Title**: `Mods Config: ` and the setting's name, plain text in `green`, 0.5 units tall, not underlined and in no box (`UITextPanel` with no style of its own).
+- **Values**: a box as wide as the two buttons, 6.5 units, with the values on one line in the detail size, 0.4 units: the position, the rotation in degrees and the scale after `×`, each group `space-3` from the next and only the parts that are on. It changes as the object moves; a value that differs from when the tuning started is `amber`.
+- **Controls**: a box as wide, a `UIContainer` with the box style, of one line for each, 0.45 units tall, its text in capitals on the left and its binding's icons on the right (`appendBindingPrompt`, so a left-handed player's are the left hand's):
+  - `MOVE`: the right and the left thumbstick, while position is on.
+  - Then one line of the modifiers: `+ ROTATE` with the hold of the offhand grip, and `+ SCALE` with the hold of the offhand A, each its text and its icon, for the parts that are on.
+  - With position off there is no `MOVE` line, so the line of a modifier has the right thumbstick after it: `ROTATE` grip + right stick. Rotation is always with the grip.
+  - The icons are the plain thumbstick's, with no arrow of a direction.
+- **Cancel** and **Done**: the two wrist buttons, 3 x 2.5 units each, 0.5 apart, each its icon over its label: an X and `CANCEL`, a check and `DONE`. There are no bindings for them.
+
+Done brings the panel back with the editor open and the tuned value pending; Cancel gives back the value from before Adjust in world. It needs framework work and is not shown until it is done; see [Controls](../../../../controls.md#transform).
 
 ## Writing the value
 
 - A changed value is written with the keys the file had, and the key of the part that changed: `{ rot = [0.0, -5.0, 0.0] }` with a new Y is `{ pos = [0.0, 1.0, 0.0], rot = [0.0, -5.0, 0.0] }`. Numbers are written as the framework writes them, with `.0` on a whole number.
+- A part that is off is written as the file has it.
 - Reset sets the default as the config spec gives it.
-
-The behavior is in [Controls](../../../../controls.md#transform).
