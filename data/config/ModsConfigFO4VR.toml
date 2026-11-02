@@ -23,6 +23,10 @@ kOpenMenuBinding = { hand = "primary", type = "longpress", button = "thumbstick"
 # in [Panel].
 kBackBinding = { hand = "any", type = "tap", button = "grip" }
 
+# Help in the menu's title bar stands out as "? Help", until you first open the Help page, which turns this
+# off. Turn it on to have it stand out again.
+bHighlightHelp = true
+
 
 [Panel]
 

@@ -296,6 +296,10 @@ namespace mods_config
             g_config.saveDeveloper(*_developerToSave);
             _developerToSave.reset();
         }
+        if (_helpOpened) {
+            _helpOpened = false;
+            g_config.saveHelpOpened();
+        }
         if (_liveCopyRequest) {
             const auto request = std::move(*_liveCopyRequest);
             _liveCopyRequest.reset();
@@ -490,7 +494,8 @@ namespace mods_config
     /**
      * Gives the panel what the config has for it: its look, its size and scale, the width of its tree, its place from where it was put in
      * front of the player, how it is moved: after a short press, where that is Back, the controls its Help page tells, the player's
-     * handedness, which a binding's buttons are printed by, and the Developer
+     * handedness, which a binding's buttons are printed by, whether Help stands out, which the Help page shown for
+     * the first time turns off from the frame update, and the Developer
      * tools, whose filter and fold a press on the front page writes back from the frame update. It is called when
      * the menu opens, and when the config is loaded again while the menu is open, so a change of the file shows at once. The place is from
      * where the panel is now, also after a hand moved it.
@@ -499,6 +504,9 @@ namespace mods_config
     {
         _fullPanel.setDeveloper(g_config.developer, [this](const ui::DeveloperView& view) {
             _developerToSave = view;
+        });
+        _fullPanel.setHighlightHelp(g_config.highlightHelp, [this] {
+            _helpOpened = true;
         });
         _fullPanel.setControls(ui::menuControls({ .openMenu = g_config.openMenuBinding,
             .back = g_config.backBinding,

@@ -1096,6 +1096,41 @@ TEST_CASE("FullPanel: Help shows the Help page over the selection, and Back show
     CHECK_FALSE(panel.back());
 }
 
+TEST_CASE("FullPanel: Help stands out until the Help page is first shown, which is told once")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    int opened = 0;
+    const auto countOpened = [&opened] {
+        ++opened;
+    };
+    panel.setHighlightHelp(true, countOpened);
+    drawFrames(panel, 2);
+
+    // it is wider than the other buttons: this is on it, left of where `?` alone is
+    const ImVec2 onHelp(titleButton(HELP_BUTTON).x - 40.0f, titleButton(HELP_BUTTON).y);
+    point(panel, onHelp);
+    CHECK(panel.helpLine().text() == "Help: How the menu works, with the buttons your config has.");
+    CHECK(pressActs(panel, onHelp));
+    CHECK(panel.isHelpShown());
+    CHECK(opened == 1);
+
+    // then it is `?` alone
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(pressActs(panel, onHelp));
+    CHECK_FALSE(panel.isHelpShown());
+    CHECK(pressActs(panel, titleButton(HELP_BUTTON)));
+    CHECK(opened == 1);
+
+    // the settings can turn it on again
+    CHECK(panel.back());
+    panel.setHighlightHelp(true, countOpened);
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, onHelp));
+    CHECK(opened == 2);
+}
+
 TEST_CASE("FullPanel: a row of the tree and the menu's breadcrumb leave the Help page")
 {
     const test_panel::PanelContext context;

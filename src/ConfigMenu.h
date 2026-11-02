@@ -104,6 +104,9 @@ namespace mods_config
         // the Developer tools as a press on the front page changed them, which the frame update writes to the config
         std::optional<ui::DeveloperView> _developerToSave;
 
+        // the Help page was shown for the first time, which the frame update writes to the config
+        bool _helpOpened = false;
+
         /**
          * What a press on a row of a config spec's live copy in its report asked, by the config spec's folder, which
          * the frame update does.

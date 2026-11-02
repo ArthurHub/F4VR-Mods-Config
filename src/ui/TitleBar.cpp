@@ -26,8 +26,11 @@ namespace
     // as its bytes in UTF-8
     constexpr auto PAGES_ELIDED = "\xE2\x80\xA6";
 
-    // the breadcrumb of the Help page, after the menu's
+    // the breadcrumb of the Help page, after the menu's, which Help says too until the player first opens it
     constexpr auto HELP_CRUMB = "Help";
+
+    // the title bar's Help
+    constexpr auto HELP_MARK = "?";
 
     // the breadcrumb of the front page's Developer section, before a config spec's report
     constexpr auto DEVELOPER_CRUMB = "Developer";
@@ -85,6 +88,37 @@ namespace
     }
 
     /**
+     * The width of Help until the player first opens it: `?` and `Help`, `space-2` apart, with `space-4` each side.
+     */
+    float highlightedHelpWidth()
+    {
+        return std::ceil(ui::textWidth(HELP_MARK) + theme::SPACE_2 + ui::textWidth(HELP_CRUMB) + theme::SPACE_4 * 2.0f);
+    }
+
+    /**
+     * Help until the player first opens it, so a new player finds it: `? Help` in the important style, with a ring
+     * while it is pressed. Returns whether it was pressed and tells whether the ray is on it.
+     */
+    bool highlightedHelp(const char* id, const ImRect& box, bool& pointed)
+    {
+        ImGui::SetCursorScreenPos(box.Min);
+        const bool pressed = ImGui::InvisibleButton(id, box.GetSize());
+        pointed = ImGui::IsItemHovered();
+        const bool held = ImGui::IsItemActive();
+        if (pointed || held) {
+            ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(held ? theme::color::PRESSED : theme::color::HOVER), theme::RADIUS_FRAME);
+        }
+        ui::drawOutline(box.Min, box.Max, theme::color::ACCENT);
+        if (held) {
+            ui::drawButtonRing(box, theme::color::ACCENT);
+        }
+        const float textLeft = box.Min.x + theme::SPACE_4;
+        ui::drawText(textLeft, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_MARK);
+        ui::drawText(textLeft + ui::textWidth(HELP_MARK) + theme::SPACE_2, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_CRUMB);
+        return pressed;
+    }
+
+    /**
      * The Minimize icon around a point: a line at the bottom of a box of 24, as the design system draws it.
      */
     void drawMinimizeIcon(const ImVec2& center)
@@ -114,10 +148,11 @@ namespace mods_config::ui
     /**
      * Draws the breadcrumbs and Help, Minimize and Close buttons, with overflowing pages collapsed to an
      * ellipsis and long names shortened. A config spec's report, shown over the menu's front page, has the crumbs
-     * of the menu, of the Developer section, and of the config spec's name. Returns the pressed selection,
-     * Developer crumb or button and the hovered help.
+     * of the menu, of the Developer section, and of the config spec's name. Help stands out while it is highlighted,
+     * and is wider, so the crumbs end sooner. Returns the pressed selection, Developer crumb or button and the
+     * hovered help.
      */
-    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const model::Mod* report)
+    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const bool highlightHelp, const model::Mod* report)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ImGui::GetContentRegionAvail().x;
@@ -137,21 +172,23 @@ namespace mods_config::ui
         const float buttonTop = std::floor(pos.y + (theme::TITLEBAR_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f);
         float buttonLeft = std::floor(pos.x + width - theme::SPACE_2);
         for (const auto& button : BUTTONS) {
-            buttonLeft -= theme::CONTROL_HEIGHT;
-            const auto box = controlBox(buttonLeft, buttonTop, theme::CONTROL_HEIGHT);
+            const bool highlighted = highlightHelp && button.button == TitleButton::Help;
+            const float buttonWidth = highlighted ? highlightedHelpWidth() : theme::CONTROL_HEIGHT;
+            buttonLeft -= buttonWidth;
+            const auto box = controlBox(buttonLeft, buttonTop, buttonWidth);
             bool pointed = false;
-            if (iconButton(button.name, box, pointed)) {
+            if (highlighted ? highlightedHelp(button.name, box, pointed) : iconButton(button.name, box, pointed)) {
                 bar.pressedButton = button.button;
             }
             if (pointed) {
                 bar.pointed = PointedRow{ .text = button.name, .help = button.help };
             }
-            if (button.button == TitleButton::Help) {
-                drawTextIn(box, "?", theme::color::GREEN, 0.5f);
-            } else if (button.button == TitleButton::Minimize) {
+            if (button.button == TitleButton::Minimize) {
                 drawMinimizeIcon(box.GetCenter());
-            } else {
+            } else if (button.button == TitleButton::Close) {
                 drawCloseIcon(box.GetCenter());
+            } else if (!highlighted) {
+                drawTextIn(box, HELP_MARK, theme::color::GREEN, 0.5f);
             }
             buttonLeft -= theme::SPACE_2;
         }

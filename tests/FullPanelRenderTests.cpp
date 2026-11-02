@@ -529,6 +529,13 @@ TEST_CASE("FullPanel render: the menu's front page", "[.render]")
     WARN("Saved " << renderToFile(panel, "front-page", POINTER_AWAY));
 }
 
+TEST_CASE("FullPanel render: Help until it is first opened", "[.render]")
+{
+    auto panel = testSetPanel();
+    panel.setHighlightHelp(true, {});
+    WARN("Saved " << renderToFile(panel, "front-page-help-highlighted", POINTER_AWAY));
+}
+
 TEST_CASE("FullPanel render: the ray on a quick launch row", "[.render]")
 {
     auto panel = testSetPanel();

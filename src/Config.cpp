@@ -43,6 +43,8 @@ namespace mods_config
         // a tap of the grip of the hand that points: a press held longer moves the panel
         backBinding = getInputBindingValue(config, DEFAULT_SECTION, "kBackBinding", BACK_BINDING);
 
+        highlightHelp = config[DEFAULT_SECTION]["bHighlightHelp"].value_or(true);
+
         // a panel has a size and stands in front of the player, whatever the file says
         const auto panel = config[PANEL_SECTION];
         panelScale = (std::max)(panel["fScale"].value_or(6.0f), 1.0f);
@@ -112,5 +114,15 @@ namespace mods_config
         developer = view;
         const auto show = std::ranges::find(SHOW_CONFIG_SPECS, view.show, &std::pair<std::string_view, ui::ShowConfigSpecs>::second);
         saveConfigValues(DEVELOPER_SECTION, { { "sShowConfigSpecs", std::string(show->first) }, { "bFolded", view.folded } });
+    }
+
+    /**
+     * Turns off the highlight of Help, as the player first opened the Help page, and writes it to the file at once:
+     * nothing else saves it.
+     */
+    void Config::saveHelpOpened()
+    {
+        highlightHelp = false;
+        saveConfigValue(DEFAULT_SECTION, "bHighlightHelp", false);
     }
 }

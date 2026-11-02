@@ -80,6 +80,16 @@ namespace mods_config::ui
     }
 
     /**
+     * Whether Help stands out in the title bar, as the settings have it, and what writes to them that the Help page
+     * was shown. The Help page shown turns it off in the panel at once, and is told once.
+     */
+    void FullPanel::setHighlightHelp(const bool highlight, std::function<void()> opened)
+    {
+        _highlightHelp = highlight;
+        _helpOpened = std::move(opened);
+    }
+
+    /**
      * What does what a press on a row of a config spec's live copy in its report asks, by the config spec's folder:
      * the menu, which reads the config spec again with `replaceMod` and `liveCopyNotRead` after the panel is drawn. With
      * none, as in a test, a press on them does nothing.
@@ -492,6 +502,12 @@ namespace mods_config::ui
             return false;
         }
         _helpShown = shown;
+        if (shown && _highlightHelp) {
+            _highlightHelp = false;
+            if (_helpOpened) {
+                _helpOpened();
+            }
+        }
         pageShown();
         return true;
     }
@@ -679,7 +695,7 @@ namespace mods_config::ui
             show(shown);
             _helpShown = helpShown;
         }
-        auto titleBar = drawTitleBar(_mods, _selection, _helpShown, _report && !_helpShown ? &_mods[*_report] : nullptr);
+        auto titleBar = drawTitleBar(_mods, _selection, _helpShown, _highlightHelp, _report && !_helpShown ? &_mods[*_report] : nullptr);
         auto pressed = titleBar.pressed;
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);

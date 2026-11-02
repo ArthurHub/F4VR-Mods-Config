@@ -51,6 +51,7 @@ namespace mods_config::ui
         void setLeftHanded(bool leftHanded);
         void setMenuActions(MenuActions actions);
         void setDeveloper(DeveloperView view, std::function<void(const DeveloperView&)> write);
+        void setHighlightHelp(bool highlight, std::function<void()> opened);
         void setLiveCopyAction(std::function<void(const std::string& folder, LiveCopyAction action)> act);
         std::size_t replaceMod(model::Mod mod, std::string_view time);
         void liveCopyNotRead(std::string_view folder, std::string_view liveCopy, std::string_view time, std::string_view reason);
@@ -179,6 +180,10 @@ namespace mods_config::ui
 
         // the Help page is shown in place of the selection's page, which Back shows again
         bool _helpShown = false;
+
+        // Help stands out until the Help page is first shown, which is told
+        bool _highlightHelp = false;
+        std::function<void()> _helpOpened;
 
         // the config spec whose report is shown over the menu's front page, by its place among the mods, and none.
         // And the one Back shows again, from the page a press on one of its problems showed

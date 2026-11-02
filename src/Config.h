@@ -29,6 +29,9 @@ namespace mods_config
         // Back, on the hand that points at the menu's panel, where the binding is on that hand
         vrcf::InputBinding backBinding;
 
+        // Help in the menu's title bar stands out, until the player first opens the Help page
+        bool highlightHelp = false;
+
         // The size of the menu's panel, with its text and its rows, and where it is put in front of the player:
         // how far, how much above the eyes, and tilted back by how many degrees. The distance and the elevation
         // are in game units.
@@ -84,6 +87,7 @@ namespace mods_config
         ui::DeveloperView developer;
 
         void saveDeveloper(const ui::DeveloperView& view);
+        void saveHelpOpened();
 
     protected:
         virtual void loadConfigInternal(const toml::table& config) override;
