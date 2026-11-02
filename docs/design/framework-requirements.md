@@ -262,7 +262,6 @@ This item depends on the native API of Mods Config FO4 VR, described in [Archite
 Each of these is made only if a milestone of the [Mod work plan](mod-plan.md) finds that it needs it.
 
 - **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads the embedded Roboto, and ImGui rasterizes each glyph at each size as it is first drawn, so Latin, Greek, Cyrillic and Vietnamese text renders at any size. A config spec or MCM config translated into Chinese, Japanese, Korean or Arabic needs a fallback font with those glyphs, merged into the canvas font.
-- **Tuning another mod's transform.** `DebugAdjuster` (`src/DebugAdjuster.h`) tunes a transform with the controllers, but only a key of its own mod's config, chosen by `sAdjustTarget`, and saves it itself. A transform's Adjust in world needs the host to start and end it on a key of a client mod, to have only the parts the config spec turns on move, and to get each value back as it changes, to preview it and keep it pending. Its controls stay the framework's.
 - **Ray press for vrui buttons.** Needed if vrui buttons end up in the Full panel's layout, out of reach of a finger.
 
 ## Not framework work

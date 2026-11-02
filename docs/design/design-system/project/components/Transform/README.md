@@ -40,7 +40,7 @@ The panel is minimized, and the offhand wrist has a column of its own in place o
   - The icons are the plain thumbstick's, with no arrow of a direction.
 - **Cancel** and **Done**: the two wrist buttons, 3 x 2.5 units each, 0.5 apart, each its icon over its label: an X and `CANCEL`, a check and `DONE`. There are no bindings for them.
 
-Done brings the panel back with the editor open and the tuned value pending; Cancel gives back the value from before Adjust in world. It needs framework work and is not shown until it is done; see [Controls](../../../../controls.md#transform).
+Done brings the panel back with the editor open and the tuned value pending; Cancel gives back the value from before Adjust in world. The button is enabled for a `live` transform whose mod's client is connected, and is disabled otherwise, with the reason in the help line; see [Controls](../../../../controls.md#transform).
 
 ## Writing the value
 

@@ -253,11 +253,12 @@ Primary use: where a mesh, a light or a zone sits on its node, as Immersive Flas
 - A value keeps the decimals it has where they are finer than its step, so a file's 20.72° is not shown as 21°. A value outside its slider's range is shown as it is, with its grab at the end: a step or a drag brings it in.
 - A `live` transform moves as it is changed. Done, or a press beside the editor, keeps the value pending. Cancel and Back give back the value it had when the editor opened. Save writes the file.
 - **Adjust in world**, in the editor's footer in the `important` style with the hand icon, tunes it with the controllers while the player looks at the object. The panel is minimized, and the offhand wrist has, in place of Restore and Exit, the setting's name after `Mods Config: `, its values on one line as they change, the controls of the parts that are on, and Cancel and Done.
-  - The controls are the framework's live tuning: the thumbsticks move it, the right stick X and Y and the left stick Z, holding the offhand grip makes the right stick rotate it, and holding the offhand A makes it scale it. A part that is off does not move, and its control is not shown.
+  - The controls are those of the framework's `DebugAdjuster`, in the mod's own code: the thumbsticks move it, the right stick X and Y and the left stick Z, holding the offhand grip makes the right stick rotate it, and holding the offhand A makes it scale it. A part that is off does not move, and its control is not shown.
   - All controller input is taken from the game while it is tuned. Each change is the pending value, previewed as the editor's are.
   - Done brings the panel back with the editor open and the tuned value pending. Cancel gives back the value it had when Adjust in world started, so the editor's changes before it stay.
-  - A game menu that opens ends the tuning as Cancel does. A loading screen or the main menu closes the menu, and its session's changes are discarded. A target that goes away, as a weapon that is put away, ends it as Cancel does, with the reason in the help line.
-  - It needs the framework to tune a key of another mod, and to hand the value back; see [Later work](framework-requirements.md#later-work). Until it can, the button is not shown.
+  - A game menu that opens ends the tuning as Cancel does. A loading screen or the main menu closes the menu, and its session's changes are discarded.
+  - A rotation turns the transform as its matrix does, so a stick can change all three angles. The sliders' ranges do not stop the tuning, and a value past one is shown in the editor as it is. A scale stays above 0.
+  - The button is enabled while the transform is `live` and its mod's client is connected, as nothing moves in the world otherwise. Else it is disabled, with the reason in the help line.
 - Grabbing the object with the hand and moving it to where it should be is the next part of the design; see [Open questions](open-questions.md#commonframework-specific-controls).
 - A changed value is written with the keys the file had and the key that changed.
 
