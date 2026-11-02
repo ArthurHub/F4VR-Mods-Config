@@ -55,9 +55,20 @@ def reset_btn(show=True, pending=False):
         return f'<span class="mc-btn is-icon" title="Discard">{DISCARD}</span>'
     return f'<span class="mc-btn is-icon{"" if show else " is-slot"}" title="Reset">{RESET}</span>'
 
-def slider(value, pct, state='', vstate='', show_reset=False):
-    return (f'<div class="main"><span class="mc-track {state}"><i class="fill" style="width:{pct*2.6:.0f}px"></i>'
-            f'<i class="grab" style="left:{10+pct*2.6:.0f}px"></i></span>'
+STEP_L = '<svg viewBox="0 0 14 14"><path d="M10 2 L3 7 L10 12 Z"/></svg>'
+STEP_R = '<svg viewBox="0 0 14 14"><path d="M4 2 L11 7 L4 12 Z"/></svg>'
+
+def slide(pct, state='', arrows=''):
+    """A slider's track between its thin step arrows. An arrow is disabled at its end of the range; `arrows` is
+    'hover-l', 'hover-r' or 'pressed-r' for the ray on one."""
+    left = 'is-disabled' if pct is not None and pct <= 0 else {'hover-l': 'is-hover'}.get(arrows, '')
+    right = 'is-disabled' if pct is not None and pct >= 100 else {'hover-r': 'is-hover', 'pressed-r': 'is-active'}.get(arrows, '')
+    track = (f'<span class="mc-track is-stepped {state}"><i class="fill" style="width:{pct*2.04:.0f}px"></i>'
+             f'<i class="grab" style="left:{10+pct*2.04:.0f}px"></i></span>') if pct is not None else '<span class="mc-track is-stepped is-empty"><i class="fill"></i><i class="grab"></i></span>'
+    return f'<span class="mc-slide"><span class="mc-step {left}">{STEP_L}</span>{track}<span class="mc-step {right}">{STEP_R}</span></span>'
+
+def slider(value, pct, state='', vstate='', show_reset=False, arrows=''):
+    return (f'<div class="main">{slide(pct, state, arrows)}'
             f'<span class="mc-value {vstate}">{value}</span></div>{reset_btn(show_reset, "is-pending" in vstate)}')
 
 def toggle(on=True, pending=False, show_reset=False):
@@ -237,8 +248,12 @@ write('Toggle', page('<!-- @dsCard group="Settings" height=420 width=940 subtitl
 ])))
 
 # ---------------- Slider ----------------
-write('Slider', page('<!-- @dsCard group="Settings" height=360 width=940 subtitle="Track, grab, value box and Reset; float and int" -->', 'Slider', labeled([
+write('Slider', page('<!-- @dsCard group="Settings" height=520 width=940 subtitle="Step arrows, track, grab, value box and Reset; float and int; an arrow under the ray, pressed, and at the end of the range" -->', 'Slider', labeled([
     ('Float', row('Brightness', slider('1.00', 50))),
+    ('Ray on ▸', row('Brightness', slider('1.00', 50, arrows='hover-r'), 'is-hover', mark=(560, 22))),
+    ('Pressed ▸', row('Brightness', slider('1.05', 52, 'is-pending', 'is-pending', True, arrows='pressed-r'), 'is-hover', gutter=DOT, mark=(560, 22))),
+    ('At the minimum', row('Brightness', slider('0.00', 0))),
+    ('At the maximum', row('Brightness', slider('2.00', 100))),
     ('Dragging', row('Brightness', slider('1.10', 60, 'is-active'), 'is-active')),
     ('Int with unit', row('Beam angle', slider('40°', 30, 'is-pending', 'is-pending', True), gutter=DOT)),
     ('Out of range', row('Beam angle', slider('140°', 100, 'is-invalid', 'is-invalid', True), 'is-invalid', gutter=WARN)),
@@ -1354,7 +1369,7 @@ ro_body = f"""<div class="mc-world mc-stack" style="gap:16px">
     ('A number', row('Measured height', slider('1.78 m', 64), 'is-readonly')),
     ('A switch', row('Calibrated', toggle(True), 'is-readonly')),
     ('A text', row('Last calibration', '<div class="main"><span class="mc-textbox t-body"><span>Sanctuary Hills, day 12</span></span></div>' + reset_btn(False), 'is-readonly')),
-    ('No value yet', row('Arm length', '<div class="main"><span class="mc-track is-empty"><i class="fill"></i><i class="grab"></i></span><span class="mc-value"></span></div>' + reset_btn(False), 'is-readonly')),
+    ('No value yet', row('Arm length', f'<div class="main">{slide(None)}<span class="mc-value"></span></div>' + reset_btn(False), 'is-readonly')),
     ('Under the ray', row('Measured height', slider('1.78 m', 64), 'is-readonly is-hover', mark=(560, 22))),
 ])}
 <div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{helpline('Measured height', '(Read-only) The height FRIK measured at the last calibration. Calibrate to measure it again.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div></div>
@@ -1409,9 +1424,7 @@ print('ok hotkey, unsupported control')
 
 # ---------------- NumberDisplay: decimals, a unit, a percentage, and a value too wide for its box ----------------
 def slider_v(value, pct, cls=''):
-    return (f'<div class="main"><span class="mc-track"><i class="fill" style="width:{pct*2.6:.0f}px"></i>'
-            f'<i class="grab" style="left:{10+pct*2.6:.0f}px"></i></span>'
-            f'<span class="mc-value {cls}">{value}</span></div>{reset_btn(False)}')
+    return f'<div class="main">{slide(pct)}<span class="mc-value {cls}">{value}</span></div>{reset_btn(False)}'
 
 nd_body = f"""<div class="mc-world mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">The value box shows the number as display says: its decimals, its unit, or a percentage</span>

@@ -44,10 +44,10 @@ Primary use: boolean settings.
 
 Primary use: bounded integer and floating-point settings.
 
-Suggested row:
+The row:
 
 ```text
-[ - ]  [================o--------]  [ 1.25 ]  [ Reset ]
+[◂][=============o-------][▸]  [ 1.25 ]  [ Reset ]
 ```
 
 - Trigger-drag gives continuous preview when the setting supports it.
@@ -55,6 +55,7 @@ Suggested row:
 - Back during a drag restores the value from the beginning of that drag.
 - Thumbstick left/right changes the slider the ray is on by the declared step, once the ray is on its row for a short time. A slider is not selected first.
 - Holding the thumbstick may accelerate after an initial repeat delay.
+- A thin arrow at each end of the track steps it by the declared step too, so a step is seen and pressed without the thumbstick, and holding it repeats as the thumbstick does. The arrow of the end the value is at is disabled.
 - The value box only shows the value: it is not typed.
 - The value has the decimals, the unit or the percentage of its `display`, and stays visible. A value too wide for its box is drawn smaller, and then without its unit, never shortened; see the design system's [NumberDisplay](design-system/project/components/NumberDisplay/README.md).
 - Initial schema support is linear. Logarithmic or curved mappings can be considered later.

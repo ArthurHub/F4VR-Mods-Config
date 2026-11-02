@@ -196,6 +196,14 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-track .fill { position: absolute; left: 10px; top: 50%; height: 8px; margin-top: -4px; background: var(--green); border-radius: var(--radius-grab); }
 .mc-track .grab { position: absolute; top: 2px; width: var(--grab-width); height: 40px; margin-left: -10px; background: var(--green); border-radius: var(--radius-grab); }
 .mc-track.is-active .grab { background: var(--glow); }
+/* a slider's track between its thin step arrows: 24 + 4 + 224 + 4 + 24, as wide as the 280 px track was with its gap */
+.mc-slide { display: inline-flex; align-items: center; gap: var(--space-1); }
+.mc-track.is-stepped { width: 224px; }
+.mc-step { width: 24px; height: var(--control-height); display: inline-flex; align-items: center; justify-content: center; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); color: var(--green); flex: none; }
+.mc-step svg { width: 10px; height: 10px; fill: currentColor; }
+.mc-step.is-hover { background: var(--hover); border-color: var(--green); }
+.mc-step.is-active { background: var(--pressed); border-color: var(--glow); }
+.mc-step.is-disabled { opacity: var(--opacity-disabled); }
 .mc-track.is-active { border-color: var(--glow); }
 .mc-track.is-pending .fill, .mc-track.is-pending .grab { background: var(--amber); }
 .mc-track.is-invalid .fill, .mc-track.is-invalid .grab { background: var(--red); }

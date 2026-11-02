@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-11-02T17:10:00Z",
+    "at": "2026-11-02T17:20:00Z",
     "via": "Claude (Cowork)",
-    "note": "WristButtons: only while the panel is minimized, Restore and Exit under the menu's title, each its icon over its label; the wrist has none while the panel is shown."
+    "note": "Slider: a thin step arrow at each end of the track, 24 x 48, which steps by the declared step and repeats while held; the track is 224 px, so the control column keeps its width."
   },
   "layout": "files",
   "libraries": [],
