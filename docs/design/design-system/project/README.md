@@ -142,7 +142,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - A hand pose: a bar for each finger in a 104 x 32 frame, as tall as the finger is straight (see `HandPose`).
 - Search: a 6 px-radius circle with a handle, 20 px; a match is a 2 px line under its letters (see `Search`).
 - The selected row's tip: inside the row, 10 px deep, the row's height, drawn with the bar as one shape.
-- Help is the text `?`.
+- Help is the text `?`: until the player first opens the Help page, `? Help` in the `important` style, so a new player finds it.
 
 ## Words
 

@@ -180,6 +180,8 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-btn.is-focus { box-shadow: 0 0 0 var(--border-frame) var(--green); }
 .mc-btn.is-disabled { opacity: var(--opacity-disabled); }
 .mc-btn.is-icon { width: var(--control-height); min-width: 0; padding: 0; }
+/* the title bar's Help until it is first opened: `? Help`, in the important style */
+.mc-btn.is-help { width: auto; min-width: 0; padding: 0 var(--space-4); gap: var(--space-2); }
 .mc-btn.is-slot { visibility: hidden; }
 
 /* ---------- toggle ---------- */

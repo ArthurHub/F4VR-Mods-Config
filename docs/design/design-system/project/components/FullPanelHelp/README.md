@@ -1,6 +1,6 @@
 # FullPanelHelp
 
-The Help page: how the menu works, with the buttons the player's config has. It tells what the menu does its own way, not what every VR player knows: there is no line for pointing, scrolling or stepping a value. Help (`?`) in the title bar shows it.
+The Help page: how the menu works, with the buttons the player's config has. It tells what the menu does its own way, not what every VR player knows: there is no line for pointing, scrolling or stepping a value. Help (`?`) in the title bar shows it. Until it is first shown, Help is `? Help` in the `important` style ([FullPanel](../FullPanel/README.md)); showing it turns that off for good, and the menu's own settings can turn it on again.
 
 **Provides:** the controls of the menu, each a name and a text, with the config's buttons and bindings in words.
 

@@ -23,6 +23,8 @@ DISCARD = '<svg class="mc-ico is-pending" viewBox="0 0 24 24"><path d="M9 4 L4 9
 CHECK = '<svg class="mc-ico check" viewBox="0 0 24 24"><path d="M4 12.5 L9.5 18 L20 6.5"/></svg>'
 MINUS = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 12 H18"/></svg>'
 PLUS = '<svg class="mc-ico" viewBox="0 0 24 24"><path d="M6 12 H18 M12 6 V18"/></svg>'
+# the title bar's Help until the player first opens it: `? Help` in the accent color, wider; after that `?` alone
+HELP_NEW = '<span class="mc-btn t-body is-important is-help">?<span>Help</span></span>'
 WARN = '<svg class="mc-warn" viewBox="0 0 20 18"><path class="tri" d="M10 1 L19 17 H1 Z"/><rect class="bang" x="9" y="6" width="2" height="6"/><rect class="bang" x="9" y="13.4" width="2" height="2"/></svg>'
 DOT = '<span class="mc-dot"></span>'
 
@@ -2116,7 +2118,7 @@ H_QUICK = 'Mods with a configuration of their own, which opens from here.'
 H_NOTICES = 'What needs your attention: a restart of the game, or a mod that is not available.'
 fph_panel = f'''<div class="mc-panel">
 <div class="mc-titlebar"><div class="mc-crumbs t-title"><span class="mc-crumb is-selected">MODS CONFIG FO4</span></div>
-<span class="mc-btn is-icon t-body">?</span><span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
+{HELP_NEW}<span class="mc-btn is-icon">{MIN}</span><span class="mc-btn is-icon">{X}</span></div>
 <div class="mc-body">
 {nav(home_nav, '', 11)}
 <div class="mc-content">

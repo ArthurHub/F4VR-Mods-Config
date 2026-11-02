@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-11-02T18:55:00Z",
+    "at": "2026-11-02T19:05:00Z",
     "via": "Claude (Cowork)",
-    "note": "Transform: an editor of sliders, one an axis, only the parts the config spec turns on, with Adjust in world in the important style; tuned in the world from the offhand wrist, with its values and controls over Cancel and Done."
+    "note": "Title bar Help: `? Help` in the important style until the player first opens the Help page, then `?` alone; the config keeps it as bHighlightHelp, and the menu's own settings can turn it on again."
   },
   "layout": "files",
   "libraries": [],
