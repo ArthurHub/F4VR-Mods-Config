@@ -40,10 +40,6 @@ A popup inside the content pane, 717 x 414: `popup` background, a 2 px `green` b
 - A changed color is written as whole numbers, with the keys the file had, and a key added for the part that changed: `{ alpha = 60 }` with a new hue is written `{ rgb = [255, 190, 120], alpha = 60 }`.
 - Reset sets the default as the config spec gives it.
 
-## Focused panel
-
-The editor has no picker there: it fills the Focused panel, 576 x 432, with its header, the channels with the track as wide as fits, and its footer. The thumbstick on the channels is how a color is set on the hand.
-
 ## Mods Config FO4 VR's own pointer
 
 `cRayColor`, `cMarkColor` and `cMarkBorderColor` are previewed on the pointer the player is using. An alpha near 0 hides the ray or the mark; Back gives the color back without the ray.

@@ -669,9 +669,7 @@ When the stored value is not the index, each option gives its own:
 
 All option values in one choice share the setting's `valueType`. Conditions compare stored values, not translated labels.
 
-An option of the second form can have a `shortText`, shown where the choice has little room, as the stepper of the Focused panel.
-
-A choice is a `dropdown` or a `stepper`, as in MCM. The host may select a more compact presentation in focused mode.
+A choice is a `dropdown` or a `stepper`, as in MCM.
 
 ### Shared lists
 

@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-11-02T16:40:00Z",
+    "at": "2026-11-02T17:10:00Z",
     "via": "Claude (Cowork)",
-    "note": "ButtonRow: a config spec's button can have a style, important in the new accent color or dangerous in red, its outline, text and icon, and an icon of a set of 18 drawn before its text. Tokens: accent."
+    "note": "WristButtons: only while the panel is minimized, Restore and Exit under the menu's title, each its icon over its label; the wrist has none while the panel is shown."
   },
   "layout": "files",
   "libraries": [],

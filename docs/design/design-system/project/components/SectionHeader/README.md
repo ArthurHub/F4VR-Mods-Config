@@ -28,10 +28,6 @@ A heading that groups rows, drawn as `ImGui::SeparatorText`, a section in a sect
 - While the ray is on it, the help line has the section's help and then what it hides: "Advanced: Fine-tuning of the left hip holster. Folded: 1 invalid value, 2 unsaved changes."
 - Detailed settings are a folded section, Advanced, right after the settings they belong to.
 
-## Focused panel
-
-The same: a section in a section is set in, and a folded one says what it hides.
-
 Don't style headings in capitals or a larger size: the line already marks them.
 
 The behavior is in [Sections](../../../../schema.md#sections).

@@ -12,6 +12,5 @@ How a number is written in its control and in the help line, from the setting's 
 - **In the value box** (`value-width`, 104 px): right-aligned tabular digits in `t-body`, as the slider's. A text that does not fit is drawn in `t-detail`. When that does not fit either, the number is drawn alone, and the unit is in the help line. A number is never shortened.
 - A numeric stepper centers the same text in its box.
 - **In the help line**, the value is written the same way, and so is the default in its brackets: "(Default: 100%)". Reset's help names the value it resets to the same way: "Reset to 100%".
-- The Focused panel writes it the same way.
 
 The behavior is in [Display](../../../../schema.md#display).

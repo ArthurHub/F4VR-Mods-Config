@@ -11,7 +11,7 @@ These documents capture the current product and architecture decisions. The orde
 - [Declarative schema](schema.md) — config spec discovery, files, pages, settings, storage, conditions, buttons, localization, validation, and what a config spec has beyond MCM.
 - [MCM support](mcm.md) — every feature of an MCM config and of MCM VR, and how the menu handles each.
 - [Controls](controls.md) — core controls, their value semantics, and specialized CommonFramework controls reserved for later design.
-- [UI and VR interaction](ui-and-vr-interaction.md) — opening the menu; full, focused, and minimized modes; world placement; pointing; editing; and low-fidelity wireframes.
+- [UI and VR interaction](ui-and-vr-interaction.md) — opening the menu; the full and minimized states; world placement; pointing; editing; and low-fidelity wireframes.
 - [Design system](design-system/README.md) — the look: colors, type, sizes, the Dear ImGui style, and mocks of every component and panel. It is the source of the Design System artifact.
 - [CommonFramework work required](framework-requirements.md) — what F4VR-CommonFramework has to gain before this mod can be built on it. This work comes first.
 - [Framework work plan](framework-plan.md) — the commits that deliver that work, and their status.

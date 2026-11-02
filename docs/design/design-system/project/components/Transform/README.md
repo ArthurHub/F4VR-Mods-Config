@@ -39,8 +39,4 @@ A popup inside the content pane, 717 wide, placed as the Color editor is. `popup
 - A changed value is written with the keys the file had, and the key of the part that changed: `{ rot = [0.0, -5.0, 0.0] }` with a new Y is `{ pos = [0.0, 1.0, 0.0], rot = [0.0, -5.0, 0.0] }`. Numbers are written as the framework writes them, with `.0` on a whole number.
 - Reset sets the default as the config spec gives it.
 
-## Focused panel
-
-The editor fills the Focused panel in one column, Position then Rotation, scrolling, with the step choice in its header. The Focused panel is the place to tune a transform while looking at it.
-
 The behavior is in [Controls](../../../../controls.md#transform).

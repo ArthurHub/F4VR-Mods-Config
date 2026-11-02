@@ -17,7 +17,7 @@ Mods Config FO4 VR is one settings panel for every Fallout 4 VR mod, drawn with 
 
 ## Color
 
-Draw the Full and Focused panels on `glass`. The framework's own `F4VR_PANEL_STYLE` uses alpha 166 (0.65); the panel uses 217 (0.85), because at 0.65 green text drops to 4.3:1 when a bright sky is behind it. Keep `glass-widget`, the framework's exact value, for the vrui wrist buttons only.
+Draw the Full panel on `glass`. The framework's own `F4VR_PANEL_STYLE` uses alpha 166 (0.65); the panel uses 217 (0.85), because at 0.65 green text drops to 4.3:1 when a bright sky is behind it. Keep `glass-widget`, the framework's exact value, for the vrui wrist buttons only.
 
 Every text color below is checked with a white world behind the glass, the worst case:
 
@@ -117,7 +117,6 @@ Set these once, before the first canvas draws. In the mod, `mods_config::theme::
 - **Footer**: Discard and Save fixed on the right, named Revert and Keep for an MCM mod. On the left, the help line (`DescriptionArea`): an error, else "Name: help" for the setting or option under the ray, else the session status.
 - **Indent**: a heading's text and a folding heading's arrow start `space-3` into its row, as a row's name does in its frame, so a heading lines up with the rows beside it; the page's texts start there too. A row under a heading is a level in, `space-3`, so its frame starts under the heading's text and it reads as its heading's. A row under no heading is at the content's left, where a heading's row starts. A section in a section is a level further, up to the third. The content's levels are `ImGui::Indent(theme::SPACE_3)`: `IndentSpacing` stays the tree's `space-8`.
 - **Setting row**: the name, `space-3` inside the row's frame, with its marks after it (the pending mark, then the warning or the invalid mark), then the `control-width` control column: the control right-aligned, then a 48 px Reset slot that is always reserved. There is no gutter: most rows have no mark, and the name has their room.
-- **Focused panel** (`FocusedPanel`): `focused-width` x `focused-height` on the offhand. Its footer is too narrow for help, so a two-line help area (`description-height`) sits at the top. Each setting stacks its name over its control, and a dropdown becomes a stepper.
 - **Minimized**: the panel is hidden; only the wrist buttons remain (`WristButtons`).
 - Open dropdowns, popups and the dialog inside the panel. The ray never has to leave it.
 
@@ -189,9 +188,9 @@ Fonts: `tokens.css` loads each font from its file, by path.
 
 - `api/tokens.md` — Every token: fill, palette, type, spacing, radius, size, border, opacity. (11.5k)
 
-**Components** (`api/components/<Comp>.md`, 14)
+**Components** (`api/components/<Comp>.md`, 13)
 
-- **Actions**: `Button` — A 48 px pressable: primary (Save), secondary (Discard), quiet (Cancel), and 48 x 48 icon buttons · `ConfirmDialog` — The modal that asks what to do with unsaved changes before leaving a mod or closing the menu: Save, Discard or Cancel, or Keep, Revert or Cancel for an MCM mod · `SaveBar` — The footer of the Full and Focused panels: the session's status on the left, Discard and Save on the right, or Revert and Keep for an MCM mod, for every mod
+- **Actions**: `Button` — A 48 px pressable: primary (Save), secondary (Discard), quiet (Cancel), and 48 x 48 icon buttons · `ConfirmDialog` — The modal that asks what to do with unsaved changes before leaving a mod or closing the menu: Save, Discard or Cancel, or Keep, Revert or Cancel for an MCM mod · `SaveBar` — The footer of the Full panel: the session's status on the left, Discard and Save on the right, or Revert and Keep for an MCM mod, for every mod
 - **Settings**: `DescriptionArea` — The fixed area at the top of the content pane that explains what the ray is on · `Dropdown` — A choice from a longer list: a frame showing the current option that opens a popup list inside the panel · `SectionHeader` — A heading that groups rows, drawn as ImGui::SeparatorText, and the collapsible Advanced section · `SettingRow` — One setting: a gutter mark, the name, and its control with a Reset slot, all one ray target · `Slider` — A bounded int or float: a track to drag, a value box, and Reset · `Stepper` — Two kinds: a numeric stepper (minus, value, plus) where precision matters more than range, and a choice stepper (previous, label, next) for a short list · `Toggle` — A boolean as two cells, Off and On, so the value is said in words as well as shown
-- **Panels**: `FocusedPanel` — A smaller panel on the offhand that shows the selected page only, so the player can change a setting while looking at its effect · `FullPanel` — The main browsing and editing view: title bar, mod tree, content pane and footer on one curved 1152 x 720 px panel in front of the player · `WristButtons` — The vrui buttons on the offhand wrist that stay while the panel is shown or minimized: Minimize or Resume, Close, and FRIK when FRIK is installed
+- **Panels**: `FullPanel` — The main browsing and editing view: title bar, mod tree, content pane and footer on one curved 1152 x 720 px panel in front of the player · `WristButtons` — The vrui buttons on the offhand wrist while the panel is minimized: Restore and Exit, under the menu's title
 - **Navigation**: `ModTree` — The navigation: every mod in one alphabetical list, with the selected mod expanded to its pages

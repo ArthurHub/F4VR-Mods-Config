@@ -11,11 +11,11 @@ namespace mods_config::theme
     // Colors, as ImU32 for ImDrawList. ImGui::ColorConvertU32ToFloat4 makes the ImVec4 an ImGuiStyle takes.
     namespace color
     {
-        constexpr ImU32 GLASS        = IM_COL32( 15,  15,  15, 217); // Background of the Full and Focused panels (UIPanelStyle.background, alpha 217 = 0.85)
+        constexpr ImU32 GLASS        = IM_COL32( 15,  15,  15, 217); // Background of the Full panel (UIPanelStyle.background, alpha 217 = 0.85)
         constexpr ImU32 GLASS_WIDGET = IM_COL32( 15,  15,  15, 166); // Exact F4VR_PANEL_STYLE / F4VR_BUTTON_STYLE background
         constexpr ImU32 POPUP        = IM_COL32( 11,  18,  14, 245); // ImGuiCol_PopupBg: dropdown lists and the confirmation dialog, nearly opaque so the rows under them do not show through
         constexpr ImU32 SCRIM        = IM_COL32(  5,   8,   6, 140); // ImGuiCol_ModalWindowDimBg: dims the panel behind a confirmation dialog
-        constexpr ImU32 PLATE        = IM_COL32( 10, 250, 120,  15); // Green at 6%: the navigation pane and the Focused panel's help area, so they read as fixed regions
+        constexpr ImU32 PLATE        = IM_COL32( 10, 250, 120,  15); // Green at 6%: the navigation pane, so it reads as a fixed region
         constexpr ImU32 TRACK        = IM_COL32( 10, 250, 120,  26); // Green at 10%: ImGuiCol_FrameBg
         constexpr ImU32 HOVER        = IM_COL32( 10, 250, 120,  31); // Green at 12%: a row or control under the ray (ImGuiCol_HeaderHovered, ButtonHovered, FrameBgHovered)
         constexpr ImU32 PRESSED      = IM_COL32( 10, 250, 120,  51); // Green at 20%: trigger held on a control (ImGuiCol_HeaderActive, ButtonActive, FrameBgActive)
@@ -37,46 +37,43 @@ namespace mods_config::theme
     }
 
     // Spacing, in the panel's layout px: 48 px is one vrui unit.
-    constexpr float SPACE_1            = 4.0f;     // TouchExtraPadding on each side: widens hit boxes into the item gap without moving anything
-    constexpr float SPACE_2            = 8.0f;     // ItemSpacing.y and ItemInnerSpacing: between rows, between a control's parts
-    constexpr float SPACE_3            = 12.0f;    // FramePadding.y and ItemSpacing.x
-    constexpr float SPACE_4            = 16.0f;    // FramePadding.x, WindowPadding of the content pane and of popups, the gap between the navigation and content panes, a level of the tree, as a page...
-    constexpr float SPACE_6            = 24.0f;    // The row gutter that holds the pending dot or the warning mark; space above a section heading
-    constexpr float SPACE_8            = 32.0f;    // IndentSpacing: a level of the content, as a section in a section
-    constexpr float SPACE_12           = 48.0f;    // One vrui unit
+    constexpr float SPACE_1           = 4.0f;     // TouchExtraPadding on each side: widens hit boxes into the item gap without moving anything
+    constexpr float SPACE_2           = 8.0f;     // ItemSpacing.y and ItemInnerSpacing: between rows, between a control's parts
+    constexpr float SPACE_3           = 12.0f;    // FramePadding.y and ItemSpacing.x
+    constexpr float SPACE_4           = 16.0f;    // FramePadding.x, WindowPadding of the content pane and of popups, the gap between the navigation and content panes, a level of the tree, as a page...
+    constexpr float SPACE_6           = 24.0f;    // The row gutter that holds the pending dot or the warning mark; space above a section heading
+    constexpr float SPACE_8           = 32.0f;    // IndentSpacing: a level of the content, as a section in a section
+    constexpr float SPACE_12          = 48.0f;    // One vrui unit
 
     // Corner radii, in layout px.
-    constexpr float RADIUS_PANEL       = 24.0f;    // The Full panel's corner, cornerRadiusUnits 0.5 in ConfigMenu.cpp
-    constexpr float RADIUS_WIDGET      = 9.6f;     // F4VR_BUTTON_STYLE cornerRadiusUnits 0.2: the vrui wrist buttons
-    constexpr float RADIUS_POPUP       = 8.0f;     // PopupRounding, ChildRounding, WindowRounding of the dialog
-    constexpr float RADIUS_FRAME       = 4.0f;     // FrameRounding and ScrollbarRounding: controls, buttons, rows
-    constexpr float RADIUS_GRAB        = 2.0f;     // GrabRounding: the slider grab
+    constexpr float RADIUS_PANEL      = 24.0f;    // The Full panel's corner, cornerRadiusUnits 0.5 in ConfigMenu.cpp
+    constexpr float RADIUS_WIDGET     = 9.6f;     // F4VR_BUTTON_STYLE cornerRadiusUnits 0.2: the vrui wrist buttons
+    constexpr float RADIUS_POPUP      = 8.0f;     // PopupRounding, ChildRounding, WindowRounding of the dialog
+    constexpr float RADIUS_FRAME      = 4.0f;     // FrameRounding and ScrollbarRounding: controls, buttons, rows
+    constexpr float RADIUS_GRAB       = 2.0f;     // GrabRounding: the slider grab
 
     // Sizes, in layout px.
-    constexpr float PANEL_WIDTH        = 1152.0f;  // Full panel canvas width: PANEL_WIDTH 24 units
-    constexpr float PANEL_HEIGHT       = 720.0f;   // Full panel canvas height: PANEL_HEIGHT 15 units
-    constexpr float PANEL_PADDING      = 14.4f;    // UIPadding::all(0.3) in ConfigMenu.cpp: the canvas inset inside the Full panel's border
-    constexpr float FOCUSED_WIDTH      = 576.0f;   // Focused panel canvas, 12 units
-    constexpr float FOCUSED_HEIGHT     = 432.0f;   // Focused panel canvas, 9 units
-    constexpr float CONTROL_HEIGHT     = 48.0f;    // Every pressable control and row, drawn at this height: not ImGui's frame height
-    constexpr float ROW_PITCH          = 56.0f;    // Control height plus ItemSpacing.y: the distance from one setting row to the next
-    constexpr float TITLEBAR_HEIGHT    = 64.0f;    // The Full panel's title bar
-    constexpr float FOOTER_HEIGHT      = 72.0f;    // The footer: Discard and Save on the right; on the left the help line (two t-body lines or three t-detail lines) or the session status
-    constexpr float NAV_WIDTH          = 336.0f;   // The navigation tree (7 units): the same place and width with or without a selected mod
-    constexpr float DESCRIPTION_HEIGHT = 64.0f;    // The Focused panel's help area: two t-body lines and space-2 above and below
-    constexpr float CONTROL_WIDTH      = 448.0f;   // The right-hand control column of a setting row
-    constexpr float VALUE_WIDTH        = 104.0f;   // The value box of a slider or stepper: room for -1000.00 in t-body
-    constexpr float GRAB_WIDTH         = 20.0f;    // GrabMinSize: the slider grab, 20 x 40
-    constexpr float SCROLLBAR_SIZE     = 16.0f;    // ScrollbarSize
+    constexpr float PANEL_WIDTH       = 1152.0f;  // Full panel canvas width: PANEL_WIDTH 24 units
+    constexpr float PANEL_HEIGHT      = 720.0f;   // Full panel canvas height: PANEL_HEIGHT 15 units
+    constexpr float PANEL_PADDING     = 14.4f;    // UIPadding::all(0.3) in ConfigMenu.cpp: the canvas inset inside the Full panel's border
+    constexpr float CONTROL_HEIGHT    = 48.0f;    // Every pressable control and row, drawn at this height: not ImGui's frame height
+    constexpr float ROW_PITCH         = 56.0f;    // Control height plus ItemSpacing.y: the distance from one setting row to the next
+    constexpr float TITLEBAR_HEIGHT   = 64.0f;    // The Full panel's title bar
+    constexpr float FOOTER_HEIGHT     = 72.0f;    // The footer: Discard and Save on the right; on the left the help line (two t-body lines or three t-detail lines) or the session status
+    constexpr float NAV_WIDTH         = 336.0f;   // The navigation tree (7 units): the same place and width with or without a selected mod
+    constexpr float CONTROL_WIDTH     = 448.0f;   // The right-hand control column of a setting row
+    constexpr float VALUE_WIDTH       = 104.0f;   // The value box of a slider or stepper: room for -1000.00 in t-body
+    constexpr float GRAB_WIDTH        = 20.0f;    // GrabMinSize: the slider grab, 20 x 40
+    constexpr float SCROLLBAR_SIZE    = 16.0f;    // ScrollbarSize
 
     // Border widths, in layout px.
-    constexpr float BORDER_PANEL       = 3.84f;    // The Full panel's edge: borderThicknessUnits 0.08 in ConfigMenu.cpp, in green
-    constexpr float BORDER_FRAME       = 2.0f;     // FrameBorderSize, PopupBorderSize, SeparatorTextBorderSize, the hover outline and the focus ring
-    constexpr float BORDER_WIDGET      = 2.4f;     // F4VR_BUTTON_STYLE borderThicknessUnits 0.05 on the wrist buttons
+    constexpr float BORDER_PANEL      = 3.84f;    // The Full panel's edge: borderThicknessUnits 0.08 in ConfigMenu.cpp, in green
+    constexpr float BORDER_FRAME      = 2.0f;     // FrameBorderSize, PopupBorderSize, SeparatorTextBorderSize, the hover outline and the focus ring
+    constexpr float BORDER_WIDGET     = 2.4f;     // F4VR_BUTTON_STYLE borderThicknessUnits 0.05 on the wrist buttons
 
     // Opacity.
-    constexpr float OPACITY_DISABLED   = 0.4f;     // ImGuiStyle.DisabledAlpha, applied by BeginDisabled to a whole row
-    constexpr float OPACITY_OTHER_RAY  = 0.3f;     // The ray of the hand that does not own the pointer, drawn by the framework with no mark
+    constexpr float OPACITY_DISABLED  = 0.4f;     // ImGuiStyle.DisabledAlpha, applied by BeginDisabled to a whole row
+    constexpr float OPACITY_OTHER_RAY = 0.3f;     // The ray of the hand that does not own the pointer, drawn by the framework with no mark
 
     // The size the canvas font is loaded at, for imgui::setFontSizePixels: t-body.
     constexpr float FONT_SIZE         = 21.0f;      // 21 px

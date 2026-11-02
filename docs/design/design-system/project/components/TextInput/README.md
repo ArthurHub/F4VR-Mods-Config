@@ -21,8 +21,4 @@ A `textinput` setting: a field that shows its text, typed on SteamVR's keyboard.
 - A number takes the keys of a number only. Its text is read when typing ends: one that is not a number is invalid ("Invalid: "4.5" is not a whole number.").
 - A runtime with no keyboard, as OpenComposite, types with a physical keyboard only, and the help line says so while typing.
 
-## Focused panel
-
-The same field, the width of the panel, and the same keyboard.
-
 The behavior is in [Text input](../../../../controls.md#text-input).

@@ -1,6 +1,6 @@
 # SaveBar
 
-The footer of the Full and Focused panels: the session's status on the left, Discard and Save on the right. Every mod has it. A config spec's changes wait for Save, which writes them. An MCM mod's are made as the player makes them, as in MCM's menu, so its Save has nothing to write and its buttons say what they do: Keep accepts the changes, and Revert sets them back.
+The footer of the Full panel: the session's status on the left, Discard and Save on the right. Every mod has it. A config spec's changes wait for Save, which writes them. An MCM mod's are made as the player makes them, as in MCM's menu, so its Save has nothing to write and its buttons say what they do: Keep accepts the changes, and Revert sets them back.
 
 **Provides:** the pending count, the invalid count, and the last Save.
 

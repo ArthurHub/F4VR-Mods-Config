@@ -59,10 +59,6 @@ A popup inside the content pane, 717 x 458 with the line of Direction and 717 x 
 - **Footer**, under a `rule` line: Cancel (quiet) and Done (primary) on the right.
 - Every change sets the pending value as it is made, and a `live` binding is previewed. Done, or a press beside the editor, keeps it. Cancel and Back give back the binding it had when it opened.
 
-## Focused panel
-
-A binding is shown and not edited there, as a hotkey is: its row is disabled, with its icon and sentence, and its help line ends "Change it in the Full panel." The editor needs the room of the Full panel, and a binding is not tuned while its effect is watched.
-
 ## Icons in the previews
 
 The previews draw the real icons, from `tools/binding_icons.json`, which `tools/gen_binding_icons.py` writes from the mod's copy of the framework's icons. The framework draws them, with its own `tools/gen_binding_icons.py`. A CSS mask stands in for ImGui's tint.

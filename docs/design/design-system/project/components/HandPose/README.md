@@ -36,8 +36,4 @@ A popup inside the content pane, 717 wide, placed as the Color editor is. `popup
 - A changed pose is written as the framework writes it, every finger thumb to pinky and then the palm, each number the shortest text that reads back as its float: `{ thumb = [0.48, 1.14, 0.97, 0.06], …, palm = [15.0, 0.0] }` (`config::handPoseTomlText`). A finger the file left out is written as zeros once the pose is changed.
 - Reset sets the default as the config spec gives it.
 
-## Focused panel
-
-A hand pose is shown and not edited: the Focused panel is on the hand that would take the pose. It is changed in the Full panel.
-
 The behavior is in [Controls](../../../../controls.md#hand-pose).

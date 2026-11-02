@@ -73,9 +73,8 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-cat .line { flex: 1; min-width: var(--space-4); height: var(--border-frame); background: var(--rule); }
 .mc-cat.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
 
-/* ---------- help: "Name: help", in the footer of the Full panel and atop the Focused panel ---------- */
-.mc-desc { height: var(--description-height); flex: none; background: var(--plate); border-radius: var(--radius-popup); padding: var(--space-2) var(--space-3); color: var(--green-muted); overflow: hidden; }
-.mc-desc .name, .help .name { color: var(--green); }
+/* ---------- help: "Name: help", in the footer of the Full panel ---------- */
+.help .name { color: var(--green); }
 .help { flex: 1; min-width: 0; color: var(--green-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .help.is-long { -webkit-line-clamp: 3; }
 .help.is-error, .help.is-error .name { color: var(--red); }
@@ -237,20 +236,12 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-dialog { width: 576px; background: var(--popup); border: var(--border-frame) solid var(--green); border-radius: var(--radius-popup); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
 .mc-dialog .actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
-/* ---------- Focused panel ---------- */
-.mc-focused { width: var(--focused-width); height: var(--focused-height); background: var(--glass); border: var(--border-panel) solid var(--green); border-radius: var(--radius-panel); padding: var(--panel-padding); display: flex; flex-direction: column; gap: var(--space-2); overflow: hidden; }
-.mc-focused .fhead { height: var(--control-height); flex: none; display: flex; align-items: center; gap: var(--space-2); padding-left: var(--space-2); }
-.mc-focused .fhead .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mc-focused .item { padding: 0 var(--space-2); }
-.mc-focused .item .ctl { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-1); }
-.mc-focused .mc-track { flex: 1; width: auto; }
-.mc-focused .mc-footer { height: 64px; margin-top: auto; padding-left: var(--space-2); }
-.mc-focused .mc-footer .mc-btn { min-width: 128px; }
-
 /* ---------- wrist buttons (vrui UIButtonPanel, F4VR_BUTTON_STYLE) ---------- */
-.mc-wrist { display: inline-flex; gap: 9.6px; }
-.mc-wristbtn { width: 144px; height: 105.6px; background: var(--glass-widget); border: var(--border-widget) solid var(--green); border-radius: var(--radius-widget); padding: 7.2px 9.6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; }
-.mc-wristbtn .top { color: var(--green); }
+.mc-wristcol { display: inline-flex; flex-direction: column; align-items: center; gap: 24px; }
+.mc-wristtitle { color: var(--green); font-size: 30px; line-height: 36px; text-decoration: underline; text-underline-offset: 4px; }
+.mc-wrist { display: inline-flex; gap: 24px; }
+.mc-wristbtn { width: 144px; height: 120px; background: var(--glass-widget); border: var(--border-widget) solid var(--green); border-radius: var(--radius-widget); padding: 9.6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; color: var(--green); }
+.mc-wristbtn .ico { width: 48px; height: 48px; fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .mc-caption { align-self: flex-start; background: var(--glass); color: var(--green-muted); padding: 2px var(--space-2); border-radius: var(--radius-frame); }
 
 /* ---------- haptic: a dropdown that draws each pattern's shape, and Play ---------- */
@@ -303,7 +294,6 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .mc-chan .ctrack.is-active .grab { border-color: var(--glow); }
 .mc-chan .mc-value { flex: none; }
 .mc-chan.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); border-radius: var(--radius-frame); }
-.mc-focused .mc-coloredit { position: static; width: auto; height: 100%; border: 0; background: transparent; padding: 0; }
 .mc-coloredit.is-rgb { height: 358px; }
 
 /* ---------- input binding: the framework's icon and a sentence, and an editor of its parts ---------- */

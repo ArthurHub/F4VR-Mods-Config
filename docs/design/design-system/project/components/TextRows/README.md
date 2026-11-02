@@ -28,8 +28,4 @@ The rows of a page that hold no value: a `text`, a `spacer` and an `image`. The 
 - Its colors are its own, as a swatch's are.
 - A texture the game does not load is a box of its size, with a 2 px dashed `frame-border` outline, that names it in `t-detail` `green-muted`: "Not loaded: MyMod/config/banner.dds". While the ray is on it, the help line has the texture's path and the reason in `red` after the invalid mark, as an invalid value's: "MyMod/config/banner.dds: Not loaded: block-compressed DDS dimensions 1086x362 must both be multiples of 4.", or "Not loaded: the game has not loaded it." where the reason is not known. It has no hover look. The log has the reason too.
 
-## Focused panel
-
-The same, wrapped to the panel's width. An image wider than the panel is scaled to fit.
-
 The behavior is in [Text, spacers and images](../../../../schema.md#text-spacers-and-images).

@@ -439,30 +439,19 @@ fp_body = f'''<div class="mc-world">
 </div>'''
 write('FullPanel', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="A mod front page. 1152 x 720 layout px: 24 x 15 vrui units at scale 6" -->', 'Full panel', fp_body))
 
-# ---------------- FocusedPanel ----------------
-fo_body = f'''<div class="mc-world" style="display:flex;gap:24px;align-items:flex-start">
-<div class="mc-focused">
-<div class="fhead"><span class="grow t-body">Immersive Flashlight VR</span><span class="mc-btn t-body" style="min-width:88px">Full</span><span class="mc-btn is-icon">{MIN}</span></div>
-<div class="mc-desc t-body"><span class="name">Brightness:</span> How bright the beam is. 1.00 is the game's own flashlight. Default 1.00.</div>
-<div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px"><span>Brightness</span>{DOT}</div>
-<div class="ctl t-body"><span class="mc-track is-pending"><i class="fill" style="width:170px"></i><i class="grab" style="left:180px"></i></span><span class="mc-value is-pending">1.25</span><span class="mc-btn is-icon">{DISCARD}</span></div></div>
-<div class="item"><div class="t-body">Beam mode</div>
-<div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label" style="flex:1;width:auto">Spot</span><span class="mc-btn is-icon">{TRI_R}</span></span><span class="mc-btn is-icon is-slot">{RESET}</span></div></div>
-<div class="mc-footer t-body"><div class="status">{DOT}<span class="mc-amber">1 unsaved</span></div>{btn('Discard')}{btn('Save', 'is-primary')}</div>
-</div>
-</div>'''
-write('FocusedPanel', page('<!-- @dsCard group="Panels" height=480 width=624 subtitle="576 x 432 layout px on the offhand; a choice becomes a stepper" -->', 'Focused panel', fo_body))
-
 # ---------------- WristButtons ----------------
-def wb(label):
-    return f'<div class="mc-wristbtn"><span class="top t-detail">CLICK</span><span class="t-body">{label}</span></div>'
+# the wrist buttons' icons, as the mod's textures draw them: Restore a window coming back up, Exit a door with an arrow out
+WRIST_RESTORE = ('<svg class="ico" viewBox="0 0 40 40"><rect x="6" y="12" width="22" height="20" rx="2"/><path d="M6 17 H28"/>'
+                 '<path d="M22 4 H36 V18 M36 4 L24 16"/></svg>')
+WRIST_EXIT = '<svg class="ico" viewBox="0 0 40 40"><path d="M22 6 H8 V34 H22"/><path d="M16 20 H36 M29 13 L36 20 L29 27"/></svg>'
+def wb(label, icon):
+    return f'<div class="mc-wristbtn">{icon}<span class="t-body">{label}</span></div>'
 wr_body = f'''<div class="mc-world mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">Menu open</span>
-<div class="mc-wrist">{wb('MINIMIZE')}{wb('CLOSE')}</div>
-<span class="t-detail mc-caption">Minimized</span>
-<div class="mc-wrist">{wb('RESUME')}{wb('CLOSE')}</div>
+<span class="t-detail mc-caption">Minimized: the menu's title over Restore and Exit. While the panel is shown the wrist has none</span>
+<div class="mc-wristcol"><span class="mc-wristtitle">MODS CONFIG</span>
+<div class="mc-wrist">{wb('RESTORE', WRIST_RESTORE)}{wb('EXIT', WRIST_EXIT)}</div></div>
 </div>'''
-write('WristButtons', page('<!-- @dsCard group="Panels" height=360 width=520 subtitle="vrui UIButtonPanel, 3 x 2.2 units, F4VR_BUTTON_STYLE" -->', 'Wrist buttons', wr_body))
+write('WristButtons', page('<!-- @dsCard group="Panels" height=330 width=520 subtitle="vrui UIButtonPanel, 3 x 2.5 units, F4VR_BUTTON_STYLE, under the menu&#39;s title, while the panel is minimized" -->', 'Wrist buttons', wr_body))
 print('ok')
 
 # ---------------- FullPanelPage: a page of a mod selected, not its front page ----------------
@@ -690,11 +679,6 @@ h_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="wi
 </div>
 <div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Double click', 'Two quick taps. For turning something on, or a change of mode. 0.11 s.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div></div>
 </div>"""
-h_focused = f"""<div class="mc-focused" style="height:auto">
-<div class="mc-desc t-body"><span class="name">Entry haptic:</span> Plays once when a hand enters the zone. Default Tick.</div>
-<div class="item"><div class="t-body" style="display:flex;align-items:center;gap:8px"><span>Entry haptic</span>{DOT}</div>
-<div class="ctl t-body"><span class="mc-stepper" style="flex:1"><span class="mc-btn is-icon">{TRI_L}</span><span class="label is-haptic is-pending" style="flex:1;width:auto"><span>Success</span>{env('Success')}</span><span class="mc-btn is-icon">{TRI_R}</span></span>{play_btn()}<span class="mc-btn is-icon">{DISCARD}</span></div></div>
-</div>"""
 h_library = '<div class="mc-sheet mc-popup t-body" style="width:336px;border-color:var(--frame-border)">' + ''.join(h_option(n) for n in HAPTICS) + '</div>'
 h_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:auto 336px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
@@ -702,15 +686,13 @@ h_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:aut
 {h_states}
 <span class="t-detail mc-caption">The list open: the ray on Double click, its help in the footer</span>
 {h_list}
-<span class="t-detail mc-caption">The Focused panel: a choice stepper, each step plays</span>
-{h_focused}
 </div>
 <div class="mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">Every option, as the list draws it</span>
 {h_library}
 </div>
 </div>"""
-write('Haptic', page('<!-- @dsCard group="Settings" height=1260 width=1520 subtitle="A pattern with its shape and Play: the states, the list, the Focused stepper, and every option" -->', 'Haptic', h_body))
+write('Haptic', page('<!-- @dsCard group="Settings" height=1090 width=1520 subtitle="A pattern with its shape and Play: the states, the list, and every option" -->', 'Haptic', h_body))
 print('ok haptic')
 
 # ---------------- Color: a swatch and the numbers, and an editor with a picker and a slider for each channel ----------------
@@ -764,13 +746,13 @@ def picker(c):
             f'<i class="cur" style="left:{s_ * 240:.0f}px;top:{(1 - v) * 240:.0f}px"></i></div>'
             f'<div class="hue"><i class="bar" style="top:{h * 240:.0f}px"></i></div></div>')
 
-def color_editor(name, before, now, hover=None, mark=None, focused=False, style=''):
+def color_editor(name, before, now, hover=None, mark=None, style=''):
     head = (f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">Before</span>{swatch(before, True)}'
             f'<span class="t-detail mc-muted" style="margin-left:8px">Now</span>{swatch(now, True)}</div>')
-    side = f'<div class="mc-channels"{" style=width:100%" if focused else ""}>{channels(now, hover, mark)}</div>'
-    body = f'<div class="body">{"" if focused else picker(now)}{side}</div>'
+    side = f'<div class="mc-channels">{channels(now, hover, mark)}</div>'
+    body = f'<div class="body">{picker(now)}{side}</div>'
     foot = '<div class="foot"><span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>'
-    short = '' if len(now) == 4 or focused else ' is-rgb'
+    short = '' if len(now) == 4 else ' is-rgb'
     return f'<div class="mc-coloredit{short}"{style}>{head}{body}{foot}</div>'
 
 RAY, RAY_NEW = (190, 255, 190, 200), (255, 190, 120, 200)
@@ -802,22 +784,17 @@ c_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="wi
 </div>
 <div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Green', 'The green of the color, 0 to 255. The thumbstick steps it by 1.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
 </div>"""
-c_focused = f"""<div class="mc-focused">{color_editor('Light color', LIGHT, LIGHT_NEW, focused=True)}</div>"""
-c_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px 576px;gap:16px 24px;align-items:start">
+c_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:1120px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">The states, in the menu's own page: Pointer, and a light's RGB-only color</span>
 {c_states}
 </div>
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The Focused panel: the channels only, here of an RGB-only color</span>
-{c_focused}
-</div>
-<div class="mc-stack" style="gap:16px;grid-column:1 / span 2">
 <span class="t-detail mc-caption">The editor open under its row, the ray on Green, its help in the footer</span>
 {c_list}
 </div>
 </div>"""
-write('Color', page('<!-- @dsCard group="Settings" height=1290 width=1560 subtitle="A swatch and the numbers; the editor with a picker and a slider per channel; RGB only; the Focused editor" -->', 'Color', c_body))
+write('Color', page('<!-- @dsCard group="Settings" height=1230 width=1170 subtitle="A swatch and the numbers; the editor with a picker and a slider per channel; RGB only" -->', 'Color', c_body))
 print('ok color')
 
 # ---------------- InputBinding: the framework's icon and a sentence, an editor of its parts, and Record ----------------
@@ -1010,11 +987,6 @@ b_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="wi
 </div>
 <div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('While holding', 'A button held down while the binding is pressed, on the same hand or the other. Now the thumbstick of the off hand.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div></div>
 </div>"""
-b_focused = f"""<div class="mc-focused" style="height:auto">
-<div class="mc-desc t-body"><span class="name">Grab binding:</span> Tap the trigger on the off hand. Change it in the Full panel.</div>
-<div class="item mc-row is-disabled" style="display:block;height:auto;margin:0"><div class="t-body">Grab binding</div>
-<div class="ctl t-body" style="margin-top:4px;display:flex"><span class="mc-combo is-binding" style="flex:1;width:auto">{icons(GRAB)}<span class="sent">{sentence(GRAB)}</span></span></div></div>
-</div>"""
 b_grab = f"""<div class="mc-sheet" style="width:772px;height:556px;position:relative">
 {row('Grab binding', binding_ctl(GRAB_NEW, 'is-pending', True, open_=True), 'is-active', gutter=DOT)}
 {binding_editor('Grab binding', GRAB_NEW, offers_suppress=True, style=' style="left:27px;top:74px"')}
@@ -1025,8 +997,6 @@ b_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908
 {b_states}
 </div>
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The Focused panel: shown, not edited</span>
-{b_focused}
 <span class="t-detail mc-caption">An activation sphere's binding: it offers Suppress from the game</span>
 {b_grab}
 </div>
@@ -1069,7 +1039,7 @@ b_body = b_body[:b_body.rindex('</div>')] + f"""<div class="mc-stack" style="gap
 {b_takes}
 </div>
 </div>"""
-write('InputBinding', page('<!-- @dsCard group="Settings" height=2330 width=1760 subtitle="The icon and a sentence; the editor of its parts, with and without Suppress; its lists, and a setting that takes some hands, ways and buttons alone; the Focused panel" -->', 'Input binding', b_body))
+write('InputBinding', page('<!-- @dsCard group="Settings" height=2250 width=1760 subtitle="The icon and a sentence; the editor of its parts, with and without Suppress; its lists, and a setting that takes some hands, ways and buttons alone" -->', 'Input binding', b_body))
 print('ok binding')
 
 # ---------------- List: a list of texts, an `a` key; the row says its entries, the editor has one line each ----------------

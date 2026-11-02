@@ -11,6 +11,5 @@ A setting's or a button's warning: a value that works and has a cost, or a butto
 - **The help line** has the warning before the row's help, the mark and its text in `amber`: "Player height: ⚠ Above 1.4 m your view can be in the ceiling. Adjusts the estimated player height."
 - Save stays as it is: a warning is not counted in the footer's status, and Save is not blocked.
 - A folded section does not count warnings in its heading: only invalid values and unsaved changes.
-- The Focused panel shows the mark after the name the same way, and the warning in its help area.
 
 The behavior is in [Warnings](../../../../schema.md#warnings).

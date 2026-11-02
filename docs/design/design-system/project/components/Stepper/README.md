@@ -10,4 +10,3 @@ Two kinds: a numeric stepper (minus, value, plus) where precision matters more t
 - A push of the thumbstick to a side steps the choice stepper whose row the ray is on, once for a push.
 - Numeric: the value box is `value-width`, centered digits. Choice: the label box is 280 px, centered text.
 - Pending: the value or label in `amber`.
-- The Focused panel uses the choice stepper for every choice, so no popup opens on the hand.

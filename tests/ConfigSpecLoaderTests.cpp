@@ -1742,11 +1742,11 @@ TEST_CASE("ConfigSpecLoader: a field the schema does not have is a warning, with
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "category": "Visuals", "specVersion": 3, "Help": "Near help",
         "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml", "encoding": "utf-8" } },
         "defaultFile": "main",
-        "sharedLists": { "hands": [ { "value": 0, "text": "Left", "shorttext": "L" } ] },
+        "sharedLists": { "hands": [ { "value": 0, "text": "Left", "texts": "L" } ] },
         "content": [
             { "type": "stepper", "text": "Hand", "default": 0, "valueOptions": { "sharedOptions": "hands", "wrap": true }, "storage": { "path": ["a"], "fil": "main" } },
             { "type": "dropdown", "valueType": "string", "text": "Place", "default": "hip",
-              "valueOptions": { "options": [ { "value": "hip", "text": "Hip", "shortText": "H", "help": "At the hip.", "icon": "hip.dds" } ] },
+              "valueOptions": { "options": [ { "value": "hip", "text": "Hip", "help": "At the hip.", "icon": "hip.dds" } ] },
               "display": { "decimal": 2 }, "storage": { "path": ["b"] },
               "warnings": [ { "when": { "setting": "a", "equals": 1 }, "text": "Left-handed.", "severity": "high" } ] },
             { "type": "button", "text": "Reset", "action": { "type": "RunConsoleCommand", "command": "tm", "comand": "tm" },
@@ -1764,7 +1764,7 @@ TEST_CASE("ConfigSpecLoader: a field the schema does not have is a warning, with
                                    "W Reset: Unknown field \"dangerus\": it is not read. Did you mean \"dangerous\"? [Reset] content[2].confirmation.dangerus",
                                    "W Shown: Unknown field \"fallbak\": it is not read. Did you mean \"fallback\"? [Shown] content[3].text.fallbak",
                                    "W spec.json: Unknown field \"encoding\": it is not read. [] files.main.encoding",
-                                   "W spec.json: Unknown field \"shorttext\": it is not read. Did you mean \"shortText\"? [] sharedLists.hands[0].shorttext" });
+                                   "W spec.json: Unknown field \"texts\": it is not read. Did you mean \"text\"? [] sharedLists.hands[0].texts" });
 }
 
 TEST_CASE("ConfigSpecLoader: a token with no translation and no fallback is a warning, and is shown as it is written")

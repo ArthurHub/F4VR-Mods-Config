@@ -69,7 +69,6 @@ They are two types, as in MCM:
 - `dropdown`: a popup list
 - `stepper`: previous and next
 
-The host can choose a more compact presentation in Focused mode, where a stepper shows an option's short text when it has one.
 
 Choice behavior:
 
@@ -117,7 +116,6 @@ Primary use: a CommonFramework color, `{ rgb = [r, g, b], alpha = a }`, as a lig
 - The value shown is the one the framework reads: the keys the value has, over the default's channels. A changed value is written as whole numbers, with the keys it had and the key of the part that changed, so `{ alpha = 60 }` with a new hue is `{ rgb = [255, 190, 120], alpha = 60 }`.
 - A value the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
 - A color whose opacity means nothing, as a light's, is RGB only: `"valueOptions": { "alpha": false }`. Its swatch is opaque, its numbers have no alpha, its editor has no Alpha slider, and only `rgb` is written. An `alpha` the file has is kept as it is.
-- In the Focused panel the editor has no picker: its sliders fill the panel.
 
 The look is the design system's [Color](design-system/project/components/Color/README.md).
 
@@ -194,7 +192,7 @@ These should not be flattened into `vec2` or `vec3`, because their meaning, vali
 Primary use: the pattern a mod plays on a controller when something happens, as an activation sphere's `sEntryHaptic`, or the menu's own `sPressHaptic`.
 
 - The value is one of None and the 18 patterns of the framework's library (`vrcf::HapticPattern`), in the library's order. The menu knows the list, with a text and a help for each; a config spec names only the setting's key and its default.
-- It is a dropdown in the Full panel, and a choice stepper in the Focused panel, as any choice. Each option shows its pattern's shape, drawn from the framework's keyframes (`VRControllersHaptic::getPattern`), so patterns can be told apart before one is felt.
+- It is a dropdown. Each option shows its pattern's shape, drawn from the framework's keyframes (`VRControllersHaptic::getPattern`), so patterns can be told apart before one is felt.
 - A pattern is felt and not seen, so the control plays it on the hand that points: once when an option is picked, at each step of the stepper, and when the Play button beside the control is pressed. A press that plays a pattern gets no press pulse of the menu: the pattern is its feedback.
 - Pointing at an option plays nothing, as hover has no haptic. The help line shows the option's help: how it feels, its length, and what it is for.
 - Reset sets the default and does not play it. Play plays it.
@@ -216,7 +214,6 @@ Primary use: a controller binding of a mod, as an activation sphere's `kPrimaryB
 - A key the type does not have is not written, and a Duration or Threshold at the type's default is left out, so the table stays as short as the framework's own examples.
 - A table the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
 - Another binding setting of the same mod that is the same press is named in the help line. It does not block Save. Bindings of two mods are not checked against each other: FRIK, Immersive Flashlight and this menu each use the thumbsticks in their own context.
-- In the Focused panel a binding is shown and not edited, as a hotkey is: it is changed in the Full panel.
 
 The look is the design system's [InputBinding](design-system/project/components/InputBinding/README.md).
 
@@ -230,7 +227,6 @@ Primary use: a list of texts a mod reads, as Immersive Flashlight's keywords, it
 - An entry that is new or changed is marked pending. Each change sets the pending value as it is made. Done, or a press beside the editor, keeps it. Cancel and Back give back the list it had when it opened.
 - The list is written as one line, `["AddOnNode", "LightAttachNode"]`. A text that is in the list twice is named in the help line, and does not block Save.
 - A value the framework cannot read as an array of strings is invalid, shown as the file has it, with the framework's reason in the help line.
-- In the Focused panel a list is shown and not edited.
 
 The look is the design system's [List](design-system/project/components/List/README.md).
 
@@ -244,7 +240,6 @@ Primary use: how a hand holds something, as Immersive Flashlight's four grip pos
 - It shows the pose it had when it opened beside the pose as it is, and a press on the first goes back to it. Done, or a press beside the editor, keeps it. Cancel and Back give back the pose it had when it opened.
 - A changed pose is written as the framework writes one, every finger and the palm.
 - A value the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
-- In the Focused panel a hand pose is shown and not edited: the panel is on the hand that would take the pose.
 
 The look is the design system's [HandPose](design-system/project/components/HandPose/README.md).
 
@@ -257,7 +252,6 @@ Primary use: where a mesh, a light or a zone sits on its node, as Immersive Flas
 - A `live` transform moves as it is stepped. Done, or a press beside the editor, keeps it. Cancel and Back give back the value it had when it opened.
 - In the world hands it to the framework's live tuning, with the menu minimized and Done and Cancel on the wrist, and brings the tuned value back as the pending value. It needs the framework to tune another mod's key, and is not shown until it can.
 - A changed value is written with the keys the file had and the key that changed.
-- In the Focused panel the editor fills the panel, so a transform is tuned while looking at it.
 
 The look is the design system's [Transform](design-system/project/components/Transform/README.md).
 
@@ -274,7 +268,7 @@ The look is the design system's [ActivationSphere](design-system/project/compone
 
 ## Help and validation feedback
 
-The full and focused layouts reserve a stable place for the help of the item the ray is on: the help line on the left of the Full panel's footer, and a two-line area at the top of the Focused panel. See [Help line](ui-and-vr-interaction.md#help-line). The same place presents validation errors so content does not jump around.
+The panel reserves a stable place for the help of the item the ray is on: the help line on the left of its footer. See [Help line](ui-and-vr-interaction.md#help-line). The same place presents validation errors so content does not jump around.
 
 Additional feedback:
 

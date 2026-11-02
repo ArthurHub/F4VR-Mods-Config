@@ -19,7 +19,7 @@ That makes four demands on the framework:
 
 | #   | Item                               | Needed for                          |
 | --- | ---------------------------------- | ----------------------------------- |
-| 1   | Offhand attachment                 | The Focused and Minimized views     |
+| 1   | Offhand attachment                 | The Minimized view                  |
 | 2   | Pointer input for ImGui canvases   | Any interaction                     |
 | 3   | Input capture and suppression      | Any interaction while the game runs |
 | 4   | Pointer visuals                    | Any interaction                     |
@@ -41,7 +41,7 @@ The commits of items 1 to 10 are in the [Framework work plan](framework-plan.md)
 
 ### 1. Offhand attachment
 
-**Need.** The Focused panel and the Minimized buttons sit on the offhand. Focused faces the player when the hand is raised. The Minimized buttons lie along the inner wrist, and the arm must never cover them.
+**Need.** The Minimized buttons sit on the offhand. They lie along the inner wrist, and the arm must never cover them.
 
 FRIK is not required, so both are attached to the offhand controller. When an arm is drawn at the controller, as with FRIK, the Minimized buttons follow the forearm. The forearm's direction comes from the elbow, so a fixed offset from the controller can put the buttons inside the arm.
 
@@ -262,7 +262,6 @@ This item depends on the native API of Mods Config FO4 VR, described in [Archite
 Each of these is made only if a milestone of the [Mod work plan](mod-plan.md) finds that it needs it.
 
 - **Fonts.** `loadCanvasFont` (`src/imgui/ImGuiFonts.cpp`) loads the embedded Roboto, and ImGui rasterizes each glyph at each size as it is first drawn, so Latin, Greek, Cyrillic and Vietnamese text renders at any size. A config spec or MCM config translated into Chinese, Japanese, Korean or Arabic needs a fallback font with those glyphs, merged into the canvas font.
-- **Touch as a second pointer source.** A fingertip crossing the canvas plane, taken from the same fingertip that vrui buttons use. For the hand-anchored Focused view, if a ray does not suit a panel on the own hand.
 - **Ray press for vrui buttons.** Needed if vrui buttons end up in the Full panel's layout, out of reach of a finger.
 
 ## Not framework work
@@ -271,7 +270,7 @@ These are handled in Mods Config FO4 VR or exist already:
 
 - **The opening gesture.** Holding both thumbsticks is expressible as an input binding today: `primary longpress thumbstick 1.5 +offhand:thumbstick`, the binding FRIK uses for its own configuration. Taking the gesture over from FRIK goes through FRIK's API (`setConfigValueOverride`).
 - **FRIK integration.** vrui finds the fingertip and points the hand through FRIK's API by itself.
-- **Hand-anchored vrui buttons**, such as Minimized's Resume and Close. Only their placement on the offhand is framework work (item 1).
+- **Hand-anchored vrui buttons**, such as Minimized's Restore and Exit. Only their placement on the offhand is framework work (item 1).
 - **Haptics.** `VRHaptics` and its named patterns.
 - **Files, config specs, and MCM.** Reading and writing other mods' files, the config spec schema, and the MCM bridge live in the mod.
 - **The Papyrus API.** The framework's F4SE VR port (`src/f4sevr/`) already registers native functions that take and return strings, and calls a function on a script. F4SEVR lists the scripts registered for an external event.

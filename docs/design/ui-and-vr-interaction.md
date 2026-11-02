@@ -23,7 +23,7 @@ The game is not paused while the menu is open, so a `live` change is seen as it 
 
 FRIK is not required. With FRIK, the hand-anchored vrui buttons are pressed with the index fingertip and the hand takes a pointing pose. Without FRIK the controller itself presses them, and a small sphere marks the point.
 
-## Three UI states
+## Two UI states
 
 ### Full
 
@@ -56,54 +56,30 @@ The primary browsing and editing state.
 - The player can select another mod at any time, without going to the front page first.
 - The mods are one list. They are not grouped or labeled by where a mod's menu comes from, MCM or a config spec. A long list is grouped by category; see [Mod categories](#mod-categories).
 - The title bar shows where the player is, as breadcrumbs: `MODS CONFIG FO4 » <mod> » <page>`, with a crumb for each page above the page, or `MODS CONFIG FO4` alone on the menu's front page. The last crumb is where the player is, and each crumb before it can be pressed to go there: `MODS CONFIG FO4` to the menu's front page, a mod to its front page, and a page to it. When the crumbs do not fit, the pages between the mod and the page become one `…`, which is not pressed, and then the mod's name is shortened with an ellipsis. The first crumb and the last are not shortened.
-- The title bar has Help, Minimize and Close on its right, and the crumbs end before them. Help shows the [Help page](#the-help-page). Minimize and Close do what the wrist's buttons do: Minimize hides the panel as it is, and `Resume` on the wrist shows it again; Close closes the menu. The help line says what each does while the ray is on it.
+- The title bar has Help, Minimize and Close on its right, and the crumbs end before them. Help shows the [Help page](#the-help-page). Minimize hides the panel as it is, and `Restore` on the wrist shows it again; Close closes the menu. The help line says what each does while the ray is on it.
 - The content pane has no heading of its own, so its height goes to settings.
 - The footer has Save and Discard on the right and the help line on the left; see [Help line](#help-line).
 - Save and Discard remain in stable locations.
 
-### Focused
-
-A smaller offhand-anchored view of only the selected mod or page.
-
-```text
-┌──────────────────────────────────────────┐
-│ Immersive Flashlight VR       [Full] [—] │
-├──────────────────────────────────────────┤
-│ Brightness: Controls the flashlight beam │
-│ intensity.                               │
-├──────────────────────────────────────────┤
-│ Brightness                               │
-│ [-] [==========o------] [1.25] [Reset]   │
-│                                          │
-│                         [Discard] [Save] │
-└──────────────────────────────────────────┘
-```
-
-- Anchored to the offhand in a readable orientation.
-- Omits the global mod navigator.
-- May use more compact presentations of the same controls.
-- Retains help, validation, Save, Discard, Minimize, and return-to-Full controls.
-- Its footer has no room for the help line, so the help is a two-line area at the top, in the same `Name: help` form.
-- Pending changes are the same editing session as Full mode.
-
 ### Minimized
 
-The large interface is hidden while the player checks the effect of changes.
+The panel is hidden while the player checks the effect of changes.
 
 ```text
-inner offhand forearm / behind thumb
+inner offhand forearm
 
-┌──────────┬─────────┐
-│ Resume   │ Close   │
-└──────────┴─────────┘
+     MODS CONFIG
+┌──────────┬──────────┐
+│ Restore  │  Exit    │
+└──────────┴──────────┘
 ```
 
-- Only a small offhand control remains. Its two buttons are vrui buttons, pressed by touch. The panel is minimized with the first of them, `Minimize` until it is minimized, or with Minimize on the title bar.
-- With FRIK, the control follows the forearm, so the arm never covers it. Without FRIK, it sits beside the offhand controller.
-- `Resume` restores the previous Full or Focused context.
-- `Close` enters the normal unsaved-changes flow when needed.
+- Minimize, on the title bar, hides the panel. Only then does the offhand wrist have buttons: `MODS CONFIG` over `Restore` and `Exit`, vrui buttons pressed by touch. While the panel is shown, the wrist has none.
+- With FRIK, they follow the forearm, so the arm never covers them. Without FRIK, they sit beside the offhand controller.
+- `Restore` shows the panel again, as it was, with the shown mod's values read again, as the mod can have changed them. The opening gesture does the same while the menu is minimized.
+- `Exit` closes the menu, and asks first while the mod that is shown has unsaved changes.
 - Pending values and active previews remain alive while minimized.
-- Minimized is not equivalent to Save or Close.
+- Minimized is not equivalent to Save or Exit.
 
 ## The menu's front page
 
@@ -142,7 +118,7 @@ An entry of the section opens a mod's own config UI, such as FRIK's.
 
 - A row has the mod's name and an `Open` button, and the whole row is pressed.
 - A mod registers its entries through the native API, one for each UI it opens from here, each with a help text that says what its UI is for, and the text of its button in place of `Open`. It needs no config spec for it, and a mod that has a config spec is in the tree as well.
-- FRIK adds its entry, as the menu took its opening gesture: FRIK's config is opened from here. For a FRIK of before the native API, which adds none, the menu adds one itself while FRIK is installed. It minimizes the menu, which does not come back by itself: `Resume` on the wrist shows it again.
+- FRIK adds its entry, as the menu took its opening gesture: FRIK's config is opened from here. For a FRIK of before the native API, which adds none, the menu adds one itself while FRIK is installed. It minimizes the menu, which does not come back by itself: `Restore` on the wrist shows it again.
 - The entries are listed alphabetically, as the mods are.
 - Pressing an entry runs a function of the mod's client, which minimizes the menu and opens the mod's UI; see [A mod's own UI](#a-mods-own-ui).
 
@@ -322,7 +298,7 @@ A button that calls a script, of a mod with unsaved changes, says in its help th
 
 A config spec's mod and its pages can have a help of their own, which the help line shows while the ray is on their row in the tree. An MCM mod and its pages have none. A mod that is [not available](#notices) has the reason there instead: the help line says why while the ray is on its row. A page that explains itself at length does it with a text item at the top of its content, as MCM pages do, and the text scrolls with the rows.
 
-Keeping the help in one place avoids layout movement and makes it discoverable without pop-up tooltips floating at uncomfortable depths. The Focused panel's footer is too narrow for it, so there the help is a two-line area at the top.
+Keeping the help in one place avoids layout movement and makes it discoverable without pop-up tooltips floating at uncomfortable depths.
 
 ## Navigation behavior
 
@@ -335,7 +311,7 @@ Keeping the help in one place avoids layout movement and makes it discoverable w
 - The tree always keeps room for its scroll bar, so its rows do not narrow when the bar appears, as when a category or a mod is opened near the bottom.
 - A row that is selected from outside the tree, from a breadcrumb, with Back, or when the panel is shown again, is scrolled into view. A category that is opened near the bottom scrolls to show its first mods.
 - Search comes after the first release, with the localization; see [Search](#search).
-- The selected mod and current page survive switches among Full, Focused, and Minimized states.
+- The selected mod and current page survive minimizing and showing the panel again.
 
 ## Search
 
@@ -348,7 +324,6 @@ The tree's header is a search field, which finds a setting by its name in every 
 - The content is the results, with the crumbs `MODS CONFIG FO4 » Search`: the settings that match, under a heading for each mod and page. Each is the setting's own row, changed here as on its page, and Save saves it.
 - A press on a row of the tree goes to that page, with the query kept, and the rows that match are underlined there. Back goes back to the results.
 - Clear, in the field, empties the query and gives the tree back. Back from the results empties it too, and goes back to where the player was.
-- In the Focused panel there is no search: it shows the page that is selected.
 
 The look is the design system's [Search](design-system/project/components/Search/README.md).
 
@@ -410,6 +385,6 @@ A mod may have a UI of its own, opened by a button such as `Open FRIK Calibratio
 2. The player uses the mod's UI.
 3. As it closes, the mod shows the menu again, in the view and on the page it was, and the menu reads the mod's values again: a clean setting shows what the mod's UI saved.
 
-The mod's UI is not drawn inside the menu's panel. A UI that does not open leaves the menu as it is, and the help line says why. One that never shows the menu again leaves it minimized, and `Resume` on the wrist shows it. A mod can also open the menu at its own settings, from its wrist button or its holotape. See [The mod's own UI](architecture.md#the-mods-own-ui).
+The mod's UI is not drawn inside the menu's panel. A UI that does not open leaves the menu as it is, and the help line says why. One that never shows the menu again leaves it minimized, and `Restore` on the wrist shows it. A mod can also open the menu at its own settings, from its wrist button or its holotape. See [The mod's own UI](architecture.md#the-mods-own-ui).
 
 FRIK's own configuration is the first case: once Mods Config FO4 VR takes over the gesture that opened it, FRIK's menu is reached this way.

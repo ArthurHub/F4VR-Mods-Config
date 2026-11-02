@@ -21,8 +21,4 @@ A CommonFramework activation sphere: a whole section of the mod's TOML, a zone t
 - The sphere's keys are `live`: a change shows on the sphere in the world as it is made, through the framework's preview of a key.
 - The page's spheres are drawn while the page is shown, by the page events (M113). Lighting the one the ray is on needs the client to know which group the ray is in: a group event, beside the page events. Open: this is framework work, and without it the spheres are drawn as the page events draw them, none lit.
 
-## Focused panel
-
-The same rows, in the Focused panel's single column. The Focused panel is the place to tune a zone while reaching into it.
-
 The behavior is in [The settings model](../../../../model.md#an-activation-sphere) and [Controls](../../../../controls.md#activationsphere).

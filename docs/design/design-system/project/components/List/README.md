@@ -33,8 +33,4 @@ A popup inside the content pane, 717 wide, placed as the Color editor is: under 
 - The list is written as the framework's array, `["AddOnNode", "LightAttachNode"]`, one line, each text in quotes with its `"` and `\` escaped. A file that had the array over several lines, as Immersive Flashlight's allow list, gets it on one line.
 - Two entries with the same text are kept: the help line of the second says it is in the list already. It does not block Save.
 
-## Focused panel
-
-A list is shown and not edited, as a binding is: it is changed in the Full panel, where the keyboard has room.
-
 The behavior is in [Controls](../../../../controls.md#list).

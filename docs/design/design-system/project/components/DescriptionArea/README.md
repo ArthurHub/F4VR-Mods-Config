@@ -11,6 +11,5 @@ The help line: the left of the footer, which shows help for what the ray is on a
 - Hold the help while the ray is anywhere over the rows, the gaps between them included, and switch back to the status only when the ray leaves the list or the open popup. Without that it flickers as the ray sweeps.
 - Include the default where there is one, in brackets after the help ("(Default: 1.00)"). Reset's help names the value it resets to, and a pending setting's Discard the saved value it goes back to: "Discard the change, back to 1.00.", or "Revert the change, back to 1.00." on an MCM mod. A changed setting whose mod says when the change takes effect has its tag first, in `amber` ([TakesEffect](../TakesEffect/README.md)): the help does not say it.
 - A page's own help is not here: it is the first item of the page's rows.
-- The Focused panel keeps this at the top, in a `description-height` area on `plate`, because its footer has no room.
 
 Don't use tooltips: the help line replaces them, at a fixed place and depth.

@@ -92,7 +92,7 @@ Only one mod has an active editing session.
 1. Selecting a mod reads its files, globals, properties and its client's states, and captures the values as the session baseline.
 2. Player edits update a pending model.
 3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host, and then sent to the client too, which can do what more it needs. A state of the client is sent to the client, which applies it.
-4. Focused and minimized modes retain the same session.
+4. The minimized menu retains the same session.
 5. Save establishes a new baseline.
 6. Discard restores the baseline and rolls back live previews.
 
@@ -303,7 +303,7 @@ client.addState("pipboyType",
 A mod's own UI is opened by a function of its client, from a button of its config spec or from a quick launch entry. The function moves the menu out of the way itself, with the calls of the menu, which any DLL can make:
 
 - `minimizeMenu` as it opens its UI. A minimized menu keeps its editing session, so a pending change stays pending. A function whose UI does not open does not minimize it, and its message says why.
-- `restoreMenu` as its UI closes. It shows the menu where it was, and only while it is minimized: a player who has pressed `Resume` on the wrist or closed the menu is not shown it again. A UI that never calls it leaves the menu minimized, and `Resume` shows it.
+- `restoreMenu` as its UI closes. It shows the menu where it was, and only while it is minimized: a player who has pressed `Restore` on the wrist or closed the menu is not shown it again. A UI that never calls it leaves the menu minimized, and `Restore` shows it.
 - `restoreMenu` reads the values of the shown mod again, as its UI can have changed them: a clean setting takes the value of its file, its global or its property, and a pending one stays the player's, as Save keeps it. `reloadValues` does the same for a client whose mod changes its values at another time while it is shown, as with a hotkey.
 - `openMenu` opens the menu at a mod and at a page of it by its `id`, at the mod's front page with no page, or at the menu's front page with no mod. A mod's wrist button or holotape opens its settings this way. While the menu is open on a mod with unsaved changes, the unsaved-changes dialog asks first. A mod or a page that is not there opens nothing, and the call returns false.
 
