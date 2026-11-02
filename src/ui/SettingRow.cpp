@@ -262,6 +262,7 @@ namespace
 
         // the value of a slider, as a drag has it
         float sliderValue = 0.0f;
+        ui::SliderRow sliderRow;
         std::optional<std::size_t> chosen;
         ui::ChoiceRow choiceRow;
         ui::BindingEdited bindingEdited;
@@ -326,8 +327,8 @@ namespace
         if (isSlider) {
             bool write = false;
             bool pulse = false;
-            const ui::SliderRow sliderRow{ .pointed = state.row.pointed, .started = state.row.started, .held = state.row.held };
-            const float value = context.sliders.edit(setting, state.right, state.pos.y, sliderRow, edited.sliderValue, write, pulse);
+            edited.sliderRow = { .pointed = state.row.pointed, .started = state.row.started, .held = state.row.held };
+            const float value = context.sliders.edit(setting, state.right, state.pos.y, edited.sliderRow, edited.sliderValue, write, pulse);
             if (!write || context.store->set(setting, value)) {
                 edited.sliderValue = value;
             }
@@ -454,7 +455,7 @@ namespace
             break;
         }
         case model::SettingType::Slider:
-            left = context.sliders.draw(setting, right, top, state.showsValue ? std::optional(edited.sliderValue) : std::nullopt, look);
+            left = context.sliders.draw(setting, right, top, edited.sliderRow, state.showsValue ? std::optional(edited.sliderValue) : std::nullopt, look);
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:

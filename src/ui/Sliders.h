@@ -36,9 +36,23 @@ namespace mods_config::ui
     };
 
     /**
+     * When a press that is held steps a slider, the thumbstick's and a step arrow's alike.
+     */
+    struct StepRepeat
+    {
+        bool step(float seconds);
+
+        // the press stepped as it began, how long it is held since, and when it steps next
+        bool begun = false;
+        float heldSeconds = 0.0f;
+        float nextStepSeconds = 0.0f;
+    };
+
+    /**
      * The sliders of the page that is shown: how one is drawn, and how the player edits one. The trigger
-     * drags a slider by its track, and the thumbstick steps the one whose row the ray is on. A slider that
-     * is dragged keeps its value here, and it is written as the trigger is let go.
+     * drags a slider by its track and steps it by the arrow at each end of the track, and the thumbstick
+     * steps the one whose row the ray is on. A slider that is dragged keeps its value here, and it is
+     * written as the trigger is let go.
      * It points into the page that is shown, so it is reset as another page is.
      */
     class Sliders
@@ -46,7 +60,7 @@ namespace mods_config::ui
     public:
         void startFrame(float thumbstickSideValue);
         float edit(const model::Setting& setting, float right, float top, const SliderRow& row, float value, bool& write, bool& pulse);
-        float draw(const model::Setting& setting, float right, float top, std::optional<float> value, ValueLook look) const;
+        float draw(const model::Setting& setting, float right, float top, const SliderRow& row, std::optional<float> value, ValueLook look) const;
         void endFrame();
         bool cancelDrag();
         void reset();
@@ -69,6 +83,12 @@ namespace mods_config::ui
         // the row of the dragged slider was held in the frame that is drawn
         bool _dragHeld = false;
 
+        // the slider whose step arrow the trigger is held on since a press on it, that arrow's side as -1 or
+        // 1, and its steps
+        const model::Setting* _arrowHeld = nullptr;
+        int _arrowSide = 0;
+        StepRepeat _arrowRepeat;
+
         // the slider whose row the ray is on, and for how long
         const model::Setting* _pointed = nullptr;
         float _pointedSeconds = 0.0f;
@@ -76,11 +96,9 @@ namespace mods_config::ui
         // the row of a slider had the ray in the frame that is drawn
         bool _pointedSeen = false;
 
-        // The push of the thumbstick: its side as -1 or 1, and 0 while it is not pushed, how long it is
-        // held, and when it steps next
+        // The push of the thumbstick: its side as -1 or 1, and 0 while it is not pushed, and its steps
         int _pushSide = 0;
-        float _pushSeconds = 0.0f;
-        float _nextStepSeconds = 0.0f;
+        StepRepeat _pushRepeat;
 
         // the thumbstick was pushed while the ray was on no slider, or came to another: it steps nothing
         // until it is let go

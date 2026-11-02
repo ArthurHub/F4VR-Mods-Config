@@ -1751,6 +1751,44 @@ TEST_CASE("FullPanel render: a slider that is dragged", "[.render]")
     WARN("Saved " << renderToFile(panel, "slider-dragged", ImVec2(820.0f, pageRow(0).y), true));
 }
 
+TEST_CASE("FullPanel render: the step arrows of a slider", "[.render]")
+{
+    using model::SettingType;
+    const auto slider = [](std::string text, const std::uint32_t formId) {
+        return model::Setting{ .type = SettingType::Slider,
+            .text = std::move(text),
+            .help = "How strong the feature is.",
+            .valueOptions = { .min = 0.0f, .max = 2.0f, .step = 0.1f, .options = {} },
+            .storage = model::GlobalStorage{ .plugin = "MyMod.esp", .formId = formId } };
+    };
+    test_globals::TestGlobals globals;
+    globals.values = { { { "MyMod.esp", 0x800 }, 1.0f }, { { "MyMod.esp", 0x801 }, 0.0f }, { { "MyMod.esp", 0x802 }, 2.0f } };
+
+    // the arrow after the track of the first slider: 12 pixels into it, past the box of its value, Reset and the rows' end
+    const float rowsRight = test_panel::PANEL_WIDTH - test_panel::CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2;
+    const ImVec2 onArrow(rowsRight - theme::CONTROL_HEIGHT - theme::SPACE_2 - theme::VALUE_WIDTH - theme::SPACE_2 - 12.0f, pageRow(0).y);
+
+    // a panel for each, as it sets the theme on the first context it draws in
+    const auto render = [&](const std::string& name, const bool pressed) {
+        model::Mod mod{ .name = "Sliders", .displayName = "Sliders", .frontPage = {}, .pages = {} };
+        mod.frontPage.items.push_back(slider("Under the ray", 0x800));
+        mod.frontPage.items.push_back(slider("At the least", 0x801));
+        mod.frontPage.items.push_back(slider("At the most", 0x802));
+        auto readOnly = slider("Read-only", 0x800);
+        readOnly.readOnly = true;
+        mod.frontPage.items.push_back(std::move(readOnly));
+
+        mcm::McmStore store;
+        FullPanel panel;
+        panel.setStore(model::Source::Mcm, &store);
+        panel.setMods({ std::move(mod) });
+        panel.select({ .mod = 0, .page = {} });
+        WARN("Saved " << renderToFile(panel, name, onArrow, pressed));
+    };
+    render("slider-arrow-hover", false);
+    render("slider-arrow-pressed", true);
+}
+
 TEST_CASE("FullPanel render: a stepper under the ray, and the open list of a dropdown", "[.render]")
 {
     using model::SettingType;

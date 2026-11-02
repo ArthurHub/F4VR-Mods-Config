@@ -93,8 +93,8 @@ namespace mods_config::ui
         bool disabled = false;
     };
 
-    // the track of a slider, and the box of a stepper's option, in the panel's pixels: not a token of the
-    // design system
+    // the box of a stepper's option, and a slider's track with its step arrows, in the panel's pixels: not a token
+    // of the design system
     constexpr float TRACK_WIDTH = 280.0f;
 
     // the box of a dropdown, which fills the room of a control in its row: the control column without the room of
@@ -183,5 +183,6 @@ namespace mods_config::ui
     void drawDiscardIcon(const ImVec2& center, float scale = 1.0f);
     void drawMark(TextMark mark, const ImVec2& center);
     void drawFoldArrow(const ImVec2& topLeft, bool open, ImU32 color);
-    void drawControlArrow(const ImVec2& center, ControlArrow arrow);
+    void drawControlArrow(const ImVec2& center, ControlArrow arrow, float scale = 1.0f);
+    void drawStepButton(const ImRect& box, ControlArrow arrow, bool enabled, bool pointed, bool held, float arrowScale = 1.0f);
 }

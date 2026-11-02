@@ -62,18 +62,6 @@ namespace
     };
 
     /**
-     * A button of a stepper, with its arrow. One that goes nowhere is disabled. Any other has the look of
-     * a control under the ray while the ray is on it, and a stronger one while the trigger is held on it.
-     */
-    void drawStepButton(const ImRect& box, const ControlArrow arrow, const bool enabled, const bool pointed, const bool held)
-    {
-        ImGui::BeginDisabled(!enabled);
-        ui::drawButtonFrame(box, enabled && pointed, enabled && held);
-        ui::drawControlArrow(box.GetCenter(), arrow);
-        ImGui::EndDisabled();
-    }
-
-    /**
      * The box of a dropdown that ends at the right, which its list opens at: a haptic's is its frame, before its Play
      * button.
      */

@@ -1038,9 +1038,9 @@ namespace mods_config::ui
     }
 
     /**
-     * A filled arrow around a point, as the buttons of a stepper and a dropdown have.
+     * A filled arrow around a point, as the buttons of a stepper and a dropdown have, and a slider's smaller.
      */
-    void drawControlArrow(const ImVec2& center, const ControlArrow arrow)
+    void drawControlArrow(const ImVec2& center, const ControlArrow arrow, const float scale)
     {
         // the corners of each arrow in its box, as the design system draws them
         static constexpr std::array<std::array<ImVec2, 3>, 3> CORNERS{ {
@@ -1049,10 +1049,23 @@ namespace mods_config::ui
             { ImVec2(2.0f, 4.0f), ImVec2(12.0f, 4.0f), ImVec2(7.0f, 11.0f) },
         } };
         const auto& corners = CORNERS[static_cast<std::size_t>(arrow)];
-        const ImVec2 origin(center.x - ARROW_SIZE * 0.5f, center.y - ARROW_SIZE * 0.5f);
-        const auto at = [&origin](const ImVec2& corner) {
-            return ImVec2(origin.x + corner.x, origin.y + corner.y);
+        const ImVec2 origin(center.x - ARROW_SIZE * scale * 0.5f, center.y - ARROW_SIZE * scale * 0.5f);
+        const auto at = [&origin, scale](const ImVec2& corner) {
+            return ImVec2(origin.x + corner.x * scale, origin.y + corner.y * scale);
         };
         ImGui::GetWindowDrawList()->AddTriangleFilled(at(corners[0]), at(corners[1]), at(corners[2]), ImGui::GetColorU32(theme::color::GREEN));
+    }
+
+    /**
+     * A button with an arrow, as a stepper and a slider have at their ends. One that goes nowhere is disabled. Any
+     * other has the look of a control under the ray while the ray is on it, and a stronger one while the trigger is
+     * held on it.
+     */
+    void drawStepButton(const ImRect& box, const ControlArrow arrow, const bool enabled, const bool pointed, const bool held, const float arrowScale)
+    {
+        ImGui::BeginDisabled(!enabled);
+        drawButtonFrame(box, enabled && pointed, enabled && held);
+        drawControlArrow(box.GetCenter(), arrow, arrowScale);
+        ImGui::EndDisabled();
     }
 }

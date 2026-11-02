@@ -18,6 +18,9 @@ namespace
     // The sizes of a slider that are not tokens of the design system, in the panel's pixels
     constexpr float FILL_HEIGHT = 8.0f;
     constexpr float GRAB_HEIGHT = 40.0f;
+    constexpr float STEP_ARROW_WIDTH = 24.0f;
+    // the triangle of a step arrow is 10 pixels, of the 14 of a stepper's
+    constexpr float STEP_ARROW_SCALE = 10.0f / ui::ARROW_SIZE;
 
     // The thumbstick steps a slider from this far off its center, of 1 for a full push. It is far, so a push
     // that scrolls the page and is a little to a side steps nothing.
@@ -25,7 +28,7 @@ namespace
     // The seconds the ray is on the row of a slider before the thumbstick steps it, so a ray that crosses
     // the row steps nothing
     constexpr float STEP_POINTED_DELAY = 0.3f;
-    // A push that is held steps again after the delay, then at the interval, and at the fast one once it is
+    // A press that is held steps again after the delay, then at the interval, and at the fast one once it is
     // held for long: in seconds
     constexpr float STEP_REPEAT_DELAY = 0.4f;
     constexpr float STEP_REPEAT_INTERVAL = 0.12f;
@@ -35,22 +38,39 @@ namespace
     constexpr float STEPS_WITH_NO_STEP = 100.0f;
 
     /**
-     * Where the parts of a slider that ends at the right are: its track, the box of its value after it, and
-     * the two ends the middle of its grab moves between, so the grab is whole inside the track at both.
+     * Where the parts of a slider that ends at the right are: its track between its step arrows, the box of
+     * its value after them, and the two ends the middle of its grab moves between, so the grab is whole inside
+     * the track at both.
      */
     struct Boxes
     {
+        ImRect previous;
         ImRect track;
+        ImRect next;
         ImRect valueBox;
         float grabLeast = 0.0f;
         float grabMost = 0.0f;
 
         Boxes(const float right, const float top)
-            : track(ui::controlBox(right - theme::VALUE_WIDTH - theme::SPACE_2 - ui::TRACK_WIDTH, top, ui::TRACK_WIDTH)),
+            : previous(ui::controlBox(right - theme::VALUE_WIDTH - theme::SPACE_2 - ui::TRACK_WIDTH, top, STEP_ARROW_WIDTH)),
+              track(ui::controlBox(previous.Max.x + theme::SPACE_1, top, ui::TRACK_WIDTH - (STEP_ARROW_WIDTH + theme::SPACE_1) * 2.0f)),
+              next(ui::controlBox(track.Max.x + theme::SPACE_1, top, STEP_ARROW_WIDTH)),
               valueBox(ui::controlBox(right - theme::VALUE_WIDTH, top, theme::VALUE_WIDTH)),
               grabLeast(track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f),
               grabMost(track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f)
         {}
+
+        /**
+         * The side of the step arrow at a place of the row, as -1 or 1, and 0 for none. An arrow is pressed a
+         * little beside it too, and in the gap between it and the track.
+         */
+        int arrowAt(const float x) const
+        {
+            if (x >= previous.Min.x - theme::SPACE_1 && x < track.Min.x) {
+                return -1;
+            }
+            return x >= track.Max.x && x < next.Max.x + theme::SPACE_1 ? 1 : 0;
+        }
 
         /**
          * The middle of the grab at a value of the slider. A value outside the range is at its end.
@@ -82,10 +102,42 @@ namespace
         }
         return std::clamp(static_cast<float>(stepped), options.min, options.max);
     }
+
+    /**
+     * The value of a slider a number of steps from its value, and whether that is a change to write, which gives
+     * the hand its pulse.
+     */
+    float stepBy(const model::ValueOptions& options, const float value, const int steps, bool& write, bool& pulse)
+    {
+        const float step = options.step > 0.0f ? options.step : (options.max - options.min) / STEPS_WITH_NO_STEP;
+        const float stepped = onStep(options, value + static_cast<float>(steps) * step);
+        write = stepped != value;
+        pulse = pulse || write;
+        return stepped;
+    }
 }
 
 namespace mods_config::ui
 {
+    /**
+     * Whether a press that is held steps in this frame: as it begins, and again after a delay and then
+     * faster.
+     */
+    bool StepRepeat::step(const float seconds)
+    {
+        if (!begun) {
+            begun = true;
+            nextStepSeconds = STEP_REPEAT_DELAY;
+            return true;
+        }
+        heldSeconds += seconds;
+        if (heldSeconds < nextStepSeconds) {
+            return false;
+        }
+        nextStepSeconds += heldSeconds < STEP_FAST_AFTER ? STEP_REPEAT_INTERVAL : STEP_FAST_INTERVAL;
+        return true;
+    }
+
     /**
      * The text of a slider's value in the box of its value, as its display writes it. One that does not fit
      * the box's room is in the detail size, and one that does not fit then either is the number alone, so the
@@ -130,9 +182,10 @@ namespace mods_config::ui
      * the ray until the trigger is let go, also beside the track. A pull on the grab itself does not move
      * it. The value of a drag is to be written as the trigger is let go, and not before: a store can write
      * a file for each. After Back the drag gives nothing.
-     * The thumbstick steps the slider whose row the ray is on, once it is there for a short time, and each
-     * step is to be written.
-     * Tells whether the hand gets its pulse: the pull took hold of the slider, or the thumbstick stepped it.
+     * A pull on a step arrow steps the slider, and again while it is held, until the ray leaves the arrow. The
+     * thumbstick steps the slider whose row the ray is on, once it is there for a short time. Each step is to
+     * be written.
+     * Tells whether the hand gets its pulse: the pull took hold of the slider, or a step changed it.
      */
     float Sliders::edit(const model::Setting& setting, const float right, const float top, const SliderRow& row, const float value, bool& write, bool& pulse)
     {
@@ -146,6 +199,12 @@ namespace mods_config::ui
             _grabOffset = std::abs(io.MousePos.x - grab) <= theme::GRAB_WIDTH * 0.5f ? io.MousePos.x - grab : 0.0f;
             _dragCancelled = false;
             pulse = true;
+        }
+        const int arrow = boxes.arrowAt(io.MousePos.x);
+        if (row.started && arrow != 0) {
+            _arrowHeld = &setting;
+            _arrowSide = arrow;
+            _arrowRepeat = {};
         }
         // by the frame before, as the steps of this frame are
         const bool wasPointed = row.pointed && _pointed == &setting;
@@ -173,35 +232,42 @@ namespace mods_config::ui
             _dragValue = onStep(options, boxes.valueAt(options, io.MousePos.x - _grabOffset));
             return _dragValue;
         }
+        if (_arrowHeld == &setting && (!row.held || arrow != _arrowSide)) {
+            _arrowHeld = nullptr;
+        }
+        if (_arrowHeld == &setting) {
+            return _arrowRepeat.step(io.DeltaTime) ? stepBy(options, value, _arrowSide, write, pulse) : value;
+        }
         if (wasPointed && _steps != 0) {
-            const float step = options.step > 0.0f ? options.step : (options.max - options.min) / STEPS_WITH_NO_STEP;
-            const float stepped = onStep(options, value + static_cast<float>(_steps) * step);
-            write = stepped != value;
-            pulse = pulse || write;
-            return stepped;
+            return stepBy(options, value, _steps, write, pulse);
         }
         return value;
     }
 
     /**
-     * A slider that ends at the right: its track, with a fill from the least to the grab, and the box of its
-     * value, in the color of its value's look. While it is dragged the grab and the outline of the track are
-     * in the color of the pointer's mark. A slider with no value has no fill, no grab and an empty box.
+     * A slider that ends at the right: its track between its step arrows, with a fill from the least to the
+     * grab, and the box of its value, in the color of its value's look. While it is dragged the grab and the
+     * outline of the track are in the color of the pointer's mark. A slider with no value has no fill, no grab
+     * and an empty box. The arrow of the end the value is at is disabled, and so are both with no value.
      * Returns its left edge.
      */
-    float Sliders::draw(const model::Setting& setting, const float right, const float top, const std::optional<float> value, const ValueLook look) const
+    float Sliders::draw(const model::Setting& setting, const float right, const float top, const SliderRow& row, const std::optional<float> value, const ValueLook look) const
     {
         const auto& options = setting.valueOptions;
         const Boxes boxes(right, top);
         const auto& track = boxes.track;
         const bool dragged = _dragged == &setting && _dragHeld && !_dragCancelled;
+        const int pointedArrow = row.pointed && !dragged ? boxes.arrowAt(ImGui::GetIO().MousePos.x) : 0;
+        const int heldArrow = _arrowHeld == &setting ? _arrowSide : 0;
+        drawStepButton(boxes.previous, ControlArrow::Left, value && *value > options.min, pointedArrow < 0, heldArrow < 0, STEP_ARROW_SCALE);
+        drawStepButton(boxes.next, ControlArrow::Right, value && *value<options.max, pointedArrow> 0, heldArrow > 0, STEP_ARROW_SCALE);
         drawFrame(track);
         if (dragged) {
             drawOutline(track.Min, track.Max, theme::color::GLOW);
         }
         drawFrame(boxes.valueBox, look);
         if (!value) {
-            return track.Min.x;
+            return boxes.previous.Min.x;
         }
 
         const float grab = boxes.grabAt(options, *value);
@@ -220,7 +286,7 @@ namespace mods_config::ui
         ImGui::PushFont(nullptr, text.fontSize);
         drawTextIn(boxes.valueBox, text.text, valueColor(look), 1.0f, theme::SPACE_3);
         ImGui::PopFont();
-        return track.Min.x;
+        return boxes.previous.Min.x;
     }
 
     /**
@@ -270,8 +336,7 @@ namespace mods_config::ui
         const int side = push >= STEP_PUSH ? 1 : push <= -STEP_PUSH ? -1 : 0;
         if (side != _pushSide) {
             _pushSide = side;
-            _pushSeconds = 0.0f;
-            _nextStepSeconds = 0.0f;
+            _pushRepeat = {};
             _pushIgnored = side != 0 && !_pointed;
         }
         if (side == 0 || _pushIgnored) {
@@ -284,15 +349,6 @@ namespace mods_config::ui
         if (_pointedSeconds < STEP_POINTED_DELAY) {
             return 0;
         }
-        if (_nextStepSeconds == 0.0f) {
-            _nextStepSeconds = STEP_REPEAT_DELAY;
-            return side;
-        }
-        _pushSeconds += seconds;
-        if (_pushSeconds < _nextStepSeconds) {
-            return 0;
-        }
-        _nextStepSeconds += _pushSeconds < STEP_FAST_AFTER ? STEP_REPEAT_INTERVAL : STEP_FAST_INTERVAL;
-        return side;
+        return _pushRepeat.step(seconds) ? side : 0;
     }
 }

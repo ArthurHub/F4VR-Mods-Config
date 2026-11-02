@@ -235,20 +235,40 @@ namespace
         return panel;
     }
 
+    constexpr float SLIDER_TRACK_WIDTH = 224.0f;
+
+    /**
+     * Where the track of a slider of a page ends at the right: its step arrow and the box of its value are after it.
+     */
+    float sliderTrackRight()
+    {
+        const float rowsRight = test_panel::PANEL_WIDTH - CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2;
+        return rowsRight - theme::CONTROL_HEIGHT - theme::SPACE_2 - theme::VALUE_WIDTH - theme::SPACE_2 - 24.0f - theme::SPACE_1;
+    }
+
     /**
      * A place on the track of the slider of a row of a page, by the row's place among the rows: where the
      * middle of the grab is at a part of the slider's range, from 0 at its least to 1 at its most.
-     * The track is as ModPage.cpp has it.
+     * The track is as Sliders.cpp has it.
      */
     ImVec2 sliderTrack(const int place, const float part)
     {
-        constexpr float TRACK_WIDTH = 280.0f;
         const float rowsLeft = CONTENT_START + theme::NAV_WIDTH + theme::SPACE_4;
-        const float rowsRight = test_panel::PANEL_WIDTH - CONTENT_START - theme::SCROLLBAR_SIZE - theme::SPACE_2;
-        const float trackRight = rowsRight - theme::CONTROL_HEIGHT - theme::SPACE_2 - theme::VALUE_WIDTH - theme::SPACE_2;
+        const float trackRight = sliderTrackRight();
         const float inset = theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
-        REQUIRE(trackRight - TRACK_WIDTH > rowsLeft);
-        return { std::lerp(trackRight - TRACK_WIDTH + inset, trackRight - inset, part), pageRow(place).y };
+        REQUIRE(trackRight - SLIDER_TRACK_WIDTH > rowsLeft);
+        return { std::lerp(trackRight - SLIDER_TRACK_WIDTH + inset, trackRight - inset, part), pageRow(place).y };
+    }
+
+    /**
+     * The middle of a step arrow of the slider of a row of a page, by the row's place among the rows: the one
+     * before its track, or the one after it.
+     */
+    ImVec2 sliderArrow(const int place, const bool after)
+    {
+        const float trackRight = sliderTrackRight();
+        const float fromTrack = theme::SPACE_1 + 12.0f;
+        return { after ? trackRight + fromTrack : trackRight - SLIDER_TRACK_WIDTH - fromTrack, pageRow(place).y };
     }
 
     /**
@@ -2257,7 +2277,7 @@ TEST_CASE("FullPanel: a pull on the grab of a slider does not move it")
         return numberOf(store, panel, 0x810);
     };
 
-    // the grab is at 20 of 100, and the ray on its right part: 8 pixels are 3 of 100, nearest to the step at 25
+    // the grab is at 20 of 100, and the ray on its right part: 8 pixels are 4 of 100, nearest to the step at 25
     const auto onGrab = ImVec2(sliderTrack(0, 0.2f).x + 8.0f, pageRow(0).y);
     for (const bool held : { false, false, true, true }) {
         test_panel::drawFrame(panel, onGrab, held);
@@ -2394,6 +2414,96 @@ TEST_CASE("FullPanel: the thumbstick steps a slider only once the ray is on its 
     pushFrames(panel, pageRow(1), 1.0f, 180);
     CHECK(percent() == 25.0f);
     CHECK(tenths() == Catch::Approx(1.1f));
+}
+
+TEST_CASE("FullPanel: a press on a step arrow of a slider steps it, and acts")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store;
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+    const auto percent = [&store, &panel] {
+        return numberOf(store, panel, 0x810);
+    };
+
+    CHECK(pressActs(panel, sliderArrow(0, true)));
+    CHECK(percent() == 25.0f);
+    CHECK(pressActs(panel, sliderArrow(0, false)));
+    CHECK(pressActs(panel, sliderArrow(0, false)));
+    CHECK(percent() == 15.0f);
+
+    // a little beside the arrow too, on both sides of it
+    CHECK(pressActs(panel, ImVec2(sliderArrow(0, true).x + 14.0f, pageRow(0).y)));
+    CHECK(pressActs(panel, ImVec2(sliderArrow(0, true).x - 14.0f, pageRow(0).y)));
+    CHECK(percent() == 25.0f);
+
+    // the other slider, by its own step
+    CHECK(pressActs(panel, sliderArrow(1, true)));
+    CHECK(numberOf(store, panel, 0x811) == Catch::Approx(1.1f));
+    CHECK(percent() == 25.0f);
+}
+
+TEST_CASE("FullPanel: a step arrow of a slider that is held steps again, and the ray leaving it ends that")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    mcm::McmStore store;
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+    const auto tenths = [&store, &panel] {
+        return numberOf(store, panel, 0x811);
+    };
+    int acted = 0;
+    const auto frames = [&panel, &acted](const ImVec2 at, const bool held, const int count) {
+        for (int i = 0; i < count; ++i) {
+            test_panel::drawFrame(panel, at, held);
+            acted += panel.pressActed() ? 1 : 0;
+        }
+    };
+    const auto next = sliderArrow(1, true);
+
+    // one step as it is pressed, and the next after 0.4 seconds at 90 frames a second
+    frames(next, false, 2);
+    frames(next, true, 30);
+    CHECK(tenths() == Catch::Approx(1.1f));
+    frames(next, true, 8);
+    CHECK(tenths() == Catch::Approx(1.2f));
+
+    // the ray goes off the arrow, onto the track: no more steps, no drag, and the rest of the press changes nothing
+    frames(sliderTrack(1, 0.9f), true, 60);
+    frames(next, true, 60);
+    frames(sliderTrack(1, 0.9f), false, 1);
+    CHECK(tenths() == Catch::Approx(1.2f));
+
+    // held for long, it steps faster, and stops at the end of the range
+    frames(next, false, 2);
+    frames(next, true, 270);
+    CHECK(tenths() == Catch::Approx(2.0f));
+    frames(next, false, 1);
+
+    // the hand gets a pulse for each step, and none past the end
+    CHECK(acted == 10);
+}
+
+TEST_CASE("FullPanel: a press on the step arrow of the end a slider is at does nothing")
+{
+    const test_panel::PanelContext context;
+    auto globals = sliderGlobals();
+    globals.values[{ PLUGIN, 0x810 }] = 100.0f;
+    globals.values[{ PLUGIN, 0x811 }] = 0.0f;
+    mcm::McmStore store;
+    auto panel = modWithSliders(store);
+    drawFrames(panel, 2);
+
+    CHECK_FALSE(pressActs(panel, sliderArrow(0, true)));
+    CHECK(numberOf(store, panel, 0x810) == 100.0f);
+    CHECK_FALSE(pressActs(panel, sliderArrow(1, false)));
+    CHECK(numberOf(store, panel, 0x811) == 0.0f);
+
+    // and the other arrow goes on
+    CHECK(pressActs(panel, sliderArrow(0, false)));
+    CHECK(numberOf(store, panel, 0x810) == 95.0f);
 }
 
 TEST_CASE("FullPanel: a press on the name of a slider changes nothing")
