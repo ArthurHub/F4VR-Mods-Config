@@ -229,6 +229,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M137 | mod | design system: the Help page and the buttons of an MCM mod              | done   |
 | M138 | mod | An MCM change is made as it is made, and Discard sets it back           | in review |
 | M139 | mod | An MCM mod has the MCM tag in the tree                                  | in review |
+| M140 | mod | An MCM mod's Save bar says Keep and Revert                              | in review |
 | M82 | mod  | The version rules of the config spec schema and of the native API           | todo   |
 | M83 | mod  | An open session on a save load, a loading screen and the player's death | todo   |
 | M84 | mod  | The menu without FRIK, and without MCM                                  | todo   |
@@ -238,7 +239,9 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 
 M136 to M138 make an MCM change as MCM's menu makes it, so the player sees it in the game: it writes the value, runs its row's action and sends MCM's event as it is made, and keeps the Save bar of M121. A setting the player changed is dirty while its value is not its baseline. Discard sets the dirty settings back in the reverse of the order they were changed, each as a change is made, with its action run again, so a preset that is set back sets its rows back, and a row's own Discard does the same for that setting alone. Save writes nothing, and sends the pause menu's events where the session wrote a ModSetting, so a DLL that reads MCM's file gets the changes at Save. A script's button of an MCM mod no longer asks to save first. M137 changes the Help page's MCM section and the text of what Save does, and M138 makes the store, with its tests. See [MCM compatibility](architecture.md#mcm-compatibility).
 
-M139 marks an MCM mod in the tree, as its change is made at once where a config spec's waits for Save: the `MCM` tag at the right of its row, which its help and the Help page explain, and its pending status says its changes are made and not saved. The selected row's tip is inside the row, so the tree's rows are wider. See [ModTree](design-system/project/components/ModTree/README.md).
+M139 marks an MCM mod in the tree, as its change is made at once where a config spec's waits for Save: the `MCM` tag at the right of its row, which its help and the Help page explain, and its pending status says its changes are made. The selected row's tip is inside the row, so the tree's rows are wider. See [ModTree](design-system/project/components/ModTree/README.md).
+
+M140 names what an MCM mod's Save bar does: its Save writes nothing, so Keep and Revert are its buttons, of the footer and of the dialog that asks before the mod is left, its status says `1 change made`, `Kept` and `No changes made`, and a row's undo says Revert. A config spec's stay Save and Discard, as its Save writes the files. See [SaveBar](design-system/project/components/SaveBar/README.md).
 
 The config spec format and the native API are public from this release, so M82 settles how both change later.
 

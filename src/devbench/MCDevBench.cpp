@@ -62,7 +62,7 @@ namespace mods_config::devbench
                    "selection: mod and page (what the panel shows: the mod as its place from 0 in the mods action's answer, and the page as "
                    "its place in the mod's pages, then in the pages of each page on the way to it; a null mod is the menu's front page, and "
                    "an empty page the mod's front page), helpShown (the Help page is shown over it), asking (the dialog asks to Save, Discard "
-                   "or Cancel the unsaved changes before the mod is left or the menu is closed); "
+                   "or Cancel the unsaved changes before the mod is left or the menu is closed, with Keep and Revert for an MCM mod); "
                    "session: the selected mod's editing session, null on the menu's front page: dirty (the changes that wait for a Save), invalid (the changes that are not valid, "
                    "which block Save); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
@@ -767,7 +767,8 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "answer",
             .description = "press a button of the dialog that asks what to do with the selected mod's unsaved changes before it is left or the menu is closed: "
-                           "save writes them and then does what was asked, discard drops them and does it, cancel stays; Save is not pressed while a change is invalid",
+                           "save writes them and then does what was asked, discard drops them and does it, cancel stays; Save is not pressed while a change is invalid. "
+                           "An MCM mod's dialog has Keep for save and Revert for discard",
             .arguments = { { "button", { { "type", "string" }, { "enum", { "save", "discard", "cancel" } }, { "description", "answer: the dialog's button" } } } },
             .handler = &runAnswer,
         });

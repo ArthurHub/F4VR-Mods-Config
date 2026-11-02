@@ -32,7 +32,7 @@ namespace
 
     // the tag of an MCM mod's row, and what the help line says of it, as its change is made at once
     constexpr auto MCM_TAG = "MCM";
-    constexpr auto MCM_HELP = "An MCM menu: a change is made in the game as you make it. Save keeps it, and Discard sets it back.";
+    constexpr auto MCM_HELP = "An MCM menu: a change is made in the game as you make it. Keep accepts it, and Revert sets it back.";
     // a tag's font size, a little over half the detail size, the room between its text and its outline, and its
     // gap from the row's right edge
     constexpr float TAG_FONT_SIZE = 10.0f;

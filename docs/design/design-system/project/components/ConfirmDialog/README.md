@@ -7,4 +7,5 @@ The modal that asks what to do with unsaved changes before leaving a mod or clos
 - 576 px wide, centered on the panel, on `popup` with a 2 px `green` border and `radius-popup`; `space-6` padding. The panel behind is dimmed with `scrim` (`ModalWindowDimBg`).
 - Title in `t-title`, one sentence in `t-body` that names the mod and the next step.
 - Buttons right-aligned: Cancel (quiet), Discard (secondary), Save (primary). Back is Cancel.
+- An MCM mod's changes are made in the game already, so nothing is unsaved: the title is "Keep changes?", the sentence "Companion Command has 1 change made. Keep it before you open FRIK?", and the buttons Cancel, Revert and Keep, in the same places and looks.
 - `ImGui::BeginPopupModal` with `AlwaysAutoResize`, positioned with `SetNextWindowPos` at the panel center.

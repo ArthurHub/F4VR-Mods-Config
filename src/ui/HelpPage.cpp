@@ -147,11 +147,11 @@ namespace
             .mark = LineMark::Live },
         PageLine{ .name = "Save", .text = "The mod applies it when you save.", .mark = LineMark::Save },
         PageLine{ .name = "Restart", .text = "It applies after the game is restarted. The menu's front page reminds you until then.", .mark = LineMark::Restart },
-        PageLine{ .name = "No mark", .text = "The mod does not say, as no MCM mod does. Save keeps it all the same.", .mark = LineMark::NoMark },
+        PageLine{ .name = "No mark", .text = "The mod does not say, as no MCM mod does.", .mark = LineMark::NoMark },
     };
 
     const std::array MARKS{
-        PageLine{ .name = "Amber value", .text = "Changed, not saved yet.", .nameColor = theme::color::AMBER },
+        PageLine{ .name = "Amber value", .text = "Changed, not saved or kept yet.", .nameColor = theme::color::AMBER },
         PageLine{ .name = "Red value", .text = "Invalid: the help line says why.", .mark = LineMark::Invalid, .nameColor = theme::color::RED },
         PageLine{ .name = "Warning", .text = "Something to know about the value as it is: the help line says what.", .mark = LineMark::Warning },
         PageLine{ .name = "Result", .text = "A button gave a result: point at its row to read it.", .mark = LineMark::Info },
@@ -160,9 +160,9 @@ namespace
 
     const std::array MCM{
         PageLine{ .name = "MCM tag", .text = "A mod whose menu is MCM's has it after its name in the list of mods, as its changes work as below." },
-        PageLine{ .name = "Save",
-            .text = "A change is made as you make it, as in MCM's own menu, so you see it in the game and a button's script reads it. It is still unsaved: Save keeps "
-                    "it, and Discard sets it back and runs the mod's script for it again. Some mods require save notification to apply the changes." },
+        PageLine{ .name = "Keep and Revert",
+            .text = "A change is made as you make it, as in MCM's own menu, so you see it in the game and a button's script reads it. Keep accepts it, and some mods "
+                    "apply it only then. Revert sets it back and runs the mod's script for it again." },
     };
 }
 

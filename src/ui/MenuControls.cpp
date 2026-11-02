@@ -218,7 +218,7 @@ namespace mods_config::ui
                         ": the menu is put in front of you again. It also comes back by itself when you walk away from it." });
         }
         controls.push_back({ .name = "Minimize",
-            .text = "On the title bar: the menu is hidden as you left it, unsaved changes too. Your offhand wrist then has Restore, which shows it again with its "
+            .text = "On the title bar: the menu is hidden as you left it, your changes too. Your offhand wrist then has Restore, which shows it again with its "
                     "values read again, and Exit, which closes it." });
         return controls;
     }

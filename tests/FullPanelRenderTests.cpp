@@ -1586,6 +1586,19 @@ TEST_CASE("FullPanel render: the values of a page's settings, and the status of 
         panel.select({ .mod = 0, .page = {} });
         WARN("Saved " << renderToFile(panel, onRow ? "values-not-available" : "values", onRow ? pageRow(5) : POINTER_AWAY));
     }
+
+    // a change that is made: Keep and Revert in the footer, and in the dialog that asks before the menu is closed
+    FullPanel panel;
+    panel.setStore(model::Source::Mcm, &store);
+    panel.setMods({ mod });
+    panel.select({ .mod = 0, .page = {} });
+    store.set(std::get<model::Setting>(panel.mods()[0].frontPage.items[1]), true);
+    REQUIRE(store.dirtyCount() == 1);
+    WARN("Saved " << renderToFile(panel, "mcm-change-made", POINTER_AWAY));
+    panel.close();
+    REQUIRE(panel.isAsking());
+    WARN("Saved " << renderToFile(panel, "mcm-close-dialog", POINTER_AWAY));
+    store.discard();
 }
 
 TEST_CASE("FullPanel render: the Reset of the rows with a default, disabled on those that are at it", "[.render]")

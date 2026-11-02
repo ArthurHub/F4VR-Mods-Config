@@ -1,6 +1,6 @@
 # TakesEffect
 
-When a change of a setting takes effect in its mod, as its config spec says it with `applies`: `live`, `save` or `restart`. Most settings, and every MCM one, are `unknown`: the menu cannot tell, so it shows nothing. Save keeps every change either way: when the mod acts on it is the mod's.
+When a change of a setting takes effect in its mod, as its config spec says it with `applies`: `live`, `save` or `restart`. Most settings, and every MCM one, are `unknown`: the menu cannot tell, so it shows nothing. Every change is kept either way: when the mod acts on it is the mod's.
 
 **Provides:** each setting's `applies`, and whether its value is pending.
 

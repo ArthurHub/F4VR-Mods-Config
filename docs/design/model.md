@@ -74,7 +74,7 @@ What the UI asks of the store:
 
 There are two stores, and what happens around a change is theirs:
 
-- **The MCM store** reads a clean value in every frame. A set writes the value where its storage says, runs the row's action and sends MCM's event, as MCM's menu does, and the setting is dirty while its value is not its baseline. Discard sets the dirty values back the same way, in the reverse of the order they were changed, and Save keeps them as the baseline. See [MCM compatibility](architecture.md#mcm-compatibility).
+- **The MCM store** reads a clean value in every frame. A set writes the value where its storage says, runs the row's action and sends MCM's event, as MCM's menu does, and the setting is dirty while its value is not its baseline. Discard sets the dirty values back the same way, in the reverse of the order they were changed, and Save keeps them as the baseline. The player's buttons for these are Revert and Keep, as nothing is left to save. See [MCM compatibility](architecture.md#mcm-compatibility).
 - **The config spec store** reads the files, and the globals and properties, when the mod is selected. A set changes the pending value, and that of a `live` setting is previewed: to the mod's client for a key of a file, and into the game by the store itself for a global or a property. Save writes the values and then runs the actions of the settings it wrote. Save and Discard are as in [Architecture and lifecycle](architecture.md#editing-session).
 
 Two things are kept apart: when a change is saved, and when the running mod acts on it. The first is the store's: a config spec's change is saved on Save, and an MCM change as it is made. The second is the mod's, and a config spec can say it with `applies`:
@@ -218,7 +218,7 @@ A press on "Enable the feature":
 2. The MCM store writes 0 to the global, runs `OnToggle` with the value, and sends MCM's event. `main/2` is dirty.
 3. The UI asks for the values again. `main/2` is off, so the Strength row is not visible.
 
-When the ray leaves the rows, the help line goes back to the status, which counts one unsaved change. Save keeps it. Discard writes 1 to the global, runs `OnToggle` with it, and sends MCM's event again.
+When the ray leaves the rows, the help line goes back to the status, which counts one change made. Keep accepts it. Revert writes 1 to the global, runs `OnToggle` with it, and sends MCM's event again.
 
 ### A config spec
 

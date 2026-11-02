@@ -344,8 +344,8 @@ sb_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 {footer('<span class="mc-muted">No unsaved changes</span>', btn('Discard', '', 'is-disabled') + btn('Save', 'is-primary', 'is-disabled'))}
 <span class="t-detail mc-muted">Pending</span>
 {footer(DOT + '<span class="mc-amber">1 unsaved change</span>', btn('Discard') + btn('Save', 'is-primary'))}
-<span class="t-detail mc-muted">Pending, of an MCM mod: the change is made in the game already, and Save keeps it</span>
-{footer(DOT + '<span class="mc-amber">1 change made, not saved</span>', btn('Discard') + btn('Save', 'is-primary'))}
+<span class="t-detail mc-muted">Pending, of an MCM mod: the change is made in the game already, so nothing waits for a Save, and its buttons are Revert and Keep</span>
+{footer(DOT + '<span class="mc-amber">1 change made</span>', btn('Revert') + btn('Keep', 'is-primary'))}
 <span class="t-detail mc-muted">Blocked by an invalid value</span>
 {footer(WARN + '<span class="mc-red">2 invalid values</span>', btn('Discard') + btn('Save', 'is-primary', 'is-disabled'))}
 <span class="t-detail mc-muted">Not saved: a Save that failed</span>
@@ -354,13 +354,22 @@ sb_body = f'''<div class="mc-world"><div class="mc-sheet mc-stack" style="width:
 write('SaveBar', page('<!-- @dsCard group="Actions" height=660 width=1180 subtitle="Clean, pending, an MCM mod&#39;s pending, blocked, not saved: every mod, MCM too" -->', 'Save bar', sb_body))
 
 # ---------------- ConfirmDialog ----------------
-cd_body = f'''<div class="mc-world"><div class="mc-sheet mc-scrim" style="width:820px;height:400px;padding:0">
+cd_body = f'''<div class="mc-world mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A change that waits for Save</span>
+<div class="mc-sheet mc-scrim" style="width:820px;height:400px;padding:0">
 <div class="mc-dialog">
 <div class="t-title">Unsaved changes</div>
 <div class="t-body">Immersive Flashlight VR has 1 unsaved change. Save it before you open FRIK?</div>
 <div class="actions">{btn('Cancel', 'is-quiet')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
+</div></div>
+<span class="t-detail mc-caption">An MCM mod's change, which is made in the game already</span>
+<div class="mc-sheet mc-scrim" style="width:820px;height:400px;padding:0">
+<div class="mc-dialog">
+<div class="t-title">Keep changes?</div>
+<div class="t-body">Companion Command has 1 change made. Keep it before you open FRIK?</div>
+<div class="actions">{btn('Cancel', 'is-quiet')}{btn('Revert')}{btn('Keep', 'is-primary')}</div>
 </div></div></div>'''
-write('ConfirmDialog', page('<!-- @dsCard group="Actions" height=450 width=870 subtitle="Save / Discard / Cancel, centered on the panel" -->', 'Confirmation dialog', cd_body))
+write('ConfirmDialog', page('<!-- @dsCard group="Actions" height=930 width=870 subtitle="Save / Discard / Cancel, or Keep / Revert / Cancel for an MCM mod, centered on the panel" -->', 'Confirmation dialog', cd_body))
 
 # ---------------- ModTree ----------------
 home_tree = ''.join([
@@ -1398,8 +1407,8 @@ hk_body = f"""<div class="mc-world mc-stack" style="gap:16px">
     ('Not available', row('Strobe', keybox('None'))),
 ])}
 <div class="mc-sheet mc-stack" style="width:1120px;padding:0;gap:0">
-<div class="mc-footer">{helpline('Toggle the flashlight', '(Read-only) Turns the flashlight on and off. Bind a key to it in MCM&#39;s menu.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
-<div class="mc-footer">{helpline('Strobe', 'Not available: the hotkey strobe is not in the keybinds.json of the mod.')}<span class="mc-btn t-body is-disabled">Discard</span><span class="mc-btn t-body is-primary is-disabled">Save</span></div>
+<div class="mc-footer">{helpline('Toggle the flashlight', '(Read-only) Turns the flashlight on and off. Bind a key to it in MCM&#39;s menu.')}<span class="mc-btn t-body is-disabled">Revert</span><span class="mc-btn t-body is-primary is-disabled">Keep</span></div>
+<div class="mc-footer">{helpline('Strobe', 'Not available: the hotkey strobe is not in the keybinds.json of the mod.')}<span class="mc-btn t-body is-disabled">Revert</span><span class="mc-btn t-body is-primary is-disabled">Keep</span></div>
 </div>
 </div>"""
 hk_body = hk_body.replace('class="mc-row ', 'class="mc-row is-readonly ').replace('class="mc-row is-readonly "', 'class="mc-row is-readonly"')
@@ -2084,7 +2093,7 @@ HELP_ROWS = [
     control('Back', 'Tap the grip on either hand while pointing at the menu.'),
     control('Move the menu', 'Long press the grip on either hand while pointing at the menu: it follows the hand until you let go.'),
     control('Recenter', 'Long press the thumbstick on the off hand: the menu is put in front of you again. It also comes back by itself when you walk away from it.'),
-    control('Minimize', 'On the title bar: the menu is hidden as you left it, unsaved changes too. Your offhand wrist then has Restore, which shows it again with its values read again, and Exit, which closes it.'),
+    control('Minimize', 'On the title bar: the menu is hidden as you left it, your changes too. Your offhand wrist then has Restore, which shows it again with its values read again, and Exit, which closes it.'),
     section('Changes'),
     control('Save', 'A change waits for Save, which writes it, and Discard takes it back. An MCM mod&#39;s change is made at once instead: see MCM below. Changes are kept for each mod, and leaving a mod or closing the menu with unsaved changes asks first.'),
     legend(DISCARD, 'Undo one change', 'A changed value is amber, and the undo arrow after it takes back that change alone. Discard, in the footer, takes back all of them.'),
@@ -2094,16 +2103,16 @@ HELP_ROWS = [
     legend(LIVE, 'Live', 'The mod applies the change as you make it, so you see it in the game before you save. It is still unsaved: Save keeps it, and Discard, or leaving without saving, puts the old value back in the game too.'),
     legend(SAVE, 'Save', 'The mod applies it when you save.'),
     legend(RESTART, 'Restart', 'It applies after the game is restarted. The menu&#39;s front page reminds you until then.'),
-    legend(DOT, 'No mark', 'The mod does not say, as no MCM mod does. Save keeps it all the same.'),
+    legend(DOT, 'No mark', 'The mod does not say, as no MCM mod does.'),
     section('Marks'),
-    control('<span class="mc-amber">Amber value</span>', 'Changed, not saved yet.'),
+    control('<span class="mc-amber">Amber value</span>', 'Changed, not saved or kept yet.'),
     legend(WARN, '<span class="mc-red">Red value</span>', 'Invalid: the help line says why.'),
     legend(CAUTION, 'Warning', 'Something to know about the value as it is: the help line says what.'),
     legend(DONE, 'Result', 'A button gave a result: point at its row to read it.'),
     control('<span style="opacity:var(--opacity-disabled)">Greyed row</span>', 'Point at it: the help line says why it cannot be changed.'),
     section('MCM'),
     control('MCM tag', 'A mod whose menu is MCM&#39;s has it after its name in the list of mods, as its changes work as below.'),
-    control('Save', 'A change is made as you make it, as in MCM&#39;s own menu, so you see it in the game and a button&#39;s script reads it. It is still unsaved: Save keeps it, and Discard, or leaving without saving, sets it back and runs the mod&#39;s script for it again.'),
+    control('Keep and Revert', 'A change is made as you make it, as in MCM&#39;s own menu, so you see it in the game and a button&#39;s script reads it. Keep accepts it, and some mods apply it only then. Revert sets it back and runs the mod&#39;s script for it again.'),
     control('Hotkeys', 'A mod&#39;s hotkeys are shown, not edited: change them in MCM.'),
     control('A mod that is greyed', 'It cannot be shown: point at it to see why, and the front page lists it under Notices.'),
 ]

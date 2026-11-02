@@ -76,7 +76,7 @@ What a row has beside its type:
 
 | Feature | How the menu handles it | |
 | --- | --- | --- |
-| `CallFunction` | As in MCM, on a button and on a value row, the row's after its value is written, and again as Discard sets it back. A button runs with the changes made, and does not ask to save first | M33, M34, M138 |
+| `CallFunction` | As in MCM, on a button and on a value row, the row's after its value is written, and again as Revert sets it back. A button runs with the changes made, and does not ask to save first | M33, M34, M138 |
 | `CallGlobalFunction` | As in MCM | M40 |
 | `CallExternalFunction` | Not run: it calls a function of Flash, which the menu has none of | M40 |
 | `RunConsoleCommand`, `SendEvent`, and any other type | Not run: they are actions of a hotkey, which MCM runs, and MCM's menu runs none of them in a row | M40 |
@@ -97,10 +97,10 @@ What a row has beside its type:
 
 | Feature | How the menu handles it | |
 | --- | --- | --- |
-| A change is saved as it is made | As in MCM, and it is a change of the session until Save keeps it or Discard sets it back, which runs its row's action and sends its event again. Its `applies` is `unknown`: see [MCM compatibility](architecture.md#mcm-compatibility) | M25, M138 |
+| A change is saved as it is made | As in MCM, and it is a change of the session until Keep accepts it or Revert sets it back, which runs its row's action and sends its event again. Its `applies` is `unknown`: see [MCM compatibility](architecture.md#mcm-compatibility) | M25, M138 |
 | `OnMCMOpen`, `OnMCMClose` | As in MCM | M31 |
 | `OnMCMMenuOpen`, `OnMCMMenuOpen\|<mod>`, `OnMCMMenuClose\|<mod>` | Sent as a mod is selected and left, also as the menu closes, where MCM's menu sends none | M31 |
-| `OnMCMSettingChange`, `OnMCMSettingChange\|<mod>` | As in MCM, after the action, as a change is made, and as Discard sets it back | M31, M34, M138 |
+| `OnMCMSettingChange`, `OnMCMSettingChange\|<mod>` | As in MCM, after the action, as a change is made, and as Revert sets it back | M31, M34, M138 |
 | MCM's Papyrus functions: `GetModSetting*`, `SetModSetting*`, `RefreshMenu`, `IsInstalled`, `GetVersionCode` | MCM's own, which keep working. `RefreshMenu` refreshes MCM's menu alone, and this menu reads every value again by itself | M42 |
 | Hotkeys | MCM binds and runs them, for a key of the keyboard, the mouse or a gamepad. The menu shows them read-only. A button of a VR controller is no key MCM runs a hotkey for, and the menu does not add one | M35 |
 | MCM's `Hotkey manager` and `MCM Settings` | Not listed: a mod's hotkeys are on its own pages | M11 |

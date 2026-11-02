@@ -224,7 +224,7 @@ How the menu works, with the buttons the player's config has: not what every VR 
   - **Navigation**: opening and closing the menu, which also shows a minimized one; that the hand that points works the menu and the game does not get its trigger and thumbstick; Back; moving the panel; Recenter, which also happens by itself; and Minimize, with Restore and Exit on the wrist.
   - **Changes**: that nothing is written until Save, for each mod, and that leaving one with changes asks; the undo arrow of one change and Discard; Reset; a button that runs a script, which asks to save first; and each mark of when a change takes effect with what it means. `Live` is the one that needs saying: the mod applies the change as it is made, so it is seen in the game before Save, and Discard or leaving without saving puts the old value back in the game too.
   - **Marks**: the amber and the red value, the warning mark, a button's result, and a greyed row, which says why in the help line.
-  - **MCM**: what differs from MCM's menu and from a config spec's mod, and that the `MCM` tag in the tree shows which mods these are: a change is made as it is made, as in MCM's menu, and Save keeps it and Discard sets it back, so a script's button does not ask to save first; a mod's hotkeys are only shown, and a mod that cannot be shown is greyed, with why. It is always there.
+  - **MCM**: what differs from MCM's menu and from a config spec's mod, and that the `MCM` tag in the tree shows which mods these are: a change is made as it is made, as in MCM's menu, and Keep accepts it and Revert sets it back, so a script's button does not ask to save first; a mod's hotkeys are only shown, and a mod that cannot be shown is greyed, with why. It is always there.
 - A button and a binding are said as the config has them, as the controllers print their buttons, and shorter than the sentence of the [InputBinding](design-system/project/components/InputBinding/README.md) control: no time or threshold, and a chord of the same button on both hands as one press of both, "Long press both thumbsticks". Back and the move are on the hand that points, either hand, so an A button is "the A or X button". A control the config turns off is left out.
 - Nothing on it is pressed.
 
@@ -397,8 +397,8 @@ MCM-backed entries should feel integrated:
 
 - MCM-backed entries appear only when MCM is installed.
 - They are in the same list as every other mod, with no group of their own. Their rows have the `MCM` tag, as their changes are made at once where a config spec's wait for Save.
-- Their changes are made as they are made, as in MCM's menu, and have the Save bar as a config spec's do: Save keeps them and Discard sets them back. When the mod acts on one is not known, and the help line says so: the menu does not know it.
-- Preserve MCM-specific help, option state, and event behavior where possible. Its events and its actions are sent and run as a change is made, and as Discard sets it back.
+- Their changes are made as they are made, as in MCM's menu, and have the Save bar as a config spec's do, with its buttons named for that: Keep accepts them and Revert sets them back. The status and the dialog that asks before a mod is left say the same. When the mod acts on one is not known, and the help line says so: the menu does not know it.
+- Preserve MCM-specific help, option state, and event behavior where possible. Its events and its actions are sent and run as a change is made, and as Revert sets it back.
 
 What the menu shows for a mod follows what the mod supports, not where its menu comes from: the Save bar for every mod, with live preview where the mod has it. A config spec can say when a change takes effect, for the mod and for any page, section or setting that differs.
 

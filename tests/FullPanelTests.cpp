@@ -41,7 +41,7 @@ namespace
     constexpr float TREE_ROW_PITCH = theme::CONTROL_HEIGHT + theme::SPACE_1;
 
     // what the help line says of an MCM mod's row in the tree
-    constexpr auto MCM_ROW_HELP = "An MCM menu: a change is made in the game as you make it. Save keeps it, and Discard sets it back.";
+    constexpr auto MCM_ROW_HELP = "An MCM menu: a change is made in the game as you make it. Keep accepts it, and Revert sets it back.";
 
     model::Mod modOf(const std::string& name, const Names& pages = {})
     {
@@ -2101,25 +2101,28 @@ TEST_CASE("FullPanel: a config spec's row whose condition on a plugin does not h
     CHECK(panel.helpLine().text() == "After: What it does.");
 }
 
-TEST_CASE("FullPanel: the help line says that an MCM mod has no unsaved changes, and how many it has, while it is shown")
+TEST_CASE("FullPanel: the help line says that an MCM mod has no changes made, how many it has, and that they are kept, while it is shown")
 {
     const test_panel::PanelContext context;
     auto globals = someGlobals();
     mcm::McmStore store;
     auto panel = modWithValues(store);
     drawFrames(panel, 2);
-    CHECK(panel.helpLine().status() == "No unsaved changes");
+    CHECK(panel.helpLine().status() == "No changes made");
 
     // it stays the status under the help of a row, for when the ray leaves the rows
     // it stays the status under the help of a row, for when the ray leaves the rows
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Off: What it does.");
     CHECK(pressActs(panel, pageRow(0)));
-    // which is in the game already, and not saved
-    CHECK(panel.helpLine().status() == "1 change made, not saved");
+    // which is in the game already
+    CHECK(panel.helpLine().status() == "1 change made");
 
     // an MCM config does not say when a change takes effect, so a pending row has no tag
     CHECK(panel.helpLine().tag().empty());
+    REQUIRE(store.save());
+    drawFrames(panel, 1);
+    CHECK(panel.helpLine().status() == "Kept");
     store.discard();
 
     // the menu's front page has no session
@@ -3491,13 +3494,13 @@ TEST_CASE("FullPanel: the help line names the default of the row the ray is on, 
     point(panel, resetButton(3));
     CHECK(panel.helpLine().text() == "Global: What it does.");
 
-    // a row that is reset is changed, and its Discard names the value it gives back, also one with no default
+    // a row that is reset is changed, and its Revert names the value it gives back, also one with no default
     press(panel, resetButton(0));
     point(panel, resetButton(0));
-    CHECK(panel.helpLine().text() == "Enabled: Discard the change, back to off.");
+    CHECK(panel.helpLine().text() == "Enabled: Revert the change, back to off.");
     press(panel, pageRow(3));
     point(panel, resetButton(3));
-    CHECK(panel.helpLine().text() == "Global: Discard the change, back to off.");
+    CHECK(panel.helpLine().text() == "Global: Revert the change, back to off.");
 }
 
 namespace

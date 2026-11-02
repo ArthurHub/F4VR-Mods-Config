@@ -402,7 +402,8 @@ namespace
         } else if (state.discards() && state.onSlot) {
             const auto saved = context.store->savedValue(setting);
             const auto savedName = saved ? nameOf(*saved) : std::string();
-            help = savedName.empty() ? std::string("Discard the change.") : std::format("Discard the change, back to {}.", savedName);
+            const auto* discard = context.store->writesChangesAtOnce() ? "Revert" : "Discard";
+            help = savedName.empty() ? std::format("{} the change.", discard) : std::format("{} the change, back to {}.", discard, savedName);
         } else if (state.resets && state.onSlot) {
             help = std::format("Reset to {}", nameOf(*state.defaultValue));
         } else if (playing) {

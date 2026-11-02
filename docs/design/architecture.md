@@ -17,7 +17,7 @@ Two sources fill one internal model:
 
 A mod's DLL can also register as a native client, through a restricted C++ API; see [Native API](#native-api). A client is not a third source. It adds to its mod's config spec: live preview, functions that buttons run, options and states that only its code knows, and entries of the quick launch section that open its own UI.
 
-The tree marks an MCM mod with the `MCM` tag, as its change is made at once, and shows no other difference of the source. Both have the Save bar, and what differs is in the mod's store: an MCM change is made at once through MCM, as MCM's menu makes it, and Save keeps it, and a config spec's waits for Save, which writes it into its files and the game. See [The settings model](model.md).
+The tree marks an MCM mod with the `MCM` tag, as its change is made at once, and shows no other difference of the source. Both have the Save bar, and what differs is in the mod's store: an MCM change is made at once through MCM, as MCM's menu makes it, so there is nothing to save, and the bar's buttons are Keep, which accepts it, and Revert, which sets it back, and a config spec's waits for Save, which writes it into its files and the game, and Discard, which drops it. See [The settings model](model.md).
 
 ```text
 Declarative config spec ──┐
@@ -98,7 +98,7 @@ Only one mod has an active editing session.
 
 A setting is dirty when its pending value differs from its baseline value. Changing a value and then changing it back leaves it clean, so Save does not write it.
 
-Opening a different mod, or going to the menu's front page, while the current mod is dirty prompts **Save / Discard / Cancel**. Closing the menu follows the same rule.
+Opening a different mod, or going to the menu's front page, while the current mod is dirty prompts **Save / Discard / Cancel**, or **Keep / Revert / Cancel** for an MCM mod. Closing the menu follows the same rule.
 
 A pending value that returns to its baseline is sent to the preview adapter as `Discard`, whether the player discarded it or changed it back, and a global or a property that was previewed gets its baseline written back. A client therefore holds a preview only for a dirty setting. A session with a dirty setting ends through Save or Discard, so no preview outlives its session.
 
@@ -589,7 +589,7 @@ MCM pages remain a compatibility source: their values are read and written as MC
 - Reads each mod's MCM `config.json` and its declared default settings.
 - Writes ModSettings through MCM's own `MCM.SetModSetting*` functions, so MCM's in-memory store and its settings file stay in agreement. It never writes MCM's settings files itself.
 - Reads and writes GlobalValue and PropertyValue sources directly, as MCM does.
-- Sends the existing `OnMCMSettingChange|ModName` external event as a change is made and as Discard sets it back, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
+- Sends the existing `OnMCMSettingChange|ModName` external event as a change is made and as Revert sets it back, and the menu open and close events when the menu opens and closes and when an MCM mod is shown and left, so scripts react as they do to MCM's own menu.
 - Runs the supported MCM button actions. A script reads the values the player sees, as each change is made already, so a press does not ask to save first, as a config spec's script button does; see [Buttons](schema.md#buttons).
 - Shows hotkeys read-only. MCM keeps dispatching them.
 

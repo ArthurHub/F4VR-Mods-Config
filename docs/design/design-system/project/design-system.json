@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-10-29T18:00:00Z",
+    "at": "2026-11-02T08:30:00Z",
     "via": "Claude Code",
-    "note": "An MCM mod has the MCM tag at the right of its row in the tree, and its pending status says its changes are made and not saved: ModTree, SaveBar and the Help page's MCM section. The selected row's tip is inside the row, so the tree keeps room on its right only for its scroll bar."
+    "note": "An MCM mod's Save bar and its dialog say Keep and Revert, as its change is made already and nothing is left to save, and its status says how many changes are made: SaveBar, ConfirmDialog, Hotkey and the Help page. A config spec's stay Save and Discard."
   },
   "layout": "files",
   "libraries": [],

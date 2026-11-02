@@ -24,6 +24,10 @@ namespace
     // and after a Save that wrote no change that takes effect after a restart, until the next change
     constexpr auto SAVED = "Saved";
 
+    // the same of an MCM mod, whose change is in the game as it is made: there is nothing to save, so it is kept
+    constexpr auto NONE_MADE = "No changes made";
+    constexpr auto KEPT = "Kept";
+
     // the width of a footer button, in the panel's pixels
     constexpr float BUTTON_WIDTH = 160.0f;
 
@@ -246,13 +250,14 @@ namespace mods_config::ui
     /**
      * Gives the help line the status of the selected mod's editing session: how many changes are invalid,
      * which block Save, why the last Save failed, until the next change, how many wait for a Save, or of an MCM
-     * mod how many are made and not saved, with how many of them take effect after a restart, or the last Save,
-     * until the next change, with how many of the changes it wrote take effect after a restart. Nothing with no
-     * mod, and with no store.
+     * mod how many are made, with how many of them take effect after a restart, or the last Save, until the next
+     * change, with how many of the changes it wrote take effect after a restart. Nothing with no mod, and with no
+     * store.
      */
     void FullPanel::updateStatus()
     {
         auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        const bool made = store && store->writesChangesAtOnce();
         if (!store) {
             _helpLine.setStatus({});
         } else if (const auto invalid = store->invalidCount(); invalid > 0) {
@@ -260,10 +265,8 @@ namespace mods_config::ui
         } else if (const auto failure = store->saveFailure(); !failure.empty()) {
             _helpLine.setStatus(std::format("Not saved: {}.", failure), StatusLook::Invalid);
         } else if (const auto dirty = store->dirtyCount(); dirty > 0) {
-            // an MCM change is in the game already, as it is made: Save keeps it
-            const bool made = _mods[*_selection.mod].source == model::Source::Mcm;
             const auto* plural = dirty == 1 ? "" : "s";
-            auto status = made ? std::format("{} change{} made, not saved", dirty, plural) : std::format("{} unsaved change{}", dirty, plural);
+            auto status = made ? std::format("{} change{} made", dirty, plural) : std::format("{} unsaved change{}", dirty, plural);
             if (const auto restarts = store->dirtyRestartCount(); restarts > 0) {
                 status += std::format(", {} take{} effect after a restart", restarts, restarts == 1 ? "s" : "");
             }
@@ -271,7 +274,7 @@ namespace mods_config::ui
         } else if (const auto saved = store->lastSave(); saved && *saved > 0) {
             _helpLine.setStatus(std::format("Saved. {} change{} effect after the game is restarted.", *saved, *saved == 1 ? " takes" : "s take"), StatusLook::Restart);
         } else {
-            _helpLine.setStatus(saved ? SAVED : NO_UNSAVED);
+            _helpLine.setStatus(saved ? (made ? KEPT : SAVED) : (made ? NONE_MADE : NO_UNSAVED));
         }
     }
 
@@ -832,7 +835,7 @@ namespace mods_config::ui
      * right, which keep their places. They are enabled while the selected mod has changes that wait for a
      * Save, also after a Save that failed, and are disabled on the menu's front page, which has no session.
      * Save is disabled while a change is invalid, which the status says. A press on Save writes the changes,
-     * and one on Discard takes them back.
+     * and one on Discard takes them back. An MCM mod's are named Keep and Revert, as its changes are written already.
      */
     void FullPanel::drawFooter(const ImVec2& pos)
     {
@@ -840,16 +843,17 @@ namespace mods_config::ui
         ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
 
         auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        const bool made = store && store->writesChangesAtOnce();
         const float top = pos.y + (theme::FOOTER_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
         const auto save = controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         const auto discard = controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
-        if (button("Discard", discard, ButtonLook::Secondary)) {
+        if (button(made ? "Revert" : "Discard", discard, ButtonLook::Secondary)) {
             store->discard();
             _pressActed = true;
         }
         ImGui::BeginDisabled(store && store->invalidCount() > 0);
-        if (button("Save", save, ButtonLook::Primary)) {
+        if (button(made ? "Keep" : "Save", save, ButtonLook::Primary)) {
             // the status has the reason of a Save that failed, which the store keeps
             std::ignore = store->save();
             _pressActed = true;
@@ -882,7 +886,8 @@ namespace mods_config::ui
                 .next = _leaving->closeMenu ? std::string("close the menu")
                         : _leaving->report  ? std::format("open the report of {}", _mods[*_leaving->report].displayName)
                         : _leaving->to.mod  ? std::format("open {}", _mods[*_leaving->to.mod].displayName)
-                                            : std::string("go to the menu's front page") };
+                                            : std::string("go to the menu's front page"),
+                .made = store->writesChangesAtOnce() };
         }
         const auto answer = drawUnsavedDialog(changes ? &*changes : nullptr);
         if (answer != DialogAnswer::None) {
