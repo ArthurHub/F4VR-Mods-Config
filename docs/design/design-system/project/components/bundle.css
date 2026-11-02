@@ -164,6 +164,15 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-btn { height: var(--control-height); min-width: 112px; padding: 0 var(--space-4); display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-frame); background: transparent; color: var(--green); white-space: nowrap; }
 .mc-btn.is-primary { background: var(--green); border-color: var(--green); color: var(--on-green); }
 .mc-btn.is-quiet { border-color: transparent; }
+/* a button row's style, from its config spec: important in accent, dangerous in red, the outline and the label */
+.mc-btn.is-important { border-color: var(--accent); color: var(--accent); }
+.mc-btn.is-dangerous { border-color: var(--red); color: var(--red); }
+.mc-btn.is-important.is-active { border-color: var(--accent); box-shadow: 0 0 0 var(--border-frame) var(--accent); }
+.mc-btn.is-dangerous.is-active { border-color: var(--red); box-shadow: 0 0 0 var(--border-frame) var(--red); }
+/* a button's icon, before its label, in the label's color */
+.mc-bico { width: 20px; height: 20px; flex: none; }
+.mc-bico .s { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mc-bico .f { fill: currentColor; stroke: none; }
 .mc-btn.is-hover { background: var(--hover); }
 .mc-btn.is-quiet.is-hover { border-color: var(--frame-border); }
 .mc-btn.is-primary.is-hover { background: var(--glow); border-color: var(--glow); }
@@ -421,6 +430,8 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .mc-btn.is-danger { background: var(--red); border-color: var(--red); color: var(--on-red); }
 .mc-btn.is-danger.is-hover { box-shadow: 0 0 0 var(--border-frame) var(--red); }
 .mc-btn.is-running { background: var(--pressed); border-color: var(--glow); }
+.mc-btn.is-important.is-running { border-color: var(--accent); }
+.mc-btn.is-dangerous.is-running { border-color: var(--red); }
 svg.mc-ico.spin { width: 20px; height: 20px; }
 .mc-dialog.is-danger { border-color: var(--red); }
 .mc-done { width: 20px; height: 20px; }

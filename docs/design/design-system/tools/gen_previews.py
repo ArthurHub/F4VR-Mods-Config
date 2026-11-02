@@ -1465,8 +1465,35 @@ print('ok number display')
 # ---------------- ButtonRow: a button in a row, running and its result; a confirmation, dangerous or not ----------------
 SPIN = '<svg class="mc-ico spin" viewBox="0 0 24 24"><path d="M12 3 A9 9 0 1 1 3 12"/></svg>'
 
-def run_btn(label='Run', state=''):
-    return f'<div class="main"><span class="mc-btn t-body is-run{" " + state if state else ""}">{label}</span></div>{reset_btn(False)}'
+# a button's icon, which its config spec names (`icon`): 20 px, drawn in the color of the button's label
+def _bico(d):
+    return f'<svg class="mc-bico" viewBox="0 0 20 20">{d}</svg>'
+BTN_ICONS = {
+    'play': _bico('<path class="f" d="M5 3 L16 10 L5 17 Z"/>'),
+    'stop': _bico('<rect class="f" x="4.5" y="4.5" width="11" height="11" rx="1.5"/>'),
+    'bolt': _bico('<path class="f" d="M11 2 L4 11 H9 L8 18 L16 8 H11 Z"/>'),
+    'target': _bico('<circle class="s" cx="10" cy="10" r="6.5"/><circle class="f" cx="10" cy="10" r="2"/><path class="s" d="M10 1 V4 M10 16 V19 M1 10 H4 M16 10 H19"/>'),
+    'check': _bico('<path class="s" d="M3.5 10.5 L8 15 L16.5 5.5"/>'),
+    'window': _bico('<rect class="s" x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path class="s" d="M2.5 7.5 H17.5 M5 5.5 H6 M7.5 5.5 H8.5"/>'),
+    'external': _bico('<path class="s" d="M11 3 H17 V9 M17 3 L9 11 M14 12 V17 H3 V6 H8"/>'),
+    'link': _bico('<path class="s" d="M8.5 11.5 L11.5 8.5 M9.5 5.5 L11 4 a3.2 3.2 0 0 1 4.5 4.5 L14 10 M10.5 14.5 L9 16 a3.2 3.2 0 0 1 -4.5 -4.5 L6 10"/>'),
+    'gear': _bico('<circle class="s" cx="10" cy="10" r="2.6"/><circle class="s" cx="10" cy="10" r="5.5"/><path class="s" d="M10 2.5 V4.5 M10 15.5 V17.5 M2.5 10 H4.5 M15.5 10 H17.5 M4.7 4.7 L6.1 6.1 M13.9 13.9 L15.3 15.3 M4.7 15.3 L6.1 13.9 M13.9 6.1 L15.3 4.7"/>'),
+    'import': _bico('<path class="s" d="M10 3 V12 M6 8.5 L10 12.5 L14 8.5 M3.5 13.5 V16.5 H16.5 V13.5"/>'),
+    'export': _bico('<path class="s" d="M10 13 V3.5 M6 7 L10 3 L14 7 M3.5 13.5 V16.5 H16.5 V13.5"/>'),
+    'copy': _bico('<rect class="s" x="6.5" y="6.5" width="10" height="10" rx="1.5"/><path class="s" d="M13.5 4 V3.5 H3.5 V13.5 H4"/>'),
+    'eye': _bico('<path class="s" d="M1.5 10 Q10 2 18.5 10 Q10 18 1.5 10 Z"/><circle class="f" cx="10" cy="10" r="2.5"/>'),
+    'hand': _bico('<path class="s" d="M6 11 V5 a1.3 1.3 0 0 1 2.6 0 V9 M8.6 9 V3.8 a1.3 1.3 0 0 1 2.6 0 V9 M11.2 9 V4.8 a1.3 1.3 0 0 1 2.6 0 V10 M13.8 10 V7.5 a1.3 1.3 0 0 1 2.6 0 V12 Q16.4 17.5 11 17.5 Q7.5 17.5 5.5 14.5 L3.4 11.4 a1.3 1.3 0 0 1 2.2 -1.4 L6 11"/>'),
+    'sound': _bico('<path class="f" d="M3 7.5 H6 L10.5 4 V16 L6 12.5 H3 Z"/><path class="s" d="M13.5 7 Q15.5 10 13.5 13 M15.5 5 Q19 10 15.5 15"/>'),
+    'pin': _bico('<path class="s" d="M10 18 Q4 11.5 4 8 a6 6 0 0 1 12 0 Q16 11.5 10 18 Z"/><circle class="s" cx="10" cy="8" r="2"/>'),
+    # two arrows that chase each other, so it is not read as Reset's single arc
+    'refresh': _bico('<path class="s" d="M4 8 A6.5 6.5 0 0 1 15.5 6 M16 2.5 V6.5 H12 M16 12 A6.5 6.5 0 0 1 4.5 14 M4 17.5 V13.5 H8"/>'),
+    'trash': _bico('<path class="s" d="M3.5 5.5 H16.5 M8 5.5 V3.5 H12 V5.5 M5.5 5.5 L6.5 17 H13.5 L14.5 5.5"/>'),
+}
+
+def run_btn(label='Run', state='', style='', icon=None):
+    """A button row's button: Run or its text, after its icon, in the look of its style (important or dangerous)."""
+    cls = 'mc-btn t-body is-run' + (f' is-{style}' if style else '') + (f' {state}' if state else '')
+    return f'<div class="main"><span class="{cls}">{BTN_ICONS[icon] if icon else ""}{label}</span></div>{reset_btn(False)}'
 
 DONE = ('<svg class="mc-done" viewBox="0 0 20 20"><circle class="ring" cx="10" cy="10" r="8.5"/>'
         '<rect class="i" x="9" y="8.5" width="2" height="6.5"/><circle class="i" cx="10" cy="5.8" r="1.3"/></svg>')
@@ -1474,6 +1501,11 @@ DONE = ('<svg class="mc-done" viewBox="0 0 20 20"><circle class="ring" cx="10" c
 def doneline(name, result, help_):
     """The help line of a button whose action worked: the info mark and the result in green, then the row's help."""
     return f'<div class="help t-body"><span class="name">{name}:</span> {DONE}<span class="done">{result}</span> {help_}</div>'
+
+def icon_cell(name):
+    """An icon of the set, by its name, on a 48 px button with no style and on an important one."""
+    cell = lambda style: f'<span class="mc-btn t-body is-run{style}" style="min-width:0;width:48px;padding:0">{BTN_ICONS[name]}</span>'
+    return f'<div style="display:flex;align-items:center;gap:8px"><span class="t-detail mc-muted" style="width:64px">{name}</span>{cell("")}{cell(" is-important")}</div>'
 
 br_states = h_sheet([
     ('Run', row('Hide the HUD', run_btn())),
@@ -1507,8 +1539,27 @@ br_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:90
 <span class="t-detail mc-caption">A script's button while its mod has unsaved changes: Save and run, or Run without saving</span>
 {dlg('Unsaved changes', 'You have 2 unsaved changes, and the button&#39;s script reads the saved values. Save them before it runs?', 'Save and run', False, True)}
 </div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">style: important in accent, and dangerous in red, the outline, the label and the icon; with no style, as above</span>
+{h_sheet([
+    ('No style', row('Hide the HUD', run_btn())),
+    ('important', row('Calibrate height', run_btn('Calibrate', style='important', icon='target'))),
+    ('Under the ray', row('Calibrate height', run_btn('Calibrate', style='important', icon='target'), 'is-hover', mark=(620, 22))),
+    ('Running', row('Calibrate height', run_btn(f'{SPIN}Running', 'is-running', 'important'))),
+    ('Done', row('Calibrate height', run_btn('Calibrate', style='important', icon='target'), gutter=DONE)),
+    ('Disabled', row('Open the body setup', run_btn('Open', style='important', icon='window'), 'is-disabled')),
+    ('dangerous', row('Delete every holster', run_btn('Delete', style='dangerous', icon='trash'))),
+    ('No icon', row('Reset all settings', run_btn('Reset', style='dangerous'))),
+])}
+</div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">icon: the 18 a config spec can name, on a button with no style and on an important one</span>
+<div class="mc-sheet" style="display:grid;grid-template-columns:repeat(3, 240px);gap:8px 16px;width:820px">
+{''.join(icon_cell(n) for n in BTN_ICONS)}
+</div>
+</div>
 </div>"""
-write('ButtonRow', page('<!-- @dsCard group="Actions" height=1190 width=1800 subtitle="A row that runs an action: Run or its text, running, its result marked in the gutter and said in the help line; a confirmation, and a dangerous one" -->', 'Button row', br_body))
+write('ButtonRow', page('<!-- @dsCard group="Actions" height=1780 width=1800 subtitle="A row that runs an action: Run or its text, running, its result marked after the name and said in the help line; its style, important or dangerous, and its icon; a confirmation, and a dangerous one" -->', 'Button row', br_body))
 print('ok button row')
 
 # ---------------- RestartNotice: a setting that needs a restart, and the Save that wrote one ----------------

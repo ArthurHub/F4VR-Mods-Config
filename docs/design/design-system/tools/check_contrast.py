@@ -41,7 +41,7 @@ col = {t['name']: rgba(t['value'][theme] if isinstance(t['value'], dict) else t[
 glass = over(*col['glass'], WORLD)
 grounds = {'glass': glass, 'hover': over(*col['hover'], glass), 'pressed': over(*col['pressed'], glass)}
 print('| Text | ' + ' | '.join(f'On `{g}`' for g in grounds) + ' |')
-for name in ('green', 'green-muted', 'amber', 'red'):
+for name in ('green', 'green-muted', 'amber', 'red', 'accent'):
     fg = col[name][0]
     print(f'| `{name}` | ' + ' | '.join(f'{ratio(fg, bg):.1f}:1' for bg in grounds.values()) + ' |')
 print(f"| `on-green` on `green` | {ratio(col['on-green'][0], col['green'][0]):.1f}:1 |")

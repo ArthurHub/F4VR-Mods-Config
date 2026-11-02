@@ -758,6 +758,25 @@ The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON v
 
 `buttonText` is the text on the button, in place of `Run`. It is a localized text.
 
+`style` makes a button that matters stand out, so the player does not miss it, and `icon` draws a mark before its text:
+
+```json
+{
+  "type": "button",
+  "text": "Calibrate height",
+  "buttonText": "Calibrate",
+  "style": "important",
+  "icon": "target",
+  "action": { "type": "CallNativeFunction", "function": "calibrate" }
+}
+```
+
+- `style` is `important` or `dangerous`. With none the button looks as every other.
+  - `important` draws the button's outline, text and icon in the accent color, which no state of the menu uses. Keep it for the one or two buttons of a page a player must find, as a calibration or the mod's own UI: a page whose buttons are all important has none that stands out.
+  - `dangerous` draws them in red, for an action that cannot be taken back. A press always asks first: the button's `confirmation`, red, or with none, one made from the button, its `text` as the title with a question mark, its `help` as the message and its `buttonText` or `Run` as the confirming button. A `confirmation` that is `dangerous` makes its button `dangerous` too.
+- `icon` names one of the menu's drawn icons: `play`, `stop`, `bolt`, `target`, `check`, `window`, `external`, `link`, `gear`, `import`, `export`, `copy`, `eye`, `hand`, `sound`, `pin`, `refresh` and `trash`. It is drawn in the color of the button's text, before it. An `OpenURL` button with no `icon` has `link`.
+- A `style` or an `icon` that is none of these is a warning, and the button is drawn without it. An MCM button has neither.
+
 `CallNativeFunction` is the config spec's own action:
 
 ```json

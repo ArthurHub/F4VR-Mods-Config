@@ -2,7 +2,7 @@ Mods Config FO4 VR is one settings panel for every Fallout 4 VR mod, drawn with 
 
 ## Principles
 
-- **One hue.** Draw text, borders, fills and focus in `green` (#0afa78, the framework's `F4VR_PANEL_STYLE` color) at full value or as a tint. The only other hues are `amber` for pending and `red` for invalid, and both always come with a drawn mark.
+- **One hue.** Draw text, borders, fills and focus in `green` (#0afa78, the framework's `F4VR_PANEL_STYLE` color) at full value or as a tint. The only other hues are `amber` for pending and `red` for invalid, which always come with a drawn mark, and `accent` for a button its mod marks important, which no state uses.
 - **Solid green means chosen.** Use a solid `green` fill only for the selected tree row, the first breadcrumb while the menu's front page is open, the current option, the On half of a toggle, and the primary button, with `on-green` text on it. Everything else is outline or tint.
 - **Never color alone.** A pending setting has the amber dot, or the amber mark of when it takes effect, an invalid one has the warning triangle and its reason in the help line, and a toggle says Off or On in words.
 - **Nothing moves.** The help line, the reset slot of every row, Discard and Save, and the control column keep their place whether they are in use or not. Only text changes; nothing pressable appears or disappears under the ray.
@@ -26,14 +26,15 @@ Every text color below is checked with a white world behind the glass, the worst
 | `green` | 9.0:1 | 6.8:1 | 5.6:1 | All primary text and every value |
 | `green-muted` | 8.3:1 | 6.3:1 | 5.2:1 | Descriptions, units, counts, status |
 | `amber` | 7.7:1 | 5.8:1 | 4.8:1 | A pending value and the unsaved count |
-| `red` | 6.0:1 | 4.5:1 | — | An invalid value and its reason; never on `pressed` |
+| `red` | 6.0:1 | 4.5:1 | — | An invalid value and its reason, and a dangerous button; never on `pressed` |
+| `accent` | 7.4:1 | 5.6:1 | 4.6:1 | An important button: its outline, label and icon |
 | `on-green` on `green` | 13:1 | | | Text on any solid green fill |
 
 - Tint with green, never with gray: `plate` (6%) for fixed regions, `track` (10%) for the empty part of a control, `hover` (12%) under the ray, `pressed` (20%) while the trigger is held.
 - Outline controls in `frame-border` (3.7:1). Draw section rules in `rule`, which is decorative.
 - Draw a pressed outline and a dragged grab in `glow`, close to the pointer's `mark`, so feedback seems to come from the ray.
 - Keep the pointer as the config sets it: `ray`, `mark`, `mark-border`. They are `[Pointer]` defaults, not panel colors.
-- Do not add white text, gray UI, or a second accent. The exceptions are a color that a mod gives the text of its own `text` row, which is drawn as given, and the swatches, tracks and picker of a color setting (`Color`), which show the color they edit.
+- Do not add white text, gray UI, or another accent. The exceptions are a color that a mod gives the text of its own `text` row, which is drawn as given, and the swatches, tracks and picker of a color setting (`Color`), which show the color they edit.
 
 ## Type
 
@@ -130,6 +131,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - Invalid: a filled `red` triangle 20 x 18 with `!` in `on-red`.
 - A warning: a hollow triangle 20 x 18, a 2 px `amber` outline with `!` in `amber`, after the row's name (see `RowWarning`).
 - Running: a three-quarter arc that turns, 20 px, in a button (see `ButtonRow`).
+- A button's icon, which its config spec names: one of 18 drawn shapes, 20 px, 2 px strokes or a fill, in the color of the button's label, `space-2` before it (see `ButtonRow`).
 - A result to read: an info mark, a 2 px `green` circle 17 px across with an `i` in `green`, 20 px, after the name of a button's row until its result is read (see `ButtonRow`).
 - A text field's pencil, 18 px, in `green-muted` (see `TextInput`).
 - A texture's thumbnail: the texture itself, 32 px in a row and 40 px in a list, on black (see `FileChoice`).

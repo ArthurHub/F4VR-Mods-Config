@@ -127,6 +127,7 @@ Primary use: an operation that does not directly edit a stored value.
 
 - A button runs what an MCM button runs, such as a function of a script, a console command, or a function that the mod's native client registered, by its name and with typed parameters if needed.
 - Its button says `Run`, or the button text its config spec gives it.
+- A config spec can give it a `style`: `important`, its outline, text and icon in the accent color, so a button that matters is not missed, or `dangerous`, in red, which always asks first. It can give it an `icon` too, one of the menu's drawn icons, before its text; see [Buttons](schema.md#buttons).
 - Potentially destructive actions require explicit confirmation. A config spec's `confirmation` opens a dialog first, and a `dangerous` one is red.
 - While its action runs, the button says `Running` and is not pressed again. Its result, when the action gives one, is in the help line while the ray is on the row, with a mark after its name: an info mark until the player has read it, and the invalid mark while it failed.
 - Cancelling an action that runs, and its progress, remain open design work.

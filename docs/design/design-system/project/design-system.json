@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-11-02T08:30:00Z",
-    "via": "Claude Code",
-    "note": "An MCM mod's Save bar and its dialog say Keep and Revert, as its change is made already and nothing is left to save, and its status says how many changes are made: SaveBar, ConfirmDialog, Hotkey and the Help page. A config spec's stay Save and Discard."
+    "at": "2026-11-02T16:40:00Z",
+    "via": "Claude (Cowork)",
+    "note": "ButtonRow: a config spec's button can have a style, important in the new accent color or dangerous in red, its outline, text and icon, and an icon of a set of 18 drawn before its text. Tokens: accent."
   },
   "layout": "files",
   "libraries": [],

@@ -29,6 +29,7 @@ namespace mods_config::theme
         constexpr ImU32 ON_AMBER     = IM_COL32( 31,  20,   0, 255); // Text on an amber fill, if one is ever needed
         constexpr ImU32 RED          = IM_COL32(255, 149, 133, 255); // Invalid: the value text and the gutter mark of a setting that cannot be saved, and the error in the help line
         constexpr ImU32 ON_RED       = IM_COL32( 36,   8,   5, 255); // The "!" inside the drawn warning triangle, which is filled red
+        constexpr ImU32 ACCENT       = IM_COL32( 95, 212, 255, 255); // An important button: the outline, label and icon of a button whose config spec gives it style important, so the player does not miss it
         constexpr ImU32 DISABLED     = IM_COL32( 10, 250, 120, 102); // Text and outlines of a disabled row or control, which is ImGui's DisabledAlpha 0.4 applied to green
         constexpr ImU32 RAY          = IM_COL32(190, 255, 190, 200); // The pointer ray: cRayColor = { rgb = [190, 255, 190], alpha = 200 } in [Pointer] of ModsConfigFO4VR.toml
         constexpr ImU32 MARK         = IM_COL32(215, 255, 215, 180); // The mark where the ray meets the panel: cMarkColor = { rgb = [215, 255, 215], alpha = 180 }

@@ -2,7 +2,7 @@
 
 A `button` item: a row that runs an action, a function of a script, a console command, or a function of the mod's native client, and the confirmation a config spec can ask for first.
 
-**Provides:** the row's text and help, its `buttonText`, whether it can run (a `CallNativeFunction` needs the mod's client), its `confirmation`, and the result of its last run.
+**Provides:** the row's text and help, its `buttonText`, its `style` and `icon`, whether it can run (a `CallNativeFunction` needs the mod's client), its `confirmation`, and the result of its last run.
 
 ## The row
 
@@ -16,6 +16,18 @@ A `button` item: a row that runs an action, a function of a script, a console co
   - The result stays in the help line until the row runs again or the page is left, after its mark is gone. An action that gives no message shows nothing, and the light pulse says it ran.
 - **Disabled:** a `CallNativeFunction` whose mod has no client loaded, or a condition that disables it. The help line says why: "Needs Immersive Flashlight VR's DLL, which is not loaded."
 - A warning shows its mark after the name; see [RowWarning](../RowWarning/README.md).
+
+## Style and icon
+
+A config spec can make a button stand out, with `style`, and give it a mark, with `icon` ([Buttons](../../../../schema.md#buttons)). An MCM button has neither.
+
+- **No style:** as above, a `frame-border` outline and a `green` label.
+- **`important`:** the outline, the label and the icon in `accent`, the only use of that color, so it reads as no state. Not filled: Save stays the one filled button of the view. Hover, running and the result are as with no style, and the outline stays `accent` while it runs. Pressed, its ring is `accent`.
+- **`dangerous`:** the outline, the label and the icon in `red`, and a press always asks first, with the red confirmation below. A `confirmation` that is `dangerous` makes the button `dangerous`.
+- Disabled: as any button, at `opacity-disabled`, in the color of its style.
+- **The icon** is drawn, 20 px, in the color of the label, `space-2` before it: a 2 px stroke with round ends and joins, or a fill. The set: `play`, `stop`, `bolt`, `target`, `check`, `window`, `external`, `link`, `gear`, `import`, `export`, `copy`, `eye`, `hand`, `sound`, `pin`, `refresh` and `trash`. An `OpenURL` button with none has `link`. Running replaces the icon with the turning arc.
+  - It avoids the shapes the menu uses for something else: the disk of Save's mark, the undo arrow of Discard, and Reset's single arc. `refresh` is two arrows that chase each other.
+- Keep `important` to the one or two buttons a player must find on the page: when every button is important, none stands out.
 
 ## The confirmation
 
