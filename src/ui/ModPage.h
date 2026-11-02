@@ -12,6 +12,7 @@
 #include "Sections.h"
 #include "Sliders.h"
 #include "TextInputs.h"
+#include "TransformEditor.h"
 #include "model/ConfigDefinition.h"
 #include "model/Store.h"
 #include "vrcf/VRControllersHaptic.h"
@@ -54,6 +55,7 @@ namespace mods_config::ui
         bool cancelEdit();
         bool cancelBindingEdit();
         bool cancelColorEdit();
+        bool cancelTransformEdit();
         bool cancelConfirmation();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();
@@ -79,6 +81,9 @@ namespace mods_config::ui
 
         // the editor of its colors, and the one that is open
         ColorEditor _colorEditor;
+
+        // the editor of its transforms, and the one that is open
+        TransformEditor _transformEditor;
 
         // its sections that fold, and whether each is folded
         Sections _sections;

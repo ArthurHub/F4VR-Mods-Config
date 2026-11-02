@@ -1521,6 +1521,75 @@
           ]
         },
         {
+          "pageDisplayName": "Transforms",
+          "help": "Transforms of a CommonFramework mod: each is its numbers, and a press opens its editor, of a slider for each axis.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Transforms",
+              "content": [
+                {
+                  "type": "cf.transform",
+                  "text": "Flashlight mesh",
+                  "help": "All three parts, with a position of -20 to 20 by 0.01.",
+                  "default": { "pos": [9.37, -5.86, -5.13], "rot": [20.72, 0.0, 90.0], "scale": 1.5 },
+                  "valueOptions": { "position": { "min": -20, "max": 20, "step": 0.01 } },
+                  "storage": { "path": ["Transforms", "tMesh"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Keys left out",
+                  "help": "A key the value leaves out is shown as what it means: no move, and no scale after the numbers. A change adds the key of its part.",
+                  "default": { "rot": [0.0, -5.0, 0.0] },
+                  "storage": { "path": ["Transforms", "tKeys"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Body grab zone",
+                  "help": "Rotation off, so the row is the one line, Z of 0 to 40, and a scale of 0.5 to 2.",
+                  "default": { "pos": [0.0, 0.0, 12.0], "scale": 1.2 },
+                  "valueOptions": {
+                    "position": { "min": -10, "max": 10, "step": 0.1, "z": { "min": 0, "max": 40 } },
+                    "rotation": false,
+                    "scale": { "min": 0.5, "max": 2.0 }
+                  },
+                  "storage": { "path": ["Transforms", "tZone"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Head light tilt",
+                  "help": "Rotation alone, with three lines in its editor.",
+                  "default": { "rot": [0.0, -5.0, 0.0] },
+                  "valueOptions": { "position": false, "scale": false },
+                  "storage": { "path": ["Transforms", "tTilt"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Outside its range",
+                  "help": "Its X is 60, past its slider's 50: it is shown as it is, and a step or a drag brings it in.",
+                  "default": { "pos": [60.0, 0.0, 0.0] },
+                  "storage": { "path": ["Transforms", "tOutside"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.transform",
+                  "text": "Two numbers",
+                  "help": "Its pos has two numbers, and needs three.",
+                  "default": { "pos": [0.0, 0.0, 0.0] },
+                  "storage": { "path": ["Transforms", "tTwoNumbers"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "pageDisplayName": "Numbers",
           "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
           "content": [
@@ -3177,6 +3246,13 @@
                   "help": "A color is kept in a TOML file, as the framework keeps it.",
                   "default": { "rgb": [255, 255, 255] },
                   "storage": { "file": "ini", "section": "Mistakes", "key": "cColor" }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "A transform in an INI file",
+                  "help": "A transform is kept in a TOML file, as the framework keeps it.",
+                  "default": { "scale": 1.0 },
+                  "storage": { "file": "ini", "section": "Mistakes", "key": "tTransform" }
                 }
               ]
             },
@@ -3239,6 +3315,29 @@
                   "help": "Its default has a key \"colour\", which a color does not have, so it has no Reset.",
                   "default": { "colour": [255, 0, 0] },
                   "storage": { "path": ["Mistakes", "cNoColor"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "A transform's default that is no transform",
+                  "help": "Its default has a key \"position\", which a transform does not have, so it has no Reset.",
+                  "default": { "position": [0, 0, 0] },
+                  "storage": { "path": ["Mistakes", "tNoTransform"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "A transform's range that is none",
+                  "help": "Its position's min is above its max, so it has the position's own range.",
+                  "default": { "scale": 1.0 },
+                  "valueOptions": { "position": { "min": 10, "max": -10 } },
+                  "storage": { "path": ["Mistakes", "tNoRange"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "A transform with no part on",
+                  "help": "Its position, its rotation and its scale are all off, so it is not available.",
+                  "default": { "scale": 1.0 },
+                  "valueOptions": { "position": false, "rotation": false, "scale": false },
+                  "storage": { "path": ["Mistakes", "tNoPart"] }
                 },
                 {
                   "type": "switcher",

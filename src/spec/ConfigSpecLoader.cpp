@@ -26,6 +26,7 @@
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
+#include "model/Transforms.h"
 #include "vrcf/InputBindingParser.h"
 
 using namespace mods_config;
@@ -300,7 +301,7 @@ namespace
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
     // a setting's parts:
-    constexpr std::array<std::string_view, 16> VALUE_OPTIONS_FIELDS{ "min",
+    constexpr std::array<std::string_view, 19> VALUE_OPTIONS_FIELDS{ "min",
         "max",
         "step",
         "options",
@@ -315,7 +316,13 @@ namespace
         "hands",
         "types",
         "buttons",
-        "alpha" };
+        "alpha",
+        "position",
+        "rotation",
+        "scale" };
+    constexpr std::array<std::string_view, 6> TRANSFORM_POSITION_FIELDS{ "min", "max", "step", "x", "y", "z" };
+    constexpr std::array<std::string_view, 6> TRANSFORM_ROTATION_FIELDS{ "min", "max", "step", "heading", "roll", "attitude" };
+    constexpr std::array<std::string_view, 3> TRANSFORM_RANGE_FIELDS{ "min", "max", "step" };
     constexpr std::array<std::string_view, 3> OPTION_FIELDS{ "value", "text", "help" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
@@ -712,6 +719,7 @@ namespace
         SettingTypeName{ "cf.inputBinding", model::SettingType::InputBinding },
         SettingTypeName{ "cf.haptic", model::SettingType::Haptic },
         SettingTypeName{ "cf.color", model::SettingType::Color },
+        SettingTypeName{ "cf.transform", model::SettingType::Transform },
     };
 
     /**
@@ -735,21 +743,22 @@ namespace
     /**
      * What a setting's value is, by its `valueType`. One with none, or with one that is not a type, has the
      * type of its control: a bool for a switcher, a number for a slider, the place of an option for a choice,
-     * and a text for a text input. One that is not a type is a warning. A binding and a color are the text of their
-     * table and a haptic the name of its pattern, so their `valueType` is a string, and another is a warning too.
+     * and a text for a text input. One that is not a type is a warning. A binding, a color and a transform are the text
+     * of their table and a haptic the name of its pattern, so their `valueType` is a string, and another is a warning too.
      */
     model::StoredType loadValueType(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
     {
         const auto name = getText(row, "valueType");
-        if (type == model::SettingType::InputBinding || type == model::SettingType::Haptic || type == model::SettingType::Color) {
+        if (type == model::SettingType::InputBinding || type == model::SettingType::Haptic || type == model::SettingType::Color || type == model::SettingType::Transform) {
             if (row.contains("valueType") && name != "string") {
                 const Into into(reading, "valueType");
                 reading.report(model::Severity::Warning,
                     std::format("Its valueType {} is not string, which a {} is: it is read as string.",
                         row["valueType"].dump(),
-                        type == model::SettingType::Haptic  ? "haptic"
-                        : type == model::SettingType::Color ? "color"
-                                                            : "binding"));
+                        type == model::SettingType::Haptic      ? "haptic"
+                        : type == model::SettingType::Color     ? "color"
+                        : type == model::SettingType::Transform ? "transform"
+                                                                : "binding"));
             }
             return model::StoredType::String;
         }
@@ -930,13 +939,98 @@ namespace
     }
 
     /**
+     * The range of a transform's sliders in an object, over the range it is given: its `min`, `max` and `step`, each
+     * optional. One whose `min` is not below its `max`, or whose `step` is not above 0, is an error, and gives the range
+     * it was given.
+     */
+    model::TransformAxis loadTransformRange(const Json& range, const model::TransformAxis& over, ConfigSpecReading& reading)
+    {
+        auto axis = over;
+        axis.min = getNumber(range, "min", over.min);
+        axis.max = getNumber(range, "max", over.max);
+        axis.step = getNumber(range, "step", over.step);
+        if (axis.min < axis.max && axis.step > 0.0f) {
+            return axis;
+        }
+        reading.report(model::Severity::Error, "Its range is none: its min has to be below its max, and its step above 0. It has the range of what it is in.");
+        return over;
+    }
+
+    /**
+     * A part of a transform: its key of `valueOptions`, the fields it has, its first axis, its own range, and the key of
+     * each of its axes, which a scale has none of.
+     */
+    struct TransformPart
+    {
+        const char* key = nullptr;
+        std::span<const std::string_view> fields;
+        std::size_t first = 0;
+        model::TransformAxis range;
+        std::span<const std::string_view> axes;
+    };
+
+    const std::array TRANSFORM_PARTS{
+        TransformPart{ .key = "position",
+            .fields = TRANSFORM_POSITION_FIELDS,
+            .first = model::TRANSFORM_POSITION,
+            .range = { .min = -50.0f, .max = 50.0f, .step = 1.0f, .on = true },
+            .axes = std::span(TRANSFORM_POSITION_FIELDS).subspan(3) },
+        TransformPart{ .key = "rotation",
+            .fields = TRANSFORM_ROTATION_FIELDS,
+            .first = model::TRANSFORM_ROTATION,
+            .range = { .min = -180.0f, .max = 180.0f, .step = 1.0f, .on = true },
+            .axes = std::span(TRANSFORM_ROTATION_FIELDS).subspan(3) },
+        TransformPart{ .key = "scale",
+            .fields = TRANSFORM_RANGE_FIELDS,
+            .first = model::TRANSFORM_SCALE,
+            .range = { .min = 0.1f, .max = 3.0f, .step = 0.1f, .on = true },
+            .axes = {} },
+    };
+
+    /**
+     * The axes of a transform, of its `valueOptions`, which is none where it has none: each of its parts is `true`, or
+     * left out, for on with its own range, `false` for off, or an object of its range, over which an axis of it can have
+     * one of its own. Any other value is on with its own range, and is reported.
+     */
+    std::array<model::TransformAxis, model::TRANSFORM_AXES> loadTransformAxes(const Json* options, ConfigSpecReading& reading)
+    {
+        std::array<model::TransformAxis, model::TRANSFORM_AXES> axes;
+        for (const auto& part : TRANSFORM_PARTS) {
+            auto range = part.range;
+            const Json* value = options && options->contains(part.key) ? &(*options)[part.key] : nullptr;
+            std::optional<Into> into;
+            if (value) {
+                into.emplace(reading, part.key);
+                if (value->is_boolean()) {
+                    range.on = value->get<bool>();
+                } else if (value->is_object()) {
+                    checkFields(*value, part.fields, reading);
+                    range = loadTransformRange(*value, range, reading);
+                } else {
+                    reading.report(model::Severity::Warning, std::format("Its {} is not true, false or a range: it is on, with its own range.", part.key));
+                }
+            }
+            for (std::size_t i = 0; i < (std::max)(part.axes.size(), std::size_t{ 1 }); ++i) {
+                axes[part.first + i] = range;
+                if (i < part.axes.size() && value && value->is_object() && value->contains(part.axes[i])) {
+                    const Into intoAxis(reading, part.axes[i]);
+                    const auto& axis = (*value)[part.axes[i]];
+                    checkFields(axis, TRANSFORM_RANGE_FIELDS, reading);
+                    axes[part.first + i] = axis.is_object() ? loadTransformRange(axis, range, reading) : range;
+                }
+            }
+        }
+        return axes;
+    }
+
+    /**
      * The `valueOptions` of a setting: the least, the most and the step of a number, the fewest and the most
      * characters of a text input of a text, the hands, the ways and the buttons a binding takes, and the options of a
      * choice: its own `options`, the shared list
      * its `sharedOptions` names, where it reads them in the game, or that its mod's client gives them, with a
      * `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
      * is no whole number above 0 is none. A haptic's options are the menu's: None and the framework's patterns. A color
-     * has an alpha unless its `alpha` is false.
+     * has an alpha unless its `alpha` is false, and a transform has the ranges of its parts that are on.
      * A choice with none of them has no options, and is reported, so it is disabled.
      */
     model::ValueOptions loadValueOptions(const Json& row, const model::SettingType type, const model::StoredType valueType, ConfigSpecReading& reading)
@@ -972,6 +1066,9 @@ namespace
         if (hasOptions && type == model::SettingType::Color) {
             const auto alpha = found->find("alpha");
             valueOptions.alpha = alpha == found->end() || !alpha->is_boolean() || alpha->get<bool>();
+        }
+        if (type == model::SettingType::Transform) {
+            valueOptions.transformAxes = loadTransformAxes(hasOptions ? &*found : nullptr, reading);
         }
         if (!isChoice(type)) {
             return valueOptions;
@@ -1114,6 +1211,28 @@ namespace
     }
 
     /**
+     * The `default` of a transform: the transform's table as a JSON object, as `{ "pos": [0.0, 0.0, 12.0], "scale": 1.0 }`,
+     * which the framework reads as it reads the table of its config. It is the TOML text of the table, with the keys it
+     * has. None for a default that is no object, or no transform, which is an error of the config spec that is reported
+     * with the framework's reason, and the setting then has no Reset.
+     */
+    std::optional<model::Value> loadTransformDefault(const Json& row, ConfigSpecReading& reading)
+    {
+        const auto found = row.find("default");
+        if (found == row.end() || !found->is_object()) {
+            reading.report(model::Severity::Error, R"(It has no default transform, an object as { "pos": [0, 0, 0], "rot": [0, 0, 0], "scale": 1 }: it has no Reset.)");
+            return std::nullopt;
+        }
+        const auto transform = model::parseTransformTable(tomlText(*found));
+        if (!transform) {
+            const Into into(reading, "default");
+            reading.report(model::Severity::Error, std::format("Its default is not a transform: {}. It has no Reset.", transform.error()));
+            return std::nullopt;
+        }
+        return model::transformText(*transform);
+    }
+
+    /**
      * The `default` of a haptic: the name of a pattern, as the framework reads it, so `"double click"` is DoubleClick,
      * and `"none"` for no pattern. None for a default that is no text, or names no pattern, which is an error of the
      * config spec that is reported, and the setting then has no Reset.
@@ -1150,6 +1269,9 @@ namespace
         }
         if (type == model::SettingType::Color) {
             return loadColorDefault(row, reading);
+        }
+        if (type == model::SettingType::Transform) {
+            return loadTransformDefault(row, reading);
         }
         auto value = getValue(row, "default", valueType);
         if (!value) {
@@ -1474,19 +1596,19 @@ namespace
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
      * config spec, which is reported: a condition names the first, and an author gives one of them an id of its
      * own. Its conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
-     * A binding and a color are kept in a value of a TOML file, as the framework keeps them: in any other storage they
-     * are not available, which is reported.
+     * A binding, a color and a transform are kept in a value of a TOML file, as the framework keeps them: in any other
+     * storage they are not available, which is reported, and so is a transform with no part on.
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type, reading);
         auto storage = loadStorage(row, own.defaultFile, valueType, reading);
-        const bool isTable = type == model::SettingType::InputBinding || type == model::SettingType::Color;
+        const bool isTable = type == model::SettingType::InputBinding || type == model::SettingType::Color || type == model::SettingType::Transform;
         if (isTable && !std::holds_alternative<model::UnknownStorage>(storage)) {
             const auto* file = std::get_if<model::FileStorage>(&storage);
             if (!file || reading.files.at(file->file).format != model::FileFormat::Toml) {
-                const auto* kind = type == model::SettingType::Color ? "color" : "binding";
+                const auto* kind = type == model::SettingType::Color ? "color" : type == model::SettingType::Transform ? "transform" : "binding";
                 const Into into(reading, "storage");
                 reading.report(model::Severity::Error, std::format("A {} is kept in a value of a TOML file, and it is not: it is not available.", kind));
                 storage = model::UnknownStorage{ .type = kind };
@@ -1513,6 +1635,11 @@ namespace
                     reading.settings.at(common::str_tolower(id)).id));
         }
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
+        if (type == model::SettingType::Transform && !std::ranges::any_of(valueOptions.transformAxes, &model::TransformAxis::on)) {
+            const Into into(reading, "valueOptions");
+            reading.report(model::Severity::Error, "Its position, its rotation and its scale are all off: it is not available.");
+            storage = model::UnknownStorage{ .type = "transform parts" };
+        }
         auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions, reading);
         auto text = getLabel(row, reading);
         auto help = readShownText(row, "help", reading);

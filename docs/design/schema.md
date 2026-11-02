@@ -376,7 +376,7 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
 Its `valueOptions` has `position`, `rotation` and `scale`, the three parts its editor has a slider for, each `true`, `false` or the range of its sliders:
 
 - `true`, or the part left out, is on, with the part's own range: a position -50 to 50 by 1, a rotation -180° to 180° by 1°, a scale 0.1 to 3 by 0.1.
-- `false` is off: the row, the editor and Adjust in world leave the part out, and its value is kept as the file has it. A transform has at least one part on: one with none is an error.
+- `false` is off: the row, the editor and Adjust in world leave the part out, and its value is kept as the file has it. A transform has at least one part on: one with none is an error, and it is not available.
 - An object is on, with its `min`, `max` and `step`, each optional and the part's own where it is left out. A position's and a rotation's can also have one of an axis, `x`, `y` and `z` or `heading`, `roll` and `attitude`, an object of its own `min`, `max` and `step` over the part's.
 
 A range whose `min` is not below its `max`, or whose `step` is not above 0, is an error, and the part has its own range. A value outside its slider's range is not invalid, as the framework reads it: it is shown as it is, and a step or a drag brings it in. A value is not rounded to its step, and an angle is not wrapped.

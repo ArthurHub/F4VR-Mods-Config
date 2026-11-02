@@ -11,6 +11,7 @@
 #include "PageRows.h"
 #include "Sliders.h"
 #include "TextInputs.h"
+#include "TransformEditor.h"
 #include "model/ConfigDefinition.h"
 #include "model/Store.h"
 #include "vrcf/VRControllersHaptic.h"
@@ -26,6 +27,7 @@ namespace mods_config::ui
         TextInputs& textInputs;
         BindingEditor& bindingEditor;
         ColorEditor& colorEditor;
+        TransformEditor& transformEditor;
 
         // what a binding's icons are drawn with, and the player's handedness, which says what a button of a hand is
         // printed as

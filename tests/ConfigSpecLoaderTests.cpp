@@ -18,6 +18,7 @@
 #include "model/Colors.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
+#include "model/Transforms.h"
 #include "spec/ConfigSpecLoader.h"
 
 using namespace mods_config;
@@ -153,6 +154,8 @@ namespace
             CHECK(model::canonicalBinding(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
         } else if (setting.type == model::SettingType::Color) {
             CHECK(model::canonicalColor(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
+        } else if (setting.type == model::SettingType::Transform) {
+            CHECK(model::canonicalTransform(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
         } else if (const auto* on = std::get_if<bool>(&*setting.defaultValue)) {
             CHECK(value.value<bool>() == *on);
         } else if (const auto* whole = std::get_if<int>(&*setting.defaultValue)) {
@@ -1730,7 +1733,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(mod.pages[0].name == "Most Used");
     const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
-    CHECK(examples.pages.size() == 24);
+    CHECK(examples.pages.size() == 25);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -1772,6 +1775,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
                                "A binding's default it does not take",
                                "A haptic's default that is no pattern",
                                "A color's default that is no color",
+                               "A transform's default that is no transform",
                                "No options",
                                "No such shared list",
                                "A default that is no option" });
@@ -1937,7 +1941,7 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the 
         (problem.severity == model::Severity::Error ? errors : warnings) += 1;
     }
     // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
-    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[22].content[0].content[2].text" });
+    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[23].content[0].content[2].text" });
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }
@@ -2091,6 +2095,111 @@ TEST_CASE("ConfigSpecLoader: a color is the text of its table, with its default 
               "E Out of range: Its default is not a color: rgb has a number that is not a whole number in 0..255. It has no Reset. [Out of range] content[2].default",
               "E Text: It has no default color, an object as { \"rgb\": [255, 255, 255], \"alpha\": 255 }: it has no Reset. [Text] content[3]",
               "E In an INI file: A color is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+}
+
+TEST_CASE("ConfigSpecLoader: a transform is the text of its table, with its default an object the framework reads")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" },
+            "ini": { "format": "ini", "root": "myGames", "path": "MyMod.ini" }
+        },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.transform", "text": "Mesh", "default": { "scale": 1.5, "pos": [1, 2, 3], "rot": [0, 90, 0] }, "storage": { "path": ["Hand", "tMesh"] } },
+            { "type": "cf.transform", "text": "Zone", "valueType": "int", "default": { "pos": [0.0, 0.0, 12.0] }, "storage": { "path": ["Hand", "tZone"] } },
+            { "type": "cf.transform", "text": "Two numbers", "default": { "pos": [0, 0] }, "storage": { "path": ["Hand", "tTwo"] } },
+            { "type": "cf.transform", "text": "Text", "default": "0,0,0;0,0,0;1", "storage": { "path": ["Hand", "tText"] } },
+            { "type": "cf.transform", "text": "In an INI file", "default": {}, "storage": { "file": "ini", "section": "Main", "key": "tMesh" } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 5);
+    for (const auto& setting : settings) {
+        CHECK(setting.type == model::SettingType::Transform);
+        CHECK(setting.valueType == model::StoredType::String);
+    }
+    // the table with the keys it has, pos, rot and scale
+    CHECK(settings[0].defaultValue == model::Value("{ pos = [1.0, 2.0, 3.0], rot = [0.0, 90.0, 0.0], scale = 1.5 }"s));
+    CHECK(settings[1].defaultValue == model::Value("{ pos = [0.0, 0.0, 12.0] }"s));
+    CHECK_FALSE(settings[2].defaultValue);
+    CHECK_FALSE(settings[3].defaultValue);
+    CHECK(std::holds_alternative<model::UnknownStorage>(settings[4].storage));
+    CHECK(problemLines(mod) == Lines{ "W Zone: Its valueType \"int\" is not string, which a transform is: it is read as string. [Zone] content[1].valueType",
+                                   "E Two numbers: Its default is not a transform: pos is not an array of three numbers. It has no Reset. [Two numbers] content[2].default",
+                                   "E Text: It has no default transform, an object as { \"pos\": [0, 0, 0], \"rot\": [0, 0, 0], \"scale\": 1 }: it has no Reset. [Text] content[3]",
+                                   "E In an INI file: A transform is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+}
+
+TEST_CASE("ConfigSpecLoader: a transform's parts are on with their own ranges, or off, or have the range its config spec gives, of a part or of an axis")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.transform", "text": "Own", "default": {}, "storage": { "path": ["Own"] } },
+            { "type": "cf.transform", "text": "Ranges", "default": {}, "storage": { "path": ["Ranges"] },
+              "valueOptions": { "position": { "min": -10, "max": 10, "step": 0.1, "z": { "min": 0, "max": 40 } }, "rotation": false, "scale": { "min": 0.5, "max": 2.0 } } },
+            { "type": "cf.transform", "text": "Rotation", "default": {}, "storage": { "path": ["Rotation"] },
+              "valueOptions": { "position": false, "rotation": { "roll": { "step": 5 }, "heading": { "max": -200 } }, "scale": false } },
+            { "type": "cf.transform", "text": "Mistakes", "default": {}, "storage": { "path": ["Mistakes"] },
+              "valueOptions": { "position": { "min": 5, "max": 1 }, "rotation": { "step": 0 }, "scale": 3 } },
+            { "type": "cf.transform", "text": "Unknown", "default": {}, "storage": { "path": ["Unknown"] },
+              "valueOptions": { "position": { "stpe": 1, "w": {} }, "rotation": { "yaw": 1, "roll": { "z": 1 } } } },
+            { "type": "cf.transform", "text": "None on", "default": {}, "storage": { "path": ["None"] },
+              "valueOptions": { "position": false, "rotation": false, "scale": false } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 6);
+    const auto range = [&settings](const std::size_t setting, const std::size_t axis) {
+        const auto& found = settings[setting].valueOptions.transformAxes[axis];
+        return std::array{ found.min, found.max, found.step };
+    };
+    using Range = std::array<float, 3>;
+    constexpr Range POSITION{ -50.0f, 50.0f, 1.0f };
+    constexpr Range ROTATION{ -180.0f, 180.0f, 1.0f };
+    constexpr Range SCALE{ 0.1f, 3.0f, 0.1f };
+
+    // left out, each part is on with its own range
+    for (std::size_t axis = 0; axis < model::TRANSFORM_AXES; ++axis) {
+        CHECK(settings[0].valueOptions.transformAxes[axis].on);
+        CHECK(range(0, axis) == (axis < 3 ? POSITION : axis < 6 ? ROTATION : SCALE));
+    }
+
+    // a part's range, an axis's over it, and a part that is off
+    CHECK(range(1, 0) == Range{ -10.0f, 10.0f, 0.1f });
+    CHECK(range(1, 2) == Range{ 0.0f, 40.0f, 0.1f });
+    CHECK_FALSE(settings[1].valueOptions.transformAxes[model::TRANSFORM_ROTATION].on);
+    CHECK_FALSE(settings[1].valueOptions.transformAxes[model::TRANSFORM_ROTATION + 2].on);
+    CHECK(range(1, model::TRANSFORM_SCALE) == Range{ 0.5f, 2.0f, 0.1f });
+
+    CHECK_FALSE(settings[2].valueOptions.transformAxes[0].on);
+    CHECK(settings[2].valueOptions.transformAxes[model::TRANSFORM_ROTATION].on);
+    CHECK(range(2, model::TRANSFORM_ROTATION) == ROTATION);
+    CHECK(range(2, model::TRANSFORM_ROTATION + 1) == Range{ -180.0f, 180.0f, 5.0f });
+
+    // what is wrong keeps the range of what it is in
+    CHECK(range(3, 0) == POSITION);
+    CHECK(range(3, model::TRANSFORM_ROTATION) == ROTATION);
+    CHECK(settings[3].valueOptions.transformAxes[model::TRANSFORM_SCALE].on);
+    CHECK(range(3, model::TRANSFORM_SCALE) == SCALE);
+
+    // with no part on it is not available
+    CHECK(std::holds_alternative<model::UnknownStorage>(settings[5].storage));
+
+    constexpr auto NO_RANGE = "Its range is none: its min has to be below its max, and its step above 0. It has the range of what it is in.";
+    CHECK(problemLines(mod) == Lines{ std::format("E Rotation: {} [Rotation] content[2].valueOptions.rotation.heading", NO_RANGE),
+                                   std::format("E Mistakes: {} [Mistakes] content[3].valueOptions.position", NO_RANGE),
+                                   std::format("E Mistakes: {} [Mistakes] content[3].valueOptions.rotation", NO_RANGE),
+                                   "W Mistakes: Its scale is not true, false or a range: it is on, with its own range. [Mistakes] content[3].valueOptions.scale",
+                                   "W Unknown: Unknown field \"stpe\": it is not read. [Unknown] content[4].valueOptions.position.stpe",
+                                   "W Unknown: Unknown field \"w\": it is not read. [Unknown] content[4].valueOptions.position.w",
+                                   "W Unknown: Unknown field \"z\": it is not read. [Unknown] content[4].valueOptions.rotation.roll.z",
+                                   "W Unknown: Unknown field \"yaw\": it is not read. [Unknown] content[4].valueOptions.rotation.yaw",
+                                   "E None on: Its position, its rotation and its scale are all off: it is not available. [None on] content[5].valueOptions" });
 }
 
 TEST_CASE("ConfigSpecLoader: a haptic is the name of a pattern, with None and the framework's patterns as its options")

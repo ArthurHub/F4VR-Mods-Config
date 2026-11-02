@@ -18,18 +18,6 @@ namespace
     constexpr std::array<std::string_view, 4> JOINED_UNITS{ "°", "%", "′", "″" };
 
     /**
-     * As many decimals as a step has, three at most: 0.05 has two, and 1 none.
-     */
-    int stepDecimals(const float step)
-    {
-        int decimals = 0;
-        for (float scaled = std::abs(step); decimals < MAX_STEP_DECIMALS && std::abs(scaled - std::round(scaled)) > 0.001f; scaled *= 10.0f) {
-            ++decimals;
-        }
-        return decimals;
-    }
-
-    /**
      * A number rounded to its decimals. One that rounds to zero has no minus, as `-0.00`.
      */
     std::string withDecimals(const float value, const int decimals)
@@ -47,12 +35,24 @@ namespace
      */
     std::string storedText(const model::Setting& setting, const float value)
     {
-        return setting.type == model::SettingType::TextInput ? std::format("{}", value) : withDecimals(value, stepDecimals(setting.valueOptions.step));
+        return setting.type == model::SettingType::TextInput ? std::format("{}", value) : withDecimals(value, ui::stepDecimals(setting.valueOptions.step));
     }
 }
 
 namespace mods_config::ui
 {
+    /**
+     * As many decimals as a step has, three at most: 0.05 has two, and 1 none.
+     */
+    int stepDecimals(const float step)
+    {
+        int decimals = 0;
+        for (float scaled = std::abs(step); decimals < MAX_STEP_DECIMALS && std::abs(scaled - std::round(scaled)) > 0.001f; scaled *= 10.0f) {
+            ++decimals;
+        }
+        return decimals;
+    }
+
     /**
      * Whether a setting's number is written as a percentage of its range: its display says so, and it has a
      * range, whose most is above its least.

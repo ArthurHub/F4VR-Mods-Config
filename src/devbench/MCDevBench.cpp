@@ -150,6 +150,8 @@ namespace mods_config::devbench
                 return "cf.haptic";
             case model::SettingType::Color:
                 return "cf.color";
+            case model::SettingType::Transform:
+                return "cf.transform";
             }
             return "unknown";
         }
@@ -331,7 +333,7 @@ namespace mods_config::devbench
 
         /**
          * A value of the request in the type of a setting: a bool for a switcher, a number for a slider, a text
-         * for a text input, the TOML text of a binding's and a color's table and the name of a haptic's pattern, and for a choice the
+         * for a text input, the TOML text of a binding's, a color's and a transform's table and the name of a haptic's pattern, and for a choice the
          * value of one of the options its store has, or its text.
          */
         model::Value valueFromJson(const model::Setting& setting, const model::Store& store, const json& given)
@@ -360,6 +362,7 @@ namespace mods_config::devbench
                 return value.is_string() ? value.get<std::string>() : value.dump();
             case model::SettingType::InputBinding:
             case model::SettingType::Color:
+            case model::SettingType::Transform:
                 // the TOML text of the table, which is no JSON value
                 return given.is_string() ? given.get<std::string>() : given.dump();
             case model::SettingType::Haptic:

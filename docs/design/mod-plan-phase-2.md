@@ -191,7 +191,8 @@ The milestone comes before the controls of milestone 9, which are for tuning a v
 | M75 | mod  | Color                                                                                  | done   |
 | M77 | mod  | Haptic                                                                                 | done   |
 | M78 | mod  | InputBinding                                                                           | done   |
-| M79 | mod  | Transform                                                                              | todo   |
+| M79 | mod  | Transform: its row, and its editor of sliders                                          | in review |
+| M142 | mod | Transform: Adjust in world, on the framework's tuning of another mod's key             | todo   |
 | M80 | mod  | ActivationSphere, a whole section                                                      | todo   |
 | M81 | mod  | The values of Immersive Flashlight that are left: lists and flags                      | todo   |
 | F36 | framework | vrcf: a binding of any hand                                                       | done   |
@@ -217,6 +218,8 @@ M75 comes before M74 too, as its design is done. Its config spec type is `cf.col
 M77 comes before M74 too, as its design is done. Its config spec type is `cf.haptic`, a text of the framework's pattern names, whose options are the menu's. Its row is a dropdown that shows each pattern's shape, with Play, and a press that plays a pattern is the press's feedback in place of the menu's pulse. Mods Config FO4 VR's own config spec gets its press haptic, and the config spec showcase a page of haptics.
 
 M78 comes before M74, as FRIK's config spec needs it, and its design is done. Its config spec type is `cf.inputBinding`, as the value is in the framework's form. It is two commits: the first reads a binding and shows it as its icons and its sentence, invalid with the framework's reason, and names the bindings of its mod that are the same press, and the second opens its editor. Mods Config FO4 VR's own config spec gets its two bindings, and the config spec showcase a page of them.
+
+M79 comes before M74 too, as its design is done. Its config spec type is `cf.transform`, the TOML text of the framework's table, of which a key that is left out is what the framework reads for it. Its row is its numbers, and a press opens its editor, a slider for each axis of the parts the config spec turns on, in the range it gives, which sets the transform as it changes. The config spec showcase gets a page of transforms. M142 adds Adjust in world, which needs the framework first: see [Later work](framework-requirements.md#later-work). Until then the button is not shown.
 
 F36, F37 and M131 make Back and the move bindings, which the mod's own config spec edits as its others. A binding's hand can be `any`, and `check(binding, hand)` asks whether it fires on the hand that points. The move takes hold when its binding fires, so a long press of the grip leaves its tap to Back, as the hold delay did. M132 keeps a binding from what does not work where it is used: Back takes no hold and no press of the trigger, which presses the menu's rows, and the move a press, a long press or a hold alone.
 Immersive Flashlight's config spec and its client are commits in its own repository, on a framework with F29 and F30. They are made when the milestone needs them, and a build is enough.

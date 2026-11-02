@@ -20,17 +20,18 @@
 #include "model/Colors.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
+#include "model/Transforms.h"
 
 using namespace mods_config;
 
 namespace
 {
     /**
-     * Whether a setting's value is the TOML text of an inline table of its file: a binding's and a color's.
+     * Whether a setting's value is the TOML text of an inline table of its file: a binding's, a color's and a transform's.
      */
     bool isTable(const model::Setting& setting)
     {
-        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Color;
+        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Color || setting.type == model::SettingType::Transform;
     }
 
     /**
@@ -148,9 +149,9 @@ namespace
     /**
      * A value of the type a setting keeps, as its control has it: a slider has a number, also for a whole
      * number, a text input that takes a number has the text of it, a binding has its table's text and a haptic its
-     * pattern's name as the framework writes them, and a color its table's text with the keys it has. None for a value
-     * its control does not show: a switcher of anything but true or false, a slider of a text, and a binding, a haptic
-     * and a color of anything but a text.
+     * pattern's name as the framework writes them, and a color and a transform their table's text with the keys it has.
+     * None for a value its control does not show: a switcher of anything but true or false, a slider of a text, and a
+     * binding, a haptic, a color and a transform of anything but a text.
      */
     std::optional<model::Value> controlValue(const model::Setting& setting, const model::Value& stored)
     {
@@ -192,6 +193,11 @@ namespace
         case model::SettingType::Color:
             if (const auto* text = std::get_if<std::string>(&stored)) {
                 return model::canonicalColor(*text);
+            }
+            break;
+        case model::SettingType::Transform:
+            if (const auto* text = std::get_if<std::string>(&stored)) {
+                return model::canonicalTransform(*text);
             }
             break;
         }
@@ -303,6 +309,11 @@ namespace
                 return model::canonicalColor(*text);
             }
             break;
+        case model::SettingType::Transform:
+            if (const auto* text = std::get_if<std::string>(&value)) {
+                return model::canonicalTransform(*text);
+            }
+            break;
         }
         return std::nullopt;
     }
@@ -313,7 +324,7 @@ namespace
      * limits, a text of a length its setting does not allow, and none of the options of a choice. A table that is
      * no binding has the framework's reason, a sentence of its own, and so does a binding of a hand, a way or a
      * button its setting does not take. A name of no haptic pattern is a sentence of its own too, and so is a table that
-     * is no color, with the framework's reason. Empty for a value that is one.
+     * is no color or no transform, with the framework's reason. Empty for a value that is one.
      */
     std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
@@ -327,6 +338,10 @@ namespace
         if (setting.type == model::SettingType::Color) {
             const auto color = model::parseColorTable(std::get<std::string>(value));
             return color ? std::string() : color.error();
+        }
+        if (setting.type == model::SettingType::Transform) {
+            const auto transform = model::parseTransformTable(std::get<std::string>(value));
+            return transform ? std::string() : transform.error();
         }
         const auto& limits = setting.valueOptions;
         std::optional<float> number;
@@ -357,12 +372,13 @@ namespace
     }
 
     /**
-     * Whether what is wrong with a value of a setting is a sentence of its own, which its reason says alone: a binding's
-     * and a color's, which are the framework's, and a haptic's.
+     * Whether what is wrong with a value of a setting is a sentence of its own, which its reason says alone: a binding's,
+     * a color's and a transform's, which are the framework's, and a haptic's.
      */
     bool ownSentence(const model::Setting& setting)
     {
-        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic || setting.type == model::SettingType::Color;
+        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic || setting.type == model::SettingType::Color ||
+               setting.type == model::SettingType::Transform;
     }
 
     /**
@@ -632,6 +648,12 @@ namespace
         }
         if (storage.type == "color") {
             return "Not available: a color is kept in a value of a TOML file.";
+        }
+        if (storage.type == "transform") {
+            return "Not available: a transform is kept in a value of a TOML file.";
+        }
+        if (storage.type == "transform parts") {
+            return "Not available: its config spec turns off its position, its rotation and its scale.";
         }
         return storage.type == "file" ? "Not available: the setting names no file of its config spec, or no value of it." : "Not available: the setting has no storage.";
     }

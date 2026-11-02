@@ -5067,3 +5067,150 @@ TEST_CASE("FullPanel: a press on a color opens its editor, whose channels set it
     CHECK(pressActs(panel, colorTrackAt(1, 0)));
     CHECK(value(light) == "{ rgb = [255, 0, 170] }");
 }
+
+namespace
+{
+    // the editor of a transform, as TransformEditor.cpp has it
+    constexpr float TRANSFORM_EDITOR_WIDTH = 560.0f;
+
+    /**
+     * The track of a line of the editor of a transform that is open, by the line's place, in the look of Sliders.cpp.
+     */
+    ImRect transformTrack(const int line)
+    {
+        const auto* editor = openPopup(TRANSFORM_EDITOR_WIDTH);
+        REQUIRE(editor);
+        const float right = editor->Pos.x + TRANSFORM_EDITOR_WIDTH - theme::SPACE_4 - theme::SPACE_2 - theme::VALUE_WIDTH - theme::SPACE_2 - 28.0f;
+        const float top = editor->Pos.y + theme::SPACE_4 + theme::CONTROL_HEIGHT + theme::SPACE_3 + static_cast<float>(line) * (theme::CONTROL_HEIGHT + theme::SPACE_1);
+        return { right - 224.0f, top, right, top + theme::CONTROL_HEIGHT };
+    }
+
+    /**
+     * The place of a line's track at a fraction of its travel, from its least at 0 to its most at 1.
+     */
+    ImVec2 transformTrackAt(const int line, const float fraction)
+    {
+        const auto track = transformTrack(line);
+        const float least = track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
+        const float most = track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f;
+        return { least + (most - least) * fraction, track.GetCenter().y };
+    }
+}
+
+TEST_CASE("FullPanel: a press on a transform opens its editor, of a slider for each axis that is on, and Back gives the transform back")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE,
+        "[Hand]\r\n"
+        "tMesh = { pos = [9.37, -5.86, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }\r\n"
+        "tTilt = { rot = [0.0, -5.0, 0.0] }\r\n"
+        "tZone = { pos = [0.0, 0.0, 12.0], scale = 1.2 }\r\n"
+        "tFar = { pos = [60.0, 0.0, 0.0] }\r\n"
+        "tOut = { pos = [0, 0], scale = 1 }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.transform", "text": "Flashlight mesh", "help": "Where the mesh sits.",
+              "default": { "pos": [9.37, -5.86, -5.13], "rot": [20.72, 0.0, 90.0], "scale": 1.5 },
+              "valueOptions": { "position": { "min": -20, "max": 20, "step": 0.01 } }, "storage": { "path": ["Hand", "tMesh"] } },
+            { "type": "cf.transform", "text": "Tilt", "default": { "rot": [0.0, 0.0, 0.0] },
+              "valueOptions": { "position": false, "scale": false }, "storage": { "path": ["Hand", "tTilt"] } },
+            { "type": "cf.transform", "text": "Zone", "default": {}, "valueOptions": { "rotation": false }, "storage": { "path": ["Hand", "tZone"] } },
+            { "type": "cf.transform", "text": "Far", "default": {}, "storage": { "path": ["Hand", "tFar"] } },
+            { "type": "cf.transform", "text": "Out", "default": { "pos": [1, 2, 3] }, "storage": { "path": ["Hand", "tOut"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& items = panel.mods()[0].frontPage.items;
+    const auto value = [&store, &items](const std::size_t item) {
+        return std::get<std::string>(store.value(std::get<model::Setting>(items[item])).value);
+    };
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Flashlight mesh: Where the mesh sits. (Default: pos 9.37, -5.86, -5.13; rot 20.72°, 0°, 90°; ×1.5)");
+    point(panel, pageRow(4));
+    CHECK(panel.helpLine().text() == "Out: Invalid: pos is not an array of three numbers. Change the transform, or Reset it to pos 1, 2, 3; rot 0°, 0°, 0°.");
+
+    // a line is set as its track is pressed, with the keys it had, and the help line says what it moves
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    REQUIRE(openPopup(TRANSFORM_EDITOR_WIDTH));
+    point(panel, transformTrackAt(1, 0.5f));
+    CHECK(panel.helpLine().text() == "Y: Moves the flashlight mesh along Y, -20 to 20, by 0.01 a step. Default -5.86.");
+    point(panel, transformTrackAt(3, 0.5f));
+    CHECK(panel.helpLine().text() == "Heading: Turns the flashlight mesh by its heading, -180° to 180°, by 1° a step. Default 20.72°.");
+    point(panel, transformTrackAt(6, 0.5f));
+    CHECK(panel.helpLine().text() == "Scale: Scales the flashlight mesh, 0.1 to 3, by 0.1 a step. Default 1.5.");
+    CHECK(pressActs(panel, transformTrackAt(0, 1.0f)));
+    drawFrames(panel, 2);
+    CHECK(value(0) == "{ pos = [20.0, -5.86, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }");
+    CHECK(store.isDirty(std::get<model::Setting>(items[0])));
+
+    // the thumbstick steps the line the ray is on, once it is there a short time
+    pushFrames(panel, transformTrackAt(1, 0.5f), 0.0f, 40);
+    pushFrames(panel, transformTrackAt(1, 0.5f), 1.0f, 2);
+    panel.setThumbstickSideValue(0.0f);
+    drawFrames(panel, 1);
+    CHECK(value(0) == "{ pos = [20.0, -5.85, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }");
+
+    // Back gives back the value it had as the editor opened, and closes it
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(TRANSFORM_EDITOR_WIDTH));
+    CHECK(value(0) == "{ pos = [9.37, -5.86, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }");
+    CHECK_FALSE(store.isDirty(std::get<model::Setting>(items[0])));
+
+    // with the parts off it has their lines alone, and a change adds no key of a part that is off
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    const auto* tilt = openPopup(TRANSFORM_EDITOR_WIDTH);
+    REQUIRE(tilt);
+    const float tiltHeight = tilt->Size.y;
+    point(panel, transformTrackAt(0, 0.5f));
+    CHECK(panel.helpLine().text().starts_with("Heading: "));
+    CHECK(pressActs(panel, transformTrackAt(0, 0.0f)));
+    drawFrames(panel, 2);
+    CHECK(value(1) == "{ rot = [-180.0, -5.0, 0.0] }");
+
+    // Done keeps it
+    const auto done = [&panel, &tiltHeight] {
+        const auto* editor = openPopup(TRANSFORM_EDITOR_WIDTH);
+        REQUIRE(editor);
+        return ImVec2(editor->Pos.x + TRANSFORM_EDITOR_WIDTH - theme::SPACE_4 - 20.0f, editor->Pos.y + tiltHeight - theme::SPACE_4 - theme::CONTROL_HEIGHT * 0.5f);
+    };
+    CHECK(pressActs(panel, done()));
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(TRANSFORM_EDITOR_WIDTH));
+    CHECK(value(1) == "{ rot = [-180.0, -5.0, 0.0] }");
+
+    // a press on the rest of the editor's width keeps a part that is off as the file has it, and its scale's line is its
+    // fourth
+    CHECK(pressActs(panel, pageRow(2)));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, transformTrackAt(3, 1.0f)));
+    drawFrames(panel, 2);
+    CHECK(value(2) == "{ pos = [0.0, 0.0, 12.0], scale = 3.0 }");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+
+    // a value outside its slider's range is as it is, until a step brings it in
+    CHECK(value(3) == "{ pos = [60.0, 0.0, 0.0] }");
+    CHECK_FALSE(store.value(std::get<model::Setting>(items[3])).invalid);
+    CHECK(pressActs(panel, pageRow(3)));
+    drawFrames(panel, 2);
+    point(panel, transformTrackAt(0, 0.5f));
+    pushFrames(panel, transformTrackAt(0, 0.5f), 0.0f, 40);
+    pushFrames(panel, transformTrackAt(0, 0.5f), -1.0f, 2);
+    panel.setThumbstickSideValue(0.0f);
+    drawFrames(panel, 1);
+    CHECK(value(3) == "{ pos = [50.0, 0.0, 0.0] }");
+}

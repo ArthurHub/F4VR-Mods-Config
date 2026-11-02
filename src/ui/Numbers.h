@@ -10,6 +10,7 @@
 
 namespace mods_config::ui
 {
+    int stepDecimals(float step);
     bool isPercent(const model::Setting& setting);
     std::string numberText(const model::Setting& setting, float value, bool withUnit = true);
     std::string percentDetail(const model::Setting& setting, float value);

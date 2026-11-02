@@ -86,6 +86,7 @@ namespace
         ui::TextInputs& textInputs;
         ui::BindingEditor& bindingEditor;
         ui::ColorEditor& colorEditor;
+        ui::TransformEditor& transformEditor;
 
         ui::Sections& sections;
         ui::Buttons& buttons;
@@ -266,6 +267,7 @@ namespace
                     .textInputs = page.textInputs,
                     .bindingEditor = page.bindingEditor,
                     .colorEditor = page.colorEditor,
+                    .transformEditor = page.transformEditor,
                     .imageDrawer = page.imageDrawer,
                     .leftHanded = page.leftHanded,
                     .bindings = page.bindings });
@@ -411,6 +413,7 @@ namespace mods_config::ui
         _choices.startFrame(thumbstickSideValue);
         _bindingEditor.startFrame(thumbstickSideValue);
         _colorEditor.startFrame(thumbstickSideValue);
+        _transformEditor.startFrame(thumbstickSideValue);
         std::vector<const model::Setting*> bindings;
         addBindings(mod.frontPage.items, bindings);
         addBindings(mod.pages, bindings);
@@ -424,6 +427,7 @@ namespace mods_config::ui
                 .textInputs = _textInputs,
                 .bindingEditor = _bindingEditor,
                 .colorEditor = _colorEditor,
+                .transformEditor = _transformEditor,
                 .sections = _sections,
                 .buttons = _buttons,
                 .drawn = drawn,
@@ -433,6 +437,7 @@ namespace mods_config::ui
         _choices.endFrame();
         _bindingEditor.endFrame();
         _colorEditor.endFrame();
+        _transformEditor.endFrame();
         if (_buttons.drawDialog(store)) {
             drawn.pressActed = true;
         }
@@ -502,6 +507,14 @@ namespace mods_config::ui
     }
 
     /**
+     * Gives back the transform and closes its editor, for Back. Returns false while no editor is open.
+     */
+    bool ModPage::cancelTransformEdit()
+    {
+        return _transformEditor.cancel();
+    }
+
+    /**
      * Closes the confirmation a button shows with nothing run, for Back.
      * Returns false while none is shown.
      */
@@ -522,6 +535,7 @@ namespace mods_config::ui
         _textInputs.reset();
         _bindingEditor.reset();
         _colorEditor.reset();
+        _transformEditor.reset();
         _sections.reset();
         _buttons.reset();
         _focused = nullptr;

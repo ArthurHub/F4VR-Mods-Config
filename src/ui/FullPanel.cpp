@@ -614,7 +614,7 @@ namespace mods_config::ui
             return true;
         }
         if (_modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() || _modPage.cancelColorEdit() ||
-            showHelp(false)) {
+            _modPage.cancelTransformEdit() || showHelp(false)) {
             return true;
         }
         if (_report) {

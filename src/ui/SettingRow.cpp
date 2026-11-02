@@ -19,6 +19,7 @@
 #include "Haptics.h"
 #include "Numbers.h"
 #include "Theme.h"
+#include "Transforms.h"
 #include "common/CommonUtils.h"
 #include "model/Conditions.h"
 #include "model/Haptics.h"
@@ -64,6 +65,7 @@ namespace
         case model::SettingType::TextInput:
         case model::SettingType::InputBinding:
         case model::SettingType::Color:
+        case model::SettingType::Transform:
             shown = std::holds_alternative<std::string>(*value);
             break;
         }
@@ -74,8 +76,8 @@ namespace
      * A value of a setting as the help line names it, its default or its saved value: on and off for a switcher, the
      * number of a slider as its display writes it, with its unit, and the text of the option of a stepper and a
      * dropdown. The text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
-     * A binding is its sentence, with the player's handedness, and a color its numbers. Empty for a value it has no name
-     * for, as one that is none of the options.
+     * A binding is its sentence, with the player's handedness, and a color and a transform their numbers. Empty for a
+     * value it has no name for, as one that is none of the options.
      */
     std::string valueName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const bool leftHanded)
     {
@@ -84,6 +86,9 @@ namespace
         }
         if (setting.type == model::SettingType::Color) {
             return ui::colorValueName(setting, value);
+        }
+        if (setting.type == model::SettingType::Transform) {
+            return ui::transformValueName(setting, value);
         }
         if (setting.type == model::SettingType::TextInput) {
             const auto* text = std::get_if<std::string>(&value);
@@ -260,6 +265,9 @@ namespace
         // the control is a color that can be edited, in its editor
         bool color = false;
 
+        // the control is a transform that can be edited, in its editor
+        bool transform = false;
+
         // the value of a slider, as a drag has it
         float sliderValue = 0.0f;
         ui::SliderRow sliderRow;
@@ -267,6 +275,7 @@ namespace
         ui::ChoiceRow choiceRow;
         ui::BindingEdited bindingEdited;
         ui::ColorEdited colorEdited;
+        ui::TransformEdited transformEdited;
 
         // a press changed a value or began an interaction
         bool pulse = false;
@@ -315,12 +324,14 @@ namespace
         const bool isText = state.editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(state.stored.value);
         const bool isBinding = state.editable && setting.type == model::SettingType::InputBinding && std::holds_alternative<std::string>(state.stored.value);
         const bool isColor = state.editable && setting.type == model::SettingType::Color && std::holds_alternative<std::string>(state.stored.value);
+        const bool isTransform = state.editable && setting.type == model::SettingType::Transform && std::holds_alternative<std::string>(state.stored.value);
         const bool rowPressed = state.row.pressed && !state.onSlot;
 
-        ControlEdited edited{ .editable = isSwitcher || isSlider || isChoice || isText || isBinding || isColor,
+        ControlEdited edited{ .editable = isSwitcher || isSlider || isChoice || isText || isBinding || isColor || isTransform,
             .binding = isBinding,
             .haptic = isHaptic && isChoice,
             .color = isColor,
+            .transform = isTransform,
             .sliderValue = number ? *number : options.min,
             .chosen = ui::chosenOption(state.choiceOptions, state.stored),
             .choiceRow = { .pointed = isChoice && state.row.pointed, .held = isChoice && state.row.held, .pressed = isChoice && rowPressed } };
@@ -372,6 +383,12 @@ namespace
             state.refresh();
             edited.pulse = edited.pulse || edited.colorEdited.pulse;
         }
+        if (isTransform) {
+            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + theme::CONTROL_HEIGHT));
+            edited.transformEdited = context.transformEditor.edit(setting, *context.store, rowBox, rowPressed);
+            state.refresh();
+            edited.pulse = edited.pulse || edited.transformEdited.pulse;
+        }
         return edited;
     }
 
@@ -420,6 +437,9 @@ namespace
             }
             if (edited.color && invalid) {
                 help += state.defaultValue ? std::format(" Pick a color, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Pick a color.");
+            }
+            if (edited.transform && invalid) {
+                help += state.defaultValue ? std::format(" Change the transform, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Change the transform.");
             }
         } else {
             const auto defaultText = state.defaultValue ? std::format("(Default: {})", nameOf(*state.defaultValue)) : std::string();
@@ -487,6 +507,12 @@ namespace
             left = ui::drawColor(setting, right, top, stored.available ? text : nullptr, look, context.colorEditor.isOpen(setting));
             break;
         }
+        case model::SettingType::Transform: {
+            // one whose value is not available has an empty frame
+            const auto* text = std::get_if<std::string>(&stored.value);
+            left = ui::drawTransform(setting, right, top, stored.available ? text : nullptr, look, context.transformEditor.isOpen(setting));
+            break;
+        }
         }
         // an invalid value has its mark in the place of a warning's, which it has none of
         const ui::RowMarks marks{ .pending = look == ui::ValueLook::Pending,
@@ -547,7 +573,8 @@ namespace mods_config::ui
 
         // the ray is on the list then, and the help line keeps the row of its dropdown, and so it does while the editor of
         // a binding is open, where the ray is on none of its parts
-        if (state.row.pointed || context.choices.isListOpen(setting) || context.bindingEditor.isOpen(setting) || context.colorEditor.isOpen(setting)) {
+        if (state.row.pointed || context.choices.isListOpen(setting) || context.bindingEditor.isOpen(setting) || context.colorEditor.isOpen(setting) ||
+            context.transformEditor.isOpen(setting)) {
             drawn.pointed = pointedRow(state, edited, warning, applies);
         }
         if (edited.bindingEdited.pointed) {
@@ -555,6 +582,9 @@ namespace mods_config::ui
         }
         if (edited.colorEdited.pointed) {
             drawn.pointed = std::move(edited.colorEdited.pointed);
+        }
+        if (edited.transformEdited.pointed) {
+            drawn.pointed = std::move(edited.transformEdited.pointed);
         }
         if (!state.row.shown) {
             return drawn;

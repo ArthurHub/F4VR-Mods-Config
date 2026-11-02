@@ -977,6 +977,49 @@ TEST_CASE("FullPanel render: the colors of the config spec showcase, one pending
     }
 }
 
+TEST_CASE("FullPanel render: the transforms of the config spec showcase, one pending, and the editor of one with the ray on a line", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    const auto panelOf = [&mods, &store] {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods(mods);
+        // the page Transforms of Detailed Examples
+        panel.select({ .mod = 0, .page = { 1, 13 } });
+        return panel;
+    };
+    // the rows of the page under its heading
+    const auto row = [](const int place) {
+        return pageRow(place).y + theme::SPACE_6;
+    };
+
+    auto panel = panelOf();
+    const auto& transforms = std::get<model::Group>(panel.mods()[0].pages[1].pages[13].items[0]);
+    CHECK(store.set(std::get<model::Setting>(transforms.items[0]), "{ pos = [9.37, -4.86, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }"s));
+    WARN("Saved " << renderToFile(panel, "config-spec-transforms", ImVec2(700.0f, row(1))));
+
+    // the editor with its seven lines, with the first of them changed, and of a transform with rotation off, and of one
+    // with a value past its range
+    for (const auto& [name, place] :
+        { std::pair{ "config-spec-transform-editor", 0 }, std::pair{ "config-spec-transform-editor-zone", 2 }, std::pair{ "config-spec-transform-editor-outside", 4 } }) {
+        auto opened = panelOf();
+        const auto open = [&opened, &row, place] {
+            for (const bool held : { false, false, true, false, false }) {
+                test_panel::drawFrame(opened, ImVec2(700.0f, row(place)), held);
+            }
+            // the first has its Y changed by a press on the line's track, which is amber
+            for (const bool held : { false, false, true, false, false }) {
+                test_panel::drawFrame(opened, ImVec2(800.0f, 245.0f), held && place == 0);
+            }
+        };
+        const float line = row(place) + theme::CONTROL_HEIGHT * 0.5f + theme::SPACE_4 + theme::CONTROL_HEIGHT + theme::SPACE_3 + theme::CONTROL_HEIGHT + theme::SPACE_1 + 24.0f;
+        WARN("Saved " << renderToFile(opened, name, ImVec2(900.0f, line), false, open));
+    }
+}
+
 TEST_CASE("FullPanel render: the editor of a binding under its row and over it, with the ray on a part, and a list of it open", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);

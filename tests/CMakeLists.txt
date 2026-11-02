@@ -25,6 +25,7 @@ add_executable(${PROJECT_NAME}_tests
   TextMarkupTests.cpp
   TextStatesTests.cpp
   TomlFileTests.cpp
+  TransformsTests.cpp
   TranslationsTests.cpp
   Setup.cpp
   TestActions.cpp
@@ -58,6 +59,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/InputBindings.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp
+  ${SOURCE_DIR}/model/Transforms.cpp
   ${SOURCE_DIR}/spec/IniFile.cpp
   ${SOURCE_DIR}/spec/LiveCopies.cpp
   ${SOURCE_DIR}/spec/ModFile.cpp
@@ -91,6 +93,8 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/Sliders.cpp
   ${SOURCE_DIR}/ui/TextInputs.cpp
   ${SOURCE_DIR}/ui/TitleBar.cpp
+  ${SOURCE_DIR}/ui/TransformEditor.cpp
+  ${SOURCE_DIR}/ui/Transforms.cpp
   ${SOURCE_DIR}/ui/ModTree.cpp
   ${SOURCE_DIR}/ui/UnsavedDialog.cpp
 )

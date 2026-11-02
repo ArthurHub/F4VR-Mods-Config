@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -35,6 +36,8 @@ namespace mods_config::model
         Haptic,
         // a color of a CommonFramework mod: its value is the TOML text of the color's inline table
         Color,
+        // a transform of a CommonFramework mod: its value is the TOML text of the transform's inline table
+        Transform,
     };
 
     /**
@@ -78,6 +81,24 @@ namespace mods_config::model
         bool operator==(const GameOptions&) const = default;
     };
 
+    // the seven axes of a transform, in the order of its editor's lines, by the place of the first of each of its parts:
+    // X, Y and Z, then Heading, Roll and Attitude, then Scale
+    constexpr std::size_t TRANSFORM_POSITION = 0;
+    constexpr std::size_t TRANSFORM_ROTATION = 3;
+    constexpr std::size_t TRANSFORM_SCALE = 6;
+    constexpr std::size_t TRANSFORM_AXES = 7;
+
+    /**
+     * An axis of a transform in its editor: the range of its slider, and whether the part it is of is on.
+     */
+    struct TransformAxis
+    {
+        float min = 0.0f;
+        float max = 0.0f;
+        float step = 1.0f;
+        bool on = false;
+    };
+
     /**
      * What the value of a setting can be: the range of a slider and of a text input of a number, the length of
      * a text input of a text, or the options of a stepper and a dropdown.
@@ -117,6 +138,9 @@ namespace mods_config::model
         // a color has an opacity, which a color whose opacity means nothing, as a light's, has not
         // (`"alpha": false`): it is RGB only
         bool alpha = true;
+
+        // the axes of a transform, as its config spec's `position`, `rotation` and `scale` have them
+        std::array<TransformAxis, TRANSFORM_AXES> transformAxes{};
     };
 
     /**

@@ -587,6 +587,51 @@ TEST_CASE("ConfigSpecStore: a color is its table's text with the keys it has, in
     CHECK(session.store.dirtyCount() == 0);
 }
 
+TEST_CASE("ConfigSpecStore: a transform is its table's text with the keys it has, invalid with the framework's reason, and Save writes it as the table")
+{
+    Session session(R"(
+        { "type": "cf.transform", "text": "Mesh", "default": { "pos": [1, 2, 3], "scale": 1.5 }, "storage": { "path": ["Hand", "tMesh"] } },
+        { "type": "cf.transform", "text": "Tilt", "default": { "rot": [0, 0, 0] }, "storage": { "path": ["Hand", "tTilt"] } },
+        { "type": "cf.transform", "text": "Out", "default": {}, "storage": { "path": ["Hand", "tOut"] } }
+    )");
+    session.open(
+        "[Hand]\r\n"
+        "tMesh = { scale = 1.5, pos = [1,2,3] }   # mesh\r\n"
+        "tTilt = { rot = [0.0, -5.0, 0.0] }\r\n"
+        "tOut = { pos = [0, 0], scale = 1 }\r\n");
+
+    // the file's keys, numbers and spaces are the menu's, so the default is the same value, and one key alone stays alone
+    CHECK(session.value(0).value == model::Value("{ pos = [1.0, 2.0, 3.0], scale = 1.5 }"s));
+    CHECK(session.store.defaultValue(session.setting(0)) == session.value(0).value);
+    CHECK(session.value(1).value == model::Value("{ rot = [0.0, -5.0, 0.0] }"s));
+    CHECK_FALSE(session.value(1).invalid);
+
+    // a table the framework cannot read is shown as the file has it
+    const auto out = session.value(2);
+    CHECK(out.value == model::Value("{ pos = [0, 0], scale = 1 }"s));
+    CHECK(out.invalid);
+    CHECK(out.reason == "Invalid: pos is not an array of three numbers.");
+    CHECK(session.store.dirtyCount() == 0);
+
+    // a value the player sets is the menu's text too, and one that is no transform is invalid
+    CHECK(session.store.set(session.setting(1), "{rot=[0,1,0],pos=[1,2,3]}"s));
+    CHECK(session.value(1).value == model::Value("{ pos = [1.0, 2.0, 3.0], rot = [0.0, 1.0, 0.0] }"s));
+    CHECK(session.store.set(session.setting(0), "{ position = [1, 2, 3] }"s));
+    CHECK(session.value(0).invalid);
+    CHECK(session.value(0).reason == "Invalid: it has the key 'position', which is not pos, rot or scale.");
+    session.store.discard(session.setting(0));
+    CHECK_FALSE(session.store.set(session.setting(0), 1.0f));
+
+    CHECK(session.store.set(session.setting(2), "{ pos = [0.5, 0.0, 0.0] }"s));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Hand]\r\n"
+          "tMesh = { scale = 1.5, pos = [1,2,3] }   # mesh\r\n"
+          "tTilt = { pos = [1.0, 2.0, 3.0], rot = [0.0, 1.0, 0.0] }\r\n"
+          "tOut = { pos = [0.5, 0.0, 0.0] }\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+}
+
 TEST_CASE("ConfigSpecStore: a haptic is its pattern's name as the framework writes it, and a name it does not have is invalid")
 {
     Session session(R"(
