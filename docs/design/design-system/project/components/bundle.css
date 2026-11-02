@@ -508,7 +508,6 @@ svg.mc-ico.spin { width: 20px; height: 20px; }
 
 /* ---------- activation sphere: a section of the mod's TOML drawn as one group ---------- */
 .mc-section .sphere { width: 20px; height: 20px; flex: none; margin-right: calc(var(--space-1) - var(--space-3)); }
-.mc-section .live { order: 3; flex: none; color: var(--green-muted); }
 .mc-section.is-sphere::after { order: 2; }
 .mc-section.is-lit .sphere circle.halo { opacity: 1; }
 .mc-combo.is-xform .same { color: var(--green-muted); }

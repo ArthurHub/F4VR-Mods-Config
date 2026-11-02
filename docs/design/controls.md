@@ -267,10 +267,12 @@ The look is the design system's [Transform](design-system/project/components/Tra
 
 Primary use: a zone the hand reaches into and what a press there does, a whole section of a CommonFramework mod's TOML.
 
-- The section is drawn as one group under a heading with the sphere's mark: its zone and its power-armor zone as transforms, its two bindings and three haptics under Actions, and its icon and sphere in a section that folds, folded by default.
+- The section is drawn as one group under a heading with the sphere's mark. First what a player changes most: the primary binding (Activate), the entry haptic and Show icon. Then three sections that fold, folded each time the page is shown: Location, the zone and the power-armor zone; Activation, the primary haptic, the secondary binding and its haptic; and Visuals, the icon and the sphere, and how each shows.
+- The config spec names each row, or it has its default name, and can hide any but the primary binding: a key that is hidden has no row and keeps the file's value. A section with no row is left out. See [CommonFramework values](schema.md#commonframework-values).
 - Each key is its own setting, with the control of its kind, and is dirty, previewed and saved alone.
+- A binding set to None hides its haptic. The rows of an icon or a sphere set to Never are disabled.
 - A power-armor zone that the file does not have says `As Zone`, and a change writes it.
-- While the ray is on the group, its sphere is lit in the world, so the player sees which one the rows are of. It needs the client to be told which group the ray is in, beside the page events.
+- While the ray is on the group, its sphere is lit in the world, and the heading's mark has a halo, so the player sees which one the rows are of. It needs the client to be told which group the ray is in, beside the page events.
 
 The look is the design system's [ActivationSphere](design-system/project/components/ActivationSphere/README.md).
 

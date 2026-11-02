@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-11-02T19:05:00Z",
+    "at": "2026-11-02T21:25:00Z",
     "via": "Claude (Cowork)",
-    "note": "Title bar Help: `? Help` in the important style until the player first opens the Help page, then `?` alone; the config keeps it as bHighlightHelp, and the menu's own settings can turn it on again."
+    "note": "ActivationSphere: the primary binding, entry haptic and Show icon first, then Location, Activation and Visuals folded; each row named by the config spec or its default, and any but the primary binding can be hidden. The sphere lit in the world is the mark's halo, with no text."
   },
   "layout": "files",
   "libraries": [],

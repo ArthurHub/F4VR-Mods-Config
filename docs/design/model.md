@@ -311,7 +311,7 @@ sEntryHaptic = "Tick"
 fIconSize = 2.0
 ```
 
-The config spec names the section once, and the loader makes a group of it, with a setting for each key:
+The config spec names the section once, as a `cf.activationSphere` item, and the loader makes a group of it, with a setting for each key it shows: the keys the config spec hides, as a sphere with no icon, have none, and keep the file's values.
 
 ```text
 Group "Body grab"                                         role: activation sphere
@@ -321,6 +321,6 @@ Group "Body grab"                                         role: activation spher
 └─ Setting fIconSize:ImFl_BodyActivationSphere            float, slider
 ```
 
-- The role draws the four as one control, where the sphere can be tuned as a whole.
+- The role draws them as one group: the primary binding, the entry haptic and Show icon, then Location, Activation and Visuals, which fold. Each setting has the text the config spec gives it, or its default name, as Activate for the primary binding.
 - The player changes the primary binding. That key alone is dirty, is previewed, and is written by Save.
 - The framework's client previews it as it previews any key: an override for that section and key.

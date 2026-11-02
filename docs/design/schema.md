@@ -280,6 +280,7 @@ Every entry in a `content` array has a `type`, which says what the row is. The n
 - `cf.haptic`: a setting of a CommonFramework haptic pattern; see [CommonFramework values](#commonframework-values).
 - `cf.color`: a setting of a CommonFramework color; see [CommonFramework values](#commonframework-values).
 - `cf.transform`: a setting of a CommonFramework transform; see [CommonFramework values](#commonframework-values).
+- `cf.activationSphere`: a section of a CommonFramework mod's TOML that is an activation sphere, drawn as one group of its keys; see [CommonFramework values](#commonframework-values).
 - `section`: a heading with its own rows; see [Sections](#sections).
 - `button`: runs an action.
 - `text`, `spacer`, `image`: rows that hold no value; see [Text, spacers and images](#text-spacers-and-images).
@@ -391,6 +392,32 @@ A range whose `min` is not below its `max`, or whose `step` is not above 0, is a
     "scale": { "min": 0.5, "max": 2.0 }
   },
   "storage": { "path": ["BodyActivation", "tZone"] }
+}
+```
+
+`cf.activationSphere` is a section of the TOML that the framework reads as an activation sphere (`loadWandActivationConfig`), drawn as one group: its `text` is the group's heading, its `help` the heading's, and `storage.path` the section. Each key of the section is a setting of its own, of the control of its kind, with the section's `applies`, `live` where none is above it, as the framework previews a key. `keys` says, for each key by its name, how it is shown:
+
+- `true`, or the key left out, shows it, with its default name.
+- `false` hides it: it has no row, and its value is kept as the file has it. `kPrimaryBinding` cannot be hidden: a `false` for it is an error, and it is shown. Hiding `sShowIcon` hides `sIcon`, `cIconColor` and `fIconSize` too, and hiding `sShowSphere` hides `sSphereStyle` and `fSphereScale`.
+- An object shows it, with the fields of a setting that it gives: `text`, `help`, `default`, `valueOptions`, `applies`, `visibleWhen`, `enabledWhen` and `warnings`. Its `type`, `valueType` and `storage` are the key's and are not given.
+
+The keys and their default names: `kPrimaryBinding` Activate, `sEntryHaptic` Entry haptic and `sShowIcon` Show icon; under Location `tZone` Zone and `tZonePA` Zone in power armor; under Activation `sPrimaryHaptic` Primary haptic, `kSecondaryBinding` Secondary activate and `sSecondaryHaptic` Secondary haptic; under Visuals `sIcon` Icon, `cIconColor` Icon color, `fIconSize` Icon size, `sShowSphere` Show sphere, `sSphereStyle` Sphere style and `fSphereScale` Sphere size. The framework's other keys, `sSphereOrientation`, `cSphereColor`, `fSphereGlow`, `sSphereNif`, `sSphereTexture` and `aSphereFalloff`, are hidden unless `keys` names them, and are then shown under Visuals. A name in `keys` that is none of these is a warning, and is left out. A setting's id is its key and the section, as any key's, so a condition can name it.
+
+A key the file does not have is the framework's default for it, or the `default` its object gives.
+
+```json
+{
+  "type": "cf.activationSphere",
+  "text": "Body grab",
+  "help": "Where your off hand reaches to take the light from your chest.",
+  "storage": { "path": ["ImFl_BodyActivationSphere"] },
+  "keys": {
+    "kPrimaryBinding": { "text": "Take the light", "valueOptions": { "suppress": true } },
+    "kSecondaryBinding": { "text": "Switch hands" },
+    "tZone": { "valueOptions": { "rotation": false } },
+    "tZonePA": false,
+    "sShowSphere": false
+  }
 }
 ```
 
