@@ -88,6 +88,12 @@ namespace mods_config::ui
             return _helpLine;
         }
 
+        // whether a section that folds, of the page that is shown, is folded now
+        bool isFolded(const model::Group& group) const
+        {
+            return _modPage.isFolded(group);
+        }
+
         const DeveloperView& developerView() const
         {
             return _developerView;

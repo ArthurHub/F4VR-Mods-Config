@@ -64,6 +64,11 @@ namespace mods_config::ui
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();
 
+        bool isFolded(const model::Group& group) const
+        {
+            return _sections.isFolded(group);
+        }
+
     private:
         // with none an image from pixels keeps its room, and a texture is drawn as one the game does not load
         ImageDrawer _imageDrawer;
