@@ -107,7 +107,7 @@ sEntryHaptic = "Tick"
 sPrimaryHaptic = "DoubleClick"
 sSecondaryHaptic = "DoubleClick"
 sShowIcon = "wheninside"
-sIcon = 'f4cf\activation-icon-ring.dds'
+sIcon = 'Textures\ModsConfigFO4_Showcase\f4cf\activation-icon-ring.dds'
 fIconSize = 2.0
 
 # It has no tZonePA, so it has no row for one

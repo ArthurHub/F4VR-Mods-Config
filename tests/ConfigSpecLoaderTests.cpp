@@ -2210,7 +2210,10 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
     CHECK(settings[1].type == model::SettingType::Haptic);
     CHECK(settings[2].type == model::SettingType::Dropdown);
     CHECK(settings[3].type == model::SettingType::Transform);
-    CHECK(settings[7].type == model::SettingType::TextInput);
+    CHECK(settings[7].type == model::SettingType::Dropdown);
+    REQUIRE(settings[7].valueOptions.folderOptions);
+    CHECK(settings[7].valueOptions.folderOptions->path == R"(Textures\MyMod\f4cf)");
+    CHECK(settings[7].valueOptions.folderOptions->mask == "activation-icon-*.dds");
     CHECK(settings[8].type == model::SettingType::Color);
     CHECK(settings[9].type == model::SettingType::Slider);
 
@@ -2224,7 +2227,8 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
     CHECK(text(4) == "DoubleClick");
     CHECK(text(5) == model::bindingText(framework.secondary));
     CHECK(text(6) == "DoubleClick");
-    CHECK(text(7) == framework.iconStyle.textureOrDefault());
+    // the framework's icon, by its path in the mod's folder of Data
+    CHECK(text(7) == R"(Textures\MyMod\)" + framework.iconStyle.textureOrDefault());
     CHECK(framework.showIcon == f4vr::parseActivationSphereVisibility(text(2), f4vr::ActivationSphereVisibility::Always));
     CHECK(framework.showSphere == f4vr::parseActivationSphereVisibility(text(10), f4vr::ActivationSphereVisibility::Always));
     CHECK(f4vr::findSphereStylePreset(text(11)) == framework.sphereStyle);

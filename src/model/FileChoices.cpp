@@ -38,15 +38,16 @@ namespace
     }
 
     /**
-     * The extension a mask names for every file it lists, as `.dds` of `*.dds`: empty for a mask that lists files of
-     * more than one, as `*` and `*.d?s`.
+     * The extension a mask names for every file it lists, as `.dds` of `*.dds` and of `activation-icon-*.dds`: empty
+     * for a mask that lists files of more than one, as `*` and `*.d?s`.
      */
     std::string_view maskExtension(const std::string_view mask)
     {
-        if (!mask.starts_with("*.")) {
+        const auto dot = mask.rfind('.');
+        if (dot == std::string_view::npos) {
             return {};
         }
-        const auto extension = mask.substr(1);
+        const auto extension = mask.substr(dot);
         return extension.find_first_of("*?") == std::string_view::npos ? extension : std::string_view();
     }
 }

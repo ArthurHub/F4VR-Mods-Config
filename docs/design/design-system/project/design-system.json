@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-11-02T23:30:00Z",
+    "at": "2026-11-03T16:30:00Z",
     "via": "Claude Code",
-    "note": "ActivationSphere: the icon is a text input of its path until FileChoice is a control of a config spec, and Zone in power armor has a row only while the file has its key."
+    "note": "ActivationSphere: the icon, mesh and texture are FileChoices of the framework's files in the mod's folders; FileChoice hides the extension of a mask as activation-icon-*.dds."
   },
   "layout": "files",
   "libraries": [],

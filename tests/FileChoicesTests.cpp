@@ -44,6 +44,7 @@ TEST_CASE("FileChoices: a file is shown with no extension where the mask names o
     const auto fixed = model::shownFileName("6_Incandescent.DDS", "*.dds");
     CHECK(fixed.name == "6_Incandescent");
     CHECK(fixed.extension.empty());
+    CHECK(model::shownFileName("activation-icon-ring.dds", "activation-icon-*.dds").name == "activation-icon-ring");
     const auto any = model::shownFileName("Preset.v2.json", "*");
     CHECK(any.name == "Preset.v2");
     CHECK(any.extension == ".json");

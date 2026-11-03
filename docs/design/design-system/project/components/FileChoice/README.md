@@ -7,7 +7,7 @@ A choice of the files in a folder, MCM's `dropdownFiles`, and a config spec's `l
 ## The row
 
 - A dropdown's frame, 392 x 48: from the left, the file's name in `t-body`, and the drawn down arrow. Then the Reset slot.
-- **The name:** with no extension where the mask names one, as `*.dds`, which every file has. With any other mask, or none, its extension follows it in `green-muted`.
+- **The name:** with no extension where the mask names one, as `*.dds` or `activation-icon-*.dds`, which every file has. With any other mask, or none, its extension follows it in `green-muted`.
 - A press anywhere on the row opens the list.
 - Pending: the name in `amber`, the pending mark after the row's text.
 - **No file:** the option that is no file shows its text, as `No gobo`.

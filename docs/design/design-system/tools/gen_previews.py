@@ -1873,7 +1873,7 @@ open_rows = ''.join([
         row('Secondary haptic', haptic('DoubleClick')),
     ])),
     sub(collapse('Visuals', open_=True), ''.join([
-        row('Icon', field('activation-icon-flashlight.dds')),
+        row('Icon', file_ctl('activation-icon-ring')),
         row('Icon color', color_ctl((255, 255, 255, 200))),
         row(f'Icon size{DOT}', slider('2.5', 50, 'is-pending', 'is-pending', True)),
         row('Show sphere', combo('Never')),

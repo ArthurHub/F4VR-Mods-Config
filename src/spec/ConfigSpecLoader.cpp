@@ -109,6 +109,9 @@ namespace
     // the field of a made row that says which of the framework's words its dropdown has
     constexpr auto MADE_WORDS = "madeWords";
 
+    // what a made row's path of a file has in place of the config spec's `modName`, the folder of its mod's assets
+    constexpr std::string_view MADE_MOD_NAME = "<modName>";
+
     /**
      * What a condition knows of the setting it names: its id as its config spec has it, and what its value is.
      */
@@ -143,6 +146,9 @@ namespace
     {
         const model::Translations& translations;
         std::map<std::string, model::File> files;
+
+        // the config spec's `modName`, which names the folders of a CommonFramework mod's assets
+        std::string modName;
 
         // the `sharedLists` of its root. None for a config spec with none
         const Json* sharedLists = nullptr;
@@ -1898,8 +1904,9 @@ namespace
             SpherePart::Visuals,
             "sShowIcon",
             false,
-            R"({ "type": "textinput", "valueType": "string", "text": "Icon", "help": "The path of the icon's .dds, resolved as the mod's other textures are.",
-                "default": "f4cf\\activation-icon-hand.dds" })" },
+            R"({ "type": "dropdown", "valueType": "string", "text": "Icon", "help": "The image drawn at the middle of the zone.",
+                "default": "Textures\\<modName>\\f4cf\\activation-icon-hand.dds",
+                "valueOptions": { "listFromFolder": { "path": "Textures\\<modName>\\f4cf", "mask": "activation-icon-*.dds" } } })" },
         SphereKey{ "cIconColor",
             SpherePart::Visuals,
             "sShowIcon",
@@ -1949,13 +1956,14 @@ namespace
             SpherePart::Visuals,
             "sShowSphere",
             true,
-            R"({ "type": "textinput", "valueType": "string", "text": "Sphere mesh", "help": "The path of the sphere's .nif.", "default": "f4cf\\activation-sphere.nif" })" },
+            R"({ "type": "dropdown", "valueType": "string", "text": "Sphere mesh", "help": "The mesh the sphere is drawn with.", "default": "",
+                "valueOptions": { "listFromFolder": { "path": "Meshes\\<modName>\\f4cf", "mask": "*.nif", "noneText": "Style's mesh" } } })" },
         SphereKey{ "sSphereTexture",
             SpherePart::Visuals,
             "sShowSphere",
             true,
-            R"({ "type": "textinput", "valueType": "string", "text": "Sphere texture", "help": "The path of the texture on its mesh, and none to keep the mesh's own.",
-                "default": "f4cf\\activation-sphere.dds" })" },
+            R"({ "type": "dropdown", "valueType": "string", "text": "Sphere texture", "help": "The texture on the sphere's mesh.", "default": "",
+                "valueOptions": { "listFromFolder": { "path": "Textures\\<modName>\\f4cf", "mask": "*-sphere.dds", "noneText": "Style's texture" } } })" },
         SphereKey{ "aSphereFalloff", SpherePart::Visuals, "sShowSphere", true, R"({ "type": "cf.falloff", "text": "Sphere falloff" })" },
     };
 
@@ -2016,13 +2024,32 @@ namespace
     }
 
     /**
+     * A text of a made row with the config spec's `modName` in place of `<modName>`. Any other value is left as it is.
+     */
+    void nameModFolder(Json& value, const std::string_view modName)
+    {
+        if (!value.is_string()) {
+            return;
+        }
+        auto& text = value.get_ref<std::string&>();
+        if (const auto at = text.find(MADE_MOD_NAME); at != std::string::npos) {
+            text.replace(at, MADE_MOD_NAME.size(), modName);
+        }
+    }
+
+    /**
      * The row of a key of a sphere: the framework's, with what its object in `keys` gives over it, of which `valueOptions`
-     * adds to the key's. A key with another that it depends on has that condition too.
+     * adds to the key's. A key with another that it depends on has that condition too. The framework's files of a key
+     * that is a choice of them are in the folders of the config spec's mod, as the framework ships them.
      */
     Json sphereKeyRow(const SphereKey& key, const Json& keys, const model::FileStorage& section, ConfigSpecReading& reading)
     {
         const std::string name(key.name);
         auto row = Json::parse(key.row);
+        if (row.contains("valueOptions") && row["valueOptions"].contains("listFromFolder")) {
+            nameModFolder(row["default"], reading.modName);
+            nameModFolder(row["valueOptions"]["listFromFolder"]["path"], reading.modName);
+        }
         row[MADE_ROW_PATH] = "keys." + name;
         auto path = section.path;
         path.push_back(name);
@@ -2905,6 +2932,7 @@ namespace mods_config::spec
         const auto sharedLists = configSpec.find("sharedLists");
         ConfigSpecReading reading{ .translations = translations,
             .files = {},
+            .modName = mod.name,
             .sharedLists = sharedLists != configSpec.end() && sharedLists->is_object() ? &*sharedLists : nullptr,
             .plugins = plugins,
             .folders = folders,

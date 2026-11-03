@@ -711,6 +711,44 @@ TEST_CASE("ConfigSpecStore: a sphere's binding set to None hides its haptic, and
     CHECK_FALSE(enabled(SPHERE_STYLE));
 }
 
+TEST_CASE("ConfigSpecStore: a sphere's icon, mesh and texture are choices of the framework's files in the mod's folders, written by their paths in Data")
+{
+    Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] }, "keys": { "sSphereNif": true, "sSphereTexture": true } })");
+    for (const auto* file : { "activation-icon-circle.dds", "activation-icon-hand.dds", "activation-icon-ring.dds", "activation-sphere.dds", "debug-sphere.dds" }) {
+        session.data.write(std::format(R"(Textures\MyMod\f4cf\{})", file), "");
+    }
+    session.data.write(R"(Meshes\MyMod\f4cf\activation-sphere.nif)", "");
+    session.open("[Body]\r\nsIcon = 'Textures\\MyMod\\f4cf\\activation-icon-ring.dds'\r\n");
+    constexpr std::size_t ICON = 7;
+    constexpr std::size_t MESH = 13;
+    constexpr std::size_t TEXTURE = 14;
+    REQUIRE(session.sphereKey(MESH).text == "Sphere mesh");
+    REQUIRE(session.sphereKey(TEXTURE).text == "Sphere texture");
+
+    // the icons alone, and the file's icon is its option
+    const auto& icons = session.store.options(session.sphereKey(ICON));
+    REQUIRE(icons.size() == 3);
+    CHECK(icons[0] == model::Option{ .value = R"(Textures\MyMod\f4cf\activation-icon-circle.dds)"s, .text = "activation-icon-circle.dds" });
+    CHECK(session.store.value(session.sphereKey(ICON)).value == icons[2].value);
+    CHECK_FALSE(session.store.value(session.sphereKey(ICON)).invalid);
+
+    // the style's own first, which the file leaves out, and the textures of a sphere alone
+    CHECK(session.store.options(session.sphereKey(MESH)) ==
+          std::vector<model::Option>{ { .value = ""s, .text = "Style's mesh" }, { .value = R"(Meshes\MyMod\f4cf\activation-sphere.nif)"s, .text = "activation-sphere.nif" } });
+    const auto& textures = session.store.options(session.sphereKey(TEXTURE));
+    REQUIRE(textures.size() == 3);
+    CHECK(textures[0].text == "Style's texture");
+    CHECK(textures[2].value == model::Value(R"(Textures\MyMod\f4cf\debug-sphere.dds)"s));
+    CHECK(session.store.value(session.sphereKey(TEXTURE)).value == model::Value(""s));
+
+    CHECK(session.store.set(session.sphereKey(TEXTURE), textures[2].value));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Body]\r\n"
+          "sIcon = 'Textures\\MyMod\\f4cf\\activation-icon-ring.dds'\r\n"
+          "sSphereTexture = \"Textures\\\\MyMod\\\\f4cf\\\\debug-sphere.dds\"\r\n");
+}
+
 TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework does, with no regard to case and separators, and with its other words")
 {
     Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] }, "keys": { "sSphereOrientation": true } })");
