@@ -187,15 +187,14 @@ The milestone comes before the controls of milestone 9, which are for tuning a v
 
 | #   | Repo | Commit                                                                                 | Status |
 | --- | ---- | -------------------------------------------------------------------------------------- | ------ |
-| M74 | mod  | docs: the CommonFramework controls, and how each key of Immersive Flashlight is edited | todo   |
+| M74 | mod  | docs: the CommonFramework controls, and how each key of Immersive Flashlight is edited | done   |
 | M75 | mod  | Color                                                                                  | done   |
 | M77 | mod  | Haptic                                                                                 | done   |
 | M78 | mod  | InputBinding                                                                           | done   |
-| M79 | mod  | Transform: its row, and its editor of sliders                                          | in review |
-| M142 | mod | Transform: Adjust in world, tuned from the wrist                                       | in review |
-| M80 | mod  | ActivationSphere, a whole section                                                      | in review |
-| M81 | mod  | The values of Immersive Flashlight that are left: lists and flags                      | todo   |
-| M76 | mod  | A choice of the files in a folder                                                      | in review |
+| M79 | mod  | Transform: its row, and its editor of sliders                                          | done   |
+| M142 | mod | Transform: Adjust in world, tuned from the wrist                                       | done   |
+| M80 | mod  | ActivationSphere, a whole section                                                      | done   |
+| M76 | mod  | A choice of the files in a folder                                                      | done   |
 | F36 | framework | vrcf: a binding of any hand                                                       | done   |
 | F37 | framework | vrui: the world move is a binding                                                 | done   |
 | M131 | mod | Back and the move are bindings of any hand                                             | done   |
@@ -207,12 +206,10 @@ The milestone is measured by Immersive Flashlight's TOML. Beside numbers, switch
 - 3 activation spheres, each a section with a zone, bindings, haptics, an icon and a sphere.
 - 4 colors, each in one key.
 - 4 gobo textures, each the path of a file, a dropdown of the files of its folder (M76).
-- 4 hand poses, which are edited from milestone 13.
-- 5 lists of text, and a flags value.
+- a flags value and a collision filter, each a text the mod reads as a number, which are text inputs.
+- 4 hand poses and 5 lists of text, which are edited in milestone 13.
 
-M74 settles what the design leaves open: a control that is bound to a whole section.
-
-The commits after M74 are split once it is written. Transform, InputBinding and ActivationSphere are each likely two: edited in the panel, then tuned in the world. Each of the values that are left is a commit of its own.
+Immersive Flashlight's config spec edits each key with the controls of this milestone, and leaves out the `[Debug]` section.
 
 M75 comes before M74 too, as its design is done. Its config spec type is `cf.color`, the TOML text of the framework's table, read over its default's channels as the framework reads it. Its row is a swatch and its numbers, and a press opens its editor, a picker and a slider for each channel, which sets the color as it changes. Mods Config FO4 VR's own config spec gets the pointer's three colors, and the config spec showcase a page of colors. The design system has an RGB-only editor 56 px shorter, which the picker does not fit: it is as tall as the other.
 

@@ -40,9 +40,18 @@ M90 reads `Interface\Translations\<modName>_<language>.txt` itself. F4SE loads a
 
 | #    | Repo | Commit                            | Status |
 | ---- | ---- | --------------------------------- | ------ |
+| M143 | mod  | List                              | todo   |
 | M133 | mod  | HandPose                          | todo   |
+| M144 | mod  | Transform: grabbed with the hand  | todo   |
+| M145 | mod  | The client is told what the ray is on | todo   |
+
+M143 edits a list of texts, as [List](controls.md#list) has it: Immersive Flashlight has 5.
 
 M133 edits a hand pose, as [Hand pose](controls.md#hand-pose) has it: Immersive Flashlight has 4.
+
+M144 has the player grab the object a transform places and move it with the hand to where it should be. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
+
+M145 tells a client which item of its config spec the ray is on, a row or a group, as it moves on and off one, beside the page events, so the mod shows in the world what the item sets: Immersive Flashlight lights the activation sphere whose rows the ray is on. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
 
 ## 14. Papyrus API
 

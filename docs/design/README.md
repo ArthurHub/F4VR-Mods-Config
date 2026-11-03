@@ -28,10 +28,6 @@ Designs that are written and published to the design system but that Arthur has 
 - [List](controls.md#list) — a list of texts, an `a` key: the row shows the entries and their count, and an editor has a line for each entry, with Add, Remove, and Up and Down where the order means something. Design system: [List](design-system/project/components/List/README.md).
 - [Hand pose](controls.md#hand-pose) — an `h` key: a bar for each finger in the row, and an editor of each finger's joints and the palm, shown live on the player's hand through FRIK. Open: whether the menu's FRIK tag is over a mod's own, and the ranges of the joints. Design system: [HandPose](design-system/project/components/HandPose/README.md).
 - [Search](ui-and-vr-interaction.md#search) — the tree's header is the field, a query filters the tree, and the settings that match are a page of their own, with a step of Back for it. Design system: [Search](design-system/project/components/Search/README.md) and [FullPanelSearch](design-system/project/components/FullPanelSearch/README.md).
-- [Choice of files](controls.md#choice-of-files) — a dropdown of a folder's files, written in the form of the setting's default. Design system: [FileChoice](design-system/project/components/FileChoice/README.md).
-- [Transform](controls.md#transform) — position and rotation on two lines in the row; an editor of sliders, and Adjust in world from the wrist. Open: grabbing the object with the hand. Design system: [Transform](design-system/project/components/Transform/README.md).
-- [ActivationSphere](controls.md#activationsphere) — a section drawn as one group with the sphere's mark: zones, actions, and its look folded; the sphere lit in the world while the ray is on it. Open: the client needs a group event to light it. Design system: [ActivationSphere](design-system/project/components/ActivationSphere/README.md).
-- Not designed yet, beside these: Immersive Flashlight's flags value, `sFlashlightFlagsBitmask`, which needs the config spec to name each flag.
 
 ## Not in the design system yet
 

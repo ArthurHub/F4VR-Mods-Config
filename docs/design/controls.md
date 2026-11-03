@@ -276,7 +276,7 @@ Primary use: a zone the hand reaches into and what a press there does, a whole s
 - A power-armor zone has a row only while the file has its key, or the config spec gives it a default: a sphere with none has nothing to tune, as the framework uses the zone. With no default it has no Reset.
 - A dropdown of the section reads a word as the framework does, so `off` is Never and `Cyan_Subtle` is Cyan, subtle.
 - The paths of an icon and of a sphere's mesh and texture are text inputs until the [choice of files](#choice-of-files) is a control of a config spec.
-- While the ray is on the group, its sphere is lit in the world, and the heading's mark has a halo, so the player sees which one the rows are of. It needs the client to be told which group the ray is in, beside the page events.
+- While the ray is on the group, its sphere is lit in the world, and the heading's mark has a halo, so the player sees which one the rows are of. It needs the client to be told which item the ray is on, beside the page events.
 
 The look is the design system's [ActivationSphere](design-system/project/components/ActivationSphere/README.md).
 
