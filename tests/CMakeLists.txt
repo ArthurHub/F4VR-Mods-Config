@@ -25,6 +25,7 @@ add_executable(${PROJECT_NAME}_tests
   TextMarkupTests.cpp
   TextStatesTests.cpp
   TomlFileTests.cpp
+  TransformTuningTests.cpp
   TransformsTests.cpp
   TranslationsTests.cpp
   Setup.cpp
@@ -59,6 +60,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/InputBindings.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp
+  ${SOURCE_DIR}/model/TransformTuning.cpp
   ${SOURCE_DIR}/model/Transforms.cpp
   ${SOURCE_DIR}/spec/IniFile.cpp
   ${SOURCE_DIR}/spec/LiveCopies.cpp

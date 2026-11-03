@@ -7,6 +7,7 @@
 #include <ranges>
 #include <string_view>
 
+#include "ButtonIcons.h"
 #include "Drawing.h"
 #include "Numbers.h"
 #include "Theme.h"
@@ -19,6 +20,10 @@ namespace
     // The sizes of the editor that are not tokens of the design system, in the panel's pixels.
     constexpr float EDITOR_WIDTH = 560.0f;
     constexpr float LABEL_WIDTH = 96.0f;
+
+    // the button of the footer that tunes the transform in the world, and its help
+    constexpr std::string_view ADJUST_TEXT = "Adjust in world";
+    constexpr std::string_view ADJUST_HELP = "Tune it with the controllers while you look at it, from your wrist.";
 
     /**
      * An axis of the editor: its name, and what it does to the transform, around the name of what the transform places.
@@ -105,6 +110,26 @@ namespace
     }
 
     /**
+     * The button of Adjust in world in a box, in the `important` style, the accent outline and text, with the hand icon
+     * before its text, a ring while it is pressed, and disabled as a button of a row is. Returns whether it is pressed.
+     */
+    bool drawAdjustButton(const ImRect& box, const bool enabled)
+    {
+        ImGui::BeginDisabled(!enabled);
+        ImGui::SetCursorScreenPos(box.Min);
+        const bool pressed = ImGui::InvisibleButton("adjust", box.GetSize());
+        ui::drawOutline(box.Min, box.Max, theme::color::ACCENT);
+        if (ImGui::IsItemActive()) {
+            ui::drawButtonRing(box, theme::color::ACCENT);
+        }
+        const float iconLeft = box.Min.x + theme::SPACE_4;
+        ui::drawButtonIcon(model::ButtonIcon::Hand, ImVec2(iconLeft + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), theme::color::ACCENT);
+        ui::drawText(iconLeft + ui::BUTTON_ICON_SIZE + theme::SPACE_2, box.Max.x, box.Min.y, box.GetHeight(), theme::color::ACCENT, ADJUST_TEXT);
+        ImGui::EndDisabled();
+        return pressed;
+    }
+
+    /**
      * How high the editor is with a number of lines: its header, the lines, and its footer under a rule.
      */
     float editorHeight(const std::size_t lines)
@@ -138,12 +163,22 @@ namespace mods_config::ui
             start(setting, _before);
             _open = &setting;
             _cancel = false;
+            _resume = false;
             _sliders.reset();
             ImGui::OpenPopupEx(id);
             edited.pulse = true;
         }
         if (_open != &setting) {
             return edited;
+        }
+        if (_resume) {
+            // the panel was not drawn while it was tuned, and its value is in the store. Cancel and Back still give back
+            // the value it had as the editor opened
+            _resume = false;
+            const auto stored = store.value(setting);
+            const auto* text = std::get_if<std::string>(&stored.value);
+            start(setting, text ? *text : _before);
+            _sliders.reset();
         }
         if (!ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
             // a press beside it closed it, which keeps the transform
@@ -205,11 +240,12 @@ namespace mods_config::ui
         _sliders.startFrame(_thumbstickSideValue);
         for (const std::size_t axis : lines) {
             const ImRect line(contentLeft, lineTop, contentRight, lineTop + theme::CONTROL_HEIGHT);
-            const bool pointed = hovered && line.Contains(mouse);
 
             ImGui::PushID(static_cast<int>(axis));
             ImGui::SetCursorScreenPos(line.Min);
             ImGui::InvisibleButton("line", line.GetSize());
+            // of the item, as a row's is: the window is not hovered while the line is held, and another line is not
+            const bool pointed = ImGui::IsItemHovered();
             const SliderRow sliderRow{ .pointed = pointed, .started = ImGui::IsItemActivated(), .held = ImGui::IsItemActive() };
             ImGui::PopID();
 
@@ -237,10 +273,19 @@ namespace mods_config::ui
         }
         _sliders.endFrame();
 
-        // the footer: Cancel and Done, under a rule
+        // the footer: Adjust in world, and Cancel and Done, under a rule
         const float footerTop = origin.y + height - theme::SPACE_4 - theme::CONTROL_HEIGHT;
         const float ruleY = footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
         ImGui::GetWindowDrawList()->AddLine(ImVec2(contentLeft, ruleY), ImVec2(contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
+        const auto notPreviewed = store.notPreviewed(setting);
+        const auto adjustBox = controlBox(contentLeft, footerTop, textWidth(ADJUST_TEXT) + BUTTON_ICON_SIZE + theme::SPACE_2 + theme::SPACE_4 * 2.0f);
+        if (drawAdjustButton(adjustBox, notPreviewed.empty())) {
+            edited.adjust = true;
+            edited.pulse = true;
+        }
+        if (hovered && adjustBox.Contains(mouse)) {
+            point(ADJUST_TEXT, notPreviewed.empty() ? std::string(ADJUST_HELP) : notPreviewed);
+        }
         const float doneWidth = textWidth("Done") + theme::SPACE_4 * 2.0f;
         const float cancelWidth = textWidth("Cancel") + theme::SPACE_4 * 2.0f;
         const auto done = controlBox(contentRight - doneWidth, footerTop, doneWidth);
@@ -324,6 +369,14 @@ namespace mods_config::ui
     }
 
     /**
+     * Adjust in world ended, and the editor is shown again: it reads the value the tuning left as it is drawn next.
+     */
+    void TransformEditor::resume()
+    {
+        _resume = _open != nullptr;
+    }
+
+    /**
      * Forgets the editor that is open, as another page is shown: it is of a row of the page before.
      */
     void TransformEditor::reset()
@@ -331,6 +384,7 @@ namespace mods_config::ui
         _open = nullptr;
         _openSeen = false;
         _cancel = false;
+        _resume = false;
         _sliders.reset();
     }
 }

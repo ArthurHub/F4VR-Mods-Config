@@ -103,6 +103,7 @@ namespace mods_config::spec
         void showPage(const model::Page* page) override;
         void readAgain() override;
         std::string notRunnable(const model::Action& action) const override;
+        std::string notPreviewed(const model::Setting& setting) const override;
         model::ActionResult run(const model::Action& action) override;
 
     private:

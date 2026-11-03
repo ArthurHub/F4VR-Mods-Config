@@ -1325,6 +1325,21 @@ namespace mods_config::spec
     }
 
     /**
+     * Why a setting is not previewed by its mod's client: it is not `live`, or the client is not loaded or is cut off.
+     * Nothing would move in the world as it is tuned then. Empty for one that is.
+     */
+    std::string ConfigSpecStore::notPreviewed(const model::Setting& setting) const
+    {
+        if (applies(setting) != model::Applies::Live) {
+            return "Not available: its change does not show as it is made, so nothing would move in the world.";
+        }
+        if (!_clientCalls.isConnected(_modName)) {
+            return std::format("Not available: it needs {}'s DLL to show its change, and that is not loaded.", _modDisplayName);
+        }
+        return {};
+    }
+
+    /**
      * Runs an action at once: a script, console command, desktop web link or function of the mod's DLL.
      * A browser launch or native function that fails gives a message for the button's help line.
      */

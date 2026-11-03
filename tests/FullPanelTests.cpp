@@ -5097,6 +5097,164 @@ namespace
     }
 }
 
+TEST_CASE("FullPanel: a line of a transform's editor keeps the ray while its step arrow is held, and no other line takes it")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE, "[Hand]\r\ntMesh = { pos = [1.0, 2.0, 3.0] }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "cf.transform", "text": "Mesh", "default": {}, "storage": { "path": ["Hand", "tMesh"] } } ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+
+    constexpr auto Y_HELP = "Y: Moves the mesh along Y, -50 to 50, by 1 a step.";
+    // the left arrow of Y, in the gap before its track
+    const auto track = transformTrack(1);
+    const ImVec2 arrow(track.Min.x - 16.0f, track.GetCenter().y);
+    point(panel, arrow);
+    CHECK(panel.helpLine().text().starts_with(Y_HELP));
+
+    for (int frame = 0; frame < 3; ++frame) {
+        test_panel::drawFrame(panel, arrow, true);
+        CHECK(panel.helpLine().text().starts_with(Y_HELP));
+    }
+
+    // held, the ray on another line does not take the row
+    test_panel::drawFrame(panel, transformTrackAt(2, 0.5f), true);
+    CHECK_FALSE(panel.helpLine().text().starts_with("Z: "));
+    test_panel::drawFrame(panel, arrow, false);
+}
+
+TEST_CASE("FullPanel: Adjust in world is for a live transform with a client, and the editor reads the value it leaves")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE,
+        "[Hand]\r\n"
+        "tMesh = { pos = [1.0, 2.0, 3.0] }\r\n"
+        "tSaved = { pos = [1.0, 2.0, 3.0] }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.transform", "text": "Mesh", "default": {}, "storage": { "path": ["Hand", "tMesh"] } },
+            { "type": "cf.transform", "text": "Saved", "applies": "save", "default": {}, "storage": { "path": ["Hand", "tSaved"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    const model::Setting* adjusted = nullptr;
+    panel.setMenuActions({ .adjustTransform = [&adjusted](const model::Setting& setting, model::Store&) {
+        adjusted = &setting;
+    } });
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& mesh = std::get<model::Setting>(panel.mods()[0].frontPage.items[0]);
+    const auto value = [&store, &mesh] {
+        return std::get<std::string>(store.value(mesh).value);
+    };
+    // the button at the left of the editor's footer
+    const auto adjustButton = [] {
+        const auto* editor = openPopup(TRANSFORM_EDITOR_WIDTH);
+        REQUIRE(editor);
+        return ImVec2(editor->Pos.x + theme::SPACE_4 + 60.0f, editor->Pos.y + editor->Size.y - theme::SPACE_4 - theme::CONTROL_HEIGHT * 0.5f);
+    };
+
+    // with no client nothing moves in the world, so it is disabled, and says why
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    point(panel, adjustButton());
+    CHECK(panel.helpLine().text() == "Adjust in world: Not available: it needs My Mod's DLL to show its change, and that is not loaded.");
+    pressActs(panel, adjustButton());
+    drawFrames(panel, 2);
+    CHECK_FALSE(adjusted);
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+
+    store.clientCalls().addClient("MyMod", {});
+
+    // one that is not live has nothing moving either
+    CHECK(pressActs(panel, pageRow(1)));
+    drawFrames(panel, 2);
+    point(panel, adjustButton());
+    CHECK(panel.helpLine().text() == "Adjust in world: Not available: its change does not show as it is made, so nothing would move in the world.");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+
+    // a live transform with its client asks the menu to tune it
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+    point(panel, adjustButton());
+    CHECK(panel.helpLine().text() == "Adjust in world: Tune it with the controllers while you look at it, from your wrist.");
+    CHECK(pressActs(panel, adjustButton()));
+    drawFrames(panel, 2);
+    CHECK(adjusted == &mesh);
+
+    // the panel is not drawn while it is tuned, and the store has the tuned value as the panel is shown again
+    CHECK(store.set(mesh, "{ pos = [4.0, 2.0, 3.0] }"s));
+    panel.resumeTransformEdit();
+    drawFrames(panel, 2);
+    REQUIRE(openPopup(TRANSFORM_EDITOR_WIDTH));
+
+    // a change in the editor is over the tuned value
+    CHECK(pressActs(panel, transformTrackAt(2, 1.0f)));
+    drawFrames(panel, 2);
+    CHECK(value() == "{ pos = [4.0, 2.0, 50.0] }");
+
+    // Back gives back the value it had as the editor opened
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(openPopup(TRANSFORM_EDITOR_WIDTH));
+    CHECK(value() == "{ pos = [1.0, 2.0, 3.0] }");
+    CHECK_FALSE(store.isDirty(mesh));
+}
+
+TEST_CASE("FullPanel: a line of a color's editor keeps the ray while its track is held")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE, "[Pointer]\r\ncRay = { rgb = [190, 255, 190], alpha = 200 }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "cf.color", "text": "Ray", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "path": ["Pointer", "cRay"] } } ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, pageRow(0)));
+    drawFrames(panel, 2);
+
+    const auto at = colorTrackAt(1, 128);
+    point(panel, at);
+    CHECK(panel.helpLine().text().starts_with("Green: "));
+    for (int frame = 0; frame < 3; ++frame) {
+        test_panel::drawFrame(panel, at, true);
+        CHECK(panel.helpLine().text().starts_with("Green: "));
+    }
+    test_panel::drawFrame(panel, at, false);
+}
+
 TEST_CASE("FullPanel: a press on a transform opens its editor, of a slider for each axis that is on, and Back gives the transform back")
 {
     const test_panel::PanelContext context;

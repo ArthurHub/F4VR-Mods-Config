@@ -278,6 +278,9 @@ namespace
             if (drawn.haptic) {
                 page.drawn.haptic = drawn.haptic;
             }
+            if (drawn.adjust) {
+                page.drawn.adjust = drawn.adjust;
+            }
         }
 
         void operator()(const model::Group& group) const
@@ -512,6 +515,14 @@ namespace mods_config::ui
     bool ModPage::cancelTransformEdit()
     {
         return _transformEditor.cancel();
+    }
+
+    /**
+     * Adjust in world ended: the editor of the transform reads the value it left.
+     */
+    void ModPage::resumeTransformEdit()
+    {
+        _transformEditor.resume();
     }
 
     /**

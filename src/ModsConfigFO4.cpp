@@ -90,8 +90,9 @@ namespace mods_config
             return;
         }
 
-        // the gesture shows a minimized menu again, as Restore on the wrist does
-        if (vrcf::VRControllers.check(g_config.openMenuBinding)) {
+        // the gesture shows a minimized menu again, as Restore on the wrist does. While a transform is tuned in the world
+        // its sticks are the tuning's, and Done and Cancel end it
+        if (!_menu.isAdjusting() && vrcf::VRControllers.check(g_config.openMenuBinding)) {
             if (_menu.isMinimized()) {
                 _menu.requestRestore();
             } else if (_menu.isOpen()) {

@@ -1751,14 +1751,18 @@ def tb(n):
     return bicon(n, 0.5)
 def tune_controls(pos=True, rot=True, scale=True):
     lines = []
+    sticks = f'{tb("right-thumbstick")}<span class="mc-bplus t-body">/</span>{tb("left-thumbstick")}'
+    plus = '<span class="mc-bplus t-body">+</span>'
     if pos:
-        lines.append(f'<div class="ln"><span class="t-body">MOVE</span><span class="ic is-pair">{tb("right-thumbstick")}{tb("left-thumbstick")}</span></div>')
-    mods = ([('ROTATE', tb('left-hold-grip'))] if rot else []) + ([('SCALE', tb('left-hold-x'))] if scale else [])
-    if not pos:
-        for t, i in mods:   # no MOVE line: the stick goes on the modifier's line
-            lines.append(f'<div class="ln"><span class="t-body">{t}</span><span class="ic">{i}<span class="mc-bplus t-body">+</span>{tb("right-thumbstick")}</span></div>')
-    elif mods:
-        lines.append('<div class="ln">' + ''.join(f'<span class="half"><span class="t-body">+ {t}</span><span class="ic">{i}</span></span>' for t, i in mods) + '</div>')
+        lines.append(f'<div class="ln"><span class="t-body">ADJUST:</span><span class="ic">{sticks}</span></div>')
+        mods = ([('+ROTATION:', tb('left-hold-grip'))] if rot else []) + ([('+SCALE:', tb('left-hold-x'))] if scale else [])
+        if mods:
+            lines.append('<div class="ln">' + ''.join(f'<span class="half"><span class="t-body">{t}</span><span class="ic">{i}</span></span>' for t, i in mods) + '</div>')
+    else:   # no ADJUST line: the sticks go on the modifier's line
+        if rot:
+            lines.append(f'<div class="ln"><span class="t-body">ROTATION:</span><span class="ic">{tb("left-hold-grip")}{plus}{sticks}</span></div>')
+        if scale:
+            lines.append(f'<div class="ln"><span class="t-body">SCALE:</span><span class="ic">{tb("left-hold-x")}{plus}{tb("right-thumbstick")}</span></div>')
     return '<div class="mc-tunebox is-controls">' + ''.join(lines) + '</div>'
 def tune_wrist(name, values, note, **parts):
     vals = '<div class="mc-tunebox is-values t-detail">' + ''.join(f'<span>{v}</span>' for v in values) + '</div>'
@@ -1806,10 +1810,10 @@ xf_page = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="w
 xf_rot_only = xform_editor('Head light tilt', [xline('Heading', 0, *ROT, deg=True), xline('Roll', -5, *ROT, deg=True), xline('Attitude', 0, *ROT, deg=True)], ' style="position:static"')
 xf_pos_scale = xform_editor('Body grab zone', [xline('X', 0, -10, 10, 1), xline('Y', 0, -10, 10, 1), xline('Z', 12.0, 0, 40, 1), xline('Scale', 1.2, 0.5, 2, 1)], ' style="position:static"')
 xf_wrist = ''.join([
-    tune_wrist('Flashlight mesh', ['9.37, ' + pend('-4.86') + ', -5.13', '20.72°, 0°, 90°', '×1.50'], 'All three'),
-    tune_wrist('Overhand mesh', ['6.57, -5.47, 0.56', pend('-82.00°') + ', 0°, 0°'], 'Scale off', scale=False),
-    tune_wrist('Body grab zone', ['0.0, 0.0, 12.0', pend('×1.30')], 'Rotation off', rot=False),
-    tune_wrist('Head light tilt', ['0°, ' + pend('-7°') + ', 0°'], 'Rotation only', pos=False, scale=False),
+    tune_wrist('Flashlight mesh', ['9.37, ' + pend('-4.86') + ', -5.13', '20.72°, 0.00°, 90.00°', '×1.50'], 'All three'),
+    tune_wrist('Overhand mesh', ['6.57, -5.47, 0.56', pend('-82.00°') + ', 0.00°, 0.00°'], 'Scale off', scale=False),
+    tune_wrist('Body grab zone', ['0.00, 0.00, 12.00', pend('×1.30')], 'Rotation off', rot=False),
+    tune_wrist('Head light tilt', ['0.00°, ' + pend('-7.00°') + ', 0.00°'], 'Rotation only', pos=False, scale=False),
 ])
 xf_body = f"""<div class="mc-world mc-stack" style="gap:24px">
 <div style="display:grid;grid-template-columns:908px 560px;gap:16px 24px;align-items:start">

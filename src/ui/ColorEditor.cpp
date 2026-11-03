@@ -282,12 +282,13 @@ namespace mods_config::ui
             const auto valueBox = controlBox(contentRight - theme::VALUE_WIDTH, lineTop, theme::VALUE_WIDTH);
             const float trackLeft = channelsLeft + CHANNEL_LABEL_WIDTH + theme::SPACE_2;
             const ImRect track(trackLeft, lineTop, valueBox.Min.x - theme::SPACE_2, lineTop + theme::CONTROL_HEIGHT);
-            const bool pointed = hovered && line.Contains(mouse);
             const int current = _color.bytes()[i];
 
             ImGui::PushID(static_cast<int>(i));
             ImGui::SetCursorScreenPos(track.Min);
             ImGui::InvisibleButton("track", track.GetSize());
+            // the window is not hovered while the track is held, and the ray stays on its line then
+            const bool pointed = line.Contains(mouse) && (hovered || ImGui::IsItemActive());
             if (ImGui::IsItemActivated()) {
                 _dragged = i;
                 edited.pulse = true;

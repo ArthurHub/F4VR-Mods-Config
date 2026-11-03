@@ -1531,7 +1531,7 @@
                 {
                   "type": "cf.transform",
                   "text": "Flashlight mesh",
-                  "help": "All three parts, with a position of -20 to 20 by 0.01.",
+                  "help": "All three parts, with a position of -20 to 20 by 0.01. Adjust in world needs its mod's client, which this config spec has none of.",
                   "default": { "pos": [9.37, -5.86, -5.13], "rot": [20.72, 0.0, 90.0], "scale": 1.5 },
                   "valueOptions": { "position": { "min": -20, "max": 20, "step": 0.01 } },
                   "storage": { "path": ["Transforms", "tMesh"] }
@@ -1566,7 +1566,8 @@
                 {
                   "type": "cf.transform",
                   "text": "Outside its range",
-                  "help": "Its X is 60, past its slider's 50: it is shown as it is, and a step or a drag brings it in.",
+                  "help": "Its X is 60, past its slider's 50: it is shown as it is, and a step or a drag brings it in. Its change waits for a Save, so Adjust in world is disabled.",
+                  "applies": "save",
                   "default": { "pos": [60.0, 0.0, 0.0] },
                   "storage": { "path": ["Transforms", "tOutside"] }
                 }

@@ -192,7 +192,7 @@ The milestone comes before the controls of milestone 9, which are for tuning a v
 | M77 | mod  | Haptic                                                                                 | done   |
 | M78 | mod  | InputBinding                                                                           | done   |
 | M79 | mod  | Transform: its row, and its editor of sliders                                          | in review |
-| M142 | mod | Transform: Adjust in world, tuned from the wrist                                       | todo   |
+| M142 | mod | Transform: Adjust in world, tuned from the wrist                                       | in review |
 | M80 | mod  | ActivationSphere, a whole section                                                      | todo   |
 | M81 | mod  | The values of Immersive Flashlight that are left: lists and flags                      | todo   |
 | F36 | framework | vrcf: a binding of any hand                                                       | done   |

@@ -1,12 +1,12 @@
-"""Writes the mod's own icon of the wrist buttons, beside Exit's, which is the framework's: the icon of Restore.
+"""Writes the mod's own icons of the wrist buttons, beside Exit's, which is the framework's: Restore, Cancel and Done.
 
     python tools/gen_wrist_icons.py
 
-Restore shows the menu's panel again: a panel with its title bar, and an arrow up in it. It is drawn as the
-framework's vrui icons are, as Exit's: white strokes about 6 px wide, in the middle of a
+Restore shows the menu's panel again: a panel with its title bar, and an arrow up in it. Cancel and Done end Adjust in
+world: an X, and a check. They are drawn as the framework's vrui icons are, as Exit's: white strokes about 6 px wide, in the middle of a
 140 x 100 texture of uncompressed 32-bit pixels with no mipmaps, and its alpha is the coverage of its edges.
 
-The file is checked in under the mod's Textures folder. Run this again to change the icon.
+The files are checked in under the mod's Textures folder. Run this again to change an icon.
 """
 
 import math
@@ -57,6 +57,18 @@ def restore(x, y):
     )
 
 
+def cancel(x, y):
+    """Whether a point is on the Cancel icon: an X, as tall as the texture leaves room for, as Exit's icon is."""
+    half = STROKE / 2
+    return near_segment(x, y, 30.0, 10.0, 110.0, 90.0, half) or near_segment(x, y, 110.0, 10.0, 30.0, 90.0, half)
+
+
+def done(x, y):
+    """Whether a point is on the Done icon: a check, as tall as the texture leaves room for, as Exit's icon is."""
+    half = STROKE / 2
+    return near_segment(x, y, 22.0, 52.0, 56.0, 86.0, half) or near_segment(x, y, 56.0, 86.0, 118.0, 12.0, half)
+
+
 def icon(shape):
     """The pixels of an icon, white, with the coverage of the shape as their alpha."""
 
@@ -72,9 +84,10 @@ def icon(shape):
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    path = OUTPUT / "restore.dds"
-    path.write_bytes(dds(WIDTH, HEIGHT, icon(restore)))
-    print(f"Wrote {path}")
+    for name, shape in (("restore.dds", restore), ("cancel.dds", cancel), ("done.dds", done)):
+        path = OUTPUT / name
+        path.write_bytes(dds(WIDTH, HEIGHT, icon(shape)))
+        print(f"Wrote {path}")
 
 
 if __name__ == "__main__":

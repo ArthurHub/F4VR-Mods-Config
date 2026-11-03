@@ -564,6 +564,7 @@ namespace mods_config::ui
         auto edited = editControl(state);
         drawn.pressActed = drawn.pressActed || edited.pulse;
         drawn.haptic = edited.played;
+        drawn.adjust = edited.transformEdited.adjust ? &setting : nullptr;
 
         // on the pending value, as it is after a press in this frame: a slider, a switcher and a choice can be set in
         // this frame too

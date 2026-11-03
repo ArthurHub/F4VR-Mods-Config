@@ -223,6 +223,15 @@ namespace mods_config::model
         }
 
         /**
+         * Why a setting's change is not previewed as it is made, which is why it cannot be tuned in the world: empty for
+         * one that is.
+         */
+        virtual std::string notPreviewed(const Setting&) const
+        {
+            return {};
+        }
+
+        /**
          * Runs an action. Returns whether it is run: not one the store does not run, and not one whose
          * target is not there, and what it did.
          */

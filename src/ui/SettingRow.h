@@ -47,6 +47,9 @@ namespace mods_config::ui
         // the pattern a press played: a haptic's Play, or an option picked in its list. It is the press's feedback, in
         // place of the menu's pulse
         std::optional<vrcf::HapticPattern> haptic;
+
+        // the transform a press on Adjust in world tunes
+        const model::Setting* adjust = nullptr;
     };
 
     SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context);

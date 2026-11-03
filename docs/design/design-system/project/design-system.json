@@ -3,7 +3,7 @@
   "assetGroups": {},
   "blobs": {},
   "createdOnFiles": {
-    "at": "2026-10-07T23:57:34Z",
+    "at": "2026-11-03T01:00:00Z",
     "v": 1
   },
   "docs": {
@@ -15,7 +15,7 @@
     "by": "Arthur",
     "at": "2026-11-02T23:30:00Z",
     "via": "Claude Code",
-    "note": "Transform: Adjust in world is enabled for a live transform whose mod's client is connected, and disabled otherwise, with the reason in the help line."
+    "note": "Transform: on the wrist each text box is as wide as its content, the values have two decimals, and the controls are as the Pip-Boy adjust footer, with both sticks for a rotation."
   },
   "layout": "files",
   "libraries": [],

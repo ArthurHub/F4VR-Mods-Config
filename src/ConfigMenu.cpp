@@ -149,6 +149,11 @@ namespace mods_config
         return _panel && !_panel->isVisible();
     }
 
+    bool ConfigMenu::isAdjusting() const
+    {
+        return _adjust.isActive();
+    }
+
     void ConfigMenu::open()
     {
         if (isOpen()) {
@@ -169,10 +174,13 @@ namespace mods_config
         _closeRequested = false;
         _askToCloseRequested = false;
         _openFrikRequested = false;
+        _adjustRequest.reset();
         if (!isOpen()) {
             return;
         }
         logger::info("Close config menu");
+        // before the session it writes into ends, which discards its value
+        _adjust.stop();
         g_uiManager->detachElement(_panel, true);
         g_uiManager->detachElement(_wristButtons, true);
         _panel.reset();
@@ -215,7 +223,7 @@ namespace mods_config
             g_uiManager->recenterWorldElement(_panel);
         }
         _panel->setVisibility(!minimized);
-        _wristButtons->setVisibility(minimized);
+        _wristButtons->setVisibility(minimized && !isAdjusting());
     }
 
     /**
@@ -305,8 +313,12 @@ namespace mods_config
             _liveCopyRequest.reset();
             doLiveCopy(request.folder, request.action);
         }
-        readChangedLiveCopies();
+        // a read replaces the mod that is tuned
+        if (!isAdjusting()) {
+            readChangedLiveCopies();
+        }
         doClientRequests();
+        doAdjust();
         if (isOpen() && g_config.panelChanged.exchange(false)) {
             applyPanelConfig();
         }
@@ -402,6 +414,12 @@ namespace mods_config
      */
     void ConfigMenu::doClientRequests()
     {
+        // the panel is shown for them, and a selection can leave the mod that is tuned
+        if (isAdjusting() && (_openRequest || _restoreRequested)) {
+            _adjust.cancel();
+            endAdjust();
+            _restoreRequested = false;
+        }
         if (_openRequest) {
             const auto selection = std::move(*_openRequest);
             _openRequest.reset();
@@ -426,6 +444,40 @@ namespace mods_config
             }
             _readAgainRequest.clear();
         }
+    }
+
+    /**
+     * Starts the tuning a press on Adjust in world asked for, with the panel minimized, and tunes while it lasts. A game
+     * menu that opens ends it as Cancel does, as the menu takes the controllers it is tuned with.
+     */
+    void ConfigMenu::doAdjust()
+    {
+        if (_adjustRequest) {
+            const auto request = *_adjustRequest;
+            _adjustRequest.reset();
+            if (isOpen() && !isAdjusting() && !f4vr::isGameMenuTakingInput()) {
+                _adjust.start(*request.setting, *request.store);
+                setMinimized(true);
+            }
+        }
+        if (!isAdjusting()) {
+            return;
+        }
+        if (f4vr::isGameMenuTakingInput()) {
+            _adjust.cancel();
+            endAdjust();
+        } else if (_adjust.onFrameUpdate()) {
+            endAdjust();
+        }
+    }
+
+    /**
+     * Shows the panel again after the tuning ended, with the editor of the transform open on the value it left.
+     */
+    void ConfigMenu::endAdjust()
+    {
+        setMinimized(false);
+        _fullPanel.resumeTransformEdit();
     }
 
     /**
@@ -465,6 +517,10 @@ namespace mods_config
             .close =
                 [this] {
                     _closeRequested = true;
+                },
+            .adjustTransform =
+                [this](const model::Setting& setting, model::Store& store) {
+                    _adjustRequest = AdjustRequest{ .setting = &setting, .store = &store };
                 } });
         _fullPanel.setStore(model::Source::Mcm, &_store);
         _fullPanel.setStore(model::Source::ConfigSpec, &_configSpecStore);

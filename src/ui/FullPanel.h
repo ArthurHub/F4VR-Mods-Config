@@ -43,6 +43,9 @@ namespace mods_config::ui
         {
             std::function<void()> minimize;
             std::function<void()> close;
+
+            // tunes a transform of the selected mod in the world, in its store
+            std::function<void(const model::Setting& setting, model::Store& store)> adjustTransform;
         };
 
         void setMods(std::vector<model::Mod> mods);
@@ -64,6 +67,7 @@ namespace mods_config::ui
         bool close();
         bool showHelp(bool shown);
         bool back();
+        void resumeTransformEdit();
         void reset();
         void draw();
         model::Store* selectedStore() const;

@@ -983,6 +983,8 @@ TEST_CASE("FullPanel render: the transforms of the config spec showcase, one pen
     REQUIRE(mods.size() == 1);
     const test_files::TempFolder myGames;
     spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    // so Adjust in world is enabled, but for the last, which is not `live`
+    store.clientCalls().addClient(mods[0].name, {});
     const auto panelOf = [&mods, &store] {
         FullPanel panel;
         panel.setStore(model::Source::ConfigSpec, &store);

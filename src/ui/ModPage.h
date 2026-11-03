@@ -35,6 +35,9 @@ namespace mods_config::ui
 
         // the pattern a press on a haptic played, which is its feedback in place of the pulse
         std::optional<vrcf::HapticPattern> haptic;
+
+        // the transform a press on Adjust in world tunes
+        const model::Setting* adjust = nullptr;
     };
 
     /**
@@ -56,6 +59,7 @@ namespace mods_config::ui
         bool cancelBindingEdit();
         bool cancelColorEdit();
         bool cancelTransformEdit();
+        void resumeTransformEdit();
         bool cancelConfirmation();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();

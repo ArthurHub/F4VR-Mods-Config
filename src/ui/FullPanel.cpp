@@ -637,6 +637,14 @@ namespace mods_config::ui
     }
 
     /**
+     * Adjust in world ended: the editor of the transform reads the value it left.
+     */
+    void FullPanel::resumeTransformEdit()
+    {
+        _modPage.resumeTransformEdit();
+    }
+
+    /**
      * The panel as the menu opens: on the menu's front page, with the tree at its top. A menu that was closed
      * does not keep its place. The editing session of a mod that was shown ends in its store.
      */
@@ -757,6 +765,9 @@ namespace mods_config::ui
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
                 _hapticPlayed = drawn.haptic;
+                if (drawn.adjust && _menuActions.adjustTransform) {
+                    _menuActions.adjustTransform(*drawn.adjust, *storeOf(mod));
+                }
             } else {
                 auto drawn = _frontPage.draw(frontPageMods());
                 pointed = std::move(drawn.pointed);

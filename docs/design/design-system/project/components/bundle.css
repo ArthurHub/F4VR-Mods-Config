@@ -495,8 +495,8 @@ svg.mc-ico.spin { width: 20px; height: 20px; }
 .mc-xline .lbl { width: 96px; flex: none; }
 .mc-xline.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); }
 /* the wrist while a transform is adjusted in the world: vrui panels in F4VR_PANEL_STYLE, as wide as the two buttons */
-.mc-tunetitle { color: var(--green); font-size: 24px; line-height: 30px; }
-.mc-tunebox { width: 312px; box-sizing: border-box; background: var(--glass-widget); border: var(--border-widget) solid var(--green); border-radius: var(--radius-widget); padding: 8px 12px; color: var(--green); }
+.mc-tunetitle { color: var(--green); font-size: 44px; line-height: 52px; }
+.mc-tunebox { width: max-content; box-sizing: border-box; background: var(--glass-widget); border: var(--border-widget) solid var(--green); border-radius: var(--radius-widget); padding: 8px 12px; color: var(--green); }
 .mc-tunebox.is-values { display: flex; justify-content: center; gap: var(--space-3); padding: 8px 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mc-tunebox.is-values .p { color: var(--amber); }
 .mc-tunebox.is-controls { display: flex; flex-direction: column; gap: 2px; }

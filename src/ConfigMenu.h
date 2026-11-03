@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "AdjustInWorld.h"
 #include "api/NativeClients.h"
 #include "common/CommonUtils.h"
 #include "imgui/UIImGuiPanel.h"
@@ -34,6 +35,7 @@ namespace mods_config
 
         bool isOpen() const;
         bool isMinimized() const;
+        bool isAdjusting() const;
 
         void open();
         void close();
@@ -87,6 +89,8 @@ namespace mods_config
         void readChangedLiveCopies();
         void doClientRequests();
         void readSelectedAgain();
+        void doAdjust();
+        void endAdjust();
 
         std::shared_ptr<imgui::UIImGuiPanel> _panel;
         std::shared_ptr<vrui::UIContainer> _wristButtons;
@@ -118,6 +122,20 @@ namespace mods_config
         };
 
         std::optional<LiveCopyRequest> _liveCopyRequest;
+
+        /**
+         * The transform a press on Adjust in world tunes, which the frame update starts.
+         */
+        struct AdjustRequest
+        {
+            const model::Setting* setting = nullptr;
+            model::Store* store = nullptr;
+        };
+
+        std::optional<AdjustRequest> _adjustRequest;
+
+        // the tuning of a transform in the world, with the panel minimized
+        AdjustInWorld _adjust;
 
         // the texts of the game's language, which a config spec is read again with
         model::Translations _translations;

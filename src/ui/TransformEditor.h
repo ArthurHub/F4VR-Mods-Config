@@ -25,6 +25,9 @@ namespace mods_config::ui
 
         // a press opened the editor, took hold of a slider, or kept or gave back the transform, or a step changed a slider
         bool pulse = false;
+
+        // a press on Adjust in world, which the menu does
+        bool adjust = false;
     };
 
     /**
@@ -42,6 +45,7 @@ namespace mods_config::ui
         bool isOpen(const model::Setting& setting) const;
         void endFrame();
         bool cancel();
+        void resume();
         void reset();
 
     private:
@@ -61,6 +65,9 @@ namespace mods_config::ui
 
         // Back asked to give back the transform, as the next frame draws the editor
         bool _cancel = false;
+
+        // Adjust in world ended: the next frame reads the value it left
+        bool _resume = false;
 
         // how far the thumbstick is pushed to a side in the frame that is drawn, and the sliders of the axes, the page
         // sliders' own, each with a setting of the axis's range
