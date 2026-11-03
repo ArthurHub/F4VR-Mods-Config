@@ -397,7 +397,8 @@ namespace
      * What the help line says of a setting row the ray is on, on its value as it is after a press in this frame: why
      * the value is not available, what the slot does while the ray is on it, why the value is invalid, or the row's
      * help, with its number and its default. On a haptic's Play button it is
-     * what Play plays, and while its list is open it is the help of the option the ray is on.
+     * what Play plays, and while its list is open it is the help of the option the ray is on: a haptic's and a
+     * file's always, and any other's where the option has a help of its own.
      */
     ui::PointedRow pointedRow(SettingRowState& state, const ControlEdited& edited, const std::string_view warning, const std::optional<model::Applies> applies)
     {
@@ -419,6 +420,12 @@ namespace
                 const auto& pointed = state.choiceOptions[*option];
                 const bool isNone = !files->noneText.empty() && *option == 0;
                 return ui::PointedRow{ .text = pointed.text, .help = isNone ? std::string() : std::format("In {}.", model::folderText(*files)) };
+            }
+        }
+        if (context.choices.isListOpen(setting)) {
+            if (const auto option = context.choices.pointedOption(); option && *option < state.choiceOptions.size() && !state.choiceOptions[*option].help.empty()) {
+                const auto& pointed = state.choiceOptions[*option];
+                return ui::PointedRow{ .text = pointed.text, .help = pointed.help };
             }
         }
         std::string help;

@@ -817,7 +817,7 @@ TEST_CASE("ConfigSpecLoader: a warning with no text, or whose when is not a cond
     CHECK(std::get<model::Setting>(mod.frontPage.items[1]).warnings.empty());
 }
 
-TEST_CASE("ConfigSpecLoader: a choice's options are texts that store their place, or objects with the value each stores")
+TEST_CASE("ConfigSpecLoader: a choice's options are texts that store their place, or objects with the value each stores and an optional help")
 {
     model::Translations translations;
     translations.add("$MyMod_Offhand", "Offhand");
@@ -840,7 +840,7 @@ TEST_CASE("ConfigSpecLoader: a choice's options are texts that store their place
     using Options = std::vector<model::Option>;
     CHECK(settings[0].valueOptions.options == Options{ { 0, "Head" }, { 1, "Offhand" }, { 2, "Primary hand" } });
     CHECK(settings[0].defaultValue == model::Value(1));
-    CHECK(settings[1].valueOptions.options == Options{ { std::string("physical"), "Physical" }, { std::string("hybrid"), "Hybrid" } });
+    CHECK(settings[1].valueOptions.options == Options{ { std::string("physical"), "Physical", "Use direct VR interaction." }, { std::string("hybrid"), "Hybrid" } });
     CHECK(settings[1].defaultValue == model::Value(std::string("hybrid")));
 
     // a whole number is a value of a float
@@ -873,7 +873,7 @@ TEST_CASE("ConfigSpecLoader: a choice has the options of the shared list it name
         "defaultFile": "main",
         "sharedLists": {
             "hands": ["Left", "Right"],
-            "Modes": [ { "value": "physical", "text": "Physical" }, { "value": "hybrid", "text": "Hybrid" } ]
+            "Modes": [ { "value": "physical", "text": "Physical", "help": "Direct VR interaction." }, { "value": "hybrid", "text": "Hybrid" } ]
         },
         "content": [
             { "type": "stepper", "text": "Flashlight hand", "default": 0, "valueOptions": { "sharedOptions": "hands" }, "storage": { "path": ["Flashlight", "iHand"] } },
@@ -889,7 +889,7 @@ TEST_CASE("ConfigSpecLoader: a choice has the options of the shared list it name
     const Options hands{ { 0, "Left" }, { 1, "Right" } };
     CHECK(settings[0].valueOptions.options == hands);
     CHECK(settings[1].valueOptions.options == hands);
-    CHECK(settings[2].valueOptions.options == Options{ { std::string("physical"), "Physical" }, { std::string("hybrid"), "Hybrid" } });
+    CHECK(settings[2].valueOptions.options == Options{ { std::string("physical"), "Physical", "Direct VR interaction." }, { std::string("hybrid"), "Hybrid" } });
     CHECK(settings[3].valueOptions.options.empty());
     CHECK(settings[4].valueOptions.options.empty());
 }
@@ -2209,6 +2209,13 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
     CHECK(settings[0].valueOptions.suppress);
     CHECK(settings[1].type == model::SettingType::Haptic);
     CHECK(settings[2].type == model::SettingType::Dropdown);
+    // when the icon and the sphere are drawn: each option says what it means
+    for (const auto place : { 2, 10 }) {
+        REQUIRE(settings[place].valueOptions.options.size() == 4);
+        for (const auto& option : settings[place].valueOptions.options) {
+            CHECK_FALSE(option.help.empty());
+        }
+    }
     CHECK(settings[3].type == model::SettingType::Transform);
     CHECK(settings[7].type == model::SettingType::Dropdown);
     REQUIRE(settings[7].valueOptions.folderOptions);

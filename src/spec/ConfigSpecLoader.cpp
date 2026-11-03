@@ -866,8 +866,8 @@ namespace
 
     /**
      * The options of a choice, in the type of its value. A text is an option of the short form, whose value
-     * is its place in the list, for a choice of an int. An object is an option with its own `value` and its
-     * `text`. Any other option, and one whose value is not of the choice's type, is left out, and is reported:
+     * is its place in the list, for a choice of an int. An object is an option with its own `value`, its
+     * `text` and its optional `help`. Any other option, and one whose value is not of the choice's type, is left out, and is reported:
      * of a shared list, which can be another choice's, as an option of that list.
      * An option's own fields and its texts are checked once, as its list is read: a shared list as the config spec's
      * root is read.
@@ -895,7 +895,9 @@ namespace
             if (own) {
                 checkFields(option, OPTION_FIELDS, reading);
             }
-            options.push_back({ .value = std::move(*value), .text = own ? readShownText(option, "text", reading) : getShownText(option, "text", reading.translations) });
+            options.push_back({ .value = std::move(*value),
+                .text = own ? readShownText(option, "text", reading) : getShownText(option, "text", reading.translations),
+                .help = own ? readShownText(option, "help", reading) : getShownText(option, "help", reading.translations) });
         }
         return options;
     }
@@ -1875,8 +1877,10 @@ namespace
             "",
             false,
             R"({ "type": "dropdown", "valueType": "string", "madeWords": "visibility", "text": "Show icon", "help": "When the icon at the middle of the zone is drawn.", "default": "wheninside",
-                "valueOptions": { "options": [ { "value": "never", "text": "Never" }, { "value": "always", "text": "Always" }, { "value": "wheninside", "text": "When inside" },
-                    { "value": "whenavailable", "text": "When available" } ] } })" },
+                "valueOptions": { "options": [ { "value": "never", "text": "Never", "help": "Not drawn." },
+                    { "value": "always", "text": "Always", "help": "Drawn all the time, which shows where the zone is." },
+                    { "value": "wheninside", "text": "When inside", "help": "Drawn while a hand that works the gesture is in the zone." },
+                    { "value": "whenavailable", "text": "When available", "help": "Drawn while the gesture can be used, as one that needs a drawn weapon while one is drawn." } ] } })" },
         SphereKey{ "tZone",
             SpherePart::Location,
             "",
@@ -1923,8 +1927,10 @@ namespace
             "",
             false,
             R"({ "type": "dropdown", "valueType": "string", "madeWords": "visibility", "text": "Show sphere", "help": "When the sphere that marks the zone is drawn.", "default": "never",
-                "valueOptions": { "options": [ { "value": "never", "text": "Never" }, { "value": "always", "text": "Always" }, { "value": "wheninside", "text": "When inside" },
-                    { "value": "whenavailable", "text": "When available" } ] } })" },
+                "valueOptions": { "options": [ { "value": "never", "text": "Never", "help": "Not drawn." },
+                    { "value": "always", "text": "Always", "help": "Drawn all the time, which shows where the zone is." },
+                    { "value": "wheninside", "text": "When inside", "help": "Drawn while a hand that works the gesture is in the zone." },
+                    { "value": "whenavailable", "text": "When available", "help": "Drawn while the gesture can be used, as one that needs a drawn weapon while one is drawn." } ] } })" },
         SphereKey{ SPHERE_STYLE,
             SpherePart::Visuals,
             "sShowSphere",
@@ -2809,6 +2815,7 @@ namespace
                 if (list[place].is_object()) {
                     checkFields(list[place], OPTION_FIELDS, reading);
                     std::ignore = readShownText(list[place], "text", reading);
+                    std::ignore = readShownText(list[place], "help", reading);
                 } else {
                     std::ignore = readShownText(list[place], reading);
                 }

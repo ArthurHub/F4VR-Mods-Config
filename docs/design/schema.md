@@ -723,6 +723,8 @@ When the stored value is not the index, each option gives its own:
 
 All option values in one choice share the setting's `valueType`. Conditions compare stored values, not translated labels.
 
+An option's `help` is optional, a text the player sees: the help line says it while the ray is on the option in a dropdown's open list, and the row's own help where the option has none.
+
 A choice is a `dropdown` or a `stepper`, as in MCM.
 
 ### Shared lists

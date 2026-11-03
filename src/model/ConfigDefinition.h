@@ -46,12 +46,15 @@ namespace mods_config::model
     using Value = std::variant<bool, int, float, std::string>;
 
     /**
-     * An option of a choice: the value that is stored while it is chosen, and what the player sees.
+     * An option of a choice: the value that is stored while it is chosen, what the player sees, and its help.
      */
     struct Option
     {
         Value value;
         std::string text;
+
+        // what the help line says while the ray is on it in the open list: empty for none, which keeps the row's
+        std::string help;
 
         bool operator==(const Option&) const = default;
     };

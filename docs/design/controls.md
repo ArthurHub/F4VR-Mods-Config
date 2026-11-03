@@ -80,7 +80,7 @@ Choice behavior:
 - A press anywhere on the row of a dropdown opens its list.
 - The buttons of a stepper stop at the first and the last option. A press on the rest of its row goes to the option after, and from the last to the first.
 - Thumbstick left/right steps the stepper the ray is on, one option for a push.
-- The help line may show the pointed option's help before it is selected.
+- While the list is open, the help line shows the help of the option the ray is on, before it is selected: a config spec's option has one in its optional `help`. An option with none keeps the row's help.
 
 ### Choice of files
 

@@ -333,8 +333,9 @@ namespace
 
     /**
      * A panel with one mod, shown on its front page, with its values in a store. Its rows are a stepper of
-     * three options at its second, a dropdown of three at its first, a switcher, which the open list of the
-     * dropdown is over, a dropdown with no options, and a stepper of three whose value is no option.
+     * three options at its second, a dropdown of three at its first, whose second option has a help of its own,
+     * a switcher, which the open list of the dropdown is over, a dropdown with no options, and a stepper of three
+     * whose value is no option.
      * The mod has a page with nothing.
      */
     FullPanel modWithChoices(model::Store& store)
@@ -350,6 +351,7 @@ namespace
         auto mod = modOf("Alpha", { "Other" });
         mod.frontPage.items.push_back(choice(model::SettingType::Stepper, "Quality", 0x820, { "Low", "Medium", "High" }));
         mod.frontPage.items.push_back(choice(model::SettingType::Dropdown, "Place", 0x821, { "Head", "Offhand", "Primary hand" }));
+        std::get<model::Setting>(mod.frontPage.items.back()).valueOptions.options[1].help = "On the hand that does not point.";
         mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Switch", 0x822));
         mod.frontPage.items.push_back(choice(model::SettingType::Dropdown, "Empty", 0x821, {}));
         mod.frontPage.items.push_back(choice(model::SettingType::Stepper, "Outside", 0x823, { "Zero", "One", "Two" }));
@@ -2737,7 +2739,7 @@ TEST_CASE("FullPanel: the list of a dropdown is closed as another page is shown"
     CHECK_FALSE(isListOpen());
 }
 
-TEST_CASE("FullPanel: the help line keeps the row of a dropdown while the ray is on its open list")
+TEST_CASE("FullPanel: the help line keeps the row of a dropdown while the ray is on an option of its open list with no help")
 {
     const test_panel::PanelContext context;
     auto globals = choiceGlobals();
@@ -2748,6 +2750,24 @@ TEST_CASE("FullPanel: the help line keeps the row of a dropdown while the ray is
     press(panel, pageRow(1));
     point(panel, listOption(1, 2));
     REQUIRE(isListOpen());
+    CHECK(panel.helpLine().text() == "Place: What it does.");
+}
+
+TEST_CASE("FullPanel: the help line says the help of the option of an open list the ray is on")
+{
+    const test_panel::PanelContext context;
+    auto globals = choiceGlobals();
+    mcm::McmStore store;
+    auto panel = modWithChoices(store);
+    drawFrames(panel, 2);
+
+    press(panel, pageRow(1));
+    point(panel, listOption(1, 1));
+    REQUIRE(isListOpen());
+    CHECK(panel.helpLine().text() == "Offhand: On the hand that does not point.");
+
+    // off the option, the row's help again
+    point(panel, listOption(1, 2));
     CHECK(panel.helpLine().text() == "Place: What it does.");
 }
 
