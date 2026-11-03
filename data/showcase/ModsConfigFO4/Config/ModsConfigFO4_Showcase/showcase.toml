@@ -74,7 +74,6 @@ kChord = { hand = "primary", type = "longpress", button = "thumbstick", duration
 kPush = { hand = "primary", type = "axis", direction = "up" }
 kSystem = { hand = "primary", type = "press", button = "system" }
 kNone = { type = "none" }
-kSamePress = { hand = "offhand", type = "tap", button = "trigger" }
 kSuppressed = { hand = "primary", type = "tap", button = "grip", suppress = true }
 kLimited = { hand = "primary", type = "press", button = "grip" }
 
@@ -95,6 +94,40 @@ tKeys = { rot = [0.0, -5.0, 0.0] }
 tZone = { pos = [0.0, 0.0, 12.0], scale = 1.2 }
 tTilt = { rot = [0.0, -5.0, 0.0] }
 tOutside = { pos = [60.0, 0.0, 0.0] }
+
+# An activation sphere leaves out most of its keys, as a mod's does
+[BodySphere]
+tZone = { pos = [3.91, 7.11, 0.67], scale = 20.0 }
+tZonePA = { pos = [4.01, 10.21, -4.6], scale = 24.0 }
+kPrimaryBinding = { hand = "offhand", type = "tap", button = "trigger", suppress = true }
+kSecondaryBinding = { hand = "primary", type = "tap", button = "trigger", suppress = true }
+sEntryHaptic = "Tick"
+sPrimaryHaptic = "DoubleClick"
+sSecondaryHaptic = "DoubleClick"
+sShowIcon = "wheninside"
+sIcon = 'f4cf\activation-icon-ring.dds'
+fIconSize = 2.0
+
+# It has no tZonePA, so it has no row for one
+[HeadSphere]
+tZone = { pos = [0.28, 6.74, 4.15], rot = [-1.09, -0.07, 3.86], scale = 18.0 }
+kPrimaryBinding = { hand = "offhand", type = "tap", button = "trigger", suppress = true }
+sEntryHaptic = "Tick"
+sShowSphere = "wheninside"
+sSphereStyle = "cyan-subtle"
+
+# Its dropdowns have words as the framework reads them: `off` is Never, and `Always` is always
+[LookSphere]
+tZone = { pos = [0.0, 0.0, 12.0], scale = 18.0 }
+tZonePA = { pos = [0.0, 4.0, 12.0], scale = 24.0 }
+kPrimaryBinding = { hand = "primary", type = "longpress", button = "grip" }
+kSecondaryBinding = { type = "none" }
+sShowIcon = "off"
+sShowSphere = "Always"
+sSphereStyle = "debug"
+sSphereOrientation = "world"
+cSphereColor = { rgb = [255, 105, 180], alpha = 40 }
+fSphereGlow = 0.5
 
 [Numbers]
 fStepDecimals = 1.25

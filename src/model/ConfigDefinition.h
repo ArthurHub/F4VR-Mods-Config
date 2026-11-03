@@ -100,6 +100,20 @@ namespace mods_config::model
     };
 
     /**
+     * Which words of the framework a dropdown of an activation sphere's key has, which it reads as the framework does.
+     */
+    enum class SphereWords : std::uint8_t
+    {
+        None,
+        // when an icon or a sphere is drawn
+        Visibility,
+        // which way a sphere faces
+        Orientation,
+        // a preset of a sphere's look
+        Style,
+    };
+
+    /**
      * What the value of a setting can be: the range of a slider and of a text input of a number, the length of
      * a text input of a text, or the options of a stepper and a dropdown.
      */
@@ -141,6 +155,9 @@ namespace mods_config::model
 
         // the axes of a transform, as its config spec's `position`, `rotation` and `scale` have them
         std::array<TransformAxis, TRANSFORM_AXES> transformAxes{};
+
+        // the framework's words a dropdown of an activation sphere's key has
+        SphereWords sphereWords = SphereWords::None;
     };
 
     /**
@@ -735,6 +752,16 @@ namespace mods_config::model
     using Item = std::variant<Setting, Group, Button, Hotkey, Text, Image, Spacer, Placeholder>;
 
     /**
+     * What a group of rows is of, which says how it is drawn: the settings of a group with a role are ordinary ones.
+     */
+    enum class GroupRole : std::uint8_t
+    {
+        None,
+        // a section of a CommonFramework mod's TOML that is an activation sphere: its heading has the sphere's mark
+        ActivationSphere,
+    };
+
+    /**
      * A section: its heading and the items under it. A config spec's sections nest: a group can be an item of a
      * group, and a config spec's section can fold.
      */
@@ -754,6 +781,7 @@ namespace mods_config::model
 
         // it starts folded each time its page is shown. Only a section that folds has it
         bool collapsed = false;
+        GroupRole role = GroupRole::None;
     };
 
     struct Page

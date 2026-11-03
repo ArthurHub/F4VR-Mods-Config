@@ -885,7 +885,7 @@ TEST_CASE("FullPanel render: the pages of the config spec showcase", "[.render]"
     renderPages(mods[0].pages);
 }
 
-TEST_CASE("FullPanel render: the bindings of the config spec showcase, one pending, with the ray on one that is the same press as another", "[.render]")
+TEST_CASE("FullPanel render: the bindings of the config spec showcase, one pending, with the ray on one", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
@@ -898,7 +898,7 @@ TEST_CASE("FullPanel render: the bindings of the config spec showcase, one pendi
     panel.select({ .mod = 0, .page = { 1, 10 } });
     const auto& bindings = std::get<model::Group>(panel.mods()[0].pages[1].pages[10].items[0]);
     CHECK(store.set(std::get<model::Setting>(bindings.items[2]), R"({ hand = "offhand", type = "double", button = "grip" })"s));
-    // the row of Same press as Tap, the eighth of the page under its heading
+    // the eighth row of the page under its heading
     WARN("Saved " << renderToFile(panel, "config-spec-bindings", ImVec2(650.0f, 546.0f)));
 }
 
@@ -1019,6 +1019,36 @@ TEST_CASE("FullPanel render: the transforms of the config spec showcase, one pen
         };
         const float line = row(place) + theme::CONTROL_HEIGHT * 0.5f + theme::SPACE_4 + theme::CONTROL_HEIGHT + theme::SPACE_3 + theme::CONTROL_HEIGHT + theme::SPACE_1 + 24.0f;
         WARN("Saved " << renderToFile(opened, name, ImVec2(900.0f, line), false, open));
+    }
+}
+
+TEST_CASE("FullPanel render: the activation spheres of the config spec showcase, folded and with Location and Visuals open", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    const auto data = std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path();
+    // with its folders, as a power-armor zone has a row by its file
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR, {}, {}, { .data = data, .myGames = myGames.path });
+    REQUIRE(mods.size() == 1);
+    spec::ConfigSpecStore store(data, myGames.path);
+    const auto panelOf = [&mods, &store] {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods(mods);
+        // the page Activation spheres of Detailed Examples
+        panel.select({ .mod = 0, .page = { 1, 14 } });
+        return panel;
+    };
+    auto folded = panelOf();
+    WARN("Saved " << renderToFile(folded, "config-spec-spheres", ImVec2(700.0f, pageRow(1).y)));
+
+    // the first sphere's Location and its Visuals, the rows under its heading
+    for (const auto& [name, place] : { std::pair{ "config-spec-spheres-location", 4 }, std::pair{ "config-spec-spheres-visuals", 6 } }) {
+        auto opened = panelOf();
+        WARN("Saved " << renderToFile(opened, name, POINTER_AWAY, false, [&opened, place] {
+            for (const bool held : { false, false, true, false, false }) {
+                test_panel::drawFrame(opened, ImVec2(500.0f, pageRow(place).y - theme::SPACE_2), held);
+            }
+        }));
     }
 }
 

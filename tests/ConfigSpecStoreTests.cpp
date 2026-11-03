@@ -17,6 +17,7 @@
 #include "TestProperties.h"
 #include "common/CommonUtils.h"
 #include "model/Colors.h"
+#include "model/Conditions.h"
 #include "spec/ConfigSpecLoader.h"
 #include "spec/ConfigSpecStore.h"
 
@@ -122,6 +123,26 @@ namespace
         model::StoredValue value(const std::size_t row)
         {
             return store.value(setting(row));
+        }
+
+        /**
+         * A setting of the activation sphere that is the first row, by its place among the sphere's keys, in the order of
+         * its rows: its main ones and then those of its sections.
+         */
+        const model::Setting& sphereKey(const std::size_t place) const
+        {
+            std::vector<const model::Setting*> keys;
+            const auto add = [&keys](const auto& self, const model::Group& group) -> void {
+                for (const auto& item : group.items) {
+                    if (const auto* key = std::get_if<model::Setting>(&item)) {
+                        keys.push_back(key);
+                    } else if (const auto* section = std::get_if<model::Group>(&item)) {
+                        self(self, *section);
+                    }
+                }
+            };
+            add(add, std::get<model::Group>(mod.frontPage.items.at(0)));
+            return *keys.at(place);
         }
     };
 }
@@ -630,6 +651,108 @@ TEST_CASE("ConfigSpecStore: a transform is its table's text with the keys it has
           "tTilt = { pos = [1.0, 2.0, 3.0], rot = [0.0, 1.0, 0.0] }\r\n"
           "tOut = { pos = [0.5, 0.0, 0.0] }\r\n");
     CHECK(session.store.dirtyCount() == 0);
+}
+
+TEST_CASE("ConfigSpecStore: a sphere's key the file leaves out is its default, and each key is saved alone")
+{
+    Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } })");
+    session.open(
+        "[Body]\r\n"
+        "tZone = { pos = [1.0, 2.0, 3.0], scale = 20.0 }\r\n"
+        "sEntryHaptic = \"Click\"  # entry\r\n");
+    constexpr std::size_t ICON_SIZE = 9;
+    CHECK(session.store.value(session.sphereKey(1)).value == model::Value("Click"s));
+    CHECK(session.store.value(session.sphereKey(ICON_SIZE)).value == model::Value(1.0f));
+    CHECK(session.store.dirtyCount() == 0);
+
+    CHECK(session.store.set(session.sphereKey(ICON_SIZE), 2.5f));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Body]\r\n"
+          "tZone = { pos = [1.0, 2.0, 3.0], scale = 20.0 }\r\n"
+          "sEntryHaptic = \"Click\"  # entry\r\n"
+          "fIconSize = 2.5\r\n");
+}
+
+TEST_CASE("ConfigSpecStore: a sphere's binding set to None hides its haptic, and an icon and a sphere that are never shown disable their rows")
+{
+    Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } })");
+    session.open(
+        "[Body]\r\n"
+        "kSecondaryBinding = { hand = \"primary\", type = \"tap\", button = \"grip\" }\r\n"
+        "sShowIcon = \"always\"\r\n");
+    constexpr std::size_t PRIMARY = 0;
+    constexpr std::size_t SHOW_ICON = 2;
+    constexpr std::size_t PRIMARY_HAPTIC = 4;
+    constexpr std::size_t SECONDARY = 5;
+    constexpr std::size_t SECONDARY_HAPTIC = 6;
+    constexpr std::size_t ICON = 7;
+    constexpr std::size_t SPHERE_STYLE = 11;
+    const auto shown = [&session](const std::size_t place) {
+        return model::holds(*session.sphereKey(place).visibleWhen, &session.store);
+    };
+    const auto enabled = [&session](const std::size_t place) {
+        return model::holds(*session.sphereKey(place).enabledWhen, &session.store);
+    };
+
+    CHECK(shown(PRIMARY_HAPTIC));
+    CHECK(shown(SECONDARY_HAPTIC));
+    CHECK(session.store.set(session.sphereKey(SECONDARY), R"({ type = "none" })"s));
+    CHECK_FALSE(shown(SECONDARY_HAPTIC));
+    CHECK(session.store.set(session.sphereKey(PRIMARY), R"({ type = "off" })"s));
+    CHECK_FALSE(shown(PRIMARY_HAPTIC));
+
+    CHECK(enabled(ICON));
+    CHECK(session.store.set(session.sphereKey(SHOW_ICON), "never"s));
+    CHECK_FALSE(enabled(ICON));
+
+    // as the framework's default, as the file has no sShowSphere
+    CHECK_FALSE(enabled(SPHERE_STYLE));
+}
+
+TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework does, with no regard to case and separators, and with its other words")
+{
+    Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] }, "keys": { "sSphereOrientation": true } })");
+    session.open(
+        "[Body]\r\n"
+        "sShowIcon = \"Off\"\r\n"
+        "sShowSphere = \"inside\"\r\n"
+        "sSphereStyle = \"Cyan_Subtle\"\r\n"
+        "sSphereOrientation = \"head\"\r\n");
+    constexpr std::size_t SHOW_ICON = 2;
+    constexpr std::size_t ICON = 7;
+    constexpr std::size_t SHOW_SPHERE = 10;
+    constexpr std::size_t SPHERE_STYLE = 11;
+    constexpr std::size_t SPHERE_ORIENTATION = 13;
+    const auto word = [&session](const std::size_t place) {
+        const auto stored = session.store.value(session.sphereKey(place));
+        CHECK_FALSE(stored.invalid);
+        return stored.value;
+    };
+    CHECK(word(SHOW_ICON) == model::Value("never"s));
+    CHECK(word(SHOW_SPHERE) == model::Value("wheninside"s));
+    CHECK(word(SPHERE_STYLE) == model::Value("cyan-subtle"s));
+    CHECK(word(SPHERE_ORIENTATION) == model::Value("hmd"s));
+    CHECK(session.store.dirtyCount() == 0);
+
+    // a condition has the word as the option has it
+    CHECK_FALSE(model::holds(*session.sphereKey(ICON).enabledWhen, &session.store));
+
+    // the option of the file's word is no change
+    CHECK(session.store.set(session.sphereKey(SHOW_ICON), "never"s));
+    CHECK(session.store.dirtyCount() == 0);
+
+    // a word the framework does not read is as the file has it, and is invalid
+    Session typo(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } })");
+    typo.open(
+        "[Body]\r\n"
+        "sShowIcon = \"sometimes\"\r\n"
+        "sSphereStyle = \"cyan-loud\"\r\n");
+    for (const auto& [place, text] : { std::pair{ SHOW_ICON, "sometimes"s }, std::pair{ SPHERE_STYLE, "cyan-loud"s } }) {
+        const auto stored = typo.store.value(typo.sphereKey(place));
+        CHECK(stored.value == model::Value(text));
+        CHECK(stored.invalid);
+    }
 }
 
 TEST_CASE("ConfigSpecStore: a haptic is its pattern's name as the framework writes it, and a name it does not have is invalid")

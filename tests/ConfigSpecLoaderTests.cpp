@@ -15,6 +15,7 @@
 #include "TestFiles.h"
 #include "common/CommonUtils.h"
 #include "common/TomlEditor.h"
+#include "f4vr/WandActivationSphere.h"
 #include "model/Colors.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
@@ -116,6 +117,28 @@ namespace
             forEachSetting(page, add);
         }
         return settings;
+    }
+
+    /**
+     * Adds the ids of the settings of the activation spheres among items, with the pages under a page.
+     */
+    void addSphereKeys(const std::vector<model::Item>& items, const bool inSphere, std::unordered_set<std::string>& ids)
+    {
+        for (const auto& item : items) {
+            if (const auto* setting = std::get_if<model::Setting>(&item); setting && inSphere) {
+                ids.insert(setting->id);
+            } else if (const auto* group = std::get_if<model::Group>(&item)) {
+                addSphereKeys(group->items, inSphere || group->role == model::GroupRole::ActivationSphere, ids);
+            }
+        }
+    }
+
+    void addSphereKeys(const std::vector<model::Page>& pages, std::unordered_set<std::string>& ids)
+    {
+        for (const auto& page : pages) {
+            addSphereKeys(page.items, false, ids);
+            addSphereKeys(page.pages, ids);
+        }
     }
 
     model::Setting onlySetting(const model::Mod& mod)
@@ -1733,7 +1756,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(mod.pages[0].name == "Most Used");
     const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
-    CHECK(examples.pages.size() == 25);
+    CHECK(examples.pages.size() == 26);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -1749,12 +1772,18 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(pages->pages[0].pages.size() == 1);
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,
-    // and a read-only setting needs none
+    // and a read-only setting needs none. The default of an activation sphere's key is the framework's, and a sphere
+    // leaves out most of its keys, as a mod's does
     const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR) / "ModsConfigFO4_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
     std::size_t readOnly = 0;
+    std::unordered_set<std::string> sphereKeys;
+    addSphereKeys(mod.pages, sphereKeys);
     for (const auto& setting : settingsOf(mod)) {
+        if (sphereKeys.contains(setting.id)) {
+            continue;
+        }
         if (setting.readOnly) {
             ++readOnly;
             continue;
@@ -1941,7 +1970,7 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the 
         (problem.severity == model::Severity::Error ? errors : warnings) += 1;
     }
     // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
-    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[23].content[0].content[2].text" });
+    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[24].content[0].content[2].text" });
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }
@@ -2095,6 +2124,257 @@ TEST_CASE("ConfigSpecLoader: a color is the text of its table, with its default 
               "E Out of range: Its default is not a color: rgb has a number that is not a whole number in 0..255. It has no Reset. [Out of range] content[2].default",
               "E Text: It has no default color, an object as { \"rgb\": [255, 255, 255], \"alpha\": 255 }: it has no Reset. [Text] content[3]",
               "E In an INI file: A color is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+}
+
+namespace
+{
+    // a config spec of one TOML file, of which `rows` is the content
+    std::string sphereSpec(const std::string& rows)
+    {
+        return std::format(R"({{
+            "minSchemaVersion": 1, "modName": "MyMod",
+            "files": {{
+                "main": {{ "format": "toml", "root": "myGames", "path": "MyMod.toml" }},
+                "ini": {{ "format": "ini", "root": "myGames", "path": "MyMod.ini" }}
+            }},
+            "defaultFile": "main",
+            "content": [ {} ]
+        }})",
+            rows);
+    }
+
+    /**
+     * The texts of the items of a group, with the rows of each section that folds after its name.
+     */
+    Lines rowTexts(const model::Group& group)
+    {
+        Lines texts;
+        for (const auto& item : group.items) {
+            if (const auto* setting = std::get_if<model::Setting>(&item)) {
+                texts.push_back(setting->text);
+            } else if (const auto* placeholder = std::get_if<model::Placeholder>(&item)) {
+                texts.push_back(placeholder->text);
+            } else if (const auto* section = std::get_if<model::Group>(&item)) {
+                texts.push_back(section->text + ":");
+                std::ranges::copy(rowTexts(*section), std::back_inserter(texts));
+            }
+        }
+        return texts;
+    }
+}
+
+TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's keys, its main rows and then Location, Activation and Visuals, folded")
+{
+    const auto mod = loaded(sphereSpec(R"({ "type": "cf.activationSphere", "text": "Body grab", "help": "Where the hand reaches.", "storage": { "path": ["Spheres", "Body"] } })"));
+    CHECK(mod.problems.empty());
+    REQUIRE(mod.frontPage.items.size() == 1);
+    const auto& group = std::get<model::Group>(mod.frontPage.items[0]);
+    CHECK(group.text == "Body grab");
+    CHECK(group.help == "Where the hand reaches.");
+    CHECK(group.role == model::GroupRole::ActivationSphere);
+    CHECK_FALSE(group.collapsible);
+    CHECK(rowTexts(group) == Lines{ "Activate",
+                                 "Entry haptic",
+                                 "Show icon",
+                                 "Location:",
+                                 "Zone",
+                                 "Activation:",
+                                 "Primary haptic",
+                                 "Secondary activate",
+                                 "Secondary haptic",
+                                 "Visuals:",
+                                 "Icon",
+                                 "Icon color",
+                                 "Icon size",
+                                 "Show sphere",
+                                 "Sphere style",
+                                 "Sphere size" });
+    for (std::size_t place = 3; place < 6; ++place) {
+        const auto& section = std::get<model::Group>(group.items[place]);
+        CHECK(section.collapsible);
+        CHECK(section.collapsed);
+        CHECK(section.role == model::GroupRole::None);
+    }
+
+    // each key is a setting of its own, by its key and the section, with the control of its kind, and `live` with none above it
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 13);
+    for (const auto& setting : settings) {
+        CHECK(setting.applies == model::Applies::Live);
+        CHECK_FALSE(setting.help.empty());
+    }
+    CHECK(settings[0].id == "kPrimaryBinding:Spheres.Body");
+    CHECK(settings[0].storage == fileValue("main", { "Spheres", "Body", "kPrimaryBinding" }));
+    CHECK(settings[0].type == model::SettingType::InputBinding);
+    CHECK(settings[0].valueOptions.suppress);
+    CHECK(settings[1].type == model::SettingType::Haptic);
+    CHECK(settings[2].type == model::SettingType::Dropdown);
+    CHECK(settings[3].type == model::SettingType::Transform);
+    CHECK(settings[7].type == model::SettingType::TextInput);
+    CHECK(settings[8].type == model::SettingType::Color);
+    CHECK(settings[9].type == model::SettingType::Slider);
+
+    // what the framework reads for a key the file does not have
+    const f4vr::WandActivationConfig framework;
+    const auto text = [&settings](const std::size_t place) {
+        return std::get<std::string>(*settings[place].defaultValue);
+    };
+    CHECK(text(0) == model::bindingText(framework.primary));
+    CHECK(text(1) == "Tick");
+    CHECK(text(4) == "DoubleClick");
+    CHECK(text(5) == model::bindingText(framework.secondary));
+    CHECK(text(6) == "DoubleClick");
+    CHECK(text(7) == framework.iconStyle.textureOrDefault());
+    CHECK(framework.showIcon == f4vr::parseActivationSphereVisibility(text(2), f4vr::ActivationSphereVisibility::Always));
+    CHECK(framework.showSphere == f4vr::parseActivationSphereVisibility(text(10), f4vr::ActivationSphereVisibility::Always));
+    CHECK(f4vr::findSphereStylePreset(text(11)) == framework.sphereStyle);
+    CHECK(common::fEqual(std::get<float>(*settings[9].defaultValue), framework.iconStyle.size));
+    const auto iconColor = model::colorOf(settings[8], *settings[8].defaultValue);
+    REQUIRE(iconColor);
+    CHECK(std::abs(iconColor->a - framework.iconStyle.color.a) < 0.01f);
+
+    // every style the list has is one the framework has
+    CHECK(settings[11].valueOptions.options.size() == 33);
+    for (const auto& option : settings[11].valueOptions.options) {
+        CHECK(f4vr::findSphereStylePreset(std::get<std::string>(option.value)));
+    }
+}
+
+TEST_CASE("ConfigSpecLoader: a sphere's power-armor zone has a row while its file has the key, or its config spec gives it a default")
+{
+    const test_files::TempFolder myGames;
+    myGames.write("MyMod.toml",
+        "[Body]\r\n"
+        "tZonePA = { scale = 24.0 }\r\n"
+        "[Head]\r\n"
+        "tZone = { scale = 18.0 }\r\n"
+        "[Hand]\r\n"
+        "tZone = { scale = 18.0 }\r\n"
+        "[Foot]\r\n"
+        "tZonePA = { scale = 24.0 }\r\n");
+    const auto mod = spec::loadConfigSpec(sphereSpec(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } },
+        { "type": "cf.activationSphere", "text": "Head", "storage": { "path": ["Head"] }, "keys": { "tZonePA": { "text": "Named" } } },
+        { "type": "cf.activationSphere", "text": "Hand", "storage": { "path": ["Hand"] }, "keys": { "tZonePA": { "default": { "scale": 2.0 } } } },
+        { "type": "cf.activationSphere", "text": "Foot", "storage": { "path": ["Foot"] }, "keys": { "tZonePA": false } })"),
+        {},
+        {},
+        { .data = {}, .myGames = myGames.path });
+    REQUIRE(mod);
+    const auto hasRow = [&mod](const std::string& section) {
+        return std::ranges::any_of(settingsOf(*mod), [&section](const model::Setting& setting) {
+            return setting.id == "tZonePA:" + section;
+        });
+    };
+    CHECK(hasRow("Body"));
+    CHECK_FALSE(hasRow("Head"));
+    CHECK(hasRow("Hand"));
+    CHECK_FALSE(hasRow("Foot"));
+
+    // what the framework reads with no key is the zone, which is no value to reset it to
+    const auto settings = settingsOf(*mod);
+    const auto zone = [&settings](const std::string& id) {
+        return std::ranges::find(settings, id, &model::Setting::id);
+    };
+    CHECK_FALSE(zone("tZonePA:Body")->defaultValue);
+    CHECK(zone("tZonePA:Hand")->defaultValue == model::Value("{ scale = 2.0 }"s));
+    CHECK(problemLines(*mod) == Lines{ "W Head: Its file \"main\" has no tZonePA and it gives it no default: it has no row. [Head] content[1].keys.tZonePA" });
+}
+
+TEST_CASE("ConfigSpecLoader: a sphere's keys name a row, hide it or show one that has none, and each is a setting of the fields it gives")
+{
+    const auto mod =
+        loaded(sphereSpec(R"({ "type": "cf.activationSphere", "text": "Body", "applies": "save", "storage": { "path": ["Body"] }, "visibleWhen": { "plugin": "Some.esp" },
+        "keys": {
+            "kPrimaryBinding": { "text": "Take the light", "help": "Takes it.", "valueOptions": { "suppress": false, "hands": ["offhand"] }, "default": { "hand": "offhand", "type": "tap", "button": "grip" } },
+            "tZone": { "valueOptions": { "rotation": false, "scale": { "max": 60 } } },
+            "tZonePA": { "default": { "scale": 2.0 } },
+            "sShowIcon": false,
+            "sIcon": true,
+            "kSecondaryBinding": false,
+            "fSphereGlow": { "applies": "restart" },
+            "sShowSphere": { "enabledWhen": { "setting": "tZone:Body", "notEquals": "{ scale = 1.0 }" } }
+        } },
+        { "type": "cf.activationSphere", "text": "Head", "storage": { "path": ["Head"] }, "keys": { "tZone": false, "sShowSphere": false, "cSphereColor": true } })"));
+    CHECK(mod.problems.empty());
+    REQUIRE(mod.frontPage.items.size() == 2);
+    const auto& body = std::get<model::Group>(mod.frontPage.items[0]);
+    CHECK(rowTexts(body) == Lines{ "Take the light",
+                                "Entry haptic",
+                                "Location:",
+                                "Zone",
+                                "Zone in power armor",
+                                "Activation:",
+                                "Primary haptic",
+                                "Secondary haptic",
+                                "Visuals:",
+                                "Show sphere",
+                                "Sphere style",
+                                "Sphere size",
+                                "Sphere glow" });
+    const auto settings = settingsOf(mod);
+    const auto setting = [&settings](const std::string& text) -> const model::Setting& {
+        return *std::ranges::find(settings, text, &model::Setting::text);
+    };
+
+    // a key's own fields, over the key's and with its own `valueOptions` added to them
+    const auto& primary = setting("Take the light");
+    CHECK(primary.help == "Takes it.");
+    CHECK_FALSE(primary.valueOptions.suppress);
+    CHECK(primary.valueOptions.hands == std::vector{ vrcf::Hand::Offhand });
+    CHECK(primary.defaultValue == model::Value(model::canonicalBinding(R"({ hand = "offhand", type = "tap", button = "grip" })")));
+    CHECK(primary.applies == model::Applies::Save);
+    CHECK(setting("Sphere glow").applies == model::Applies::Restart);
+    const auto& zone = setting("Zone").valueOptions.transformAxes;
+    CHECK_FALSE(zone[model::TRANSFORM_ROTATION].on);
+    CHECK(common::fEqual(zone[model::TRANSFORM_SCALE].max, 60.0f));
+
+    // a power-armor zone with a default of its own is as any setting
+    CHECK(setting("Zone in power armor").defaultValue == model::Value("{ scale = 2.0 }"s));
+
+    // a condition of a key is joined with the one the sphere gives it and the section's
+    CHECK(setting("Sphere style").enabledWhen);
+    REQUIRE(setting("Show sphere").enabledWhen);
+    CHECK(setting("Show sphere").enabledWhen->setting == "tZone:Body");
+    REQUIRE(setting("Primary haptic").visibleWhen);
+    CHECK(setting("Primary haptic").visibleWhen->kind == model::Condition::Kind::All);
+
+    // with the sphere's control hidden its look is hidden, also a key that is named, and a section with no row is left out
+    const auto& head = std::get<model::Group>(mod.frontPage.items[1]);
+    CHECK(
+        rowTexts(head) ==
+        Lines{ "Activate", "Entry haptic", "Show icon", "Activation:", "Primary haptic", "Secondary activate", "Secondary haptic", "Visuals:", "Icon", "Icon color", "Icon size" });
+}
+
+TEST_CASE("ConfigSpecLoader: what a sphere gets wrong is reported where it is in spec.json, and on the row it is on")
+{
+    const auto mod = loaded(sphereSpec(R"({ "type": "cf.activationSphere", "text": "Body", "stowage": true, "storage": { "path": ["Body"] },
+        "keys": {
+            "kPrimaryBinding": false,
+            "sIcn": true,
+            "sEntryHaptic": 1,
+            "aSphereFalloff": true,
+            "tZone": { "storage": { "path": ["Other"] }, "default": 5 }
+        } },
+        { "type": "cf.activationSphere", "text": "In an INI file", "storage": { "file": "ini", "section": "Sphere", "key": "Zone" } },
+        { "type": "cf.activationSphere", "text": "Nowhere", "keys": 1 })"));
+    CHECK(problemLines(mod) ==
+          Lines{ "W Sphere falloff: The menu has no row of the type \"cf.falloff\": it is shown as one it does not have. [Sphere falloff] content[0].keys.aSphereFalloff",
+              "E Body: The primary binding cannot be hidden: it is shown. [Body] content[0].keys.kPrimaryBinding",
+              "W Body: Its value 1 is not true, false or an object: it is shown. [Body] content[0].keys.sEntryHaptic",
+              "W Body: Unknown field \"sIcn\": it is not read. Did you mean \"sIcon\"? [Body] content[0].keys.sIcn",
+              "E Zone: It has no default transform, an object as { \"pos\": [0, 0, 0], \"rot\": [0, 0, 0], \"scale\": 1 }: it has no Reset. [Zone] content[0].keys.tZone",
+              "W Body: Unknown field \"storage\": it is not read. [Body] content[0].keys.tZone.storage",
+              "W Body: Unknown field \"stowage\": it is not read. Did you mean \"storage\"? [Body] content[0].stowage",
+              "E In an INI file: An activation sphere is a section of a TOML file, and it is not: it has no rows. [In an INI file] content[1].storage",
+              "E Nowhere: It has no storage: it is not available. [Nowhere] content[2]" });
+    REQUIRE(mod.frontPage.items.size() == 3);
+    CHECK(rowTexts(std::get<model::Group>(mod.frontPage.items[1])).empty());
+    CHECK(rowTexts(std::get<model::Group>(mod.frontPage.items[2])).empty());
+    const auto zone = std::ranges::find_if(mod.problems, [](const model::Problem& problem) {
+        return problem.row == "Zone";
+    });
+    REQUIRE(zone != mod.problems.end());
+    CHECK(zone->place == model::RowPlace{ .page = {}, .item = { 0, 3, 0 } });
 }
 
 TEST_CASE("ConfigSpecLoader: a transform is the text of its table, with its default an object the framework reads")

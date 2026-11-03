@@ -214,7 +214,6 @@ Primary use: a controller binding of a mod, as an activation sphere's `kPrimaryB
 - Each change sets the pending value as it is made, and a `live` binding is previewed. Done, or a press beside the editor, keeps it. Cancel and Back give back the binding it had when it opened.
 - A key the type does not have is not written, and a Duration or Threshold at the type's default is left out, so the table stays as short as the framework's own examples.
 - A table the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.
-- Another binding setting of the same mod that is the same press is named in the help line. It does not block Save. Bindings of two mods are not checked against each other: FRIK, Immersive Flashlight and this menu each use the thumbsticks in their own context.
 
 The look is the design system's [InputBinding](design-system/project/components/InputBinding/README.md).
 
@@ -272,7 +271,9 @@ Primary use: a zone the hand reaches into and what a press there does, a whole s
 - The config spec names each row, or it has its default name, and can hide any but the primary binding: a key that is hidden has no row and keeps the file's value. A section with no row is left out. See [CommonFramework values](schema.md#commonframework-values).
 - Each key is its own setting, with the control of its kind, and is dirty, previewed and saved alone.
 - A binding set to None hides its haptic. The rows of an icon or a sphere set to Never are disabled.
-- A power-armor zone that the file does not have says `As Zone`, and a change writes it.
+- A power-armor zone has a row only while the file has its key, or the config spec gives it a default: a sphere with none has nothing to tune, as the framework uses the zone. With no default it has no Reset.
+- A dropdown of the section reads a word as the framework does, so `off` is Never and `Cyan_Subtle` is Cyan, subtle.
+- The paths of an icon and of a sphere's mesh and texture are text inputs until the [choice of files](#choice-of-files) is a control of a config spec.
 - While the ray is on the group, its sphere is lit in the world, and the heading's mark has a halo, so the player sees which one the rows are of. It needs the client to be told which group the ray is in, beside the page events.
 
 The look is the design system's [ActivationSphere](design-system/project/components/ActivationSphere/README.md).

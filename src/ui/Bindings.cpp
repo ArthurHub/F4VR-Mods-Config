@@ -1,6 +1,5 @@
 #include "Bindings.h"
 
-#include <format>
 #include <optional>
 #include <string_view>
 
@@ -106,62 +105,12 @@ namespace mods_config::ui
     }
 
     /**
-     * Whether two bindings are the same press: of one button, or one push of an axis, on one controller, worked in
-     * one way, while one button is held, or none. Their times and their thresholds are not compared. A binding that is
-     * off is no press.
-     */
-    bool samePress(const vrcf::InputBinding& binding, const vrcf::InputBinding& other, const bool leftHanded)
-    {
-        if (!binding.isEnabled() || !other.isEnabled()) {
-            return false;
-        }
-        const auto one = onControllers(binding, leftHanded);
-        const auto two = onControllers(other, leftHanded);
-        if (one.hand != two.hand || one.type != two.type || one.modifier != two.modifier) {
-            return false;
-        }
-        return one.type == vrcf::ActivationType::AxisDirection ? one.axis == two.axis && one.direction == two.direction : one.button == two.button;
-    }
-
-    /**
      * A value of a binding as the help line names it: its sentence. Empty for a value that is no binding.
      */
     std::string bindingValueName(const model::Value& value, const bool leftHanded)
     {
         const auto binding = bindingOf(value);
         return binding ? bindingSentence(*binding, leftHanded) : std::string();
-    }
-
-    /**
-     * What the help line says of a binding that is the same press as other bindings of its mod, by their names:
-     * `Also the press of Secondary binding.` Empty for one that is none, and for a value that is no binding.
-     */
-    std::string samePressHelp(const model::Setting& setting, const std::span<const model::Setting* const> bindings, model::Store& store, const bool leftHanded)
-    {
-        const auto value = store.value(setting);
-        const auto binding = value.available ? bindingOf(value.value) : std::nullopt;
-        if (!binding) {
-            return {};
-        }
-        std::vector<std::string_view> names;
-        for (const auto* other : bindings) {
-            if (other == &setting) {
-                continue;
-            }
-            const auto otherValue = store.value(*other);
-            const auto otherBinding = otherValue.available ? bindingOf(otherValue.value) : std::nullopt;
-            if (otherBinding && samePress(*binding, *otherBinding, leftHanded)) {
-                names.emplace_back(other->text);
-            }
-        }
-        if (names.empty()) {
-            return {};
-        }
-        std::string list;
-        for (std::size_t i = 0; i < names.size(); ++i) {
-            list += std::format("{}{}", i == 0 ? "" : i + 1 == names.size() ? " and " : ", ", names[i]);
-        }
-        return std::format("Also the press of {}.", list);
     }
 
     /**

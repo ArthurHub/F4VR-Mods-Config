@@ -1,7 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <span>
 
 #include "BindingEditor.h"
 #include "Choices.h"
@@ -33,9 +32,6 @@ namespace mods_config::ui
         // printed as
         const ImageDrawer& imageDrawer;
         bool leftHanded = false;
-
-        // the binding settings of the mod, which a binding that is the same press as one of them names
-        std::span<const model::Setting* const> bindings;
     };
 
     // Hover help and whether an input acted while drawing and editing a setting row.

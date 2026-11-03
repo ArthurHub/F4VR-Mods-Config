@@ -17,6 +17,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/ActivationSpheres.h"
 #include "model/Colors.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
@@ -149,7 +150,8 @@ namespace
     /**
      * A value of the type a setting keeps, as its control has it: a slider has a number, also for a whole
      * number, a text input that takes a number has the text of it, a binding has its table's text and a haptic its
-     * pattern's name as the framework writes them, and a color and a transform their table's text with the keys it has.
+     * pattern's name as the framework writes them, a color and a transform their table's text with the keys it has, and
+     * a dropdown of an activation sphere's key the option of a word the framework reads.
      * None for a value its control does not show: a switcher of anything but true or false, a slider of a text, and a
      * binding, a haptic, a color and a transform of anything but a text.
      */
@@ -171,6 +173,9 @@ namespace
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown:
+            if (const auto* text = std::get_if<std::string>(&stored); text && setting.valueOptions.sphereWords != model::SphereWords::None) {
+                return model::canonicalSphereWord(setting.valueOptions.sphereWords, setting.valueOptions.options, *text);
+            }
             return stored;
         case model::SettingType::TextInput:
             if (const auto* whole = std::get_if<int>(&stored)) {

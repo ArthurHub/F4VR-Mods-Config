@@ -376,6 +376,23 @@ namespace mods_config::ui
     }
 
     /**
+     * An activation sphere's mark, around its center: a ring over a glow that fades from its middle to the ring, in
+     * circles that each add to it, as ImGui has no radial fill.
+     */
+    static void drawSphereMark(const ImVec2& center)
+    {
+        constexpr float RADIUS = 7.0f;
+        constexpr float GLOW_STEP = 1.0f;
+        constexpr ImU32 GLOW_ALPHA = 46;
+        const ImU32 glow = (theme::color::GREEN & ~IM_COL32_A_MASK) | (GLOW_ALPHA << IM_COL32_A_SHIFT);
+        auto* drawList = ImGui::GetWindowDrawList();
+        for (float radius = RADIUS; radius > 0.0f; radius -= GLOW_STEP) {
+            drawList->AddCircleFilled(center, radius, glow);
+        }
+        drawList->AddCircle(center, RADIUS, theme::color::GREEN, 0, 1.5f);
+    }
+
+    /**
      * The heading of a section of rows at the cursor: its muted text, `space-3` in as a row's text is in its frame,
      * and a line from it to a right edge, where the rows end. ImGui draws the line to the right of the window's
      * work area, past the rows into the room of the scroll bar, so that edge is the heading's while it is drawn.
@@ -393,6 +410,28 @@ namespace mods_config::ui
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         window->WorkRect.Max.x = workRight;
+    }
+
+    /**
+     * The heading of an activation sphere at the cursor, as high as any heading: the sphere's mark, its muted text and a
+     * line from it to a right edge. It is drawn here, as ImGui's heading has a line before a text that is this far in.
+     */
+    void sphereHeading(const std::string_view text, const float right)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float height = ImGui::GetFontSize() + ImGui::GetStyle().SeparatorTextPadding.y * 2.0f;
+        ImGui::Dummy(ImVec2(right - pos.x, height));
+        const float middle = pos.y + height * 0.5f;
+        const float markLeft = pos.x + HEADING_TEXT_INSET;
+        drawSphereMark(ImVec2(markLeft + SPHERE_MARK_SIZE * 0.5f, middle));
+        const float textLeft = markLeft + SPHERE_MARK_SIZE + theme::SPACE_1;
+        const float textRight = (std::min)(textLeft + textWidth(text), right);
+        drawText(textLeft, textRight, pos.y, height, theme::color::GREEN_MUTED, text);
+        const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
+        if (ruleLeft < right) {
+            const float ruleTop = std::floor(middle - theme::BORDER_FRAME * 0.5f);
+            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(right, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        }
     }
 
     /**

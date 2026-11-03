@@ -4612,14 +4612,13 @@ TEST_CASE("FullPanel: a quick launch entry says its own button text, tells the r
     CHECK(panel.helpLine().text() == "Immersive Flashlight: Not available: its mod's client failed, and is cut off until the game is restarted.");
 }
 
-TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help line says in full, with the bindings that are the same press")
+TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help line says in full")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
     myGames.write(MY_MOD_FILE,
         "[Sphere]\r\n"
         "kGrab = { hand = \"offhand\", type = \"longpress\", button = \"a\" }\r\n"
-        "kOther = { hand = \"offhand\", type = \"longpress\", button = \"a\", duration = 1.0 }\r\n"
         "kTypo = { hand = \"offhand\", type = \"tap\", button = \"thumbstik\" }\r\n");
     spec::ConfigSpecStore store({}, myGames.path);
     auto mod = spec::loadConfigSpec(R"({
@@ -4631,10 +4630,7 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
               "storage": { "path": ["Sphere", "kGrab"] } },
             { "type": "cf.inputBinding", "text": "Typo", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
               "storage": { "path": ["Sphere", "kTypo"] } }
-        ],
-        "pages": [ { "pageDisplayName": "More", "content": [
-            { "type": "cf.inputBinding", "text": "Other", "default": { "type": "none" }, "storage": { "path": ["Sphere", "kOther"] } }
-        ] } ]
+        ]
     })");
     REQUIRE(mod);
     std::vector<std::string> icons;
@@ -4647,9 +4643,9 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     panel.select(selectionOf(0));
     drawFrames(panel, 2);
 
-    // the A button of the off hand is X on its controller, and the other binding is the same press, on another page
+    // the A button of the off hand is X on its controller
     point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Grab: Long press the X button on the off hand. Takes the item. Also the press of Other. (Default: Tap the trigger on the off hand)");
+    CHECK(panel.helpLine().text() == "Grab: Long press the X button on the off hand. Takes the item. (Default: Tap the trigger on the off hand)");
     CHECK(std::ranges::contains(icons, R"(ModsConfigFO4VR\f4cf\bindings\left-longpress-x.dds)"));
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Grab: Reset to Tap the trigger on the off hand");

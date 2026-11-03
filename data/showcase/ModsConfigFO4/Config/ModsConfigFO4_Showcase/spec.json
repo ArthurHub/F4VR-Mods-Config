@@ -1368,13 +1368,6 @@
                 },
                 {
                   "type": "cf.inputBinding",
-                  "text": "Same press as Tap",
-                  "help": "The help line names the other binding that is the same press.",
-                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
-                  "storage": { "path": ["Bindings", "kSamePress"] }
-                },
-                {
-                  "type": "cf.inputBinding",
                   "text": "Suppressed",
                   "help": "An activation sphere's binding, which offers Suppress from the game.",
                   "default": { "hand": "primary", "type": "tap", "button": "grip", "suppress": true },
@@ -1587,6 +1580,61 @@
                   "storage": { "path": ["Transforms", "tTwoNumbers"] }
                 }
               ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Activation spheres",
+          "help": "A section of a CommonFramework mod's TOML that is an activation sphere, drawn as one group, each key a setting of its own.",
+          "content": [
+            {
+              "type": "cf.activationSphere",
+              "text": "Named by its config spec",
+              "help": "Every row has a name of its own.",
+              "storage": { "path": ["BodySphere"] },
+              "keys": {
+                "kPrimaryBinding": { "text": "Take the light", "help": "Takes the light from your chest." },
+                "sEntryHaptic": { "text": "Hand reaches the light" },
+                "sShowIcon": { "text": "Show the light's mark" },
+                "tZone": { "text": "Chest zone", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "tZonePA": { "text": "Chest zone in power armor", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "sPrimaryHaptic": { "text": "Light taken" },
+                "kSecondaryBinding": { "text": "Switch hands" },
+                "sSecondaryHaptic": { "text": "Hands switched" },
+                "sIcon": { "text": "Mark's image" },
+                "cIconColor": { "text": "Mark's color" },
+                "fIconSize": { "text": "Mark's size" },
+                "sShowSphere": { "text": "Show the chest sphere" },
+                "sSphereStyle": { "text": "Chest sphere's style" },
+                "fSphereScale": { "text": "Chest sphere's size" }
+              }
+            },
+            {
+              "type": "cf.activationSphere",
+              "text": "With hidden keys",
+              "help": "It hides its icon and its second binding, and its file has no power-armor zone, so those keys have no row.",
+              "storage": { "path": ["HeadSphere"] },
+              "keys": {
+                "tZone": { "valueOptions": { "position": { "step": 0.1 }, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "sShowIcon": false,
+                "kSecondaryBinding": false,
+                "sSecondaryHaptic": false
+              }
+            },
+            {
+              "type": "cf.activationSphere",
+              "text": "With its other keys",
+              "help": "It names the keys that have no row unless a config spec names them. Its icon is never shown, so that row is disabled, and its second binding is None, so its haptic has no row.",
+              "storage": { "path": ["LookSphere"] },
+              "keys": {
+                "tZone": { "valueOptions": { "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "tZonePA": { "valueOptions": { "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "sSphereOrientation": true,
+                "cSphereColor": true,
+                "fSphereGlow": true,
+                "sSphereNif": true,
+                "sSphereTexture": true
+              }
             }
           ]
         },
@@ -3339,6 +3387,25 @@
                   "default": { "scale": 1.0 },
                   "valueOptions": { "position": false, "rotation": false, "scale": false },
                   "storage": { "path": ["Mistakes", "tNoPart"] }
+                },
+                {
+                  "type": "cf.activationSphere",
+                  "text": "A sphere with mistakes",
+                  "help": "Its file has no such section, its primary binding cannot be hidden, it names a key that is none and one the menu has no control for, and a key has a value that is no value of it.",
+                  "storage": { "path": ["NoSuchSphere"] },
+                  "keys": {
+                    "kPrimaryBinding": false,
+                    "sIcn": true,
+                    "sEntryHaptic": 1,
+                    "aSphereFalloff": true,
+                    "tZone": { "storage": { "path": ["Other", "tZone"] } }
+                  }
+                },
+                {
+                  "type": "cf.activationSphere",
+                  "text": "A sphere in an INI file",
+                  "help": "An activation sphere is a section of a TOML file, so it has no rows.",
+                  "storage": { "file": "ini", "section": "Sphere", "key": "Zone" }
                 },
                 {
                   "type": "switcher",

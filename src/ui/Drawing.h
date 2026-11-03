@@ -139,6 +139,9 @@ namespace mods_config::ui
     // rows beside it: and where the page's texts start, in from the content's left
     constexpr float HEADING_TEXT_INSET = theme::SPACE_3;
 
+    // the width of an activation sphere's mark, as the design system has it
+    constexpr float SPHERE_MARK_SIZE = 20.0f;
+
     float mcmScale();
     float textWidth(std::string_view text);
     void drawPageText(std::string_view text);
@@ -148,6 +151,7 @@ namespace mods_config::ui
     int countTextLines(std::span<const TextPiece> pieces, float width);
     void drawTextPieces(std::span<const TextPiece> pieces, const ImVec2& pos, float width, int maxLines);
     void sectionHeading(std::string_view text, float right);
+    void sphereHeading(std::string_view text, float right);
     void drawSectionLine(float left, float top, float bottom, float right);
     void drawOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawDashedOutline(const ImVec2& min, const ImVec2& max, ImU32 color);

@@ -395,7 +395,7 @@ namespace
     /**
      * What the help line says of a setting row the ray is on, on its value as it is after a press in this frame: why
      * the value is not available, what the slot does while the ray is on it, why the value is invalid, or the row's
-     * help, with its number, the bindings it is the same press as, and its default. On a haptic's Play button it is
+     * help, with its number and its default. On a haptic's Play button it is
      * what Play plays, and while its list is open it is the help of the option the ray is on.
      */
     ui::PointedRow pointedRow(SettingRowState& state, const ControlEdited& edited, const std::string_view warning, const std::optional<model::Applies> applies)
@@ -444,11 +444,9 @@ namespace
         } else {
             const auto defaultText = state.defaultValue ? std::format("(Default: {})", nameOf(*state.defaultValue)) : std::string();
             const auto ownHelp = setting.readOnly ? ui::readOnlyHelp({}, setting.help) : setting.help;
-            // a binding is said in full first, as its row has no room for it, and names the bindings it is the same
-            // press as
+            // a binding is said in full first, as its row has no room for it
             const auto sentence = edited.binding ? nameOf(stored.value) + "." : std::string();
-            const auto samePress = edited.binding ? ui::samePressHelp(setting, context.bindings, *context.store, context.leftHanded) : std::string();
-            help = joinHelp({ sentence, ownHelp, numberDetail(setting, stored, edited.sliderValue), samePress, defaultText });
+            help = joinHelp({ sentence, ownHelp, numberDetail(setting, stored, edited.sliderValue), defaultText });
         }
         // the tag of when it takes effect is told as it is changed
         return ui::PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid, .applies = state.dirty ? applies : std::nullopt };

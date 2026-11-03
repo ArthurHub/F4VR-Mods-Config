@@ -1846,9 +1846,6 @@ def sphere_head(name, lit=False):
     """A sphere's heading: its mark, with a halo while its sphere is lit in the world, and its name."""
     return f'<div class="mc-section t-body is-sphere{" is-lit" if lit else ""}">{SPHERE}<span>{name}</span></div>'
 
-def same_as_zone():
-    return (f'<div class="main"><span class="mc-combo is-xform"><span class="lines"><span class="t-body same">As Zone</span></span>{ARROW_D}</span></div>{reset_btn(False)}')
-
 BODY_ZONE = {'pos': [3.91, 7.11, 0.67], 'scale': 20.0}
 BODY_PRIMARY = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress': True}
 BODY_SECONDARY = {'hand': 'primary', 'type': 'tap', 'button': 'trigger', 'suppress': True}
@@ -1879,7 +1876,7 @@ open_rows = ''.join([
     row('Show icon', combo('When inside')),
     sub(collapse('Location', open_=True), ''.join([
         row('Zone', xform_ctl(BODY_ZONE)),
-        row('Zone in power armor', same_as_zone()),
+        row('Zone in power armor', xform_ctl({'pos': [4.01, 10.21, -4.6], 'scale': 24.0})),
     ])),
     sub(collapse('Activation', open_=True), ''.join([
         row('Primary haptic', haptic('DoubleClick')),
@@ -1887,7 +1884,7 @@ open_rows = ''.join([
         row('Secondary haptic', haptic('DoubleClick')),
     ])),
     sub(collapse('Visuals', open_=True), ''.join([
-        row('Icon', file_ctl('activation-icon-flashlight', None, ext='.dds')),
+        row('Icon', field('activation-icon-flashlight.dds')),
         row('Icon color', color_ctl((255, 255, 255, 200))),
         row(f'Icon size{DOT}', slider('2.5', 50, 'is-pending', 'is-pending', True)),
         row('Show sphere', combo('Never')),

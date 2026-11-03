@@ -20,7 +20,7 @@ A CommonFramework activation sphere: a whole section of the mod's TOML, a zone t
 | Activation | `sPrimaryHaptic` | Primary haptic | Haptic |
 | Activation | `kSecondaryBinding` | Secondary activate | InputBinding |
 | Activation | `sSecondaryHaptic` | Secondary haptic | Haptic |
-| Visuals | `sIcon` | Icon | [FileChoice](../FileChoice/README.md) |
+| Visuals | `sIcon` | Icon | [TextInput](../TextInput/README.md) of its path, until [FileChoice](../FileChoice/README.md) is a control of a config spec |
 | Visuals | `cIconColor` | Icon color | [Color](../Color/README.md) |
 | Visuals | `fIconSize` | Icon size | [Slider](../Slider/README.md) |
 | Visuals | `sShowSphere` | Show sphere | Dropdown, as Show icon |
@@ -32,7 +32,7 @@ A CommonFramework activation sphere: a whole section of the mod's TOML, a zone t
 - Hiding Show icon hides the icon's rows, and hiding Show sphere the sphere's. A section with no row shown is left out, its heading too.
 - The framework's other sphere keys, `sSphereOrientation`, `cSphereColor`, `fSphereGlow`, `sSphereNif`, `sSphereTexture` and `aSphereFalloff`, have a row under Visuals, after the sphere's, only where the config spec names them.
 - A binding set to None hides its haptic: with Secondary activate off, Secondary haptic has no row. The rows of an icon or a sphere set to `Never` are disabled.
-- Zone in power armor, while the file has no `tZonePA`, says `As Zone` in `green-muted`, as the framework uses the zone; its editor starts from the zone's values, and a change writes the key.
+- Zone in power armor has a row only while the file has `tZonePA`, or the config spec gives it a default: the framework uses the zone without it. With no default its Reset slot is empty.
 - A key the file does not have shows the value the framework uses for it, its default, or the config spec's `default` for it.
 - Each key is dirty, previewed and saved alone, as any setting: a change to the primary binding writes `kPrimaryBinding` and nothing else.
 

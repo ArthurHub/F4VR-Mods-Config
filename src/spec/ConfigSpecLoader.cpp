@@ -102,6 +102,13 @@ namespace
     // the most characters of a row's name in a problem: a text row is a paragraph
     constexpr std::size_t MAX_ROW_NAME = 48;
 
+    // A row the loader makes for a key of an activation sphere has this field, which is no field of the schema: where it
+    // is in spec.json from the sphere, as `keys.tZone`, and empty for a section of them, which is not in spec.json
+    constexpr auto MADE_ROW_PATH = "madeRowPath";
+
+    // the field of a made row that says which of the framework's words its dropdown has
+    constexpr auto MADE_WORDS = "madeWords";
+
     /**
      * What a condition knows of the setting it names: its id as its config spec has it, and what its value is.
      */
@@ -147,6 +154,9 @@ namespace
         std::unordered_map<std::string, SettingInfo> settings;
         std::vector<model::Problem> problems;
         Location at;
+
+        // the section each `cf.activationSphere` row was made into, as both readings of the rows read it
+        std::map<const Json*, Json> spheres;
 
         /**
          * Adds a problem where the reading is: on its row, with the row's place, or else on its page, or else of the
@@ -229,11 +239,12 @@ namespace
 
     /**
      * Reports each field of an object that is none of the ones it can have, which is not read: a typo, or a
-     * field of a newer schema. A field near one it can have names it, as `Did you mean "visibleWhen"?`.
+     * field of a newer schema. A field near one it can have names it, as `Did you mean "visibleWhen"?`. A row the loader
+     * made is not its author's: what its author wrote of it is checked as the row is made.
      */
     void checkFields(const Json& object, const std::span<const std::string_view> known, ConfigSpecReading& reading)
     {
-        if (!object.is_object()) {
+        if (!object.is_object() || object.contains(MADE_ROW_PATH)) {
             return;
         }
         for (const auto& [key, value] : object.items()) {
@@ -300,6 +311,9 @@ namespace
     constexpr std::array<std::string_view, 4> TEXT_ROW_FIELDS{ "type", "text", "html", "visibleWhen" };
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
+    constexpr std::array<std::string_view, 8> SPHERE_FIELDS{ "type", "text", "help", "storage", "keys", "applies", "visibleWhen", "enabledWhen" };
+    // a key of a sphere's `keys`, written as an object:
+    constexpr std::array<std::string_view, 8> SPHERE_KEY_FIELDS{ "text", "help", "default", "valueOptions", "applies", "visibleWhen", "enabledWhen", "warnings" };
     // a setting's parts:
     constexpr std::array<std::string_view, 19> VALUE_OPTIONS_FIELDS{ "min",
         "max",
@@ -1590,7 +1604,8 @@ namespace
     }
 
     /**
-     * A setting of a config spec: its author's `id`, or one it gets from where its value is kept, its own
+     * A setting of a config spec, or a row made for a key of an activation sphere, which has no warning of a key its file
+     * does not have, as a sphere leaves out most: its author's `id`, or one it gets from where its value is kept, its own
      * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, and
      * its action, which Save runs.
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
@@ -1615,7 +1630,8 @@ namespace
             }
         }
         const bool readOnly = getBool(row, "readOnly");
-        if (const auto* file = std::get_if<model::FileStorage>(&storage)) {
+        const bool made = row.contains(MADE_ROW_PATH);
+        if (const auto* file = std::get_if<model::FileStorage>(&storage); file && !made) {
             if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
                 const Into into(reading, "storage");
                 reading.report(model::Severity::Warning,
@@ -1640,7 +1656,14 @@ namespace
             reading.report(model::Severity::Error, "Its position, its rotation and its scale are all off: it is not available.");
             storage = model::UnknownStorage{ .type = "transform parts" };
         }
-        auto defaultValue = readOnly ? std::nullopt : loadDefault(row, type, valueType, valueOptions, reading);
+        if (made) {
+            const auto words = getText(row, MADE_WORDS);
+            valueOptions.sphereWords = words == "visibility"    ? model::SphereWords::Visibility
+                                       : words == "orientation" ? model::SphereWords::Orientation
+                                       : words == "style"       ? model::SphereWords::Style
+                                                                : model::SphereWords::None;
+        }
+        auto defaultValue = readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, valueOptions, reading);
         auto text = getLabel(row, reading);
         auto help = readShownText(row, "help", reading);
         auto display = loadDisplay(row, reading);
@@ -1701,12 +1724,416 @@ namespace
     }
 
     /**
-     * The items of the `content` of a page or a section, by their `type`, one for each row. A section is a
-     * group of the items of its own `content`, and passes its `defaultFile` and its `applies` down to them.
+     * Where a key of an activation sphere has its row: first what a player changes most, and then the sections that fold.
+     */
+    enum class SpherePart : std::uint8_t
+    {
+        Main,
+        Location,
+        Activation,
+        Visuals,
+    };
+
+    // the sections that fold of a sphere, by their parts after Main
+    constexpr std::array<const char*, 3> SPHERE_SECTIONS{ "Location", "Activation", "Visuals" };
+
+    /**
+     * A key of an activation sphere's section, as the framework reads it (`loadWandActivationConfig`).
+     */
+    struct SphereKey
+    {
+        std::string_view name;
+        SpherePart part;
+
+        // the key this one depends on, and none: a haptic has no row while its binding is off, and the look of an icon
+        // and of a sphere is disabled while it is never shown, and hidden with the key that says when it is
+        std::string_view control;
+
+        // it has no row unless the config spec's `keys` names it
+        bool namedOnly = false;
+
+        // the fields of its row, as a config spec writes a setting: its author's are over them. A default is the
+        // framework's for the key, and a range is one a key is tuned in. A power-armor zone has no default: the framework
+        // uses the zone for one a file leaves out, which no value of the key says
+        const char* row = nullptr;
+    };
+
+    constexpr auto SPHERE_PRIMARY_BINDING = "kPrimaryBinding";
+    constexpr auto SPHERE_ZONE_PA = "tZonePA";
+    constexpr auto SPHERE_STYLE = "sSphereStyle";
+
+    constexpr std::array SPHERE_KEYS{
+        SphereKey{ SPHERE_PRIMARY_BINDING,
+            SpherePart::Main,
+            "",
+            false,
+            R"({ "type": "cf.inputBinding", "text": "Activate", "help": "What fires it with a hand in the zone.",
+                "default": { "hand": "primary", "type": "press", "button": "trigger" }, "valueOptions": { "suppress": true } })" },
+        SphereKey{ "sEntryHaptic",
+            SpherePart::Main,
+            "",
+            false,
+            R"({ "type": "cf.haptic", "text": "Entry haptic", "help": "Played once as a hand enters the zone.", "default": "Tick" })" },
+        SphereKey{ "sShowIcon",
+            SpherePart::Main,
+            "",
+            false,
+            R"({ "type": "dropdown", "valueType": "string", "madeWords": "visibility", "text": "Show icon", "help": "When the icon at the middle of the zone is drawn.", "default": "wheninside",
+                "valueOptions": { "options": [ { "value": "never", "text": "Never" }, { "value": "always", "text": "Always" }, { "value": "wheninside", "text": "When inside" },
+                    { "value": "whenavailable", "text": "When available" } ] } })" },
+        SphereKey{ "tZone",
+            SpherePart::Location,
+            "",
+            false,
+            R"({ "type": "cf.transform", "text": "Zone", "help": "Where the zone is on its node. Its scale is the zone's diameter, and its rotation does nothing to a sphere.",
+                "default": { "pos": [0.0, 0.0, 0.0], "scale": 1.0 } })" },
+        SphereKey{ SPHERE_ZONE_PA, SpherePart::Location, "", false, R"({ "type": "cf.transform", "text": "Zone in power armor", "help": "Where the zone is in power armor." })" },
+        SphereKey{ "sPrimaryHaptic",
+            SpherePart::Activation,
+            SPHERE_PRIMARY_BINDING,
+            false,
+            R"({ "type": "cf.haptic", "text": "Primary haptic", "help": "Played as its binding fires.", "default": "DoubleClick" })" },
+        SphereKey{ "kSecondaryBinding",
+            SpherePart::Activation,
+            "",
+            false,
+            R"({ "type": "cf.inputBinding", "text": "Secondary activate", "help": "A second way to fire it, and None for no second way.",
+                "default": { "type": "none" }, "valueOptions": { "suppress": true } })" },
+        SphereKey{ "sSecondaryHaptic",
+            SpherePart::Activation,
+            "kSecondaryBinding",
+            false,
+            R"({ "type": "cf.haptic", "text": "Secondary haptic", "help": "Played as the second binding fires.", "default": "DoubleClick" })" },
+        SphereKey{ "sIcon",
+            SpherePart::Visuals,
+            "sShowIcon",
+            false,
+            R"({ "type": "textinput", "valueType": "string", "text": "Icon", "help": "The path of the icon's .dds, resolved as the mod's other textures are.",
+                "default": "f4cf\\activation-icon-hand.dds" })" },
+        SphereKey{ "cIconColor",
+            SpherePart::Visuals,
+            "sShowIcon",
+            false,
+            R"({ "type": "cf.color", "text": "Icon color", "help": "The tint of the icon, and its opacity.", "default": { "rgb": [255, 255, 255], "alpha": 230 } })" },
+        SphereKey{ "fIconSize",
+            SpherePart::Visuals,
+            "sShowIcon",
+            false,
+            R"({ "type": "slider", "valueType": "float", "text": "Icon size", "help": "The icon's longer side, in game units.", "default": 1.0,
+                "valueOptions": { "min": 0.1, "max": 10, "step": 0.1 } })" },
+        SphereKey{ "sShowSphere",
+            SpherePart::Visuals,
+            "",
+            false,
+            R"({ "type": "dropdown", "valueType": "string", "madeWords": "visibility", "text": "Show sphere", "help": "When the sphere that marks the zone is drawn.", "default": "never",
+                "valueOptions": { "options": [ { "value": "never", "text": "Never" }, { "value": "always", "text": "Always" }, { "value": "wheninside", "text": "When inside" },
+                    { "value": "whenavailable", "text": "When available" } ] } })" },
+        SphereKey{ SPHERE_STYLE,
+            SpherePart::Visuals,
+            "sShowSphere",
+            false,
+            R"({ "type": "dropdown", "valueType": "string", "madeWords": "style", "text": "Sphere style", "help": "How the sphere looks.", "default": "white-subtle" })" },
+        SphereKey{ "fSphereScale",
+            SpherePart::Visuals,
+            "sShowSphere",
+            false,
+            R"({ "type": "slider", "valueType": "float", "text": "Sphere size", "help": "The drawn size against the zone. The zone itself stays as it is.", "default": 1.0,
+                "valueOptions": { "min": 0.05, "max": 3, "step": 0.05 } })" },
+        SphereKey{ "sSphereOrientation",
+            SpherePart::Visuals,
+            "sShowSphere",
+            true,
+            R"({ "type": "dropdown", "valueType": "string", "madeWords": "orientation", "text": "Sphere orientation", "help": "Which way the sphere faces, which only a patterned look shows.", "default": "body",
+                "valueOptions": { "options": [ { "value": "body", "text": "Body" }, { "value": "hmd", "text": "Head" }, { "value": "world", "text": "World" } ] } })" },
+        SphereKey{ "cSphereColor",
+            SpherePart::Visuals,
+            "sShowSphere",
+            true,
+            R"({ "type": "cf.color", "text": "Sphere color", "help": "The color of the sphere over its style's, and its opacity.", "default": { "rgb": [255, 255, 255], "alpha": 27 } })" },
+        SphereKey{ "fSphereGlow",
+            SpherePart::Visuals,
+            "sShowSphere",
+            true,
+            R"({ "type": "slider", "valueType": "float", "text": "Sphere glow", "help": "How bright the sphere is.", "default": 0.4, "valueOptions": { "min": 0, "max": 1, "step": 0.05 } })" },
+        SphereKey{ "sSphereNif",
+            SpherePart::Visuals,
+            "sShowSphere",
+            true,
+            R"({ "type": "textinput", "valueType": "string", "text": "Sphere mesh", "help": "The path of the sphere's .nif.", "default": "f4cf\\activation-sphere.nif" })" },
+        SphereKey{ "sSphereTexture",
+            SpherePart::Visuals,
+            "sShowSphere",
+            true,
+            R"({ "type": "textinput", "valueType": "string", "text": "Sphere texture", "help": "The path of the texture on its mesh, and none to keep the mesh's own.",
+                "default": "f4cf\\activation-sphere.dds" })" },
+        SphereKey{ "aSphereFalloff", SpherePart::Visuals, "sShowSphere", true, R"({ "type": "cf.falloff", "text": "Sphere falloff" })" },
+    };
+
+    using SphereWord = std::pair<std::string_view, std::string_view>;
+
+    // the framework's presets of a sphere's look, a color and a strength each (`findSphereStylePreset`), as their names
+    // are written and as the list says them
+    constexpr std::array SPHERE_COLORS{ SphereWord{ "white", "White" },
+        SphereWord{ "gray", "Gray" },
+        SphereWord{ "cyan", "Cyan" },
+        SphereWord{ "green", "Green" },
+        SphereWord{ "purple", "Purple" },
+        SphereWord{ "red", "Red" },
+        SphereWord{ "amber", "Amber" },
+        SphereWord{ "gold", "Gold" } };
+    constexpr std::array<std::string_view, 4> SPHERE_STRENGTHS{ "full", "medium", "subtle", "low" };
+
+    /**
+     * The options of a sphere's look: each color with each strength, and `debug`.
+     */
+    Json sphereStyleOptions()
+    {
+        auto options = Json::array();
+        for (const auto& [color, colorText] : SPHERE_COLORS) {
+            for (const auto strength : SPHERE_STRENGTHS) {
+                options.push_back(Json{ { "value", std::format("{}-{}", color, strength) }, { "text", std::format("{}, {}", colorText, strength) } });
+            }
+        }
+        options.push_back(Json{ { "value", "debug" }, { "text", "Debug" } });
+        return options;
+    }
+
+    /**
+     * Adds a condition to the `visibleWhen` or the `enabledWhen` a row has, which it then needs too.
+     */
+    void addCondition(Json& row, const char* key, Json condition)
+    {
+        row[key] = row.contains(key) ? Json{ { "all", Json::array({ std::move(condition), row[key] }) } } : std::move(condition);
+    }
+
+    /**
+     * The id a key of a sphere's section gets from where it is kept, which a condition names it by.
+     */
+    std::string sphereKeyId(const model::FileStorage& section, const std::string_view key)
+    {
+        auto path = section.path;
+        path.emplace_back(key);
+        return idOf(model::FileStorage{ .file = section.file, .path = std::move(path) });
+    }
+
+    /**
+     * Whether the `keys` of a sphere hide a key.
+     */
+    bool isHiddenKey(const Json& keys, const std::string_view key)
+    {
+        const auto found = keys.find(std::string(key));
+        return found != keys.end() && found->is_boolean() && !found->get<bool>();
+    }
+
+    /**
+     * The row of a key of a sphere: the framework's, with what its object in `keys` gives over it, of which `valueOptions`
+     * adds to the key's. A key with another that it depends on has that condition too.
+     */
+    Json sphereKeyRow(const SphereKey& key, const Json& keys, const model::FileStorage& section, ConfigSpecReading& reading)
+    {
+        const std::string name(key.name);
+        auto row = Json::parse(key.row);
+        row[MADE_ROW_PATH] = "keys." + name;
+        auto path = section.path;
+        path.push_back(name);
+        row["storage"] = Json{ { "file", section.file }, { "path", std::move(path) } };
+        if (key.name == SPHERE_STYLE) {
+            row["valueOptions"]["options"] = sphereStyleOptions();
+        }
+
+        if (const auto own = keys.find(name); own != keys.end() && own->is_object()) {
+            const Into into(reading, row[MADE_ROW_PATH].get_ref<const std::string&>());
+            checkFields(*own, SPHERE_KEY_FIELDS, reading);
+            for (const auto& [field, value] : own->items()) {
+                if (field == "valueOptions") {
+                    row[field].merge_patch(value);
+                } else if (std::ranges::find(SPHERE_KEY_FIELDS, field) != SPHERE_KEY_FIELDS.end()) {
+                    row[field] = value;
+                }
+            }
+        }
+        if (!key.control.empty() && !isHiddenKey(keys, key.control)) {
+            const auto id = sphereKeyId(section, key.control);
+            if (key.control.starts_with('k')) {
+                addCondition(row, "visibleWhen", Json{ { "setting", id }, { "notEquals", model::bindingText(vrcf::VRControllersManager::DisabledBinding) } });
+            } else {
+                addCondition(row, "enabledWhen", Json{ { "setting", id }, { "notEquals", "never" } });
+            }
+        }
+        return row;
+    }
+
+    /**
+     * Whether a sphere's power-armor zone has a row: its file has the key, or its object in `keys` gives the `default` of
+     * a mod that has one of its own. With neither the framework uses the zone, so it is as if `keys` hid it, as it is with
+     * a file that is not there: `keys` naming it then, of a file that is read, is reported.
+     */
+    bool hasZonePA(const Json& keys, const model::FileStorage& section, ConfigSpecReading& reading)
+    {
+        auto path = section.path;
+        path.emplace_back(SPHERE_ZONE_PA);
+        const auto values = reading.fileValues.find(section.file);
+        const bool read = values != reading.fileValues.end();
+        const auto own = keys.find(SPHERE_ZONE_PA);
+        if ((read && values->second->contains(path)) || (own != keys.end() && own->is_object() && own->contains("default"))) {
+            return true;
+        }
+        if (read && own != keys.end()) {
+            const Into into(reading, std::format("keys.{}", SPHERE_ZONE_PA));
+            reading.report(model::Severity::Warning, std::format("Its file \"{}\" has no {} and it gives it no default: it has no row.", section.file, SPHERE_ZONE_PA));
+        }
+        return false;
+    }
+
+    /**
+     * The `keys` of a sphere, an object each of whose names is a key of its section and each of whose values is true,
+     * false or an object. A name that is none is left out, which `sphereKeyRow` does by asking for the keys there are,
+     * and is reported, and so is a value that is none, as it shows its key, and the primary binding hidden, which is shown.
+     */
+    Json sphereKeys(const Json& row, ConfigSpecReading& reading)
+    {
+        const auto found = row.find("keys");
+        if (found == row.end()) {
+            return Json::object();
+        }
+        const Into into(reading, "keys");
+        if (!found->is_object()) {
+            reading.report(model::Severity::Warning, "Its keys are not an object: each key is shown with its default name.");
+            return Json::object();
+        }
+        std::vector<std::string_view> names;
+        for (const auto& key : SPHERE_KEYS) {
+            names.push_back(key.name);
+        }
+        checkFields(*found, names, reading);
+        auto keys = *found;
+        for (auto& [name, value] : keys.items()) {
+            if (value.is_object() || (value.is_boolean() && (value.get<bool>() || name != SPHERE_PRIMARY_BINDING))) {
+                continue;
+            }
+            const Into intoKey(reading, name);
+            if (value.is_boolean()) {
+                reading.report(model::Severity::Error, "The primary binding cannot be hidden: it is shown.");
+            } else {
+                reading.report(model::Severity::Warning, std::format("Its value {} is not true, false or an object: it is shown.", value.dump()));
+            }
+            value = true;
+        }
+        return keys;
+    }
+
+    /**
+     * The section a `cf.activationSphere` row is, which the rows of a config spec are then read as: its heading, its main
+     * rows, and Location, Activation and Visuals, which fold and start folded, each left out with no row. Each key that is
+     * shown is an ordinary setting of the section's file. Its `applies` is its own, or the nearest above it, or `live`, as
+     * the framework previews a key. Its storage is the section, in a TOML file: one that is not has no rows, and is
+     * reported, and so is a file that has no such section, whose keys show their defaults.
+     */
+    Json sphereSection(const Json& row, const Inherited& above, ConfigSpecReading& reading)
+    {
+        checkFields(row, SPHERE_FIELDS, reading);
+        const auto own = inherit(row, above, reading);
+        auto section = Json::object();
+        section["type"] = "section";
+        section["content"] = Json::array();
+        for (const auto* field : { "text", "help", "visibleWhen", "enabledWhen" }) {
+            if (row.contains(field)) {
+                section[field] = row[field];
+            }
+        }
+        if (findApplies(row)) {
+            section["applies"] = row["applies"];
+        } else if (own.applies == model::Applies::Unknown) {
+            section["applies"] = "live";
+        }
+
+        const auto storage = loadStorage(row, own.defaultFile, model::StoredType::String, reading);
+        if (std::holds_alternative<model::UnknownStorage>(storage)) {
+            return section;
+        }
+        const auto* file = std::get_if<model::FileStorage>(&storage);
+        if (!file || reading.files.at(file->file).format != model::FileFormat::Toml) {
+            const Into into(reading, "storage");
+            reading.report(model::Severity::Error, "An activation sphere is a section of a TOML file, and it is not: it has no rows.");
+            return section;
+        }
+        if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
+            const Into into(reading, "storage");
+            reading.report(model::Severity::Warning,
+                std::format("Its file \"{}\" has no section {}: each key shows its default, and a Save adds it.", file->file, values->second->pathName(file->path)));
+        }
+
+        const auto keys = sphereKeys(row, reading);
+        std::array<Json, SPHERE_SECTIONS.size() + 1> rows{ Json::array(), Json::array(), Json::array(), Json::array() };
+        for (const auto& key : SPHERE_KEYS) {
+            const bool hiddenWithControl = key.control.starts_with('s') && isHiddenKey(keys, key.control);
+            const bool shown = !isHiddenKey(keys, key.name) && !hiddenWithControl && (!key.namedOnly || keys.contains(std::string(key.name)));
+            if (shown && (key.name != SPHERE_ZONE_PA || hasZonePA(keys, *file, reading))) {
+                rows[static_cast<std::size_t>(key.part)].push_back(sphereKeyRow(key, keys, *file, reading));
+            }
+        }
+        section["content"] = std::move(rows[0]);
+        for (std::size_t part = 0; part < SPHERE_SECTIONS.size(); ++part) {
+            if (!rows[part + 1].empty()) {
+                section["content"].push_back(Json{ { "type", "section" },
+                    { "text", SPHERE_SECTIONS[part] },
+                    { "isCollapsible", true },
+                    { "collapsed", true },
+                    { "content", std::move(rows[part + 1]) },
+                    { MADE_ROW_PATH, "" } });
+            }
+        }
+        return section;
+    }
+
+    /**
+     * A row of a `content` as the rows are read: the section a sphere was made into, and any other as it is.
+     */
+    const Json& readRow(const Json& row, const ConfigSpecReading& reading)
+    {
+        const auto sphere = reading.spheres.find(&row);
+        return sphere != reading.spheres.end() ? sphere->second : row;
+    }
+
+    /**
+     * The reading at a row of a `content`, by its place: a row the loader made says where it is itself.
+     */
+    Into intoRow(ConfigSpecReading& reading, const Json& row, const std::size_t place)
+    {
+        if (const auto made = row.find(MADE_ROW_PATH); made != row.end()) {
+            return Into(reading, made->get_ref<const std::string&>());
+        }
+        return Into(reading, "content", place);
+    }
+
+    std::vector<model::Item> loadItems(const Json& container, const Inherited& above, ConfigSpecReading& reading);
+
+    /**
+     * A section: a group of the items of its own `content`, to which it passes its `defaultFile` and its `applies`.
      * It folds with `isCollapsible`, and starts folded with `collapsed`: one that does not fold could not be
      * opened, so its `collapsed` is left out, and it is reported.
-     * Any other row the menu does not have is a placeholder with its type, and a type the schema does not have
-     * is reported. A row's fields that its type does not have are reported.
+     */
+    model::Group loadSection(const Json& row, const Inherited& above, ConfigSpecReading& reading)
+    {
+        checkFields(row, SECTION_FIELDS, reading);
+        const bool collapsible = getBool(row, "isCollapsible");
+        if (getBool(row, "collapsed") && !collapsible) {
+            reading.report(model::Severity::Warning, "It is collapsed and does not fold: it is open.");
+        }
+        auto text = readShownText(row, "text", reading);
+        auto help = readShownText(row, "help", reading);
+        return model::Group{ .text = std::move(text),
+            .help = std::move(help),
+            .items = loadItems(row, inherit(row, above, reading), reading),
+            .visibleWhen = {},
+            .collapsible = collapsible,
+            .collapsed = collapsible && getBool(row, "collapsed") };
+    }
+
+    /**
+     * The items of the `content` of a page or a section, by their `type`, one for each row. An activation sphere is a
+     * section the loader makes of the keys of its own. Any other row the menu does not have is a placeholder with its
+     * type, and a type the schema does not have is reported. A row's fields that its type does not have are reported.
      */
     std::vector<model::Item> loadItems(const Json& container, const Inherited& above, ConfigSpecReading& reading)
     {
@@ -1717,24 +2144,19 @@ namespace
         }
         for (std::size_t place = 0; place < content->size(); ++place) {
             const auto& row = (*content)[place];
-            const Into into(reading, "content", place);
+            const auto into = intoRow(reading, row, place);
             reading.at.row = rowName(row, reading.translations);
             reading.at.itemPlaces.push_back(place);
             const auto type = getText(row, "type");
             if (type == "section") {
-                checkFields(row, SECTION_FIELDS, reading);
-                const bool collapsible = getBool(row, "isCollapsible");
-                if (getBool(row, "collapsed") && !collapsible) {
-                    reading.report(model::Severity::Warning, "It is collapsed and does not fold: it is open.");
-                }
-                auto text = readShownText(row, "text", reading);
-                auto help = readShownText(row, "help", reading);
-                items.emplace_back(model::Group{ .text = std::move(text),
-                    .help = std::move(help),
-                    .items = loadItems(row, inherit(row, above, reading), reading),
-                    .visibleWhen = {},
-                    .collapsible = collapsible,
-                    .collapsed = collapsible && getBool(row, "collapsed") });
+                items.emplace_back(loadSection(row, above, reading));
+                continue;
+            }
+            if (type == "cf.activationSphere") {
+                const auto& section = reading.spheres.emplace(&row, sphereSection(row, above, reading)).first->second;
+                auto group = loadSection(section, above, reading);
+                group.role = model::GroupRole::ActivationSphere;
+                items.emplace_back(std::move(group));
                 continue;
             }
             if (type == "text") {
@@ -2088,9 +2510,9 @@ namespace
             return;
         }
         for (std::size_t place = 0; place < content->size() && place < items.size(); ++place) {
-            const auto& row = (*content)[place];
+            const auto& row = readRow((*content)[place], reading);
             auto& item = items[place];
-            const Into into(reading, "content", place);
+            const auto into = intoRow(reading, row, place);
             reading.at.row = rowName(row, reading.translations);
             reading.at.itemPlaces.push_back(place);
             const RowConditions own{ .visibleWhen = join(above.visibleWhen, loadRowCondition(row, "visibleWhen", reading)),

@@ -61,6 +61,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp
   ${SOURCE_DIR}/model/TransformTuning.cpp
+  ${SOURCE_DIR}/model/ActivationSpheres.cpp
   ${SOURCE_DIR}/model/Transforms.cpp
   ${SOURCE_DIR}/spec/IniFile.cpp
   ${SOURCE_DIR}/spec/LiveCopies.cpp

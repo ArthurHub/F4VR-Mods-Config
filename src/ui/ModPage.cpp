@@ -77,9 +77,6 @@ namespace
 
         // the player's handedness, which says what a button of a hand is printed as
         bool leftHanded = false;
-
-        // the binding settings of the mod, which a binding that is the same press as one of them names
-        std::span<const model::Setting* const> bindings;
         model::Store* store;
         ui::Sliders& sliders;
         ui::Choices& choices;
@@ -134,31 +131,6 @@ namespace
     }
 
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page, int depth = 0);
-
-    /**
-     * Adds the binding settings of the items to the list, with those of the sections among them.
-     */
-    void addBindings(const std::vector<model::Item>& items, std::vector<const model::Setting*>& bindings)
-    {
-        for (const auto& item : items) {
-            if (const auto* setting = std::get_if<model::Setting>(&item); setting && setting->type == model::SettingType::InputBinding) {
-                bindings.push_back(setting);
-            } else if (const auto* group = std::get_if<model::Group>(&item)) {
-                addBindings(group->items, bindings);
-            }
-        }
-    }
-
-    /**
-     * Adds the binding settings of pages to the list, with those of the pages under them.
-     */
-    void addBindings(const std::vector<model::Page>& pages, std::vector<const model::Setting*>& bindings)
-    {
-        for (const auto& page : pages) {
-            addBindings(page.items, bindings);
-            addBindings(page.pages, bindings);
-        }
-    }
 
     /**
      * The focus ring around an item's rows, as the design system has it: a 2 px green outline. The page is
@@ -219,7 +191,12 @@ namespace
         if (group.collapsible) {
             folded = headingShown ? drawFoldingHeading(group, page) : page.sections.isFolded(group);
         } else if (headingShown) {
-            ui::sectionHeading(group.text, ImGui::GetCursorScreenPos().x + ui::rowWidth());
+            const float right = ImGui::GetCursorScreenPos().x + ui::rowWidth();
+            if (group.role == model::GroupRole::ActivationSphere) {
+                ui::sphereHeading(group.text, right);
+            } else {
+                ui::sectionHeading(group.text, right);
+            }
             if (!group.help.empty() && ImGui::IsItemHovered()) {
                 page.drawn.pointed = ui::PointedRow{ .text = group.text, .help = group.help };
             }
@@ -269,8 +246,7 @@ namespace
                     .colorEditor = page.colorEditor,
                     .transformEditor = page.transformEditor,
                     .imageDrawer = page.imageDrawer,
-                    .leftHanded = page.leftHanded,
-                    .bindings = page.bindings });
+                    .leftHanded = page.leftHanded });
             if (drawn.pointed) {
                 page.drawn.pointed = std::move(drawn.pointed);
             }
@@ -400,8 +376,7 @@ namespace mods_config::ui
 
     /**
      * Draws the rows of a page of a mod into the current ImGui window, which scrolls them, with the values the store
-     * has for its settings. With no store no value is available. A binding that is the same press as another of the
-     * mod's, on any of its pages, names it. The thumbstick's value is how far the one
+     * has for its settings. With no store no value is available. The thumbstick's value is how far the one
      * of the hand that points is pushed to a side, from -1 at the left to 1 at the right: it steps the
      * slider or the stepper whose row the ray is on.
      * Returns the row the ray is on, for the help line: none in the gap between two rows, and none on a row
@@ -417,13 +392,9 @@ namespace mods_config::ui
         _bindingEditor.startFrame(thumbstickSideValue);
         _colorEditor.startFrame(thumbstickSideValue);
         _transformEditor.startFrame(thumbstickSideValue);
-        std::vector<const model::Setting*> bindings;
-        addBindings(mod.frontPage.items, bindings);
-        addBindings(mod.pages, bindings);
         drawItems(page.items,
             PageDrawing{ .imageDrawer = _imageDrawer,
                 .leftHanded = _leftHanded,
-                .bindings = bindings,
                 .store = store,
                 .sliders = _sliders,
                 .choices = _choices,
