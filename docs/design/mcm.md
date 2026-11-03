@@ -38,7 +38,7 @@ The menu shows MCM mods while `mcm_vr.dll` is loaded, and finds it by that name.
 | `hiddenSwitcher` | As in MCM: never shown, and controls its group | M38 |
 | `slider` | As in MCM, with its `min`, `max` and `step` | M26 |
 | `stepper`, `dropdown` | As in MCM, with `options` or `sharedOptions` | M27, M37 |
-| `dropdownFiles` | As in MCM, with its `path` and `mask`, but its pick writes the name of the file, which MCM's menu loses | M39 |
+| `dropdownFiles` | As in MCM, with its `path` and `mask`, but its pick writes the name of the file, which MCM's menu loses. It is drawn as a config spec's choice of files: a file's name with its extension muted where the mask does not name it, and its folder and how many files it has over the list | M39, M76 |
 | `button` | As in MCM: runs its action | M33 |
 | `hotkey` | Read-only: its key, as MCM's files have it | M35 |
 | `textinput`, `textinputInt`, `textinputFloat` | As in MCM, typed on SteamVR's keyboard or with the keys of the game's window. A text that is no number is not written for a `textinputInt` and a `textinputFloat` | M36, M45 |

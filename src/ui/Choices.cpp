@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <format>
+#include <string>
 #include <string_view>
 
 #include <imgui.h>
@@ -11,6 +13,7 @@
 #include "Drawing.h"
 #include "Haptics.h"
 #include "Theme.h"
+#include "model/FileChoices.h"
 #include "model/Haptics.h"
 
 namespace
@@ -74,6 +77,19 @@ namespace
     }
 
     /**
+     * Whether an option of a choice of files is a file: the one that is no file stores an empty text, or the place 0 of
+     * an MCM `dropdownFiles` whose storage keeps a place.
+     */
+    bool isFileOption(const model::Option& option)
+    {
+        if (const auto* text = std::get_if<std::string>(&option.value)) {
+            return !text->empty();
+        }
+        const auto* place = std::get_if<int>(&option.value);
+        return !place || *place != 0;
+    }
+
+    /**
      * The pattern of a haptic's option, and none for None and for a value that is no haptic.
      */
     std::optional<vrcf::HapticPattern> patternOf(const model::Value& value)
@@ -121,17 +137,21 @@ namespace
         return box.Min.x;
     }
 
+    // the line over the options of a list of files: its text in the detail size, with room above and under it
+    constexpr float LIST_HEADER_HEIGHT = theme::SPACE_1 + theme::FONT_SIZE_DETAIL + theme::SPACE_2;
+
     /**
      * Where the list of a dropdown is, by the box of the dropdown and the number of its options: as wide as
-     * the box, and as high as its options, up to the most it shows. It is under the box, or over it where
+     * the box, and as high as its options, up to the most it shows, and its header. It is under the box, or over it where
      * the window it is in, the page or a binding's editor, has no room under it. Where it has room for neither, it
      * is at the bottom of the window, over the box. The list is so never over the title bar and the footer.
      */
-    ImRect listBox(const ImRect& box, const std::size_t options)
+    ImRect listBox(const ImRect& box, const std::size_t options, const bool header)
     {
         const auto& page = ImGui::GetCurrentWindow()->InnerRect;
         const auto shown = static_cast<float>((std::min)(options, LIST_MAX_OPTIONS));
-        const float height = (std::min)(shown * (theme::CONTROL_HEIGHT + LIST_GAP) - LIST_GAP + LIST_PADDING * 2.0f, page.GetHeight());
+        const float headerHeight = header ? LIST_HEADER_HEIGHT + theme::BORDER_FRAME + LIST_GAP : 0.0f;
+        const float height = (std::min)(shown * (theme::CONTROL_HEIGHT + LIST_GAP) - LIST_GAP + LIST_PADDING * 2.0f + headerHeight, page.GetHeight());
         float top = page.Max.y - height;
         if (box.Max.y + height <= page.Max.y) {
             top = box.Max.y;
@@ -240,6 +260,23 @@ namespace mods_config::ui
         for (const auto& option : options) {
             texts.emplace_back(option.text);
         }
+        // a choice of files has its files' names, with a muted extension, under its folder and how many files it has
+        std::vector<std::string_view> extensions;
+        std::string folder;
+        std::string count;
+        ListExtras extras;
+        if (const auto& files = setting.valueOptions.folderOptions) {
+            std::size_t fileCount = 0;
+            for (std::size_t i = 0; i < options.size(); ++i) {
+                const auto shown = isFileOption(options[i]) ? model::shownFileName(options[i].text, files->mask) : model::ShownFileName{ .name = options[i].text };
+                texts[i] = shown.name;
+                extensions.push_back(shown.extension);
+                fileCount += isFileOption(options[i]) ? 1 : 0;
+            }
+            folder = model::folderText(*files);
+            count = std::format("{} file{}", fileCount, fileCount == 1 ? "" : "s");
+            extras = { .suffixes = extensions, .headerLeft = folder, .headerRight = count };
+        }
         OptionDecoration decorate;
         if (setting.type == model::SettingType::Haptic) {
             decorate = [&options](const std::size_t option, const ImRect& box, const bool isChosen) {
@@ -249,7 +286,7 @@ namespace mods_config::ui
                 drawHapticShape(shapeIn(box, theme::SPACE_4 - theme::SPACE_3), patternOf(options[option].value), ImGui::GetColorU32(color), ImGui::GetColorU32(base));
             };
         }
-        const auto drawn = drawList(id, dropdownBox(setting, right, top), texts, chosen, decorate);
+        const auto drawn = drawList(id, dropdownBox(setting, right, top), texts, chosen, decorate, extras);
         _pointedOption = drawn.pointed;
         return drawn.picked;
     }
@@ -258,16 +295,17 @@ namespace mods_config::ui
      * The list of options of a dropdown that is open, by its popup's id, at the box of its dropdown, inside the window it
      * is drawn in: the page, or the editor of a binding. One with many options scrolls, from the chosen option as it
      * opens. A press on an option picks it and closes the list. Nothing for a list that is not open. An option can have
-     * more drawn after its text.
+     * more drawn after its text, and a muted text, and the list a line over its options, which stays as they scroll.
      * Returns the option that was picked, and the one the ray is on.
      */
     ListDrawn drawList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen,
-        const OptionDecoration& decorate)
+        const OptionDecoration& decorate, const ListExtras& extras)
     {
         if (!ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
             return {};
         }
-        const auto list = listBox(box, texts.size());
+        const bool header = !extras.headerLeft.empty() || !extras.headerRight.empty();
+        const auto list = listBox(box, texts.size(), header);
         ImGui::SetNextWindowPos(list.Min);
         ImGui::SetNextWindowSize(list.GetSize());
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(LIST_PADDING, LIST_PADDING));
@@ -280,12 +318,29 @@ namespace mods_config::ui
         }
 
         ListDrawn drawn;
+        const bool appearing = ImGui::IsWindowAppearing();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, LIST_GAP));
+        // the header stays at the top, and the options scroll under it, in a window of their own
+        if (header) {
+            const auto pos = ImGui::GetCursorScreenPos();
+            const float headerWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::Dummy(ImVec2(headerWidth, LIST_HEADER_HEIGHT + theme::BORDER_FRAME));
+            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+            const float rightWidth = textWidth(extras.headerRight);
+            const float textTop = pos.y + theme::SPACE_1;
+            const float textRight = pos.x + headerWidth - theme::SPACE_2;
+            drawText(pos.x + theme::SPACE_2, textRight - rightWidth - theme::SPACE_3, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerLeft);
+            drawText(textRight - rightWidth, textRight, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerRight);
+            ImGui::PopFont();
+            const float ruleY = pos.y + LIST_HEADER_HEIGHT + theme::BORDER_FRAME * 0.5f;
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(pos.x, ruleY), ImVec2(pos.x + headerWidth, ruleY), theme::color::RULE, theme::BORDER_FRAME);
+            ImGui::BeginChild("options");
+        }
         // the options end a little before a scroll bar
         const float width = ImGui::GetContentRegionAvail().x - (ImGui::GetCurrentWindow()->ScrollbarY ? LIST_PADDING : 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, LIST_GAP));
         for (std::size_t i = 0; i < texts.size(); ++i) {
             ImGui::PushID(static_cast<int>(i));
-            if (listOption(texts[i], chosen == i, width)) {
+            if (listOption(texts[i], chosen == i, width, i < extras.suffixes.size() ? extras.suffixes[i] : std::string_view())) {
                 drawn.picked = i;
                 ImGui::CloseCurrentPopup();
             }
@@ -295,10 +350,13 @@ namespace mods_config::ui
             if (ImGui::IsItemHovered()) {
                 drawn.pointed = i;
             }
-            if (chosen == i && ImGui::IsWindowAppearing()) {
+            if (chosen == i && appearing) {
                 ImGui::SetScrollHereY();
             }
             ImGui::PopID();
+        }
+        if (header) {
+            ImGui::EndChild();
         }
         ImGui::PopStyleVar();
         ImGui::EndPopup();
@@ -312,7 +370,8 @@ namespace mods_config::ui
      * after. A dropdown is the option at the left of its box, and an arrow at the right. The box has its
      * outline in the full color while its list is open. A haptic is a dropdown with its pattern's shape before the
      * arrow, and a Play button after its box. A value that is at no option shows the text given for it, as a haptic
-     * shows a name the framework does not have.
+     * shows a name the framework does not have. A choice of files shows a file's name with its extension muted, or none
+     * where its mask names it (`shownFileName`).
      */
     float Choices::draw(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
         const std::optional<std::size_t> chosen, const ValueLook look, const std::string_view unchosenText) const
@@ -329,7 +388,17 @@ namespace mods_config::ui
             if (isListOpen(setting)) {
                 drawOutline(box.Min, box.Max, theme::color::GREEN);
             }
-            drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, valueColor(look), option);
+            // a file has its name with a muted extension, and the option that is no file its text
+            const auto& files = setting.valueOptions.folderOptions;
+            const auto shown = files && (!chosen || isFileOption(options[*chosen])) ? model::shownFileName(option, files->mask) : model::ShownFileName{ .name = option };
+            drawTextWithSuffix(box.Min.x + theme::SPACE_4,
+                arrowLeft - theme::SPACE_2,
+                top,
+                theme::CONTROL_HEIGHT,
+                valueColor(look),
+                shown.name,
+                theme::color::GREEN_MUTED,
+                shown.extension);
             ui::drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
             return box.Min.x;
         }

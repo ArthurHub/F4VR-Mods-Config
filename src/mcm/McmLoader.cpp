@@ -15,6 +15,7 @@
 #include "FallUITranslations.h"
 #include "McmConfigImages.h"
 #include "common/CommonUtils.h"
+#include "model/FileChoices.h"
 #include "model/TextMarkup.h"
 
 using namespace mods_config;
@@ -483,31 +484,6 @@ namespace
         return std::move(call);
     }
 
-    /**
-     * The names of the files of a folder that match a mask, in the order of their names. The mask is the
-     * system's, as F4SE lists a folder for MCM's menu: `*` and `?`, in the folder alone. A folder in it is no
-     * file. None for a folder that is not there.
-     */
-    std::vector<std::string> listFiles(const std::filesystem::path& folder, const std::string& mask)
-    {
-        std::vector<std::string> files;
-        WIN32_FIND_DATAW found{};
-        const auto pattern = folder / std::filesystem::path(std::u8string(mask.begin(), mask.end()));
-        const auto search = FindFirstFileW(pattern.c_str(), &found);
-        if (search == INVALID_HANDLE_VALUE) {
-            return files;
-        }
-        do {
-            if ((found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
-                const auto name = std::filesystem::path(found.cFileName).u8string();
-                files.emplace_back(name.begin(), name.end());
-            }
-        } while (FindNextFileW(search, &found));
-        FindClose(search);
-        std::ranges::sort(files, {}, common::str_tolower);
-        return files;
-    }
-
     // the option of a `dropdownFiles` that is no file, which MCM's menu has first
     constexpr auto NO_FILE = "None";
 
@@ -515,25 +491,26 @@ namespace
      * The options of a `dropdownFiles`, as MCM's menu lists them: `None`, and the files of the folder its
      * `path` names from the game's folder that match its `mask`, or all of them with none. They are listed
      * as the config is loaded. A storage that keeps a text keeps the name of the file, and an empty text for
-     * `None`. Any other keeps the place of the option, as a dropdown does.
+     * `None`. Any other keeps the place of the option, as a dropdown does. The folder is kept for the panel.
      */
-    std::vector<model::Option> loadFileOptions(const Json& row, const model::Storage& storage, const std::filesystem::path& gameFolder)
+    void loadFileOptions(const Json& row, const model::Storage& storage, const std::filesystem::path& gameFolder, model::ValueOptions& valueOptions)
     {
-        const auto valueOptions = row.find("valueOptions");
-        const auto path = valueOptions != row.end() ? getText(*valueOptions, "path") : std::string();
-        const auto mask = valueOptions != row.end() ? getText(*valueOptions, "mask") : std::string();
+        const auto found = row.find("valueOptions");
+        auto& folder = valueOptions.folderOptions.emplace(model::FolderOptions{ .root = model::FileRoot::Data,
+            .path = found != row.end() ? getText(*found, "path") : std::string(),
+            .mask = found != row.end() ? getText(*found, "mask") : std::string(),
+            .noneText = NO_FILE });
         const bool keepsName = storedTypeOf(storage) == model::StoredType::String;
 
-        std::vector<model::Option> options{ { .value = keepsName ? model::Value(std::string()) : model::Value(0), .text = NO_FILE } };
-        if (path.empty()) {
-            return options;
+        auto& options = valueOptions.options;
+        options = { { .value = keepsName ? model::Value(std::string()) : model::Value(0), .text = NO_FILE } };
+        if (folder.path.empty()) {
+            return;
         }
-        const auto folder = gameFolder / std::filesystem::path(std::u8string(path.begin(), path.end()));
-        for (const auto& file : listFiles(folder, mask.empty() ? "*" : mask)) {
+        for (const auto& file : model::listFiles(gameFolder / std::filesystem::path(std::u8string(folder.path.begin(), folder.path.end())), folder.mask)) {
             const auto place = static_cast<int>(options.size());
             options.push_back({ .value = keepsName ? model::Value(file) : model::Value(place), .text = file });
         }
-        return options;
     }
 
     // what the name of a FallUI language file can have, for the `libName` of its row
@@ -824,7 +801,7 @@ namespace
             auto action = loadAction(row, &storage);
             auto valueOptions = loadValueOptions(row, texts);
             if (type == DROPDOWN_FILES) {
-                valueOptions.options = loadFileOptions(row, storage, gameFolder);
+                loadFileOptions(row, storage, gameFolder, valueOptions);
             } else if (setting->second == model::SettingType::Stepper || setting->second == model::SettingType::Dropdown) {
                 loadGameOptions(row, valueOptions);
             }

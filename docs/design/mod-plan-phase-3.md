@@ -41,11 +41,8 @@ M90 reads `Interface\Translations\<modName>_<language>.txt` itself. F4SE loads a
 | #    | Repo | Commit                            | Status |
 | ---- | ---- | --------------------------------- | ------ |
 | M133 | mod  | HandPose                          | todo   |
-| M76  | mod  | A choice of the files in a folder | todo   |
 
 M133 edits a hand pose, as [Hand pose](controls.md#hand-pose) has it: Immersive Flashlight has 4.
-
-M76 is a choice of the files of a folder for a config spec, as `dropdownFiles` is for an MCM mod. Until it, Immersive Flashlight's gobo textures are a dropdown whose options its client gives.
 
 ## 14. Papyrus API
 

@@ -70,5 +70,5 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 10  | First release            | The mod is published, with the author's guide and a sample config spec                                            | todo   |
 | 11  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |
 | 12  | Localization and search  | A mod with no game plugin is shown in another language, and a setting is found by typing its name             | todo   |
-| 13  | Advanced features        | A file of a folder is picked in a dropdown, and a hand pose of Immersive Flashlight VR is edited             | todo   |
+| 13  | Advanced features        | A hand pose of Immersive Flashlight VR is edited                                                              | todo   |
 | 14  | Papyrus API              | A script-only mod reads its saved settings and is told of a Save                                              | todo   |

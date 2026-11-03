@@ -81,6 +81,37 @@ namespace mods_config::model
         bool operator==(const GameOptions&) const = default;
     };
 
+    /**
+     * The folder a path of a config spec's file, and of a choice of files, is from.
+     */
+    enum class FileRoot : std::uint8_t
+    {
+        // the game's Data folder
+        Data,
+        // `Documents\My Games\Fallout4VR`
+        MyGames,
+    };
+
+    /**
+     * The folder whose files are the options of a choice: a config spec's `listFromFolder`, whose store lists it as its
+     * mod is selected, and an MCM `dropdownFiles`, whose loader listed it.
+     */
+    struct FolderOptions
+    {
+        FileRoot root = FileRoot::Data;
+
+        // from its root, as its config writes it: an MCM `dropdownFiles`'s is from the game's folder
+        std::string path;
+
+        // the files it lists, as `*.dds`, with the `*` and `?` of Windows: empty for every file
+        std::string mask;
+
+        // the text of the option that is no file, which is first and stores an empty text: empty for none
+        std::string noneText;
+
+        bool operator==(const FolderOptions&) const = default;
+    };
+
     // the seven axes of a transform, in the order of its editor's lines, by the place of the first of each of its parts:
     // X, Y and Z, then Heading, Roll and Attitude, then Scale
     constexpr std::size_t TRANSFORM_POSITION = 0;
@@ -129,7 +160,8 @@ namespace mods_config::model
         int minLength = 0;
         int maxLength = 0;
 
-        // in the order they are shown. None for a choice that reads them in the game or from its mod's client
+        // in the order they are shown. None for a choice that reads them in the game, from its mod's client or from a
+        // config spec's folder
         std::vector<Option> options;
 
         // where a choice reads its options in the game. None for one whose options are these
@@ -138,6 +170,9 @@ namespace mods_config::model
         // a config spec's choice whose options its mod's client gives, by a callback it registers for the setting's
         // id (`listFromClientCallback`)
         bool clientOptions = false;
+
+        // the folder a dropdown's options are the files of. A config spec's has none in `options` until its store lists it
+        std::optional<FolderOptions> folderOptions;
 
         // a binding offers `suppress` to the player: one whose consumer hides its button from the game, as an
         // activation sphere does
@@ -813,17 +848,6 @@ namespace mods_config::model
     {
         Ini,
         Toml,
-    };
-
-    /**
-     * The folder a path of a config spec's file is from.
-     */
-    enum class FileRoot : std::uint8_t
-    {
-        // the game's Data folder
-        Data,
-        // `Documents\My Games\Fallout4VR`
-        MyGames,
     };
 
     /**

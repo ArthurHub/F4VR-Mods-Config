@@ -19,6 +19,7 @@
 #include "common/CommonUtils.h"
 #include "model/ActivationSpheres.h"
 #include "model/Colors.h"
+#include "model/FileChoices.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
 #include "model/Transforms.h"
@@ -88,6 +89,21 @@ namespace
         return std::ranges::any_of(options, [&value](const model::Option& option) {
             return isSameValue(option.value, value);
         });
+    }
+
+    /**
+     * A value of a choice of files as its option has it, for a value that names one of its files in another way, as
+     * with other separators, another case or no `data\`: the option's value is the default's form of it. Any other
+     * value as it is.
+     */
+    model::Value asFileOption(const model::Setting& setting, const std::vector<model::Option>& options, model::Value value)
+    {
+        const auto* text = std::get_if<std::string>(&value);
+        if (!setting.valueOptions.folderOptions || !text) {
+            return value;
+        }
+        const auto found = model::findFileOption(options, *setting.valueOptions.folderOptions, *text);
+        return found ? options[*found].value : value;
     }
 
     /**
@@ -210,6 +226,16 @@ namespace
     }
 
     /**
+     * A value of the type a setting keeps, as its control has it (`controlValue`), and as its option has it for a
+     * choice of files (`asFileOption`).
+     */
+    std::optional<model::Value> controlValue(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& stored)
+    {
+        auto value = controlValue(setting, stored);
+        return value ? std::optional(asFileOption(setting, options, std::move(*value))) : std::nullopt;
+    }
+
+    /**
      * A value of a type that is no value in particular: false, 0, and an empty text.
      */
     model::Value zeroOf(const model::StoredType type)
@@ -234,7 +260,7 @@ namespace
     model::Value noneValue(const model::Setting& setting, const std::vector<model::Option>& options)
     {
         if (setting.defaultValue) {
-            if (auto value = controlValue(setting, *setting.defaultValue)) {
+            if (auto value = controlValue(setting, options, *setting.defaultValue)) {
                 return std::move(*value);
             }
         }
@@ -326,7 +352,8 @@ namespace
     /**
      * What is wrong with a value of a setting, as its control has it, that is no value of it, as the end of a
      * sentence of the value: `is not from 0.5 to 1.5`. A text of a number that is none, a number outside the
-     * limits, a text of a length its setting does not allow, and none of the options of a choice. A table that is
+     * limits, a text of a length its setting does not allow, and none of the options of a choice, which of a choice of
+     * files names its folder. A table that is
      * no binding has the framework's reason, a sentence of its own, and so does a binding of a hand, a way or a
      * button its setting does not take. A name of no haptic pattern is a sentence of its own too, and so is a table that
      * is no color or no transform, with the framework's reason. Empty for a value that is one.
@@ -362,7 +389,7 @@ namespace
             return std::format("is not from {} to {}", limits.min, limits.max);
         }
         if (isChoice(setting) && !isOption(options, value)) {
-            return "is none of its options";
+            return setting.valueOptions.folderOptions ? std::format("is not in {}", model::folderText(*setting.valueOptions.folderOptions)) : "is none of its options";
         }
         if (setting.type == model::SettingType::TextInput && !isNumberField(setting)) {
             const int length = model::textLength(std::get<std::string>(value));
@@ -719,7 +746,7 @@ namespace mods_config::spec
             read.file = modFile.get();
         }
 
-        _options.read(mod, &_clientCalls);
+        _options.read(mod, &_clientCalls, { .data = _dataFolder, .myGames = _myGamesFolder });
         addSettings(mod.frontPage.items, _settingList);
         addSettings(mod.pages, _settingList);
         for (const auto* setting : _settingList) {
@@ -744,7 +771,7 @@ namespace mods_config::spec
                     entry.notAvailable = std::format("Not available: {}.", stored.error());
                     continue;
                 }
-                entry.baseline = controlValue(*setting, *stored);
+                entry.baseline = controlValue(*setting, options, *stored);
                 if (!setting->readOnly) {
                     entry.invalid = invalidReason(*setting, options, *entry.baseline, gameName(setting->storage), "the game");
                 }
@@ -769,7 +796,7 @@ namespace mods_config::spec
                     entry.notAvailable = "Not available: the file has no value of the setting, and its config spec gives it no default.";
                     continue;
                 }
-                entry.baseline = controlValue(*setting, *setting->defaultValue);
+                entry.baseline = controlValue(*setting, options, *setting->defaultValue);
                 continue;
             }
             // a binding and a color are the text of their table, which their control reads
@@ -784,7 +811,7 @@ namespace mods_config::spec
                 }
                 continue;
             }
-            entry.baseline = controlValue(*setting, *stored);
+            entry.baseline = controlValue(*setting, options, *stored);
             if (!setting->readOnly) {
                 entry.invalid = invalidReason(*setting, options, *entry.baseline, modFile->pathName(storage.path), fileName(mod.files.at(storage.file)));
             }
@@ -814,7 +841,7 @@ namespace mods_config::spec
             }
             return;
         }
-        entry.baseline = controlValue(setting, *typed);
+        entry.baseline = controlValue(setting, _options.of(setting), *typed);
         if (!setting.readOnly) {
             entry.invalid = invalidReason(setting, _options.of(setting), *entry.baseline, "the state " + state.name, "its mod's DLL");
         }
@@ -944,6 +971,7 @@ namespace mods_config::spec
             return false;
         }
         auto& entry = found->second;
+        typed = asFileOption(setting, _options.of(setting), std::move(*typed));
         _saveFailure.clear();
         _lastSave.reset();
         if (entry.baseline && isSameValue(*typed, *entry.baseline)) {
@@ -965,7 +993,7 @@ namespace mods_config::spec
      */
     std::optional<model::Value> ConfigSpecStore::defaultValue(const model::Setting& setting)
     {
-        return setting.defaultValue ? controlValue(setting, *setting.defaultValue) : std::nullopt;
+        return setting.defaultValue ? controlValue(setting, _options.of(setting), *setting.defaultValue) : std::nullopt;
     }
 
     bool ConfigSpecStore::isDirty(const model::Setting& setting) const

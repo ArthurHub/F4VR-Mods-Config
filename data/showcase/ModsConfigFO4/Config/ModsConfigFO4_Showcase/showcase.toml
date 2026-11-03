@@ -56,6 +56,8 @@ iMany = 0
 iLong = 1
 sSettlement = "Abernathy Farm"
 iCompanion = 0
+sTexture = 'data\Textures\ModsConfigFO4_Showcase\banner.dds'
+sOptionalTexture = ''
 
 [TextInputs]
 sText = "Hello"

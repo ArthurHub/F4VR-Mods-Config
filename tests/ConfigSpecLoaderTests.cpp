@@ -2629,3 +2629,57 @@ TEST_CASE("ConfigSpecLoader: a condition asks a state of the mod's client by its
                           "Its visibleWhen is left out: it has no operator for the state 'mode'. The row is shown and enabled as if it had none.",
                       });
 }
+
+TEST_CASE("ConfigSpecLoader: a dropdown of a string lists the files of a folder, whose default is in it, and a folder with no files is a warning")
+{
+    const test_files::TempFolder folder;
+    folder.write("Data/Textures/MyMod/Gobos/1_Solid.DDS", "");
+    const auto text = configSpecOf(R"(
+        { "type": "dropdown", "valueType": "string", "text": "Gobo", "default": "data\\Textures\\MyMod\\Gobos\\1_Solid.DDS",
+          "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/Gobos", "mask": "*.dds", "noneText": "No gobo" } }, "storage": { "path": ["Main", "a"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Presets", "default": "Mine.json",
+          "valueOptions": { "listFromFolder": { "root": "myGames", "path": "Presets" } }, "storage": { "path": ["Main", "b"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Missing", "default": "data/Textures/MyMod/Gobos/9_Laser.dds",
+          "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/Gobos", "mask": "*.dds" } }, "storage": { "path": ["Main", "c"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Elsewhere", "default": "Textures\\Effects\\Gobo.dds",
+          "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/Gobos" } }, "storage": { "path": ["Main", "d"] } },
+        { "type": "stepper", "valueType": "string", "text": "Stepper", "default": "a",
+          "valueOptions": { "listFromFolder": { "path": "Textures" } }, "storage": { "path": ["Main", "e"] } },
+        { "type": "dropdown", "valueType": "int", "text": "Int", "default": 0,
+          "valueOptions": { "listFromFolder": { "path": "Textures" } }, "storage": { "path": ["Main", "f"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Up", "default": "a",
+          "valueOptions": { "listFromFolder": { "path": "../Textures" } }, "storage": { "path": ["Main", "g"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Root", "default": "a",
+          "valueOptions": { "listFromFolder": { "root": "game", "path": "Textures", "nonetext": "None" } }, "storage": { "path": ["Main", "h"] } }
+    )");
+    const auto mod = spec::loadConfigSpec(text, {}, {}, { .data = folder.path / "Data", .myGames = folder.path / "MyGames" });
+    REQUIRE(mod);
+    const auto settings = settingsOf(*mod);
+    REQUIRE(settings.size() == 8);
+
+    // its options are listed by its store: the loader keeps its folder, and its default as it is written
+    CHECK(settings[0].valueOptions.folderOptions == model::FolderOptions{ .root = model::FileRoot::Data, .path = "Textures/MyMod/Gobos", .mask = "*.dds", .noneText = "No gobo" });
+    CHECK(settings[0].valueOptions.options.empty());
+    CHECK(settings[0].defaultValue == model::Value(R"(data\Textures\MyMod\Gobos\1_Solid.DDS)"s));
+    CHECK(settings[1].valueOptions.folderOptions->root == model::FileRoot::MyGames);
+    CHECK(settings[2].defaultValue);
+    CHECK_FALSE(settings[3].defaultValue);
+    for (std::size_t i = 4; i < settings.size(); ++i) {
+        INFO(settings[i].text);
+        CHECK_FALSE(settings[i].valueOptions.folderOptions);
+    }
+    CHECK(problemLines(*mod) ==
+          Lines{ "W Presets: Presets is not there, or has no files: the setting is not available until it has one. [Presets] content[1].valueOptions.listFromFolder",
+              "W Missing: Its default 9_Laser.dds is not in Textures\\MyMod\\Gobos: it is invalid until it is. [Missing] content[2].default",
+              "E Elsewhere: Its default \"Textures\\Effects\\Gobo.dds\" is not in its folder Textures\\MyMod\\Gobos: it has no Reset. [Elsewhere] content[3].default",
+              "E Stepper: A listFromFolder is of a dropdown whose valueType is string: it has no options. [Stepper] content[4].valueOptions.listFromFolder",
+              "E Int: A listFromFolder is of a dropdown whose valueType is string: it has no options. [Int] content[5].valueOptions.listFromFolder",
+              "E Up: Its folder is left out: its path '../Textures' goes up out of its folder. It has no options. [Up] content[6].valueOptions.listFromFolder",
+              "E Root: Its root 'game' is not data or myGames: it has no options. [Root] content[7].valueOptions.listFromFolder",
+              "W Root: Unknown field \"nonetext\": it is not read. Did you mean \"noneText\"? [Root] content[7].valueOptions.listFromFolder.nonetext" });
+
+    // with no folders, a folder is not listed
+    const auto alone = spec::loadConfigSpec(text);
+    REQUIRE(alone);
+    CHECK(alone->problems.size() == 6);
+}

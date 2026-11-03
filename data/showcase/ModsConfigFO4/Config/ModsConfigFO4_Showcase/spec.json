@@ -1221,6 +1221,30 @@
                   "storage": { "path": ["Choices", "iCompanion"] }
                 }
               ]
+            },
+            {
+              "type": "section",
+              "text": "From a folder",
+              "content": [
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Texture",
+                  "help": "A listFromFolder: the showcase's textures, the .dds files of its folder of Data, read as the mod is selected. A pick is written as its default is, a path with data\\.",
+                  "default": "data\\Textures\\ModsConfigFO4_Showcase\\banner.dds",
+                  "valueOptions": { "listFromFolder": { "path": "Textures/ModsConfigFO4_Showcase", "mask": "*.dds" } },
+                  "storage": { "path": ["Choices", "sTexture"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Optional texture",
+                  "help": "A listFromFolder with a noneText: its first option is no file, which stores an empty text, and its mask lists every file, so each has its extension.",
+                  "default": "",
+                  "valueOptions": { "listFromFolder": { "path": "Textures/ModsConfigFO4_Showcase", "noneText": "No texture" } },
+                  "storage": { "path": ["Choices", "sOptionalTexture"] }
+                }
+              ]
             }
           ]
         },

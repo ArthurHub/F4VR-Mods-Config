@@ -86,9 +86,11 @@ Choice behavior:
 
 Primary use: a file of a folder, MCM's `dropdownFiles`, as Immersive Flashlight's gobo textures.
 
-- A dropdown whose options are the files of a folder under `Data` that match a mask, alphabetical, read when the page is shown. A texture has its thumbnail in the row and in the list.
-- The pick is written in the form the value had: a path keeps its folder and its separators, and a bare name stays a bare name.
-- A value that names a file the folder does not have is invalid. A folder with no file that matches disables the row, and the help line says where it looked.
+- A dropdown whose options are the files of a folder that match a mask, alphabetical, read as the mod is selected and as its values are read again. A file is its name, with no extension where the mask names one, and its extension muted otherwise. The list has the folder and how many files it has over them.
+- The pick is written in the form of the setting's default: the default's folder and separators, with the file's name. A value that names the file in another way, as with `/`, another case or no `data\`, is that file, and is clean.
+- A value of another folder, or of a file the folder does not have, is invalid. A folder with no file that matches disables the row, and the help line says where it looked. One whose choice has an option that is no file has that option alone.
+
+The schema is in [Options from a folder](schema.md#options-from-a-folder).
 
 The look is the design system's [FileChoice](design-system/project/components/FileChoice/README.md).
 

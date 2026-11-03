@@ -1608,6 +1608,62 @@ TEST_CASE("FullPanel render: the dropdowns of files of the MCM showcase", "[.ren
     WARN("Saved " << renderToFile(panel, "mcm-showcase-dropdown-files", POINTER_AWAY, false, scrollToEnd));
 }
 
+TEST_CASE("FullPanel render: a config spec's choices of files, one not in its folder, one of no file and one of a folder with none, and the list of one open", "[.render]")
+{
+    const test_files::TempFolder data;
+    const test_files::TempFolder myGames;
+    for (const auto* gobo : { "1_Round_Solid", "2_Round_Rings", "3_Round_Pattern", "4_F4_PA_Dim", "5_F4_PA_Bright", "6_Incandescent", "7_Round_Small" }) {
+        data.write(std::format(R"(Textures\MyMod\Gobos\{}.DDS)", gobo), "");
+    }
+    data.write(R"(Presets\Night vision.json)", "");
+    data.write(R"(Presets\Warm.ini)", "");
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)",
+        "[Main]\r\n"
+        "sHead = 'data\\Textures\\MyMod\\Gobos\\6_Incandescent.DDS'\r\n"
+        "sWeapon = 'data\\Textures\\Effects\\Gobos\\9_Laser.dds'\r\n");
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "dropdown", "valueType": "string", "text": "Gobo on the head", "help": "The texture the light falls through.",
+              "default": "data\\Textures\\MyMod\\Gobos\\6_Incandescent.DDS",
+              "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/Gobos", "mask": "*.dds" } }, "storage": { "path": ["Main", "sHead"] } },
+            { "type": "dropdown", "valueType": "string", "text": "Gobo on a weapon", "default": "data\\Textures\\MyMod\\Gobos\\4_F4_PA_Dim.DDS",
+              "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/Gobos", "mask": "*.dds" } }, "storage": { "path": ["Main", "sWeapon"] } },
+            { "type": "dropdown", "valueType": "string", "text": "Gobo in the hand", "default": "",
+              "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/Gobos", "mask": "*.dds", "noneText": "No gobo" } }, "storage": { "path": ["Main", "sHand"] } },
+            { "type": "dropdown", "valueType": "string", "text": "Preset", "default": "Presets\\Warm.ini",
+              "valueOptions": { "listFromFolder": { "path": "Presets" } }, "storage": { "path": ["Main", "sPreset"] } },
+            { "type": "dropdown", "valueType": "string", "text": "Gobo in power armor", "default": "data\\Textures\\MyMod\\PA\\1.dds",
+              "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/PA", "mask": "*.dds" } }, "storage": { "path": ["Main", "sPowerArmor"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    spec::ConfigSpecStore store(data.path, myGames.path);
+    const auto panelOf = [&mod, &store] {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods({ *mod });
+        panel.select({ .mod = 0, .page = {} });
+        return panel;
+    };
+    {
+        auto panel = panelOf();
+        WARN("Saved " << renderToFile(panel, "file-choices", pageRow(1)));
+    }
+    {
+        // the list is opened by a press on its row, and then the ray is on a file of it
+        auto panel = panelOf();
+        const auto open = [&panel] {
+            for (const bool held : { false, false, true, false, false }) {
+                test_panel::drawFrame(panel, pageRow(0), held);
+            }
+        };
+        WARN("Saved " << renderToFile(panel, "file-choices-open", ImVec2(900.0f, pageRow(0).y + theme::ROW_PITCH * 2.5f), false, open));
+    }
+}
+
 TEST_CASE("FullPanel render: the choices of the config spec showcase that read their options in the game", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);

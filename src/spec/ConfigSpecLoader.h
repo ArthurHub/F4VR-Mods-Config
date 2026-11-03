@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "model/ConfigDefinition.h"
+#include "model/FileChoices.h"
 #include "model/Translations.h"
 
 namespace mods_config::spec
@@ -37,16 +38,9 @@ namespace mods_config::spec
         PluginCheck isF4sePluginLoaded;
     };
 
-    /**
-     * The folders a config spec's files are read from, by their roots: the game's Data folder and
-     * `Documents\My Games\Fallout4VR`. With none, as in a test of a config spec alone, its files are not read as
-     * it is read, and a setting's path a file does not have is not reported.
-     */
-    struct FileFolders
-    {
-        std::filesystem::path data;
-        std::filesystem::path myGames;
-    };
+    // the folders a config spec's files and its choices of files are read from as it is read. With none, as in a test of
+    // a config spec alone, a setting's path a file does not have, and a folder with no files, are not reported
+    using FileFolders = model::FileFolders;
 
     std::expected<model::Mod, std::string> loadConfigSpec(std::string_view text, const model::Translations& translations = {}, const PluginChecks& plugins = {},
         const FileFolders& folders = {});

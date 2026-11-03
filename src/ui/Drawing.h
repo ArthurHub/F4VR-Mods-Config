@@ -157,7 +157,8 @@ namespace mods_config::ui
     void drawDashedOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawSelectedBar(const ImVec2& min, const ImVec2& max);
     void drawRowState();
-    bool listOption(std::string_view text, bool chosen, float width);
+    bool listOption(std::string_view text, bool chosen, float width, std::string_view suffix = {});
+    void drawTextWithSuffix(float left, float right, float top, float height, ImU32 color, std::string_view text, ImU32 suffixColor, std::string_view suffix);
     ImRect controlBox(float left, float top, float width);
     void drawFrame(const ImRect& box, ValueLook look = ValueLook::Saved);
     float drawSwitcher(float right, float top, std::optional<bool> on, ValueLook look);

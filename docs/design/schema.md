@@ -754,6 +754,33 @@ A choice can take its options from the game, as its page is shown, for a list it
 
 The list is read as the mod is selected, with the values of the session. A choice of `valueType` `int` stores the place of the option, as MCM does, and one of `valueType` `string` stores its text: a choice of another type has no options. A list that changes its order moves a stored place to another option. While the list cannot be read, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options read is invalid. The `default` is any value of the setting's type, as the options are not known before the game is read.
 
+### Options from a folder
+
+A `dropdown` of `valueType` `string` can take its options from the files of a folder, as MCM's `dropdownFiles` does, for a list the player can add to: a mod's gobo textures, or its presets.
+
+```json
+{
+  "type": "dropdown",
+  "valueType": "string",
+  "text": "Gobo on the head",
+  "default": "data\\Textures\\ImmersiveFlashlightVR\\Gobos\\6_Incandescent.DDS",
+  "valueOptions": { "listFromFolder": { "path": "Textures\\ImmersiveFlashlightVR\\Gobos", "mask": "*.dds" } },
+  "storage": { "path": ["ImmersiveFlashlightVR", "sFlashlightOnHeadGoboPath"] }
+}
+```
+
+- `root` is `data`, the default, or `myGames`, as a file's is, and `path` is the folder from it, which cannot go up out of it.
+- `mask` names the files with the `*` and `?` of Windows, one pattern: every file without one. The folder alone is listed, not the folders in it, and only its loose files: a file packed in a BA2 is not.
+- `noneText` adds a first option that is no file, with this text, which stores an empty text.
+
+The folder is listed as the mod is selected, and again as its values are read again, alphabetical with no regard to case. Each file is an option: its name is its text, and its value is the `default` with the file's name in place of the default's, so a pick is written in the form the mod reads, with the default's folder and separators. A choice with no `default` writes its folder's `path` before the name.
+
+A value names a file of the folder with no regard to case, to `/` or `\`, and to a `data\` before a path of the Data folder, and a bare name is the file of that name. Such a value is its option, and is clean: it is written again only as the player picks a file. A value of another folder, or of a file the folder does not have, is invalid. While the folder has no file the mask names, or is not there, the choice has no options, is disabled, and the help line says where it looked, unless it has a `noneText`, whose option it has alone.
+
+The `default` has to be in the folder, a path of it or a bare name: one of another folder is an error, and the setting has no Reset. With the game's folders, the loader warns of a folder with no file its mask names, and of a default whose file the folder does not have.
+
+A `stepper`, or a choice of another `valueType`, with a `listFromFolder` is an error, and has no options.
+
 ### Options from the mod's client
 
 A choice can take its options from the mod's native client, for a list only the mod's code knows:
@@ -1042,6 +1069,6 @@ What an MCM config has that a config spec does not, and what the config spec has
 | `textinputInt`, `textinputFloat`                       | A `textinput` whose `valueType` is `int` or `float`                                                |
 | ModSetting storage                                     | A key of the config spec's file, which scripts read through the Papyrus API                            |
 | `hotkey`, `keyinput`                                   | The [InputBinding](controls.md#commonframework-specific-controls) control, for a CommonFramework mod |
-| `dropdownFiles`                                        | A choice of the files of a folder; see [Choice of files](controls.md#choice-of-files)              |
+| `dropdownFiles`                                        | A dropdown with a `listFromFolder`; see [Options from a folder](#options-from-a-folder)             |
 | `positioner`, `CallExternalFunction`                   | None: they are of MCM's own Flash menu                                                             |
 | `ownerModName`, pages under another mod                | None: a config spec's pages are its mod's alone                                                        |

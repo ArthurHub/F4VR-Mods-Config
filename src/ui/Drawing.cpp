@@ -522,25 +522,44 @@ namespace mods_config::ui
     }
 
     /**
-     * An option of the list that is open, at the cursor: the mark of the chosen one, and its text. The
-     * chosen option is a solid fill, and any other has the look of a row under the ray.
-     * Returns whether it was pressed.
+     * An option of the list that is open, at the cursor: the mark of the chosen one, and its text, with a muted text
+     * after it, as a file's extension. The chosen option is a solid fill, and any other has the look of a row under the
+     * ray. Returns whether it was pressed.
      */
-    bool listOption(const std::string_view text, const bool chosen, const float width)
+    bool listOption(const std::string_view text, const bool chosen, const float width, const std::string_view suffix)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const ImVec2 max(pos.x + width, pos.y + theme::CONTROL_HEIGHT);
         const bool pressed = ImGui::InvisibleButton("option", ImVec2(width, theme::CONTROL_HEIGHT));
         auto color = theme::color::GREEN;
+        // on the chosen option's solid fill, the muted text is in the color on green at 60%
+        auto muted = theme::color::GREEN_MUTED;
         if (chosen) {
             ImGui::GetWindowDrawList()->AddRectFilled(pos, max, ImGui::GetColorU32(theme::color::GREEN), theme::RADIUS_FRAME);
             drawCheck(ImVec2(pos.x + theme::SPACE_3, pos.y + (theme::CONTROL_HEIGHT - CHECK_SIZE) * 0.5f), theme::color::ON_GREEN);
             color = theme::color::ON_GREEN;
+            muted = (theme::color::ON_GREEN & ~IM_COL32_A_MASK) | (153u << IM_COL32_A_SHIFT);
         } else {
             drawRowState();
         }
-        drawText(pos.x + theme::SPACE_3 + CHECK_SIZE + theme::SPACE_3, max.x - theme::SPACE_4, pos.y, theme::CONTROL_HEIGHT, color, text);
+        drawTextWithSuffix(pos.x + theme::SPACE_3 + CHECK_SIZE + theme::SPACE_3, max.x - theme::SPACE_4, pos.y, theme::CONTROL_HEIGHT, color, text, muted, suffix);
         return pressed;
+    }
+
+    /**
+     * One line of text, as `drawText` draws it, with a text after it in another color, as a file's extension, which
+     * keeps its room: the text ends in an ellipsis before it where both do not fit.
+     */
+    void drawTextWithSuffix(const float left, const float right, const float top, const float height, const ImU32 color, const std::string_view text, const ImU32 suffixColor,
+        const std::string_view suffix)
+    {
+        if (suffix.empty()) {
+            drawText(left, right, top, height, color, text);
+            return;
+        }
+        const float textRight = (std::max)(left, right - textWidth(suffix));
+        drawText(left, textRight, top, height, color, text);
+        drawText((std::min)(left + textWidth(text), textRight), right, top, height, suffixColor, suffix);
     }
 
     /**

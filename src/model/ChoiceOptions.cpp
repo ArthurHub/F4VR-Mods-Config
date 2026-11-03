@@ -10,16 +10,17 @@ using namespace mods_config;
 namespace
 {
     /**
-     * Adds the choices among the items that read their options in the game or from their mod's client, with
-     * those of the groups among them.
+     * Adds the choices among the items that read their options in the game or from their mod's client, and the
+     * choices of files where their folder is listed here, with those of the groups among them.
      */
-    void addChoices(const std::vector<model::Item>& items, std::vector<const model::Setting*>& choices)
+    void addChoices(const std::vector<model::Item>& items, const bool listsFolders, std::vector<const model::Setting*>& choices)
     {
         for (const auto& item : items) {
-            if (const auto* setting = std::get_if<model::Setting>(&item); setting && (setting->valueOptions.gameOptions || setting->valueOptions.clientOptions)) {
+            const auto* setting = std::get_if<model::Setting>(&item);
+            if (setting && (setting->valueOptions.gameOptions || setting->valueOptions.clientOptions || (listsFolders && setting->valueOptions.folderOptions))) {
                 choices.push_back(setting);
             } else if (const auto* group = std::get_if<model::Group>(&item)) {
-                addChoices(group->items, choices);
+                addChoices(group->items, listsFolders, choices);
             }
         }
     }
@@ -27,11 +28,11 @@ namespace
     /**
      * Adds the choices of pages and of the pages under them.
      */
-    void addChoices(const std::vector<model::Page>& pages, std::vector<const model::Setting*>& choices)
+    void addChoices(const std::vector<model::Page>& pages, const bool listsFolders, std::vector<const model::Setting*>& choices)
     {
         for (const auto& page : pages) {
-            addChoices(page.items, choices);
-            addChoices(page.pages, choices);
+            addChoices(page.items, listsFolders, choices);
+            addChoices(page.pages, listsFolders, choices);
         }
     }
 }
@@ -40,16 +41,19 @@ namespace mods_config::model
 {
     /**
      * Reads the options of the choices of a mod that read them in the game or from its client, as the mod is
-     * selected. It forgets those of the mod before it.
+     * selected, and of a config spec's choices of files, from the folders of their roots. It forgets those of the mod
+     * before it.
      */
-    void ChoiceOptions::read(const Mod& mod, const ClientCalls* clients)
+    void ChoiceOptions::read(const Mod& mod, const ClientCalls* clients, const FileFolders& folders)
     {
         std::vector<const Setting*> choices;
-        addChoices(mod.frontPage.items, choices);
-        addChoices(mod.pages, choices);
+        const bool listsFolders = mod.source == Source::ConfigSpec;
+        addChoices(mod.frontPage.items, listsFolders, choices);
+        addChoices(mod.pages, listsFolders, choices);
         _read.clear();
         _modName = mod.name;
         _clients = clients;
+        _folders = folders;
         for (const auto* setting : choices) {
             _read.try_emplace(setting);
         }
@@ -57,12 +61,14 @@ namespace mods_config::model
     }
 
     /**
-     * Reads the options of the choices of the mod again, as a script can change its list.
+     * Reads the options of the choices of the mod again, as a script can change its list, and a file can be added to
+     * a folder.
      */
     void ChoiceOptions::readAgain()
     {
         for (auto& [setting, read] : _read) {
-            read = setting->valueOptions.gameOptions ? readList(*setting->valueOptions.gameOptions) : readClient(*setting);
+            const auto& options = setting->valueOptions;
+            read = options.gameOptions ? readList(*options.gameOptions) : options.clientOptions ? readClient(*setting) : readFolder(*setting);
         }
     }
 
@@ -74,6 +80,7 @@ namespace mods_config::model
         _read.clear();
         _modName.clear();
         _clients = nullptr;
+        _folders = {};
     }
 
     /**
@@ -129,5 +136,22 @@ namespace mods_config::model
             return { .options = {}, .notAvailable = std::move(options.error()) };
         }
         return { .options = std::move(*options), .notAvailable = {} };
+    }
+
+    /**
+     * The options of a config spec's choice of files: the files its folder has that its mask lists. One whose folder
+     * has none, or is not there, has none, with where it looked as the reason, but for its option that is no file,
+     * which it has then alone.
+     */
+    ChoiceOptions::Read ChoiceOptions::readFolder(const Setting& setting) const
+    {
+        const auto& folder = *setting.valueOptions.folderOptions;
+        const auto path = folderOf(folder, _folders);
+        const auto files = path.empty() ? std::vector<std::string>() : listFiles(path, folder.mask);
+        Read read{ .options = fileOptions(setting, files), .notAvailable = {} };
+        if (read.options.empty()) {
+            read.notAvailable = noFilesReason(folder);
+        }
+        return read;
     }
 }

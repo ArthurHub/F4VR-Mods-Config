@@ -133,7 +133,6 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - A button's icon, which its config spec names: one of 18 drawn shapes, 20 px, 2 px strokes or a fill, in the color of the button's label, `space-2` before it (see `ButtonRow`).
 - A result to read: an info mark, a 2 px `green` circle 17 px across with an `i` in `green`, 20 px, after the name of a button's row until its result is read (see `ButtonRow`).
 - A text field's pencil, 18 px, in `green-muted` (see `TextInput`).
-- A texture's thumbnail: the texture itself, 32 px in a row and 40 px in a list, on black (see `FileChoice`).
 - An activation sphere's mark: a 20 px ring over a glow, with a halo while its sphere is lit (see `ActivationSphere`).
 - Close, Minimize, Reset, Discard, minus and plus: 2.5 px strokes in a 24 px box centered in a 48 px button. Reset is a three-quarter arc with an arrowhead, drawn with `PathArcTo`. Discard is an undo: an arrow to the left whose tail turns back down in a half circle, in `amber`, as the pending change it takes back.
 - Play, which plays a haptic: a 5 px dot with two arcs on each side, in the same 24 px box.

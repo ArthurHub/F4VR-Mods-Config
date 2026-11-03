@@ -468,15 +468,12 @@ svg.mc-ico.spin { width: 20px; height: 20px; }
 .mc-image { display: flex; justify-content: center; padding: var(--space-1) 0; }
 .mc-image .missing { display: grid; place-items: center; border: var(--border-frame) dashed var(--frame-border); border-radius: var(--radius-frame); color: var(--green-muted); }
 
-/* ---------- a choice of files: the file's name, a thumbnail for a texture, and the folder's list ---------- */
-.mc-combo.is-file { justify-content: flex-start; gap: var(--space-3); padding-left: var(--space-2); }
+/* ---------- a choice of files: the file's name, its extension muted, and the folder's list ---------- */
+.mc-combo.is-file { justify-content: flex-start; gap: var(--space-3); }
 .mc-combo.is-file > .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-combo.is-file .ext, .mc-option .ext { color: var(--green-muted); }
 .mc-combo.is-file.is-pending > .nm { color: var(--amber); }
 .mc-combo.is-file.is-invalid > .nm, .mc-combo.is-file.is-invalid .ext { color: var(--red); }
-.mc-thumb { flex: none; width: 32px; height: 32px; border: var(--border-frame) solid var(--frame-border); border-radius: var(--radius-grab); overflow: hidden; background: #000; }
-.mc-thumb svg { display: block; width: 100%; height: 100%; }
-.mc-thumb.is-big { width: 40px; height: 40px; }
 .mc-popup .folder { display: flex; justify-content: space-between; padding: var(--space-1) var(--space-2) var(--space-2); color: var(--green-muted); border-bottom: var(--border-frame) solid var(--rule); margin-bottom: var(--space-1); }
 .mc-option.is-file { gap: var(--space-3); }
 .mc-option.is-current .ext { color: var(--on-green); opacity: 0.6; }

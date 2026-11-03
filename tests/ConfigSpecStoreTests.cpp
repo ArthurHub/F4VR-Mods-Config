@@ -20,6 +20,7 @@
 #include "model/Conditions.h"
 #include "spec/ConfigSpecLoader.h"
 #include "spec/ConfigSpecStore.h"
+#include "spec/TomlFile.h"
 
 using namespace mods_config;
 using spec::ConfigSpecStore;
@@ -1972,4 +1973,69 @@ TEST_CASE("ConfigSpecStore: a state read again keeps the baseline of its preview
     client.told.clear();
     session.store.discard();
     CHECK(client.told == std::vector<std::string>{ "Discard pipboyType state pipboyType 1 -> 0" });
+}
+
+namespace
+{
+    // a choice of the gobos of a folder of Data, and one of a folder of My Games with the option that is no file
+    constexpr auto FILE_SETTINGS = R"(
+        { "type": "dropdown", "valueType": "string", "text": "Gobo", "default": "data\\Textures\\MyMod\\Gobos\\2_Rings.DDS",
+          "valueOptions": { "listFromFolder": { "path": "Textures/MyMod/Gobos", "mask": "*.dds" } }, "storage": { "path": ["Main", "sGobo"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Preset", "default": "",
+          "valueOptions": { "listFromFolder": { "root": "myGames", "path": "Presets", "noneText": "No preset" } }, "storage": { "path": ["Main", "sPreset"] } }
+    )";
+}
+
+TEST_CASE("ConfigSpecStore: a choice of files has its folder's files, matches a value in any spelling, and writes a pick in its default's form")
+{
+    Session session(FILE_SETTINGS);
+    session.data.write(R"(Textures\MyMod\Gobos\1_Solid.DDS)", "");
+    session.data.write(R"(Textures\MyMod\Gobos\2_Rings.DDS)", "");
+    session.data.write(R"(Textures\MyMod\Gobos\readme.txt)", "");
+    session.open("[Main]\r\nsGobo = 'Textures/MyMod/Gobos/1_solid.dds'\r\n");
+    const auto& gobo = session.setting(0);
+    const auto& options = session.store.options(gobo);
+    REQUIRE(options.size() == 2);
+    CHECK(options[0] == model::Option{ .value = R"(data\Textures\MyMod\Gobos\1_Solid.DDS)"s, .text = "1_Solid.DDS" });
+    CHECK(options[1].text == "2_Rings.DDS");
+
+    // the file's spelling is its option's, and is clean
+    CHECK(session.value(0).value == options[0].value);
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.store.defaultValue(gobo) == options[1].value);
+
+    CHECK(session.store.set(gobo, options[1].value));
+    REQUIRE(session.store.save());
+    spec::TomlFile file(session.myGames.path / MOD_FILE);
+    REQUIRE(file.read());
+    CHECK(file.value(std::vector<std::string>{ "Main", "sGobo" }, model::StoredType::String) == model::Value(R"(data\Textures\MyMod\Gobos\2_Rings.DDS)"s));
+
+    // a folder of My Games with no files has the option that is no file alone
+    CHECK(session.store.options(session.setting(1)) == std::vector<model::Option>{ { .value = ""s, .text = "No preset" } });
+    CHECK(session.value(1).available);
+
+    // it is listed again as the values are read again
+    session.myGames.write(R"(Presets\Mine.json)", "");
+    session.store.readAgain();
+    CHECK(session.store.options(session.setting(1)).size() == 2);
+}
+
+TEST_CASE("ConfigSpecStore: a value of a choice of files that its folder does not have is invalid, and one whose folder has no files is not available")
+{
+    Session session(FILE_SETTINGS);
+    session.data.write(R"(Textures\MyMod\Gobos\2_Rings.DDS)", "");
+    session.open("[Main]\r\nsGobo = 'data\\Textures\\Effects\\Gobos\\Vanilla.dds'\r\n");
+    CHECK(session.value(0).invalid);
+    CHECK(session.value(0).reason == R"(Invalid: Main.sGobo is "data\Textures\Effects\Gobos\Vanilla.dds" in MyMod.toml, which is not in Textures\MyMod\Gobos.)");
+
+    // a name the folder does not have is invalid as the player sets it
+    CHECK(session.store.set(session.setting(0), R"(data\Textures\MyMod\Gobos\9_Laser.dds)"s));
+    CHECK(session.value(0).reason == R"(Invalid: "data\Textures\MyMod\Gobos\9_Laser.dds" is not in Textures\MyMod\Gobos.)");
+    session.store.discard();
+
+    Session empty(FILE_SETTINGS);
+    empty.open("");
+    CHECK_FALSE(empty.value(0).available);
+    CHECK(empty.value(0).reason == R"(Not available: no *.dds files in Textures\MyMod\Gobos.)");
 }

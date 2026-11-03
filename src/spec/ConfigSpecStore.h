@@ -33,9 +33,10 @@ namespace mods_config::spec
      * reason, and Save writes nothing while it is.
      * A read-only setting is not set: it has the value of its file as it is, and none where the file has none.
      * The menu reads a TOML and an INI file: a setting of a JSON file is not available.
-     * A choice that reads its options in the game, from a FormList or a property of a script, or from its mod's
-     * client, by the callback the client registered, reads them as the mod is selected, with the values they
-     * are checked against.
+     * A choice that reads its options in the game, from a FormList or a property of a script, from its mod's
+     * client, by the callback the client registered, or from the files of a folder, reads them as the mod is selected,
+     * with the values they are checked against. A value of a choice of files that names a file in another spelling is
+     * that file's option, in the form of the setting's default.
      * A global and a property are read and written with `getGlobal`, `setGlobal`, `getProperty` and
      * `setProperty`. A `live` one is previewed: its pending value is written into the game as it is set, but
      * for an invalid one, which leaves the preview before it, and

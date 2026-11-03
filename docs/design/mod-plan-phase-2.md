@@ -195,6 +195,7 @@ The milestone comes before the controls of milestone 9, which are for tuning a v
 | M142 | mod | Transform: Adjust in world, tuned from the wrist                                       | in review |
 | M80 | mod  | ActivationSphere, a whole section                                                      | in review |
 | M81 | mod  | The values of Immersive Flashlight that are left: lists and flags                      | todo   |
+| M76 | mod  | A choice of the files in a folder                                                      | in review |
 | F36 | framework | vrcf: a binding of any hand                                                       | done   |
 | F37 | framework | vrui: the world move is a binding                                                 | done   |
 | M131 | mod | Back and the move are bindings of any hand                                             | done   |
@@ -205,7 +206,7 @@ The milestone is measured by Immersive Flashlight's TOML. Beside numbers, switch
 - 13 transforms.
 - 3 activation spheres, each a section with a zone, bindings, haptics, an icon and a sphere.
 - 4 colors, each in one key.
-- 4 gobo textures, each the path of a file, a dropdown whose options its client gives (`listFromClientCallback`).
+- 4 gobo textures, each the path of a file, a dropdown of the files of its folder (M76).
 - 4 hand poses, which are edited from milestone 13.
 - 5 lists of text, and a flags value.
 
@@ -220,6 +221,8 @@ M77 comes before M74 too, as its design is done. Its config spec type is `cf.hap
 M78 comes before M74, as FRIK's config spec needs it, and its design is done. Its config spec type is `cf.inputBinding`, as the value is in the framework's form. It is two commits: the first reads a binding and shows it as its icons and its sentence, invalid with the framework's reason, and the second opens its editor. Mods Config FO4 VR's own config spec gets its two bindings, and the config spec showcase a page of them.
 
 M79 comes before M74 too, as its design is done. Its config spec type is `cf.transform`, the TOML text of the framework's table, of which a key that is left out is what the framework reads for it. Its row is its numbers, and a press opens its editor, a slider for each axis of the parts the config spec turns on, in the range it gives, which sets the transform as it changes. The config spec showcase gets a page of transforms. M142 adds Adjust in world in the mod's own code, with the controls of the framework's `DebugAdjuster`, which tunes only its own mod's key and saves it itself. It works through the store, so each change is a pending value that the client previews: the button is enabled for a `live` transform whose client is connected.
+
+M76 is a choice of the files of a folder for a config spec, a `dropdown` with a `listFromFolder`, as `dropdownFiles` is for an MCM mod, so the gobos need no code of Immersive Flashlight's client. A pick is written in the form of the setting's default, and a value that names a file in another spelling is its option. The folder is listed as the mod is selected and as its values are read again, as the store's other values are, and only its loose files. The row and the list show a file's name, with the extension muted where the mask does not name it, and the list its folder and how many files it has: an MCM `dropdownFiles` is drawn the same way. A texture has no thumbnail: a gobo's setting is `live`, so a pick shows on the light. The config spec showcase gets a section of its own textures on its Choices page.
 
 M80 reads a `cf.activationSphere` as one group of a section's keys, each a setting of its own, as [CommonFramework values](schema.md#commonframework-values) has it: the loader makes the section's rows from a table of the framework's keys and what the config spec's `keys` gives, so the store and the rows have nothing new but the framework's words of a dropdown. A power-armor zone has a row only while the file has its key. Its zone is tuned in the world by M142's Adjust in world. The sphere lit in the world while the ray is on its rows, and the halo of its mark, wait for the [open question](open-questions.md#commonframework-specific-controls) of how the client is told. The config spec showcase gets a page of spheres, which leave out keys, as a mod's do.
 

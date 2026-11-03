@@ -38,8 +38,23 @@ namespace mods_config::ui
     // draws more of an option of a list, in its box, after its text: whether it is the chosen one says its colors
     using OptionDecoration = std::function<void(std::size_t option, const ImRect& box, bool chosen)>;
 
+    /**
+     * What a list of options has beside its options' texts: a muted text after each, as a file's extension, and a line
+     * over them that is not pressed, with a text at its left and one at its right, as a folder and how many files it has.
+     */
+    struct ListExtras
+    {
+        // one for each option, and none for a list with none
+        std::span<const std::string_view> suffixes;
+
+        // the line over the options: none while both are empty
+        std::string_view headerLeft;
+        std::string_view headerRight;
+    };
+
     std::optional<std::size_t> chosenOption(const std::vector<model::Option>& options, const model::StoredValue& stored);
-    ListDrawn drawList(ImGuiID id, const ImRect& box, std::span<const std::string_view> texts, std::optional<std::size_t> chosen, const OptionDecoration& decorate = {});
+    ListDrawn drawList(ImGuiID id, const ImRect& box, std::span<const std::string_view> texts, std::optional<std::size_t> chosen, const OptionDecoration& decorate = {},
+        const ListExtras& extras = {});
 
     /**
      * The steppers, the dropdowns and the haptics of the page that is shown: how one is drawn, and how the player picks

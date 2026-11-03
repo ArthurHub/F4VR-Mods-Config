@@ -9,6 +9,7 @@ find_package(Catch2 3 CONFIG REQUIRED)
 add_executable(${PROJECT_NAME}_tests
   ConditionsTests.cpp
   FallUITranslationsTests.cpp
+  FileChoicesTests.cpp
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   IniFileTests.cpp
@@ -56,6 +57,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/ClientCalls.cpp
   ${SOURCE_DIR}/model/Colors.cpp
   ${SOURCE_DIR}/model/Conditions.cpp
+  ${SOURCE_DIR}/model/FileChoices.cpp
   ${SOURCE_DIR}/model/Haptics.cpp
   ${SOURCE_DIR}/model/InputBindings.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp

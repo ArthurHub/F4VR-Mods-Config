@@ -22,6 +22,7 @@
 #include "Transforms.h"
 #include "common/CommonUtils.h"
 #include "model/Conditions.h"
+#include "model/FileChoices.h"
 #include "model/Haptics.h"
 
 namespace
@@ -412,6 +413,14 @@ namespace
                 return ui::PointedRow{ .text = state.choiceOptions[*option].text, .help = haptic ? model::hapticHelp(*haptic) : std::string() };
             }
         }
+        // a file of a choice of files is named in full, with its folder
+        if (const auto& files = setting.valueOptions.folderOptions; files && context.choices.isListOpen(setting)) {
+            if (const auto option = context.choices.pointedOption(); option && *option < state.choiceOptions.size()) {
+                const auto& pointed = state.choiceOptions[*option];
+                const bool isNone = !files->noneText.empty() && *option == 0;
+                return ui::PointedRow{ .text = pointed.text, .help = isNone ? std::string() : std::format("In {}.", model::folderText(*files)) };
+            }
+        }
         std::string help;
         bool invalid = false;
         const auto playing = edited.haptic && state.onPlay ? hapticPattern(stored.value) : std::nullopt;
@@ -476,9 +485,16 @@ namespace
             left = context.sliders.draw(setting, right, top, edited.sliderRow, state.showsValue ? std::optional(edited.sliderValue) : std::nullopt, look);
             break;
         case model::SettingType::Stepper:
-        case model::SettingType::Dropdown:
-            left = context.choices.draw(setting, state.choiceOptions, right, top, edited.choiceRow, state.showsValue ? edited.chosen : std::nullopt, look);
+        case model::SettingType::Dropdown: {
+            // a choice of files shows the name of a file its folder does not have, and that it has none
+            std::string unchosen;
+            if (setting.valueOptions.folderOptions) {
+                const auto* text = std::get_if<std::string>(&stored.value);
+                unchosen = stored.available && text ? model::fileNameOf(*text) : state.choiceOptions.empty() ? std::string("No files") : std::string();
+            }
+            left = context.choices.draw(setting, state.choiceOptions, right, top, edited.choiceRow, state.showsValue ? edited.chosen : std::nullopt, look, unchosen);
             break;
+        }
         case model::SettingType::Haptic: {
             // a name the framework does not have shows as its file has it
             const auto* text = std::get_if<std::string>(&stored.value);

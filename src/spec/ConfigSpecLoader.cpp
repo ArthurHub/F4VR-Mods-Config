@@ -148,6 +148,10 @@ namespace
         const Json* sharedLists = nullptr;
         const spec::PluginChecks& plugins;
 
+        // where its files and its choices of files are, which a folder with no files is reported by. None for a config
+        // spec read alone
+        spec::FileFolders folders;
+
         // the files of the config spec that are there, read as they are now, by their names: a setting's path that
         // one of them does not have is reported
         std::map<std::string, std::unique_ptr<spec::ModFile>> fileValues;
@@ -315,13 +319,14 @@ namespace
     // a key of a sphere's `keys`, written as an object:
     constexpr std::array<std::string_view, 8> SPHERE_KEY_FIELDS{ "text", "help", "default", "valueOptions", "applies", "visibleWhen", "enabledWhen", "warnings" };
     // a setting's parts:
-    constexpr std::array<std::string_view, 19> VALUE_OPTIONS_FIELDS{ "min",
+    constexpr std::array<std::string_view, 20> VALUE_OPTIONS_FIELDS{ "min",
         "max",
         "step",
         "options",
         "sharedOptions",
         "listFromForm",
         "listFromProperty",
+        "listFromFolder",
         "listFromClientCallback",
         "allowEmpty",
         "minLength",
@@ -339,6 +344,7 @@ namespace
     constexpr std::array<std::string_view, 3> TRANSFORM_RANGE_FIELDS{ "min", "max", "step" };
     constexpr std::array<std::string_view, 3> OPTION_FIELDS{ "value", "text", "help" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
+    constexpr std::array<std::string_view, 4> LIST_FOLDER_FIELDS{ "root", "path", "mask", "noneText" };
     constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
     constexpr std::array<std::string_view, 9> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName", "clientState" };
     constexpr std::array<std::string_view, 2> WARNING_FIELDS{ "when", "text" };
@@ -490,9 +496,27 @@ namespace
     };
 
     /**
+     * What is wrong with a path from a root of a config spec, as the end of a sentence of it: one that is absolute, or
+     * goes up with `..`, could be any file of the system. Empty for one that is a path from its root.
+     */
+    std::string pathProblem(const std::string& path)
+    {
+        const std::filesystem::path checked(std::u8string(path.begin(), path.end()));
+        if (path.empty() || checked.has_root_name() || checked.has_root_directory()) {
+            return std::format("its path '{}' is not one from its root", path);
+        }
+        if (std::ranges::any_of(checked, [](const std::filesystem::path& part) {
+                return part == "..";
+            })) {
+            return std::format("its path '{}' goes up out of its folder", path);
+        }
+        return {};
+    }
+
+    /**
      * A file of a config spec's `files`, or the reason it is not one: a `format` of `ini` or `toml`,
      * which its extension is, a `root` of `data` or `myGames`, and a `path` from that root. The path is
-     * checked as it is written: one that is absolute, or goes up with `..`, could be any file of the system.
+     * checked as it is written (`pathProblem`).
      */
     std::expected<model::File, std::string> loadFile(const Json& declared)
     {
@@ -506,15 +530,10 @@ namespace
             return std::unexpected(std::format("its root '{}' is not data or myGames", rootText));
         }
         auto path = getText(declared, "path");
+        if (auto problem = pathProblem(path); !problem.empty()) {
+            return std::unexpected(std::move(problem));
+        }
         const std::filesystem::path checked(std::u8string(path.begin(), path.end()));
-        if (path.empty() || checked.has_root_name() || checked.has_root_directory()) {
-            return std::unexpected(std::format("its path '{}' is not one from its root", path));
-        }
-        if (std::ranges::any_of(checked, [](const std::filesystem::path& part) {
-                return part == "..";
-            })) {
-            return std::unexpected(std::format("its path '{}' goes up out of its folder", path));
-        }
         const auto extension = checked.extension().u8string();
         if (common::str_tolower(std::string(extension.begin(), extension.end())) != "." + formatText) {
             return std::unexpected(std::format("its path '{}' does not end in .{}", path, formatText));
@@ -922,6 +941,47 @@ namespace
     }
 
     /**
+     * The folder a choice's `listFromFolder` lists the files of: its `root`, `data` where it has none, its `path` from
+     * that root, its `mask`, and the `noneText` of the option that is no file. Only a dropdown of a string lists one.
+     * None for a list that is not written so, which is reported. With the folders of the game, a folder with no file
+     * its mask lists is a warning, as a typo of its path would be.
+     */
+    std::optional<model::FolderOptions> loadFolderOptions(const Json& valueOptions, const model::SettingType type, const model::StoredType valueType, ConfigSpecReading& reading)
+    {
+        const Into into(reading, "listFromFolder");
+        const auto& list = valueOptions["listFromFolder"];
+        if (!list.is_object()) {
+            reading.report(model::Severity::Error, "Its listFromFolder is not an object: it has no options.");
+            return std::nullopt;
+        }
+        checkFields(list, LIST_FOLDER_FIELDS, reading);
+        if (type != model::SettingType::Dropdown || valueType != model::StoredType::String) {
+            reading.report(model::Severity::Error, "A listFromFolder is of a dropdown whose valueType is string: it has no options.");
+            return std::nullopt;
+        }
+        const auto rootText = list.contains("root") ? getText(list, "root") : std::string("data");
+        if (rootText != "data" && rootText != "myGames") {
+            reading.report(model::Severity::Error, std::format("Its root '{}' is not data or myGames: it has no options.", rootText));
+            return std::nullopt;
+        }
+        model::FolderOptions folder{ .root = rootText == "data" ? model::FileRoot::Data : model::FileRoot::MyGames,
+            .path = getText(list, "path"),
+            .mask = getText(list, "mask"),
+            .noneText = readShownText(list, "noneText", reading) };
+        if (const auto problem = pathProblem(folder.path); !problem.empty()) {
+            reading.report(model::Severity::Error, std::format("Its folder is left out: {}. It has no options.", problem));
+            return std::nullopt;
+        }
+        if (const auto path = model::folderOf(folder, reading.folders); !path.empty() && model::listFiles(path, folder.mask).empty()) {
+            reading.report(model::Severity::Warning,
+                std::format("{} is not there, or has no {}: the setting is not available until it has one.",
+                    model::folderText(folder),
+                    folder.mask.empty() ? std::string("files") : folder.mask + " files"));
+        }
+        return folder;
+    }
+
+    /**
      * A list of words of a binding's `valueOptions`, `hands`, `types` or `buttons`, read as the framework reads them
      * in a binding. A word that is none of its part's is left out, and reported, and so is a value that is not a list.
      * None for a list that is not there: the setting takes any.
@@ -1041,8 +1101,8 @@ namespace
      * The `valueOptions` of a setting: the least, the most and the step of a number, the fewest and the most
      * characters of a text input of a text, the hands, the ways and the buttons a binding takes, and the options of a
      * choice: its own `options`, the shared list
-     * its `sharedOptions` names, where it reads them in the game, or that its mod's client gives them, with a
-     * `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
+     * its `sharedOptions` names, where it reads them in the game, the folder whose files they are, or that its mod's
+     * client gives them, with a `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
      * is no whole number above 0 is none. A haptic's options are the menu's: None and the framework's patterns. A color
      * has an alpha unless its `alpha` is false, and a transform has the ranges of its parts that are on.
      * A choice with none of them has no options, and is reported, so it is disabled.
@@ -1105,6 +1165,8 @@ namespace
         }
         if (hasOptions && (found->contains("listFromForm") || found->contains("listFromProperty"))) {
             valueOptions.gameOptions = loadGameOptions(*found, valueType, reading);
+        } else if (hasOptions && found->contains("listFromFolder")) {
+            valueOptions.folderOptions = loadFolderOptions(*found, type, valueType, reading);
         } else if (hasOptions && getBool(*found, "listFromClientCallback")) {
             valueOptions.clientOptions = true;
         } else {
@@ -1127,13 +1189,13 @@ namespace
     /**
      * Whether a value of a setting's type is one of its values: an option of a choice, a number inside
      * the limits of a setting that has them, its least and its most among them, and a text of the length its
-     * setting allows. Any value is one of a choice that reads its options in the game or from its mod's client,
-     * which are not known until then.
+     * setting allows. Any value is one of a choice that reads its options in the game, from its mod's client or from a
+     * folder, which are not known until then.
      */
     bool isValueOf(const model::Value& value, const model::SettingType type, const model::ValueOptions& options)
     {
         if (isChoice(type)) {
-            return options.gameOptions || options.clientOptions || std::ranges::any_of(options.options, [&value](const model::Option& option) {
+            return options.gameOptions || options.clientOptions || options.folderOptions || std::ranges::any_of(options.options, [&value](const model::Option& option) {
                 return isSameValue(option.value, value);
             });
         }
@@ -1268,6 +1330,32 @@ namespace
     }
 
     /**
+     * Whether the `default` of a choice of files can be one: a path in its folder, or a bare name, which every pick is
+     * written in the form of. One that is not is an error, which is reported. With the folders of the game, a default
+     * whose file is not in the folder is a warning, as the player's files can differ from its author's.
+     */
+    bool isFolderDefault(const std::string& value, const model::FolderOptions& folder, ConfigSpecReading& reading)
+    {
+        const Into into(reading, "default");
+        if (!model::isInFolder(value, folder)) {
+            reading.report(model::Severity::Error, std::format("Its default \"{}\" is not in its folder {}: it has no Reset.", value, model::folderText(folder)));
+            return false;
+        }
+        const auto path = model::folderOf(folder, reading.folders);
+        if (value.empty() || path.empty()) {
+            return true;
+        }
+        std::vector<model::Option> files;
+        for (auto& file : model::listFiles(path, folder.mask)) {
+            files.push_back({ .value = std::move(file), .text = {} });
+        }
+        if (!files.empty() && !model::findFileOption(files, folder, value)) {
+            reading.report(model::Severity::Warning, std::format("Its default {} is not in {}: it is invalid until it is.", model::fileNameOf(value), model::folderText(folder)));
+        }
+        return true;
+    }
+
+    /**
      * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
      * with one that is not one of its values: outside its limits, of a length it does not allow, or none of
      * its options. Both are errors of the config spec that are reported, and the setting then has no Reset.
@@ -1290,8 +1378,10 @@ namespace
         auto value = getValue(row, "default", valueType);
         if (!value) {
             reading.report(model::Severity::Error, "It has no default of the type of its value: it has no Reset.");
-        } else if (isChoice(type) && options.options.empty() && !options.gameOptions && !options.clientOptions) {
+        } else if (isChoice(type) && options.options.empty() && !options.gameOptions && !options.clientOptions && !options.folderOptions) {
             // a choice with no options is reported already, and no default is one of its values
+            value.reset();
+        } else if (options.folderOptions && !isFolderDefault(std::get<std::string>(*value), *options.folderOptions, reading)) {
             value.reset();
         } else if (!isValueOf(*value, type, options)) {
             const Into into(reading, "default");
@@ -2817,6 +2907,7 @@ namespace mods_config::spec
             .files = {},
             .sharedLists = sharedLists != configSpec.end() && sharedLists->is_object() ? &*sharedLists : nullptr,
             .plugins = plugins,
+            .folders = folders,
             .settings = {},
             .problems = {},
             .at = {} };

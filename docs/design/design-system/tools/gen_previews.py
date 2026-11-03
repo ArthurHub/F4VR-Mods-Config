@@ -1649,62 +1649,51 @@ tr_body = f"""<div class="mc-world mc-stack" style="gap:16px">
 write('TextRows', page('<!-- @dsCard group="Settings" height=930 width=830 subtitle="Rows with no value: a text, plain or with MCM&#39;s tags, with the states of the mod&#39;s client; a spacer of one line or more; an image, and one that is not loaded" -->', 'Text, spacer and image', tr_body))
 print('ok text rows')
 
-# ---------------- FileChoice: a choice of the files in a folder, with a texture's thumbnail ----------------
-def gobo(kind):
-    """A stand-in for a gobo texture: how the light falls through it, white on black."""
-    g = {'round': '<circle cx="20" cy="20" r="15" fill="url(#gr)"/>',
-         'incandescent': '<circle cx="20" cy="20" r="16" fill="url(#gr)"/><circle cx="20" cy="20" r="7" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="2"/>',
-         'pa': '<circle cx="20" cy="20" r="18" fill="url(#gr)"/><circle cx="20" cy="20" r="11" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>',
-         'led': ''.join(f'<circle cx="{x}" cy="{y}" r="4" fill="url(#gr)"/>' for x in (12, 20, 28) for y in (12, 20, 28)),
-         'dirty': '<circle cx="20" cy="20" r="15" fill="url(#gr)"/><path d="M8 26 Q18 20 32 28 L32 34 L8 34Z" fill="#000" fill-opacity=".45"/>',
-         'small': '<circle cx="20" cy="20" r="9" fill="url(#gr)"/>'}[kind]
-    return (f'<span class="mc-thumb"><svg viewBox="0 0 40 40"><defs><radialGradient id="gr"><stop offset="0" stop-color="#fff"/>'
-            f'<stop offset=".7" stop-color="#d8d8c8"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>'
-            f'<rect width="40" height="40" fill="#000"/>{g}</svg></span>')
-
-GOBOS = [('1_Clean', 'round'), ('2_LED_Array', 'led'), ('3_Dirty_Lens', 'dirty'), ('4_Spot', 'small'), ('5_F4_PA_Bright', 'pa'),
-         ('6_Incandescent', 'incandescent'), ('7_Round_Small', 'small')]
-def file_ctl(name, kind, state='', show_reset=False, open_=False, ext='.DDS'):
+# ---------------- FileChoice: a choice of the files in a folder ----------------
+GOBOS = ['1_Round_Solid', '2_Round_Rings', '3_Round_Pattern', '4_F4_PA_Dim', '5_F4_PA_Bright', '6_Incandescent', '7_Round_Small']
+def file_ctl(name, state='', show_reset=False, open_=False, ext=''):
+    """The frame of a choice of files: the file's name, and its extension muted where the mask does not name it."""
     cls = 'mc-combo is-file' + (f' {state}' if state else '') + (' is-open' if open_ else '')
-    th = '' if state == 'is-invalid' or kind is None else gobo(kind)
-    return f'<div class="main"><span class="{cls}">{th}<span class="nm">{name}<span class="ext">{ext}</span></span>{ARROW_D}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
+    ex = f'<span class="ext">{ext}</span>' if ext else ''
+    return f'<div class="main"><span class="{cls}"><span class="nm">{name}{ex}</span>{ARROW_D}</span></div>{reset_btn(show_reset, 'is-pending' in state)}'
 
-def f_option(name, kind, current=False, hover=False, mark=None):
+def f_option(name, current=False, hover=False, mark=None):
     mk = f'<span class="mc-mark" style="position:relative;margin-left:60px"></span>' if mark else ''
     ck = CHECK if current else '<span class="check"></span>'
-    return f'<div class="mc-option is-file{" is-current" if current else ""}{" is-hover" if hover else ""}">{ck}{gobo(kind)}<span>{name}<span class="ext">.DDS</span></span>{mk}</div>'
+    return f'<div class="mc-option is-file{" is-current" if current else ""}{" is-hover" if hover else ""}">{ck}<span>{name}</span>{mk}</div>'
 
 fc_states = h_sheet([
-    ('A texture', row('Gobo on the head', file_ctl('6_Incandescent', 'incandescent'))),
-    ('Under the ray', row('Gobo in the hand', file_ctl('6_Incandescent', 'incandescent'), 'is-hover', mark=(560, 22))),
-    ('Pending', row('Gobo on the head', file_ctl('2_LED_Array', 'led', 'is-pending', True), gutter=DOT)),
-    ('Not a texture', row('Voice pack', file_ctl('Codsworth', None, ext='.json'))),
-    ('Not in the folder', row('Gobo on a weapon', file_ctl('9_Laser', None, 'is-invalid', True), 'is-invalid', gutter=WARN)),
-    ('Empty folder', row('Gobo in power armor', file_ctl('No files', None, ext=''), 'is-disabled')),
+    ('A file of *.dds', row('Gobo on the head', file_ctl('6_Incandescent'))),
+    ('Under the ray', row('Gobo in the hand', file_ctl('6_Incandescent'), 'is-hover', mark=(560, 22))),
+    ('Pending', row('Gobo on the head', file_ctl('2_Round_Rings', 'is-pending', True), gutter=DOT)),
+    ('No file', row('Gobo in the hand', file_ctl('No gobo'))),
+    ('A file of any mask', row('Preset', file_ctl('Night vision', ext='.json'))),
+    ('Not in the folder', row('Gobo on a weapon', file_ctl('9_Laser', 'is-invalid', True), 'is-invalid', gutter=WARN)),
+    ('Empty folder', row('Gobo in power armor', file_ctl('No files'), 'is-disabled')),
 ])
 fc_pop = (f'<div class="mc-popup has-scroll t-body" style="position:absolute;left:390px;top:112px;width:392px;z-index:2">'
           f'<div class="folder t-detail"><span>Textures\\ImmersiveFlashlightVR\\Gobos</span><span>7 files</span></div>'
-          + ''.join(f_option(n, k, current=(n == '6_Incandescent'), hover=(n == '2_LED_Array'), mark=(n == '2_LED_Array')) for n, k in GOBOS[:5])
-          + '<div class="mc-scrollbar"><i style="top:0;height:82%"></i></div></div>')
+          + ''.join(f_option(n, current=(n == '6_Incandescent'), hover=(n == '2_Round_Rings'), mark=(n == '2_Round_Rings')) for n in GOBOS[1:6])
+          + '<div class="mc-scrollbar"><i style="top:18%;height:70%"></i></div></div>')
 fc_rows = ''.join([
     section('On the head'),
-    row('Gobo on the head', file_ctl('2_LED_Array', 'led', 'is-pending', True, open_=True), 'is-active', gutter=DOT),
+    row('Gobo on the head', file_ctl('2_Round_Rings', 'is-pending', True, open_=True), 'is-active', gutter=DOT),
     row('Brightness', slider('1.10', 45)),
     row('Reach', slider('2000', 30)),
     row('Beam angle', slider('90°', 60)),
     row('Light color', color_ctl((235, 224, 190))),
     section('In the hand'),
-    row('Gobo in the hand', file_ctl('6_Incandescent', 'incandescent')),
+    row('Gobo in the hand', file_ctl('6_Incandescent')),
     row('Brightness', slider('1.40', 60)),
 ])
 fc_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:908px;gap:16px">
-<span class="t-detail mc-caption">The row: the file's name, its extension muted, and for a texture its thumbnail</span>
+<span class="t-detail mc-caption">The row: the file's name, with no extension where the mask names one, and its extension muted otherwise</span>
 {fc_states}
-<span class="t-detail mc-caption">The list: the folder and how many files, each with its thumbnail; a pick is shown on the light at once</span>
+<span class="t-detail mc-caption">The list: the folder and how many files over the files, which scroll under it; a pick is shown on the light at once</span>
 <div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:520px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">{fc_rows}{fc_pop}</div>
-<div class="mc-sheet" style="width:908px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('2_LED_Array.DDS', 'Textures\\ImmersiveFlashlightVR\\Gobos. Pick it, and the light on your head shows it.')}</div></div></div>
+<div class="mc-sheet" style="width:908px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('2_Round_Rings.DDS', 'In Textures\\ImmersiveFlashlightVR\\Gobos.')}</div></div></div>
 </div>"""
-write('FileChoice', page('<!-- @dsCard group="Settings" height=1100 width=960 subtitle="A choice of the files in a folder: the name, a texture&#39;s thumbnail, the folder&#39;s list; not in the folder; an empty folder" -->', 'Choice of files', fc_body))
+write('FileChoice', page('<!-- @dsCard group="Settings" height=1100 width=960 subtitle="A choice of the files in a folder: the file&#39;s name, the folder&#39;s list; no file; not in the folder; an empty folder" -->', 'Choice of files', fc_body))
 print('ok file choice')
 
 # ---------------- Transform: pos, rot and scale; an editor of sliders, and Adjust in world on the wrist ----------------
