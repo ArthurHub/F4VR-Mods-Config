@@ -239,7 +239,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M82 | mod  | docs: the API and the config spec schema only grow from version 1.0     | done   |
 | M142 | mod | A mod's own UI hands its edits back to the menu as pending values       | done   |
 | M83 | mod  | docs: a loading screen ends the editing session                         | done   |
-| M84 | mod  | The menu without FRIK, and without MCM                                  | todo   |
+| M84 | mod  | The menu without FRIK, and without MCM                                  | done   |
 | M85 | mod  | docs: the author's guide                                                | todo   |
 | M86 | mod  | A sample config spec                                                        | todo   |
 
