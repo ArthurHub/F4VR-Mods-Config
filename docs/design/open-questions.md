@@ -32,7 +32,6 @@ The design questions that are still open. The order the mod is built in is in th
 ## UI
 
 - Whether world geometry hides the Full panel, and where the panel goes when a wall is closer than its distance.
-- An open editing session on a save load, a loading screen or the player's death: [M83](mod-plan-phase-2.md#10-first-release).
 - Accessibility beyond the panel's scale.
 
 ## Profiles, backups and portability

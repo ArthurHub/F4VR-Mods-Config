@@ -57,11 +57,12 @@ namespace mods_config
     {
         takeOpenGestureFromFRIK();
 
-        // A loading screen and the main menu close the menu, with its unsaved changes discarded and its live previews
-        // put back, before the world it showed them in is left. The event comes on the game thread, between frames.
+        // A loading screen and the main menu close the menu without asking, before the world it showed its values in is
+        // left: a config spec's unsaved changes are discarded and its live previews put back, and an MCM mod's changes
+        // stay, as they are made already. The event comes on the game thread, between frames.
         _gameMenus.init([this](const std::string& menu, const bool opened) {
             if (opened && (menu == RE::LoadingMenu::MENU_NAME || menu == MAIN_MENU) && _menu.isOpen()) {
-                logger::info("{} opened: close config menu, unsaved changes are discarded", menu);
+                logger::info("{} opened: close config menu without asking", menu);
                 _menu.close();
             }
         });

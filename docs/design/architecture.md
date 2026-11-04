@@ -100,6 +100,8 @@ A setting is dirty when its pending value differs from its baseline value. Chang
 
 Opening a different mod, or going to the menu's front page, while the current mod is dirty prompts **Save / Discard / Cancel**, or **Keep / Revert / Cancel** for an MCM mod. Closing the menu follows the same rule.
 
+A loading screen and the main menu close the menu without asking, as the world the session shows its values in is left: a save load, a new game, a door, and the load after the player's death. A config spec's pending changes are discarded with their previews, and an MCM mod's changes stay, as Keep keeps them. A game saved while a `live` global or property is previewed has the preview in the save: Discard puts back the running game, not the save.
+
 A pending value that returns to its baseline is sent to the preview adapter as `Discard`, whether the player discarded it or changed it back, and a global or a property that was previewed gets its baseline written back. A client therefore holds a preview only for a dirty setting. A session with a dirty setting ends through Save or Discard, so no preview outlives its session.
 
 Reset-to-default is an ordinary pending edit. It is not persisted until Save.
