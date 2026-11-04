@@ -1541,6 +1541,60 @@ TEST_CASE("ConfigSpecStore: a live setting of a file is previewed to its mod's c
     CHECK(told.lines == std::vector<std::string>{ "Preview bEnable:Main main:Main.bEnable false -> true", "Discard bEnable:Main main:Main.bEnable true -> false" });
 }
 
+TEST_CASE("ConfigSpecStore: a client sets a pending value by its setting's id as the player's edit, which is told back to it")
+{
+    Session session;
+    ToldChanges told(session.store);
+    CHECK(session.store.setPendingValue("MyMod", "fScale:Main", 1.4f).error() == "the menu does not show its mod");
+    session.open(MOD_TOML);
+
+    // in the setting's valueType, also a whole number of a slider, and its mod's name with no regard to case
+    CHECK(session.store.setPendingValue("mymod", "fScale:Main", 1.4f));
+    CHECK(session.store.setPendingValue("MyMod", "iOpacity:Main", 100));
+    CHECK(session.value(1).value == model::Value(1.4f));
+    CHECK(session.value(2).value == model::Value(100.0f));
+    CHECK(session.store.dirtyCount() == 2);
+    CHECK(told.lines == std::vector<std::string>{ "Preview fScale:Main main:Main.fScale 1.25 -> 1.4", "Preview iOpacity:Main main:Main.iOpacity 128 -> 100" });
+
+    // a value told already is not told again, and the baseline makes it clean, with a Discard
+    told.lines.clear();
+    CHECK(session.store.setPendingValue("MyMod", "fScale:Main", 1.4f));
+    CHECK(told.lines.empty());
+    CHECK(session.store.setPendingValue("MyMod", "fScale:Main", 1.25f));
+    CHECK_FALSE(session.store.isDirty(session.setting(1)));
+    CHECK(told.lines == std::vector<std::string>{ "Discard fScale:Main main:Main.fScale 1.4 -> 1.25" });
+
+    // one that is no value of its setting is refused, with nothing changed, as are another mod and an id of none
+    told.lines.clear();
+    CHECK(session.store.setPendingValue("Other", "fScale:Main", 1.4f).error() == "the menu does not show its mod");
+    CHECK(session.store.setPendingValue("MyMod", "fNone:Main", 1.4f).error() == "its config spec has no setting of that id");
+    CHECK(session.store.setPendingValue("MyMod", "fScale:Main", 1).error() == "1 is not of the setting's valueType");
+    CHECK(session.store.setPendingValue("MyMod", "fScale:Main", 2.0f).error() == "Invalid: 2 is not from 0.5 to 1.5.");
+    CHECK(session.store.setPendingValue("MyMod", "sPlace:Main", "back"s).error() == "Invalid: \"back\" is none of its options.");
+    CHECK(session.store.setPendingValue("MyMod", "iCount:Main", 12).error() == "Invalid: 12 is not from 1 to 9.");
+    CHECK(told.lines.empty());
+    CHECK(session.store.dirtyCount() == 1);
+    CHECK(session.store.invalidCount() == 0);
+}
+
+TEST_CASE("ConfigSpecStore: a client's pending value of a color is its table's text, and one of a read-only setting is refused")
+{
+    Session session(R"(
+        { "type": "cf.color", "text": "Ray", "default": { "rgb": [190, 255, 190] }, "storage": { "path": ["Pointer", "cRay"] } },
+        { "type": "slider", "valueType": "float", "text": "Height", "readOnly": true, "valueOptions": { "min": 1.0, "max": 2.5 },
+          "storage": { "path": ["Pointer", "fHeight"] } }
+    )");
+    session.open("[Pointer]\r\ncRay = { rgb = [190, 255, 190] }\r\nfHeight = 1.78\r\n");
+
+    // the menu's text of the table, as a player's color is
+    CHECK(session.store.setPendingValue("MyMod", "cRay:Pointer", "{rgb=[1,2,3]}"s));
+    CHECK(session.value(0).value == model::Value("{ rgb = [1, 2, 3] }"s));
+    CHECK(session.store.setPendingValue("MyMod", "cRay:Pointer", "{ colour = [1, 2, 3] }"s).error() == "Invalid: it has the key 'colour', which is not rgb or alpha.");
+    CHECK(session.value(0).value == model::Value("{ rgb = [1, 2, 3] }"s));
+
+    CHECK(session.store.setPendingValue("MyMod", "fHeight:Pointer", 2.0f).error() == "the setting is read-only");
+}
+
 TEST_CASE("ConfigSpecStore: a live global or property is told to the mod's client after the game has its value, and so is its Discard")
 {
     TestGame game;

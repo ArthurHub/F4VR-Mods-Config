@@ -110,12 +110,20 @@ namespace
 namespace mods_config
 {
     /**
-     * The menu, closed. A config spec is read from its live copy while its author's report turns it on.
+     * The menu, closed. A config spec is read from its live copy while its author's report turns it on. A pending value
+     * a client hands the menu is set at once in the session of its mod, while the menu shows it, but not while the
+     * dialog asks what to do with the unsaved changes.
      */
     ConfigMenu::ConfigMenu()
         : _liveCopies(spec::CONFIG_SPEC_FOLDER, LIVE_COPIES_FOLDER)
     {
         _nativeClients.setTranslations(&_translations);
+        _nativeClients.setPendingValueAction([this](const std::string_view modName, const std::string_view id, const model::Value& value) -> std::expected<void, std::string> {
+            if (_fullPanel.isAsking()) {
+                return std::unexpected(std::string("the menu asks what to do with the unsaved changes"));
+            }
+            return _configSpecStore.setPendingValue(modName, id, value);
+        });
         _fullPanel.setLiveCopyAction([this](const std::string& folder, const ui::LiveCopyAction action) {
             _liveCopyRequest = LiveCopyRequest{ .folder = folder, .action = action };
         });

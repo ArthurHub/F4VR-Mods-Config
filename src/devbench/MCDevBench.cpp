@@ -1,6 +1,7 @@
 #include "devbench/MCDevBench.h"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include <type_traits>
 #include <variant>
@@ -8,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include "ModsConfigFO4.h"
+#include "api/ModsConfigFO4Api.h"
 #include "devbench/DevBench.h"
 #include "imgui/ImGuiPointer.h"
 #include "model/Conditions.h"
@@ -317,6 +319,25 @@ namespace mods_config::devbench
         }
 
         /**
+         * The setting of an id in the selected mod, on any of its pages, and none while the menu is closed, no mod is
+         * selected or the mod has no such setting.
+         */
+        const model::Setting* selectedSettingOf(const std::string_view id)
+        {
+            auto& menu = g_modsConfig.menu();
+            const auto& panel = menu.fullPanel();
+            if (!menu.isOpen() || !panel.selection().mod) {
+                return nullptr;
+            }
+            const auto& mod = panel.mods()[*panel.selection().mod];
+            const auto* setting = findSetting(mod.frontPage, id);
+            for (std::size_t i = 0; !setting && i < mod.pages.size(); ++i) {
+                setting = findSetting(mod.pages[i], id);
+            }
+            return setting;
+        }
+
+        /**
          * The setting of an id in the selected mod, on any of its pages.
          */
         const model::Setting& selectedSetting(const json& args)
@@ -325,12 +346,7 @@ namespace mods_config::devbench
             if (id.empty()) {
                 throw std::runtime_error("no id is given");
             }
-            const auto& panel = g_modsConfig.menu().fullPanel();
-            const auto& mod = panel.mods()[*panel.selection().mod];
-            const auto* setting = findSetting(mod.frontPage, id);
-            for (std::size_t i = 0; !setting && i < mod.pages.size(); ++i) {
-                setting = findSetting(mod.pages[i], id);
-            }
+            const auto* setting = selectedSettingOf(id);
             if (!setting) {
                 throw std::runtime_error("the mod has no setting with the id '" + id + "'");
             }
@@ -415,6 +431,65 @@ namespace mods_config::devbench
             }
             const bool set = store.set(setting, valueFromJson(setting, store, args["value"]));
             return { { "set", set }, { "setting", settingToJson(setting, store) }, { "session", sessionToJson(store) } };
+        }
+
+        /**
+         * A value of the request as a client gives it: a number in the valueType of its setting, and a text as it is for
+         * a setting of a text. With no such setting in the selected mod, as for a value the menu is to refuse, a number
+         * has its own JSON type. A text that is a JSON value is that value, as setValue has it.
+         */
+        api::Value clientValueFromJson(const model::Setting* setting, const json& given)
+        {
+            json value = given;
+            if (given.is_string() && !(setting && setting->valueType == model::StoredType::String)) {
+                value = json::parse(given.get<std::string>(), nullptr, false);
+                if (value.is_discarded()) {
+                    value = given;
+                }
+            }
+            if (value.is_boolean()) {
+                return value.get<bool>();
+            }
+            if (value.is_number()) {
+                const auto type = setting ? setting->valueType : value.is_number_integer() ? model::StoredType::Int : model::StoredType::Float;
+                if (type == model::StoredType::Int) {
+                    return static_cast<int>(std::lround(value.get<double>()));
+                }
+                if (type == model::StoredType::Float) {
+                    return value.get<float>();
+                }
+                // a number of a setting of a bool or a text, which the menu refuses
+                return value.is_number_integer() ? api::Value(value.get<int>()) : api::Value(value.get<float>());
+            }
+            return value.is_string() ? value.get<std::string>() : value.dump();
+        }
+
+        /**
+         * Sets a pending value as this mod's own client does through the native API, as a mod's own UI hands its edits
+         * back: the menu takes it only while it shows Mods Config FO4 VR, and its log says why it refused one. The answer
+         * has the setting as its row shows it then, while the selected mod has it.
+         */
+        json runClientSetValue(const json& args)
+        {
+            const auto id = args.value("id", std::string());
+            if (id.empty()) {
+                throw std::runtime_error("no id is given");
+            }
+            if (!args.contains("value")) {
+                throw std::runtime_error("no value is given");
+            }
+            auto& client = api::ModsConfigFO4Client::get();
+            if (!client.isConnected()) {
+                throw std::runtime_error("the mod's client is not connected to the menu");
+            }
+            const auto* setting = selectedSettingOf(id);
+            json answer{ { "set", client.setPendingValue(id, clientValueFromJson(setting, args["value"])) } };
+            if (setting) {
+                auto& store = selectedStore();
+                answer["setting"] = settingToJson(*setting, store);
+                answer["session"] = sessionToJson(store);
+            }
+            return answer;
         }
 
         /**
@@ -695,7 +770,8 @@ namespace mods_config::devbench
     {
         f4cf::devbench::setToolDescription(
             "Mods Config FO4 VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state and the mods it lists, show a mod, one of "
-            "its pages or the Help page, go back, read the rows of the page with their values, set a value or its default, run a button, Save or Discard the "
+            "its pages or the Help page, go back, read the rows of the page with their values, set a value or its default, set a value as the mod's own "
+            "client does through the API, run a button, Save or Discard the "
             "changes, and answer the dialog that asks about unsaved changes");
 
         f4cf::devbench::setStateProvider<MCDevState>(stateDescription(), &captureState, &stateToJson);
@@ -746,10 +822,20 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "setValue",
             .description = "set a setting of the selected mod in its store, as its control does: the change waits for a Save",
-            .arguments = { { "id", { { "type", "string" }, { "description", "setValue, reset, discard: the setting's id, as the page action has it" } } },
+            .arguments = { { "id", { { "type", "string" }, { "description", "setValue, clientSetValue, reset, discard: the setting's id, as the page action has it" } } },
                 { "value",
-                    { { "description", "setValue: true or false for a switcher, a number for a slider, a text for a text input, an option's value or text for a choice" } } } },
+                    { { "description",
+                        "setValue: true or false for a switcher, a number for a slider, a text for a text input, an option's value or text for a choice; "
+                        "clientSetValue: true or false, a number, which is sent in the setting's valueType, or a text, which is a color's, a transform's "
+                        "and a binding's TOML table" } } } },
             .handler = &runSetValue,
+        });
+        f4cf::devbench::addAction({
+            .name = "clientSetValue",
+            .description = "set a setting's pending value as this mod's own native client does through the API, as a mod's own UI hands its edits back: "
+                           "the menu takes it only while it shows Mods Config FO4 VR, open or minimized, and not while its dialog asks. set is false for one "
+                           "it refused, and the log says why; a live one is told back to the client, which previews it",
+            .handler = &runClientSetValue,
         });
         f4cf::devbench::addAction({
             .name = "reset",

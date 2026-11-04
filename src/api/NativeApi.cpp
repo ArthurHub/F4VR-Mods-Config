@@ -60,6 +60,11 @@ namespace
                 menu.requestReadAgain(*name);
             }
         }
+
+        bool setPendingValue(api::IClient* client, const char* settingId, const api::SettingValue* value) const override
+        {
+            return g_modsConfig.menu().nativeClients().setPendingValue(client, settingId, value);
+        }
     };
 
     // the API, which is the same for the whole run of the game

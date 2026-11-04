@@ -90,7 +90,7 @@ A mod that changes its own values while its menu is open, as FRIK's own UI saves
 Only one mod has an active editing session.
 
 1. Selecting a mod reads its files, globals, properties and its client's states, and captures the values as the session baseline.
-2. Player edits update a pending model.
+2. Player edits update a pending model, and so do the edits a mod's own UI hands back; see [The mod's own UI](#the-mods-own-ui).
 3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host, and then sent to the client too, which can do what more it needs. A state of the client is sent to the client, which applies it.
 4. The minimized menu retains the same session.
 5. Save establishes a new baseline.
@@ -196,6 +196,7 @@ namespace mods_config::api
         virtual void minimizeMenu() const = 0;
         virtual void restoreMenu() const = 0; // only while it is minimized, and reads the shown mod's values again
         virtual void reloadValues(IClient* client) const = 0; // reads its mod's values again, while it is shown
+        virtual bool setPendingValue(IClient* client, const char* settingId, const SettingValue* value) const = 0; // as the player's edit
 
         [[nodiscard]] static int initialize(std::uint32_t minVersion = MODS_CONFIG_FO4_API_VERSION);
         inline static const ModsConfigFO4ApiV1* inst = nullptr;
@@ -295,7 +296,7 @@ client.addState("pipboyType",
 - A setter applies, and does not persist. A mod that keeps the value after the game is restarted writes it in its handler of the Saves, which a preview does not reach.
 - A setter cannot refuse a value: the host has checked it against its setting, and by the time a Save tells the client, it has written its files.
 - A state with no setter is not changed, and its setting is `readOnly`. The host cannot see a setter, so a setting that is not marked so is edited, and its changes reach no setter.
-- The mod tells the menu a change it made itself, as its own UI's, with `reloadValues`: a clean setting takes the new value, and a pending one stays the player's.
+- The mod tells the menu a change it saved itself with `reloadValues`: a clean setting takes the new value, and a pending one stays the player's. Its own UI hands its edits back with `setPendingValue` instead; see [The mod's own UI](#the-mods-own-ui).
 
 ### The mod's own UI
 
@@ -304,6 +305,9 @@ A mod's own UI is opened by a function of its client, from a button of its confi
 - `minimizeMenu` as it opens its UI. A minimized menu keeps its editing session, so a pending change stays pending. A function whose UI does not open does not minimize it, and its message says why.
 - `restoreMenu` as its UI closes. It shows the menu where it was, and only while it is minimized: a player who has pressed `Restore` on the wrist or closed the menu is not shown it again. A UI that never calls it leaves the menu minimized, and `Restore` shows it.
 - `restoreMenu` reads the values of the shown mod again, as its UI can have changed them: a clean setting takes the value of its file, its global or its property, and a pending one stays the player's, as Save keeps it. `reloadValues` does the same for a client whose mod changes its values at another time while it is shown, as with a hotkey.
+- A UI that edits settings of the mod's config spec hands its edits back to the menu with `setPendingValue`, and does not save them itself. Two saves of the same settings would have the menu's Save write its pending value over the UI's, so the menu owns the whole edit: the UI's edits are pending as the player's are, with their dirty markers, and the menu's Save, Discard and Reset cover them, with one Save and its batch to the client. FRIK's calibration, which saves itself, has the menu read its values again instead.
+
+`setPendingValue` sets a value of a setting by its id, in its valueType, as the player's edit is set: a color, a transform and a binding are the text of their TOML table. It is taken only while the menu, shown or minimized, shows the client's mod, and not while the unsaved-changes dialog asks. A value that is the baseline makes the setting clean again. A `live` one is told back to the client with `onChange`, a Preview, or a Discard back at the baseline, as a player's edit is, so the framework's adapter keeps it as an override and a Discard of the menu takes it back. A call from inside the client's `onChange` or `onSaved` is refused: the change it sets would reach the client's later handlers before the one they are being told, so they would keep the older value, and a client that hands back what it is told would loop. Unlike a player's text, a value that is no value of its setting, as one outside its limits or no option of its choice, is not kept as pending and invalid: it is refused. The call returns false, with nothing changed and why in the menu's log, for that, a call from inside those handlers, an id the config spec has no setting of, a read-only setting, one that is not available, and a value of another type. Each call sets one value: a UI that changes several calls it for each.
 - `openMenu` opens the menu at a mod and at a page of it by its `id`, at the mod's front page with no page, or at the menu's front page with no mod. A mod's wrist button or holotape opens its settings this way. While the menu is open on a mod with unsaved changes, the unsaved-changes dialog asks first. A mod or a page that is not there opens nothing, and the call returns false.
 
 The header's C++ client adds a quick launch entry with its function, so an entry always has one, and has the calls of the menu. A quick action is a function that does its work and returns its message; one that opens a UI minimizes the menu, and the mod restores it from whatever ends the UI:
@@ -475,6 +479,8 @@ A preview therefore does what a reload of the config file does, and no more. A m
 The framework registers the adapter for every mod, under the mod's own name, whether or not the mod ships a config spec. The mod's config spec uses that name as its `modName`. This is the name the framework uses for the mod's log and config, which is not always its F4SE plugin name: FRIK's `modName` is `frik`, and its F4SE plugin name, `F4VRBody`, goes in `f4sePluginRequirements`.
 
 A CommonFramework mod that has a config UI of its own adds it to the header's C++ client, which the framework connects: it is a function and a quick launch entry, with the menu minimized and restored around it; see [The mod's own UI](#the-mods-own-ui).
+
+A UI of its own that hands its edits back with `setPendingValue` has each `live` one come back as a preview, which reloads the config with the overrides: a value the UI changed in the config and has not handed over yet is dropped by that reload. So the UI hands over each value as it changes it, or all of them at once as it closes, before it reloads the config itself.
 
 The framework side of this is listed in [CommonFramework work required](framework-requirements.md).
 

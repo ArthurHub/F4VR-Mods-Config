@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
+#include <expected>
 #include <format>
 #include <functional>
 #include <memory>
@@ -406,6 +407,75 @@ TEST_CASE("NativeClients: a client is told a change of a live setting with where
     REQUIRE(clients.add("Broken", broken));
     clients.calls.sendChange("Broken", scaleChange());
     CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
+}
+
+TEST_CASE("NativeClients: a client sets a pending value of its mod in the model's type, but not from its onChange or onSaved, or when it is not registered or is cut off")
+{
+    Clients clients;
+    std::vector<std::string> set;
+    std::string refusal;
+    clients.clients.setPendingValueAction(
+        [&set, &refusal](const std::string_view modName, const std::string_view id, const model::Value& value) -> std::expected<void, std::string> {
+            if (!refusal.empty()) {
+                return std::unexpected(refusal);
+            }
+            set.push_back(std::format("{} {} {}",
+                modName,
+                id,
+                std::visit(
+                    []<typename T>(const T& typed) {
+                        return std::format("{}", typed);
+                    },
+                    value)));
+            return {};
+        });
+    FakeClient client;
+    REQUIRE(clients.add("MyMod", client));
+    const api::SettingValue scale{ .type = api::ValueType::Float, .floatValue = 1.5f };
+    const api::SettingValue name{ .type = api::ValueType::String, .text = "You" };
+    CHECK(clients.clients.setPendingValue(&client, "fScale:Main", &scale));
+    CHECK(clients.clients.setPendingValue(&client, "sName:Main", &name));
+    CHECK(set == std::vector<std::string>{ "MyMod fScale:Main 1.5", "MyMod sName:Main You" });
+
+    // the menu's refusal, and a call with no id, no value, or a text with none
+    refusal = "the menu does not show its mod";
+    CHECK_FALSE(clients.clients.setPendingValue(&client, "fScale:Main", &scale));
+    refusal.clear();
+    const api::SettingValue noText{ .type = api::ValueType::String };
+    CHECK_FALSE(clients.clients.setPendingValue(&client, nullptr, &scale));
+    CHECK_FALSE(clients.clients.setPendingValue(&client, "fScale:Main", nullptr));
+    CHECK_FALSE(clients.clients.setPendingValue(&client, "sName:Main", &noText));
+
+    // one from inside its onChange or onSaved, and one after them is set
+    bool fromChange = true;
+    bool fromSave = true;
+    client.change = [&clients, &client, &scale, &fromChange](const api::SettingChange*) {
+        fromChange = clients.clients.setPendingValue(&client, "fScale:Main", &scale);
+    };
+    client.saved = [&clients, &client, &scale, &fromSave](const api::SaveBatch*) {
+        fromSave = clients.clients.setPendingValue(&client, "fScale:Main", &scale);
+    };
+    clients.calls.sendChange("MyMod", scaleChange());
+    clients.calls.sendSave("MyMod", model::SaveBatch{});
+    CHECK_FALSE(fromChange);
+    CHECK_FALSE(fromSave);
+    CHECK(clients.clients.setPendingValue(&client, "fScale:Main", &scale));
+    CHECK(set.size() == 3);
+
+    // a client that is not registered, and one that is cut off
+    FakeClient other;
+    CHECK_FALSE(clients.clients.setPendingValue(&other, "fScale:Main", &scale));
+    client.event = [](const api::MenuEvent*) {
+        throw std::runtime_error("the client's bug");
+    };
+    clients.calls.send("MyMod", model::ClientEvent::ModShown);
+    CHECK_FALSE(clients.clients.setPendingValue(&client, "fScale:Main", &scale));
+    CHECK(set.size() == 3);
+}
+
+TEST_CASE("ModsConfigFO4Api: the C++ client sets no pending value while it is not connected")
+{
+    CHECK_FALSE(api::ModsConfigFO4Client::get().setPendingValue("fScale:Main", 1.5f));
 }
 
 TEST_CASE("ModsConfigFO4Api: the C++ client hands a change to its handlers in its own types")

@@ -50,6 +50,7 @@ namespace mods_config::spec
      * game is restarted.
      * A setting can be kept in a state of the mod's client, which the client answers as the mod is selected and applies
      * as it is told a change: a preview of a `live` one, its Discard, and what a Save wrote. The store writes nothing.
+     * The mod's client can set a pending value as the player does, as its own UI hands its edits back: only a valid one.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
      */
     class ConfigSpecStore : public model::Store
@@ -103,6 +104,7 @@ namespace mods_config::spec
         void startFrame() override;
         void showPage(const model::Page* page) override;
         void readAgain() override;
+        std::expected<void, std::string> setPendingValue(std::string_view modName, std::string_view id, const model::Value& value);
         std::string notRunnable(const model::Action& action) const override;
         std::string notPreviewed(const model::Setting& setting) const override;
         model::ActionResult run(const model::Action& action) override;

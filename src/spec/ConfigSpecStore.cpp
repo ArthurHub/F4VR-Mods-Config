@@ -558,6 +558,25 @@ namespace
     }
 
     /**
+     * Whether a value is of the type a setting keeps, as a client gives it: no number is cast, so a whole number is no
+     * value of a float.
+     */
+    bool isOfType(const model::Value& value, const model::StoredType type)
+    {
+        switch (type) {
+        case model::StoredType::Bool:
+            return std::holds_alternative<bool>(value);
+        case model::StoredType::Int:
+            return std::holds_alternative<int>(value);
+        case model::StoredType::Float:
+            return std::holds_alternative<float>(value);
+        case model::StoredType::String:
+            break;
+        }
+        return std::holds_alternative<std::string>(value);
+    }
+
+    /**
      * The value a setting keeps in the game now, in the type of its value, or why it is not available, as
      * `the global MyMod.esp|800 is not in the game`: its global or its property is not in the game, or keeps
      * no value of the setting's type, as a global, which keeps a number, does not for a setting of a text.
@@ -1337,6 +1356,46 @@ namespace mods_config::spec
             }
         }
         logger::info("Read the values of '{}' again", _modName);
+    }
+
+    /**
+     * Sets a pending value the mod's client hands the menu, of a setting by its id, in its valueType, as the player's
+     * edit is set: a `live` one is previewed and told to the client. Unlike the player's, a value that is no value of its
+     * setting is not set. The result says why one is not: its mod is not the session's, the id is no setting's, the
+     * setting is read-only or not available, or the value is of another type or no value of the setting.
+     */
+    std::expected<void, std::string> ConfigSpecStore::setPendingValue(const std::string_view modName, const std::string_view id, const model::Value& value)
+    {
+        if (!_mod || common::str_tolower(std::string(modName)) != common::str_tolower(_modName)) {
+            return std::unexpected(std::string("the menu does not show its mod"));
+        }
+        const auto found = _settings.find(id);
+        if (found == _settings.end()) {
+            return std::unexpected(std::string("its config spec has no setting of that id"));
+        }
+        const auto& setting = *found->second;
+        if (setting.readOnly) {
+            return std::unexpected(std::string("the setting is read-only"));
+        }
+        if (const auto& entry = _entries.at(&setting); !entry.notAvailable.empty()) {
+            return std::unexpected(entry.notAvailable);
+        }
+        if (!isOfType(value, setting.valueType)) {
+            return std::unexpected(std::format("{} is not of the setting's valueType", valueText(value)));
+        }
+        const auto& options = _options.of(setting);
+        auto typed = controlValue(setting, options, value).and_then([&setting](const model::Value& control) {
+            return typedValue(setting, control);
+        });
+        if (!typed) {
+            return std::unexpected(std::format("{} is not a value its control shows", valueText(value)));
+        }
+        typed = asFileOption(setting, options, std::move(*typed));
+        if (auto reason = typedReason(setting, options, *typed); !reason.empty()) {
+            return std::unexpected(std::move(reason));
+        }
+        set(setting, *typed);
+        return {};
     }
 
     /**

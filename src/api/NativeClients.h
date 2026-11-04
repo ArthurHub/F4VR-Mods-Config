@@ -1,6 +1,7 @@
 #pragma once
 
 #include <expected>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -32,9 +33,21 @@ namespace mods_config::api
             _translations = translations;
         }
 
+        /**
+         * What sets a pending value a client hands the menu, of a setting of its mod by its id: why it is not set, for
+         * the log.
+         */
+        using PendingValueAction = std::function<std::expected<void, std::string>(std::string_view modName, std::string_view id, const model::Value& value)>;
+
+        void setPendingValueAction(PendingValueAction action)
+        {
+            _pendingValueAction = std::move(action);
+        }
+
         bool registerClient(const char* name, std::uint32_t version, IClient* client);
         bool addQuickLaunch(const IClient* client, const char* text, const char* help, const char* buttonText, const char* functionName);
         const std::string* nameOf(const IClient* client) const;
+        bool setPendingValue(const IClient* client, const char* settingId, const SettingValue* value) const;
 
     private:
         /**
@@ -48,6 +61,9 @@ namespace mods_config::api
 
             // a call of it failed, so nothing of it is called again until the game is restarted
             bool cutOff = false;
+
+            // the menu tells it a change or a Save now, during which it sets no pending value
+            bool beingTold = false;
         };
 
         bool hasFunction(Registered& registered, std::string_view name) const;
@@ -63,6 +79,7 @@ namespace mods_config::api
 
         model::ClientCalls& _calls;
         const model::Translations* _translations = nullptr;
+        PendingValueAction _pendingValueAction;
 
         // each kept where it is, as its calls point to it
         std::vector<std::unique_ptr<Registered>> _clients;
