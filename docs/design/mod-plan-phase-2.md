@@ -232,16 +232,15 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | --- | ---- | ----------------------------------------------------------------------- | ------ |
 | M136 | mod | docs: an MCM change is made as it is made, and Discard sets it back     | done   |
 | M137 | mod | design system: the Help page and the buttons of an MCM mod              | done   |
-| M138 | mod | An MCM change is made as it is made, and Discard sets it back           | in review |
-| M139 | mod | An MCM mod has the MCM tag in the tree                                  | in review |
-| M140 | mod | An MCM mod's Save bar says Keep and Revert                              | in review |
-| M141 | mod | A config spec's button has a style and an icon                          | in review |
-| M82 | mod  | The version rules of the config spec schema and of the native API           | todo   |
+| M138 | mod | An MCM change is made as it is made, and Discard sets it back           | done |
+| M139 | mod | An MCM mod has the MCM tag in the tree                                  | done |
+| M140 | mod | An MCM mod's Save bar says Keep and Revert                              | done |
+| M141 | mod | A config spec's button has a style and an icon                          | done |
+| M82 | mod  | docs: the API and the config spec schema only grow from version 1.0     | done   |
 | M83 | mod  | An open session on a save load, a loading screen and the player's death | todo   |
 | M84 | mod  | The menu without FRIK, and without MCM                                  | todo   |
 | M85 | mod  | docs: the author's guide                                                | todo   |
 | M86 | mod  | A sample config spec                                                        | todo   |
-| M87 | mod  | Version 1.0.0                                                           | todo   |
 
 M136 to M138 make an MCM change as MCM's menu makes it, so the player sees it in the game: it writes the value, runs its row's action and sends MCM's event as it is made, and keeps the Save bar of M121. A setting the player changed is dirty while its value is not its baseline. Discard sets the dirty settings back in the reverse of the order they were changed, each as a change is made, with its action run again, so a preset that is set back sets its rows back, and a row's own Discard does the same for that setting alone. Save writes nothing, and sends the pause menu's events where the session wrote a ModSetting, so a DLL that reads MCM's file gets the changes at Save. A script's button of an MCM mod no longer asks to save first. M137 changes the Help page's MCM section and the text of what Save does, and M138 makes the store, with its tests. See [MCM compatibility](architecture.md#mcm-compatibility).
 
@@ -251,7 +250,7 @@ M140 names what an MCM mod's Save bar does: its Save writes nothing, so Keep and
 
 M141 lets a config spec make a button stand out: `important` draws it in the accent color and `dangerous` in red, which always asks first, with a confirmation made from the button where it has none. A button can have one of the menu's 18 drawn icons, and an `OpenURL` has `link`. See [ButtonRow](design-system/project/components/ButtonRow/README.md).
 
-The config spec format and the native API are public from this release, so M82 settles how both change later.
+M82 settles how the config spec schema and the native API change: as the milestones need them until version 1.0 of the mod, and after it they only grow, so a config spec and a client of an older version keep working. Version 1.0 is set later, not with this release.
 
 A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 12.
 

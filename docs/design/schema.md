@@ -1,6 +1,6 @@
 # Declarative schema
 
-This document describes the current direction of the Mods Config FO4 VR declarative JSON format. It is a design specification, not a frozen versioned schema.
+This document describes the current direction of the Mods Config FO4 VR declarative JSON format. It changes as the work needs it until version 1.0 of the mod, and from then it only grows, as [Schema version](#schema-version) has it.
 
 A config spec has what an MCM config has, by MCM's names wherever MCM has the same thing, and more. [A config spec and MCM](#a-config-spec-and-mcm) lists the differences.
 
@@ -71,6 +71,7 @@ The schema has one version number, and it only grows. A config spec ships with i
 
 - `minSchemaVersion` is the lowest version that has everything the config spec uses. It is required, a whole number from 1: a config spec without it is not loaded, and the error is reported.
 - On a host below that version the config spec's mod is [not available](ui-and-vr-interaction.md#notices), and the reason names the version it needs.
+- Until version 1.0 of the mod the schema stays at version 1 and changes as the work needs it. From 1.0 these rules hold.
 - A field or a control type added after version 1 is documented with the version that added it.
 - A field the host does not know is reported in diagnostics, and the rest of the config spec is read. A typo is noticed, and a config spec that uses a newer field than its `minSchemaVersion` says still works on an older host, without that field.
 

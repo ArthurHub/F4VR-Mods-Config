@@ -168,10 +168,9 @@ The header has a C++ layer over the interfaces, `ModsConfigFO4Client`, which is 
 
 ### Versions
 
-- `V1` in the names changes only with a change that breaks a client. A V2 is another interface and another export, and the DLL keeps the export of V1 beside it, so a client built for V1 keeps working.
-- Within V1, `getVersion` counts what was added: a method is only added at the end of an interface, and a struct only grows at its end. A client connects to any menu of V1, and uses what a later version added after it checks the menu's version (the header's client's `apiVersion()`), so a client of a newer header keeps working with an older menu. One that does not work at all with an older menu asks `connect` for the version it needs, and an older menu is not connected to.
+- The API only grows: a method is only added at the end of an interface, and a struct only grows at its end, and nothing is changed or removed. `getVersion` counts what was added. A client connects to any menu of V1, and uses what a later version added after it checks the menu's version (the header's client's `apiVersion()`), so a client of a newer header keeps working with an older menu. One that does not work at all with an older menu asks `connect` for the version it needs, and an older menu is not connected to.
 - A client gives the version of its header as it registers, so the host calls only the methods of `IClient` that client has.
-- The version is 1 at the first release, and V1 changes as the milestones need it until then, so a client is built again with the header of the menu it runs with. How the API and the schema change after it is [M82](mod-plan-phase-2.md#11-first-release)'s.
+- Until version 1.0 of the mod, V1 changes as the milestones need it and its version stays 1, so a client is built again with the header of the menu it runs with. From 1.0 it only grows, as above.
 
 ### The API
 
