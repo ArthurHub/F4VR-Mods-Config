@@ -240,6 +240,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M142 | mod | A mod's own UI hands its edits back to the menu as pending values       | done   |
 | M83 | mod  | docs: a loading screen ends the editing session                         | done   |
 | M84 | mod  | The menu without FRIK, and without MCM                                  | done   |
+| M146 | mod | A color's editor has basics and its config spec's presets              | done |
 | M85 | mod  | docs: the author's guide                                                | todo   |
 | M86 | mod  | A sample config spec                                                        | todo   |
 
@@ -254,6 +255,8 @@ M141 lets a config spec make a button stand out: `important` draws it in the acc
 M82 settles how the config spec schema and the native API change: as the milestones need them until version 1.0 of the mod, and after it they only grow, so a config spec and a client of an older version keep working. Version 1.0 is set later, not with this release.
 
 M142 adds `setPendingValue` to the native API, so a mod's own UI that edits settings of its config spec hands its edits back to the menu instead of saving them, and the menu's Save is the one write. Immersive Flashlight's beam tuning drops its own Save for it, in the mod's repo. A value is set as the player's edit, and told back to a `live` setting's client; one that is no value of its setting is refused. See [The mod's own UI](architecture.md#the-mods-own-ui).
+
+M146 adds swatches to a color's editor, each of which a press sets: five basics in its footer, white, black, red, green and blue, which every color has, and a line of presets under the picker, which the config spec gives a color in its `presets`, or names a list of its root's `sharedPresetLists` with `sharedPresets`, as Immersive Flashlight's whites. A preset with no alpha keeps the color's, and the line holds 12. The config spec showcase gets a color of its own presets, two lights of a shared list, and a list that is not there among its mistakes. See [CommonFramework values](schema.md#commonframework-values) and [Color](design-system/project/components/Color/README.md).
 
 A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 12.
 

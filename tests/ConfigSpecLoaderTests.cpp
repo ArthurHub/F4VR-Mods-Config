@@ -2126,6 +2126,74 @@ TEST_CASE("ConfigSpecLoader: a color is the text of its table, with its default 
               "E In an INI file: A color is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
 }
 
+TEST_CASE("ConfigSpecLoader: a color's presets are its own or a shared list's, with their names, and one that is no color is left out")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "sharedPresetLists": {
+            "Lights": [ { "rgb": [255, 180, 107], "text": "Warm white" }, { "rgb": [255, 228, 206] }, { "alpha": 10 } ]
+        },
+        "content": [
+            { "type": "cf.color", "text": "Ray", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "path": ["Pointer", "cRay"] },
+              "valueOptions": { "presets": [ { "rgb": [255, 0, 0], "alpha": 100, "text": "Faint red" }, "blue", { "rgb": [300, 0, 0] }, { "rgb": [0, 0, 255], "name": "Blue" } ] } },
+            { "type": "cf.color", "text": "Light", "default": { "rgb": [255, 214, 170] }, "storage": { "path": ["Light", "cColor"] },
+              "valueOptions": { "alpha": false, "sharedPresets": "lights" } },
+            { "type": "cf.color", "text": "Both", "default": { "rgb": [255, 214, 170] }, "storage": { "path": ["Light", "cBoth"] },
+              "valueOptions": { "presets": [ { "rgb": [0, 0, 0] } ], "sharedPresets": "Lights" } },
+            { "type": "cf.color", "text": "No list", "default": { "rgb": [255, 214, 170] }, "storage": { "path": ["Light", "cNoList"] },
+              "valueOptions": { "sharedPresets": "Lamps" } },
+            { "type": "cf.color", "text": "None", "default": { "rgb": [255, 214, 170] }, "storage": { "path": ["Light", "cNone"] } }
+        ]
+    })");
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 5);
+    const auto presetsOf = [](const model::Setting& setting) {
+        Lines lines;
+        for (const auto& preset : setting.valueOptions.presets) {
+            lines.push_back(std::format("{} {} {} {}{}", preset.rgb[0], preset.rgb[1], preset.rgb[2], preset.alpha ? std::format("{} ", *preset.alpha) : "", preset.text));
+        }
+        return lines;
+    };
+    CHECK(presetsOf(settings[0]) == Lines{ "255 0 0 100 Faint red", "0 0 255 " });
+    // a shared list is named in any case
+    CHECK(presetsOf(settings[1]) == Lines{ "255 180 107 Warm white", "255 228 206 " });
+    CHECK(presetsOf(settings[2]) == Lines{ "0 0 0 " });
+    CHECK(settings[3].valueOptions.presets.empty());
+    CHECK(settings[4].valueOptions.presets.empty());
+    CHECK(problemLines(mod) ==
+          Lines{ "E Ray: Preset 2 is left out: it is not an object as { \"rgb\": [255, 180, 107], \"text\": \"Warm white\" }. [Ray] content[0].valueOptions.presets[1]",
+              "E Ray: Preset 3 is left out: rgb has a number that is not a whole number in 0..255. [Ray] content[0].valueOptions.presets[2]",
+              "W Ray: Unknown field \"name\": it is not read. [Ray] content[0].valueOptions.presets[3].name",
+              "E Light: Preset 3 of the shared list \"lights\" is left out: it has no rgb. [Light] content[1].valueOptions",
+              "W Both: It has its own presets and names a shared list of them too: its own presets are used. [Both] content[2].valueOptions.sharedPresets",
+              "W No list: It names \"Lamps\", which is no list of the config spec's sharedPresetLists: it has no presets. [No list] content[3].valueOptions.sharedPresets" });
+}
+
+TEST_CASE("ConfigSpecLoader: a color has 12 presets at the most, and the rest are left out")
+{
+    std::string presets;
+    for (int i = 0; i < 14; ++i) {
+        presets += std::format("{}{{ \"rgb\": [{}, 0, 0] }}", presets.empty() ? "" : ", ", i);
+    }
+    const auto mod = loaded(std::format(R"({{
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": {{ "main": {{ "format": "toml", "root": "myGames", "path": "MyMod.toml" }} }},
+        "defaultFile": "main",
+        "content": [
+            {{ "type": "cf.color", "text": "Ray", "default": {{ "rgb": [190, 255, 190] }}, "storage": {{ "path": ["Pointer", "cRay"] }},
+              "valueOptions": {{ "presets": [ {} ] }} }}
+        ]
+    }})",
+        presets));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 1);
+    REQUIRE(settings[0].valueOptions.presets.size() == 12);
+    CHECK(settings[0].valueOptions.presets.back().rgb[0] == 11);
+    CHECK(problemLines(mod) == Lines{ "W Ray: It has 14 presets, and its editor shows 12 at the most: the rest are left out. [Ray] content[0].valueOptions" });
+}
+
 namespace
 {
     // a config spec of one TOML file, of which `rows` is the content

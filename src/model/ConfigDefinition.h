@@ -148,6 +148,20 @@ namespace mods_config::model
     };
 
     /**
+     * A preset of a color, which a press in its editor sets: its red, green and blue, its alpha where it has one, which
+     * only a color with an alpha takes, and its name for the help line, empty for none.
+     */
+    struct ColorPreset
+    {
+        std::array<int, 3> rgb{};
+        std::optional<int> alpha;
+        std::string text;
+    };
+
+    // the most presets of a color, as many as the line of its editor holds
+    constexpr std::size_t MAX_COLOR_PRESETS = 12;
+
+    /**
      * What the value of a setting can be: the range of a slider and of a text input of a number, the length of
      * a text input of a text, or the options of a stepper and a dropdown.
      */
@@ -190,6 +204,10 @@ namespace mods_config::model
         // a color has an opacity, which a color whose opacity means nothing, as a light's, has not
         // (`"alpha": false`): it is RGB only
         bool alpha = true;
+
+        // the line of presets of a color's editor, as its config spec's `presets` or `sharedPresets` gives them, and
+        // none for a color with no line. The basics of the editor's footer are the editor's own
+        std::vector<ColorPreset> presets;
 
         // the axes of a transform, as its config spec's `position`, `rotation` and `scale` have them
         std::array<TransformAxis, TRANSFORM_AXES> transformAxes{};

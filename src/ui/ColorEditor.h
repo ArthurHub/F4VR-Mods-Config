@@ -30,7 +30,7 @@ namespace mods_config::ui
 
     /**
      * The editor of the color settings of the page that is shown, as the design system's Color has it: a popup in the
-     * page, under the color's row or over it, with a picker and a slider for each channel. Each change sets the color's
+     * page, under the color's row or over it, with a picker, a slider for each channel, and swatches of presets. Each change sets the color's
      * pending value in the store as it is made, so a `live` color is previewed as it is dragged. Done, or a press beside
      * the editor, keeps it, and Cancel and Back give back the value it had when it opened.
      * It points into the page that is shown, so it is reset as another page is.

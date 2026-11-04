@@ -305,6 +305,11 @@ svg.mc-ico .dot { fill: currentColor; stroke: none; }
 .mc-chan .mc-value { flex: none; }
 .mc-chan.is-hover { background: var(--hover); box-shadow: 0 0 0 var(--border-frame) var(--frame-border); border-radius: var(--radius-frame); }
 .mc-coloredit.is-rgb { height: 358px; }
+.mc-coloredit.is-presets { height: 474px; }
+.mc-coloredit .presets { position: relative; display: flex; gap: var(--space-2); }
+.mc-coloredit .foot .basics { display: flex; gap: var(--space-2); margin-right: auto; }
+.mc-swatch.is-preset { width: var(--control-height); height: var(--control-height); }
+.mc-swatch.is-preset.is-hover { border-color: var(--green); }
 
 /* ---------- input binding: the framework's icon and a sentence, and an editor of its parts ---------- */
 /* the icon: the framework's white texture, tinted with the text's color (a mask stands in for ImGui's tint) */

@@ -13,9 +13,11 @@ namespace
 {
     using namespace mods_config;
 
-    // The sizes of the editor that are not tokens of the design system, in the panel's pixels.
+    // The sizes of the editor that are not tokens of the design system, in the panel's pixels. A color with presets has
+    // the line of them under the picker, which makes it taller
     constexpr float EDITOR_WIDTH = 717.0f;
     constexpr float EDITOR_HEIGHT = 414.0f;
+    constexpr float PRESETS_HEIGHT = theme::CONTROL_HEIGHT + theme::SPACE_3;
 
     // the swatches of the header, Before and Now
     constexpr float BIG_SWATCH_WIDTH = 96.0f;
@@ -44,6 +46,23 @@ namespace
     {
         std::string_view name;
         std::string_view help;
+    };
+
+    /**
+     * A color of the editor's footer, which every color has: its red, green and blue, and its name.
+     */
+    struct Basic
+    {
+        std::array<int, 3> rgb;
+        std::string_view name;
+    };
+
+    constexpr std::array BASICS{
+        Basic{ { 255, 255, 255 }, "White" },
+        Basic{ { 0, 0, 0 }, "Black" },
+        Basic{ { 255, 0, 0 }, "Red" },
+        Basic{ { 0, 255, 0 }, "Green" },
+        Basic{ { 0, 0, 255 }, "Blue" },
     };
 
     constexpr std::array CHANNELS{
@@ -155,8 +174,10 @@ namespace mods_config::ui
      * one that is no color starts from its default. The editor is a popup in the page, under the row, or over it where
      * the page has no room under it, or as near as it fits: never over the title bar and the footer.
      * The picker sets the red, the green and the blue at once, and a channel's slider its channel, which the trigger
-     * drags and the thumbstick steps by 1. Each change sets the color in the store as it is made, with the keys its value
-     * had and the key of the part that changed. Before gives back the color it had as it opened.
+     * drags and the thumbstick steps by 1. A swatch sets its color: one of the config spec's presets, in a line under
+     * the picker, or one of the basics of the footer, which every color has. Each change sets the color in the store as
+     * it is made, with the keys its value had and the key of the part that changed. Before gives back the color it had
+     * as it opened.
      * Returns the part the ray is on, for the help line, and whether a press did something.
      */
     ColorEdited ColorEditor::edit(const model::Setting& setting, model::Store& store, const ImRect& row, const bool pressed)
@@ -185,16 +206,18 @@ namespace mods_config::ui
         _openSeen = true;
 
         const bool alpha = setting.valueOptions.alpha;
+        const auto& presets = setting.valueOptions.presets;
+        const float height = EDITOR_HEIGHT + (presets.empty() ? 0.0f : PRESETS_HEIGHT);
         const auto& page = ImGui::GetCurrentWindow()->InnerRect;
         const float left = std::clamp(std::floor(row.GetCenter().x - EDITOR_WIDTH * 0.5f), page.Min.x, (std::max)(page.Min.x, page.Max.x - EDITOR_WIDTH));
-        float top = (std::max)(page.Min.y, page.Max.y - EDITOR_HEIGHT);
-        if (row.Max.y + EDITOR_HEIGHT <= page.Max.y) {
+        float top = (std::max)(page.Min.y, page.Max.y - height);
+        if (row.Max.y + height <= page.Max.y) {
             top = row.Max.y;
-        } else if (row.Min.y - EDITOR_HEIGHT >= page.Min.y) {
-            top = row.Min.y - EDITOR_HEIGHT;
+        } else if (row.Min.y - height >= page.Min.y) {
+            top = row.Min.y - height;
         }
         ImGui::SetNextWindowPos(ImVec2(left, top));
-        ImGui::SetNextWindowSize(ImVec2(EDITOR_WIDTH, EDITOR_HEIGHT));
+        ImGui::SetNextWindowSize(ImVec2(EDITOR_WIDTH, height));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_4, theme::SPACE_4));
         ImGui::PushStyleColor(ImGuiCol_Border, theme::color::GREEN);
         const bool shown = ImGui::BeginPopupEx(id,
@@ -326,13 +349,53 @@ namespace mods_config::ui
         }
         _sliders.endFrame();
 
+        // a swatch a press on which sets its color: its red, green and blue, and its alpha where it has one and the
+        // setting has an alpha. One with no alpha keeps the color's, and is drawn opaque
+        const auto preset = [&](const int place, const ImRect& box, const std::array<int, 3>& rgb, const std::optional<int> presetAlpha, const std::string_view name) {
+            const bool hasAlpha = alpha && presetAlpha;
+            const auto color = render::Color::rgba(rgb[0], rgb[1], rgb[2], hasAlpha ? *presetAlpha : _color.bytes()[3]);
+            ImGui::PushID(place);
+            ImGui::SetCursorScreenPos(box.Min);
+            if (ImGui::InvisibleButton("preset", box.GetSize())) {
+                _color = color;
+                apply(setting, store, true, hasAlpha);
+                edited.pulse = true;
+            }
+            const bool over = ImGui::IsItemHovered();
+            ImGui::PopID();
+            drawSwatch(box, color, hasAlpha);
+            if (over) {
+                drawOutline(box.Min, box.Max, theme::color::GREEN);
+                point(name.empty() ? "Preset" : name, std::format("{}. Press it to set the color.", model::colorNumbers(color, hasAlpha)));
+            }
+        };
+        const auto swatchBox = [](const float left, const float top, const std::size_t place) {
+            const float x = left + static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_2);
+            return ImRect(x, top, x + theme::CONTROL_HEIGHT, top + theme::CONTROL_HEIGHT);
+        };
+
+        // the config spec's presets, in a line under the picker
+        const float presetsTop = bodyTop + PICKER_HEIGHT + theme::SPACE_3;
+        ImGui::PushID("presets");
+        for (std::size_t i = 0; i < presets.size(); ++i) {
+            preset(static_cast<int>(i), swatchBox(contentLeft, presetsTop, i), presets[i].rgb, presets[i].alpha, presets[i].text);
+        }
+        ImGui::PopID();
+
+        // the footer: the basics, and Cancel and Done, under a rule
+        const float footerTop = origin.y + height - theme::SPACE_4 - theme::CONTROL_HEIGHT;
+        const float ruleY = footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(contentLeft, ruleY), ImVec2(contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
+        ImGui::PushID("basics");
+        for (std::size_t i = 0; i < BASICS.size(); ++i) {
+            preset(static_cast<int>(i), swatchBox(contentLeft, footerTop, i), BASICS[i].rgb, std::nullopt, BASICS[i].name);
+        }
+        ImGui::PopID();
+
         // Now, as the color is after the changes of this frame
         drawSwatch(now, _color, alpha);
 
-        // the footer: Cancel and Done, under a rule
-        const float footerTop = origin.y + EDITOR_HEIGHT - theme::SPACE_4 - theme::CONTROL_HEIGHT;
-        const float ruleY = footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(contentLeft, ruleY), ImVec2(contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
+        // Cancel and Done, at the right of the footer
         const auto done = controlBox(contentRight - FOOTER_BUTTON_WIDTH, footerTop, FOOTER_BUTTON_WIDTH);
         const auto cancelBox = controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, footerTop, FOOTER_BUTTON_WIDTH);
         if (button("Cancel", cancelBox, ButtonLook::Quiet)) {

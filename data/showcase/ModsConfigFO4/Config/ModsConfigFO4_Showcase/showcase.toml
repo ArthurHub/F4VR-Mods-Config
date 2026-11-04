@@ -90,6 +90,7 @@ sNone = "none"
 cRay = { rgb = [190, 255, 190], alpha = 200 }
 cFaint = { rgb = [255, 120, 60], alpha = 40 }
 cLight = { rgb = [255, 214, 170] }
+cBeam = { rgb = [255, 228, 206] }
 
 [Transforms]
 tMesh = { pos = [9.37, -5.86, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }
@@ -236,6 +237,7 @@ kUntakenDefault = { hand = "primary", type = "tap", button = "grip" }
 kNoButton = { hand = "primary", type = "press", button = "grip" }
 sNoPattern = "Tick"
 cNoColor = { rgb = [255, 0, 0] }
+cNoPresets = { rgb = [255, 0, 0] }
 tNoTransform = { scale = 1.0 }
 tNoRange = { scale = 1.0 }
 tNoPart = { scale = 1.0 }

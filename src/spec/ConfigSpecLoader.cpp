@@ -150,8 +150,9 @@ namespace
         // the config spec's `modName`, which names the folders of a CommonFramework mod's assets
         std::string modName;
 
-        // the `sharedLists` of its root. None for a config spec with none
+        // the `sharedLists` and the `sharedPresetLists` of its root. None for a config spec with none
         const Json* sharedLists = nullptr;
+        const Json* sharedPresetLists = nullptr;
         const spec::PluginChecks& plugins;
 
         // where its files and its choices of files are, which a folder with no files is reported by. None for a config
@@ -279,7 +280,7 @@ namespace
     // A text the player sees, written as an object:
     constexpr std::array<std::string_view, 2> TEXT_FIELDS{ "token", "fallback" };
     // the config spec's root:
-    constexpr std::array<std::string_view, 14> ROOT_FIELDS{ "minSchemaVersion",
+    constexpr std::array<std::string_view, 15> ROOT_FIELDS{ "minSchemaVersion",
         "modName",
         "displayName",
         "help",
@@ -291,6 +292,7 @@ namespace
         "defaultFile",
         "applies",
         "sharedLists",
+        "sharedPresetLists",
         "content",
         "pages" };
     // a file of its `files`:
@@ -325,7 +327,7 @@ namespace
     // a key of a sphere's `keys`, written as an object:
     constexpr std::array<std::string_view, 8> SPHERE_KEY_FIELDS{ "text", "help", "default", "valueOptions", "applies", "visibleWhen", "enabledWhen", "warnings" };
     // a setting's parts:
-    constexpr std::array<std::string_view, 20> VALUE_OPTIONS_FIELDS{ "min",
+    constexpr std::array<std::string_view, 22> VALUE_OPTIONS_FIELDS{ "min",
         "max",
         "step",
         "options",
@@ -342,6 +344,8 @@ namespace
         "types",
         "buttons",
         "alpha",
+        "presets",
+        "sharedPresets",
         "position",
         "rotation",
         "scale" };
@@ -349,6 +353,7 @@ namespace
     constexpr std::array<std::string_view, 6> TRANSFORM_ROTATION_FIELDS{ "min", "max", "step", "heading", "roll", "attitude" };
     constexpr std::array<std::string_view, 3> TRANSFORM_RANGE_FIELDS{ "min", "max", "step" };
     constexpr std::array<std::string_view, 3> OPTION_FIELDS{ "value", "text", "help" };
+    constexpr std::array<std::string_view, 3> PRESET_FIELDS{ "rgb", "alpha", "text" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 4> LIST_FOLDER_FIELDS{ "root", "path", "mask", "noneText" };
     constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
@@ -903,6 +908,103 @@ namespace
     }
 
     /**
+     * A JSON value as the TOML text of the same value: an object is an inline table and an array an array, whose
+     * keys and texts JSON writes as TOML writes them, and a bool and a number are themselves. A null is none, which
+     * no TOML value reads.
+     */
+    std::string tomlText(const Json& value)
+    {
+        if (value.is_object()) {
+            std::string text;
+            for (const auto& [key, item] : value.items()) {
+                text += std::format("{}{} = {}", text.empty() ? "{ " : ", ", Json(key).dump(), tomlText(item));
+            }
+            return text.empty() ? "{}" : text + " }";
+        }
+        if (value.is_array()) {
+            std::string text;
+            for (const auto& item : value) {
+                text += std::format("{}{}", text.empty() ? "[" : ", ", tomlText(item));
+            }
+            return text.empty() ? "[]" : text + "]";
+        }
+        return value.is_null() ? std::string() : value.dump();
+    }
+
+    /**
+     * The presets of a color, from its `valueOptions`: its own `presets`, or the list of the config spec's
+     * `sharedPresetLists` its `sharedPresets` names, each a color's table with an optional `text`, as
+     * `{ "rgb": [255, 180, 107], "text": "Warm white" }`. A preset that is no color, or has no `rgb`, is left out, and so
+     * are those past the most the editor's line holds, each reported. A color with neither has no presets.
+     */
+    std::vector<model::ColorPreset> loadColorPresets(const Json& valueOptions, ConfigSpecReading& reading)
+    {
+        const auto own = valueOptions.find("presets");
+        const Json* list = own != valueOptions.end() ? &*own : nullptr;
+        std::string sharedName;
+        if (valueOptions.contains("sharedPresets")) {
+            const Into into(reading, "sharedPresets");
+            if (list) {
+                reading.report(model::Severity::Warning, "It has its own presets and names a shared list of them too: its own presets are used.");
+            } else {
+                sharedName = getText(valueOptions, "sharedPresets");
+                list = findSharedList(reading.sharedPresetLists, sharedName);
+                if (!list) {
+                    reading.report(model::Severity::Warning,
+                        std::format("It names \"{}\", which is no list of the config spec's sharedPresetLists: it has no presets.", sharedName));
+                    return {};
+                }
+            }
+        }
+        if (!list) {
+            return {};
+        }
+        const bool isOwn = sharedName.empty();
+        if (!list->is_array()) {
+            const auto which = isOwn ? "Its presets are"s : std::format("The shared list \"{}\" is", sharedName);
+            reading.report(model::Severity::Warning, std::format("{} not a list: it has no presets.", which));
+            return {};
+        }
+
+        std::vector<model::ColorPreset> presets;
+        for (std::size_t place = 0; place < list->size(); ++place) {
+            const auto& preset = (*list)[place];
+            std::optional<Into> into;
+            if (isOwn) {
+                into.emplace(reading, "presets", place);
+            }
+            const auto which = isOwn ? std::format("Preset {}", place + 1) : std::format("Preset {} of the shared list \"{}\"", place + 1, sharedName);
+            if (!preset.is_object()) {
+                reading.report(model::Severity::Error, std::format(R"({} is left out: it is not an object as {{ "rgb": [255, 180, 107], "text": "Warm white" }}.)", which));
+                continue;
+            }
+            if (isOwn) {
+                checkFields(preset, PRESET_FIELDS, reading);
+            }
+            // its color alone: a field that is not read is reported already
+            Json table = Json::object();
+            for (const auto* key : { "rgb", "alpha" }) {
+                if (const auto channel = preset.find(key); channel != preset.end()) {
+                    table[key] = *channel;
+                }
+            }
+            const auto color = model::parseColorTable(tomlText(table));
+            if (!color || !color->rgb) {
+                reading.report(model::Severity::Error, std::format("{} is left out: {}.", which, color ? "it has no rgb"s : color.error()));
+                continue;
+            }
+            presets.push_back(
+                { .rgb = *color->rgb, .alpha = color->alpha, .text = isOwn ? readShownText(preset, "text", reading) : getShownText(preset, "text", reading.translations) });
+        }
+        if (presets.size() > model::MAX_COLOR_PRESETS) {
+            reading.report(model::Severity::Warning,
+                std::format("It has {} presets, and its editor shows {} at the most: the rest are left out.", presets.size(), model::MAX_COLOR_PRESETS));
+            presets.resize(model::MAX_COLOR_PRESETS);
+        }
+        return presets;
+    }
+
+    /**
      * Where a choice reads its options in the game: a `listFromForm` names a FormList, as `MyMod.esp|900`, and a
      * `listFromProperty` a property of a script, by its `form`, its `propertyName` and its `scriptName`, which
      * is optional. A choice of an int stores the place of an option, and one of a string its text. None for a
@@ -1148,6 +1250,7 @@ namespace
         if (hasOptions && type == model::SettingType::Color) {
             const auto alpha = found->find("alpha");
             valueOptions.alpha = alpha == found->end() || !alpha->is_boolean() || alpha->get<bool>();
+            valueOptions.presets = loadColorPresets(*found, reading);
         }
         if (type == model::SettingType::Transform) {
             valueOptions.transformAxes = loadTransformAxes(hasOptions ? &*found : nullptr, reading);
@@ -1218,30 +1321,6 @@ namespace
         }
         const float number = whole ? static_cast<float>(*whole) : *point;
         return (number > options.min || common::fEqual(number, options.min)) && (number < options.max || common::fEqual(number, options.max));
-    }
-
-    /**
-     * A JSON value as the TOML text of the same value: an object is an inline table and an array an array, whose
-     * keys and texts JSON writes as TOML writes them, and a bool and a number are themselves. A null is none, which
-     * no TOML value reads.
-     */
-    std::string tomlText(const Json& value)
-    {
-        if (value.is_object()) {
-            std::string text;
-            for (const auto& [key, item] : value.items()) {
-                text += std::format("{}{} = {}", text.empty() ? "{ " : ", ", Json(key).dump(), tomlText(item));
-            }
-            return text.empty() ? "{}" : text + " }";
-        }
-        if (value.is_array()) {
-            std::string text;
-            for (const auto& item : value) {
-                text += std::format("{}{}", text.empty() ? "[" : ", ", tomlText(item));
-            }
-            return text.empty() ? "[]" : text + "]";
-        }
-        return value.is_null() ? std::string() : value.dump();
     }
 
     /**
@@ -2824,6 +2903,31 @@ namespace
     }
 
     /**
+     * Checks the presets of the config spec's shared preset lists once, as several colors can read one: the fields of a
+     * preset, and its text. A preset that is no color is reported as a color reads the list.
+     */
+    void checkSharedPresetLists(ConfigSpecReading& reading)
+    {
+        if (!reading.sharedPresetLists) {
+            return;
+        }
+        const Into into(reading, "sharedPresetLists");
+        for (const auto& [name, list] : reading.sharedPresetLists->items()) {
+            if (!list.is_array()) {
+                continue;
+            }
+            const Into intoList(reading, name);
+            for (std::size_t place = 0; place < list.size(); ++place) {
+                if (list[place].is_object()) {
+                    const Into intoPreset(reading, "", place);
+                    checkFields(list[place], PRESET_FIELDS, reading);
+                    std::ignore = readShownText(list[place], "text", reading);
+                }
+            }
+        }
+    }
+
+    /**
      * Whether a problem is before another in spec.json, by their paths: a place in a list is compared as a
      * number, so `content[2]` is before `content[10]`, and a path is before the paths in it. The keys of an
      * object have no order in the file the reader keeps, so they are in the order of their names.
@@ -2937,10 +3041,12 @@ namespace mods_config::spec
             return std::unexpected("No minSchemaVersion of a whole number from 1"s);
         }
         const auto sharedLists = configSpec.find("sharedLists");
+        const auto sharedPresetLists = configSpec.find("sharedPresetLists");
         ConfigSpecReading reading{ .translations = translations,
             .files = {},
             .modName = mod.name,
             .sharedLists = sharedLists != configSpec.end() && sharedLists->is_object() ? &*sharedLists : nullptr,
+            .sharedPresetLists = sharedPresetLists != configSpec.end() && sharedPresetLists->is_object() ? &*sharedPresetLists : nullptr,
             .plugins = plugins,
             .folders = folders,
             .settings = {},
@@ -2963,6 +3069,7 @@ namespace mods_config::spec
         reading.files = loadFiles(configSpec, reading);
         reading.fileValues = readFiles(reading.files, folders);
         checkSharedLists(reading);
+        checkSharedPresetLists(reading);
 
         // a setting that nothing says it of takes effect at a time the menu does not know
         const auto root = inherit(configSpec, Inherited{}, reading);

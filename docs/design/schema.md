@@ -34,6 +34,7 @@ One `spec.json` is supported per config spec: a config spec has no includes or f
   "defaultFile": "main",
   "applies": "live",
   "sharedLists": {},
+  "sharedPresetLists": {},
   "content": [],
   "pages": []
 }
@@ -52,6 +53,8 @@ One `spec.json` is supported per config spec: a config spec has no includes or f
 `help` is optional: what the mod is, shown in the help line while the ray is on the mod's row in the tree.
 
 `applies` is optional: when a change to a setting takes effect in the running mod, `unknown`, `live`, `save` or `restart`. See [When a change takes effect](#when-a-change-takes-effect).
+
+`sharedLists` and `sharedPresetLists` are optional: lists that several choices, or several colors, name. See [Shared lists](#shared-lists) and [CommonFramework values](#commonframework-values).
 
 `specVersion` is useful for diagnostics and config spec evolution but does not represent the installed mod's marketing version.
 
@@ -371,6 +374,20 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
   "storage": { "path": ["Pointer", "cRayColor"] }
 }
 ```
+
+Its editor has five basics in its footer, which every color has: white, black, red, green and blue, each of which keeps the color's alpha. A color can add a line of presets of its own, which suit what it colors, as a flashlight's whites: `presets` in its `valueOptions`, each written as its `default` is, with an optional `text`, its name in the help line. A preset with an `alpha` sets it on a color that has one, and one with none keeps the color's. A color whose `alpha` is false takes no alpha of a preset. The editor holds 12: those past it are left out, as is a preset that is no color or has no `rgb`, each reported.
+
+```json
+"valueOptions": {
+  "alpha": false,
+  "presets": [
+    { "rgb": [255, 180, 107], "text": "Warm white" },
+    { "rgb": [255, 228, 206], "text": "Cool white" }
+  ]
+}
+```
+
+A list that several colors use is written once, as a choice's options are: `sharedPresetLists` at the config spec's root holds each list by its name, and a color names one with `"sharedPresets": "lights"` in place of its own `presets`. A color with both uses its own, and a name of no list is a warning, and the color has the basics alone.
 
 `cf.transform` is where a mesh, a light or a zone sits on its node, the inline table of a `t` key, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, with the rotation in degrees and each key optional. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. A key the value leaves out is what the framework reads for it: no move, no rotation, a scale of 1. A changed value is written with the keys it had and the key of the part that changed. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
 

@@ -115,6 +115,7 @@ Primary use: a CommonFramework color, `{ rgb = [r, g, b], alpha = a }`, as a lig
 - The row shows the color as a swatch, with its alpha over a checkerboard, and as its numbers: "190, 255, 190, alpha 200". A press on the row opens the editor.
 - The editor is a popup in the content pane: a picker for the hue, saturation and brightness, dragged with the trigger, and a slider for each of red, green, blue and alpha. The thumbstick steps the slider the ray is on by 1, which is how a color is set exactly.
 - It shows the color it had when it opened beside the color as it is, and a press on the first goes back to it.
+- A swatch sets its color with a press: the five basics of its footer, white, black, red, green and blue, which every color has, and the line of presets its config spec gives it, under the picker. A preset with no alpha keeps the color's. See [CommonFramework values](schema.md#commonframework-values).
 - Each change sets the pending value as it is made, and a `live` color is previewed as it is dragged. Done, or a press beside the editor, keeps it. Cancel and Back give back the color it had when it opened.
 - The value shown is the one the framework reads: the keys the value has, over the default's channels. A changed value is written as whole numbers, with the keys it had and the key of the part that changed, so `{ alpha = 60 }` with a new hue is `{ rgb = [255, 190, 120], alpha = 60 }`.
 - A value the framework cannot read is invalid, shown as the file has it, with the framework's reason in the help line.

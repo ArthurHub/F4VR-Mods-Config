@@ -715,14 +715,19 @@ print('ok haptic')
 # ---------------- Color: a swatch and the numbers, and an editor with a picker and a slider for each channel ----------------
 import colorsys
 
-def swatch(c, big=False):
-    """The left half opaque, the right half at its alpha over the checkerboard. An RGB-only color (3 values) is opaque."""
+def swatch(c, big=False, preset=False, hover=False):
+    """The left half opaque, the right half at its alpha over the checkerboard. An RGB-only color (3 values) is opaque.
+    A preset's is a 48 x 48 press target, outlined in green while the ray is on it."""
     r, g, b = c[:3]
+    cls = 'mc-swatch' + (' is-big' if big else '') + (' is-preset' if preset else '') + (' is-hover' if hover else '')
     if len(c) == 3:
-        return f'<span class="mc-swatch{" is-big" if big else ""}"><i style="background:rgb({r},{g},{b})"></i></span>'
+        return f'<span class="{cls}"><i style="background:rgb({r},{g},{b})"></i></span>'
     a = c[3]
-    return (f'<span class="mc-swatch{" is-big" if big else ""}"><i style="background:rgb({r},{g},{b})"></i>'
+    return (f'<span class="{cls}"><i style="background:rgb({r},{g},{b})"></i>'
             f'<i class="alpha mc-checker" style="--c:rgba({r},{g},{b},{a / 255:.3f})"></i></span>')
+
+# the basics of the editor's footer, which every color has: each keeps the color's alpha, so it is drawn opaque
+BASICS = ((255, 255, 255), (0, 0, 0), (255, 0, 0), (0, 255, 0), (0, 0, 255))
 
 def nums(c):
     return f'{c[0]}, {c[1]}, {c[2]}' + (f', alpha {c[3]}' if len(c) == 4 else '')
@@ -763,17 +768,25 @@ def picker(c):
             f'<i class="cur" style="left:{s_ * 240:.0f}px;top:{(1 - v) * 240:.0f}px"></i></div>'
             f'<div class="hue"><i class="bar" style="top:{h * 240:.0f}px"></i></div></div>')
 
-def color_editor(name, before, now, hover=None, mark=None, style=''):
+def color_editor(name, before, now, hover=None, mark=None, style='', presets=(), hover_preset=None):
+    """The editor; `presets` are the config spec's, a line under the picker, and `hover_preset` the one the ray is on."""
     head = (f'<div class="head"><span class="grow t-body">{name}</span><span class="t-detail mc-muted">Before</span>{swatch(before, True)}'
             f'<span class="t-detail mc-muted" style="margin-left:8px">Now</span>{swatch(now, True)}</div>')
     side = f'<div class="mc-channels">{channels(now, hover, mark)}</div>'
     body = f'<div class="body">{picker(now)}{side}</div>'
-    foot = '<div class="foot"><span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>'
-    short = '' if len(now) == 4 else ' is-rgb'
-    return f'<div class="mc-coloredit{short}"{style}>{head}{body}{foot}</div>'
+    line = ''
+    if presets:
+        sw = ''.join(swatch(p, preset=True, hover=hover_preset == i) for i, p in enumerate(presets))
+        mk = f'<span class="mc-mark" style="left:{24 + hover_preset * 56}px;top:24px"></span>' if hover_preset is not None else ''
+        line = f'<div class="presets">{sw}{mk}</div>'
+    basics = ''.join(swatch(c, preset=True) for c in BASICS)
+    foot = f'<div class="foot"><div class="basics">{basics}</div><span class="mc-btn t-body is-quiet">Cancel</span><span class="mc-btn t-body is-primary">Done</span></div>'
+    cls = ('' if len(now) == 4 else ' is-rgb') + (' is-presets' if presets else '')
+    return f'<div class="mc-coloredit{cls}"{style}>{head}{body}{line}{foot}</div>'
 
 RAY, RAY_NEW = (190, 255, 190, 200), (255, 190, 120, 200)
 LIGHT, LIGHT_NEW = (255, 214, 170), (255, 236, 210)   # RGB only: "valueOptions": { "alpha": false }
+WHITES = ((255, 255, 255), (255, 228, 206), (255, 209, 163), (255, 180, 107), (255, 167, 87), (255, 131, 0))   # the showcase's shared "lights"
 MARK, BORDER = (215, 255, 215, 180), (215, 255, 215, 100)
 
 c_states = h_sheet([
@@ -801,17 +814,27 @@ c_list = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="wi
 </div>
 <div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Green', 'The green of the color, 0 to 255. The thumbstick steps it by 1.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
 </div>"""
+c_presets = f"""<div class="mc-stack" style="gap:0"><div class="mc-sheet" style="width:772px;height:591px;position:relative;border-radius:8px 8px 0 0;overflow:hidden">
+{row('Light color', color_ctl((255, 180, 107), 'is-pending', True, open_=True), 'is-active', gutter=DOT)}
+{color_editor('Light color', LIGHT, (255, 180, 107), style=' style="left:27px;top:58px"', presets=WHITES, hover_preset=3)}
+</div>
+<div class="mc-sheet" style="width:1120px;padding:0;border-radius:0 8px 8px 8px"><div class="mc-footer">{helpline('Warm white', '255, 180, 107. Press it to set the color.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div></div>
+</div>"""
 c_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:1120px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
 <span class="t-detail mc-caption">The states, in the menu's own page: Pointer, and a light's RGB-only color</span>
 {c_states}
 </div>
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">The editor open under its row, the ray on Green, its help in the footer</span>
+<span class="t-detail mc-caption">The editor open under its row, the ray on Green, its help in the footer, and the basics in its footer</span>
 {c_list}
 </div>
+<div class="mc-stack" style="gap:16px">
+<span class="t-detail mc-caption">A light's editor with its config spec's presets, a line under the picker, the ray on Warm white</span>
+{c_presets}
+</div>
 </div>"""
-write('Color', page('<!-- @dsCard group="Settings" height=1230 width=1170 subtitle="A swatch and the numbers; the editor with a picker and a slider per channel; RGB only" -->', 'Color', c_body))
+write('Color', page('<!-- @dsCard group="Settings" height=1930 width=1170 subtitle="A swatch and the numbers; the editor with a picker, a slider per channel and presets; RGB only" -->', 'Color', c_body))
 print('ok color')
 
 # ---------------- InputBinding: the framework's icon and a sentence, an editor of its parts, and Record ----------------

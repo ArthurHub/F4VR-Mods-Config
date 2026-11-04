@@ -39,6 +39,16 @@
       { "value": "hip", "text": "Hip" }
     ]
   },
+  "sharedPresetLists": {
+    "lights": [
+      { "rgb": [255, 255, 255], "text": "Daylight" },
+      { "rgb": [255, 228, 206], "text": "Cool white" },
+      { "rgb": [255, 209, 163], "text": "Neutral white" },
+      { "rgb": [255, 180, 107], "text": "Warm white" },
+      { "rgb": [255, 167, 87], "text": "Incandescent" },
+      { "rgb": [255, 131, 0], "text": "Candle" }
+    ]
+  },
   "content": [
     { "type": "spacer" },
     { "type": "image", "texture": "ModsConfigFO4_Showcase/banner.dds", "width": 720 },
@@ -1506,8 +1516,15 @@
                 {
                   "type": "cf.color",
                   "text": "Ray color",
-                  "help": "A color and how opaque it is: the right half of its swatch is over a checkerboard.",
+                  "help": "A color and how opaque it is: the right half of its swatch is over a checkerboard. Its editor has presets of its own, two with an alpha, and one without, which keeps the alpha the color has.",
                   "default": { "rgb": [190, 255, 190], "alpha": 200 },
+                  "valueOptions": {
+                    "presets": [
+                      { "rgb": [190, 255, 190], "alpha": 200, "text": "Pip-Boy green" },
+                      { "rgb": [255, 182, 66], "alpha": 200, "text": "Amber" },
+                      { "rgb": [46, 207, 255] }
+                    ]
+                  },
                   "storage": { "path": ["Colors", "cRay"] }
                 },
                 {
@@ -1520,10 +1537,18 @@
                 {
                   "type": "cf.color",
                   "text": "Light color",
-                  "help": "A light's color, whose opacity means nothing: it is RGB only.",
+                  "help": "A light's color, whose opacity means nothing: it is RGB only. Its presets are the shared list of whites, which the beam's color has too.",
                   "default": { "rgb": [255, 214, 170] },
-                  "valueOptions": { "alpha": false },
+                  "valueOptions": { "alpha": false, "sharedPresets": "lights" },
                   "storage": { "path": ["Colors", "cLight"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "Beam color",
+                  "help": "Another light's color, with the same shared list of whites.",
+                  "default": { "rgb": [255, 228, 206] },
+                  "valueOptions": { "alpha": false, "sharedPresets": "lights" },
+                  "storage": { "path": ["Colors", "cBeam"] }
                 }
               ]
             },
@@ -3395,6 +3420,14 @@
                   "help": "Its default has a key \"colour\", which a color does not have, so it has no Reset.",
                   "default": { "colour": [255, 0, 0] },
                   "storage": { "path": ["Mistakes", "cNoColor"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "A color's presets of no shared list",
+                  "help": "It names the shared presets \"lamps\", which the config spec does not have, so its editor has only the basics.",
+                  "default": { "rgb": [255, 0, 0] },
+                  "valueOptions": { "sharedPresets": "lamps" },
+                  "storage": { "path": ["Mistakes", "cNoPresets"] }
                 },
                 {
                   "type": "cf.transform",

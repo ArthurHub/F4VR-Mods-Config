@@ -5086,6 +5086,94 @@ TEST_CASE("FullPanel: a press on a color opens its editor, whose channels set it
 
 namespace
 {
+    /**
+     * The middle of a swatch of the color editor that is open, by its place: of its line of presets, or of the basics
+     * of its footer, in the look of ColorEditor.cpp.
+     */
+    ImVec2 colorSwatchAt(const int place, const bool basic)
+    {
+        const auto* editor = openPopup(COLOR_EDITOR_WIDTH);
+        REQUIRE(editor);
+        const float bodyTop = editor->Pos.y + theme::SPACE_4 + theme::CONTROL_HEIGHT + theme::SPACE_3;
+        const float top = basic ? editor->Pos.y + editor->Size.y - theme::SPACE_4 - theme::CONTROL_HEIGHT : bodyTop + 240.0f + theme::SPACE_3;
+        return { editor->Pos.x + theme::SPACE_4 + static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_2) + theme::CONTROL_HEIGHT * 0.5f,
+            top + theme::CONTROL_HEIGHT * 0.5f };
+    }
+}
+
+TEST_CASE("FullPanel: a color's presets and the editor's basics set the color, and one with no alpha keeps the color's")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(MY_MOD_FILE,
+        "[Pointer]\r\n"
+        "cRay = { rgb = [190, 255, 190], alpha = 200 }\r\n"
+        "cLight = { rgb = [255, 214, 170] }\r\n"
+        "cPlain = { rgb = [1, 2, 3] }\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "cf.color", "text": "Ray", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "path": ["Pointer", "cRay"] },
+              "valueOptions": { "presets": [ { "rgb": [255, 0, 0], "alpha": 100, "text": "Faint red" }, { "rgb": [0, 0, 255] } ] } },
+            { "type": "cf.color", "text": "Light", "default": { "rgb": [255, 214, 170] }, "storage": { "path": ["Pointer", "cLight"] },
+              "valueOptions": { "alpha": false, "presets": [ { "rgb": [10, 20, 30], "alpha": 50 } ] } },
+            { "type": "cf.color", "text": "Plain", "default": { "rgb": [190, 255, 190] }, "storage": { "path": ["Pointer", "cPlain"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& items = panel.mods()[0].frontPage.items;
+    const auto value = [&store, &items](const std::size_t place) {
+        return std::get<std::string>(store.value(std::get<model::Setting>(items[place])).value);
+    };
+    const auto open = [&panel](const int row) {
+        CHECK(pressActs(panel, pageRow(row)));
+        drawFrames(panel, 2);
+        const auto* editor = openPopup(COLOR_EDITOR_WIDTH);
+        REQUIRE(editor);
+        return editor->Size.y;
+    };
+
+    // a preset sets its alpha, and one with none keeps the color's, as a basic does
+    CHECK(common::fEqual(open(0), 474.0f));
+    point(panel, colorSwatchAt(0, false));
+    CHECK(panel.helpLine().text() == "Faint red: 255, 0, 0, alpha 100. Press it to set the color.");
+    CHECK(pressActs(panel, colorSwatchAt(0, false)));
+    CHECK(value(0) == "{ rgb = [255, 0, 0], alpha = 100 }");
+    point(panel, colorSwatchAt(1, false));
+    CHECK(panel.helpLine().text() == "Preset: 0, 0, 255. Press it to set the color.");
+    CHECK(pressActs(panel, colorSwatchAt(1, false)));
+    CHECK(value(0) == "{ rgb = [0, 0, 255], alpha = 100 }");
+    point(panel, colorSwatchAt(1, true));
+    CHECK(panel.helpLine().text() == "Black: 0, 0, 0. Press it to set the color.");
+    CHECK(pressActs(panel, colorSwatchAt(0, true)));
+    CHECK(value(0) == "{ rgb = [255, 255, 255], alpha = 100 }");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK(value(0) == "{ rgb = [190, 255, 190], alpha = 200 }");
+
+    // a color that is RGB only takes no alpha of a preset
+    open(1);
+    CHECK(pressActs(panel, colorSwatchAt(0, false)));
+    CHECK(value(1) == "{ rgb = [10, 20, 30] }");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+
+    // a color with no presets has no line, and the basics
+    CHECK(common::fEqual(open(2), 414.0f));
+    CHECK(pressActs(panel, colorSwatchAt(3, true)));
+    CHECK(value(2) == "{ rgb = [0, 255, 0] }");
+}
+
+namespace
+{
     // the editor of a transform, as TransformEditor.cpp has it
     constexpr float TRANSFORM_EDITOR_WIDTH = 560.0f;
 

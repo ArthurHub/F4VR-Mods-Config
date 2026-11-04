@@ -31,7 +31,9 @@ A popup inside the content pane, 717 x 414: `popup` background, a 2 px `green` b
   - A track is a gradient of that channel from 0 to 255 with the other channels as they are (`AddRectFilledMultiColor`), outlined in `frame-border`. Alpha's is the color from transparent to opaque over the checkerboard.
   - The grab is hollow, 20 x 40: a 2 px `green` ring around a 2 px `on-green` ring, so it shows on any color. While dragged its outer ring is `glow`.
   - The thumbstick steps the channel the ray is on by 1, and faster while it is held, as a slider's. This is how a color is set exactly.
-- **Footer**, under a `rule` line: Cancel (quiet) and Done (primary) on the right, 160 px each.
+- **Presets**, only for a color whose config spec gives `presets` or `sharedPresets`: a line under the picker, `space-3` below it, of up to 12 swatches, each 48 x 48 with `space-2` between, drawn as the row's swatch, so a preset with an alpha has its checkerboard half. The editor is a line taller for it: 717 x 474. A preset with no alpha, or on a color that is RGB only, is opaque.
+- **Footer**, under a `rule` line: the five basics on the left, White, Black, Red, Green and Blue, swatches as the presets' and opaque, and Cancel (quiet) and Done (primary) on the right, 160 px each.
+- A press on a swatch, of the line or of the basics, sets its color. One with no alpha keeps the color's. While the ray is on one it is outlined in `green`, and the help line names it with its numbers: "Warm white: 255, 180, 107. Press it to set the color." A preset with no `text` is "Preset".
 - Every change sets the pending value as it is made, and a `live` color is previewed as it is dragged. Done, or a press beside the editor, closes it and keeps the color. Cancel and Back close it and give back the color it had when it opened.
 - While the ray is on a part of it, the help line says what it does: "Green: The green of the color, 0 to 255. The thumbstick steps it by 1." "Before: The color when the editor opened. Press it to go back to it."
 
