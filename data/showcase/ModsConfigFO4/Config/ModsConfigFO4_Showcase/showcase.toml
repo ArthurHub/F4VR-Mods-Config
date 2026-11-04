@@ -74,6 +74,7 @@ kLongPress = { hand = "offhand", type = "longpress", button = "a" }
 kDouble = { hand = "primary", type = "double", button = "grip" }
 kChord = { hand = "primary", type = "longpress", button = "thumbstick", duration = 1.5, modifier = { hand = "offhand", button = "thumbstick" } }
 kPush = { hand = "primary", type = "axis", direction = "up" }
+kMoved = { hand = "primary", type = "axis", direction = "updown" }
 kSystem = { hand = "primary", type = "press", button = "system" }
 kNone = { type = "none" }
 kSuppressed = { hand = "primary", type = "tap", button = "grip", suppress = true }

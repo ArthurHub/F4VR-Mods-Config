@@ -45,6 +45,13 @@ TEST_CASE("MenuControls: a binding is one sentence, as the design system says it
     CHECK(
         ui::bindingSentence({ .hand = Hand::Offhand, .type = ActivationType::AxisDirection, .axis = vrcf::Axis::Thumbstick, .direction = vrcf::Direction::Left, .threshold = 0.5f },
             false) == "Push the thumbstick left on the off hand, past 0.50");
+    // the stick moved, not pushed to a side
+    CHECK(ui::bindingSentence({ .hand = Hand::Primary, .type = ActivationType::AxisDirection, .direction = vrcf::Direction::Any }, false) ==
+          "Move the thumbstick on the primary hand");
+    CHECK(ui::bindingSentence({ .hand = Hand::Primary, .type = ActivationType::AxisDirection, .direction = vrcf::Direction::UpDown }, false) ==
+          "Move the thumbstick up or down on the primary hand");
+    CHECK(ui::bindingSentence({ .hand = Hand::Offhand, .type = ActivationType::AxisDirection, .direction = vrcf::Direction::RightLeft }, false) ==
+          "Move the thumbstick left or right on the off hand");
     CHECK(ui::bindingSentence({ .type = ActivationType::Disabled }, false) == "None");
     CHECK(ui::bindingSentence({ .hand = Hand::Right, .type = ActivationType::AxisDirection, .axis = vrcf::Axis::Trigger, .direction = vrcf::Direction::Right, .threshold = 0.7f },
               false) == "Pull the trigger on the right hand, past 0.70");

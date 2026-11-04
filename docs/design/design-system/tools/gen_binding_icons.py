@@ -16,7 +16,7 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
-ICONS = ROOT / 'data' / 'mod' / 'Textures' / 'ModsConfigFO4' / 'f4cf' / 'bindings'
+ICONS = ROOT / 'data' / 'mod' / 'Textures' / 'ModsConfigFO4VR' / 'f4cf' / 'bindings'
 
 
 def write_json():

@@ -52,12 +52,12 @@ namespace
     constexpr auto PENDING_COLOR = render::Color::rgba(theme::color::AMBER & 0xFF, (theme::color::AMBER >> 8) & 0xFF, (theme::color::AMBER >> 16) & 0xFF);
 
     /**
-     * A thumbstick's icon at the end of a line. The tuning reads the controllers directly, so this binding only says which
-     * one it reads, with the hand resolved by the player's handedness.
+     * A thumbstick's icon at the end of a line, moved along the axes the tuning reads of it. The tuning reads the
+     * controllers directly, so this binding only says which one it reads, with the hand resolved by the player's handedness.
      */
-    void appendStick(std::vector<TextSpan>& spans, const vrcf::Hand hand)
+    void appendStick(std::vector<TextSpan>& spans, const vrcf::Hand hand, const vrcf::Direction moved)
     {
-        appendBindingPrompt(spans, { .hand = hand, .button = vr::k_EButton_SteamVR_Touchpad }, CONTROLS_ICON_STYLE);
+        appendBindingPrompt(spans, { .hand = hand, .type = vrcf::ActivationType::AxisDirection, .axis = vrcf::Axis::Thumbstick, .direction = moved }, CONTROLS_ICON_STYLE);
     }
 
     /**
@@ -69,13 +69,13 @@ namespace
     }
 
     /**
-     * Both thumbsticks at the end of a line.
+     * Both thumbsticks at the end of a line: the primary moved any way, and the offhand along the axes it is read on.
      */
-    void appendBothSticks(std::vector<TextSpan>& spans)
+    void appendBothSticks(std::vector<TextSpan>& spans, const vrcf::Direction offhandMoved)
     {
-        appendStick(spans, vrcf::Hand::Primary);
+        appendStick(spans, vrcf::Hand::Primary, vrcf::Direction::Any);
         spans.push_back({ .text = " / " });
-        appendStick(spans, vrcf::Hand::Offhand);
+        appendStick(spans, vrcf::Hand::Offhand, offhandMoved);
     }
 
     /**
@@ -285,7 +285,8 @@ namespace mods_config
     /**
      * The controls of the parts that are on, as the footer of FRIK's Pip-Boy adjust screen has them: the sticks, and a
      * line of what holding a modifier makes of them. With position off a modifier has its sticks on its own line: both for
-     * a rotation, which the offhand's X rolls, and the primary's for a scale.
+     * a rotation, which the offhand's X rolls, and the primary's for a scale. Each stick's icon shows the axes it is read
+     * on: the offhand's Y moves, and its X rolls a rotation.
      */
     void AdjustInWorld::addControls(std::vector<TextRow>& rows) const
     {
@@ -300,18 +301,18 @@ namespace mods_config
                 rows.push_back({ .spans = { { .text = "ROTATION:  " } } });
                 appendHold(rows.back().spans, vr::k_EButton_Grip);
                 rows.back().spans.push_back({ .text = " + " });
-                appendBothSticks(rows.back().spans);
+                appendBothSticks(rows.back().spans, vrcf::Direction::RightLeft);
             }
             if (scale) {
                 rows.push_back({ .spans = { { .text = "SCALE:  " } } });
                 appendHold(rows.back().spans, vr::k_EButton_A);
                 rows.back().spans.push_back({ .text = " + " });
-                appendStick(rows.back().spans, vrcf::Hand::Primary);
+                appendStick(rows.back().spans, vrcf::Hand::Primary, vrcf::Direction::UpDown);
             }
             return;
         }
         rows.push_back({ .spans = { { .text = "ADJUST:  " } } });
-        appendBothSticks(rows.back().spans);
+        appendBothSticks(rows.back().spans, rotation ? vrcf::Direction::Any : vrcf::Direction::UpDown);
         if (rotation || scale) {
             rows.push_back({});
         }

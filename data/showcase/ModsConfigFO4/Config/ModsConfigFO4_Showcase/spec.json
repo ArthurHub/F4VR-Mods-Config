@@ -1378,6 +1378,13 @@
                 },
                 {
                   "type": "cf.inputBinding",
+                  "text": "Moved",
+                  "help": "The thumbstick moved up or down, not pushed to a side, for a mod that reads how far itself.",
+                  "default": { "hand": "primary", "type": "axis", "direction": "updown" },
+                  "storage": { "path": ["Bindings", "kMoved"] }
+                },
+                {
+                  "type": "cf.inputBinding",
                   "text": "System button",
                   "help": "The system button has no icon: its sentence alone.",
                   "default": { "hand": "primary", "type": "press", "button": "system" },

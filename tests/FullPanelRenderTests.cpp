@@ -1071,8 +1071,8 @@ TEST_CASE("FullPanel render: the editor of a binding under its row and over it, 
             test_panel::drawFrame(panel, at, held);
         }
     };
-    // the rows of the page Bindings of Detailed Examples: Chord is the fourth under its heading, Push the fifth, and
-    // Suppressed the ninth
+    // the rows of the page Bindings of Detailed Examples: Chord is the fourth under its heading, Push the fifth, Moved
+    // the sixth, and Suppressed the ninth
     constexpr float ROWS_LEFT = 650.0f;
     constexpr float FIRST_ROW = 162.0f;
     // the panel's context lives while it is drawn, so the editor is opened in the frames before each image, which are
@@ -1117,6 +1117,8 @@ TEST_CASE("FullPanel render: the editor of a binding under its row and over it, 
     render("binding-editor-over", 8, false);
     // a push of the thumbstick has the line of Direction
     render("binding-editor-push", 4, false);
+    // the thumbstick moved, whose Direction is shown with its arrows off
+    render("binding-editor-moved", 5, false);
 }
 
 TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with values that wait for a Save", "[.render]")

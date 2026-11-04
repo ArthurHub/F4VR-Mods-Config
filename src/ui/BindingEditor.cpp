@@ -151,6 +151,13 @@ namespace
         Choice<vrcf::Direction>{ vrcf::Direction::Right, "Right", "" },
     };
 
+    // the stick moved rather than pushed to a side, which a mod that reads the stick itself binds: shown, not stepped to
+    constexpr std::array MOVED_DIRECTIONS{
+        Choice<vrcf::Direction>{ vrcf::Direction::Any, "Any", "" },
+        Choice<vrcf::Direction>{ vrcf::Direction::UpDown, "Up/Down", "" },
+        Choice<vrcf::Direction>{ vrcf::Direction::RightLeft, "Left/Right", "" },
+    };
+
     /**
      * The place of a value among choices, and none for a value none of them has.
      */
@@ -690,22 +697,24 @@ namespace mods_config::ui
             const auto previous = controlBox(box.Min.x, at.y, theme::CONTROL_HEIGHT);
             const auto next = controlBox(box.Max.x - theme::CONTROL_HEIGHT, at.y, theme::CONTROL_HEIGHT);
             const ImRect side(previous.Max.x + theme::SPACE_2, at.y, next.Min.x - theme::SPACE_2, at.y + theme::CONTROL_HEIGHT);
-            const auto place = placeOf(DIRECTIONS, _binding.direction).value_or(0);
+            // a stick moved has no side to step to, so its arrows are off
+            const auto place = placeOf(DIRECTIONS, _binding.direction);
+            const auto moved = placeOf(MOVED_DIRECTIONS, _binding.direction);
             ImGui::PushID("direction");
             drawLabel("Direction", at);
-            if (stepButton("previous", previous, ControlArrow::Left, place > 0)) {
-                _binding.direction = DIRECTIONS[place - 1].value;
+            if (stepButton("previous", previous, ControlArrow::Left, place && *place > 0)) {
+                _binding.direction = DIRECTIONS[*place - 1].value;
                 changed = true;
             }
             drawFrame(side);
-            drawTextIn(side, DIRECTIONS[place].text, theme::color::GREEN, 0.5f);
-            if (stepButton("next", next, ControlArrow::Right, place + 1 < DIRECTIONS.size())) {
-                _binding.direction = DIRECTIONS[place + 1].value;
+            drawTextIn(side, moved ? MOVED_DIRECTIONS[*moved].text : DIRECTIONS[place.value_or(0)].text, theme::color::GREEN, 0.5f);
+            if (stepButton("next", next, ControlArrow::Right, place && *place + 1 < DIRECTIONS.size())) {
+                _binding.direction = DIRECTIONS[*place + 1].value;
                 changed = true;
             }
             ImGui::PopID();
             if (pointedAt(at)) {
-                point("Direction", "The side the thumbstick is pushed to.");
+                point("Direction", moved ? "The thumbstick is moved, not pushed to a side: the mod reads how far itself." : "The side the thumbstick is pushed to.");
             }
         }
 

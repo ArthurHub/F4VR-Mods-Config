@@ -1740,18 +1740,20 @@ def tb(n):
     return bicon(n, 0.5)
 def tune_controls(pos=True, rot=True, scale=True):
     lines = []
-    sticks = f'{tb("right-thumbstick")}<span class="mc-bplus t-body">/</span>{tb("left-thumbstick")}'
+    # each stick moved along the axes the tuning reads of it: the offhand's Y moves, and its X rolls a rotation
+    def sticks(offhand):
+        return f'{tb("right-thumbstick-move")}<span class="mc-bplus t-body">/</span>{tb("left-thumbstick-" + offhand)}'
     plus = '<span class="mc-bplus t-body">+</span>'
     if pos:
-        lines.append(f'<div class="ln"><span class="t-body">ADJUST:</span><span class="ic">{sticks}</span></div>')
+        lines.append(f'<div class="ln"><span class="t-body">ADJUST:</span><span class="ic">{sticks("move" if rot else "updown")}</span></div>')
         mods = ([('+ROTATION:', tb('left-hold-grip'))] if rot else []) + ([('+SCALE:', tb('left-hold-x'))] if scale else [])
         if mods:
             lines.append('<div class="ln">' + ''.join(f'<span class="half"><span class="t-body">{t}</span><span class="ic">{i}</span></span>' for t, i in mods) + '</div>')
     else:   # no ADJUST line: the sticks go on the modifier's line
         if rot:
-            lines.append(f'<div class="ln"><span class="t-body">ROTATION:</span><span class="ic">{tb("left-hold-grip")}{plus}{sticks}</span></div>')
+            lines.append(f'<div class="ln"><span class="t-body">ROTATION:</span><span class="ic">{tb("left-hold-grip")}{plus}{sticks("rightleft")}</span></div>')
         if scale:
-            lines.append(f'<div class="ln"><span class="t-body">SCALE:</span><span class="ic">{tb("left-hold-x")}{plus}{tb("right-thumbstick")}</span></div>')
+            lines.append(f'<div class="ln"><span class="t-body">SCALE:</span><span class="ic">{tb("left-hold-x")}{plus}{tb("right-thumbstick-updown")}</span></div>')
     return '<div class="mc-tunebox is-controls">' + ''.join(lines) + '</div>'
 def tune_wrist(name, values, note, **parts):
     vals = '<div class="mc-tunebox is-values t-detail">' + ''.join(f'<span>{v}</span>' for v in values) + '</div>'

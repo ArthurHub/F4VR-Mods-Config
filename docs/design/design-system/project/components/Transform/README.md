@@ -37,7 +37,7 @@ The panel is minimized, and the offhand wrist has a column of its own in place o
   - `ADJUST:` and the right and the left thumbstick, with a `/` between them, while position is on.
   - Then one line of the modifiers: `+ROTATION:` with the hold of the offhand grip, and `+SCALE:` with the hold of the offhand A, each its text and its icon, for the parts that are on.
   - With position off there is no `ADJUST:` line, so a modifier's line has its sticks after it: `ROTATION:` grip + both thumbsticks, as the offhand's X rolls it, and `SCALE:` A + the right thumbstick. Rotation is always with the grip.
-  - The icons are the plain thumbstick's, with no arrow of a direction.
+  - Each thumbstick's icon is the stick moved, with arrowheads around its rim along the axes the tuning reads of it: the right one every way, the left one up and down on `ADJUST:` (every way while rotation is on, as the grip makes its X roll), and left and right on `ROTATION:`; the right one up and down on `SCALE:`.
 - **Cancel** and **Done**: the two wrist buttons, 3 x 2.5 units each, 0.5 apart, each its icon over its label, capitals 0.4 units tall: an X and `CANCEL`, a check and `DONE`. There are no bindings for them.
 
 Done brings the panel back with the editor open and the tuned value pending; Cancel gives back the value from before Adjust in world. The button is enabled for a `live` transform whose mod's client is connected, and is disabled otherwise, with the reason in the help line; see [Controls](../../../../controls.md#transform).

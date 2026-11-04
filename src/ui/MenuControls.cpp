@@ -133,6 +133,23 @@ namespace
     }
 
     /**
+     * What a binding of the thumbstick asks for: a push to its side, or the stick moved any way or along one axis.
+     */
+    std::string thumbstickWords(const vrcf::Direction direction)
+    {
+        switch (direction) {
+        case vrcf::Direction::Any:
+            return "Move the thumbstick";
+        case vrcf::Direction::UpDown:
+            return "Move the thumbstick up or down";
+        case vrcf::Direction::RightLeft:
+            return "Move the thumbstick left or right";
+        default:
+            return std::format("Push the thumbstick {}", vrcf::directionName(direction));
+        }
+    }
+
+    /**
      * A button of both controllers, as their prints name it together: "both thumbsticks", "the A and X buttons".
      */
     std::string bothHandsButtonWords(const vr::EVRButtonId button)
@@ -166,7 +183,7 @@ namespace
         std::string sentence;
         if (binding.type == vrcf::ActivationType::AxisDirection) {
             // the trigger and the grip are pulled, which has no side
-            sentence = binding.axis == vrcf::Axis::Thumbstick ? std::format("Push the thumbstick {} on {}", vrcf::directionName(binding.direction), handWords(binding.hand))
+            sentence = binding.axis == vrcf::Axis::Thumbstick ? std::format("{} on {}", thumbstickWords(binding.direction), handWords(binding.hand))
                                                               : std::format("Pull the {} on {}", vrcf::axisName(binding.axis), handWords(binding.hand));
             if (withTimes && !common::fEqual(binding.threshold, DEFAULT_THRESHOLD)) {
                 sentence += std::format(", past {:.2f}", binding.threshold);
