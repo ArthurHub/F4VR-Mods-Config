@@ -241,13 +241,15 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M83 | mod  | docs: a loading screen ends the editing session                         | done   |
 | M84 | mod  | The menu without FRIK, and without MCM                                  | done   |
 | M146 | mod | A color's editor has basics and its config spec's presets              | done |
-| M148 | mod | docs: the Nexus page                                                   | todo   |
-| M149 | mod | docs: the mod's README                                                 | todo   |
-| M150 | mod | docs: the README of the docs, and the FAQ                              | todo   |
-| M151 | mod | docs: the plan of the docs for players and for mod authors            | todo   |
+| M148 | mod | docs: the Nexus page                                                   | done   |
+| M149 | mod | docs: the mod's README                                                 | done   |
+| M150 | mod | docs: the README of the docs, and the FAQ                              | done   |
+| M151 | mod | docs: the plan of the docs for players and for mod authors            | done   |
+| M157 | mod | docs: the menu's own settings, and the changelog                       | todo   |
 | M85 | mod  | docs: for mod authors                                                   | todo   |
-| M152 | mod | docs: MCM compatibility, what a config spec adds, and moving from MCM  | todo   |
 | M153 | mod | docs: the showcase walkthrough, with renders of the panel              | todo   |
+| M152 | mod | docs: MCM compatibility, what a config spec adds, and moving from MCM  | todo   |
+| M156 | mod | docs: the native API, for DLL authors                                  | todo   |
 | M154 | mod | The release tested in the headset                                      | todo   |
 | M155 | mod | The release perf tested                                                | todo   |
 
@@ -269,7 +271,14 @@ The milestone ends with the mod ready for alpha testing: a player installs and u
 
 M148 to M150 write what is read first, in that order: the Nexus page, whose text is kept in the repo, the mod's README, and the README of `docs/`, the index of the docs for players and for mod authors, with the FAQ beside it. M151 decides which docs each has, and adds their commits to this table.
 
-The docs for mod authors are several documents, not one guide. M85 is the main one, which says what a mod needs (nothing for an MCM mod, a config spec, the native API) and leads to the others. M152 is MCM compatibility: what an MCM mod gets as it is, what a config spec has beyond MCM, and how an MCM config is moved to a config spec. M153 makes the showcase the walkthrough: how each thing is done is shown with the showcase's config spec and a render of the panel that draws it. The showcase is also the sample: an author starts from its config spec, keeps its front page and General page, and deletes the detailed pages.
+The docs for players stay two: the README of `docs/`, with the quick start and how a mod's settings are edited, and the FAQ, which grows with the questions of the alpha testers. M157 adds a section of the menu's own settings to the README, a table of its pages, and `docs/changelog.md` for the releases of the alpha. The in-game Help page and the help line do the rest.
+
+The docs for mod authors are a folder, `docs/for-mod-authors/`, of four documents, not one guide. [Declarative schema](schema.md) stays the full reference: the guides link to its sections for each field instead of repeating them. Each commit links its document from the README of `docs/`, in place of the reference that section points to until then.
+
+- M85, its `README.md`, is the way in. It says which way fits a mod: its MCM menu as it is, a config spec, or the native API, and that a CommonFramework mod gets live preview from its config spec alone. A mod can have both an MCM menu and a config spec of the same `modName`: Mods Config FO4 VR lists it by its config spec, and MCM's menu keeps the MCM config, so a mod has the best of both. The showcase is the sample: an author starts from its config spec, keeps its front page and General page, deletes the detailed pages, and sets `modName` and `files`. It says where the config spec is installed, how it goes in the mod's archive, how it is tested with Developer tools and the live copy, and leads to the other three.
+- M153, `showcase.md`, is the walkthrough, in the order of the showcase's pages: files and storage, pages and sections, each control, conditions, choices, buttons, text and images, when a change takes effect, and translations. Each is shown with the showcase's JSON for it and a render of the panel that draws it, saved as PNG in `docs/assets/`. A view the render tests do not draw yet gets a render case.
+- M152, `mcm.md`, is MCM compatibility: what an MCM menu gets as it is and where it differs from MCM's menu, what a config spec has beyond MCM, and moving from MCM, with a table of MCM's controls, sources and actions against a config spec's. A mod that ships both, matched by `modName`, keeps its MCM menu in MCM and has its config spec in Mods Config FO4 VR.
+- M156, `native-api.md`, is for DLL authors: the client header, registering, live preview, functions for buttons, options and states, quick launch, a mod's own UI with `setPendingValue`, the events, and how the API grows after version 1.0. A CommonFramework mod has most of it from the framework.
 
 M154 tries the release in the headset: the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
 
