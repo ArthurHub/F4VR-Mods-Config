@@ -1,0 +1,120 @@
+# Short description
+
+A VR-first settings menu for Fallout 4 VR mods: every mod's settings in one place, changed in the headset. It stands in the world and never pauses the game, so you see and feel each change without closing it between tries. It shows the MCM menus you already have, and edits the settings of mods made for it.
+
+# Full description
+
+[size=3]A VR-first configuration menu for Fallout 4 VR mods: every mod's settings in one place, changed in the headset. The menu stands in the world and never pauses the game, so you see and feel your changes while it is open, without closing and opening it between tries. A mod that supports it shows each change live, as you make it. It shows the MCM menus you already have, and edits the config files of mods that ship a config spec for it, such as FRIK and Immersive Flashlight VR.[/size]
+[size=3]
+No more taking off the headset to edit an INI or TOML file: change a setting, see it in the game, then keep it or undo it.[/size]
+
+[center][img]https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/docs/assets/mods-config-front-page.jpg[/img][/center]
+
+[size=4][b]Alpha[/b][/size]
+[size=3]This is an alpha release, for testing. Everything below works, and some things are still to come: search, mod categories, editing lists and hand poses, and translations of mods that have no game plugin. Please report what doesn't work on [url=https://github.com/ArthurHub/F4VR-Mods-Config/issues]GitHub[/url] or in the Bugs tab, with your [b]ModsConfigFO4VR.log[/b] from [b]Documents\My Games\Fallout4VR\F4SE[/b].[/size]
+
+[size=4][b]Usage[/b][/size]
+[list]
+[*][size=3]Open and close: press in both thumbsticks and hold them for a second. With FRIK installed, this menu takes over FRIK's gesture, and FRIK's own config opens from the menu's front page.[/size]
+[*][size=3]Point: the hand that points at the menu works it. The trigger presses, the thumbstick scrolls, and the game doesn't get them while you point.[/size]
+[*][size=3]Back: tap the grip of the hand that points. On the menu's front page it closes the menu.[/size]
+[*][size=3]Move the menu: point at it and hold the grip. It follows your hand until you let go.[/size]
+[*][size=3]Bring it in front of you again: press in the offhand thumbstick and hold it. Walk away from it and it comes back by itself.[/size]
+[*][size=3]Minimize: hides the menu so you can see your change in the world. [b]Restore[/b] and [b]Exit[/b] are on your offhand wrist.[/size]
+[*][size=3]Help: [b]? Help[/b] in the title bar shows how the menu works, with the buttons your config has. The line at the bottom shows the help of whatever you point at.[/size]
+[*][size=3]Every binding, and the menu's size, distance and look, is in the menu's own settings: pick [b]Mods Config FO4[/b] in its list.[/size]
+[/list]
+
+[size=4][b]Features[/b][/size]
+[size=3]All your mods in one menu:[/size]
+[list]
+[*][size=3]MCM mods as they are: every MCM menu you have, with its pages, images and translations. Its buttons and presets run their scripts, and its hotkeys are shown. Its changes are made as you make them, as in MCM, and [b]Keep[/b] or [b]Revert[/b] them.[/size]
+[*][size=3]Mods with a config spec: the menu edits the mod's own config files, TOML and INI, and its script settings. A file keeps its comments and its layout.[/size]
+[*][size=3]Quick launch: open a mod's own config, such as FRIK's, from the menu's front page. The menu comes back when it closes.[/size]
+[*][size=3]Notices: a mod that can't be shown says why, such as a plugin it needs that isn't loaded, and a saved change that needs a restart tells you so.[/size]
+[/list]
+[size=3]Safe editing:[/size]
+[list]
+[*][size=3]Nothing is written until you [b]Save[/b]. [b]Discard[/b] drops your changes, each row undoes its own, and [b]Reset[/b] sets the default. Leaving a mod with changes asks first.[/size]
+[*][size=3]A value that isn't valid is marked red with the reason, and Save waits until it's fixed.[/size]
+[*][size=3]Each setting says when it takes effect: as you change it, on Save, or after a restart.[/size]
+[*][size=3]Live preview: a mod that supports it shows your change in the game as you make it, before you Save. Minimize to look at it.[/size]
+[/list]
+[size=3]Controls made for VR:[/size]
+[list]
+[*][size=3]Sliders, switches, dropdowns and steppers sized for a ray.[/size]
+[*][size=3]Colors with a picker, basic colors and the mod's presets.[/size]
+[*][size=3]Controller bindings shown as button icons and a sentence, and an editor to change them.[/size]
+[*][size=3]Haptic patterns, each with Play.[/size]
+[*][size=3]Positions and rotations, with a slider for each axis, or adjusted in the world from your wrist.[/size]
+[*][size=3]Text typed on SteamVR's keyboard, or a real one.[/size]
+[/list]
+[size=3]Comfort:[/size]
+[list]
+[*][size=3]A curved panel in front of you, with its size, distance, height, tilt and opacity yours to set.[/size]
+[*][size=3]Works with or without FRIK. With FRIK, you press the wrist buttons with your fingertip.[/size]
+[*][size=3]Works without MCM: only the MCM mods are missing then.[/size]
+[/list]
+
+[size=4][b]Config File[/b][/size]
+The menu's own settings are in "ModsConfigFO4VR.toml", which the running game reloads as you save it. The menu edits it too.
+Location:
+[code]%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR[/code]
+
+[size=4][b]For Mod Authors[/b][/size]
+[list]
+[*][size=3]Give your mod a menu with a config spec: one JSON file installed with your mod, and no code. It reads and writes your INI or TOML files, and your scripts' globals and properties.[/size]
+[*][size=3]A mod built on F4VR CommonFramework gets live preview with no code of its own.[/size]
+[*][size=3]A DLL can register with the native API: live preview, buttons that run its functions, and its own UI opened from the menu.[/size]
+[*][size=3]An MCM menu works as it is, and a config spec can replace it with more.[/size]
+[*][size=3]The optional [b]Showcase[/b] download has a config spec and an MCM menu that use every feature: start from it.[/size]
+[/list]
+
+[size=4][b]Documentation[/b][/size]
+[list]
+[*][size=3][url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/README.md]Documentation[/url] — using the menu, and giving your mod a menu.[/size]
+[*][size=3][url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/faq.md]FAQ and Troubleshooting[/url][/size]
+[/list]
+
+[b][size=4]Installation[/size][/b]
+[size=3]Requirements[/size]
+[list]
+[*][url=https://f4se.silverlock.org/][size=3]F4SEVR[/size][/url]
+[*][url=https://www.nexusmods.com/fallout4/mods/64879][size=3]VR Address Library[/size][/url]
+[/list]
+[size=3]Optional[/size]
+[list]
+[*][url=TODO][size=3]MCM VR[/size][/url][size=3], to show MCM menus[/size]
+[*][url=https://www.nexusmods.com/fallout4/mods/53464][size=3]FRIK[/size][/url][size=3], to press the wrist buttons with your fingertip and open FRIK's config from the menu[/size]
+[/list]
+[size=3]Steps[/size]
+[list]
+[*][size=3]Install via your mod manager, or extract directly into the Data folder.[/size]
+[*][size=3]No ESP file; load order does not matter.[/size]
+[*][size=3]Keep MCM installed: this menu shows MCM's menus, and doesn't replace MCM.[/size]
+[/list]
+
+[center][size=4][b]Showcase[/b][/size][/center]
+[center]TODO: video[/center]
+
+[size=4][b]Mods with a Config Spec[/b][/size]
+[list]
+[*][size=3][url=https://www.nexusmods.com/fallout4/mods/99342]Immersive Flashlight VR[/url][/size]
+[*][size=3][url=https://www.nexusmods.com/fallout4/mods/53464]FRIK[/url] v80+[/size]
+[/list]
+
+[size=4][b]Source Code[/b][/size]
+[size=3]GitHub: [url=https://github.com/ArthurHub/F4VR-Mods-Config]ArthurHub/F4VR-Mods-Config[/url] (GPL-3.0)[/size]
+
+[size=4][b]Support[/b][/size]
+If you like my work, consider helping out.
+[url=https://patreon.com/theartofdev][img]https://camo.githubusercontent.com/932ed7c82e6cf6c653059af7f533f1aba02ce4f3da0238f3a95da5815985ee2f/68747470733a2f2f7468656172746f666465762e776f726470726573732e636f6d2f77702d636f6e74656e742f75706c6f6164732f323032352f30362f6265636f6d655f615f706174726f6e5f627574746f6e2e706e67[/img][/url]
+
+[size=4][b]Credits / Thanks[/b][/size]
+This mod is built on the work of the Fallout VR modding community and public code.
+[list]
+[*]Ryan, rsm, McKenzie, alandtse, devartificial, and other [i][url=https://github.com/alandtse/CommonLibVR/tree/vr]CommonLibVR[/url][/i] contributors.[*]
+[*]Neanka, reg2k and the [i][url=https://www.nexusmods.com/fallout4/mods/21497]Mod Configuration Menu[/url][/i] team, whose menus this one shows and whose design it follows.[*]
+[*]Omar Cornut and the contributors of [i][url=https://github.com/ocornut/imgui]Dear ImGui[/url][/i], which draws the menu.[*]
+[*]RollingRock, alandtse, shizof, and CylonSurfer for FRIK, whose config gesture the menu opens with.[*]
+[/list]
