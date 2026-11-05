@@ -1753,7 +1753,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK_FALSE(mod.help.empty());
     CHECK_FALSE(mod.frontPage.items.empty());
     REQUIRE(mod.pages.size() == 2);
-    CHECK(mod.pages[0].name == "Most Used");
+    CHECK(mod.pages[0].name == "General");
     const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
     CHECK(examples.pages.size() == 26);
@@ -1809,7 +1809,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
                                "No such shared list",
                                "A default that is no option" });
     CHECK(checked >= 30);
-    CHECK(readOnly == 9);
+    CHECK(readOnly == 10);
 }
 
 namespace

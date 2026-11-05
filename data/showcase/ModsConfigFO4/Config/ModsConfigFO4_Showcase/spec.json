@@ -2,7 +2,7 @@
   "minSchemaVersion": 1,
   "modName": "ModsConfigFO4_Showcase",
   "displayName": "Mods Config FO4: Showcase",
-  "help": "Every kind of row and setting a config spec has, to see how each looks and works. Each page is one kind.",
+  "help": "What a config spec can do, for a mod author writing one: one of each kind of setting, a page for each kind in all its forms, and its mistakes.",
   "specVersion": 1,
   "pluginRequirements": ["Fallout4.esm"],
   "f4sePluginRequirements": ["ModsConfigFO4VR"],
@@ -59,7 +59,7 @@
       "content": [
         {
           "type": "text",
-          "text": "Write a good description of the mods config mod."
+          "text": "A config spec that shows what a config spec can do, for a mod author writing one. General has one of each kind of setting, and the patterns a page uses most. Detailed Examples has a page for each kind, in all its forms, and Mistakes has what a config spec can get wrong, each with the error the menu reports. Its values are in files of its own, beside its spec.json."
         }
       ]
     },
@@ -70,12 +70,12 @@
       "content": [
         {
           "type": "button",
-          "text": "Open WIKI page",
-          "help": "TODO.",
+          "text": "Config spec schema",
+          "help": "Opens the config spec schema on GitHub in your browser: every field a config spec has. Take off the headset to read it on your monitor.",
           "buttonText": "Open",
           "action": {
             "type": "OpenURL",
-            "url": "https://github.com/rollingrock/Fallout-4-VR-Body/blob/main/docs/README.md"
+            "url": "https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/design/schema.md"
           }
         }
       ]
@@ -83,24 +83,23 @@
   ],
   "pages": [
     {
-      "pageDisplayName": "Most Used",
-      "help": "An example page of common and most used features.",
+      "pageDisplayName": "General",
+      "help": "One of each kind of setting, and the patterns a page uses most.",
       "content": [
         {
           "type": "text",
-          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config FO4 VR. Each page is one kind."
+          "text": "One of each kind of setting. Detailed Examples has a page for each kind, in all its forms."
         },
         { "type": "spacer" },
         {
           "type": "section",
-          "text": "A bit of everything",
+          "text": "Basic controls",
           "content": [
-            { "type": "text", "text": "A plain text row above the controls." },
             {
               "type": "switcher",
               "valueType": "bool",
               "text": "Switcher",
-              "help": "A switcher that is on by default.",
+              "help": "On or off: a press flips it.",
               "default": true,
               "storage": { "path": ["Main", "bSwitcher"] }
             },
@@ -108,16 +107,17 @@
               "type": "slider",
               "valueType": "float",
               "text": "Slider",
-              "help": "A slider from 0 to 100 by 5.",
+              "help": "A number in a range, with a unit: drag it, or step it with its arrows. From 0 to 100 by 5.",
               "default": 50.0,
               "valueOptions": { "min": 0, "max": 100, "step": 5 },
+              "display": { "unit": "cm" },
               "storage": { "path": ["Main", "fSlider"] }
             },
             {
               "type": "stepper",
               "valueType": "int",
               "text": "Stepper",
-              "help": "A stepper of three options, which stores the place of the chosen one.",
+              "help": "One of a few options, stepped through with its arrows. It stores the place of the chosen one.",
               "default": 1,
               "valueOptions": { "options": ["Low", "Medium", "High"] },
               "storage": { "path": ["Main", "iStepper"] }
@@ -126,22 +126,14 @@
               "type": "dropdown",
               "valueType": "string",
               "text": "Dropdown",
-              "help": "A dropdown of four options, each with the value it stores.",
+              "help": "One of a list of options, each with a help of its own. It stores the value of the chosen one.",
               "default": "offhand",
               "valueOptions": {
                 "options": [
-                  { "value": "head", "text": "Head", "help": "On the head." },
-                  {
-                    "value": "offhand",
-                    "text": "Offhand",
-                    "help": "On the hand that does not point."
-                  },
-                  {
-                    "value": "primary",
-                    "text": "Primary hand",
-                    "help": "On the hand that points."
-                  },
-                  { "value": "chest", "text": "Chest", "help": "On the chest." }
+                  { "value": "head", "text": "Head", "help": "The first option." },
+                  { "value": "offhand", "text": "Offhand", "help": "The second option, the default." },
+                  { "value": "primary", "text": "Primary hand", "help": "The third option." },
+                  { "value": "chest", "text": "Chest", "help": "The fourth option." }
                 ]
               },
               "storage": { "path": ["Main", "sDropdown"] }
@@ -150,7 +142,7 @@
               "type": "textinput",
               "valueType": "string",
               "text": "Text input",
-              "help": "A text that is typed.",
+              "help": "A text typed on the keyboard: not empty, and up to 12 characters.",
               "default": "Hello",
               "valueOptions": { "allowEmpty": false, "maxLength": 12 },
               "storage": { "path": ["Main", "sText"] }
@@ -159,7 +151,7 @@
               "type": "textinput",
               "valueType": "float",
               "text": "Number input",
-              "help": "A text input that takes a number with a unit.",
+              "help": "A number typed on the keyboard, from 0.5 to 2.5, with a unit.",
               "default": 1.5,
               "valueOptions": { "min": 0.5, "max": 2.5 },
               "display": { "decimals": 1, "unit": "m" },
@@ -168,136 +160,235 @@
             {
               "type": "button",
               "text": "Button",
-              "help": "Shows a notification.",
-              "buttonText": "Show",
+              "help": "Runs its action at once: this one shows a notification.",
+              "buttonText": "Run",
               "action": {
                 "type": "CallGlobalFunction",
                 "script": "Debug",
                 "function": "Notification",
                 "params": ["Showcase: the button ran"]
               }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Read-only",
+              "help": "A value the mod writes for you to read: shown, and not edited.",
+              "readOnly": true,
+              "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
+              "display": { "unit": "m" },
+              "storage": { "path": ["Main", "fReadOnly"] }
             }
           ]
         },
         { "type": "spacer" },
         {
           "type": "section",
-          "text": "More Advanced Features",
+          "text": "CommonFramework controls",
+          "help": "Values of a mod built on the F4VR CommonFramework, in the framework's TOML form.",
           "content": [
             {
-              "type": "text",
-              "text": "A connected example of conditions, shared choices, warnings and inherited defaults. These settings do not change gameplay. Turn holsters off or change the mode to see the layout respond to pending changes."
+              "type": "cf.inputBinding",
+              "text": "Binding",
+              "help": "A controller binding: its icons and a sentence. A press opens its editor.",
+              "default": { "hand": "offhand", "type": "longpress", "button": "a" },
+              "storage": { "path": ["Main", "kBinding"] }
             },
-            { "type": "spacer" },
             {
-              "type": "switcher",
-              "valueType": "bool",
-              "id": "advancedHolsters",
-              "text": "Enable holsters",
-              "help": "Enables the holster settings below. The page's settings apply on Save.",
-              "default": true,
-              "storage": { "path": ["Advanced", "bHolsters"] }
+              "type": "cf.haptic",
+              "text": "Haptic",
+              "help": "A haptic pattern: its shape, and Play plays it on the hand that points.",
+              "default": "DoubleClick",
+              "storage": { "path": ["Main", "sHaptic"] }
+            },
+            {
+              "type": "cf.color",
+              "text": "Color",
+              "help": "A color, and how opaque it is. A press opens its editor, with a shared list of presets.",
+              "default": { "rgb": [255, 214, 170], "alpha": 200 },
+              "valueOptions": { "sharedPresets": "lights" },
+              "storage": { "path": ["Main", "cColor"] }
+            },
+            {
+              "type": "cf.transform",
+              "text": "Transform",
+              "help": "A position, a rotation and a scale. A press opens its editor, with a slider for each axis.",
+              "default": { "pos": [0.0, 0.0, 12.0], "rot": [0.0, -5.0, 0.0], "scale": 1.0 },
+              "valueOptions": { "position": { "min": -20, "max": 20, "step": 0.1 } },
+              "storage": { "path": ["Main", "tTransform"] }
             },
             {
               "type": "section",
-              "text": "Holsters",
-              "enabledWhen": { "setting": "advancedHolsters", "equals": true },
+              "text": "Activation sphere",
+              "help": "A zone the hand reaches into, with its bindings, haptics and look: one group of many rows.",
+              "isCollapsible": true,
+              "collapsed": true,
+              "content": [
+                {
+                  "type": "cf.activationSphere",
+                  "text": "Activation sphere",
+                  "help": "Each key of its section is a row of its own.",
+                  "storage": { "path": ["MainSphere"] },
+                  "keys": {
+                    "tZone": { "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Common patterns",
+          "help": "A section a switcher enables, a section a choice shows, a warning, a dropdown of files, an important button, rows shown by installed mods, styled help, and a setting that needs a restart.",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "id": "patternEnable",
+              "text": "Enable the section",
+              "help": "Enables the section below, and every row in it. Turn it off to see them disabled.",
+              "default": true,
+              "storage": { "path": ["Patterns", "bEnable"] }
+            },
+            {
+              "type": "section",
+              "text": "Enabled by the switcher",
+              "enabledWhen": { "setting": "patternEnable", "equals": true },
               "content": [
                 {
                   "type": "dropdown",
                   "valueType": "string",
-                  "id": "advancedMode",
-                  "text": "Activation mode",
-                  "help": "Physical shows the tuning section; Buttons hides it.",
-                  "default": "physical",
+                  "id": "patternShow",
+                  "text": "Show the folded section",
+                  "help": "Shows or hides the folded section under it.",
+                  "default": "shown",
                   "valueOptions": {
                     "options": [
-                      { "value": "physical", "text": "Physical" },
-                      { "value": "buttons", "text": "Buttons" }
+                      { "value": "shown", "text": "Shown" },
+                      { "value": "hidden", "text": "Hidden" }
                     ]
                   },
-                  "storage": { "path": ["Advanced", "sMode"] }
-                },
-                {
-                  "type": "stepper",
-                  "valueType": "int",
-                  "text": "Activation hand",
-                  "help": "Uses the config spec's shared hands list and stores the option's position.",
-                  "default": 1,
-                  "valueOptions": { "sharedOptions": "hands" },
-                  "storage": { "path": ["Advanced", "iHand"] }
+                  "storage": { "path": ["Patterns", "sShow"] }
                 },
                 {
                   "type": "section",
-                  "text": "Physical tuning",
-                  "help": "A nested section that starts folded. Its rows inherit the outer section's enabled condition.",
+                  "text": "Folded section",
+                  "help": "Starts folded, and is shown by the dropdown above. Its rows follow the condition of the section it is in.",
                   "isCollapsible": true,
                   "collapsed": true,
-                  "visibleWhen": {
-                    "setting": "advancedMode",
-                    "equals": "physical"
-                  },
+                  "visibleWhen": { "setting": "patternShow", "equals": "shown" },
                   "content": [
                     {
                       "type": "slider",
                       "valueType": "float",
-                      "id": "advancedReach",
-                      "text": "Activation reach",
-                      "help": "Try more than 30 cm to show a warning. A warning does not block Save.",
+                      "id": "patternWarn",
+                      "text": "Warns above 30",
+                      "help": "Set it above 30 to see a warning. A warning does not block Save.",
                       "default": 15.0,
                       "valueOptions": { "min": 5, "max": 50, "step": 1 },
                       "display": { "unit": "cm" },
-                      "storage": { "path": ["Advanced", "fReach"] },
+                      "storage": { "path": ["Patterns", "fWarn"] },
                       "warnings": [
                         {
-                          "when": { "setting": "advancedReach", "greaterThan": 30 },
-                          "text": "A large reach can activate a nearby holster by accident. This is an example warning."
+                          "when": { "setting": "patternWarn", "greaterThan": 30 },
+                          "text": "A value above 30 works, and has a cost: this is the warning."
                         }
                       ]
                     },
                     {
                       "type": "slider",
                       "valueType": "float",
-                      "text": "Grip threshold",
-                      "help": "Stores a value from 0 to 1 and displays it as a percentage of that range.",
+                      "text": "Percent",
+                      "help": "Stores a value from 0 to 1, and shows it as a percentage of that range.",
                       "default": 0.75,
                       "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
                       "display": { "percent": true },
-                      "storage": { "path": ["Advanced", "fGrip"] }
+                      "storage": { "path": ["Patterns", "fPercent"] }
                     }
                   ]
                 },
                 {
                   "type": "button",
-                  "text": "Test holster action",
-                  "help": "Enabled only with holsters on in Physical mode: both the section's condition and its own must hold. Shows a notification immediately.",
-                  "buttonText": "Test",
-                  "enabledWhen": {
-                    "setting": "advancedMode",
-                    "equals": "physical"
-                  },
+                  "text": "Two conditions",
+                  "help": "Enabled while the section is enabled and the folded section is shown: both must hold.",
+                  "buttonText": "Run",
+                  "enabledWhen": { "setting": "patternShow", "equals": "shown" },
                   "action": {
                     "type": "CallGlobalFunction",
                     "script": "Debug",
                     "function": "Notification",
-                    "params": ["Showcase: the Advanced holster action ran"]
+                    "params": ["Showcase: the button of two conditions ran"]
                   }
                 }
               ]
             },
             {
+              "type": "dropdown",
+              "valueType": "string",
+              "text": "Dropdown of files",
+              "help": "Its options are the .dds files of a folder of Data, read as the mod is selected. A pick is written as a path with data\\.",
+              "default": "data\\Textures\\ModsConfigFO4_Showcase\\banner.dds",
+              "valueOptions": { "listFromFolder": { "path": "Textures/ModsConfigFO4_Showcase", "mask": "*.dds" } },
+              "storage": { "path": ["Patterns", "sFile"] }
+            },
+            {
+              "type": "button",
+              "text": "Important button",
+              "help": "The one action of a page the player should not miss: drawn in the accent color, with an icon.",
+              "buttonText": "Tune",
+              "style": "important",
+              "icon": "hand",
+              "action": {
+                "type": "CallGlobalFunction",
+                "script": "Debug",
+                "function": "Notification",
+                "params": ["Showcase: the important button ran"]
+              }
+            },
+            {
               "type": "section",
-              "text": "Startup options",
-              "help": "This section overrides the page's apply-on-save behavior. Its settings are marked as needing a restart.",
+              "text": "Installed mods",
+              "help": "Rows shown by the mods that are installed: here FRIK, by its F4SE plugin.",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "FRIK is installed: this row is shown while its F4SE plugin is loaded.",
+                  "visibleWhen": { "f4sePlugin": "F4VRBody" }
+                },
+                {
+                  "type": "text",
+                  "text": "FRIK is not installed: this row is shown while its F4SE plugin is not loaded.",
+                  "visibleWhen": { "not": { "f4sePlugin": "F4VRBody" } }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Styled help",
+              "help": "In-menu instructions, as mods write them: a text row with html.",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font color='#FFBF33'>A heading:</font> a font color starts each line.<br><font color='#FFBF33'>Another:</font> a br ends the line before it.<br><br><font color='#FFBF33'>A paragraph:</font> two br leave an empty line, and <b>bold</b> marks a word.",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Applies after a restart",
+              "help": "Its settings are read as the game starts, so Save says to restart.",
               "applies": "restart",
               "content": [
                 {
                   "type": "switcher",
                   "valueType": "bool",
-                  "text": "Enable startup diagnostics",
-                  "help": "An example of a setting read only at startup. Saving a change shows the restart notice.",
+                  "text": "Needs a restart",
+                  "help": "A change to it is saved, and takes effect after a restart.",
                   "default": false,
-                  "storage": { "path": ["Advanced", "bDiagnostics"] }
+                  "storage": { "path": ["Patterns", "bRestart"] }
                 }
               ]
             }
@@ -307,651 +398,14 @@
     },
     {
       "pageDisplayName": "Detailed Examples",
-      "help": "Pages with very detailed examples of all supported features.",
+      "help": "A page for each kind of row and setting, in all its forms, and what a config spec can get wrong.",
       "content": [
-        { "type": "spacer", "numLines": 3 },
         {
           "type": "text",
-          "text": "Every kind of row a config spec has, to see how each looks and works in Mods Config FO4 VR. Each page is one kind."
+          "text": "The controls come first, from a switcher to an activation sphere. Then the look of a page, from text and images to sections, pages and read-only values. Then how settings behave: their files, when a change takes effect, conditions, warnings and translations. Mistakes is last."
         }
       ],
       "pages": [
-        {
-          "pageDisplayName": "Text: sizes",
-          "content": [
-            {
-              "type": "section",
-              "text": "Each size on a row of its own",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "<font size='48'>Size 48: The quick brown fox</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='40'>Size 40: The quick brown fox</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='36'>Size 36: The quick brown fox</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='30'>Size 30: The quick brown fox jumps</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='28'>Size 28: The quick brown fox jumps</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='24'>Size 24: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "No size: The quick brown fox jumps over the lazy dog",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='22'>Size 22: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='20'>Size 20: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='18'>Size 18: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='16'>Size 16: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='15'>Size 15: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='14'>Size 14: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='12'>Size 12: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='10'>Size 10: The quick brown fox jumps over the lazy dog</font>",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Sizes on one line",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "<font size='40'>40</font> <font size='30'>30</font> <font size='24'>24</font> <font size='20'>20</font> <font size='16'>16</font> <font size='12'>12</font> and no size",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "A sentence with <font size='36'>one large word</font> in it, long enough that it is wrapped to a second line, so the height of a line with a large word shows beside the height of a line without one.",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "A size inside a size",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "<font size='30'>Thirty, <font size='16'>sixteen inside it,</font> and thirty again</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='big'>A size that is not a number</font>, <font size='0'>a size of zero</font>, <font size='-4'>and one below it</font>",
-                  "html": true
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Text: colors",
-          "content": [
-            {
-              "type": "section",
-              "text": "Colors",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "No color: the panel's muted text",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#FFFFFF'>#FFFFFF white</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#AAAAAA'>#AAAAAA grey, as FallUI's notes</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#666666'>#666666 dark grey</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#000000'>#000000 black</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#0AFA78'>#0AFA78 the panel's green</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#FFBF33'>#FFBF33 the panel's amber</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#FF9585'>#FF9585 the panel's red</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#FF0000'>#FF0000 red</font> <font color='#00FF00'>#00FF00 green</font> <font color='#0000FF'>#0000FF blue</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#FFFF00'>#FFFF00 yellow</font> <font color='#00FFFF'>#00FFFF cyan</font> <font color='#FF00FF'>#FF00FF magenta</font>",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Colors in a sentence",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "Stand straight and look ahead. <font color='#FFFFFF'>Do not move</font> until it is done, and <font color='#FF9585'>do not press anything</font>.",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#AAAAAA' size='16'>A grey note in size 16, <font color='#FFFFFF'>with white words inside it</font>, and grey again.</font>",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Colors that are not read",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "<font color='red'>A color by its name</font>, <font color='#FFF'>one of three digits</font>, <font color='#GGGGGG'>and one that is no number</font>",
-                  "html": true
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Text: align, lines, and spacers",
-          "content": [
-            {
-              "type": "section",
-              "text": "Align",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "<p align='left'>A paragraph at the left</p>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p align='center'>A paragraph in the center</p>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p align='right'>A paragraph at the right</p>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p align='center'>A centered paragraph that is long enough to be wrapped, so that each of its lines is seen to be centered by itself in the width of the rows, the last one too.</p>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p align='right'>A paragraph at the right that is long enough to be wrapped, so that each of its lines is seen to end at the right edge of the rows, the last one too.</p>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p align='center'><font size='30'>A centered title</font></p><p>A paragraph under it, at the left.</p><p align='right'><font size='16'>And a note at the right</font></p>",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Lines",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "One line<br>A second, after a br<br/>A third, after a br/<br />A fourth, after a br /",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "A line before an empty one<br><br>A line after it",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p>A first paragraph.</p><p>A second, right under it.</p><br><p>A third, after a br between the paragraphs.</p>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "A line that ends in the config\nand goes on in the next, with html",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Wrapping",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "A long paragraph. Sim Settlements 2 allows your settlers to build their own homes, farms, shops, and more. If this is your first time using the mod, know that you'll need to grab the holotape in the world or you can spawn it with the button below. Run the holotape to get started, and come back to this menu for the options.",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "AWordThatIsMuchTooLongForTheWidthOfTheRowsAndHasNoSpaceToBeWrappedAtSoItRunsPastTheEdgeOfThePageToSeeWhatHappensToItThere and words after it",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Spacers",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "A spacer of one line under this text."
-                },
-                { "type": "spacer" },
-                {
-                  "type": "text",
-                  "text": "A spacer of three lines under this text."
-                },
-                { "type": "spacer", "numLines": 3 },
-                { "type": "text", "text": "The end of the spacers." }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Text: tags and plain",
-          "content": [
-            {
-              "type": "section",
-              "text": "Client states in text",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "Version {clientState:version}"
-                },
-                {
-                  "type": "text",
-                  "text": "<b>Client status:</b> <font color='#FFBF33'>{clientState:status}</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "These values come from the mod's native client. The showcase has no DLL, so they show Unknown (version) and Unknown (status). A mod registers them with addState."
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Bold, italic and underlined",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "A <b>bold</b>, an <i>italic</i> and an <u>underlined</u> word, and <b><i>one that is both</i></b>, which is bold.",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<u>An underlined sentence that is long enough to be wrapped, so its line is seen under the words and the spaces between them, but not after its last word on a line.</u>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size='30'><b>Bold</b> in size 30</font>, <font color='#FFFFFF'><i>italic in white</i></font>, and <b>bold <font color='#FFBF33' size='16'>around a small amber font</font> tag</b>",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Tags that are dropped",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "A <a href='https://example.com'>link</a> keeps its text.",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "An image tag<img src='logo.png'/> and a closing tag with none open</font> leave nothing.",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Entities",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "Salt &amp; pepper, &lt;b&gt;, &quot;quoted&quot;, it&apos;s, a&nbsp;space, &#169; and &#xE9;",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "What is no entity: fish & chips; &unknown; and 1 < 2 > 0",
-                  "html": true
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Text rows with no html",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "A plain text row."
-                },
-                {
-                  "type": "text",
-                  "text": "A plain text row\nwith a line end in it."
-                },
-                {
-                  "type": "text",
-                  "text": "A plain row shows its <b>tags</b> &amp; entities as they are written.<br>"
-                },
-                {
-                  "type": "text",
-                  "text": "The chance decides, if a human NPC can use items. If you set the chance to 100%, all human NPCs will use items. If you set it to 50%, every second NPC can use items."
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Titles and notes as mods write them",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "<font size='30'><p align='center'>FallUI - Inventory</p></font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p align='center'><font size='24'>Sim Settlements 2</font></p>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size=\"40\"><p align = \"center\">Unlimited Survival Mode</p></font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>",
-                  "html": true
-                },
-                {
-                  "type": "text",
-                  "text": "<p align = \"center\"><font size='25'><b>by an author</b></font></p>",
-                  "html": true
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Images",
-          "help": "Rows that hold no value: texts with and without tags, spacers, and textures at their own size and at the size a row gives.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Images",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "Swatches at the texture's own size, 256 by 64."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigFO4_Showcase/swatches.dds"
-                },
-                {
-                  "type": "text",
-                  "text": "A checker of 128 by 128, at the size its row gives, 64 by 64."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigFO4_Showcase/checker.dds",
-                  "width": 64,
-                  "height": 64
-                },
-                {
-                  "type": "text",
-                  "text": "The checker at a width of 192 alone: its height is of its aspect."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigFO4_Showcase/checker.dds",
-                  "width": 192
-                },
-                {
-                  "type": "text",
-                  "text": "A ruler of 1024 by 64, which is wider than the rows, so it is as wide as they are."
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigFO4_Showcase/ruler.dds"
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Shown by a switcher",
-              "content": [
-                {
-                  "id": "showPicture",
-                  "type": "switcher",
-                  "valueType": "bool",
-                  "text": "Show the picture",
-                  "help": "The text and the image under it are shown while it is on.",
-                  "default": true,
-                  "storage": { "path": ["Rows", "bShowPicture"] }
-                },
-                {
-                  "type": "text",
-                  "text": "Shown while Show the picture is on.",
-                  "visibleWhen": { "setting": "showPicture", "equals": true }
-                },
-                {
-                  "type": "image",
-                  "texture": "ModsConfigFO4_Showcase/checker.dds",
-                  "width": 64,
-                  "height": 64,
-                  "visibleWhen": { "setting": "showPicture", "equals": true }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Sections",
-          "help": "Sections in sections, each set in under the one it is in, and sections that fold.",
-          "content": [
-            {
-              "type": "switcher",
-              "valueType": "bool",
-              "text": "Before any section",
-              "help": "A row of the page itself.",
-              "default": true,
-              "storage": { "path": ["Sections", "bBefore"] }
-            },
-            {
-              "type": "section",
-              "text": "Holsters",
-              "help": "A section's help, which the help line has while the ray is on its heading.",
-              "content": [
-                {
-                  "type": "switcher",
-                  "valueType": "bool",
-                  "text": "Enable holsters",
-                  "help": "A row of the outer section.",
-                  "default": true,
-                  "storage": { "path": ["Sections", "bHolsters"] }
-                },
-                {
-                  "type": "section",
-                  "text": "Advanced",
-                  "help": "A section that folds, folded each time the page is shown. Change a row in it and fold it.",
-                  "isCollapsible": true,
-                  "collapsed": true,
-                  "content": [
-                    {
-                      "type": "slider",
-                      "valueType": "float",
-                      "text": "Reach",
-                      "help": "A row of a section in a section.",
-                      "default": 10.0,
-                      "valueOptions": { "min": 0, "max": 50, "step": 1 },
-                      "storage": { "path": ["Sections", "fReach"] }
-                    },
-                    {
-                      "type": "section",
-                      "text": "Even more",
-                      "help": "A section that folds, open each time the page is shown.",
-                      "isCollapsible": true,
-                      "content": [
-                        {
-                          "type": "slider",
-                          "valueType": "float",
-                          "text": "Angle",
-                          "help": "A row three sections in.",
-                          "default": 45.0,
-                          "valueOptions": { "min": 0, "max": 90, "step": 5 },
-                          "storage": { "path": ["Sections", "fAngle"] }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Size",
-                  "help": "A row of the outer section, after the sections in it.",
-                  "default": 1.0,
-                  "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 },
-                  "storage": { "path": ["Sections", "fSize"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Only a section in it",
-              "content": [
-                {
-                  "type": "section",
-                  "text": "Inside",
-                  "content": [
-                    {
-                      "type": "switcher",
-                      "valueType": "bool",
-                      "text": "In the inner section",
-                      "help": "The outer section has no rows of its own.",
-                      "default": false,
-                      "storage": { "path": ["Sections", "bInside"] }
-                    }
-                  ]
-                }
-              ]
-            },
-            { "type": "section", "text": "An empty section", "content": [] },
-            {
-              "type": "switcher",
-              "valueType": "bool",
-              "text": "After the sections",
-              "help": "A row of the last section.",
-              "default": false,
-              "storage": { "path": ["Sections", "bAfter"] }
-            },
-            {
-              "type": "section",
-              "text": "Folded with an invalid value",
-              "help": "Its file has a value that is not its setting's, which its heading tells.",
-              "isCollapsible": true,
-              "collapsed": true,
-              "defaultFile": "invalid",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Past its most",
-                  "help": "The file has 2.0, and the slider goes from 0 to 1.",
-                  "default": 0.5,
-                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
-                  "storage": { "path": ["Folded", "fPastMost"] }
-                }
-              ]
-            }
-          ]
-        },
         {
           "pageDisplayName": "Switchers",
           "help": "Switchers, on and off by default.",
@@ -1332,611 +786,6 @@
                   "default": 5,
                   "valueOptions": { "min": 1, "max": 10 },
                   "storage": { "path": ["TextInputs", "iLimited"] }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Bindings",
-          "help": "Controller bindings of a CommonFramework mod: each is its icons and a sentence, and the help line says it in full.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Bindings",
-              "content": [
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Tap",
-                  "help": "A tap of a button on a hand.",
-                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
-                  "storage": { "path": ["Bindings", "kTap"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Long press",
-                  "help": "The A button of the off hand, which is X on a left controller.",
-                  "default": { "hand": "offhand", "type": "longpress", "button": "a" },
-                  "storage": { "path": ["Bindings", "kLongPress"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Double press",
-                  "help": "Two presses of a button.",
-                  "default": { "hand": "primary", "type": "double", "button": "grip" },
-                  "storage": { "path": ["Bindings", "kDouble"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Chord",
-                  "help": "A long press while a button of the other hand is held: two icons.",
-                  "default": {
-                    "hand": "primary",
-                    "type": "longpress",
-                    "button": "thumbstick",
-                    "duration": 1.5,
-                    "modifier": { "hand": "offhand", "button": "thumbstick" }
-                  },
-                  "storage": { "path": ["Bindings", "kChord"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Push",
-                  "help": "A push of the thumbstick to a side.",
-                  "default": { "hand": "primary", "type": "axis", "direction": "up" },
-                  "storage": { "path": ["Bindings", "kPush"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Moved",
-                  "help": "The thumbstick moved up or down, not pushed to a side, for a mod that reads how far itself.",
-                  "default": { "hand": "primary", "type": "axis", "direction": "updown" },
-                  "storage": { "path": ["Bindings", "kMoved"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "System button",
-                  "help": "The system button has no icon: its sentence alone.",
-                  "default": { "hand": "primary", "type": "press", "button": "system" },
-                  "storage": { "path": ["Bindings", "kSystem"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "None",
-                  "help": "A binding that is off.",
-                  "default": { "type": "none" },
-                  "storage": { "path": ["Bindings", "kNone"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Suppressed",
-                  "help": "An activation sphere's binding, which offers Suppress from the game.",
-                  "default": { "hand": "primary", "type": "tap", "button": "grip", "suppress": true },
-                  "valueOptions": { "suppress": true },
-                  "storage": { "path": ["Bindings", "kSuppressed"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "Limited",
-                  "help": "It takes a press, a long press or a hold of the grip, A or B alone: its editor offers those.",
-                  "default": { "hand": "primary", "type": "press", "button": "grip" },
-                  "valueOptions": { "types": ["press", "longpress", "hold"], "buttons": ["grip", "a", "b"] },
-                  "storage": { "path": ["Bindings", "kLimited"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Invalid",
-              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
-              "defaultFile": "invalid",
-              "content": [
-                {
-                  "type": "cf.inputBinding",
-                  "text": "A typo",
-                  "help": "Its button is not a button.",
-                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
-                  "storage": { "path": ["Bindings", "kTypo"] }
-                },
-                {
-                  "type": "cf.inputBinding",
-                  "text": "A way it does not take",
-                  "help": "It takes a press or a long press, and its file has a tap.",
-                  "default": { "hand": "primary", "type": "press", "button": "grip" },
-                  "valueOptions": { "types": ["press", "longpress"] },
-                  "storage": { "path": ["Bindings", "kUntaken"] }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Haptics",
-          "help": "Haptic patterns of a CommonFramework mod: each shows its shape, and Play plays it on the hand that points.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Haptics",
-              "content": [
-                {
-                  "type": "cf.haptic",
-                  "text": "Tap",
-                  "help": "The lightest tap.",
-                  "default": "Tick",
-                  "storage": { "path": ["Haptics", "sTick"] }
-                },
-                {
-                  "type": "cf.haptic",
-                  "text": "Double click",
-                  "help": "Two quick taps. A file can write it as \"double click\" too, as the framework reads it.",
-                  "default": "DoubleClick",
-                  "storage": { "path": ["Haptics", "sDoubleClick"] }
-                },
-                {
-                  "type": "cf.haptic",
-                  "text": "Long pattern",
-                  "help": "A pattern longer than its box is drawn narrower, so it fits.",
-                  "default": "Heartbeat3",
-                  "storage": { "path": ["Haptics", "sLong"] }
-                },
-                {
-                  "type": "cf.haptic",
-                  "text": "None",
-                  "help": "No pulse: it has no shape, and Play is disabled.",
-                  "default": "none",
-                  "storage": { "path": ["Haptics", "sNone"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Invalid",
-              "help": "A name the framework does not have: its text in red, and no shape.",
-              "defaultFile": "invalid",
-              "content": [
-                {
-                  "type": "cf.haptic",
-                  "text": "A typo",
-                  "help": "Its file has Tik.",
-                  "default": "Tick",
-                  "storage": { "path": ["Haptics", "sTypo"] }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Colors",
-          "help": "Colors of a CommonFramework mod: each is a swatch and its numbers, and a press opens its editor.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Colors",
-              "content": [
-                {
-                  "type": "cf.color",
-                  "text": "Ray color",
-                  "help": "A color and how opaque it is: the right half of its swatch is over a checkerboard. Its editor has presets of its own, two with an alpha, and one without, which keeps the alpha the color has.",
-                  "default": { "rgb": [190, 255, 190], "alpha": 200 },
-                  "valueOptions": {
-                    "presets": [
-                      { "rgb": [190, 255, 190], "alpha": 200, "text": "Pip-Boy green" },
-                      { "rgb": [255, 182, 66], "alpha": 200, "text": "Amber" },
-                      { "rgb": [46, 207, 255] }
-                    ]
-                  },
-                  "storage": { "path": ["Colors", "cRay"] }
-                },
-                {
-                  "type": "cf.color",
-                  "text": "Faint",
-                  "help": "A low alpha: the checkerboard shows through.",
-                  "default": { "rgb": [255, 120, 60], "alpha": 40 },
-                  "storage": { "path": ["Colors", "cFaint"] }
-                },
-                {
-                  "type": "cf.color",
-                  "text": "Light color",
-                  "help": "A light's color, whose opacity means nothing: it is RGB only. Its presets are the shared list of whites, which the beam's color has too.",
-                  "default": { "rgb": [255, 214, 170] },
-                  "valueOptions": { "alpha": false, "sharedPresets": "lights" },
-                  "storage": { "path": ["Colors", "cLight"] }
-                },
-                {
-                  "type": "cf.color",
-                  "text": "Beam color",
-                  "help": "Another light's color, with the same shared list of whites.",
-                  "default": { "rgb": [255, 228, 206] },
-                  "valueOptions": { "alpha": false, "sharedPresets": "lights" },
-                  "storage": { "path": ["Colors", "cBeam"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Invalid",
-              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
-              "defaultFile": "invalid",
-              "content": [
-                {
-                  "type": "cf.color",
-                  "text": "Out of range",
-                  "help": "Its red is 300, which is not in 0..255.",
-                  "default": { "rgb": [190, 255, 190], "alpha": 200 },
-                  "storage": { "path": ["Colors", "cOutOfRange"] }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Transforms",
-          "help": "Transforms of a CommonFramework mod: each is its numbers, and a press opens its editor, of a slider for each axis.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Transforms",
-              "content": [
-                {
-                  "type": "cf.transform",
-                  "text": "Flashlight mesh",
-                  "help": "All three parts, with a position of -20 to 20 by 0.01. Adjust in world needs its mod's client, which this config spec has none of.",
-                  "default": { "pos": [9.37, -5.86, -5.13], "rot": [20.72, 0.0, 90.0], "scale": 1.5 },
-                  "valueOptions": { "position": { "min": -20, "max": 20, "step": 0.01 } },
-                  "storage": { "path": ["Transforms", "tMesh"] }
-                },
-                {
-                  "type": "cf.transform",
-                  "text": "Keys left out",
-                  "help": "A key the value leaves out is shown as what it means: no move, and no scale after the numbers. A change adds the key of its part.",
-                  "default": { "rot": [0.0, -5.0, 0.0] },
-                  "storage": { "path": ["Transforms", "tKeys"] }
-                },
-                {
-                  "type": "cf.transform",
-                  "text": "Body grab zone",
-                  "help": "Rotation off, so the row is the one line, Z of 0 to 40, and a scale of 0.5 to 2.",
-                  "default": { "pos": [0.0, 0.0, 12.0], "scale": 1.2 },
-                  "valueOptions": {
-                    "position": { "min": -10, "max": 10, "step": 0.1, "z": { "min": 0, "max": 40 } },
-                    "rotation": false,
-                    "scale": { "min": 0.5, "max": 2.0 }
-                  },
-                  "storage": { "path": ["Transforms", "tZone"] }
-                },
-                {
-                  "type": "cf.transform",
-                  "text": "Head light tilt",
-                  "help": "Rotation alone, with three lines in its editor.",
-                  "default": { "rot": [0.0, -5.0, 0.0] },
-                  "valueOptions": { "position": false, "scale": false },
-                  "storage": { "path": ["Transforms", "tTilt"] }
-                },
-                {
-                  "type": "cf.transform",
-                  "text": "Outside its range",
-                  "help": "Its X is 60, past its slider's 50: it is shown as it is, and a step or a drag brings it in. Its change waits for a Save, so Adjust in world is disabled.",
-                  "applies": "save",
-                  "default": { "pos": [60.0, 0.0, 0.0] },
-                  "storage": { "path": ["Transforms", "tOutside"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Invalid",
-              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
-              "defaultFile": "invalid",
-              "content": [
-                {
-                  "type": "cf.transform",
-                  "text": "Two numbers",
-                  "help": "Its pos has two numbers, and needs three.",
-                  "default": { "pos": [0.0, 0.0, 0.0] },
-                  "storage": { "path": ["Transforms", "tTwoNumbers"] }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Activation spheres",
-          "help": "A section of a CommonFramework mod's TOML that is an activation sphere, drawn as one group, each key a setting of its own.",
-          "content": [
-            {
-              "type": "cf.activationSphere",
-              "text": "Named by its config spec",
-              "help": "Every row has a name of its own.",
-              "storage": { "path": ["BodySphere"] },
-              "keys": {
-                "kPrimaryBinding": { "text": "Take the light", "help": "Takes the light from your chest." },
-                "sEntryHaptic": { "text": "Hand reaches the light" },
-                "sShowIcon": { "text": "Show the light's mark" },
-                "tZone": { "text": "Chest zone", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
-                "tZonePA": { "text": "Chest zone in power armor", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
-                "sPrimaryHaptic": { "text": "Light taken" },
-                "kSecondaryBinding": { "text": "Switch hands" },
-                "sSecondaryHaptic": { "text": "Hands switched" },
-                "sIcon": { "text": "Mark's image" },
-                "cIconColor": { "text": "Mark's color" },
-                "fIconSize": { "text": "Mark's size" },
-                "sShowSphere": { "text": "Show the chest sphere" },
-                "sSphereStyle": { "text": "Chest sphere's style" },
-                "fSphereScale": { "text": "Chest sphere's size" }
-              }
-            },
-            {
-              "type": "cf.activationSphere",
-              "text": "With hidden keys",
-              "help": "It hides its icon and its second binding, and its file has no power-armor zone, so those keys have no row.",
-              "storage": { "path": ["HeadSphere"] },
-              "keys": {
-                "tZone": { "valueOptions": { "position": { "step": 0.1 }, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
-                "sShowIcon": false,
-                "kSecondaryBinding": false,
-                "sSecondaryHaptic": false
-              }
-            },
-            {
-              "type": "cf.activationSphere",
-              "text": "With its other keys",
-              "help": "It names the keys that have no row unless a config spec names them. Its icon is never shown, so that row is disabled, and its second binding is None, so its haptic has no row.",
-              "storage": { "path": ["LookSphere"] },
-              "keys": {
-                "tZone": { "valueOptions": { "scale": { "min": 1, "max": 40, "step": 0.5 } } },
-                "tZonePA": { "valueOptions": { "scale": { "min": 1, "max": 40, "step": 0.5 } } },
-                "sSphereOrientation": true,
-                "cSphereColor": true,
-                "fSphereGlow": true,
-                "sSphereNif": true,
-                "sSphereTexture": true
-              }
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Numbers",
-          "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Decimals",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "As many as the step has",
-                  "help": "A step of 0.01 has two decimals.",
-                  "default": 1.25,
-                  "valueOptions": { "min": 0, "max": 2, "step": 0.01 },
-                  "storage": { "path": ["Numbers", "fStepDecimals"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "int",
-                  "text": "A whole number",
-                  "help": "A step of 1 has none.",
-                  "default": 8,
-                  "valueOptions": { "min": 0, "max": 24, "step": 1 },
-                  "storage": { "path": ["Numbers", "iWhole"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "One decimal",
-                  "help": "A step of 1, and one decimal of its display.",
-                  "default": 12.0,
-                  "valueOptions": { "min": 0, "max": 50, "step": 1 },
-                  "display": { "decimals": 1 },
-                  "storage": { "path": ["Numbers", "fOneDecimal"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Below zero",
-                  "help": "A negative number has a minus.",
-                  "default": -0.5,
-                  "valueOptions": { "min": -1, "max": 1, "step": 0.05 },
-                  "storage": { "path": ["Numbers", "fNegative"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Units",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Meters",
-                  "help": "A unit after a space.",
-                  "default": 1.78,
-                  "valueOptions": { "min": 0.5, "max": 2.5, "step": 0.01 },
-                  "display": { "unit": "m" },
-                  "storage": { "path": ["Numbers", "fMeters"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Degrees",
-                  "help": "A degree follows its number with no space.",
-                  "default": 40.0,
-                  "valueOptions": { "min": 0, "max": 90, "step": 1 },
-                  "display": { "unit": "°" },
-                  "storage": { "path": ["Numbers", "fDegrees"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "A unit of a token",
-                  "help": "A unit is a text the player sees: this one is a token with a fallback.",
-                  "default": 2.5,
-                  "valueOptions": { "min": 0, "max": 10, "step": 0.5 },
-                  "display": {
-                    "unit": {
-                      "token": "$ModsConfigFO4_Showcase_Seconds",
-                      "fallback": "s"
-                    }
-                  },
-                  "storage": { "path": ["Numbers", "fSeconds"] }
-                },
-                {
-                  "type": "textinput",
-                  "valueType": "int",
-                  "text": "A text input",
-                  "help": "A text input of a number shows it with its unit too.",
-                  "default": 8,
-                  "valueOptions": { "min": 1, "max": 24 },
-                  "display": { "unit": "h" },
-                  "storage": { "path": ["Numbers", "iHours"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Percentages",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "int",
-                  "text": "Opacity",
-                  "help": "From 0 to 255, as a percentage: the help line has the number too.",
-                  "default": 217,
-                  "valueOptions": { "min": 0, "max": 255, "step": 1 },
-                  "display": { "percent": true },
-                  "storage": { "path": ["Numbers", "iOpacity"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "With a decimal",
-                  "help": "From 0.5 to 1.5, as a percentage with one decimal.",
-                  "default": 1.2,
-                  "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 },
-                  "display": { "decimals": 1, "percent": true },
-                  "storage": { "path": ["Numbers", "fPercent"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "Too wide for the box",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Smaller",
-                  "help": "A number and its unit that are too wide are in a smaller size.",
-                  "default": 12000.0,
-                  "valueOptions": { "min": 0, "max": 20000, "step": 1 },
-                  "display": { "unit": "ms" },
-                  "storage": { "path": ["Numbers", "fFade"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Without its unit",
-                  "help": "One that is too wide then too is the number alone, and the help line has its unit.",
-                  "default": 250000.0,
-                  "valueOptions": { "min": 0, "max": 1000000, "step": 1 },
-                  "display": { "unit": "meters" },
-                  "storage": { "path": ["Numbers", "fDistance"] }
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "pageDisplayName": "Read-only",
-          "help": "Values the mod writes for the player to read: shown, and not edited.",
-          "content": [
-            {
-              "type": "section",
-              "text": "Read-only",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Measured height",
-                  "help": "A slider that is only shown, with no Reset.",
-                  "readOnly": true,
-                  "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
-                  "display": { "unit": "m" },
-                  "storage": { "path": ["ReadOnly", "fHeight"] }
-                },
-                {
-                  "type": "switcher",
-                  "valueType": "bool",
-                  "text": "Calibrated",
-                  "help": "A switcher that is only shown.",
-                  "readOnly": true,
-                  "storage": { "path": ["ReadOnly", "bCalibrated"] }
-                },
-                {
-                  "type": "dropdown",
-                  "valueType": "string",
-                  "text": "Hand",
-                  "help": "A dropdown that is only shown: its list does not open.",
-                  "readOnly": true,
-                  "valueOptions": { "sharedOptions": "places" },
-                  "storage": { "path": ["ReadOnly", "sPlace"] }
-                },
-                {
-                  "type": "textinput",
-                  "valueType": "string",
-                  "text": "Profile",
-                  "help": "A text that is only shown: it is not typed.",
-                  "readOnly": true,
-                  "storage": { "path": ["ReadOnly", "sProfile"] }
-                },
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Past its most",
-                  "help": "The file has 2.0, and the slider goes from 0 to 1: it is shown as it is.",
-                  "readOnly": true,
-                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
-                  "storage": { "path": ["ReadOnly", "fPastMost"] }
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "text": "With no value",
-              "content": [
-                {
-                  "type": "slider",
-                  "valueType": "float",
-                  "text": "Not measured",
-                  "help": "The file has no value of it, so its slider shows none.",
-                  "readOnly": true,
-                  "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
-                  "storage": { "path": ["ReadOnly", "fNoHeight"] }
-                },
-                {
-                  "type": "switcher",
-                  "valueType": "bool",
-                  "text": "Not calibrated",
-                  "help": "The file has no value of it, so neither side is on.",
-                  "readOnly": true,
-                  "storage": { "path": ["ReadOnly", "bNoCalibrated"] }
-                },
-                {
-                  "type": "dropdown",
-                  "valueType": "string",
-                  "text": "No hand",
-                  "help": "The file has no value of it, so no option shows.",
-                  "readOnly": true,
-                  "valueOptions": { "sharedOptions": "places" },
-                  "storage": { "path": ["ReadOnly", "sNoPlace"] }
-                },
-                {
-                  "type": "textinput",
-                  "valueType": "string",
-                  "text": "No profile",
-                  "help": "The file has no value of it, so its box is empty.",
-                  "readOnly": true,
-                  "storage": { "path": ["ReadOnly", "sNoProfile"] }
                 }
               ]
             }
@@ -2462,6 +1311,1155 @@
           ]
         },
         {
+          "pageDisplayName": "Bindings",
+          "help": "Controller bindings of a CommonFramework mod: each is its icons and a sentence, and the help line says it in full.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Bindings",
+              "content": [
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Tap",
+                  "help": "A tap of a button on a hand.",
+                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+                  "storage": { "path": ["Bindings", "kTap"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Long press",
+                  "help": "The A button of the off hand, which is X on a left controller.",
+                  "default": { "hand": "offhand", "type": "longpress", "button": "a" },
+                  "storage": { "path": ["Bindings", "kLongPress"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Double press",
+                  "help": "Two presses of a button.",
+                  "default": { "hand": "primary", "type": "double", "button": "grip" },
+                  "storage": { "path": ["Bindings", "kDouble"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Chord",
+                  "help": "A long press while a button of the other hand is held: two icons.",
+                  "default": {
+                    "hand": "primary",
+                    "type": "longpress",
+                    "button": "thumbstick",
+                    "duration": 1.5,
+                    "modifier": { "hand": "offhand", "button": "thumbstick" }
+                  },
+                  "storage": { "path": ["Bindings", "kChord"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Push",
+                  "help": "A push of the thumbstick to a side.",
+                  "default": { "hand": "primary", "type": "axis", "direction": "up" },
+                  "storage": { "path": ["Bindings", "kPush"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Moved",
+                  "help": "The thumbstick moved up or down, not pushed to a side, for a mod that reads how far itself.",
+                  "default": { "hand": "primary", "type": "axis", "direction": "updown" },
+                  "storage": { "path": ["Bindings", "kMoved"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "System button",
+                  "help": "The system button has no icon: its sentence alone.",
+                  "default": { "hand": "primary", "type": "press", "button": "system" },
+                  "storage": { "path": ["Bindings", "kSystem"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "None",
+                  "help": "A binding that is off.",
+                  "default": { "type": "none" },
+                  "storage": { "path": ["Bindings", "kNone"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Suppressed",
+                  "help": "An activation sphere's binding, which offers Suppress from the game.",
+                  "default": { "hand": "primary", "type": "tap", "button": "grip", "suppress": true },
+                  "valueOptions": { "suppress": true },
+                  "storage": { "path": ["Bindings", "kSuppressed"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "Limited",
+                  "help": "It takes a press, a long press or a hold of the grip, A or B alone: its editor offers those.",
+                  "default": { "hand": "primary", "type": "press", "button": "grip" },
+                  "valueOptions": { "types": ["press", "longpress", "hold"], "buttons": ["grip", "a", "b"] },
+                  "storage": { "path": ["Bindings", "kLimited"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A typo",
+                  "help": "Its button is not a button.",
+                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+                  "storage": { "path": ["Bindings", "kTypo"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A way it does not take",
+                  "help": "It takes a press or a long press, and its file has a tap.",
+                  "default": { "hand": "primary", "type": "press", "button": "grip" },
+                  "valueOptions": { "types": ["press", "longpress"] },
+                  "storage": { "path": ["Bindings", "kUntaken"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Haptics",
+          "help": "Haptic patterns of a CommonFramework mod: each shows its shape, and Play plays it on the hand that points.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Haptics",
+              "content": [
+                {
+                  "type": "cf.haptic",
+                  "text": "Tap",
+                  "help": "The lightest tap.",
+                  "default": "Tick",
+                  "storage": { "path": ["Haptics", "sTick"] }
+                },
+                {
+                  "type": "cf.haptic",
+                  "text": "Double click",
+                  "help": "Two quick taps. A file can write it as \"double click\" too, as the framework reads it.",
+                  "default": "DoubleClick",
+                  "storage": { "path": ["Haptics", "sDoubleClick"] }
+                },
+                {
+                  "type": "cf.haptic",
+                  "text": "Long pattern",
+                  "help": "A pattern longer than its box is drawn narrower, so it fits.",
+                  "default": "Heartbeat3",
+                  "storage": { "path": ["Haptics", "sLong"] }
+                },
+                {
+                  "type": "cf.haptic",
+                  "text": "None",
+                  "help": "No pulse: it has no shape, and Play is disabled.",
+                  "default": "none",
+                  "storage": { "path": ["Haptics", "sNone"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A name the framework does not have: its text in red, and no shape.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.haptic",
+                  "text": "A typo",
+                  "help": "Its file has Tik.",
+                  "default": "Tick",
+                  "storage": { "path": ["Haptics", "sTypo"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Colors",
+          "help": "Colors of a CommonFramework mod: each is a swatch and its numbers, and a press opens its editor.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Colors",
+              "content": [
+                {
+                  "type": "cf.color",
+                  "text": "Ray color",
+                  "help": "A color and how opaque it is: the right half of its swatch is over a checkerboard. Its editor has presets of its own, two with an alpha, and one without, which keeps the alpha the color has.",
+                  "default": { "rgb": [190, 255, 190], "alpha": 200 },
+                  "valueOptions": {
+                    "presets": [
+                      { "rgb": [190, 255, 190], "alpha": 200, "text": "Pip-Boy green" },
+                      { "rgb": [255, 182, 66], "alpha": 200, "text": "Amber" },
+                      { "rgb": [46, 207, 255] }
+                    ]
+                  },
+                  "storage": { "path": ["Colors", "cRay"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "Faint",
+                  "help": "A low alpha: the checkerboard shows through.",
+                  "default": { "rgb": [255, 120, 60], "alpha": 40 },
+                  "storage": { "path": ["Colors", "cFaint"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "Light color",
+                  "help": "A light's color, whose opacity means nothing: it is RGB only. Its presets are the shared list of whites, which the beam's color has too.",
+                  "default": { "rgb": [255, 214, 170] },
+                  "valueOptions": { "alpha": false, "sharedPresets": "lights" },
+                  "storage": { "path": ["Colors", "cLight"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "Beam color",
+                  "help": "Another light's color, with the same shared list of whites.",
+                  "default": { "rgb": [255, 228, 206] },
+                  "valueOptions": { "alpha": false, "sharedPresets": "lights" },
+                  "storage": { "path": ["Colors", "cBeam"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.color",
+                  "text": "Out of range",
+                  "help": "Its red is 300, which is not in 0..255.",
+                  "default": { "rgb": [190, 255, 190], "alpha": 200 },
+                  "storage": { "path": ["Colors", "cOutOfRange"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Transforms",
+          "help": "Transforms of a CommonFramework mod: each is its numbers, and a press opens its editor, of a slider for each axis.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Transforms",
+              "content": [
+                {
+                  "type": "cf.transform",
+                  "text": "Flashlight mesh",
+                  "help": "All three parts, with a position of -20 to 20 by 0.01. Adjust in world needs its mod's client, which this config spec has none of.",
+                  "default": { "pos": [9.37, -5.86, -5.13], "rot": [20.72, 0.0, 90.0], "scale": 1.5 },
+                  "valueOptions": { "position": { "min": -20, "max": 20, "step": 0.01 } },
+                  "storage": { "path": ["Transforms", "tMesh"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Keys left out",
+                  "help": "A key the value leaves out is shown as what it means: no move, and no scale after the numbers. A change adds the key of its part.",
+                  "default": { "rot": [0.0, -5.0, 0.0] },
+                  "storage": { "path": ["Transforms", "tKeys"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Body grab zone",
+                  "help": "Rotation off, so the row is the one line, Z of 0 to 40, and a scale of 0.5 to 2.",
+                  "default": { "pos": [0.0, 0.0, 12.0], "scale": 1.2 },
+                  "valueOptions": {
+                    "position": { "min": -10, "max": 10, "step": 0.1, "z": { "min": 0, "max": 40 } },
+                    "rotation": false,
+                    "scale": { "min": 0.5, "max": 2.0 }
+                  },
+                  "storage": { "path": ["Transforms", "tZone"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Head light tilt",
+                  "help": "Rotation alone, with three lines in its editor.",
+                  "default": { "rot": [0.0, -5.0, 0.0] },
+                  "valueOptions": { "position": false, "scale": false },
+                  "storage": { "path": ["Transforms", "tTilt"] }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "Outside its range",
+                  "help": "Its X is 60, past its slider's 50: it is shown as it is, and a step or a drag brings it in. Its change waits for a Save, so Adjust in world is disabled.",
+                  "applies": "save",
+                  "default": { "pos": [60.0, 0.0, 0.0] },
+                  "storage": { "path": ["Transforms", "tOutside"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Invalid",
+              "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "cf.transform",
+                  "text": "Two numbers",
+                  "help": "Its pos has two numbers, and needs three.",
+                  "default": { "pos": [0.0, 0.0, 0.0] },
+                  "storage": { "path": ["Transforms", "tTwoNumbers"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Activation spheres",
+          "help": "A section of a CommonFramework mod's TOML that is an activation sphere, drawn as one group, each key a setting of its own.",
+          "content": [
+            {
+              "type": "cf.activationSphere",
+              "text": "Named by its config spec",
+              "help": "Every row has a name of its own.",
+              "storage": { "path": ["BodySphere"] },
+              "keys": {
+                "kPrimaryBinding": { "text": "Take the light", "help": "Takes the light from your chest." },
+                "sEntryHaptic": { "text": "Hand reaches the light" },
+                "sShowIcon": { "text": "Show the light's mark" },
+                "tZone": { "text": "Chest zone", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "tZonePA": { "text": "Chest zone in power armor", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "sPrimaryHaptic": { "text": "Light taken" },
+                "kSecondaryBinding": { "text": "Switch hands" },
+                "sSecondaryHaptic": { "text": "Hands switched" },
+                "sIcon": { "text": "Mark's image" },
+                "cIconColor": { "text": "Mark's color" },
+                "fIconSize": { "text": "Mark's size" },
+                "sShowSphere": { "text": "Show the chest sphere" },
+                "sSphereStyle": { "text": "Chest sphere's style" },
+                "fSphereScale": { "text": "Chest sphere's size" }
+              }
+            },
+            {
+              "type": "cf.activationSphere",
+              "text": "With hidden keys",
+              "help": "It hides its icon and its second binding, and its file has no power-armor zone, so those keys have no row.",
+              "storage": { "path": ["HeadSphere"] },
+              "keys": {
+                "tZone": { "valueOptions": { "position": { "step": 0.1 }, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "sShowIcon": false,
+                "kSecondaryBinding": false,
+                "sSecondaryHaptic": false
+              }
+            },
+            {
+              "type": "cf.activationSphere",
+              "text": "With its other keys",
+              "help": "It names the keys that have no row unless a config spec names them. Its icon is never shown, so that row is disabled, and its second binding is None, so its haptic has no row.",
+              "storage": { "path": ["LookSphere"] },
+              "keys": {
+                "tZone": { "valueOptions": { "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "tZonePA": { "valueOptions": { "scale": { "min": 1, "max": 40, "step": 0.5 } } },
+                "sSphereOrientation": true,
+                "cSphereColor": true,
+                "fSphereGlow": true,
+                "sSphereNif": true,
+                "sSphereTexture": true
+              }
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text: sizes",
+          "help": "Text in each size a mod writes: on rows of their own, on one line, and one size inside another.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Each size on a row of its own",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='48'>Size 48: The quick brown fox</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='40'>Size 40: The quick brown fox</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='36'>Size 36: The quick brown fox</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='30'>Size 30: The quick brown fox jumps</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='28'>Size 28: The quick brown fox jumps</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='24'>Size 24: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "No size: The quick brown fox jumps over the lazy dog",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='22'>Size 22: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='20'>Size 20: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='18'>Size 18: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='16'>Size 16: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='15'>Size 15: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='14'>Size 14: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='12'>Size 12: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='10'>Size 10: The quick brown fox jumps over the lazy dog</font>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Sizes on one line",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='40'>40</font> <font size='30'>30</font> <font size='24'>24</font> <font size='20'>20</font> <font size='16'>16</font> <font size='12'>12</font> and no size",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "A sentence with <font size='36'>one large word</font> in it, long enough that it is wrapped to a second line, so the height of a line with a large word shows beside the height of a line without one.",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A size inside a size",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='30'>Thirty, <font size='16'>sixteen inside it,</font> and thirty again</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='big'>A size that is not a number</font>, <font size='0'>a size of zero</font>, <font size='-4'>and one below it</font>",
+                  "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text: colors",
+          "help": "Text in colors: the panel's own, others, in a sentence, and colors that are not read.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Colors",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "No color: the panel's muted text",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FFFFFF'>#FFFFFF white</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#AAAAAA'>#AAAAAA grey, as FallUI's notes</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#666666'>#666666 dark grey</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#000000'>#000000 black</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#0AFA78'>#0AFA78 the panel's green</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FFBF33'>#FFBF33 the panel's amber</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FF9585'>#FF9585 the panel's red</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FF0000'>#FF0000 red</font> <font color='#00FF00'>#00FF00 green</font> <font color='#0000FF'>#0000FF blue</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#FFFF00'>#FFFF00 yellow</font> <font color='#00FFFF'>#00FFFF cyan</font> <font color='#FF00FF'>#FF00FF magenta</font>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Colors in a sentence",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Stand straight and look ahead. <font color='#FFFFFF'>Do not move</font> until it is done, and <font color='#FF9585'>do not press anything</font>.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#AAAAAA' size='16'>A grey note in size 16, <font color='#FFFFFF'>with white words inside it</font>, and grey again.</font>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Colors that are not read",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font color='red'>A color by its name</font>, <font color='#FFF'>one of three digits</font>, <font color='#GGGGGG'>and one that is no number</font>",
+                  "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text: align, lines, and spacers",
+          "help": "Paragraphs at the left, center and right, line breaks, wrapping, and spacers of one and three lines.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Align",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<p align='left'>A paragraph at the left</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'>A paragraph in the center</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='right'>A paragraph at the right</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'>A centered paragraph that is long enough to be wrapped, so that each of its lines is seen to be centered by itself in the width of the rows, the last one too.</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='right'>A paragraph at the right that is long enough to be wrapped, so that each of its lines is seen to end at the right edge of the rows, the last one too.</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'><font size='30'>A centered title</font></p><p>A paragraph under it, at the left.</p><p align='right'><font size='16'>And a note at the right</font></p>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Lines",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "One line<br>A second, after a br<br/>A third, after a br/<br />A fourth, after a br /",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "A line before an empty one<br><br>A line after it",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p>A first paragraph.</p><p>A second, right under it.</p><br><p>A third, after a br between the paragraphs.</p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "A line that ends in the config\nand goes on in the next, with html",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Wrapping",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A long paragraph. Sim Settlements 2 allows your settlers to build their own homes, farms, shops, and more. If this is your first time using the mod, know that you'll need to grab the holotape in the world or you can spawn it with the button below. Run the holotape to get started, and come back to this menu for the options.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "AWordThatIsMuchTooLongForTheWidthOfTheRowsAndHasNoSpaceToBeWrappedAtSoItRunsPastTheEdgeOfThePageToSeeWhatHappensToItThere and words after it",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Spacers",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A spacer of one line under this text."
+                },
+                { "type": "spacer" },
+                {
+                  "type": "text",
+                  "text": "A spacer of three lines under this text."
+                },
+                { "type": "spacer", "numLines": 3 },
+                { "type": "text", "text": "The end of the spacers." }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Text: tags and plain",
+          "help": "Client states in text, bold, italic and underline, tags that are dropped, entities, plain rows, and titles as mods write them.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Client states in text",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Version {clientState:version}"
+                },
+                {
+                  "type": "text",
+                  "text": "<b>Client status:</b> <font color='#FFBF33'>{clientState:status}</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "These values come from the mod's native client. The showcase has no DLL, so they show Unknown (version) and Unknown (status). A mod registers them with addState."
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Bold, italic and underlined",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A <b>bold</b>, an <i>italic</i> and an <u>underlined</u> word, and <b><i>one that is both</i></b>, which is bold.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<u>An underlined sentence that is long enough to be wrapped, so its line is seen under the words and the spaces between them, but not after its last word on a line.</u>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size='30'><b>Bold</b> in size 30</font>, <font color='#FFFFFF'><i>italic in white</i></font>, and <b>bold <font color='#FFBF33' size='16'>around a small amber font</font> tag</b>",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Tags that are dropped",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A <a href='https://example.com'>link</a> keeps its text.",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "An image tag<img src='logo.png'/> and a closing tag with none open</font> leave nothing.",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Entities",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Salt &amp; pepper, &lt;b&gt;, &quot;quoted&quot;, it&apos;s, a&nbsp;space, &#169; and &#xE9;",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "What is no entity: fish & chips; &unknown; and 1 < 2 > 0",
+                  "html": true
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Text rows with no html",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "A plain text row."
+                },
+                {
+                  "type": "text",
+                  "text": "A plain text row\nwith a line end in it."
+                },
+                {
+                  "type": "text",
+                  "text": "A plain row shows its <b>tags</b> &amp; entities as they are written.<br>"
+                },
+                {
+                  "type": "text",
+                  "text": "The chance decides, if a human NPC can use items. If you set the chance to 100%, all human NPCs will use items. If you set it to 50%, every second NPC can use items."
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Titles and notes as mods write them",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<font size='30'><p align='center'>FallUI - Inventory</p></font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font color='#AAAAAA' size='16'>Note: Pipboy coloring requires the Pipboy effect to be turned off.</font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align='center'><font size='24'>Sim Settlements 2</font></p>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size=\"40\"><p align = \"center\">Unlimited Survival Mode</p></font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<font size=\"15\"><p align = \"center\">These settings require restarting game to take effect.</p></font>",
+                  "html": true
+                },
+                {
+                  "type": "text",
+                  "text": "<p align = \"center\"><font size='25'><b>by an author</b></font></p>",
+                  "html": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Images",
+          "help": "Textures at their own size, at the size a row gives, at a width alone, wider than the rows, and one that a switcher shows.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Images",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Swatches at the texture's own size, 256 by 64."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigFO4_Showcase/swatches.dds"
+                },
+                {
+                  "type": "text",
+                  "text": "A checker of 128 by 128, at the size its row gives, 64 by 64."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigFO4_Showcase/checker.dds",
+                  "width": 64,
+                  "height": 64
+                },
+                {
+                  "type": "text",
+                  "text": "The checker at a width of 192 alone: its height is of its aspect."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigFO4_Showcase/checker.dds",
+                  "width": 192
+                },
+                {
+                  "type": "text",
+                  "text": "A ruler of 1024 by 64, which is wider than the rows, so it is as wide as they are."
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigFO4_Showcase/ruler.dds"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Shown by a switcher",
+              "content": [
+                {
+                  "id": "showPicture",
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Show the picture",
+                  "help": "The text and the image under it are shown while it is on.",
+                  "default": true,
+                  "storage": { "path": ["Rows", "bShowPicture"] }
+                },
+                {
+                  "type": "text",
+                  "text": "Shown while Show the picture is on.",
+                  "visibleWhen": { "setting": "showPicture", "equals": true }
+                },
+                {
+                  "type": "image",
+                  "texture": "ModsConfigFO4_Showcase/checker.dds",
+                  "width": 64,
+                  "height": 64,
+                  "visibleWhen": { "setting": "showPicture", "equals": true }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Numbers",
+          "help": "How a number is shown, as its display says: its decimals, a unit, or a percentage of its range.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Decimals",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "As many as the step has",
+                  "help": "A step of 0.01 has two decimals.",
+                  "default": 1.25,
+                  "valueOptions": { "min": 0, "max": 2, "step": 0.01 },
+                  "storage": { "path": ["Numbers", "fStepDecimals"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "A whole number",
+                  "help": "A step of 1 has none.",
+                  "default": 8,
+                  "valueOptions": { "min": 0, "max": 24, "step": 1 },
+                  "storage": { "path": ["Numbers", "iWhole"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "One decimal",
+                  "help": "A step of 1, and one decimal of its display.",
+                  "default": 12.0,
+                  "valueOptions": { "min": 0, "max": 50, "step": 1 },
+                  "display": { "decimals": 1 },
+                  "storage": { "path": ["Numbers", "fOneDecimal"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Below zero",
+                  "help": "A negative number has a minus.",
+                  "default": -0.5,
+                  "valueOptions": { "min": -1, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Numbers", "fNegative"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Units",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Meters",
+                  "help": "A unit after a space.",
+                  "default": 1.78,
+                  "valueOptions": { "min": 0.5, "max": 2.5, "step": 0.01 },
+                  "display": { "unit": "m" },
+                  "storage": { "path": ["Numbers", "fMeters"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Degrees",
+                  "help": "A degree follows its number with no space.",
+                  "default": 40.0,
+                  "valueOptions": { "min": 0, "max": 90, "step": 1 },
+                  "display": { "unit": "°" },
+                  "storage": { "path": ["Numbers", "fDegrees"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "A unit of a token",
+                  "help": "A unit is a text the player sees: this one is a token with a fallback.",
+                  "default": 2.5,
+                  "valueOptions": { "min": 0, "max": 10, "step": 0.5 },
+                  "display": {
+                    "unit": {
+                      "token": "$ModsConfigFO4_Showcase_Seconds",
+                      "fallback": "s"
+                    }
+                  },
+                  "storage": { "path": ["Numbers", "fSeconds"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "int",
+                  "text": "A text input",
+                  "help": "A text input of a number shows it with its unit too.",
+                  "default": 8,
+                  "valueOptions": { "min": 1, "max": 24 },
+                  "display": { "unit": "h" },
+                  "storage": { "path": ["Numbers", "iHours"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Percentages",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "Opacity",
+                  "help": "From 0 to 255, as a percentage: the help line has the number too.",
+                  "default": 217,
+                  "valueOptions": { "min": 0, "max": 255, "step": 1 },
+                  "display": { "percent": true },
+                  "storage": { "path": ["Numbers", "iOpacity"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "With a decimal",
+                  "help": "From 0.5 to 1.5, as a percentage with one decimal.",
+                  "default": 1.2,
+                  "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 },
+                  "display": { "decimals": 1, "percent": true },
+                  "storage": { "path": ["Numbers", "fPercent"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Too wide for the box",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Smaller",
+                  "help": "A number and its unit that are too wide are in a smaller size.",
+                  "default": 12000.0,
+                  "valueOptions": { "min": 0, "max": 20000, "step": 1 },
+                  "display": { "unit": "ms" },
+                  "storage": { "path": ["Numbers", "fFade"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Without its unit",
+                  "help": "One that is too wide then too is the number alone, and the help line has its unit.",
+                  "default": 250000.0,
+                  "valueOptions": { "min": 0, "max": 1000000, "step": 1 },
+                  "display": { "unit": "meters" },
+                  "storage": { "path": ["Numbers", "fDistance"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Sections",
+          "help": "Sections in sections, each set in under the one it is in, and sections that fold.",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "Before any section",
+              "help": "A row of the page itself.",
+              "default": true,
+              "storage": { "path": ["Sections", "bBefore"] }
+            },
+            {
+              "type": "section",
+              "text": "Holsters",
+              "help": "A section's help, which the help line has while the ray is on its heading.",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Enable holsters",
+                  "help": "A row of the outer section.",
+                  "default": true,
+                  "storage": { "path": ["Sections", "bHolsters"] }
+                },
+                {
+                  "type": "section",
+                  "text": "Advanced",
+                  "help": "A section that folds, folded each time the page is shown. Change a row in it and fold it.",
+                  "isCollapsible": true,
+                  "collapsed": true,
+                  "content": [
+                    {
+                      "type": "slider",
+                      "valueType": "float",
+                      "text": "Reach",
+                      "help": "A row of a section in a section.",
+                      "default": 10.0,
+                      "valueOptions": { "min": 0, "max": 50, "step": 1 },
+                      "storage": { "path": ["Sections", "fReach"] }
+                    },
+                    {
+                      "type": "section",
+                      "text": "Even more",
+                      "help": "A section that folds, open each time the page is shown.",
+                      "isCollapsible": true,
+                      "content": [
+                        {
+                          "type": "slider",
+                          "valueType": "float",
+                          "text": "Angle",
+                          "help": "A row three sections in.",
+                          "default": 45.0,
+                          "valueOptions": { "min": 0, "max": 90, "step": 5 },
+                          "storage": { "path": ["Sections", "fAngle"] }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Size",
+                  "help": "A row of the outer section, after the sections in it.",
+                  "default": 1.0,
+                  "valueOptions": { "min": 0.5, "max": 2, "step": 0.1 },
+                  "storage": { "path": ["Sections", "fSize"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Only a section in it",
+              "content": [
+                {
+                  "type": "section",
+                  "text": "Inside",
+                  "content": [
+                    {
+                      "type": "switcher",
+                      "valueType": "bool",
+                      "text": "In the inner section",
+                      "help": "The outer section has no rows of its own.",
+                      "default": false,
+                      "storage": { "path": ["Sections", "bInside"] }
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "section", "text": "An empty section", "content": [] },
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "After the sections",
+              "help": "A row of the last section.",
+              "default": false,
+              "storage": { "path": ["Sections", "bAfter"] }
+            },
+            {
+              "type": "section",
+              "text": "Folded with an invalid value",
+              "help": "Its file has a value that is not its setting's, which its heading tells.",
+              "isCollapsible": true,
+              "collapsed": true,
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Past its most",
+                  "help": "The file has 2.0, and the slider goes from 0 to 1.",
+                  "default": 0.5,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["Folded", "fPastMost"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "pageDisplayName": "Pages",
           "help": "Nested pages, and a page that can be hidden or disabled with its children.",
           "content": [
@@ -2509,6 +2507,7 @@
               "pages": [
                 {
                   "pageDisplayName": "Two levels down",
+                  "help": "A page two levels under the Pages page.",
                   "content": [
                     {
                       "type": "switcher",
@@ -2536,12 +2535,109 @@
               "pages": [
                 {
                   "pageDisplayName": "Inside conditional page",
+                  "help": "A page under Conditional page: it is shown and enabled as that page is.",
                   "content": [
                     {
                       "type": "text",
                       "text": "This child page follows its parent's visibility and enabled state."
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "pageDisplayName": "Read-only",
+          "help": "Values the mod writes for the player to read: shown, and not edited.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Read-only",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Measured height",
+                  "help": "A slider that is only shown, with no Reset.",
+                  "readOnly": true,
+                  "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
+                  "display": { "unit": "m" },
+                  "storage": { "path": ["ReadOnly", "fHeight"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Calibrated",
+                  "help": "A switcher that is only shown.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "bCalibrated"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Hand",
+                  "help": "A dropdown that is only shown: its list does not open.",
+                  "readOnly": true,
+                  "valueOptions": { "sharedOptions": "places" },
+                  "storage": { "path": ["ReadOnly", "sPlace"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "Profile",
+                  "help": "A text that is only shown: it is not typed.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "sProfile"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Past its most",
+                  "help": "The file has 2.0, and the slider goes from 0 to 1: it is shown as it is.",
+                  "readOnly": true,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.05 },
+                  "storage": { "path": ["ReadOnly", "fPastMost"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "With no value",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Not measured",
+                  "help": "The file has no value of it, so its slider shows none.",
+                  "readOnly": true,
+                  "valueOptions": { "min": 1, "max": 2.5, "step": 0.01 },
+                  "storage": { "path": ["ReadOnly", "fNoHeight"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Not calibrated",
+                  "help": "The file has no value of it, so neither side is on.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "bNoCalibrated"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "No hand",
+                  "help": "The file has no value of it, so no option shows.",
+                  "readOnly": true,
+                  "valueOptions": { "sharedOptions": "places" },
+                  "storage": { "path": ["ReadOnly", "sNoPlace"] }
+                },
+                {
+                  "type": "textinput",
+                  "valueType": "string",
+                  "text": "No profile",
+                  "help": "The file has no value of it, so its box is empty.",
+                  "readOnly": true,
+                  "storage": { "path": ["ReadOnly", "sNoProfile"] }
                 }
               ]
             }

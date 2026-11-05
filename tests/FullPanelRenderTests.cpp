@@ -1121,7 +1121,7 @@ TEST_CASE("FullPanel render: the editor of a binding under its row and over it, 
     render("binding-editor-moved", 5, false);
 }
 
-TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with values that wait for a Save", "[.render]")
+TEST_CASE("FullPanel render: the General page of the config spec showcase with values that wait for a Save", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
     REQUIRE(mods.size() == 1);
@@ -1130,9 +1130,9 @@ TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
-    panel.select({ .mod = 0, .page = pagePlaces(mods[0], { "Most Used" }) });
+    panel.select({ .mod = 0, .page = pagePlaces(mods[0], { "General" }) });
 
-    // a switcher, a slider, a stepper, a dropdown and a text input of its Most Used page, each changed
+    // a switcher, a slider, a stepper, a dropdown and a text input of its General page, each changed, but for a read-only one
     const auto change = [&store](const std::vector<model::Item>& items, const auto& self) -> void {
         for (const auto& item : items) {
             if (const auto* group = std::get_if<model::Group>(&item)) {
@@ -1140,7 +1140,7 @@ TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with
                 continue;
             }
             const auto* setting = std::get_if<model::Setting>(&item);
-            if (!setting) {
+            if (!setting || setting->readOnly) {
                 continue;
             }
             const auto value = store.value(*setting).value;
@@ -1153,7 +1153,10 @@ TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with
                 break;
             case model::SettingType::Stepper:
             case model::SettingType::Dropdown:
-                store.set(*setting, setting->valueOptions.options.back().value);
+                // a list of a folder, as the activation sphere's icon has, is not in its options
+                if (!setting->valueOptions.options.empty()) {
+                    store.set(*setting, setting->valueOptions.options.back().value);
+                }
                 break;
             case model::SettingType::TextInput:
                 // a number inside its limits, where it has them, so the value waits for a Save and is not invalid
@@ -1167,7 +1170,7 @@ TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with
             }
         }
     };
-    change(findPage(panel.mods()[0], { "Most Used" }).items, change);
+    change(findPage(panel.mods()[0], { "General" }).items, change);
     REQUIRE(store.dirtyCount() > 0);
     WARN("Saved " << renderToFile(panel, "config-spec-showcase-pending", POINTER_AWAY));
 
@@ -1190,7 +1193,7 @@ TEST_CASE("FullPanel render: the Most Used page of the config spec showcase with
         }
         return nullptr;
     };
-    const auto* input = numberInput(findPage(panel.mods()[0], { "Most Used" }).items, numberInput);
+    const auto* input = numberInput(findPage(panel.mods()[0], { "General" }).items, numberInput);
     REQUIRE(input);
     store.set(*input, "not a number"s);
     REQUIRE(store.invalidCount() > 0);
