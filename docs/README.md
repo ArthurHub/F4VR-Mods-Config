@@ -67,11 +67,7 @@ They are kept in a file the running game reloads as you save it, so you can edit
 
 A config spec gives your mod a menu with no code: one `spec.json`, installed with your mod under `Data\ModsConfigFO4\Config\<your mod>\`, which reads and writes your INI or TOML files and your scripts' globals and properties. A DLL can also register with the native API, for live preview, buttons that run its functions, and its own UI opened from the menu.
 
-The guides for authors are being written. Until they are:
-
-- **The Showcase**, an optional download on the Nexus page, has a config spec and an MCM menu that use every feature. Its config spec is the sample: keep its front page and its General page, and delete the detailed pages.
-- **Developer tools**, on the Developer page of the menu's own settings, lists each config spec's errors and warnings on the menu's front page, and reads a live copy of your `spec.json` that reloads as you save it.
-- **The config spec format** is specified in [Declarative schema](design/schema.md), and the native API in [Architecture](design/architecture.md#native-api). The client header is [src/api/ModsConfigFO4Api.h](../src/api/ModsConfigFO4Api.h).
+Start at [For Mod Authors](for-mod-authors/README.md): which way fits your mod, your first config spec from the Showcase, how it ships, and how you test it in the game.
 
 ## Design
 

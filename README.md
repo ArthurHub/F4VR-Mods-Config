@@ -70,7 +70,7 @@ The menu's own settings are in its list too: pick **Mods Config FO4 VR**. They a
 - A DLL can register with the **native API** for live preview, buttons that run its functions, and its own UI opened from the menu.
 - The optional **Showcase** download has a config spec and an MCM menu that use every feature: start from it.
 
-Start at the [documentation](docs/README.md).
+Start at [For Mod Authors](docs/for-mod-authors/README.md).
 
 ## Development
 

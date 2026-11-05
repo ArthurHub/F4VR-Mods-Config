@@ -178,7 +178,7 @@ Back is a tap of the grip, and on the menu's front page it closes the menu. A lo
   <summary>How do I give my mod a menu?</summary>
 &#10240;
 
-With a config spec: a `spec.json` installed with your mod under `Data\ModsConfigFO4\Config\<your mod>\`. It needs no code. Start from the Showcase download's config spec. See [For Mod Authors](README.md#for-mod-authors).
+With a config spec: a `spec.json` installed with your mod under `Data\ModsConfigFO4\Config\<your mod>\`. It needs no code. Start from the Showcase download's config spec. See [For Mod Authors](for-mod-authors/README.md).
 
 </details>
 
