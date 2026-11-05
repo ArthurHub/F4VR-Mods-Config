@@ -114,6 +114,7 @@ This mod is built on the work of the Fallout VR modding community and public cod
 - Neanka, reg2k and the [Mod Configuration Menu](https://www.nexusmods.com/fallout4/mods/21497) team, whose menus this one shows and whose design it follows.
 - Omar Cornut and the [Dear ImGui](https://github.com/ocornut/imgui) contributors: it draws the menu.
 - RollingRock, alandtse, shizof, and CylonSurfer for FRIK, whose config gesture the menu opens with.
+- alandtse and RollingRock for [devbench](https://github.com/ArthurHub/devbench), which the menu is tested with in the running game.
 
 ## License
 
