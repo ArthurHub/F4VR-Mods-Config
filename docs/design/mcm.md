@@ -23,8 +23,8 @@ The menu shows MCM mods while `mcm_vr.dll` is loaded, and finds it by that name.
 | `minMcmVersion` | Not checked: MCM VR's version is 8, and no config of the author's lists asks more than 6 | M41 |
 | A config that cannot be read | A disabled row named by its folder, with the reason | M41 |
 | `sharedLists` | As in MCM | M37 |
-| `ownerModName`, which puts the pages of a config under another mod | Not read: the config is a mod of its own | |
-| A page's own `pluginRequirements`, `messageIfMissingReqs` and `hideIfMissingReqs` | Not read: the page is shown | |
+| `ownerModName`, which puts the pages of a config under another mod | Not supported, and never will be: the config is a mod of its own, and the menu does not merge two configs into one mod | |
+| A page's own `pluginRequirements`, `messageIfMissingReqs` and `hideIfMissingReqs` | Not read yet: the page is shown | M158 |
 
 ## Rows
 
@@ -54,7 +54,7 @@ What a row has beside its type:
 | `id` | As in MCM: the name of a ModSetting and of a hotkey, and what `OnMCMSettingChange` gives | M29, M31 |
 | `groupControl`, `groupCondition` | As in MCM: a number, a list, `AND`, `OR` and `ONLY`. A condition inside another is read too, which MCM's menu does not | M28 |
 | A flag that is a text, as `"html": "true"` | As in MCM: on for any text but an empty one | M37 |
-| `textFromFormName`, `textFromFormDescription`, `textFromStringProperty`, `textFromStringArrayProperty`, and the same for `help` | Not read: the text is shown as written | |
+| `textFromFormName`, `textFromFormDescription`, `textFromStringProperty`, `textFromStringArrayProperty`, and the same for `help` | Not read yet: the text is shown as written | M159 |
 | `$$tintCT` in a text, which MCM's menu replaces with its tint color | Not read | |
 | A row's own `modName`, for a setting of another mod | Not read: the setting is of the row's mod | |
 

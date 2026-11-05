@@ -250,6 +250,8 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M153 | mod | docs: the showcase walkthrough, with renders of the panel              | done   |
 | M152 | mod | docs: MCM compatibility, what a config spec adds, and moving from MCM  | done   |
 | M156 | mod | docs: the native API, for DLL authors                                  | todo   |
+| M158 | mod | An MCM page's own plugin requirements                                  | todo   |
+| M159 | mod | An MCM row's text from the game                                        | todo   |
 | M154 | mod | The release tested in the headset                                      | todo   |
 | M155 | mod | The release perf tested                                                | todo   |
 
@@ -279,6 +281,8 @@ The docs for mod authors are a folder, `docs/for-mod-authors/`, of four document
 - M153, `showcase.md`, is the walkthrough, in the order of the showcase's pages: files and storage, pages and sections, each control, conditions, choices, buttons, text and images, when a change takes effect, and translations. Each is shown with the showcase's JSON for it and a render of the panel that draws it, saved as PNG in `docs/assets/`. A view the render tests do not draw yet gets a render case.
 - M152, `mcm.md`, is MCM compatibility: what an MCM menu gets as it is and where it differs from MCM's menu, what a config spec has beyond MCM, and moving from MCM, with a table of MCM's controls, sources and actions against a config spec's. A mod that ships both, matched by `modName`, keeps its MCM menu in MCM and has its config spec in Mods Config FO4 VR.
 - M156, `native-api.md`, is for DLL authors: the client header, registering, live preview, functions for buttons, options and states, quick launch, a mod's own UI with `setPendingValue`, the events, and how the API grows after version 1.0. A CommonFramework mod has most of it from the framework.
+
+M158 and M159 read two features of an MCM config that no mod of the test set has and a mod can have. M158 is a page's own `pluginRequirements`: while a plugin it names is not loaded, the page is hidden with `hideIfMissingReqs`, or shows its `messageIfMissingReqs`, as MCM's menu does. M159 is a row's text and help from the game, `textFromFormName`, `textFromFormDescription`, `textFromStringProperty` and `textFromStringArrayProperty`, read as the mod is selected and as another page is shown, as a `listFromForm` is. The MCM showcase gets a page of each, and [MCM support](mcm.md) and the authors' MCM compatibility have them. `ownerModName` is never supported: an MCM config is a mod of its own, and the menu does not merge two configs into one mod.
 
 M154 tries the release in the headset: the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
 
