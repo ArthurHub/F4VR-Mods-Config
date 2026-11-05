@@ -247,7 +247,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M151 | mod | docs: the plan of the docs for players and for mod authors            | done   |
 | M157 | mod | docs: the menu's own settings, and the changelog                       | done   |
 | M85 | mod  | docs: for mod authors                                                   | done   |
-| M153 | mod | docs: the showcase walkthrough, with renders of the panel              | todo   |
+| M153 | mod | docs: the showcase walkthrough, with renders of the panel              | done   |
 | M152 | mod | docs: MCM compatibility, what a config spec adds, and moving from MCM  | todo   |
 | M156 | mod | docs: the native API, for DLL authors                                  | todo   |
 | M154 | mod | The release tested in the headset                                      | todo   |

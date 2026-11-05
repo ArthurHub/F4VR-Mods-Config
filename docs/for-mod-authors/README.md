@@ -31,7 +31,7 @@ A mod can ship both, with the config spec's `modName` the MCM config's `modName`
 
 Start from the Showcase: an optional download on the Nexus page, whose config spec uses every feature. Its front page and its **General** page are a complete small config spec, and its **Detailed Examples** page has everything else.
 
-![The Showcase's General page](../assets/showcase-general.png)
+![The Showcase's General page](../assets/showcase/general.png)
 
 1. Copy the Showcase's `Data\ModsConfigFO4\Config\ModsConfigFO4_Showcase\spec.json` to `Data\ModsConfigFO4\Config\<your mod>\spec.json`. The folder's name is yours to choose.
 2. Delete the **Detailed Examples** page: the second entry of `pages`.
@@ -64,7 +64,7 @@ Start from the Showcase: an optional download on the Nexus page, whose config sp
    }
    ```
 
-   Delete the rows you don't need, and copy more from the Detailed Examples, where each control is shown in all its forms.
+   Delete the rows you don't need, and copy more from the Detailed Examples, where each control is shown in all its forms: the [Showcase walkthrough](showcase.md) goes through them.
 
 Every field is in the [config spec schema](../design/schema.md).
 
@@ -95,6 +95,6 @@ The Showcase's **Mistakes** page has what a config spec can get wrong, each with
 
 ## Next
 
-- **The Showcase walkthrough:** each thing a config spec does, with the Showcase's JSON for it and a picture of the page it draws. Until it's written, the Showcase's own Detailed Examples, and the [config spec schema](../design/schema.md).
+- **[The Showcase walkthrough](showcase.md):** each thing a config spec does, with the Showcase's JSON for it and a picture of the page it draws.
 - **MCM compatibility:** what your MCM menu gets as it is, what a config spec adds, and moving from MCM. Until it's written, [A config spec and MCM](../design/schema.md#a-config-spec-and-mcm).
 - **The native API,** for DLL authors. Until it's written, the [Native API](../design/architecture.md#native-api), the client header [src/api/ModsConfigFO4Api.h](../../src/api/ModsConfigFO4Api.h), and for a CommonFramework mod the framework's [Mods Config client](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/src/modsconfig/README.md).

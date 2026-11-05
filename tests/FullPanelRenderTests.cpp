@@ -895,8 +895,8 @@ TEST_CASE("FullPanel render: the bindings of the config spec showcase, one pendi
     panel.setStore(model::Source::ConfigSpec, &store);
     panel.setMods(mods);
     // the page Bindings of Detailed Examples
-    panel.select({ .mod = 0, .page = { 1, 10 } });
-    const auto& bindings = std::get<model::Group>(panel.mods()[0].pages[1].pages[10].items[0]);
+    panel.select({ .mod = 0, .page = { 1, 5 } });
+    const auto& bindings = std::get<model::Group>(panel.mods()[0].pages[1].pages[5].items[0]);
     CHECK(store.set(std::get<model::Setting>(bindings.items[2]), R"({ hand = "offhand", type = "double", button = "grip" })"s));
     // the eighth row of the page under its heading
     WARN("Saved " << renderToFile(panel, "config-spec-bindings", ImVec2(650.0f, 546.0f)));
@@ -913,7 +913,7 @@ TEST_CASE("FullPanel render: the haptics of the config spec showcase, one pendin
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         // the page Haptics of Detailed Examples
-        panel.select({ .mod = 0, .page = { 1, 11 } });
+        panel.select({ .mod = 0, .page = { 1, 6 } });
         return panel;
     };
     // where a control ends at the right, and the rows of the page under its heading
@@ -923,7 +923,7 @@ TEST_CASE("FullPanel render: the haptics of the config spec showcase, one pendin
     };
 
     auto panel = panelOf();
-    const auto& haptics = std::get<model::Group>(panel.mods()[0].pages[1].pages[11].items[0]);
+    const auto& haptics = std::get<model::Group>(panel.mods()[0].pages[1].pages[6].items[0]);
     CHECK(store.set(std::get<model::Setting>(haptics.items[0]), "Success"s));
     WARN("Saved " << renderToFile(panel, "config-spec-haptics", ImVec2(right - theme::CONTROL_HEIGHT * 0.5f, row(1))));
 
@@ -948,7 +948,7 @@ TEST_CASE("FullPanel render: the colors of the config spec showcase, one pending
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         // the page Colors of Detailed Examples
-        panel.select({ .mod = 0, .page = { 1, 12 } });
+        panel.select({ .mod = 0, .page = { 1, 7 } });
         return panel;
     };
     // the rows of the page under its heading
@@ -957,7 +957,7 @@ TEST_CASE("FullPanel render: the colors of the config spec showcase, one pending
     };
 
     auto panel = panelOf();
-    const auto& colors = std::get<model::Group>(panel.mods()[0].pages[1].pages[12].items[0]);
+    const auto& colors = std::get<model::Group>(panel.mods()[0].pages[1].pages[7].items[0]);
     CHECK(store.set(std::get<model::Setting>(colors.items[0]), "{ rgb = [255, 190, 120], alpha = 200 }"s));
     WARN("Saved " << renderToFile(panel, "config-spec-colors", ImVec2(700.0f, row(1))));
 
@@ -990,7 +990,7 @@ TEST_CASE("FullPanel render: the transforms of the config spec showcase, one pen
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         // the page Transforms of Detailed Examples
-        panel.select({ .mod = 0, .page = { 1, 13 } });
+        panel.select({ .mod = 0, .page = { 1, 8 } });
         return panel;
     };
     // the rows of the page under its heading
@@ -999,7 +999,7 @@ TEST_CASE("FullPanel render: the transforms of the config spec showcase, one pen
     };
 
     auto panel = panelOf();
-    const auto& transforms = std::get<model::Group>(panel.mods()[0].pages[1].pages[13].items[0]);
+    const auto& transforms = std::get<model::Group>(panel.mods()[0].pages[1].pages[8].items[0]);
     CHECK(store.set(std::get<model::Setting>(transforms.items[0]), "{ pos = [9.37, -4.86, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }"s));
     WARN("Saved " << renderToFile(panel, "config-spec-transforms", ImVec2(700.0f, row(1))));
 
@@ -1035,7 +1035,7 @@ TEST_CASE("FullPanel render: the activation spheres of the config spec showcase,
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.setMods(mods);
         // the page Activation spheres of Detailed Examples
-        panel.select({ .mod = 0, .page = { 1, 14 } });
+        panel.select({ .mod = 0, .page = { 1, 9 } });
         return panel;
     };
     auto folded = panelOf();
@@ -1087,7 +1087,7 @@ TEST_CASE("FullPanel render: the editor of a binding under its row and over it, 
             FullPanel panel;
             panel.setStore(model::Source::ConfigSpec, &store);
             panel.setMods(mods);
-            panel.select({ .mod = 0, .page = { 1, 10 } });
+            panel.select({ .mod = 0, .page = { 1, 5 } });
             const auto open = [&] {
                 press(panel, ImVec2(ROWS_LEFT, FIRST_ROW + static_cast<float>(row) * theme::ROW_PITCH));
                 const auto* editor = openPopup(717.0f);
