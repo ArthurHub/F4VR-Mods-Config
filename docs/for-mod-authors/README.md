@@ -25,7 +25,7 @@ A config spec says what the page shows and where each value is kept. The menu re
 
 ### Both an MCM menu and a config spec
 
-A mod can ship both, with the config spec's `modName` the MCM config's `modName`. Mods Config FO4 VR lists the mod by its config spec, and MCM's own menu keeps showing the MCM config. So you keep MCM for the players who use it, and give the players of this menu its VR controls, Save and Discard, and live preview: the best of both. See [MCM compatibility](#next).
+A mod can ship both, with the config spec's `modName` the MCM config's `modName`. Mods Config FO4 VR lists the mod by its config spec, and MCM's own menu keeps showing the MCM config. So you keep MCM for the players who use it, and give the players of this menu its VR controls, Save and Discard, and live preview: the best of both. See [Keeping both](mcm.md#keeping-both), which has what both menus should share.
 
 ## Your First Config Spec
 
@@ -96,5 +96,5 @@ The Showcase's **Mistakes** page has what a config spec can get wrong, each with
 ## Next
 
 - **[The Showcase walkthrough](showcase.md):** each thing a config spec does, with the Showcase's JSON for it and a picture of the page it draws.
-- **MCM compatibility:** what your MCM menu gets as it is, what a config spec adds, and moving from MCM. Until it's written, [A config spec and MCM](../design/schema.md#a-config-spec-and-mcm).
+- **[MCM compatibility](mcm.md):** what your MCM menu gets as it is, what a config spec adds, and moving from MCM, or keeping both.
 - **The native API,** for DLL authors. Until it's written, the [Native API](../design/architecture.md#native-api), the client header [src/api/ModsConfigFO4Api.h](../../src/api/ModsConfigFO4Api.h), and for a CommonFramework mod the framework's [Mods Config client](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/src/modsconfig/README.md).
