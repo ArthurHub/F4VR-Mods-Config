@@ -175,6 +175,8 @@ modsConfig.addQuickLaunch("openPipboyConfig", { .text = "FRIK: Pip-Boy", .help =
   ```
 
   A setting with no `id` of its own is named by its key and its section. A value that is no value of its setting, as one outside its range, is refused, and the call returns false.
+
+  Apply the value in your mod before you hand it over. A `live` setting's change comes back to your change handlers during the call, marked `handedOver`, so a handler that previews changes skips it.
 - **`reloadValues`** reads your mod's values again, for a change your mod saved itself while its page is shown.
 - **`openMenu`** opens the menu at your mod, or at a page of it by its `id`: a wrist button or a holotape opens your settings this way.
 

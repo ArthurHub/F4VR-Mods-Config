@@ -6,6 +6,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 
 - An alpha for testing, with the Nexus page, the README, the docs and the FAQ.
 - A mod's own UI hands its edits back to the menu, to Save with the rest.
+- An edit a mod's UI hands back comes back to the mod marked `handedOver`, so the mod doesn't apply it twice.
 - A color's editor has basic colors and the mod's presets.
 - The menu works without FRIK, and without MCM.
 - The help line says the help of the option you point at in an open list.
