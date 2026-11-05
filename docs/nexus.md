@@ -28,7 +28,7 @@ No more taking off the headset to edit an INI or TOML file: change a setting, se
 [size=4][b]Features[/b][/size]
 [size=3]All your mods in one menu:[/size]
 [list]
-[*][size=3]MCM mods as they are: every MCM menu you have, with its pages, images and translations. Its buttons and presets run their scripts, and its hotkeys are shown. Its changes are made as you make them, as in MCM, and [b]Keep[/b] or [b]Revert[/b] them.[/size]
+[*][size=3]MCM mods as they are: every MCM menu you have, with its pages, images and translations. Its buttons and presets run their scripts, and its hotkeys are shown. Its changes are made as you make them, as in MCM, and [b]Keep[/b] or [b]Revert[/b] them. Its text inputs are typed on SteamVR's keyboard, which MCM in VR has none of.[/size]
 [*][size=3]Mods with a config spec: the menu edits the mod's own config files, TOML and INI, and its script settings. A file keeps its comments and its layout.[/size]
 [*][size=3]Quick launch: open a mod's own config, such as FRIK's, from the menu's front page. The menu comes back when it closes.[/size]
 [*][size=3]Notices: a mod that can't be shown says why, such as a plugin it needs that isn't loaded, and a saved change that needs a restart tells you so.[/size]

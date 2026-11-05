@@ -10,6 +10,7 @@ It is a shared in-game configuration menu for Fallout 4 VR mods. A mod ships a d
 
 - Design: [docs/design/](docs/design/README.md). Milestones: [docs/design/mod-plan.md](docs/design/mod-plan.md), with the commits of each phase in `docs/design/mod-plan-phase-<n>.md`. Framework work: [framework-requirements.md](docs/design/framework-requirements.md), [framework-plan.md](docs/design/framework-plan.md).
 - What the menu has so far, and each component's responsibility: [docs/agents/components.md](docs/agents/components.md).
+- Docs for players and mod authors: [docs/README.md](docs/README.md) with `faq.md` and `changelog.md` beside it, and [docs/for-mod-authors/](docs/for-mod-authors/README.md): the guide, the showcase walkthrough, MCM compatibility and the native API. `docs/nexus.md` is the Nexus page's text, in BBCode. A change a player or an author sees updates them.
 
 ## Build System
 
@@ -40,7 +41,7 @@ The default preset inherits `cmake-dev + vcpkg + windows + vs2026`. The `release
 - The executable compiles the sources it covers, listed in `tests/CMakeLists.txt`, and links the framework and CommonLibF4 as the mod does. `tests/Setup.cpp` sets CommonLibF4's `REL::NO_GAME`, so there is no game in the process: a test that calls the game fails with an access violation.
 - A new source under test is added to that list, with its `<Name>Tests.cpp`.
 - The game-calling sources (`GameActions.cpp`, `GameGlobals.cpp`, `GameProperties.cpp`, `mcm/McmEvents.cpp`) are not compiled: the tests link their own doubles in their place. Before writing a test that reads a global, a property, an event, an action or a ModSetting, or draws the panel, read [docs/agents/testing.md](docs/agents/testing.md).
-- Render tests (`"[render]"`) save the panel as `.bmp` in `build/tests/render/`, check nothing, and are not run by `ctest`: add a case for a new view or state of the panel.
+- Render tests (`"[render]"`) save the panel as `.bmp` in `build/tests/render/`, check nothing, and are not run by `ctest`: add a case for a new view or state of the panel. `tools/gen_docs_renders.py` (needs Pillow) turns those of the showcase walkthrough into the PNGs of `docs/assets/showcase/`: run the render tests and it again when the panel's look or a showcase page changes.
 - `-DMODS_CONFIG_BUILD_TESTS=OFF` leaves them out.
 
 Everything else is tested by hand, in the game.

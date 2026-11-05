@@ -26,7 +26,7 @@ It is in alpha: search, mod categories, editing lists and hand poses, and transl
 
 ## Features
 
-- **MCM mods as they are:** every MCM menu you have, with its pages, images and translations. Its buttons and presets run their scripts, and its hotkeys are shown. A change is made as you make it, as in MCM, and you keep it or revert it.
+- **MCM mods as they are:** every MCM menu you have, with its pages, images and translations. Its buttons and presets run their scripts, and its hotkeys are shown. A change is made as you make it, as in MCM, and you keep it or revert it. Its text inputs are typed on SteamVR's keyboard, which MCM in VR has none of.
 - **Mods with a config spec:** the menu edits the mod's own TOML and INI files and its script settings, and a file keeps its comments and its layout.
 - **Safe editing:** nothing is written until you Save. Discard drops your changes, each row undoes its own, and Reset sets the default. A value that isn't valid is marked red with the reason, and each setting says when it takes effect.
 - **Live preview:** a mod that supports it shows your change in the game as you make it, before you Save.
