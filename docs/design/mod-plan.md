@@ -67,7 +67,7 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 7   | Actions and own UIs      | FRIK's config is opened from the front page, and the menu comes back when it closes                           | done   |
 | 8   | Live preview             | A CommonFramework mod with a config spec previews a slider live, with no code of its own                          | done   |
 | 9   | CommonFramework controls | Every setting of Immersive Flashlight VR but its lists and hand poses is edited from its config spec              | done   |
-| 10  | First release            | The mod is published, with the author's guide and a sample config spec                                            | todo   |
+| 10  | First release            | The mod is ready for alpha testing: its Nexus page, README and docs are written, and it is tested and perf tested in the headset | todo   |
 | 11  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |
 | 12  | Localization and search  | A mod with no game plugin is shown in another language, and a setting is found by typing its name             | todo   |
 | 13  | Advanced features        | A list and a hand pose of Immersive Flashlight VR are edited, a transform is grabbed with the hand, and a sphere is lit while the ray is on its rows | todo   |

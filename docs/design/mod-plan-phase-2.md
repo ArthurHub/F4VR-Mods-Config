@@ -241,8 +241,15 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M83 | mod  | docs: a loading screen ends the editing session                         | done   |
 | M84 | mod  | The menu without FRIK, and without MCM                                  | done   |
 | M146 | mod | A color's editor has basics and its config spec's presets              | done |
-| M85 | mod  | docs: the author's guide                                                | todo   |
-| M86 | mod  | A sample config spec                                                        | todo   |
+| M148 | mod | docs: the Nexus page                                                   | todo   |
+| M149 | mod | docs: the mod's README                                                 | todo   |
+| M150 | mod | docs: the README of the docs, and the FAQ                              | todo   |
+| M151 | mod | docs: the plan of the docs for players and for mod authors            | todo   |
+| M85 | mod  | docs: for mod authors                                                   | todo   |
+| M152 | mod | docs: MCM compatibility, what a config spec adds, and moving from MCM  | todo   |
+| M153 | mod | docs: the showcase walkthrough, with renders of the panel              | todo   |
+| M154 | mod | The release tested in the headset                                      | todo   |
+| M155 | mod | The release perf tested                                                | todo   |
 
 M136 to M138 make an MCM change as MCM's menu makes it, so the player sees it in the game: it writes the value, runs its row's action and sends MCM's event as it is made, and keeps the Save bar of M121. A setting the player changed is dirty while its value is not its baseline. Discard sets the dirty settings back in the reverse of the order they were changed, each as a change is made, with its action run again, so a preset that is set back sets its rows back, and a row's own Discard does the same for that setting alone. Save writes nothing, and sends the pause menu's events where the session wrote a ModSetting, so a DLL that reads MCM's file gets the changes at Save. A script's button of an MCM mod no longer asks to save first. M137 changes the Help page's MCM section and the text of what Save does, and M138 makes the store, with its tests. See [MCM compatibility](architecture.md#mcm-compatibility).
 
@@ -257,6 +264,14 @@ M82 settles how the config spec schema and the native API change: as the milesto
 M142 adds `setPendingValue` to the native API, so a mod's own UI that edits settings of its config spec hands its edits back to the menu instead of saving them, and the menu's Save is the one write. Immersive Flashlight's beam tuning drops its own Save for it, in the mod's repo. A value is set as the player's edit, and told back to a `live` setting's client; one that is no value of its setting is refused. See [The mod's own UI](architecture.md#the-mods-own-ui).
 
 M146 adds swatches to a color's editor, each of which a press sets: five basics in its footer, white, black, red, green and blue, which every color has, and a line of presets under the picker, which the config spec gives a color in its `presets`, or names a list of its root's `sharedPresetLists` with `sharedPresets`, as Immersive Flashlight's whites. A preset with no alpha keeps the color's, and the line holds 12. The config spec showcase gets a color of its own presets, two lights of a shared list, and a list that is not there among its mistakes. See [CommonFramework values](schema.md#commonframework-values) and [Color](design-system/project/components/Color/README.md).
+
+The milestone ends with the mod ready for alpha testing: a player installs and uses it from its Nexus page and README, and a mod author finds in its docs how to give a mod a config spec.
+
+M148 to M150 write what is read first, in that order: the Nexus page, whose text is kept in the repo, the mod's README, and the README of `docs/`, the index of the docs for players and for mod authors, with the FAQ beside it. M151 decides which docs each has, and adds their commits to this table.
+
+The docs for mod authors are several documents, not one guide. M85 is the main one, which says what a mod needs (nothing for an MCM mod, a config spec, the native API) and leads to the others. M152 is MCM compatibility: what an MCM mod gets as it is, what a config spec has beyond MCM, and how an MCM config is moved to a config spec. M153 makes the showcase the walkthrough: how each thing is done is shown with the showcase's config spec and a render of the panel that draws it. The showcase is also the sample: an author starts from its config spec, keeps its front page and General page, and deletes the detailed pages.
+
+M154 tries the release in the headset: the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
 
 A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 12.
 
