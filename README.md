@@ -1,80 +1,119 @@
 # Mods Config FO4 VR
 
-> TODO: one-line tagline — what Mods Config FO4 VR does, for Fallout 4 VR.
+[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-square)](LICENSE)
 
-TODO: a short paragraph on what the mod does and why a player wants it.
+> A VR-first settings menu for Fallout 4 VR mods: every mod's settings in one place, changed in the headset.
 
-Built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework).
+The menu stands in the world and never pauses the game, so you see and feel your changes while it is open. It shows the MCM menus you already have, and edits the config files of mods that ship a config spec for it, such as FRIK and Immersive Flashlight VR. A mod that supports it shows each change live, as you make it. It is an F4SE plugin (`ModsConfigFO4VR.dll`) built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework).
+
+![The menu in the game, on its own mod's page](docs/assets/mods-config-front-page.jpg)
+
+It is in alpha: search, mod categories, editing lists and hand poses, and translations of mods that have no game plugin are still to come.
+
+## Table of Contents
+
+- [Features](#features)
+- [Install](#install)
+- [Usage](#usage)
+- [For mod authors](#for-mod-authors)
+- [Development](#development)
+- [Maintainers](#maintainers)
+- [Contributing](#contributing)
+- [Support](#support)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
 
 ## Features
 
-- TODO
-- TODO
-- TODO
+- **MCM mods as they are:** every MCM menu you have, with its pages, images and translations. Its buttons and presets run their scripts, and its hotkeys are shown. A change is made as you make it, as in MCM, and you keep it or revert it.
+- **Mods with a config spec:** the menu edits the mod's own TOML and INI files and its script settings, and a file keeps its comments and its layout.
+- **Safe editing:** nothing is written until you Save. Discard drops your changes, each row undoes its own, and Reset sets the default. A value that isn't valid is marked red with the reason, and each setting says when it takes effect.
+- **Live preview:** a mod that supports it shows your change in the game as you make it, before you Save.
+- **Controls made for VR:** sliders, switches, dropdowns, colors with a picker, controller bindings with an editor, haptic patterns, positions adjusted in the world, and text typed on SteamVR's keyboard.
+- **Quick launch:** open a mod's own config, such as FRIK's, from the menu's front page.
+- **Comfort:** a curved panel you move, size and place as you like. It works with or without FRIK, and without MCM.
 
-## Requirements
+| | |
+| --- | --- |
+| ![FRIK's Pip-Boy page with the Pip-Boy open](docs/assets/frik-pipboy-live-preview.jpg) | ![Immersive Flashlight VR's beam settings, the flashlight in hand](docs/assets/flashlight-beam-in-hand.jpg) |
+| ![An MCM mod: FallUI - Inventory](docs/assets/mcm-fallui-inventory-image.jpg) | ![The menu's own controls: its bindings](docs/assets/mods-config-controls-bindings.jpg) |
 
-- [Fallout 4 VR](https://store.steampowered.com/app/611660/)
-- [Fallout 4 VR Script Extender (F4SEVR)](https://f4se.silverlock.org/)
-- TODO: any other required mods (e.g. [FRIK](https://github.com/rollingrock/Fallout-4-VR-Body))
+## Install
 
-## Installation
+### Requirements
 
-**With a mod manager (recommended):** install the release archive with Mod Organizer 2 or Vortex and
-enable it. Launch the game through F4SEVR (`f4sevr_loader.exe`).
+- [F4SE VR](https://f4se.silverlock.org/)
+- [VR Address Library for F4SEVR Plugins](https://www.nexusmods.com/fallout4/mods/64879)
 
-**Manual:** extract the archive into your `Fallout 4 VR` folder so the plugin lands at
-`Data\F4SE\Plugins\ModsConfigFO4VR.dll`, then launch through F4SEVR.
+Optional:
 
-## Configuration
+- MCM VR, to show MCM menus.
+- [FRIK](https://www.nexusmods.com/fallout4/mods/53464), to press the wrist buttons with your fingertip and open FRIK's config from the menu. FRIK v80+ ships its config spec.
 
-Settings live in a TOML file created on first run at:
+Install the [Nexus Mods](https://www.nexusmods.com/games/fallout4/mods/110945) package with your mod manager, or extract it into the game's `Data` folder. There is no ESP, so load order doesn't matter. Keep MCM installed: this menu shows MCM's menus, and doesn't replace MCM.
 
-```
-%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml
-```
+## Usage
 
-Edits apply **live** while the game is running — no restart needed.
+Press in both thumbsticks and hold them to open the menu. Point at it with either hand: the trigger presses and the thumbstick scrolls. Tap the grip to go back, and hold it to move the menu. **? Help** in the title bar shows how the menu works, with the buttons your config has.
 
-- Controller-binding syntax: [input-binding guide](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/input-binding.md)
-- Logging / debug keys: [debug-config guide](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/debug-config.md)
+The menu's own settings are in its list too: pick **Mods Config FO4 VR**. They are kept in `Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`, which the running game reloads as you save it.
 
-TODO: document your mod's own settings here.
+- [Documentation](docs/README.md): using the menu, and giving your mod a menu
+- [FAQ and Troubleshooting](docs/faq.md)
 
-## Building from source
+## For mod authors
 
-This mod is built with the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework).
-See the framework's [Creating a new mod](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/creating-a-new-mod.md)
-guide for the full toolchain (VS 2022/2026, CMake 4.2+, `VCPKG_ROOT`). Quick version:
+- A **config spec** gives your mod a menu with no code: one `spec.json` installed with your mod, which reads and writes your INI or TOML files and your scripts' globals and properties.
+- A mod built on the F4VR Common Framework gets live preview with no code of its own.
+- A DLL can register with the **native API** for live preview, buttons that run its functions, and its own UI opened from the menu.
+- The optional **Showcase** download has a config spec and an MCM menu that use every feature: start from it.
+
+Start at the [documentation](docs/README.md).
+
+## Development
 
 ```sh
-git clone --recurse-submodules https://github.com/ArthurHub/F4VR-Mods-Config.git
+git clone https://github.com/ArthurHub/F4VR-Mods-Config.git
 cd F4VR-Mods-Config
-cmake --preset default      # generates build/ModsConfigFO4VR.sln
+git submodule update --init --recursive
+cmake --preset default
+cmake --build --preset release
 ```
 
-Open the solution and build. To package, build the `package_mod` target in Release; it writes a versioned `.7z` under `build/package/`.
-It also packs `data/showcase/` into one optional Showcase archive containing both the MCM and config spec examples.
-To profile with [Tracy](https://github.com/wolfpld/tracy), build the `Tracy` configuration (`cmake --build --preset tracy`): a Release build
-whose perf sites are also Tracy zones.
+It needs Visual Studio 2022 or 2026 (x64, C++ desktop workload), CMake 4.2+ and `VCPKG_ROOT`; the framework's [Creating a new mod](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/docs/creating-a-new-mod.md) has the toolchain.
 
-The build also makes `ModsConfigFO4VR_tests`, the unit tests of the code that does not need the game. Run them with
-`ctest --test-dir build -C Release --output-on-failure`.
+- `cmake --build --preset package` builds the versioned `.7z` in `build/package/`, and the optional Showcase archive from `data/showcase/`.
+- `cmake --build --preset tracy` is a Release build whose timed sections are also [Tracy](https://github.com/wolfpld/tracy) zones.
+- The build also makes `ModsConfigFO4VR_tests`, the unit tests of the code that does not need the game: `ctest --test-dir build -C Release --output-on-failure`.
+- `CMakeUserPresets.json.template` has a preset that copies the DLL to your game on each build.
 
-Code style is enforced by clang-format through [pre-commit](https://pre-commit.com/): run `pre-commit install` once after cloning so
-the checks run on every commit. The same checks, a Release build and the unit tests run on GitHub for every push and pull request to `main`.
+The design is in [docs/design/](docs/design/README.md).
+
+## Maintainers
+
+- [@ArthurHub](https://github.com/ArthurHub)
+
+## Contributing
+
+PRs accepted. For larger changes, please open an issue first to discuss what you would like to change.
+
+Code style is enforced by clang-format and pre-commit: run `pre-commit install` once after cloning. A Release build, the unit tests and pre-commit run on GitHub for every push and pull request to `main`.
 
 ## Support
 
-TODO: link your issue tracker / Nexus posts / Discord.
+If you like my work, consider helping out.
 
-- [Nexus Mods](https://www.nexusmods.com/fallout4/mods/<ID>)
-- [Report a bug](https://github.com/ArthurHub/F4VR-Mods-Config/issues)
+[![become a patron](https://theartofdev.wordpress.com/wp-content/uploads/2025/06/become_a_patron_button.png)](https://patreon.com/theartofdev)
 
-## Credits
+## Acknowledgements
 
-- Built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework) by Arthur T.
-- TODO: other authors / assets you built on.
+This mod is built on the work of the Fallout VR modding community and public code.
+
+- Ryan, rsm, McKenzie, alandtse, devartificial, and the other [CommonLibVR](https://github.com/alandtse/CommonLibVR/tree/vr) contributors.
+- Neanka, reg2k and the [Mod Configuration Menu](https://www.nexusmods.com/fallout4/mods/21497) team, whose menus this one shows and whose design it follows.
+- Omar Cornut and the [Dear ImGui](https://github.com/ocornut/imgui) contributors: it draws the menu.
+- RollingRock, alandtse, shizof, and CylonSurfer for FRIK, whose config gesture the menu opens with.
 
 ## License
 
