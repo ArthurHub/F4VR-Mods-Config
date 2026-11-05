@@ -245,7 +245,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M149 | mod | docs: the mod's README                                                 | done   |
 | M150 | mod | docs: the README of the docs, and the FAQ                              | done   |
 | M151 | mod | docs: the plan of the docs for players and for mod authors            | done   |
-| M157 | mod | docs: the menu's own settings, and the changelog                       | todo   |
+| M157 | mod | docs: the menu's own settings, and the changelog                       | done   |
 | M85 | mod  | docs: for mod authors                                                   | todo   |
 | M153 | mod | docs: the showcase walkthrough, with renders of the panel              | todo   |
 | M152 | mod | docs: MCM compatibility, what a config spec adds, and moving from MCM  | todo   |

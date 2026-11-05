@@ -74,6 +74,7 @@ Location:
 [list]
 [*][size=3][url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/README.md]Documentation[/url] — using the menu, and giving your mod a menu.[/size]
 [*][size=3][url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/faq.md]FAQ and Troubleshooting[/url][/size]
+[*][size=3][url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/changelog.md]Changelog[/url][/size]
 [/list]
 
 [b][size=4]Installation[/size][/b]

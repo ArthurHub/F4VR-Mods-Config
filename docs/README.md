@@ -2,12 +2,13 @@
 
 A VR-first settings menu for Fallout 4 VR mods: every mod's settings in one place, changed in the headset. The menu shows the MCM menus you already have, and edits the config files of mods that ship a config spec for it.
 
-Install and requirements: [main README](../README.md). Problems: [FAQ](faq.md).
+Install and requirements: [main README](../README.md). Problems: [FAQ](faq.md). Release notes: [Changelog](changelog.md).
 
 ## Contents
 
 - [Quick Start](#quick-start)
 - [Editing a Mod's Settings](#editing-a-mods-settings)
+- [The Menu's Own Settings](#the-menus-own-settings)
 - [For Players](#for-players)
 - [For Mod Authors](#for-mod-authors)
 - [Design](#design)
@@ -37,13 +38,30 @@ Pick a mod in the list on the left. Its front page opens, and its pages are unde
 
 The game keeps running while the menu is open, so you can try a change, look at it, and change it again without closing the menu.
 
+## The Menu's Own Settings
+
+The menu is in its own list: pick **Mods Config FO4 VR**. Its changes apply as you make them, and Save keeps them.
+
+| Page | What's there |
+| --- | --- |
+| **Panel** | How big the menu is and where it stands: its scale, its distance and how high it is, the background's opacity, its width and height, the mod list's width, the scroll speed, its tilt and curve, how far you walk before it comes back in front of you, and how smoothly it follows your hand as you move it. |
+| **Controls** | The bindings that open the menu, go back, move it and bring it in front of you, each changed with its editor, and the haptic a press gives. |
+| **Pointer** | The ray's color, width, length and fade, the mark where it meets the menu, and where the ray starts on your hand. |
+| **Developer** | For a config spec's author: **Developer tools**, which lists each config spec's problems on the menu's front page, and the log's level. |
+
+![The Controls page](assets/mods-config-controls-bindings.jpg)
+
+They are kept in a file the running game reloads as you save it, so you can edit it on the desktop too:
+
+- Config: `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`
+- Log: `%USERPROFILE%\Documents\My Games\Fallout4VR\F4SE\ModsConfigFO4VR.log`
+
 ## For Players
 
 - The in-game **Help** page, from **? Help** in the title bar.
 - The [FAQ and Troubleshooting](faq.md).
-- The menu's own settings are in its list: pick **Mods Config FO4 VR**. They are kept in a file the running game reloads as you save it:
-  - Config: `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`
-  - Log: `%USERPROFILE%\Documents\My Games\Fallout4VR\F4SE\ModsConfigFO4VR.log`
+- The [Changelog](changelog.md).
+- [The menu's own settings](#the-menus-own-settings), and its config file and log.
 
 ## For Mod Authors
 

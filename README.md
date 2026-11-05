@@ -61,6 +61,7 @@ The menu's own settings are in its list too: pick **Mods Config FO4 VR**. They a
 
 - [Documentation](docs/README.md): using the menu, and giving your mod a menu
 - [FAQ and Troubleshooting](docs/faq.md)
+- [Changelog](docs/changelog.md)
 
 ## For mod authors
 
