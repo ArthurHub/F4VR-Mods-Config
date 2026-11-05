@@ -1,8 +1,8 @@
 {
   "minSchemaVersion": 1,
   "modName": "ModsConfigFO4VR",
-  "displayName": "Mods Config FO4",
-  "help": "This menu: the panel it is shown on, and the pointer you use it with.",
+  "displayName": "Mods Config FO4 VR",
+  "help": "This menu: the panel it stands on, the buttons that work it, and the pointer you use it with.",
   "specVersion": 1,
   "files": {
     "config": {
@@ -14,6 +14,16 @@
   },
   "defaultFile": "config",
   "applies": "live",
+  "sharedPresetLists": {
+    "pointer": [
+      { "rgb": [190, 255, 190], "text": "Soft green" },
+      { "rgb": [10, 250, 120], "text": "Pip-Boy green" },
+      { "rgb": [255, 255, 255], "text": "White" },
+      { "rgb": [255, 182, 66], "text": "Amber" },
+      { "rgb": [120, 160, 255], "text": "Blue" },
+      { "rgb": [95, 212, 255], "text": "Cyan" }
+    ]
+  },
   "content": [
     { "type": "image", "texture": "ModsConfigFO4VR/banner.dds", "width": 720 },
     {
@@ -27,35 +37,85 @@
       "content": [
         {
           "type": "text",
-          "text": "Write a good description of the mods config mod."
+          "text": "A modern, VR-first configuration menu for Fallout 4 VR mods: every mod's settings in one place, changed in the headset with your hands. The menu stands in the world beside you and never pauses the game, so you see and feel your changes while it is open, without closing and opening it between tries. A mod that supports it shows each change live, as you make it. It reads a mod's config spec, or the MCM menu it already has."
         }
       ]
     },
+    { "type": "spacer" },
     {
       "type": "section",
       "text": "Help",
       "content": [
         {
           "type": "button",
-          "text": "Open WIKI page",
-          "help": "TODO.",
+          "text": "Mods Config FO4 VR wiki",
+          "help": "Opens the Mods Config FO4 VR wiki in your browser. Take off the headset to read it on your monitor.",
           "buttonText": "Open",
           "action": {
             "type": "OpenURL",
-            "url": "https://github.com/rollingrock/Fallout-4-VR-Body/blob/main/docs/README.md"
+            "url": "https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/README.md"
           }
+        },
+        { "type": "spacer" },
+        {
+          "type": "text",
+          "text": "See ? / Help, in the title bar, for how the menu works."
         }
       ]
     }
   ],
   "pages": [
     {
-      "pageDisplayName": "General",
-      "help": "TODO.",
+      "pageDisplayName": "Panel",
+      "help": "How big the menu is, and where it stands.",
       "content": [
         {
           "type": "section",
-          "text": "Scrolling",
+          "text": "Size and place",
+          "content": [
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Scale",
+              "help": "How large the menu is, with its text and its rows. To read it better, make it larger or bring it nearer.",
+              "default": 6.0,
+              "valueOptions": { "min": 3.0, "max": 12.0, "step": 0.5 },
+              "storage": { "path": ["Panel", "fScale"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Distance",
+              "help": "How far from your eyes the menu stands, in game units of about 1.4 cm.",
+              "default": 160.0,
+              "valueOptions": { "min": 40.0, "max": 300.0, "step": 5.0 },
+              "storage": { "path": ["Panel", "fDistance"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Raise",
+              "help": "How far above your eyes the menu stands, in game units. Below zero is below the eyes.",
+              "default": -40.0,
+              "valueOptions": { "min": -100.0, "max": 100.0, "step": 5.0 },
+              "storage": { "path": ["Panel", "fHeight"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "int",
+              "text": "Background opacity",
+              "help": "How much the background hides the world behind the menu: 0 is clear, 255 is solid. Raise it if the text is hard to read against a bright sky.",
+              "default": 217,
+              "valueOptions": { "min": 0, "max": 255, "step": 1 },
+              "storage": { "path": ["Panel", "iBackgroundOpacity"] }
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Layout and scrolling",
+          "help": "How much the menu shows, with its text at the same size, and how fast it scrolls.",
           "content": [
             {
               "type": "slider",
@@ -65,28 +125,12 @@
               "default": 50.0,
               "valueOptions": { "min": 0.0, "max": 100.0, "step": 1.0 },
               "storage": { "path": ["Pointer", "fScrollSpeed"] }
-            }
-          ]
-        },
-        { "type": "spacer" },
-        {
-          "type": "section",
-          "text": "Size",
-          "content": [
-            {
-              "type": "slider",
-              "valueType": "float",
-              "text": "Scale",
-              "help": "How large the menu is, with its text and its rows. To read it better make it larger, or bring it nearer.",
-              "default": 6.0,
-              "valueOptions": { "min": 3.0, "max": 12.0, "step": 0.5 },
-              "storage": { "path": ["Panel", "fScale"] }
             },
             {
               "type": "slider",
               "valueType": "float",
               "text": "Width",
-              "help": "How much room the menu has for its rows, across. A wider menu shows more, with its text at the same size.",
+              "help": "The room the menu has for its rows, across. A wider menu shows more of a row.",
               "default": 30.0,
               "valueOptions": { "min": 16.0, "max": 60.0, "step": 1.0 },
               "storage": { "path": ["Panel", "fPanelWidth"] }
@@ -95,7 +139,7 @@
               "type": "slider",
               "valueType": "float",
               "text": "Height",
-              "help": "How much room the menu has for its rows, up and down. A higher menu shows more of a page.",
+              "help": "The room the menu has for its rows, up and down. A higher menu shows more of a page.",
               "default": 16.0,
               "valueOptions": { "min": 10.0, "max": 40.0, "step": 1.0 },
               "storage": { "path": ["Panel", "fPanelHeight"] }
@@ -104,7 +148,7 @@
               "type": "slider",
               "valueType": "float",
               "text": "Mod list width",
-              "help": "How wide the list of the mods on the left is. Widen it if the names of your mods are cut short.",
+              "help": "How wide the list of mods on the left is. Widen it if your mods' names are cut short.",
               "default": 8.0,
               "valueOptions": { "min": 4.0, "max": 20.0, "step": 0.5 },
               "storage": { "path": ["Panel", "fTreeWidth"] }
@@ -114,31 +158,16 @@
         { "type": "spacer" },
         {
           "type": "section",
-          "text": "Place",
+          "text": "Placement",
+          "help": "The menu's shape, and how it follows you and your hand.",
+          "isCollapsible": true,
+          "collapsed": true,
           "content": [
             {
               "type": "slider",
               "valueType": "float",
-              "text": "Distance",
-              "help": "How far from your eyes the menu is put, in game units of about 1.4 cm.",
-              "default": 160.0,
-              "valueOptions": { "min": 40.0, "max": 300.0, "step": 5.0 },
-              "storage": { "path": ["Panel", "fDistance"] }
-            },
-            {
-              "type": "slider",
-              "valueType": "float",
-              "text": "Height",
-              "help": "How much above your eyes the menu is put, in game units. Below zero is below the eyes.",
-              "default": -40.0,
-              "valueOptions": { "min": -100.0, "max": 100.0, "step": 5.0 },
-              "storage": { "path": ["Panel", "fHeight"] }
-            },
-            {
-              "type": "slider",
-              "valueType": "float",
               "text": "Tilt",
-              "help": "How far the top of the menu is tilted back, in degrees.",
+              "help": "How far the top of the menu leans back, in degrees.",
               "default": 6.0,
               "valueOptions": { "min": -45.0, "max": 45.0, "step": 1.0 },
               "storage": { "path": ["Panel", "fTilt"] }
@@ -147,7 +176,7 @@
               "type": "slider",
               "valueType": "float",
               "text": "Curve",
-              "help": "How much the menu curves around you: at 1 its sides are as far from your eyes as its middle, higher is flatter, and 0 is a flat menu.",
+              "help": "How much the menu curves around you: at 1 its sides are as far from your eyes as its middle, higher is flatter, and 0 is flat.",
               "default": 1.0,
               "valueOptions": { "min": 0.0, "max": 3.0, "step": 0.05 },
               "storage": { "path": ["Panel", "fCurve"] }
@@ -156,42 +185,31 @@
               "type": "slider",
               "valueType": "float",
               "text": "Recenter distance",
-              "help": "The menu is put in front of you again when you are further than this from it, in game units. 0 leaves it where it is. A change applies the next time the menu opens.",
+              "help": "The menu comes back in front of you when you are further than this from it, in game units. 0 leaves it where it is. Applies the next time the menu opens.",
               "default": 350.0,
               "valueOptions": { "min": 0.0, "max": 1000.0, "step": 10.0 },
               "storage": { "path": ["Panel", "fRecenterDistance"] }
-            }
-          ]
-        },
-        { "type": "spacer" },
-        {
-          "type": "section",
-          "text": "Look and moving",
-          "content": [
-            {
-              "type": "slider",
-              "valueType": "int",
-              "text": "Background opacity",
-              "help": "How much the menu's background hides the world behind it: 0 is a clear menu, and 255 one you do not see through.",
-              "default": 217,
-              "valueOptions": { "min": 0, "max": 255, "step": 1 },
-              "storage": { "path": ["Panel", "iBackgroundOpacity"] }
             },
             {
               "type": "slider",
               "valueType": "float",
               "text": "Move smoothing",
-              "help": "The time the menu takes to catch up with the hand that moves it, in seconds. Higher is steadier. 0 is no smoothing.",
+              "help": "How long the menu takes to catch up with the hand that moves it, in seconds. Higher is steadier. 0 is no smoothing.",
               "default": 0.05,
               "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
               "storage": { "path": ["Panel", "fMoveSmoothing"] }
             }
           ]
-        },
-        { "type": "spacer" },
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Controls",
+      "help": "The buttons that open, move and work the menu.",
+      "content": [
         {
           "type": "section",
-          "text": "Controls",
+          "text": "Bindings",
           "content": [
             {
               "type": "cf.inputBinding",
@@ -208,8 +226,8 @@
             },
             {
               "type": "cf.inputBinding",
-              "text": "Back menu navigation",
-              "help": "One step back in the menu, and from its front page it closes the menu: on the hand that points at the menu, where the binding is on that hand.",
+              "text": "Back",
+              "help": "One step back, on the hand that points at the menu. On the menu's front page it closes the menu.",
               "default": { "hand": "any", "type": "tap", "button": "grip" },
               "valueOptions": {
                 "types": ["tap", "press", "release", "longpress", "double"],
@@ -220,7 +238,7 @@
             {
               "type": "cf.inputBinding",
               "text": "Move the menu",
-              "help": "Point at the menu and work this on the hand that points: the menu follows the hand until you let go of the button. Make it longer than Back's tap on the same button.",
+              "help": "Point at the menu and hold this on that hand: the menu follows the hand until you let go. Make it longer than Back's tap on the same button.",
               "default": {
                 "hand": "any",
                 "type": "hold",
@@ -235,8 +253,8 @@
             },
             {
               "type": "cf.inputBinding",
-              "text": "Recenter menu",
-              "help": "Puts the menu in front of you again, where you look now, also after you moved it.",
+              "text": "Recenter the menu",
+              "help": "Brings the menu back in front of you, where you look now, also after you moved it.",
               "default": {
                 "hand": "offhand",
                 "type": "longpress",
@@ -245,17 +263,39 @@
               "storage": { "path": ["Panel", "kRecenterBinding"] }
             }
           ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Feedback",
+          "content": [
+            {
+              "type": "cf.haptic",
+              "text": "Press haptic",
+              "help": "The pulse the hand that points gets when its press does something, as showing a mod's page.",
+              "default": "Tick",
+              "storage": { "path": ["Pointer", "sPressHaptic"] }
+            }
+          ]
         }
       ]
     },
     {
       "pageDisplayName": "Pointer",
-      "help": "The ray from your hand, and the mark where it points on the menu.",
+      "help": "The ray from your hand, and the mark where it meets the menu.",
       "content": [
         {
           "type": "section",
           "text": "Ray",
           "content": [
+            {
+              "type": "cf.color",
+              "text": "Color",
+              "help": "The ray's color, and how opaque it is.",
+              "default": { "rgb": [190, 255, 190], "alpha": 200 },
+              "valueOptions": { "sharedPresets": "pointer" },
+              "storage": { "path": ["Pointer", "cRayColor"] }
+            },
             {
               "type": "slider",
               "valueType": "float",
@@ -269,7 +309,7 @@
               "type": "slider",
               "valueType": "float",
               "text": "Length",
-              "help": "The longest the ray is, in game units. It ends at the mark when the menu is nearer.",
+              "help": "The longest the ray gets, in game units. It ends at the mark when the menu is nearer.",
               "default": 25.0,
               "valueOptions": { "min": 5.0, "max": 100.0, "step": 1.0 },
               "storage": { "path": ["Pointer", "fRayMaxLength"] }
@@ -278,17 +318,10 @@
               "type": "slider",
               "valueType": "float",
               "text": "Fade",
-              "help": "How long the ray fades in and out over at its two ends, in game units.",
+              "help": "How long the ray fades in and out at its two ends, in game units.",
               "default": 4.0,
               "valueOptions": { "min": 0.0, "max": 20.0, "step": 0.5 },
               "storage": { "path": ["Pointer", "fRayFade"] }
-            },
-            {
-              "type": "cf.color",
-              "text": "Color",
-              "help": "The color of the ray, and how opaque it is.",
-              "default": { "rgb": [190, 255, 190], "alpha": 200 },
-              "storage": { "path": ["Pointer", "cRayColor"] }
             }
           ]
         },
@@ -298,50 +331,55 @@
           "text": "Mark",
           "content": [
             {
+              "type": "cf.color",
+              "text": "Color",
+              "help": "The mark's color, and how opaque it is.",
+              "default": { "rgb": [215, 255, 215], "alpha": 180 },
+              "valueOptions": { "sharedPresets": "pointer" },
+              "storage": { "path": ["Pointer", "cMarkColor"] }
+            },
+            {
               "type": "slider",
               "valueType": "float",
               "text": "Size",
-              "help": "The radius of the mark where the ray points on the menu. It keeps its size at any distance.",
+              "help": "The mark's radius. It keeps its size on the menu at any distance.",
               "default": 0.45,
               "valueOptions": { "min": 0.1, "max": 2.0, "step": 0.05 },
               "storage": { "path": ["Pointer", "fMarkSize"] }
-            },
-            {
-              "type": "slider",
-              "valueType": "float",
-              "text": "Border width",
-              "help": "How wide the border is, at the outside of the mark's radius. 0 is no border.",
-              "default": 0.08,
-              "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
-              "storage": { "path": ["Pointer", "fMarkBorderWidth"] }
-            },
-            {
-              "type": "cf.color",
-              "text": "Color",
-              "help": "The color of the mark, and how opaque it is.",
-              "default": { "rgb": [215, 255, 215], "alpha": 180 },
-              "storage": { "path": ["Pointer", "cMarkColor"] }
             },
             {
               "type": "cf.color",
               "text": "Border color",
               "help": "The color of the mark's border, and how opaque it is.",
               "default": { "rgb": [215, 255, 215], "alpha": 100 },
+              "valueOptions": { "sharedPresets": "pointer" },
               "storage": { "path": ["Pointer", "cMarkBorderColor"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "float",
+              "text": "Border width",
+              "help": "How wide the border is, at the outside of the mark. 0 is no border.",
+              "default": 0.08,
+              "valueOptions": { "min": 0.0, "max": 0.5, "step": 0.01 },
+              "storage": { "path": ["Pointer", "fMarkBorderWidth"] }
             }
           ]
         },
         { "type": "spacer" },
         {
           "type": "section",
-          "text": "Feedback",
+          "text": "Position",
+          "isCollapsible": true,
+          "collapsed": true,
           "content": [
             {
-              "type": "cf.haptic",
-              "text": "Press haptic",
-              "help": "The pulse the hand that points gets when its press does something in the menu, as showing a mod's page.",
-              "default": "Tick",
-              "storage": { "path": ["Pointer", "sPressHaptic"] }
+              "type": "cf.transform",
+              "text": "Ray on the hand",
+              "help": "Where the ray starts on the hand, and where it points. Set for the right hand, and mirrored on the left.",
+              "default": { "pos": [-2.0, 3.0, -1.0], "rot": [-18.0, 0.0, -5.0] },
+              "valueOptions": { "position": { "min": -10, "max": 10, "step": 0.1 }, "scale": false },
+              "storage": { "path": ["Pointer", "tRayOffset"] }
             }
           ]
         }
@@ -349,7 +387,7 @@
     },
     {
       "pageDisplayName": "Developer",
-      "help": "For a config spec's author: each config spec's problems on the menu's front page.",
+      "help": "For a config spec's author: each config spec's problems on the menu's front page, and the log.",
       "content": [
         {
           "type": "switcher",
@@ -385,6 +423,28 @@
           "valueOptions": { "listFromClientCallback": true },
           "enabledWhen": { "setting": "showConfigSpecs", "equals": "one" },
           "storage": { "path": ["Developer", "sConfigSpec"] }
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Log",
+          "content": [
+            {
+              "type": "stepper",
+              "valueType": "int",
+              "text": "Log level",
+              "help": "How much the mod writes to its log.",
+              "default": 2,
+              "valueOptions": {
+                "options": [
+                  { "value": 2, "text": "Info", "help": "The basic log." },
+                  { "value": 1, "text": "Debug", "help": "More logs, to find a problem." },
+                  { "value": 0, "text": "Trace", "help": "A lot of logs, every frame. Slows the game." }
+                ]
+              },
+              "storage": { "path": ["Debug", "iLogLevel"] }
+            }
+          ]
         }
       ]
     }

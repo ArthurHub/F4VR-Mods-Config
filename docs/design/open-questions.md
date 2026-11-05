@@ -33,6 +33,7 @@ The design questions that are still open. The order the mod is built in is in th
 
 - Whether world geometry hides the Full panel, and where the panel goes when a wall is closer than its distance.
 - Accessibility beyond the panel's scale.
+- The menu color of [M147](mod-plan-phase-3.md#13-advanced-features): which presets it has while amber and red mean a pending and an invalid change, and whether a "Match the Pip-Boy color" choice reads the game's own Pip-Boy color and follows it as it changes.
 
 ## Profiles, backups and portability
 

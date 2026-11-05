@@ -44,6 +44,7 @@ M90 reads `Interface\Translations\<modName>_<language>.txt` itself. F4SE loads a
 | M133 | mod  | HandPose                          | todo   |
 | M144 | mod  | Transform: grabbed with the hand  | todo   |
 | M145 | mod  | The client is told what the ray is on | todo   |
+| M147 | mod  | Menu color                        | todo   |
 
 M143 edits a list of texts, as [List](controls.md#list) has it: Immersive Flashlight has 5.
 
@@ -52,6 +53,8 @@ M133 edits a hand pose, as [Hand pose](controls.md#hand-pose) has it: Immersive 
 M144 has the player grab the object a transform places and move it with the hand to where it should be. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
 
 M145 tells a client which item of its config spec the ray is on, a row or a group, as it moves on and off one, beside the page events, so the mod shows in the world what the item sets: Immersive Flashlight lights the activation sphere whose rows the ray is on. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
+
+M147 lets the player change the menu's color: one house color in the mod's config, which the green of the design system's tokens is made from, the rules, the hover, the selection and the text, with presets of the Pip-Boy's colors and a custom color in the mod's own config spec. The theme is read at runtime in place of the generated constants. A house color cannot hide what other colors say: amber is a pending change and red an invalid one, so an amber or red menu would lose them. Whether the menu can match the Pip-Boy's color by itself is open; see [Open questions](open-questions.md#ui).
 
 ## 14. Papyrus API
 
