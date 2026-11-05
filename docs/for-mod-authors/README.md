@@ -19,7 +19,7 @@ Using the menu: [documentation](../README.md). Problems: [FAQ](../faq.md#for-mod
 | An MCM menu | Nothing | Its MCM menu, as it is. A change is made as the player makes it, as in MCM's menu, with Keep and Revert. |
 | Settings in INI or TOML files, or in its scripts' globals and properties | A config spec: one `spec.json`, and no code | Its page in the menu: VR controls, Save and Discard, values checked as they are typed, and when each change takes effect. |
 | A DLL built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework) | A config spec. The framework connects your DLL to the menu by itself | All of the above, and live preview: each change shows in the game as it is made, before Save. |
-| A DLL of its own | A config spec, and the [native API](#next) | Live preview, buttons that run your functions, options and states only your code knows, and your own UI opened from the menu. |
+| A DLL of its own | A config spec, and the [native API](native-api.md) | Live preview, buttons that run your functions, options and states only your code knows, and your own UI opened from the menu. |
 
 A config spec says what the page shows and where each value is kept. The menu reads and writes your mod's real files: there is no copy of your settings anywhere else. Your mod keeps reading its files as it does now, and a CommonFramework mod already reloads its TOML as it changes.
 
@@ -97,4 +97,4 @@ The Showcase's **Mistakes** page has what a config spec can get wrong, each with
 
 - **[The Showcase walkthrough](showcase.md):** each thing a config spec does, with the Showcase's JSON for it and a picture of the page it draws.
 - **[MCM compatibility](mcm.md):** what your MCM menu gets as it is, what a config spec adds, and moving from MCM, or keeping both.
-- **The native API,** for DLL authors. Until it's written, the [Native API](../design/architecture.md#native-api), the client header [src/api/ModsConfigFO4Api.h](../../src/api/ModsConfigFO4Api.h), and for a CommonFramework mod the framework's [Mods Config client](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/src/modsconfig/README.md).
+- **[The native API](native-api.md),** for DLL authors: what your DLL adds to its config spec, and how.
