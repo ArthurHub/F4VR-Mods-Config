@@ -708,6 +708,12 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
 
     // the showcase has no game plugin, so none of its globals is in the game. Its ModSettings are its defaults
     test_globals::TestGlobals globals;
+    // the forms of Fallout4.esm its page of texts from the game reads, as the game has them
+    test_properties::TestProperties properties;
+    properties.formTexts[{ "Fallout4.esm", 0x2C2, false }] = "Strength";
+    properties.formTexts[{ "Fallout4.esm", 0x2C2, true }] =
+        "Strength is a measure of your raw physical power. It affects how much you can carry, and the damage of all melee attacks.";
+    properties.formTexts[{ "Fallout4.esm", 0x23736, false }] = "Stimpak";
     mcm::McmStore store(game.path / "Data" / "MCM");
 
     // a panel for each image: a panel sets its style once, on the ImGui context it is first drawn in

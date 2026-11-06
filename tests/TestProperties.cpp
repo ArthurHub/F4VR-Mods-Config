@@ -6,6 +6,7 @@ namespace
 {
     using Properties = std::map<std::tuple<std::string, std::uint32_t, std::string, std::string>, mods_config::model::Value>;
     using Lists = std::map<std::tuple<std::string, std::uint32_t, std::string, std::string>, std::vector<std::string>>;
+    using FormTexts = std::map<std::tuple<std::string, std::uint32_t, bool>, std::string>;
 
     /**
      * The properties of the tests, in place of the game's.
@@ -26,6 +27,15 @@ namespace
     }
 
     /**
+     * The names and the descriptions of the forms of the tests, in place of the game's.
+     */
+    FormTexts& formTextsOf()
+    {
+        static FormTexts texts;
+        return texts;
+    }
+
+    /**
      * The property of the tests a storage names, and the end of the map for one that is not in it.
      */
     Properties::iterator findProperty(const mods_config::model::PropertyStorage& property)
@@ -38,10 +48,12 @@ namespace test_properties
 {
     TestProperties::TestProperties()
         : values(propertyValues()),
-          lists(optionLists())
+          lists(optionLists()),
+          formTexts(formTextsOf())
     {
         values.clear();
         lists.clear();
+        formTexts.clear();
     }
 }
 
@@ -76,5 +88,14 @@ namespace mods_config
     {
         const auto found = optionLists().find({ options.plugin, options.formId, options.script, options.property });
         return found != optionLists().end() ? std::optional(found->second) : std::nullopt;
+    }
+
+    /**
+     * The name or the description of a form of the tests: the tests' own, which is linked in place of the mod's.
+     */
+    std::string getFormText(const model::GameText& text)
+    {
+        const auto found = formTextsOf().find({ text.plugin, text.formId, text.kind == model::GameText::Kind::FormDescription });
+        return found != formTextsOf().end() ? found->second : std::string();
     }
 }

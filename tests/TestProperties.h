@@ -9,7 +9,7 @@
 #include "model/ConfigDefinition.h"
 
 // The properties of scripts of a test, in place of the game's: TestProperties.cpp is the tests' own
-// `getProperty`, `setProperty` and `getOptionTexts`, in place of the mod's.
+// `getProperty`, `setProperty`, `getOptionTexts` and `getFormText`, in place of the mod's.
 namespace test_properties
 {
     /**
@@ -27,5 +27,9 @@ namespace test_properties
         // the lists a choice reads its options from, each by its plugin, the id of its form, and the script and
         // the name of a property, which are empty for a FormList, with its texts
         std::map<std::tuple<std::string, std::uint32_t, std::string, std::string>, std::vector<std::string>>& lists;
+
+        // the names and the descriptions of forms, each by its plugin, the id of its form, and whether it is the
+        // description, with its text
+        std::map<std::tuple<std::string, std::uint32_t, bool>, std::string>& formTexts;
     };
 }

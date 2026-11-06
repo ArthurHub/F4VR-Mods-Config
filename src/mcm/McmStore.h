@@ -11,6 +11,7 @@
 
 #include "GameActions.h"
 #include "GameValues.h"
+#include "McmGameTexts.h"
 #include "McmKeybinds.h"
 #include "McmModSettings.h"
 #include "model/ChoiceOptions.h"
@@ -69,6 +70,12 @@ namespace mods_config::mcm
         void open(const model::Mod& mod) override;
         void close() override;
         void pageShown() override;
+
+        void readTexts(model::Mod& mod) override
+        {
+            readGameTexts(mod);
+        }
+
         model::StoredValue value(const model::Setting& setting) override;
         model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;

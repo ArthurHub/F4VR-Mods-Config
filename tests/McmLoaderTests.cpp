@@ -334,6 +334,55 @@ TEST_CASE("McmLoader: a page whose own required plugins are not all loaded is no
     CHECK(loaded(config).pages.size() == 4);
 }
 
+TEST_CASE("McmLoader: a row's text and help from the game are read by the keys MCM's menu reads")
+{
+    const auto mod = loaded(R"({
+        "modName": "MyMod",
+        "content": [
+            { "type": "section", "text": "MyMod.esp|10", "textFromFormName": true },
+            { "type": "button", "text": "MyMod.esp|0x20", "textFromFormDescription": "true", "help": "MyMod.esp|30", "helpFromFormName": 1 },
+            {
+                "type": "switcher", "text": "Fallback",
+                "textFromStringProperty": { "form": "MyMod.esp|40", "scriptName": "MyQuest", "propertyName": "Title" },
+                "helpFromStringArrayProperty": { "form": "MyMod.esp|40", "scriptName": "MyQuest", "propertyName": "Helps", "index": 2 }
+            },
+            { "type": "text", "text": "MyMod.esp|50", "textFromFormName": true, "html": true },
+            { "type": "text", "text": "Not a form", "textFromFormName": true },
+            { "type": "hotkey", "text": "MyMod.esp|60", "textFromFormName": false },
+            {
+                "type": "button", "text": "MyMod.esp|70", "textFromFormName": true,
+                "textFromStringProperty": { "form": "MyMod.esp|40", "propertyName": "Title" }
+            }
+        ]
+    })");
+
+    using Kind = model::GameText::Kind;
+    const auto& items = mod.frontPage.items;
+    const auto& group = std::get<model::Group>(items[0]);
+    CHECK(group.textFromGame == model::GameText{ .kind = Kind::FormName, .plugin = "MyMod.esp", .formId = 0x10 });
+
+    const auto& rows = group.items;
+    const auto& button = std::get<model::Button>(rows[0]);
+    CHECK(button.textFromGame == model::GameText{ .kind = Kind::FormDescription, .plugin = "MyMod.esp", .formId = 0x20 });
+    CHECK(button.helpFromGame == model::GameText{ .kind = Kind::FormName, .plugin = "MyMod.esp", .formId = 0x30 });
+
+    const auto& setting = std::get<model::Setting>(rows[1]);
+    CHECK(setting.textFromGame == model::GameText{ .kind = Kind::Property, .plugin = "MyMod.esp", .formId = 0x40, .script = "MyQuest", .property = "Title" });
+    CHECK(setting.helpFromGame == model::GameText{ .kind = Kind::PropertyElement, .plugin = "MyMod.esp", .formId = 0x40, .script = "MyQuest", .property = "Helps", .index = 2 });
+    // until the game's is read, a row shows its own
+    CHECK(setting.text == "Fallback");
+
+    const auto& text = std::get<model::Text>(rows[2]);
+    CHECK(text.textFromGame == model::GameText{ .kind = Kind::FormName, .plugin = "MyMod.esp", .formId = 0x50, .html = true });
+
+    // a text that names no form, and a flag that is off, read none
+    CHECK_FALSE(std::get<model::Text>(rows[3]).textFromGame);
+    CHECK_FALSE(std::get<model::Hotkey>(rows[4]).textFromGame);
+
+    // a property is read over a form, as MCM's menu keeps the property's
+    CHECK(std::get<model::Button>(rows[5]).textFromGame->kind == Kind::Property);
+}
+
 TEST_CASE("McmLoader: a mod with no displayName is shown by its modName")
 {
     CHECK(loaded(R"({ "modName": "MyMod" })").displayName == "MyMod");
@@ -952,7 +1001,7 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
     CHECK(mods[0].name == "ModsConfigFO4_McmShowcase");
     CHECK(mods[0].displayName == "Mods Config FO4: MCM Compatibility");
     CHECK_FALSE(mods[0].frontPage.items.empty());
-    CHECK(mods[0].pages.size() == 12);
+    CHECK(mods[0].pages.size() == 13);
 
     // in a game its pages of plugin requirements name a plugin that no game has: one is not available, and one is
     // left out
@@ -960,7 +1009,7 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
         return plugin != "ModsConfigFO4_McmShowcase_NotInstalled.esp";
     });
     REQUIRE(inGame.size() == 1);
-    REQUIRE(inGame[0].pages.size() == 11);
+    REQUIRE(inGame[0].pages.size() == 12);
     CHECK(inGame[0].pages.back().name == "Plugin requirements");
     CHECK(inGame[0].pages.back().notAvailable == "its plugin ModsConfigFO4_McmShowcase_NotInstalled.esp is not loaded");
 

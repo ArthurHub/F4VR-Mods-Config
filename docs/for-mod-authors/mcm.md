@@ -33,8 +33,6 @@ You don't have to do anything. While MCM VR is installed, the menu reads your `D
 
 **What isn't run:** a `positioner`, a `keyinput` and a `customClipLoader` are disabled rows that say the menu has no such control. `CallExternalFunction` calls Flash, which the menu has none of, and `RunConsoleCommand` and `SendEvent` are hotkey actions, which MCM's menu doesn't run in a row either. The code in your `lib.swf` isn't run. An image drawn as vectors, a JPEG, or an animated one is a row that says an image is there.
 
-**What isn't read yet,** as no MCM mod we tested uses it: the `textFrom...` fields, whose text is shown as written. They are planned.
-
 **What isn't supported:** `ownerModName`. Your config is a mod of its own in the list, and its pages aren't put under another mod.
 
 The **MCM Showcase**, in the Showcase download, is an MCM menu with every kind of row in every look: install it to see how yours will look.

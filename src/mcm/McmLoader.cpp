@@ -836,6 +836,43 @@ namespace
     }
 
     /**
+     * Where a row reads its text or its help in the game, by the keys MCM's menu reads after the key's name: a
+     * `FromStringProperty` or a `FromStringArrayProperty`, which names a `form`, as `MyMod.esp|1234`, its
+     * `scriptName` and its `propertyName`, with the `index` of an array's text, or else a `FromFormName` or a
+     * `FromFormDescription`, which makes the row's own text the form. A property is read over a form, as MCM's menu
+     * reads both and keeps the property's. None for a row with none, or one whose form is not written so.
+     */
+    std::optional<model::GameText> loadGameText(const Json& row, const std::string& key)
+    {
+        using Kind = model::GameText::Kind;
+        for (const auto& [suffix, kind] : { std::pair("FromStringProperty", Kind::Property), std::pair("FromStringArrayProperty", Kind::PropertyElement) }) {
+            const auto found = row.find(key + suffix);
+            if (found == row.end() || !found->is_object()) {
+                continue;
+            }
+            auto form = parseSourceForm(getText(*found, "form"));
+            if (!form) {
+                continue;
+            }
+            const auto index = found->find("index");
+            return model::GameText{ .kind = kind,
+                .plugin = std::move(form->first),
+                .formId = form->second,
+                .script = getText(*found, "scriptName"),
+                .property = getText(*found, "propertyName"),
+                .index = index != found->end() && index->is_number() ? static_cast<std::size_t>((std::max)(0.0, index->get<double>())) : 0 };
+        }
+        const auto kind = getFlag(row, (key + "FromFormName").c_str())          ? std::optional(Kind::FormName)
+                          : getFlag(row, (key + "FromFormDescription").c_str()) ? std::optional(Kind::FormDescription)
+                                                                                : std::nullopt;
+        auto form = kind ? parseSourceForm(getText(row, key.c_str())) : std::nullopt;
+        if (!form) {
+            return std::nullopt;
+        }
+        return model::GameText{ .kind = *kind, .plugin = std::move(form->first), .formId = form->second };
+    }
+
+    /**
      * The items of the `content` array of a page. A section becomes a group, with the rows that follow it up
      * to the next section. The rows before the first section are items of the page itself.
      * A row with a `groupCondition` is shown by the groups of its own page, and a section's is of its heading
@@ -857,14 +894,24 @@ namespace
             const auto type = getText(row, "type");
             auto visibleWhen = loadVisibleWhen(row, rows.groups);
             if (type == "section") {
-                items.emplace_back(model::Group{ .text = getLabel(row, texts), .items = {}, .visibleWhen = std::move(visibleWhen) });
+                items.emplace_back(
+                    model::Group{ .text = getLabel(row, texts), .help = {}, .textFromGame = loadGameText(row, "text"), .items = {}, .visibleWhen = std::move(visibleWhen) });
                 inGroup = true;
                 continue;
             }
             auto item = loadRow(type, row, std::move(rows.ids[place]), texts, images, gameFolder);
             std::visit(
-                [&visibleWhen](auto& loaded) {
+                [&visibleWhen, &row](auto& loaded) {
                     loaded.visibleWhen = std::move(visibleWhen);
+                    if constexpr (requires { loaded.textFromGame; }) {
+                        loaded.textFromGame = loadGameText(row, "text");
+                        if (loaded.textFromGame) {
+                            loaded.textFromGame->html = getFlag(row, "html");
+                        }
+                    }
+                    if constexpr (requires { loaded.helpFromGame; }) {
+                        loaded.helpFromGame = loadGameText(row, "help");
+                    }
                 },
                 item);
             auto& target = inGroup ? std::get<model::Group>(items.back()).items : items;

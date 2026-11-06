@@ -14,6 +14,7 @@ add_executable(${PROJECT_NAME}_tests
   FullPanelTests.cpp
   IniFileTests.cpp
   LiveCopiesTests.cpp
+  McmGameTextsTests.cpp
   McmLoaderTests.cpp
   McmStoreTests.cpp
   MenuControlsTests.cpp
@@ -48,6 +49,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/api/NativeClients.cpp
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp
+  ${SOURCE_DIR}/mcm/McmGameTexts.cpp
   ${SOURCE_DIR}/mcm/McmKeybinds.cpp
   ${SOURCE_DIR}/mcm/McmLoader.cpp
   ${SOURCE_DIR}/mcm/McmModSettings.cpp

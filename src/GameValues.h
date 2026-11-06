@@ -24,4 +24,8 @@ namespace mods_config
     // The texts of the options a choice reads in the game: the names of the forms of a FormList, or the texts
     // of a property of a script whose value is an array of texts. None for a list that is not in the game.
     std::optional<std::vector<std::string>> getOptionTexts(const model::GameOptions& options);
+
+    // The name or the description of a form of the game, as a GameText of either kind names it. Empty for a form
+    // that is not in the game, or has none.
+    std::string getFormText(const model::GameText& text);
 }

@@ -11,6 +11,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 - The menu works without FRIK, and without MCM.
 - The help line says the help of the option you point at in an open list.
 - An MCM page whose own plugins aren't loaded is greyed out with the reason, or hidden, as its config says.
+- An MCM row's text and help can come from the game: a form's name or description, or a script's property.
 - The menu's own settings are polished, and its thumbstick bindings are read as the framework reads them.
 
 ### v0.9.0

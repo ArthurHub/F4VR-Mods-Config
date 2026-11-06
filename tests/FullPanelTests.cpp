@@ -22,6 +22,7 @@
 #include "TestPanel.h"
 #include "TestProperties.h"
 #include "Theme.h"
+#include "mcm/McmLoader.h"
 #include "mcm/McmStore.h"
 #include "spec/ConfigSpecLoader.h"
 #include "spec/ConfigSpecStore.h"
@@ -808,6 +809,35 @@ TEST_CASE("FullPanel: a page that is not available is a disabled row of the tree
 
     press(panel, treeRow(2));
     CHECK(panel.selection() == selectionOf(0, 1));
+}
+
+TEST_CASE("FullPanel: an MCM row's text from the game is read as its mod is selected, and again as another page is shown")
+{
+    const test_panel::PanelContext context;
+    test_properties::TestProperties game;
+    game.values[{ "MyMod.esp", 0x40, "MyQuest", "Title" }] = std::string("Before");
+    const auto mod = mcm::loadConfig(R"({
+        "modName": "MyMod",
+        "content": [{ "type": "button", "text": "Own", "textFromStringProperty": { "form": "MyMod.esp|40", "scriptName": "MyQuest", "propertyName": "Title" } }],
+        "pages": [{ "pageDisplayName": "Other", "content": [] }]
+    })");
+    REQUIRE(mod);
+    mcm::McmStore store;
+    FullPanel panel;
+    panel.setStore(model::Source::Mcm, &store);
+    panel.setMods({ *mod });
+    const auto shownText = [&panel] {
+        return std::get<model::Button>(panel.mods()[0].frontPage.items[0]).text;
+    };
+    CHECK(shownText() == "Own");
+
+    panel.select(selectionOf(0));
+    CHECK(shownText() == "Before");
+
+    game.values[{ "MyMod.esp", 0x40, "MyQuest", "Title" }] = std::string("After");
+    panel.select(selectionOf(0, 0));
+    panel.select(selectionOf(0));
+    CHECK(shownText() == "After");
 }
 
 TEST_CASE("FullPanel: the help line has the help of a mod and of a page whose row the ray is on in the tree")

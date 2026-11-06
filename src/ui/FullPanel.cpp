@@ -159,6 +159,7 @@ namespace mods_config::ui
             const auto shown = existing(_selection);
             if (shown.mod && store) {
                 store->open(_mods[*shown.mod]);
+                store->readTexts(_mods[*shown.mod]);
             }
             // the page that stays keeps where it was scrolled to
             _pageChanged = shown != _selection;
@@ -402,6 +403,9 @@ namespace mods_config::ui
             }
         } else if (store) {
             store->pageShown();
+        }
+        if (store) {
+            store->readTexts(_mods[*shown.mod]);
         }
         _selection = available(shown);
         if (store) {

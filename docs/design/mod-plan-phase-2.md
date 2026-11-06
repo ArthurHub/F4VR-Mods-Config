@@ -251,7 +251,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M152 | mod | docs: MCM compatibility, what a config spec adds, and moving from MCM  | done   |
 | M156 | mod | docs: the native API, for DLL authors                                  | done   |
 | M158 | mod | An MCM page's own plugin requirements                                  | done   |
-| M159 | mod | An MCM row's text from the game                                        | todo   |
+| M159 | mod | An MCM row's text from the game                                        | done   |
 | M154 | mod | The release tested in the headset                                      | todo   |
 | M155 | mod | The release perf tested                                                | todo   |
 

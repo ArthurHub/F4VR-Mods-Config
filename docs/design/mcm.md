@@ -54,7 +54,7 @@ What a row has beside its type:
 | `id` | As in MCM: the name of a ModSetting and of a hotkey, and what `OnMCMSettingChange` gives | M29, M31 |
 | `groupControl`, `groupCondition` | As in MCM: a number, a list, `AND`, `OR` and `ONLY`. A condition inside another is read too, which MCM's menu does not | M28 |
 | A flag that is a text, as `"html": "true"` | As in MCM: on for any text but an empty one | M37 |
-| `textFromFormName`, `textFromFormDescription`, `textFromStringProperty`, `textFromStringArrayProperty`, and the same for `help` | Not read yet: the text is shown as written | M159 |
+| `textFromFormName`, `textFromFormDescription`, `textFromStringProperty`, `textFromStringArrayProperty`, and the same for `help` | As in MCM: read in the game as the mod is selected and as another page is shown. A form with no name or description keeps the row's own text, and so does a property that is not in the game | M159 |
 | `$$tintCT` in a text, which MCM's menu replaces with its tint color | Not read | |
 | A row's own `modName`, for a setting of another mod | Not read: the setting is of the row's mod | |
 

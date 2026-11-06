@@ -71,6 +71,13 @@ namespace mods_config::model
          */
         virtual void pageShown() = 0;
 
+        /**
+         * Reads into the rows of the mod whose session it is the texts they take from the game: after `open`, and
+         * after `pageShown`. Nothing for a store whose rows take none.
+         */
+        virtual void readTexts(Mod& /*mod*/)
+        {}
+
         virtual StoredValue value(const Setting& setting) = 0;
 
         /**

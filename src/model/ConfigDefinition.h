@@ -85,6 +85,44 @@ namespace mods_config::model
     };
 
     /**
+     * Where an MCM row reads its text or its help in the game, as MCM's menu reads it as it shows the page: the
+     * name or the description of a form, or the text of a script's property, or one text of an array of them.
+     * Its store reads it into the row as its mod is selected and as another page is shown.
+     */
+    struct GameText
+    {
+        enum class Kind : std::uint8_t
+        {
+            FormName,
+            FormDescription,
+            Property,
+            PropertyElement,
+        };
+
+        Kind kind = Kind::FormName;
+
+        // the file name of the plugin of the form, or of the form the script is attached to, as `MyMod.esp`
+        std::string plugin;
+
+        // the form's id without the plugin's place in the load order
+        std::uint32_t formId = 0;
+
+        // the script that has the property. Empty for any script of the form
+        std::string script;
+
+        // the name of the property. Empty for a form's name and its description
+        std::string property;
+
+        // the place of the text in the array of a PropertyElement
+        std::size_t index = 0;
+
+        // the text takes tags, as a text row's with `html` does
+        bool html = false;
+
+        bool operator==(const GameText&) const = default;
+    };
+
+    /**
      * The folder a path of a config spec's file, and of a choice of files, is from.
      */
     enum class FileRoot : std::uint8_t
@@ -594,6 +632,10 @@ namespace mods_config::model
 
         // what the help line says of the row while the ray is on it: plain text on one line, and empty for none
         std::string help;
+
+        // where an MCM row reads its text and its help in the game, in place of its own. None for one that does not
+        std::optional<GameText> textFromGame;
+        std::optional<GameText> helpFromGame;
         ValueOptions valueOptions;
         Storage storage;
 
@@ -686,6 +728,10 @@ namespace mods_config::model
         std::vector<TextRun> textRuns;
         std::string help;
 
+        // as a setting's
+        std::optional<GameText> textFromGame;
+        std::optional<GameText> helpFromGame;
+
         // the text on its button: a config spec's button can have one. Empty for `Run`
         std::string buttonText;
 
@@ -716,6 +762,10 @@ namespace mods_config::model
         std::string text;
         std::vector<TextRun> textRuns;
         std::string help;
+
+        // as a setting's
+        std::optional<GameText> textFromGame;
+        std::optional<GameText> helpFromGame;
         std::optional<Condition> visibleWhen;
     };
 
@@ -743,6 +793,9 @@ namespace mods_config::model
     struct Text
     {
         std::vector<TextLine> lines;
+
+        // where an MCM text row reads its text in the game, in place of its own. None for one that does not
+        std::optional<GameText> textFromGame;
         std::optional<Condition> visibleWhen;
     };
 
@@ -798,6 +851,10 @@ namespace mods_config::model
         std::vector<TextRun> textRuns;
         std::string help;
 
+        // as a setting's
+        std::optional<GameText> textFromGame;
+        std::optional<GameText> helpFromGame;
+
         // the control's type, as its config names it
         std::string type;
         std::optional<Condition> visibleWhen;
@@ -827,6 +884,9 @@ namespace mods_config::model
 
         // what the help line says of its heading: empty for none, as an MCM section has
         std::string help;
+
+        // where an MCM section reads its heading in the game, in place of its own. None for one that does not
+        std::optional<GameText> textFromGame;
         std::vector<Item> items;
 
         // of the heading alone: an item is shown by its own

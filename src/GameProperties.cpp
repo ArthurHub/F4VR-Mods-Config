@@ -252,4 +252,28 @@ namespace mods_config
         }
         return texts;
     }
+
+    /**
+     * The name or the description of a form, as `mcm_vr.dll` gives them to MCM's menu: the text of the form's name
+     * or description component. Empty for a form that is not in the game, or has no such component.
+     */
+    std::string getFormText(const model::GameText& text)
+    {
+        const auto dataHandler = RE::TESDataHandler::GetSingleton();
+        auto* const form = dataHandler ? dataHandler->LookupForm(text.formId, text.plugin) : nullptr;
+        if (!form) {
+            logger::warn("The form {:X} of '{}' is not in the game: its row shows its own text", text.formId, text.plugin);
+            return {};
+        }
+        if (text.kind == model::GameText::Kind::FormName) {
+            return std::string(RE::TESFullName::GetFullName(*form));
+        }
+        auto* const description = form->As<RE::TESDescription>();
+        if (!description) {
+            return {};
+        }
+        RE::BSStringT<char> shown;
+        description->GetDescription(shown, form);
+        return shown.c_str() ? std::string(shown.c_str()) : std::string();
+    }
 }
