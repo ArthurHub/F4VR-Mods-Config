@@ -253,6 +253,11 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M158 | mod | An MCM page's own plugin requirements                                  | done   |
 | M159 | mod | An MCM row's text from the game                                        | done   |
 | M160 | mod | A state of the mod's client in a row's text and help                   | done   |
+| M161 | mod | devbench: a page's rows as the panel draws them, and the status        | todo   |
+| M162 | mod | devbench: the errors and warnings of each config spec                  | todo   |
+| M163 | mod | devbench: the menu's events, and what clients and MCM scripts are told | todo   |
+| M164 | mod | devbench: a picture of the panel                                       | todo   |
+| M165 | mod | The end-to-end tests, run through devbench                             | todo   |
 | M154 | mod | The release tested in the headset                                      | todo   |
 | M155 | mod | The release perf tested                                                | todo   |
 
@@ -287,7 +292,16 @@ M158 and M159 read two features of an MCM config that no mod of the test set has
 
 M160 is what a config spec has in place of `textFrom...`: the text and the help of a setting, a button and a section take a `{clientState:name}` placeholder, as a text row's does, on one line. A form's name is written by the config spec's author, translated with a `$` token.
 
-M154 tries the release in the headset: the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
+M161 to M165 test the release through devbench, as far as it reaches, before M154 tries it in the headset. The mod's devbench tool drives the menu as the player's presses do, and M161 to M164 give it what the panel shows.
+
+- M161 is a page's rows as they are drawn: a row's text and help, with the game's text, the client's states and the `$` tokens in them, a text's lines, the warning a row tells, and the tag of when its pending change takes effect. The session has the status of the help line, the menu's front page its restart notices, and a section is folded and unfolded as its heading's press does.
+- M162 is each config spec's errors and warnings, as the Developer tools list them.
+- M163 publishes the menu's events as devbench events: it opened, closed and was minimized, a mod and a page were shown and left, a Save, a Discard and the dialog that asks. Each is published where the native clients and MCM's scripts are told theirs, with what each was told, so a test checks the API's and MCM's events. The native API keeps its events as they are.
+- M164 saves a picture of the panel as a PNG. devbench's `rendertarget` dumps the game's render targets, and the panel is drawn in a texture of the framework's.
+
+M165 is the end-to-end tests, in `tests/e2e/`: Python tests that drive the running game through devbench's REST port, with a save loaded and the test set installed. They back up the files a Save writes, and put them back after. A sweep shows each mod and page of the MCM test set and of the config specs, and sets, checks and discards each setting. A test of each page of the showcase walkthrough, of the dialog, of MCM's Keep and Revert, and of FRIK's and Immersive Flashlight's live preview checks a value in its file, in the game, and in its mod through the mod's own devbench tool. They are run by hand, as CI has no game.
+
+M154 tries the release in the headset, on what the end-to-end tests do not reach: the opening gesture and FRIK's, the buttons on the hand, the pointer, SteamVR's keyboard, the haptics, and where the panel is and how it looks, with the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
 
 A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 12.
 
