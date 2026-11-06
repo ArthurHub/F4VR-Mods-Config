@@ -84,11 +84,11 @@ namespace mods_config::ui
     }
 
     /**
-     * Opens a section, as a press on its heading does, so a row in it is drawn.
+     * Folds a section or opens it, as a press on its heading does: an open one has its rows drawn.
      */
-    void Sections::open(const model::Group& group)
+    void Sections::setFolded(const model::Group& group, const bool folded)
     {
-        _folded[&group] = false;
+        _folded[&group] = folded;
     }
 
     /**

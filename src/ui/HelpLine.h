@@ -42,6 +42,8 @@ namespace mods_config::ui
         Restart,
     };
 
+    std::string_view appliesTag(model::Applies applies);
+
     /**
      * The help line, on the left of the Full panel's footer: the help of the row the ray is on, as
      * `Name: help`, after the tag of when a pending change takes effect where it is known, with the warning of a row that warns before

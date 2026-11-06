@@ -37,6 +37,15 @@ namespace mods_config::ui
         using QuickLaunchEntry = mods_config::ui::QuickLaunchEntry;
 
         /**
+         * What the help line says of the selected mod's editing session while the ray is on no row, and its look.
+         */
+        struct SessionStatus
+        {
+            std::string text;
+            StatusLook look = StatusLook::Plain;
+        };
+
+        /**
          * What the title bar's Minimize and Close do, which the menu does: the panel does not know the game.
          */
         struct MenuActions
@@ -71,6 +80,8 @@ namespace mods_config::ui
         void reset();
         void draw();
         model::Store* selectedStore() const;
+        SessionStatus sessionStatus() const;
+        std::vector<FrontPageMod> frontPageMods() const;
         const model::Page* selectedPage() const;
 
         const std::vector<model::Mod>& mods() const
@@ -92,6 +103,12 @@ namespace mods_config::ui
         bool isFolded(const model::Group& group) const
         {
             return _modPage.isFolded(group);
+        }
+
+        // folds a section that folds, of the page that is shown, or opens it, as a press on its heading does
+        void setFolded(const model::Group& group, const bool folded)
+        {
+            _modPage.setFolded(group, folded);
         }
 
         const DeveloperView& developerView() const
@@ -174,7 +191,6 @@ namespace mods_config::ui
         void updateStatus();
         void pageShown();
         bool pressButton(TitleButton button);
-        std::vector<FrontPageMod> frontPageMods() const;
         void drawFooter(const ImVec2& pos);
         void drawDialog();
 

@@ -69,6 +69,11 @@ namespace mods_config::ui
             return _sections.isFolded(group);
         }
 
+        void setFolded(const model::Group& group, const bool folded)
+        {
+            _sections.setFolded(group, folded);
+        }
+
     private:
         // with none an image from pixels keeps its room, and a texture is drawn as one the game does not load
         ImageDrawer _imageDrawer;

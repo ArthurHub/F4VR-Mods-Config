@@ -13,6 +13,8 @@
 #include "devbench/DevBench.h"
 #include "imgui/ImGuiPointer.h"
 #include "model/Conditions.h"
+#include "model/TextStates.h"
+#include "ui/PageRows.h"
 
 namespace mods_config::devbench
 {
@@ -188,30 +190,81 @@ namespace mods_config::devbench
             return *store;
         }
 
-        /**
-         * The selected mod's editing session, as the footer counts it.
-         */
-        json sessionToJson(const model::Store& store)
+        const char* statusLookName(const ui::StatusLook look)
         {
-            return { { "dirty", store.dirtyCount() }, { "invalid", store.invalidCount() } };
+            switch (look) {
+            case ui::StatusLook::Plain:
+                return "plain";
+            case ui::StatusLook::Pending:
+                return "pending";
+            case ui::StatusLook::Invalid:
+                return "invalid";
+            case ui::StatusLook::Restart:
+                return "restart";
+            }
+            return "plain";
         }
 
         /**
-         * A setting as its row shows it: its value in the store, whether that is available, invalid or dirty
-         * and why, whether its row is enabled or read-only, and what the player can set it to.
+         * A text of a row, which is null for none.
+         */
+        json textOrNull(const std::string_view text)
+        {
+            return text.empty() ? json(nullptr) : json(std::string(text));
+        }
+
+        /**
+         * The selected mod's editing session, as the footer counts it, and the status its help line has while the
+         * ray is on no row.
+         */
+        json sessionToJson(const model::Store& store)
+        {
+            const auto status = g_modsConfig.menu().fullPanel().sessionStatus();
+            return { { "dirty", store.dirtyCount() }, { "invalid", store.invalidCount() }, { "status", { { "text", status.text }, { "look", statusLookName(status.look) } } } };
+        }
+
+        /**
+         * The lines of a text row as it draws them, with the states of its mod's client in them: each line as the
+         * text of its runs.
+         */
+        json linesToJson(const model::Text& text, model::Store& store)
+        {
+            const auto resolved = model::resolveClientText(text.lines, &store);
+            auto lines = json::array();
+            for (const auto& line : resolved ? *resolved : text.lines) {
+                std::string joined;
+                for (const auto& run : line.runs) {
+                    joined += run.text;
+                }
+                lines.push_back(std::move(joined));
+            }
+            return lines;
+        }
+
+        /**
+         * A setting as its row shows it: its text and help with the states of its mod's client in them, its value
+         * in the store, whether that is available, invalid or dirty and why, the warning it tells, the tag of when
+         * its pending change takes effect, whether its row is enabled or read-only, and what the player can set it to.
          */
         json settingToJson(const model::Setting& setting, model::Store& store)
         {
             const auto stored = store.value(setting);
+            const bool dirty = store.isDirty(setting);
+            // an invalid value has its mark in the place of a warning's, and the tag is told while the change is pending
+            const auto warning = stored.invalid ? std::string_view() : ui::warningOf(setting.warnings, &store);
+            const auto applies = dirty ? store.applies(setting) : std::nullopt;
             json row = { { "kind", "setting" },
                 { "id", setting.id },
                 { "type", settingTypeName(setting.type) },
-                { "text", setting.text },
+                { "text", model::resolveClientText(setting.text, &store) },
+                { "help", model::resolveClientText(setting.help, &store) },
+                { "warning", textOrNull(warning) },
+                { "tag", textOrNull(applies ? ui::appliesTag(*applies) : std::string_view()) },
                 { "value", valueToJson(stored.value) },
                 { "available", stored.available },
                 { "invalid", stored.invalid },
                 { "reason", stored.reason.empty() ? json(nullptr) : json(stored.reason) },
-                { "dirty", store.isDirty(setting) },
+                { "dirty", dirty },
                 { "readOnly", setting.readOnly },
                 { "enabled", !setting.enabledWhen || model::holds(*setting.enabledWhen, &store) } };
             const auto defaultValue = store.defaultValue(setting);
@@ -247,15 +300,17 @@ namespace mods_config::devbench
                             return settingToJson(it, store);
                         } else if constexpr (std::is_same_v<T, model::Group>) {
                             return { { "kind", "section" },
-                                { "text", it.text },
-                                { "help", it.help },
+                                { "text", model::resolveClientText(it.text, &store) },
+                                { "help", model::resolveClientText(it.help, &store) },
                                 { "role", it.role == model::GroupRole::ActivationSphere ? json("activationSphere") : json(nullptr) },
                                 { "collapsible", it.collapsible },
                                 { "collapsed", it.collapsed },
                                 { "folded", it.collapsible && g_modsConfig.menu().fullPanel().isFolded(it) } };
                         } else if constexpr (std::is_same_v<T, model::Button>) {
                             return { { "kind", "button" },
-                                { "text", it.text },
+                                { "text", model::resolveClientText(it.text, &store) },
+                                { "help", model::resolveClientText(it.help, &store) },
+                                { "warning", textOrNull(ui::warningOf(it.warnings, &store)) },
                                 { "buttonText", it.buttonText },
                                 { "runnable",
                                     !std::holds_alternative<model::NoAction>(it.action) && !std::holds_alternative<model::UnknownAction>(it.action) &&
@@ -265,9 +320,14 @@ namespace mods_config::devbench
                                 { "enabled", shown(it.enabledWhen) } };
                         } else if constexpr (std::is_same_v<T, model::Hotkey>) {
                             const auto key = store.hotkey(it);
-                            return { { "kind", "hotkey" }, { "id", it.id }, { "text", it.text }, { "value", valueToJson(key.value) }, { "available", key.available } };
+                            return { { "kind", "hotkey" },
+                                { "id", it.id },
+                                { "text", it.text },
+                                { "help", it.help },
+                                { "value", valueToJson(key.value) },
+                                { "available", key.available } };
                         } else if constexpr (std::is_same_v<T, model::Text>) {
-                            return { { "kind", "text" }, { "lines", it.lines.size() } };
+                            return { { "kind", "text" }, { "lines", linesToJson(it, store) } };
                         } else if constexpr (std::is_same_v<T, model::Image>) {
                             return { { "kind", "image" }, { "read", it.pixels != nullptr }, { "texture", it.texture }, { "width", it.width }, { "height", it.height } };
                         } else if constexpr (std::is_same_v<T, model::Spacer>) {
@@ -531,6 +591,15 @@ namespace mods_config::devbench
         }
 
         /**
+         * Whether a row's text is a text of the request: its own, or as it is drawn, with the states of its mod's
+         * client in it.
+         */
+        bool isTextOf(const std::string& own, const std::string_view text, model::Store& store)
+        {
+            return own == text || model::resolveClientText(own, &store) == text;
+        }
+
+        /**
          * The button of a text among items and the sections in them, that is shown: a row the panel gives no room is
          * not pressed. None where there is no such button.
          */
@@ -545,7 +614,7 @@ namespace mods_config::devbench
                 if (!shown) {
                     continue;
                 }
-                if (const auto* button = std::get_if<model::Button>(&item); button && button->text == text) {
+                if (const auto* button = std::get_if<model::Button>(&item); button && isTextOf(button->text, text, store)) {
                     return button;
                 }
                 if (const auto* group = std::get_if<model::Group>(&item)) {
@@ -598,6 +667,46 @@ namespace mods_config::devbench
             }
             const auto result = store.run(button->action);
             return { { "ran", result.ran }, { "failed", result.failed }, { "message", result.message }, { "session", sessionToJson(store) } };
+        }
+
+        /**
+         * The section of a text among items and the sections in them, and none where there is no such section.
+         */
+        const model::Group* findSection(const std::vector<model::Item>& items, const std::string_view text, model::Store& store)
+        {
+            for (const auto& item : items) {
+                if (const auto* group = std::get_if<model::Group>(&item)) {
+                    if (isTextOf(group->text, text, store)) {
+                        return group;
+                    }
+                    if (const auto* found = findSection(group->items, text, store)) {
+                        return found;
+                    }
+                }
+            }
+            return nullptr;
+        }
+
+        /**
+         * Folds a section of the page that is shown, by its text, or opens it, as a press on its heading does.
+         */
+        json runFold(const json& args)
+        {
+            auto& store = selectedStore();
+            const auto text = args.value("text", std::string());
+            if (text.empty()) {
+                throw std::runtime_error("no text is given");
+            }
+            auto& panel = g_modsConfig.menu().fullPanel();
+            const auto* section = findSection(panel.selectedPage()->items, text, store);
+            if (!section) {
+                throw std::runtime_error("the page that is shown has no section '" + text + "'");
+            }
+            if (!section->collapsible) {
+                throw std::runtime_error("the section does not fold");
+            }
+            panel.setFolded(*section, args.value("folded", true));
+            return { { "folded", panel.isFolded(*section) } };
         }
 
         /**
@@ -704,17 +813,23 @@ namespace mods_config::devbench
         }
 
         /**
-         * The mods the menu lists, in its order: each with its names, its pages, and why it is not available,
-         * which is null for one that is.
+         * The mods the menu lists, in its order: each with its names, its pages, why it is not available, which is
+         * null for one that is, and how many of its saved changes take effect after a restart, which the menu's
+         * front page tells while there is one.
          */
         json runMods(const json&)
         {
+            const auto& panel = g_modsConfig.menu().fullPanel();
+            const auto& listed = panel.mods();
+            const auto noticed = panel.frontPageMods();
             auto mods = json::array();
-            for (const auto& mod : g_modsConfig.menu().mods()) {
+            for (std::size_t i = 0; i < listed.size(); ++i) {
+                const auto& mod = listed[i];
                 mods.push_back({ { "name", mod.name },
                     { "displayName", mod.displayName },
                     { "pages", pagesToJson(mod.pages) },
-                    { "notAvailable", mod.notAvailable.empty() ? json(nullptr) : json(mod.notAvailable) } });
+                    { "notAvailable", mod.notAvailable.empty() ? json(nullptr) : json(mod.notAvailable) },
+                    { "restarts", noticed[i].savedRestartCount } });
             }
             return { { "mods", std::move(mods) } };
         }
@@ -770,7 +885,8 @@ namespace mods_config::devbench
     {
         f4cf::devbench::setToolDescription(
             "Mods Config FO4 VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state and the mods it lists, show a mod, one of "
-            "its pages or the Help page, go back, read the rows of the page with their values, set a value or its default, set a value as the mod's own "
+            "its pages or the Help page, go back, read the rows of the page as they are drawn with their values, fold a section, set a value or its default, set a value as the "
+            "mod's own "
             "client does through the API, run a button, Save or Discard the "
             "changes, and answer the dialog that asks about unsaved changes");
 
@@ -795,7 +911,8 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "mods",
             .description = "the mods the menu lists, in its order: each with its name, its display name, its pages (a page with pages under it is an object "
-                           "with its name and its pages), and why it is not available (null for one that is)",
+                           "with its name and its pages), why it is not available (null for one that is), and restarts (its saved changes that take effect "
+                           "after a restart, which the menu's front page tells while there is one)",
             .handler = &runMods,
         });
         f4cf::devbench::addAction({
@@ -812,11 +929,14 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "page",
-            .description = "the rows of the page that is shown, in their order, with the session (dirty: the changes that wait for a Save): each with its kind and depth "
-                           "(a section's rows follow it, one deeper), shown (its condition holds), for a section its help, role (activationSphere for an "
-                           "activation sphere's group, else null), collapsible (it folds), collapsed (it starts folded) and folded (it is folded now), for a button its "
-                           "buttonText, runnable and enabled, and for a setting its id, type, value, available, invalid, "
-                           "reason, dirty, saved (the value its row's Discard gives a dirty one back), enabled, default, applies, and its range or options",
+            .description = "the rows of the page that is shown, in their order, as they are drawn, with the session (dirty: the changes that wait for a Save, "
+                           "status: the help line's text and look while the ray is on no row): each with its kind and depth (a section's rows follow it, one "
+                           "deeper), shown (its condition holds), and its text and help with the states of its mod's client in them; for a section its role "
+                           "(activationSphere for an activation sphere's group, else null), collapsible (it folds), collapsed (it starts folded) and folded (it is "
+                           "folded now), for a button its warning (null for none), buttonText, runnable and enabled, for a text its lines, and for a setting its id, "
+                           "type, value, available, invalid, reason, warning (null for none), tag (the help line's tag of when its pending change takes effect, "
+                           "null while it is not dirty or that is not known), dirty, saved (the value its row's Discard gives a dirty one back), enabled, default, "
+                           "applies, and its range or options",
             .handler = &runPage,
         });
         f4cf::devbench::addAction({
@@ -856,9 +976,15 @@ namespace mods_config::devbench
             .name = "run",
             .description = "run the action of a button of the page that is shown, by its text, as a press on its row does: a disabled button is not run, "
                            "and a script's function saves the unsaved changes first, as Save and run does",
-            .arguments = { { "text", { { "type", "string" }, { "description", "run: the button's text, as the page action has it" } } },
+            .arguments = { { "text", { { "type", "string" }, { "description", "run, fold: the button's or the section's text, as the page action has it" } } },
                 { "withoutSaving", { { "type", "boolean" }, { "description", "run: run a script's function with the unsaved changes pending, as Run without saving does" } } } },
             .handler = &runButton,
+        });
+        f4cf::devbench::addAction({
+            .name = "fold",
+            .description = "fold a section of the page that is shown, or open it, as a press on its heading does",
+            .arguments = { { "folded", { { "type", "boolean" }, { "description", "fold: false opens the section; true by default" } } } },
+            .handler = &runFold,
         });
         f4cf::devbench::addAction({
             .name = "answer",

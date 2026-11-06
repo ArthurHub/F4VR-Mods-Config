@@ -259,34 +259,46 @@ namespace mods_config::ui
     }
 
     /**
-     * Gives the help line the status of the selected mod's editing session: how many changes are invalid,
-     * which block Save, why the last Save failed, until the next change, how many wait for a Save, or of an MCM
-     * mod how many are made, with how many of them take effect after a restart, or the last Save, until the next
-     * change, with how many of the changes it wrote take effect after a restart. Nothing with no mod, and with no
-     * store.
+     * The status of the selected mod's editing session: how many changes are invalid, which block Save, why the
+     * last Save failed, until the next change, how many wait for a Save, or of an MCM mod how many are made, with
+     * how many of them take effect after a restart, or the last Save, until the next change, with how many of the
+     * changes it wrote take effect after a restart. Nothing with no mod, and with no store.
      */
-    void FullPanel::updateStatus()
+    FullPanel::SessionStatus FullPanel::sessionStatus() const
     {
         auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
         const bool made = store && store->writesChangesAtOnce();
         if (!store) {
-            _helpLine.setStatus({});
-        } else if (const auto invalid = store->invalidCount(); invalid > 0) {
-            _helpLine.setStatus(std::format("{} invalid value{}", invalid, invalid == 1 ? "" : "s"), StatusLook::Invalid);
-        } else if (const auto failure = store->saveFailure(); !failure.empty()) {
-            _helpLine.setStatus(std::format("Not saved: {}.", failure), StatusLook::Invalid);
-        } else if (const auto dirty = store->dirtyCount(); dirty > 0) {
+            return {};
+        }
+        if (const auto invalid = store->invalidCount(); invalid > 0) {
+            return { std::format("{} invalid value{}", invalid, invalid == 1 ? "" : "s"), StatusLook::Invalid };
+        }
+        if (const auto failure = store->saveFailure(); !failure.empty()) {
+            return { std::format("Not saved: {}.", failure), StatusLook::Invalid };
+        }
+        if (const auto dirty = store->dirtyCount(); dirty > 0) {
             const auto* plural = dirty == 1 ? "" : "s";
             auto status = made ? std::format("{} change{} made", dirty, plural) : std::format("{} unsaved change{}", dirty, plural);
             if (const auto restarts = store->dirtyRestartCount(); restarts > 0) {
                 status += std::format(", {} take{} effect after a restart", restarts, restarts == 1 ? "s" : "");
             }
-            _helpLine.setStatus(status, StatusLook::Pending);
-        } else if (const auto saved = store->lastSave(); saved && *saved > 0) {
-            _helpLine.setStatus(std::format("Saved. {} change{} effect after the game is restarted.", *saved, *saved == 1 ? " takes" : "s take"), StatusLook::Restart);
-        } else {
-            _helpLine.setStatus(saved ? (made ? KEPT : SAVED) : (made ? NONE_MADE : NO_UNSAVED));
+            return { std::move(status), StatusLook::Pending };
         }
+        const auto saved = store->lastSave();
+        if (saved && *saved > 0) {
+            return { std::format("Saved. {} change{} effect after the game is restarted.", *saved, *saved == 1 ? " takes" : "s take"), StatusLook::Restart };
+        }
+        return { saved ? (made ? KEPT : SAVED) : (made ? NONE_MADE : NO_UNSAVED) };
+    }
+
+    /**
+     * Gives the help line the status of the selected mod's editing session.
+     */
+    void FullPanel::updateStatus()
+    {
+        const auto status = sessionStatus();
+        _helpLine.setStatus(status.text, status.look);
     }
 
     /**

@@ -431,7 +431,7 @@ namespace mods_config::ui
     void ModPage::focus(const model::Item& item, const std::vector<const model::Group*>& sections)
     {
         for (const auto* section : sections) {
-            _sections.open(*section);
+            _sections.setFolded(*section, false);
         }
         _focused = &item;
         _scrollToFocused = true;

@@ -12,14 +12,17 @@ namespace
     // the lines the footer has room for: in the body size, and in the detail size for a help that needs more
     constexpr int BODY_LINES = 2;
     constexpr int DETAIL_LINES = 3;
+}
 
+namespace mods_config::ui
+{
     /**
      * The tag of when a setting's change takes effect, as the Help page tells it. None for one that is not known,
      * which most settings are, as every MCM setting.
      */
-    std::string_view appliesTag(const mods_config::model::Applies applies)
+    std::string_view appliesTag(const model::Applies applies)
     {
-        using mods_config::model::Applies;
+        using model::Applies;
         switch (applies) {
         case Applies::Live:
             return "Live";
@@ -32,10 +35,7 @@ namespace
         }
         return {};
     }
-}
 
-namespace mods_config::ui
-{
     /**
      * Shows a row's text, its warning, the result of its action and its help, whether the help is why its value
      * is invalid, and when the change of its setting takes effect. A row with none of them is its text alone, which a row that

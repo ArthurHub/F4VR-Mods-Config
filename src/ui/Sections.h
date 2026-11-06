@@ -35,7 +35,7 @@ namespace mods_config::ui
     {
     public:
         bool isFolded(const model::Group& group) const;
-        void open(const model::Group& group);
+        void setFolded(const model::Group& group, bool folded);
         bool drawHeading(const model::Group& group, model::Store* store, const ImVec2& pos, float width, const SectionRow& row, std::string& help);
         void reset();
 
