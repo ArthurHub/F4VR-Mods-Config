@@ -327,7 +327,8 @@ namespace mods_config::api
      * Hands the menu a pending value a client sets, of a setting of its mod, in the model's type. False, with why in the
      * log, for a client that is not registered or is cut off, a call with no id or no value, and a value the menu refuses.
      * One from inside its `onChange` or `onSaved` is refused too: its handlers after the caller would be told the change
-     * it sets before the one they are being told, and keep that older one.
+     * it sets before the one they are being told, and keep that older one. The menu's refusal is sampled in the log, as
+     * a client that hands values as the player adjusts them can be refused each frame at a slider's end.
      */
     bool NativeClients::setPendingValue(const IClient* client, const char* settingId, const SettingValue* value) const
     {
@@ -352,7 +353,7 @@ namespace mods_config::api
         }
         const auto set = _pendingValueAction ? _pendingValueAction(registered->name, id, *typed) : std::unexpected(std::string("the menu takes none"));
         if (!set) {
-            logger::warn("Native API: client '{}' sets the pending value of '{}', which is refused: {}", registered->name, id, set.error());
+            logger::sample(500, "Native API: client '{}' sets the pending value of '{}', which is refused: {}", registered->name, id, set.error());
             return false;
         }
         return true;
