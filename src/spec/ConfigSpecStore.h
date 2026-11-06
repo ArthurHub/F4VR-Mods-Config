@@ -110,6 +110,8 @@ namespace mods_config::spec
         model::ActionResult run(const model::Action& action) override;
 
     private:
+        std::expected<void, std::string> saveChanges();
+
         /**
          * What the session has of a setting. A value is in the type of the setting's control, as the UI has it.
          */

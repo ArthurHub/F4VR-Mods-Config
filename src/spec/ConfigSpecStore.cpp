@@ -22,6 +22,7 @@
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
+#include "model/SessionEvents.h"
 #include "model/Transforms.h"
 
 using namespace mods_config;
@@ -1078,7 +1079,7 @@ namespace mods_config::spec
      * `showcase.toml cannot be written`. While a dirty setting is invalid nothing is written, and the reason
      * is not a failure of the Save: the UI does not save then.
      */
-    std::expected<void, std::string> ConfigSpecStore::save()
+    std::expected<void, std::string> ConfigSpecStore::saveChanges()
     {
         if (const auto invalid = invalidCount(); invalid > 0) {
             logger::warn("The changes of '{}' are not saved, as {} of them are not valid", _modName, invalid);
@@ -1216,6 +1217,16 @@ namespace mods_config::spec
     }
 
     /**
+     * Writes the dirty settings, as saveChanges does, and publishes the Save as a devbench event.
+     */
+    std::expected<void, std::string> ConfigSpecStore::save()
+    {
+        auto saved = saveChanges();
+        model::publishSaved(_modName, saved);
+        return saved;
+    }
+
+    /**
      * Takes back the pending values: each setting has its baseline again, also an invalid one of its file,
      * and the game has the baseline of each setting that is previewed again. The last Save is over, also one
      * that failed.
@@ -1229,6 +1240,7 @@ namespace mods_config::spec
             entry.pending.reset();
             entry.pendingInvalid.clear();
         }
+        model::publishDiscarded(_modName);
     }
 
     /**
@@ -1251,6 +1263,7 @@ namespace mods_config::spec
             preview(setting, entry);
         }
         previewToClient(setting, entry);
+        model::publishDiscarded(_modName, &setting);
     }
 
     /**

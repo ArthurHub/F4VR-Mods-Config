@@ -255,7 +255,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M160 | mod | A state of the mod's client in a row's text and help                   | done   |
 | M161 | mod | devbench: a page's rows as the panel draws them, and the status        | done   |
 | M162 | mod | devbench: the errors and warnings of each config spec                  | done   |
-| M163 | mod | devbench: the menu's events, and what clients and MCM scripts are told | todo   |
+| M163 | mod | devbench: the menu's events, and what clients and MCM scripts are told | done   |
 | M164 | mod | devbench: a picture of the panel                                       | todo   |
 | M165 | mod | The end-to-end tests, run through devbench                             | todo   |
 | M154 | mod | The release tested in the headset                                      | todo   |
@@ -296,7 +296,7 @@ M161 to M165 test the release through devbench, as far as it reaches, before M15
 
 - M161 is a page's rows as they are drawn: a row's text and help, with the game's text, the client's states and the `$` tokens in them, a text's lines, the warning a row tells, and the tag of when its pending change takes effect. The session has the status of the help line, the menu's front page its restart notices, and a section is folded and unfolded as its heading's press does.
 - M162 is each config spec's errors and warnings, as the Developer tools list them.
-- M163 publishes the menu's events as devbench events: it opened, closed and was minimized, a mod and a page were shown and left, a Save, a Discard and the dialog that asks. Each is published where the native clients and MCM's scripts are told theirs, with what each was told, so a test checks the API's and MCM's events. The native API keeps its events as they are.
+- M163 publishes the menu's events as devbench events: it opened, closed and was minimized, another mod or page was shown, the Help page, the dialog that asks, and a Save and a Discard, which each store publishes. What each native client and MCM's scripts are told is published where it is sent, with whether a client was told, so a test checks the API's and MCM's events. The native API keeps its events as they are.
 - M164 saves a picture of the panel as a PNG. devbench's `rendertarget` dumps the game's render targets, and the panel is drawn in a texture of the framework's.
 
 M165 is the end-to-end tests, in `tests/e2e/`: Python tests that drive the running game through devbench's REST port, with a save loaded and the test set installed. They back up the files a Save writes, and put them back after. A sweep shows each mod and page of the MCM test set and of the config specs, and sets, checks and discards each setting. A test of each page of the showcase walkthrough, of the dialog, of MCM's Keep and Revert, and of FRIK's and Immersive Flashlight's live preview checks a value in its file, in the game, and in its mod through the mod's own devbench tool. They are run by hand, as CI has no game.

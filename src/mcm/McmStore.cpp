@@ -10,6 +10,7 @@
 #include <variant>
 
 #include "common/CommonUtils.h"
+#include "model/SessionEvents.h"
 
 using namespace mods_config;
 
@@ -580,6 +581,7 @@ namespace mods_config::mcm
         _changes.clear();
         waitForPauseMenu();
         _lastSave = 0;
+        model::publishSaved(_modName, {});
         return {};
     }
 
@@ -642,6 +644,7 @@ namespace mods_config::mcm
             change(*setting, baseline);
         }
         _lastSave.reset();
+        model::publishDiscarded(_modName);
     }
 
     /**
@@ -658,6 +661,7 @@ namespace mods_config::mcm
         _changes.erase(found);
         change(setting, baseline);
         _lastSave.reset();
+        model::publishDiscarded(_modName, &setting);
     }
 
     /**

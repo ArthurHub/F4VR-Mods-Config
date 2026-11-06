@@ -72,6 +72,68 @@ namespace mods_config::devbench
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
         }
 
+        // the state of the frame before, whose changes are published as events: none before the first
+        std::optional<MCDevState> lastState;
+
+        /**
+         * What a state shows, by names: the mod's name, null for the menu's front page, and the names of the pages on
+         * the way to its page, empty for the mod's front page.
+         */
+        json shownToJson(const MCDevState& state)
+        {
+            const auto& mods = g_modsConfig.menu().mods();
+            if (state.selectedMod < 0 || static_cast<std::size_t>(state.selectedMod) >= mods.size()) {
+                return { { "mod", nullptr }, { "page", json::array() } };
+            }
+            const auto& mod = mods[static_cast<std::size_t>(state.selectedMod)];
+            auto names = json::array();
+            const auto* pages = &mod.pages;
+            for (const auto place : state.selectedPage) {
+                if (place >= pages->size()) {
+                    break;
+                }
+                names.push_back((*pages)[place].name);
+                pages = &(*pages)[place].pages;
+            }
+            return { { "mod", mod.name }, { "page", std::move(names) } };
+        }
+
+        /**
+         * Publishes as devbench events what changed in the menu since the frame before: it opened or closed, was
+         * minimized or restored, showed another mod or page, showed or hid the Help page, and its dialog asked or was
+         * answered. The panel's own changes are told while the menu stays open.
+         */
+        void publishChanges(const MCDevState& state)
+        {
+            if (lastState) {
+                const auto& last = *lastState;
+                const bool stayedOpen = state.menuOpen && last.menuOpen;
+                if (state.menuOpen != last.menuOpen) {
+                    f4cf::devbench::emit(state.menuOpen ? "menu.opened" : "menu.closed");
+                }
+                if (stayedOpen && state.menuMinimized != last.menuMinimized) {
+                    f4cf::devbench::emit(state.menuMinimized ? "menu.minimized" : "menu.restored");
+                }
+                if (state.selectedMod != last.selectedMod || state.selectedPage != last.selectedPage) {
+                    f4cf::devbench::emit("selection.changed", [&] {
+                        return shownToJson(state);
+                    });
+                }
+                if (stayedOpen && state.helpShown != last.helpShown) {
+                    f4cf::devbench::emit(state.helpShown ? "help.shown" : "help.hidden");
+                }
+                if (stayedOpen && state.asking != last.asking) {
+                    f4cf::devbench::emit(state.asking ? "dialog.asked" : "dialog.answered", [&] {
+                        return json{ { "mod", shownToJson(state)["mod"] } };
+                    });
+                }
+            }
+            lastState = state;
+        }
+
+        /**
+         * Fills the state of this frame, and publishes what changed in the menu since the frame before.
+         */
         void captureState(MCDevState& state)
         {
             const auto& menu = g_modsConfig.menu();
@@ -98,6 +160,7 @@ namespace mods_config::devbench
             state.hasSession = store != nullptr;
             state.dirtyCount = store ? store->dirtyCount() : 0;
             state.invalidCount = store ? store->invalidCount() : 0;
+            publishChanges(state);
         }
 
         /**
@@ -942,7 +1005,11 @@ namespace mods_config::devbench
             "its pages or the Help page, go back, read the rows of the page as they are drawn with their values, fold a section, set a value or its default, set a value as the "
             "mod's own "
             "client does through the API, run a button, Save or Discard the "
-            "changes, and answer the dialog that asks about unsaved changes");
+            "changes, and answer the dialog that asks about unsaved changes. Its events: menu.opened, menu.closed, menu.minimized, menu.restored, "
+            "selection.changed (mod and page names), help.shown, help.hidden, dialog.asked, dialog.answered, session.saved (mod, saved, reason), "
+            "session.discarded (mod, and setting for a row's Discard), client.event, client.change and client.saved (what a mod's native client was told, "
+            "and whether it was), mcm.event (an MCM event sent to the scripts, with its arguments) and mcm.pauseMenu (the pause menu's events sent after "
+            "an MCM Save)");
 
         f4cf::devbench::setStateProvider<MCDevState>(stateDescription(), &captureState, &stateToJson);
 

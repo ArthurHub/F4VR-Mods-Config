@@ -1,5 +1,6 @@
 #include "McmStore.h"
 
+#include "devbench/DevBench.h"
 #include "f4sevr/PapyrusUtils.h"
 
 using namespace mods_config;
@@ -47,7 +48,7 @@ namespace mods_config::mcm
     /**
      * Sends an event to every script that registered for it with F4SE's `RegisterForExternalEvent`, as F4SE
      * does for MCM's menu: F4SE keeps the scripts of an event by its name, and each is called with the
-     * function it registered.
+     * function it registered. It is published as the devbench event `mcm.event`, with how many scripts it was sent to.
      */
     void sendEvent(const std::string& event, const std::vector<std::string>& arguments)
     {
@@ -60,12 +61,16 @@ namespace mods_config::mcm
         SentEvent sent{ .vm = gameVM->m_virtualMachine, .arguments = arguments };
         papyrus->GetExternalEventRegistrations(event, &sent, callScript);
         logger::debug("Sent the event {} to {} scripts", event, sent.scripts);
+        f4cf::devbench::emit("mcm.event", [&] {
+            return nlohmann::json{ { "event", event }, { "arguments", arguments }, { "scripts", sent.scripts } };
+        });
     }
 
     /**
      * Sends the game's `MenuOpenCloseEvent` of `PauseMenu`, opening and then closing, to every listener of the
      * UI's event, as the game sends it: the pause menu itself is not opened. Both are sent, so a listener that
-     * counts the menus that are open stays right. It is called on the game's thread, as the game sends it.
+     * counts the menus that are open stays right. It is called on the game's thread, as the game sends it. It is
+     * published as the devbench event `mcm.pauseMenu`.
      */
     void sendPauseMenuEvents()
     {
@@ -78,5 +83,6 @@ namespace mods_config::mcm
         source->Notify(RE::MenuOpenCloseEvent{ .menuName = "PauseMenu", .opening = true });
         source->Notify(RE::MenuOpenCloseEvent{ .menuName = "PauseMenu", .opening = false });
         logger::info("Sent the pause menu as opened and closed, for a DLL that reads its MCM file then");
+        f4cf::devbench::emit("mcm.pauseMenu");
     }
 }

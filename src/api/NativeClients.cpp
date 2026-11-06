@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "common/CommonUtils.h"
+#include "devbench/DevBench.h"
 
 using namespace mods_config;
 
@@ -64,6 +65,37 @@ namespace
             break;
         }
         return value.text ? std::optional(model::Value(std::string(value.text))) : std::nullopt;
+    }
+
+    /**
+     * A value as a devbench event has it, in its own JSON type.
+     */
+    nlohmann::json eventValue(const model::Value& value)
+    {
+        return std::visit(
+            [](const auto& v) {
+                return nlohmann::json(v);
+            },
+            value);
+    }
+
+    const char* eventName(const model::ClientEvent event)
+    {
+        switch (event) {
+        case model::ClientEvent::MenuOpened:
+            return "MenuOpened";
+        case model::ClientEvent::MenuClosed:
+            return "MenuClosed";
+        case model::ClientEvent::ModShown:
+            return "ModShown";
+        case model::ClientEvent::ModLeft:
+            return "ModLeft";
+        case model::ClientEvent::PageShown:
+            return "PageShown";
+        case model::ClientEvent::PageLeft:
+            return "PageLeft";
+        }
+        return "Unknown";
     }
 
     /**
@@ -434,7 +466,8 @@ namespace mods_config::api
     }
 
     /**
-     * Tells a client an event of the menu, inside the guard.
+     * Tells a client an event of the menu, inside the guard, and publishes it as the devbench event `client.event`, with
+     * whether the client was told: one that is cut off is not.
      */
     void NativeClients::tellEvent(Registered& registered, const model::ClientEvent event, const std::string_view pageId) const
     {
@@ -443,12 +476,19 @@ namespace mods_config::api
         auto tell = [&registered, &menuEvent] {
             registered.client->onEvent(&menuEvent);
         };
-        call(registered, "an event of the menu", tell);
+        const bool told = call(registered, "an event of the menu", tell);
+        f4cf::devbench::emit("client.event", [&] {
+            return nlohmann::json{ { "client", registered.name },
+                { "event", eventName(event) },
+                { "page", page.empty() ? nlohmann::json(nullptr) : nlohmann::json(page) },
+                { "told", told } };
+        });
     }
 
     /**
      * Tells a client a change of a `live` setting, inside the guard: the setting's view with where its value is kept,
-     * in a file or in the game, and the value it was told last and the new one.
+     * in a file or in the game, and the value it was told last and the new one. It is published as the devbench event
+     * `client.change`, with whether the client was told.
      */
     void NativeClients::tellChange(Registered& registered, const model::SettingChange& change) const
     {
@@ -462,14 +502,23 @@ namespace mods_config::api
         auto tell = [&registered, &apiChange] {
             registered.client->onChange(&apiChange);
         };
-        const bool told = std::exchange(registered.beingTold, true);
-        call(registered, std::format("a change of '{}'", change.setting.id), tell);
-        registered.beingTold = told;
+        const bool beingTold = std::exchange(registered.beingTold, true);
+        const bool told = call(registered, std::format("a change of '{}'", change.setting.id), tell);
+        registered.beingTold = beingTold;
+        f4cf::devbench::emit("client.change", [&] {
+            return nlohmann::json{ { "client", registered.name },
+                { "setting", change.setting.id },
+                { "previous", eventValue(change.previous) },
+                { "value", eventValue(change.value) },
+                { "phase", change.phase == model::ChangePhase::Discard ? "discard" : "preview" },
+                { "told", told } };
+        });
     }
 
     /**
      * Tells a client what a Save wrote, inside the guard: each setting's view with where its value is kept, its value
-     * before the Save and the value written, the files written and the Save's revision.
+     * before the Save and the value written, the files written and the Save's revision. It is published as the devbench
+     * event `client.saved`, with whether the client was told.
      */
     void NativeClients::tellSave(Registered& registered, const model::SaveBatch& batch) const
     {
@@ -497,9 +546,24 @@ namespace mods_config::api
         auto tell = [&registered, &apiBatch] {
             registered.client->onSaved(&apiBatch);
         };
-        const bool told = std::exchange(registered.beingTold, true);
-        call(registered, "a Save", tell);
-        registered.beingTold = told;
+        const bool beingTold = std::exchange(registered.beingTold, true);
+        const bool told = call(registered, "a Save", tell);
+        registered.beingTold = beingTold;
+        f4cf::devbench::emit("client.saved", [&] {
+            auto written = nlohmann::json::array();
+            for (const auto& saved : batch.settings) {
+                written.push_back({ { "setting", saved.setting.id }, { "before", eventValue(saved.before) }, { "value", eventValue(saved.value) } });
+            }
+            auto fileNames = nlohmann::json::array();
+            for (const auto& file : batch.files) {
+                fileNames.push_back(file.name);
+            }
+            return nlohmann::json{ { "client", registered.name },
+                { "settings", std::move(written) },
+                { "files", std::move(fileNames) },
+                { "revision", batch.revision },
+                { "told", told } };
+        });
     }
 
     /**
