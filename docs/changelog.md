@@ -14,6 +14,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 - An MCM row's text and help can come from the game: a form's name or description, or a script's property.
 - A config spec's setting, button and section can show a state of its mod's DLL in their text and help, as a text row can.
 - The menu's own settings are polished, and its thumbstick bindings are read as the framework reads them.
+- The menu's own Developer page has the VR UI dev layout, with a button that opens its file.
 
 ### v0.9.0
 

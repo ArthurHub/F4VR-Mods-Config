@@ -387,7 +387,7 @@
     },
     {
       "pageDisplayName": "Developer",
-      "help": "For a config spec's author: each config spec's problems on the menu's front page, and the log.",
+      "help": "For a config spec's author: each config spec's problems on the menu's front page, the log, and the VR UI dev layout.",
       "content": [
         {
           "type": "switcher",
@@ -443,6 +443,32 @@
                 ]
               },
               "storage": { "path": ["Debug", "iLogLevel"] }
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "text": "VR UI",
+          "content": [
+            {
+              "type": "switcher",
+              "valueType": "bool",
+              "text": "VR UI dev layout",
+              "help": "Tunes the placement of the panel and its wrist buttons through a dev layout file while the game runs.",
+              "default": false,
+              "storage": { "path": ["Debug", "bVRUIDevLayout"] }
+            },
+            {
+              "type": "button",
+              "text": "Dev layout file",
+              "help": "Opens the dev layout file on your desktop. Take off the headset to edit it; a saved edit shows in the game at once.",
+              "buttonText": "Open",
+              "icon": "window",
+              "action": {
+                "type": "CallNativeFunction",
+                "function": "openDevLayoutFile"
+              },
+              "enabledWhen": { "setting": "bVRUIDevLayout:Debug", "equals": true }
             }
           ]
         }

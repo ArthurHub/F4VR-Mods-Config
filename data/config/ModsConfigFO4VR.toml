@@ -189,5 +189,8 @@ sOverlayDrawPass = "auto"
 # Off by default; the capture reports itself to the log either way.
 bSceneDepthDiagnostics = false
 
+# Tune the placement of the panel and its wrist buttons through a dev layout file of its own while the game runs.
+bVRUIDevLayout = false
+
 # Internal use for versioning
 iVersion = 1

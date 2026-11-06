@@ -8,7 +8,7 @@ What each section of the mod's config holds, and the two showcases. [CLAUDE.md](
 - `[Panel]` holds the menu's panel in the world: its scale, which is the size of its text and rows, its distance, height and tilt, the opacity of its background, the binding that moves it (`kMoveBinding`, the framework's `UIManager::setWorldMoveBinding`) and how smoothly it follows the hand, the gesture that puts it in front of the player again, and the distance at which that happens by itself.
 - `[Developer]` holds the Developer tools, for a config spec's author: whether they are on, which config specs the menu's front page lists (`attention`, `all` or `one`), the config spec `one` lists by its modName, and whether the front page's section is folded. The front page writes the filter and the fold at once, with `Config::saveDeveloper`.
 - `[Pointer]` holds the menu's pointer: where the ray is on the hand, how the ray and the mark on the panel look, and how fast the thumbstick scrolls. It is read into an `imgui::PointerStyle` and given to the framework's pointer every frame. It also holds the pulse the hand that points gets as its press does something in the panel.
-- `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw).
+- `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw, the VR UI dev layout).
 
 ## Showcases
 
