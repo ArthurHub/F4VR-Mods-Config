@@ -1092,5 +1092,6 @@ What an MCM config has that a config spec does not, and what the config spec has
 | ModSetting storage                                     | A key of the config spec's file, which scripts read through the Papyrus API                            |
 | `hotkey`, `keyinput`                                   | The [InputBinding](controls.md#commonframework-specific-controls) control, for a CommonFramework mod |
 | `dropdownFiles`                                        | A dropdown with a `listFromFolder`; see [Options from a folder](#options-from-a-folder)             |
+| `textFrom...` and `helpFrom...`, a row's text from the game | A `{clientState:name}` in the text or the help, for a mod's DLL; see [Text, spacers and images](#text-spacers-and-images). A form's name is written by the author, translated with a `$` token |
 | `positioner`, `CallExternalFunction`                   | None: they are of MCM's own Flash menu                                                             |
 | `ownerModName`, pages under another mod                | None: a config spec's pages are its mod's alone                                                        |
