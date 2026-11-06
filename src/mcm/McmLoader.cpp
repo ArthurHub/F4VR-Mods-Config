@@ -874,14 +874,14 @@ namespace
     }
 
     /**
-     * Why a mod is not available while a plugin of its `pluginRequirements` is not loaded, as
+     * Why a mod or a page is not available while a plugin of its `pluginRequirements` is not loaded, as
      * `its plugins A.esp and B.esp are not loaded`. Empty while every one is, and with no check, as in a test
      * of a config alone. MCM's menu checks each the same way, and names the missing ones.
      */
-    std::string findMissingPlugins(const Json& config, const mcm::PluginCheck& isPluginLoaded)
+    std::string findMissingPlugins(const Json& owner, const mcm::PluginCheck& isPluginLoaded)
     {
-        const auto required = config.find("pluginRequirements");
-        if (!isPluginLoaded || required == config.end() || !required->is_array()) {
+        const auto required = owner.find("pluginRequirements");
+        if (!isPluginLoaded || required == owner.end() || !required->is_array()) {
             return {};
         }
         std::vector<std::string> missing;
@@ -937,6 +937,8 @@ namespace mods_config::mcm
      * The files of a `dropdownFiles` are listed from the game's folder, which has the config folder in
      * `Data\MCM\Config`: the game's own folder is the one it runs in.
      * A mod whose required plugins are not all loaded is not available, and is its names and the reason alone.
+     * A page whose own are not is left out with its `hideIfMissingReqs`, and else is not available, with its
+     * `messageIfMissingReqs` as its help.
      * The error says why a config cannot be read. Comments are skipped, as MCM's own reader skips them.
      */
     std::expected<model::Mod, std::string> loadConfig(const std::string_view text, const model::Translations& translations, const std::filesystem::path& interfaceFolder,
@@ -978,9 +980,20 @@ namespace mods_config::mcm
         mod.frontPage.items = loadItems(config, "main", texts, images, gameFolder, takenIds);
 
         if (const auto pages = config.find("pages"); pages != config.end() && pages->is_array()) {
-            for (const auto& page : *pages) {
-                const auto pageId = std::format("page{}", mod.pages.size() + 1);
-                mod.pages.push_back({ .name = getShownText(page, "pageDisplayName", texts), .items = loadItems(page, pageId, texts, images, gameFolder, takenIds) });
+            for (std::size_t place = 0; place < pages->size(); ++place) {
+                const auto& page = (*pages)[place];
+                auto missing = findMissingPlugins(page, isPluginLoaded);
+                if (!missing.empty() && getFlag(page, "hideIfMissingReqs")) {
+                    continue;
+                }
+                auto& loadedPage = mod.pages.emplace_back(model::Page{ .name = getShownText(page, "pageDisplayName", texts) });
+                if (!missing.empty()) {
+                    loadedPage.help = toPlainText(getShownText(page, "messageIfMissingReqs", texts), texts);
+                    loadedPage.notAvailable = std::move(missing);
+                    continue;
+                }
+                // by its place in the config, so a hidden page leaves the ids of the others as they are
+                loadedPage.items = loadItems(page, std::format("page{}", place + 1), texts, images, gameFolder, takenIds);
             }
         }
         return mod;

@@ -257,7 +257,7 @@ namespace mods_config::ui
                 continue;
             }
             path.push_back(pageIndex);
-            const bool enabled = !page.enabledWhen || model::holds(*page.enabledWhen, store);
+            const bool enabled = page.notAvailable.empty() && (!page.enabledWhen || model::holds(*page.enabledWhen, store));
             const bool open = !page.pages.empty() && std::ranges::starts_with(selection.page, path);
             const auto arrow = page.pages.empty() ? Arrow::None : open ? Arrow::Open : Arrow::Closed;
             ImGui::PushID(static_cast<int>(pageIndex));
@@ -268,7 +268,8 @@ namespace mods_config::ui
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
             if (pointed && (!enabled || !page.help.empty())) {
-                drawn.pointed = PointedRow{ .text = page.name, .help = enabled ? page.help : "This page is disabled." + (page.help.empty() ? std::string() : " " + page.help) };
+                const auto disabled = page.notAvailable.empty() ? std::string("This page is disabled.") : std::format("Not available: {}.", page.notAvailable);
+                drawn.pointed = PointedRow{ .text = page.name, .help = enabled ? page.help : disabled + (page.help.empty() ? std::string() : " " + page.help) };
             }
             if (open && enabled) {
                 drawPages(page.pages, modIndex, selection, path, rowWidth, drawn, store);

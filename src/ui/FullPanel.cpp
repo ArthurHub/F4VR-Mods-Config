@@ -354,7 +354,7 @@ namespace mods_config::ui
     }
 
     /**
-     * The nearest visible, enabled page of a selection whose mod's store is open. A blocked page also blocks
+     * The nearest visible, enabled and available page of a selection whose mod's store is open. A blocked page also blocks
      * its descendants; its nearest available parent, or the mod's front page, is shown instead.
      */
     Selection FullPanel::available(const Selection& selection) const
@@ -370,7 +370,7 @@ namespace mods_config::ui
                 break;
             }
             const auto& page = (*pages)[place];
-            if ((page.visibleWhen && !model::holds(*page.visibleWhen, store)) || (page.enabledWhen && !model::holds(*page.enabledWhen, store))) {
+            if ((page.visibleWhen && !model::holds(*page.visibleWhen, store)) || (page.enabledWhen && !model::holds(*page.enabledWhen, store)) || !page.notAvailable.empty()) {
                 break;
             }
             shown.page.push_back(place);

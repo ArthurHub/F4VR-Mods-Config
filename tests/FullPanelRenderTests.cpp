@@ -794,6 +794,35 @@ TEST_CASE("FullPanel render: hidden and disabled pages", "[.render]")
     render({ 0, 0 }, "pages-enabled-child");
 }
 
+TEST_CASE("FullPanel render: an MCM page whose own plugin is not loaded, with the ray on its row", "[.render]")
+{
+    const auto mod = mcm::loadConfig(R"({
+        "modName": "MyMod", "displayName": "My Mod",
+        "content": [ { "type": "text", "text": "A page whose own plugin is not loaded is disabled, and says why." } ],
+        "pages": [
+            { "pageDisplayName": "Settlements", "pluginRequirements": ["SS2.esm"], "messageIfMissingReqs": "Install Sim Settlements 2 for these settings.",
+              "content": [ { "type": "text", "text": "Settlements." } ] },
+            { "pageDisplayName": "General", "content": [ { "type": "text", "text": "General." } ] }
+        ]
+    })",
+        {},
+        {},
+        {},
+        [](const std::string_view plugin) {
+            return plugin != "SS2.esm";
+        });
+    REQUIRE(mod);
+    mcm::McmStore store;
+    FullPanel panel;
+    panel.setStore(model::Source::Mcm, &store);
+    panel.setMods({ *mod });
+    panel.select({ .mod = 0, .page = {} });
+    // the second row of the tree, which is the page
+    const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
+    const ImVec2 onPage(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, rowsTop + theme::CONTROL_HEIGHT + theme::SPACE_1 + theme::CONTROL_HEIGHT * 0.5f);
+    WARN("Saved " << renderToFile(panel, "mcm-page-not-available", onPage));
+}
+
 TEST_CASE("FullPanel render: client states in text", "[.render]")
 {
     const auto mod = spec::loadConfigSpec(R"({

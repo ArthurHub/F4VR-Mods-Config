@@ -281,6 +281,59 @@ TEST_CASE("McmLoader: a mod whose required plugins are not all loaded is not ava
     CHECK(loaded(config).notAvailable.empty());
 }
 
+TEST_CASE("McmLoader: a page whose own required plugins are not all loaded is not available, with its message as its help, or is left out with hideIfMissingReqs")
+{
+    const auto config = R"({
+        "modName": "MyMod",
+        "pages": [
+            {
+                "pageDisplayName": "Settlements",
+                "pluginRequirements": ["SS2.esm", "Fallout4.esm"],
+                "messageIfMissingReqs": "Install Sim Settlements 2 for these settings.",
+                "content": [{ "type": "switcher", "text": "Builders", "id": "bBuilders:Main", "valueOptions": { "sourceType": "ModSettingBool" } }]
+            },
+            { "pageDisplayName": "Nuka-World", "pluginRequirements": ["DLCNukaWorld.esm"], "content": [{ "type": "text", "text": "Raiders." }] },
+            { "pageDisplayName": "Far Harbor", "pluginRequirements": ["DLCCoast.esm"], "hideIfMissingReqs": true, "content": [{ "type": "text", "text": "Fog." }] },
+            {
+                "pageDisplayName": "General",
+                "content": [{ "type": "slider", "text": "Speed", "valueOptions": { "sourceType": "ModSettingFloat" } }]
+            }
+        ]
+    })";
+    const auto loadedWith = [config](const std::vector<std::string>& loadedPlugins) {
+        auto mod = mcm::loadConfig(config, {}, {}, {}, [&loadedPlugins](const std::string_view plugin) {
+            return std::ranges::contains(loadedPlugins, plugin);
+        });
+        REQUIRE(mod);
+        return std::move(*mod);
+    };
+
+    const auto none = loadedWith({ "Fallout4.esm" });
+    CHECK(none.notAvailable.empty());
+    REQUIRE(none.pages.size() == 3);
+    CHECK(none.pages[0].name == "Settlements");
+    CHECK(none.pages[0].notAvailable == "its plugin SS2.esm is not loaded");
+    CHECK(none.pages[0].help == "Install Sim Settlements 2 for these settings.");
+    CHECK(none.pages[0].items.empty());
+    CHECK(none.pages[1].notAvailable == "its plugin DLCNukaWorld.esm is not loaded");
+    CHECK(none.pages[1].help.empty());
+
+    // a setting with no id of the page after a hidden one has the id it has when every page is shown
+    CHECK(none.pages[2].name == "General");
+    CHECK(idsOf(none.pages[2].items) == Lines{ "page4/1" });
+
+    const auto all = loadedWith({ "Fallout4.esm", "SS2.esm", "DLCNukaWorld.esm", "DLCCoast.esm" });
+    REQUIRE(all.pages.size() == 4);
+    CHECK(all.pages[0].notAvailable.empty());
+    CHECK(all.pages[0].help.empty());
+    CHECK(describe(all.pages[0]) == Lines{ "switcher: Builders" });
+    CHECK(describe(all.pages[2]) == Lines{ "text: Fog." });
+    CHECK(idsOf(all.pages[3].items) == idsOf(none.pages[2].items));
+
+    // with no check, as for a config alone, every page is shown
+    CHECK(loaded(config).pages.size() == 4);
+}
+
 TEST_CASE("McmLoader: a mod with no displayName is shown by its modName")
 {
     CHECK(loaded(R"({ "modName": "MyMod" })").displayName == "MyMod");
@@ -899,7 +952,17 @@ TEST_CASE("McmLoader: the mod's own MCM showcase is loaded")
     CHECK(mods[0].name == "ModsConfigFO4_McmShowcase");
     CHECK(mods[0].displayName == "Mods Config FO4: MCM Compatibility");
     CHECK_FALSE(mods[0].frontPage.items.empty());
-    CHECK(mods[0].pages.size() == 10);
+    CHECK(mods[0].pages.size() == 12);
+
+    // in a game its pages of plugin requirements name a plugin that no game has: one is not available, and one is
+    // left out
+    const auto inGame = mcm::loadConfigs(MODS_CONFIG_MCM_SHOWCASE_DIR, {}, {}, [](const std::string_view plugin) {
+        return plugin != "ModsConfigFO4_McmShowcase_NotInstalled.esp";
+    });
+    REQUIRE(inGame.size() == 1);
+    REQUIRE(inGame[0].pages.size() == 11);
+    CHECK(inGame[0].pages.back().name == "Plugin requirements");
+    CHECK(inGame[0].pages.back().notAvailable == "its plugin ModsConfigFO4_McmShowcase_NotInstalled.esp is not loaded");
 
     // its images are read from its lib.swf, but for the one of a class the file does not have
     Lines images;

@@ -24,7 +24,7 @@ The menu shows MCM mods while `mcm_vr.dll` is loaded, and finds it by that name.
 | A config that cannot be read | A disabled row named by its folder, with the reason | M41 |
 | `sharedLists` | As in MCM | M37 |
 | `ownerModName`, which puts the pages of a config under another mod | Not supported, and never will be: the config is a mod of its own, and the menu does not merge two configs into one mod | |
-| A page's own `pluginRequirements`, `messageIfMissingReqs` and `hideIfMissingReqs` | Not read yet: the page is shown | M158 |
+| A page's own `pluginRequirements`, `messageIfMissingReqs` and `hideIfMissingReqs` | While a plugin of its own is not loaded, a page with `hideIfMissingReqs` is left out, as in MCM. Any other is a disabled row, with the reason and its `messageIfMissingReqs` in the help line, as a mod is: MCM's menu opens it on a page that says them. A page's own `minMcmVersion` is not checked, as the config's is not | M158 |
 
 ## Rows
 

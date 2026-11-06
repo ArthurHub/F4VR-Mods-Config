@@ -27,13 +27,13 @@ You don't have to do anything. While MCM VR is installed, the menu reads your `D
 - **The game keeps running** while the menu is open, so your script acts on a change while the player looks.
 - **Hotkeys are shown, not edited.** MCM keeps binding and running them, and the player changes them in MCM's own menu.
 - **The list is by name.** Mods are in the order of their display names, not of MCM's `sOrder`, and MCM's own `Hotkey manager` and `MCM Settings` aren't listed.
-- **A mod that can't be shown** is greyed out with the reason, as one whose plugin isn't loaded, where MCM's menu shows a page that says why.
+- **A mod that can't be shown** is greyed out with the reason, as one whose plugin isn't loaded, where MCM's menu shows a page that says why. So is a page whose own `pluginRequirements` aren't loaded, with its `messageIfMissingReqs` after the reason. `hideIfMissingReqs` leaves it out, as in MCM.
 - **The menu's events:** `OnMCMMenuOpen|<mod>` and `OnMCMMenuClose|<mod>` are sent as your mod is picked and left, where MCM's menu sends none.
 - **A DLL that reads MCM's settings file as the pause menu closes** gets the changes when the player presses Keep: the menu then tells the game the pause menu opened and closed.
 
 **What isn't run:** a `positioner`, a `keyinput` and a `customClipLoader` are disabled rows that say the menu has no such control. `CallExternalFunction` calls Flash, which the menu has none of, and `RunConsoleCommand` and `SendEvent` are hotkey actions, which MCM's menu doesn't run in a row either. The code in your `lib.swf` isn't run. An image drawn as vectors, a JPEG, or an animated one is a row that says an image is there.
 
-**What isn't read yet,** as no MCM mod we tested uses it: a page's own `pluginRequirements`, which leaves the page shown, and the `textFrom...` fields, whose text is shown as written. Both are planned.
+**What isn't read yet,** as no MCM mod we tested uses it: the `textFrom...` fields, whose text is shown as written. They are planned.
 
 **What isn't supported:** `ownerModName`. Your config is a mod of its own in the list, and its pages aren't put under another mod.
 

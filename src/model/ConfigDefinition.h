@@ -845,7 +845,8 @@ namespace mods_config::model
         // empty for a mod's front page
         std::string name;
 
-        // what the help line says of its row in the tree: empty for none, as an MCM page has
+        // what the help line says of its row in the tree: empty for none. An MCM page has none but its
+        // `messageIfMissingReqs` while it is not available
         std::string help;
         std::vector<Item> items;
 
@@ -860,6 +861,10 @@ namespace mods_config::model
 
         // a disabled page stays in the tree but cannot be opened
         std::optional<Condition> enabledWhen;
+
+        // why an MCM page is not available, as `its plugin SS2.esm is not loaded`: empty for one that is. One that
+        // is not available is disabled, with this in the help line, and has no rows
+        std::string notAvailable;
     };
 
     /**

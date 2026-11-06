@@ -1192,6 +1192,28 @@
           "height": 64
         }
       ]
+    },
+    {
+      "pageDisplayName": "Plugin requirements",
+      "pluginRequirements": ["ModsConfigFO4_McmShowcase_NotInstalled.esp"],
+      "messageIfMissingReqs": "Its messageIfMissingReqs: it opens while ModsConfigFO4_McmShowcase_NotInstalled.esp is loaded, which no game has.",
+      "content": [
+        {
+          "type": "text",
+          "text": "A page whose own pluginRequirements are loaded shows its rows."
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Plugin requirements: hidden",
+      "pluginRequirements": ["ModsConfigFO4_McmShowcase_NotInstalled.esp"],
+      "hideIfMissingReqs": true,
+      "content": [
+        {
+          "type": "text",
+          "text": "A page with hideIfMissingReqs is left out while a plugin of its pluginRequirements is not loaded."
+        }
+      ]
     }
   ]
 }

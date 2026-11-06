@@ -788,6 +788,28 @@ TEST_CASE("FullPanel: a mod that is not available is a row of the tree, which a 
     CHECK(panel.selection() == Selection{});
 }
 
+TEST_CASE("FullPanel: a page that is not available is a disabled row of the tree, which says why with its help, and is not selected")
+{
+    const test_panel::PanelContext context;
+    auto mod = modOf("Alpha", { "Settlements", "General" });
+    mod.pages[0].notAvailable = "its plugin SS2.esm is not loaded";
+    mod.pages[0].help = "Install Sim Settlements 2 for these settings.";
+    FullPanel panel;
+    panel.setMods({ std::move(mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, treeRow(1));
+    CHECK(panel.helpLine().text() == "Settlements: Not available: its plugin SS2.esm is not loaded. Install Sim Settlements 2 for these settings.");
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0));
+    CHECK_FALSE(panel.select(selectionOf(0, 0)));
+    CHECK(panel.selection() == selectionOf(0));
+
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == selectionOf(0, 1));
+}
+
 TEST_CASE("FullPanel: the help line has the help of a mod and of a page whose row the ray is on in the tree")
 {
     const test_panel::PanelContext context;

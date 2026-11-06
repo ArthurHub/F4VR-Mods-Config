@@ -27,6 +27,7 @@ A config spec's page can have a `visibleWhen` and an `enabledWhen`, which go dow
 
 - A page whose `visibleWhen` does not hold is not in the tree, with the pages under it.
 - A page whose `enabledWhen` does not hold is in its place, disabled: its name at `opacity-disabled`, with its arrow, closed, when it has pages. It is not pressed, and its pages are not shown. Under the ray it has a row's hover look, and the help line says "This page is disabled." before the page's help.
+- An MCM page whose own `pluginRequirements` are not all loaded is disabled the same way, and the help line says "Not available:" and the reason, as for a mod, before its `messageIfMissingReqs`. One with `hideIfMissingReqs` is not in the tree.
 - When the page that is shown comes to be hidden or disabled, as a setting changes, the menu shows the nearest page above it that is not, or the mod's front page. Its unsaved changes stay, and so does the Help page.
 
 ## Categories
