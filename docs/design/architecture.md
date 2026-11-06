@@ -482,7 +482,7 @@ The framework registers the adapter for every mod, under the mod's own name, whe
 
 A CommonFramework mod that has a config UI of its own adds it to the header's C++ client, which the framework connects: it is a function and a quick launch entry, with the menu minimized and restored around it; see [The mod's own UI](#the-mods-own-ui).
 
-A UI of its own that hands its edits back with `setPendingValue` has each `live` one come back as a preview, which reloads the config with the overrides: a value the UI changed in the config and has not handed over yet is dropped by that reload. So the UI hands over each value as it changes it, or all of them at once as it closes, before it reloads the config itself.
+A UI of its own that hands its edits back with `setPendingValue` applies each value in the mod's config first. Its `live` change comes back marked `handedOver`, and the adapter only records it as an override, or clears that for a Discard back at the baseline, with no reload of the config: the values the UI changed and has not handed over yet stay, and a value can be handed over every frame.
 
 The framework side of this is listed in [CommonFramework work required](framework-requirements.md).
 
