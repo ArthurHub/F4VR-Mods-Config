@@ -835,6 +835,59 @@ namespace mods_config::devbench
         }
 
         /**
+         * A problem of a config spec, as its report lists it: the row it is on, with where that is among the pages
+         * and in spec.json, and the place of the row in its mod, which is null for a problem of a page or the file.
+         */
+        json problemToJson(const model::Problem& problem)
+        {
+            return { { "severity", problem.severity == model::Severity::Error ? "error" : "warning" },
+                { "row", problem.row },
+                { "message", problem.message },
+                { "where", problem.where },
+                { "path", problem.path },
+                { "place", problem.place ? json{ { "page", problem.place->page }, { "item", problem.place->item } } : json(nullptr) } };
+        }
+
+        /**
+         * The errors and the warnings of each config spec the menu read, in the order of the mods, as the Developer
+         * tools list them, whether they are on or not: with a mod's name, the one config spec of that name. Each has
+         * whether it is loaded, why it is not available, its live copy and the last read of it, and its problems.
+         */
+        json runReport(const json& args)
+        {
+            const auto& panel = g_modsConfig.menu().fullPanel();
+            const auto modName = args.value("mod", std::string());
+            auto configSpecs = json::array();
+            for (const auto& mod : panel.mods()) {
+                if (mod.source != model::Source::ConfigSpec || (!modName.empty() && mod.name != modName)) {
+                    continue;
+                }
+                std::size_t errors = 0;
+                auto problems = json::array();
+                for (const auto& problem : mod.problems) {
+                    errors += problem.severity == model::Severity::Error ? 1 : 0;
+                    problems.push_back(problemToJson(problem));
+                }
+                const auto* read = mod.folder.empty() ? nullptr : panel.liveCopyRead(mod.folder);
+                configSpecs.push_back({ { "name", mod.name },
+                    { "displayName", mod.displayName },
+                    { "folder", mod.folder },
+                    // one that cannot be read is not available, with its error
+                    { "loaded", mod.notAvailable.empty() || errors == 0 },
+                    { "notAvailable", textOrNull(mod.notAvailable) },
+                    { "liveCopy", textOrNull(mod.liveCopy) },
+                    { "liveCopyRead", read ? json{ { "result", read->result }, { "failed", read->failed }, { "stale", read->stale } } : json(nullptr) },
+                    { "errors", errors },
+                    { "warnings", mod.problems.size() - errors },
+                    { "problems", std::move(problems) } });
+            }
+            if (!modName.empty() && configSpecs.empty()) {
+                throw std::runtime_error("no config spec is named '" + modName + "'");
+            }
+            return { { "configSpecs", std::move(configSpecs) } };
+        }
+
+        /**
          * Shows a mod's front page or one of its pages, as a press on its row does: the mod by its name, and
          * the page by its name, or a page under a page by the names of the pages on the way to it. With no mod
          * it is the menu's front page. A mod that is not available is not shown, as its row is not pressed.
@@ -884,7 +937,8 @@ namespace mods_config::devbench
     void setupDevBenchTool()
     {
         f4cf::devbench::setToolDescription(
-            "Mods Config FO4 VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state and the mods it lists, show a mod, one of "
+            "Mods Config FO4 VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state, the mods it lists and the errors and warnings of "
+            "each config spec, show a mod, one of "
             "its pages or the Help page, go back, read the rows of the page as they are drawn with their values, fold a section, set a value or its default, set a value as the "
             "mod's own "
             "client does through the API, run a button, Save or Discard the "
@@ -914,6 +968,15 @@ namespace mods_config::devbench
                            "with its name and its pages), why it is not available (null for one that is), and restarts (its saved changes that take effect "
                            "after a restart, which the menu's front page tells while there is one)",
             .handler = &runMods,
+        });
+        f4cf::devbench::addAction({
+            .name = "report",
+            .description = "the errors and the warnings of each config spec the menu read, in its order, as the Developer tools list them, on or not: each with its "
+                           "name, folder, loaded (false for one that cannot be read), notAvailable, liveCopy (the copy it is read from, null for none), liveCopyRead "
+                           "(the last read of it: result, failed and stale, null for none), errors, warnings, and its problems in the order of its spec.json: "
+                           "severity, row, message, where (its pages and row), path (in spec.json) and place (page and item, null for a problem of a page or the file)",
+            .arguments = { { "mod", { { "type", "string" }, { "description", "report: one config spec by its name; none for every one" } } } },
+            .handler = &runReport,
         });
         f4cf::devbench::addAction({
             .name = "select",

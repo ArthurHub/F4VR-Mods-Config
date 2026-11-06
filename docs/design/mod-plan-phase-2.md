@@ -254,7 +254,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M159 | mod | An MCM row's text from the game                                        | done   |
 | M160 | mod | A state of the mod's client in a row's text and help                   | done   |
 | M161 | mod | devbench: a page's rows as the panel draws them, and the status        | done   |
-| M162 | mod | devbench: the errors and warnings of each config spec                  | todo   |
+| M162 | mod | devbench: the errors and warnings of each config spec                  | done   |
 | M163 | mod | devbench: the menu's events, and what clients and MCM scripts are told | todo   |
 | M164 | mod | devbench: a picture of the panel                                       | todo   |
 | M165 | mod | The end-to-end tests, run through devbench                             | todo   |
