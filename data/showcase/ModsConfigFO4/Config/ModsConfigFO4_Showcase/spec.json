@@ -1996,6 +1996,15 @@
                 {
                   "type": "text",
                   "text": "These values come from the mod's native client. The showcase has no DLL, so they show Unknown (version) and Unknown (status). A mod registers them with addState."
+                },
+                {
+                  "type": "button",
+                  "text": "Notify ({clientState:status})",
+                  "help": "A setting's, a button's and a section's text and help can have states too: {clientState:status}.",
+                  "action": {
+                    "type": "RunConsoleCommand",
+                    "command": "cgf \"Debug.Notification\" \"Showcase: a console command ran\""
+                  }
                 }
               ]
             },

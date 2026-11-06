@@ -12,7 +12,7 @@
 namespace mods_config::ui
 {
     /**
-     * The row the ray is on: what the row says, which is the model's own text, and its help. A row whose
+     * The row the ray is on: what the row says, with the states of its mod's client in it, and its help. A row whose
      * value is not available has the reason as its help, and one whose value is invalid has why as its help,
      * which is an error. A row that warns has the text of its warning, the model's own too. A row whose action
      * gave a result has it, which is told before its help. A setting whose change waits for a Save has when it
@@ -20,7 +20,7 @@ namespace mods_config::ui
      */
     struct PointedRow
     {
-        std::string_view text;
+        std::string text;
         std::string help;
         std::string_view warning;
         bool invalid = false;

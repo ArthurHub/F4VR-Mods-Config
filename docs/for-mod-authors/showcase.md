@@ -267,7 +267,7 @@ A section of the TOML that is an activation sphere, `cf.activationSphere`: one g
 
 ### Text
 
-A `text` row is a text of its own on the page. With `"html": true`, its text, or a setting's, takes the tags MCM's text does: a size, a color, bold, italic and underline, paragraphs at the left, center or right, and line breaks. A text can show a state of the mod's DLL, as `{clientState:status}`. The Showcase has four pages of them: sizes, colors, align and lines, and tags.
+A `text` row is a text of its own on the page. With `"html": true`, its text, or a setting's, takes the tags MCM's text does: a size, a color, bold, italic and underline, paragraphs at the left, center or right, and line breaks. A text can show a state of the mod's DLL, as `{clientState:status}`, and so can a setting's, a button's or a section's text and help. The Showcase has four pages of them: sizes, colors, align and lines, and tags.
 
 ```json
 {

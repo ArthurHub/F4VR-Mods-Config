@@ -252,6 +252,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M156 | mod | docs: the native API, for DLL authors                                  | done   |
 | M158 | mod | An MCM page's own plugin requirements                                  | done   |
 | M159 | mod | An MCM row's text from the game                                        | done   |
+| M160 | mod | A state of the mod's client in a row's text and help                   | done   |
 | M154 | mod | The release tested in the headset                                      | todo   |
 | M155 | mod | The release perf tested                                                | todo   |
 
@@ -283,6 +284,8 @@ The docs for mod authors are a folder, `docs/for-mod-authors/`, of four document
 - M156, `native-api.md`, is for DLL authors: the client header, registering, live preview, functions for buttons, options and states, quick launch, a mod's own UI with `setPendingValue`, the events, and how the API grows after version 1.0. A CommonFramework mod has most of it from the framework.
 
 M158 and M159 read two features of an MCM config that no mod of the test set has and a mod can have. M158 is a page's own `pluginRequirements`: while a plugin it names is not loaded, the page is hidden with `hideIfMissingReqs`, as in MCM, and is otherwise a disabled row of the tree, as a mod whose plugin is not loaded is, with the reason and its `messageIfMissingReqs` in the help line. M159 is a row's text and help from the game, `textFromFormName`, `textFromFormDescription`, `textFromStringProperty` and `textFromStringArrayProperty`, read as the mod is selected and as another page is shown, as a `listFromForm` is. The MCM showcase gets a page of each, and [MCM support](mcm.md) and the authors' MCM compatibility have them. `ownerModName` is never supported: an MCM config is a mod of its own, and the menu does not merge two configs into one mod.
+
+M160 is what a config spec has in place of `textFrom...`: the text and the help of a setting, a button and a section take a `{clientState:name}` placeholder, as a text row's does, on one line. A form's name is written by the config spec's author, translated with a `$` token.
 
 M154 tries the release in the headset: the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
 

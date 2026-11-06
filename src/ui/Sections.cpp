@@ -12,6 +12,7 @@
 #include "Drawing.h"
 #include "Theme.h"
 #include "model/Conditions.h"
+#include "model/TextStates.h"
 
 namespace
 {
@@ -112,7 +113,7 @@ namespace mods_config::ui
             countHidden(group.items, *store, hidden);
         }
         if (row.pointed) {
-            help = foldedHelp(group.help, hidden);
+            help = foldedHelp(model::resolveClientText(group.help, store), hidden);
         }
         if (!row.shown) {
             return folded;
@@ -125,7 +126,7 @@ namespace mods_config::ui
         if (hidden.unsaved > 0) {
             counts.push_back({ .mark = CountMark::Pending, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
         }
-        drawFoldingHeading(group.text, pos, width, folded, counts);
+        drawFoldingHeading(model::resolveClientText(group.text, store), pos, width, folded, counts);
         return folded;
     }
 

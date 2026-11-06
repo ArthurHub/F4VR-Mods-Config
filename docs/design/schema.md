@@ -930,7 +930,9 @@ A text row can insert the value of a native client state with `{clientState:name
 
 The state belongs to the selected mod's client, registered with `addState`, as for a `clientState` condition. Text and conditions share the same cache: a state is asked once per frame, without regard to case, and its displayed value updates on the next frame. Strings are inserted as written, numbers as text, and bools as `true` or `false`. An unavailable state, including one with no native client, shows `Unknown (name)`, using the state name from the placeholder, such as `Unknown (version)`.
 
-Placeholders are resolved after translation and markup parsing, so a value inherits the placeholder's formatting and is shown as plain text. Tags and placeholders inside a returned value are not interpreted. Line breaks in a returned string start another line. Keep each placeholder inside one formatting run, such as `<b>{clientState:version}</b>`. Ordinary braces and incomplete or empty placeholders stay as written. This syntax applies to `text` rows.
+Placeholders are resolved after translation and markup parsing, so a value inherits the placeholder's formatting and is shown as plain text. Tags and placeholders inside a returned value are not interpreted. Line breaks in a returned string start another line. Keep each placeholder inside one formatting run, such as `<b>{clientState:version}</b>`. Ordinary braces and incomplete or empty placeholders stay as written.
+
+The text and the help of a setting, a button and a section take placeholders too, as `"text": "Use {clientState:profile}"`. They are on one line, so a line break in a returned string is a space.
 
 For a version supplied by a native mod, register a string state using the same version constant as the DLL:
 

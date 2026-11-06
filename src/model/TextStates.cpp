@@ -89,4 +89,31 @@ namespace mods_config::model
         }
         return resolved;
     }
+
+    /**
+     * Resolves {clientState:name} in a text on one line, as a row's label and its help show it: a line break in a
+     * state's text is a space. A text with no placeholder is as it is written.
+     */
+    std::string resolveClientText(const std::string_view text, Store* store)
+    {
+        if (!text.contains(PREFIX)) {
+            return std::string(text);
+        }
+        auto shown = insertStates(text, store);
+        std::erase(shown, '\r');
+        std::ranges::replace(shown, '\n', ' ');
+        return shown;
+    }
+
+    /**
+     * Resolves {clientState:name} in the runs of a label, each keeping its look, on one line as the label's text.
+     */
+    std::vector<TextRun> resolveClientRuns(const std::span<const TextRun> runs, Store* store)
+    {
+        std::vector<TextRun> resolved(runs.begin(), runs.end());
+        for (auto& run : resolved) {
+            run.text = resolveClientText(run.text, store);
+        }
+        return resolved;
+    }
 }

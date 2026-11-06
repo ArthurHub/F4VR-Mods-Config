@@ -24,6 +24,7 @@
 #include "model/Conditions.h"
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
+#include "model/TextStates.h"
 
 namespace
 {
@@ -459,13 +460,18 @@ namespace
             }
         } else {
             const auto defaultText = state.defaultValue ? std::format("(Default: {})", nameOf(*state.defaultValue)) : std::string();
-            const auto ownHelp = setting.readOnly ? ui::readOnlyHelp({}, setting.help) : setting.help;
+            const auto settingHelp = model::resolveClientText(setting.help, context.store);
+            const auto ownHelp = setting.readOnly ? ui::readOnlyHelp({}, settingHelp) : settingHelp;
             // a binding is said in full first, as its row has no room for it
             const auto sentence = edited.binding ? nameOf(stored.value) + "." : std::string();
             help = joinHelp({ sentence, ownHelp, numberDetail(setting, stored, edited.sliderValue), defaultText });
         }
         // the tag of when it takes effect is told as it is changed
-        return ui::PointedRow{ .text = setting.text, .help = std::move(help), .warning = warning, .invalid = invalid, .applies = state.dirty ? applies : std::nullopt };
+        return ui::PointedRow{ .text = model::resolveClientText(setting.text, context.store),
+            .help = std::move(help),
+            .warning = warning,
+            .invalid = invalid,
+            .applies = state.dirty ? applies : std::nullopt };
     }
 
     /**
@@ -541,7 +547,7 @@ namespace
             .mark = look == ui::ValueLook::Invalid ? ui::TextMark::Invalid
                     : !warning.empty()             ? ui::TextMark::Warning
                                                    : ui::TextMark::None };
-        ui::drawLabel(state.pos, left - theme::SPACE_3, setting.text, setting.textRuns, marks);
+        ui::drawLabel(state.pos, left - theme::SPACE_3, model::resolveClientText(setting.text, context.store), model::resolveClientRuns(setting.textRuns, context.store), marks);
         ImGui::EndDisabled();
     }
 

@@ -8,6 +8,7 @@
 #include "Colors.h"
 #include "Drawing.h"
 #include "Theme.h"
+#include "model/TextStates.h"
 
 namespace
 {
@@ -245,7 +246,7 @@ namespace mods_config::ui
         const bool hovered = ImGui::IsWindowHovered();
         const auto& mouse = ImGui::GetIO().MousePos;
         const auto point = [&](const std::string_view name, std::string help) {
-            edited.pointed = PointedRow{ .text = name, .help = std::move(help) };
+            edited.pointed = PointedRow{ .text = std::string(name), .help = std::move(help) };
         };
 
         // the header: the setting's name, and the color as it was and as it is, a press on the first giving it back
@@ -258,7 +259,7 @@ namespace mods_config::ui
         const float beforeLabelLeft = beforeRight - BIG_SWATCH_WIDTH - theme::SPACE_2 - textWidth("Before");
         ImGui::PopFont();
         const ImRect before(beforeRight - BIG_SWATCH_WIDTH, swatchTop, beforeRight, swatchTop + BIG_SWATCH_HEIGHT);
-        drawText(contentLeft, beforeLabelLeft - theme::SPACE_3, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
+        drawText(contentLeft, beforeLabelLeft - theme::SPACE_3, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
         drawDetail("Before", beforeLabelLeft, before.Min.x, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
         drawDetail("Now", nowLabelLeft, now.Min.x, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
         const auto beforeColor = model::colorOf(setting, _before).value_or(model::colorBase(setting));

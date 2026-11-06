@@ -4530,6 +4530,51 @@ TEST_CASE("FullPanel: text rows insert client states each frame and share their 
     CHECK(textAsked == 4);
 }
 
+TEST_CASE("FullPanel: a setting's, a button's and a section's text and help insert the states of its mod's client")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } }, "defaultFile": "main",
+        "content": [
+            { "type": "section", "text": "Profile {clientState:profile}", "help": "Of {clientState:profile}.", "content": [
+                { "type": "switcher", "valueType": "bool", "id": "on", "text": "Use {clientState:profile}", "help": "Turns {clientState:profile} on.",
+                  "default": true, "storage": { "path": ["Main", "bOn"] } },
+                { "type": "button", "text": "Reset {clientState:profile}", "help": "Resets {clientState:profile}.",
+                  "action": { "type": "RunConsoleCommand", "command": "tm" } }
+            ] }
+        ]
+    })");
+    REQUIRE(mod);
+    std::string profile = "Seated";
+    store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .states = { { "profile",
+                                      [&profile] {
+                                          return std::optional<model::Value>(profile);
+                                      } } } }
+            .calls());
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Profile Seated: Of Seated.");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text().starts_with("Use Seated: Turns Seated on."));
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Reset Seated: Resets Seated.");
+
+    // as the state changes
+    profile = "Standing";
+    drawFrames(panel, 1);
+    point(panel, pageRow(2));
+    CHECK(panel.helpLine().text() == "Reset Standing: Resets Standing.");
+}
+
 TEST_CASE("FullPanel: a row follows a state of its mod's client, which is asked once a frame")
 {
     const test_panel::PanelContext context;

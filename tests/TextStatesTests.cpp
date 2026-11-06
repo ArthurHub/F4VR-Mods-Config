@@ -73,6 +73,26 @@ TEST_CASE("TextStates: a missing state or client shows Unknown with its name, an
     CHECK(*model::resolveClientText(malformed, &session.store) == malformed);
 }
 
+TEST_CASE("TextStates: a row's label and help insert states on one line, and a label's runs keep their look")
+{
+    Session session;
+    session.store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .states = { { "profile",
+                                      [] {
+                                          return std::optional<model::Value>("Seated\r\nLeft"s);
+                                      } } } }
+            .calls());
+    CHECK(model::resolveClientText("Profile: {clientState:profile}", &session.store) == "Profile: Seated Left");
+    CHECK(model::resolveClientText("Plain {text}", &session.store) == "Plain {text}");
+
+    const auto runs = model::markupRuns("<b>Profile</b> {clientState:profile}");
+    const auto resolved = model::resolveClientRuns(runs, &session.store);
+    REQUIRE(resolved.size() == runs.size());
+    CHECK(resolved[0].bold);
+    CHECK(resolved[0].text == "Profile");
+    CHECK(resolved[1].text == " Seated Left");
+}
+
 TEST_CASE("TextStates: translated styled text keeps formatting and inserts state strings without markup or recursive expansion")
 {
     model::Translations translations;

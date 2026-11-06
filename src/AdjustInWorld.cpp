@@ -7,6 +7,7 @@
 #include "Theme.h"
 #include "common/CommonUtils.h"
 #include "f4vr/F4VRUtils.h"
+#include "model/TextStates.h"
 #include "vrcf/VRControllersManager.h"
 #include "vrcf/VRControllersSuppressor.h"
 #include "vrui/BindingPrompt.h"
@@ -235,7 +236,7 @@ namespace mods_config
         const auto title = std::make_shared<UITextPanel>("ModsConfigFO4_AdjustTitle");
         title->setStyle(UIPanelStyle{ .color = F4VR_PANEL_STYLE.color });
         title->setTextHeight(TITLE_TEXT_HEIGHT);
-        title->setContent([name = std::format("Mods Config: {}", setting.text)](std::vector<TextRow>& rows) {
+        title->setContent([name = std::format("Mods Config: {}", model::resolveClientText(setting.text, _store))](std::vector<TextRow>& rows) {
             rows.emplace_back(name);
         });
 

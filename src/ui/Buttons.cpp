@@ -16,6 +16,7 @@
 #include "PageRows.h"
 #include "Theme.h"
 #include "model/Conditions.h"
+#include "model/TextStates.h"
 
 namespace
 {
@@ -141,13 +142,15 @@ namespace mods_config::ui
             drawButtonRing(box, color);
         }
         drawButtonContent(button, box, color);
-        drawLabel(pos, box.Min.x - theme::SPACE_3, button.text, button.textRuns, { .mark = mark });
+        drawLabel(pos, box.Min.x - theme::SPACE_3, model::resolveClientText(button.text, store), model::resolveClientRuns(button.textRuns, store), { .mark = mark });
         ImGui::EndDisabled();
         if (!row.pointed) {
             return std::nullopt;
         }
 
-        PointedRow pointed{ .text = button.text, .help = reason.empty() ? button.help : std::move(reason), .warning = warning };
+        PointedRow pointed{ .text = model::resolveClientText(button.text, store),
+            .help = reason.empty() ? model::resolveClientText(button.help, store) : std::move(reason),
+            .warning = warning };
         if (saveFirst) {
             pointed.help += pointed.help.empty() ? SAVE_FIRST_HELP : std::string(" ") + SAVE_FIRST_HELP;
         }

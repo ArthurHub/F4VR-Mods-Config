@@ -162,7 +162,7 @@ namespace
         const bool folded = page.sections.drawHeading(group, page.store, pos, width, { .shown = row.shown, .pointed = row.pointed, .pressed = row.pressed }, help);
         page.drawn.pressActed = page.drawn.pressActed || row.pressed;
         if (row.pointed) {
-            page.drawn.pointed = ui::PointedRow{ .text = group.text, .help = std::move(help) };
+            page.drawn.pointed = ui::PointedRow{ .text = model::resolveClientText(group.text, page.store), .help = std::move(help) };
         }
         return folded;
     }
@@ -192,13 +192,14 @@ namespace
             folded = headingShown ? drawFoldingHeading(group, page) : page.sections.isFolded(group);
         } else if (headingShown) {
             const float right = ImGui::GetCursorScreenPos().x + ui::rowWidth();
+            const auto heading = model::resolveClientText(group.text, page.store);
             if (group.role == model::GroupRole::ActivationSphere) {
-                ui::sphereHeading(group.text, right);
+                ui::sphereHeading(heading, right);
             } else {
-                ui::sectionHeading(group.text, right);
+                ui::sectionHeading(heading, right);
             }
             if (!group.help.empty() && ImGui::IsItemHovered()) {
-                page.drawn.pointed = ui::PointedRow{ .text = group.text, .help = group.help };
+                page.drawn.pointed = ui::PointedRow{ .text = heading, .help = model::resolveClientText(group.help, page.store) };
             }
         }
         if (!folded) {

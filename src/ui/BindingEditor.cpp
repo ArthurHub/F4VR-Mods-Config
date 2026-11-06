@@ -15,6 +15,7 @@
 #include "Theme.h"
 #include "common/CommonUtils.h"
 #include "model/InputBindings.h"
+#include "model/TextStates.h"
 
 namespace
 {
@@ -866,7 +867,7 @@ namespace mods_config::ui
         // the binding as it is now, with its name above it
         const auto stored = store.value(setting);
         const auto color = valueColor(stored.invalid ? ValueLook::Invalid : store.isDirty(setting) ? ValueLook::Pending : ValueLook::Saved);
-        drawText(contentLeft, contentRight, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
+        drawText(contentLeft, contentRight, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
         ImGui::GetWindowDrawList()->AddRectFilled(strip.Min, strip.Max, ImGui::GetColorU32(theme::color::PLATE), theme::RADIUS_FRAME);
         const float iconsLeft = strip.Min.x + theme::SPACE_3;
         const float iconsRight = drawBindingIcons(_binding, iconsLeft, strip.GetCenter().y, STRIP_ICON_SCALE, ImGui::GetColorU32(color), leftHanded, drawer);

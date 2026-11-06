@@ -83,7 +83,7 @@ A function returns at once, and the help line shows its message, in red when `do
 A state is a value your code answers by its name, asked once a frame while your mod is shown. A config spec uses it in three places:
 
 - **A condition:** `"enabledWhen": { "clientState": "calibrating", "equals": false }`.
-- **A text:** `"Status: {clientState:status}"`.
+- **A text:** `"Status: {clientState:status}"`, in a text row, or in the text or the help of a setting, a button or a section.
 - **A setting kept in it:** `"storage": { "clientState": "pipboyType" }`, a value in your DLL's memory, which the setter applies as the menu changes it.
 
 ```cpp

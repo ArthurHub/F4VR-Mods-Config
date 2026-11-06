@@ -12,6 +12,7 @@
 #include "Numbers.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
+#include "model/TextStates.h"
 
 namespace
 {
@@ -90,7 +91,7 @@ namespace
     /**
      * What the help line says of an axis: what it moves, its range and its step, and its default where it has one.
      */
-    std::string axisHelp(const model::Setting& setting, const std::size_t axis)
+    std::string axisHelp(const model::Setting& setting, const std::size_t axis, model::Store& store)
     {
         const auto& range = setting.valueOptions.transformAxes[axis];
         const auto unit = axisUnit(axis);
@@ -98,7 +99,7 @@ namespace
         const auto defaultText = table ? std::format(" Default {}{}.", model::axisValue(*table, axis), unit) : std::string();
         return std::format("{} the {}{}, {}{} to {}{}, by {}{} a step.{}",
             AXES[axis].verb,
-            sentenceName(setting.text),
+            sentenceName(model::resolveClientText(setting.text, &store)),
             AXES[axis].how,
             range.min,
             unit,
@@ -228,11 +229,11 @@ namespace mods_config::ui
         const bool hovered = ImGui::IsWindowHovered();
         const auto& mouse = ImGui::GetIO().MousePos;
         const auto point = [&](const std::string_view name, std::string help) {
-            edited.pointed = PointedRow{ .text = name, .help = std::move(help) };
+            edited.pointed = PointedRow{ .text = std::string(name), .help = std::move(help) };
         };
 
         // the header: the setting's name
-        drawText(contentLeft, contentRight, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, setting.text);
+        drawText(contentLeft, contentRight, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
 
         // a line for each axis of the parts that are on: its name and its slider
         const auto saved = savedTable(setting, store);
@@ -261,7 +262,7 @@ namespace mods_config::ui
             if (pointed) {
                 ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
                 drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
-                point(AXES[axis].name, axisHelp(setting, axis));
+                point(AXES[axis].name, axisHelp(setting, axis, store));
             }
             const float shownValue = model::axisValue(_table, axis);
             const bool differs = store.isDirty(setting) && (!saved || common::fNotEqual(model::axisValue(*saved, axis), shownValue));
