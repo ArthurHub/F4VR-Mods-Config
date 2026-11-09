@@ -5,7 +5,7 @@ beside it. A scenario fails when the mod's whole frame takes more than its budge
 `test_one_off` reports the worst frame of each action that is done once, as showing a page or a Save, with no check: a
 hitch there is a single frame, which no p95 shows.
 
-The ray on the panel, SteamVR's keyboard and an open editor are not held here, as devbench does not drive them yet.
+The ray on the panel, SteamVR's keyboard and an open editor are not held here, as devbench does not drive them.
 """
 
 import time

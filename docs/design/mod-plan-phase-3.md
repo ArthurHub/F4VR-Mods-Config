@@ -6,18 +6,15 @@ The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which co
 
 | #    | Repo     | Commit                                                                | Status |
 | ---- | -------- | --------------------------------------------------------------------- | ------ |
-| D2   | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls   | todo   |
-| M169 | mod      | The open gesture closes the game's favorites                          | in review |
-| M170 | mod      | A condition on a setting of the game's INI, with no client state      | in review |
-| M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | in review   |
-| M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | in review   |
-| M173 | mod      | A color, a binding and a transform kept in an INI file                | in review |
-| M145 | mod      | The client is told what the ray is on                                 | in review |
-| F42  | framework | f4vr: an activation sphere lights while the menu points at it        | in review |
+| M169 | mod      | The open gesture closes the game's favorites                          | done   |
+| M170 | mod      | A condition on a setting of the game's INI, with no client state      | done   |
+| M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | done   |
+| M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | done   |
+| M173 | mod      | A color, a binding and a transform kept in an INI file                | done   |
+| M145 | mod      | The client is told what the ray is on                                 | done   |
+| F42  | framework | f4vr: an activation sphere lights while the menu points at it        | done   |
 
 The milestone fixes and polishes what the alpha finds. Its commits are added as they come.
-
-D2 is a commit in devbench's own repository. With it, `test_perf.py` measures the ray on the panel, SteamVR's keyboard and an open editor, which [M155](mod-plan-phase-2.md#10-first-release) left for it.
 
 M169 closes the game's favorites that the gesture opening and closing the menu opens: the gesture holds the primary thumbstick in, whose press opens them. They are closed as soon as both buttons of the gesture are held, in either order, and when the gesture fires, which is all a gesture with no modifier has. ROCK keeps that press from the favorites, so it is tried without ROCK too.
 

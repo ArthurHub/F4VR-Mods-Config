@@ -68,7 +68,7 @@ The milestones are in three phases, each in a file of its own with the commits o
 | 8   | Live preview             | A CommonFramework mod with a config spec previews a slider live, with no code of its own                          | done   |
 | 9   | CommonFramework controls | Every setting of Immersive Flashlight VR but its lists and hand poses is edited from its config spec              | done   |
 | 10  | First release            | The mod is ready for alpha testing: its Nexus page, README and docs are written, and it is tested and perf tested in the headset | done   |
-| 11  | Ironing out              | What the alpha finds is fixed, and devbench drives the ray, the keyboard and a panel's controls | todo   |
+| 11  | Ironing out              | What the alpha finds is fixed                                                                                 | done   |
 | 12  | Search                   | A setting is found by typing its name                                                                         | todo   |
 | 13  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |
 | 14  | Localization             | A mod with no game plugin is shown in another language                                                        | todo   |
