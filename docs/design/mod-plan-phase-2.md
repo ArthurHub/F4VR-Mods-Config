@@ -267,8 +267,7 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M166 | mod | A color, binding and transform parse their value once per text        | done   |
 | F41 | framework | config: a reload of an unchanged file parses nothing                 | done   |
 | M167 | mod | A dragged live setting is told to its mod at most every 50 ms          | done   |
-| M168 | mod | The menu's frame cost checked against its budgets                      | in review |
-| D2 | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls  | todo   |
+| M168 | mod | The menu's frame cost checked against its budgets                      | done   |
 
 M136 to M138 make an MCM change as MCM's menu makes it, so the player sees it in the game: it writes the value, runs its row's action and sends MCM's event as it is made, and keeps the Save bar of M121. A setting the player changed is dirty while its value is not its baseline. Discard sets the dirty settings back in the reverse of the order they were changed, each as a change is made, with its action run again, so a preset that is set back sets its rows back, and a row's own Discard does the same for that setting alone. Save writes nothing, and sends the pause menu's events where the session wrote a ModSetting, so a DLL that reads MCM's file gets the changes at Save. A script's button of an MCM mod no longer asks to save first. M137 changes the Help page's MCM section and the text of what Save does, and M138 makes the store, with its tests. See [MCM compatibility](architecture.md#mcm-compatibility).
 
