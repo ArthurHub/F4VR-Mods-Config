@@ -7,7 +7,7 @@ The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which co
 | #    | Repo     | Commit                                                                | Status |
 | ---- | -------- | --------------------------------------------------------------------- | ------ |
 | D2   | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls   | todo   |
-| M169 | mod      | The game's favorites are off while the menu is open                   | todo   |
+| M169 | mod      | The open gesture closes the game's favorites                          | in review |
 | M170 | mod      | A condition on a game setting, with no client state                   | todo   |
 | M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | todo   |
 | M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | todo   |
@@ -18,7 +18,7 @@ The milestone fixes and polishes what the alpha finds. Its commits are added as 
 
 D2 is a commit in devbench's own repository. With it, `test_perf.py` measures the ray on the panel, SteamVR's keyboard and an open editor, which [M155](mod-plan-phase-2.md#10-first-release) left for it.
 
-M169 turns the game's favorites off while the menu is open, and is tried without ROCK too.
+M169 closes the game's favorites that the gesture opening and closing the menu opens: the gesture holds the primary thumbstick in, whose press opens them. They are closed as soon as both buttons of the gesture are held, in either order, and when the gesture fires, which is all a gesture with no modifier has. ROCK keeps that press from the favorites, so it is tried without ROCK too.
 
 M170 lets a condition name a setting of the game itself, so a config spec conditions a row on one without a mod's DLL answering it as a client state.
 

@@ -2,6 +2,10 @@
 
 Not released: each is a milestone of the [work plan](design/mod-plan.md).
 
+### v0.11.0
+
+- The gesture that opens and closes the menu no longer leaves the game's favorites open.
+
 ### v0.10.0
 
 - An alpha for testing, with the Nexus page, the README, the docs and the FAQ.

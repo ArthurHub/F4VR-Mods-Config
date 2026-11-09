@@ -38,6 +38,7 @@ namespace mods_config
 
     private:
         void takeOpenGestureFromFRIK();
+        void closeFavoritesOfOpenGesture(bool gestureFired);
 
         ConfigMenu _menu;
 

@@ -3,10 +3,33 @@
 #include "GameTranslations.h"
 #include "api/FRIKApi.h"
 #include "devbench/MCDevBench.h"
+#include "f4vr/F4VRUtils.h"
 #include "mcm/McmLoader.h"
 #include "perf/Perf.h"
 #include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersManager.h"
+
+namespace
+{
+    /**
+     * Whether a button is held down on a hand, on either hand for `Any`.
+     */
+    bool isHeldDown(const f4cf::vrcf::Hand hand, const vr::EVRButtonId button)
+    {
+        using namespace f4cf::vrcf;
+        return hand == Hand::Any ? VRControllers.isPressHeldDown(Hand::Primary, button) || VRControllers.isPressHeldDown(Hand::Offhand, button)
+                                 : VRControllers.isPressHeldDown(hand, button);
+    }
+
+    /**
+     * Whether a binding's button is held on a hand together with its modifier, which is on that hand when the modifier
+     * names none, as VRControllersManager::check reads it.
+     */
+    bool isHeldWithModifier(const f4cf::vrcf::InputBinding& binding, const f4cf::vrcf::Hand hand)
+    {
+        return isHeldDown(hand, binding.button) && isHeldDown(binding.modifier->hand.value_or(hand), binding.modifier->button);
+    }
+}
 
 // This is the entry point to the mod.
 extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Query(const F4SE::QueryInterface* a_skse, F4SE::PluginInfo* a_info)
@@ -95,7 +118,9 @@ namespace mods_config
 
         // the gesture shows a minimized menu again, as Restore on the wrist does. While a transform is tuned in the world
         // its sticks are the tuning's, and Done and Cancel end it
-        if (!_menu.isAdjusting() && vrcf::VRControllers.check(g_config.openMenuBinding)) {
+        const bool gesture = !_menu.isAdjusting() && vrcf::VRControllers.check(g_config.openMenuBinding);
+        closeFavoritesOfOpenGesture(gesture);
+        if (gesture) {
             if (_menu.isMinimized()) {
                 _menu.requestRestore();
             } else if (_menu.isOpen()) {
@@ -113,6 +138,23 @@ namespace mods_config
         }
 
         _menu.onFrameUpdate();
+    }
+
+    /**
+     * Closes the game's favorites, which the press of the primary thumbstick in the default open gesture opens. They are
+     * closed in every frame both buttons of the gesture are held, in either order, as the game shows them a frame or two
+     * after the press, and when the gesture fires: a gesture with no modifier has only that, so its own button still opens them.
+     */
+    void ModsConfigFO4::closeFavoritesOfOpenGesture(const bool gestureFired)
+    {
+        const auto& binding = g_config.openMenuBinding;
+        const bool bothHeld = binding.modifier && binding.type != vrcf::ActivationType::Disabled && binding.type != vrcf::ActivationType::AxisDirection &&
+                              (binding.hand == vrcf::Hand::Any ? isHeldWithModifier(binding, vrcf::Hand::Primary) || isHeldWithModifier(binding, vrcf::Hand::Offhand)
+                                                               : isHeldWithModifier(binding, binding.hand));
+        if ((gestureFired || bothHeld) && _gameMenus.isFavoritesMenuOpen()) {
+            logger::info("Close the game's favorites, opened by the open gesture");
+            f4vr::closeFavoriteMenu();
+        }
     }
 
     /**
