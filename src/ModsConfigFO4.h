@@ -12,7 +12,11 @@ namespace mods_config
     public:
         ModsConfigFO4()
             : ModBase(Settings(Version::PROJECT, Version::NAME, &g_config, 64, true))
-        {}
+        {
+            // the buttons on the hand and Adjust in world draw vrui text: its font is built in the background at load,
+            // or the first minimize stalls a frame for ~0.1 s
+            _settings.preloadRendering = true;
+        }
 
         static bool isPlayerLoaded();
 

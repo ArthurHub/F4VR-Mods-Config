@@ -161,7 +161,7 @@ class Report:
             out.append("</table>")
 
         if self.perf:
-            out.append("<h2>Cost per frame</h2><div class='meta'>Each state held, as the mod's perf sites recorded it; every site is in perf.json.</div>")
+            out.append("<h2>Cost per frame</h2><div class='meta'>Each state held, and the worst frame of each one-off action, as the mod's perf sites recorded them; every site is in perf.json.</div>")
             for entry in self.perf:
                 out.append(f"<details open><summary>{html.escape(entry['scenario'])}</summary><pre>{html.escape(entry['text'])}</pre></details>")
 
