@@ -1,6 +1,6 @@
 """The menu's cost per frame in each state it can be held in: the mod's perf sites over a window of HOLD_SECONDS, read
-through its devbench tool. A report and no check: each scenario's table goes into the run's report, and every site of
-each into perf.json beside it.
+through its devbench tool. Each scenario's table goes into the run's report, and every site of each into perf.json
+beside it. A scenario fails when the mod's whole frame takes more than its budget at p95.
 
 The ray on the panel, SteamVR's keyboard and an open editor are not held here, as devbench does not drive them yet.
 """
@@ -21,10 +21,20 @@ pytestmark = pytest.mark.perf
 HOLD_SECONDS = 10
 SETTLE_SECONDS = 1
 
+# the mod's whole frame on the game thread, the site whose p95 a budget is of
+FRAME_SITE = "ModBase::onFrameUpdateSafe"
 
-def measure(menu, report, scenario, during=None):
+# the budget of each state, in ms of the frame's p95: a little over what QASmoke measured, so a change that costs more
+# fails; a budget that fails in a busier run is raised alone
+CLOSED_MS = 0.03
+MINIMIZED_MS = 0.06
+OPEN_MS = 0.20
+DRAGGED_MS = 0.45
+
+
+def measure(menu, report, scenario, budget, during=None):
     """Hold the state the menu is in: settle, reset the perf sites, then hold it HOLD_SECONDS, calling during each
-    time round if given, and keep what the sites recorded in the report."""
+    time round if given, keep what the sites recorded in the report, and check the frame's p95 against budget."""
     menu.state()
     time.sleep(SETTLE_SECONDS)
     menu.call("perf", reset=True)
@@ -37,6 +47,8 @@ def measure(menu, report, scenario, during=None):
     text = menu.call("perf", format="text")
     sites = menu.call("perf", format="flat", reset=True)
     report.add_perf(scenario, text["text"], sites)
+    p95 = sites["sites"][FRAME_SITE]["p95Ms"]
+    assert p95 <= budget, f"{scenario}: the frame's p95 is {p95:.3f} ms, over its budget of {budget} ms"
 
 
 def rows_of(menu, mod, page):
@@ -62,25 +74,25 @@ def heaviest(game):
 def test_closed(menu, report):
     menu.close_all()
     assert not menu.state()["menu"]["open"]
-    measure(menu, report, "Closed")
+    measure(menu, report, "Closed", CLOSED_MS)
 
 
 def test_minimized(menu, report):
     menu.call("minimize")
     assert menu.state()["menu"]["minimized"]
-    measure(menu, report, "Minimized")
+    measure(menu, report, "Minimized", MINIMIZED_MS)
 
 
 def test_front_page(menu, report):
     menu.call("select")
-    measure(menu, report, "Front page")
+    measure(menu, report, "Front page", OPEN_MS)
 
 
 @pytest.mark.parametrize("key", ["mcm", "showcase"])
 def test_heaviest_page(menu, report, heaviest, key):
     mod, page = heaviest[key]
     menu.select(mod, page)
-    measure(menu, report, f"Heaviest page: {mod} / {' / '.join(page)} ({len(menu.rows())} rows)")
+    measure(menu, report, f"Heaviest page: {mod} / {' / '.join(page)} ({len(menu.rows())} rows)", OPEN_MS)
 
 
 def test_dialog(menu, report):
@@ -88,7 +100,7 @@ def test_dialog(menu, report):
     row = menu.setting("No help")
     menu.set(row["id"], not row["value"])
     assert menu.call("close", ask=True)["asking"]
-    measure(menu, report, "The dialog asking")
+    measure(menu, report, "The dialog asking", OPEN_MS)
     menu.answer("discard")
 
 
@@ -107,7 +119,9 @@ def test_live_preview(menu, report):
         changes += 1
         menu.call("setValue", id=row["id"], value=values[changes % 2])
 
-    measure(menu, report, "FRIK's live preview, dragged", during=change)
-    menu.discard()
-    wait_until(lambda: not menu.state()["session"]["dirty"], 3, what="the change discarded")
-    report.notes.append(f"FRIK's live preview: {changes} changes in {HOLD_SECONDS} s.")
+    try:
+        measure(menu, report, "FRIK's live preview, dragged", DRAGGED_MS, during=change)
+    finally:
+        menu.discard()
+        wait_until(lambda: not menu.state()["session"]["dirty"], 3, what="the change discarded")
+        report.notes.append(f"FRIK's live preview: {changes} changes in {HOLD_SECONDS} s.")
