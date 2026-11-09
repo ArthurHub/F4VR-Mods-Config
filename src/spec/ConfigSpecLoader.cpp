@@ -1923,13 +1923,14 @@ namespace
     enum class SpherePart : std::uint8_t
     {
         Main,
-        Location,
+        Zone,
         Activation,
         Visuals,
     };
 
-    // the sections that fold of a sphere, by their parts after Main
-    constexpr std::array<const char*, 3> SPHERE_SECTIONS{ "Location", "Activation", "Visuals" };
+    // the sections that fold of a sphere, by their parts after Main: the zone's heading names its size, which its scale
+    // sets and a player looks for
+    constexpr std::array<const char*, 3> SPHERE_SECTIONS{ "Position and size", "Activation", "Visuals" };
 
     /**
      * A key of an activation sphere's section, as the framework reads it (`loadWandActivationConfig`).
@@ -1978,12 +1979,16 @@ namespace
                     { "value": "wheninside", "text": "When inside", "help": "Drawn while a hand that works the gesture is in the zone." },
                     { "value": "whenavailable", "text": "When available", "help": "Drawn while the gesture can be used, as one that needs a drawn weapon while one is drawn." } ] } })" },
         SphereKey{ "tZone",
-            SpherePart::Location,
+            SpherePart::Zone,
             "",
             false,
-            R"({ "type": "cf.transform", "text": "Zone", "help": "Where the zone is on its node. Its scale is the zone's diameter, and its rotation does nothing to a sphere.",
+            R"({ "type": "cf.transform", "text": "Zone", "help": "Where the zone is on its node and how big it is: its scale is the zone's diameter. Rotation does nothing to a sphere.",
                 "default": { "pos": [0.0, 0.0, 0.0], "scale": 1.0 } })" },
-        SphereKey{ SPHERE_ZONE_PA, SpherePart::Location, "", false, R"({ "type": "cf.transform", "text": "Zone in power armor", "help": "Where the zone is in power armor." })" },
+        SphereKey{ SPHERE_ZONE_PA,
+            SpherePart::Zone,
+            "",
+            false,
+            R"({ "type": "cf.transform", "text": "Zone in power armor", "help": "Where the zone is in power armor and how big it is: its scale is the zone's diameter." })" },
         SphereKey{ "sPrimaryHaptic",
             SpherePart::Activation,
             SPHERE_PRIMARY_BINDING,
@@ -2035,7 +2040,7 @@ namespace
         SphereKey{ "fSphereScale",
             SpherePart::Visuals,
             "sShowSphere",
-            false,
+            true,
             R"({ "type": "slider", "valueType": "float", "text": "Sphere size", "help": "The drawn size against the zone. The zone itself stays as it is.", "default": 1.0,
                 "valueOptions": { "min": 0.05, "max": 3, "step": 0.05 } })" },
         SphereKey{ "sSphereOrientation",
@@ -2245,7 +2250,7 @@ namespace
 
     /**
      * The section a `cf.activationSphere` row is, which the rows of a config spec are then read as: its heading, its main
-     * rows, and Location, Activation and Visuals, which fold and start folded, each left out with no row. Each key that is
+     * rows, and Position and size, Activation and Visuals, which fold and start folded, each left out with no row. Each key that is
      * shown is an ordinary setting of the section's file. Its `applies` is its own, or the nearest above it, or `live`, as
      * the framework previews a key. Its storage is the section, in a TOML file: one that is not has no rows, and is
      * reported, and so is a file that has no such section, whose keys show their defaults.

@@ -1865,7 +1865,7 @@ BODY_PRIMARY = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress
 BODY_SECONDARY = {'hand': 'primary', 'type': 'tap', 'button': 'trigger', 'suppress': True}
 HEAD_PRIMARY = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress': True}
 OFF = {'type': 'none'}
-# a sphere's group: its main rows, then Location, Activation and Visuals, which fold, folded each time the page is shown.
+# a sphere's group: its main rows, then Position and size, Activation and Visuals, which fold, folded each time the page is shown.
 # Each row is named by the config spec or by its default; a key the config spec hides has no row
 as_rows = ''.join([
     pagehelp('Where your hand reaches to take the light, and what a press there does. A sphere is lit in the world while the ray is on its rows.'),
@@ -1873,13 +1873,13 @@ as_rows = ''.join([
     row('Take the light', binding_ctl(BODY_PRIMARY), 'is-hover', mark=(560, 22)),
     row('Entry haptic', haptic('Tick')),
     row('Show icon', combo('When inside')),
-    sub(collapse('Location')),
+    sub(collapse('Position and size')),
     sub(collapse('Activation')),
     sub(collapse('Visuals', unsaved=1)),
     sphere_head('Head'),
     row('Activate', binding_ctl(HEAD_PRIMARY)),
     row('Entry haptic', haptic('Tick')),
-    sub(collapse('Location')),
+    sub(collapse('Position and size')),
     sub(collapse('Activation')),
     sub(collapse('Visuals')),
 ])
@@ -1888,7 +1888,7 @@ open_rows = ''.join([
     row('Take the light', binding_ctl(BODY_PRIMARY)),
     row('Entry haptic', haptic('Tick')),
     row('Show icon', combo('When inside')),
-    sub(collapse('Location', open_=True), ''.join([
+    sub(collapse('Position and size', open_=True), ''.join([
         row('Zone', xform_ctl(BODY_ZONE)),
         row('Zone in power armor', xform_ctl({'pos': [4.01, 10.21, -4.6], 'scale': 24.0})),
     ])),
@@ -1903,23 +1903,22 @@ open_rows = ''.join([
         row(f'Icon size{DOT}', slider('2.5', 50, 'is-pending', 'is-pending', True)),
         row('Show sphere', combo('Never')),
         row('Sphere style', combo('Cyan, subtle'), 'is-disabled'),
-        row('Sphere size', slider('1.00', 50), 'is-disabled'),
     ])),
 ])
 head_rows = ''.join([
     sphere_head('Head'),
     row('Activate', binding_ctl(HEAD_PRIMARY)),
     row('Entry haptic', haptic('Tick')),
-    sub(collapse('Location', open_=True), row('Zone', xform_ctl({'pos': [0.28, 6.74, 4.15], 'rot': [-1.09, -0.07, 3.86], 'scale': 18.0}))),
+    sub(collapse('Position and size', open_=True), row('Zone', xform_ctl({'pos': [0.28, 6.74, 4.15], 'rot': [-1.09, -0.07, 3.86], 'scale': 18.0}))),
     sub(collapse('Activation', open_=True), row('Primary haptic', haptic('DoubleClick'))),
-    sub(collapse('Visuals', open_=True), row('Show sphere', combo('When inside')) + row('Sphere style', combo('Cyan, subtle')) + row('Sphere size', slider('1.00', 50))),
+    sub(collapse('Visuals', open_=True), row('Show sphere', combo('When inside')) + row('Sphere style', combo('Cyan, subtle'))),
 ])
 off_rows = ''.join([
     sub(collapse('Activation', open_=True), row('Primary haptic', haptic('DoubleClick')) + row('Secondary activate', binding_ctl(OFF))),
 ])
 as_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:772px 772px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">As shipped: each sphere its main rows, then Location, Activation and Visuals folded. The ray on Body grab: its mark has a halo while its sphere is lit in the world</span>
+<span class="t-detail mc-caption">As shipped: each sphere its main rows, then Position and size, Activation and Visuals folded. The ray on Body grab: its mark has a halo while its sphere is lit in the world</span>
 <div class="mc-sheet" style="width:772px">{as_rows}</div>
 <div class="mc-sheet" style="width:772px;padding:0"><div class="mc-footer">{helpline('Take the light', 'Tap the trigger on the off hand with it in the zone on your chest. Its sphere is lit in the world while the ray is here.')}</div></div>
 <span class="t-detail mc-caption">Keys the config spec hides have no row: Head has no icon, no power-armor zone and no secondary</span>
@@ -1932,7 +1931,7 @@ as_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:77
 <div class="mc-sheet" style="width:772px">{off_rows}</div>
 </div>
 </div>"""
-write('ActivationSphere', page('<!-- @dsCard group="Settings" height=1650 width=1620 subtitle="An activation sphere: its binding, entry haptic and icon, then Location, Activation and Visuals, folded; every row named and shown as the config spec says" -->', 'Activation sphere', as_body))
+write('ActivationSphere', page('<!-- @dsCard group="Settings" height=1650 width=1620 subtitle="An activation sphere: its binding, entry haptic and icon, then Position and size, Activation and Visuals, folded; every row named and shown as the config spec says" -->', 'Activation sphere', as_body))
 print('ok sphere')
 
 def launch_row(name, button='Open', state='', mark=None, gutter=''):

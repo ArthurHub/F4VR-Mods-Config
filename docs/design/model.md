@@ -321,6 +321,6 @@ Group "Body grab"                                         role: activation spher
 └─ Setting fIconSize:ImFl_BodyActivationSphere            float, slider
 ```
 
-- The role draws them as one group: the primary binding, the entry haptic and Show icon, then Location, Activation and Visuals, which fold. Each setting has the text the config spec gives it, or its default name, as Activate for the primary binding.
+- The role draws them as one group: the primary binding, the entry haptic and Show icon, then Position and size, Activation and Visuals, which fold. Each setting has the text the config spec gives it, or its default name, as Activate for the primary binding.
 - The player changes the primary binding. That key alone is dirty, is previewed, and is written by Save.
 - The framework's client previews it as it previews any key: an override for that section and key.

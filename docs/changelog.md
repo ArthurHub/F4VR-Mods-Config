@@ -8,6 +8,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 - A config spec's condition and text can ask a setting of the game's INI, as the game's settings change it, with no DLL to answer it.
 - A config spec keeps a color, a controller binding and a position in an INI file too, as a line a mod with no TOML reads.
 - A mod's DLL is told which row you point at, and the section or activation sphere it is in, so it can show in the world what that row sets.
+- An activation sphere's zone is under Position and size, which says its size is there. The drawn sphere's size has a row only where a config spec names it.
 
 ### v0.10.0
 

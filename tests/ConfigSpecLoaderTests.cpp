@@ -2250,7 +2250,7 @@ namespace
     }
 }
 
-TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's keys, its main rows and then Location, Activation and Visuals, folded")
+TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's keys, its main rows and then Position and size, Activation and Visuals, folded")
 {
     const auto mod = loaded(sphereSpec(R"({ "type": "cf.activationSphere", "text": "Body grab", "help": "Where the hand reaches.", "storage": { "path": ["Spheres", "Body"] } })"));
     CHECK(mod.problems.empty());
@@ -2263,7 +2263,7 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
     CHECK(rowTexts(group) == Lines{ "Activate",
                                  "Entry haptic",
                                  "Show icon",
-                                 "Location:",
+                                 "Position and size:",
                                  "Zone",
                                  "Activation:",
                                  "Primary haptic",
@@ -2274,8 +2274,7 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
                                  "Icon color",
                                  "Icon size",
                                  "Show sphere",
-                                 "Sphere style",
-                                 "Sphere size" });
+                                 "Sphere style" });
     for (std::size_t place = 3; place < 6; ++place) {
         const auto& section = std::get<model::Group>(group.items[place]);
         CHECK(section.collapsible);
@@ -2285,7 +2284,7 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
 
     // each key is a setting of its own, by its key and the section, with the control of its kind, and `live` with none above it
     const auto settings = settingsOf(mod);
-    REQUIRE(settings.size() == 13);
+    REQUIRE(settings.size() == 12);
     for (const auto& setting : settings) {
         CHECK(setting.applies == model::Applies::Live);
         CHECK_FALSE(setting.help.empty());
@@ -2398,7 +2397,7 @@ TEST_CASE("ConfigSpecLoader: a sphere's keys name a row, hide it or show one tha
     const auto& body = std::get<model::Group>(mod.frontPage.items[0]);
     CHECK(rowTexts(body) == Lines{ "Take the light",
                                 "Entry haptic",
-                                "Location:",
+                                "Position and size:",
                                 "Zone",
                                 "Zone in power armor",
                                 "Activation:",
@@ -2407,7 +2406,6 @@ TEST_CASE("ConfigSpecLoader: a sphere's keys name a row, hide it or show one tha
                                 "Visuals:",
                                 "Show sphere",
                                 "Sphere style",
-                                "Sphere size",
                                 "Sphere glow" });
     const auto settings = settingsOf(mod);
     const auto setting = [&settings](const std::string& text) -> const model::Setting& {

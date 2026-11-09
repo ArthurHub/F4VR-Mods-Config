@@ -724,8 +724,8 @@ TEST_CASE("ConfigSpecStore: a sphere's icon, mesh and texture are choices of the
     session.data.write(R"(Meshes\MyMod\f4cf\activation-sphere.nif)", "");
     session.open("[Body]\r\nsIcon = 'Textures\\MyMod\\f4cf\\activation-icon-ring.dds'\r\n");
     constexpr std::size_t ICON = 7;
-    constexpr std::size_t MESH = 13;
-    constexpr std::size_t TEXTURE = 14;
+    constexpr std::size_t MESH = 12;
+    constexpr std::size_t TEXTURE = 13;
     REQUIRE(session.sphereKey(MESH).text == "Sphere mesh");
     REQUIRE(session.sphereKey(TEXTURE).text == "Sphere texture");
 
@@ -766,7 +766,7 @@ TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework do
     constexpr std::size_t ICON = 7;
     constexpr std::size_t SHOW_SPHERE = 10;
     constexpr std::size_t SPHERE_STYLE = 11;
-    constexpr std::size_t SPHERE_ORIENTATION = 13;
+    constexpr std::size_t SPHERE_ORIENTATION = 12;
     const auto word = [&session](const std::size_t place) {
         const auto stored = session.store.value(session.sphereKey(place));
         CHECK_FALSE(stored.invalid);
@@ -2263,7 +2263,7 @@ TEST_CASE("ConfigSpecStore: the client is told the id of the row the ray is on a
     const auto& noId = std::get<model::Group>(holsters).items[0];
     const auto& left = std::get<model::Group>(noId).items[0];
     const auto& note = std::get<model::Group>(noId).items[1];
-    // the sphere's zone is in the section the loader makes of its Location keys
+    // the sphere's zone is in the section the loader makes of its zone keys
     const model::Item* zone = nullptr;
     const auto findZone = [&zone](const std::vector<model::Item>& found, const auto& self) -> void {
         for (const auto& item : found) {

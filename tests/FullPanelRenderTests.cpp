@@ -1058,7 +1058,7 @@ TEST_CASE("FullPanel render: the transforms of the config spec showcase, one pen
     }
 }
 
-TEST_CASE("FullPanel render: the activation spheres of the config spec showcase, folded and with Location and Visuals open", "[.render]")
+TEST_CASE("FullPanel render: the activation spheres of the config spec showcase, folded and with Position and size and Visuals open", "[.render]")
 {
     const test_files::TempFolder myGames;
     const auto data = std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path();
@@ -1077,7 +1077,7 @@ TEST_CASE("FullPanel render: the activation spheres of the config spec showcase,
     auto folded = panelOf();
     WARN("Saved " << renderToFile(folded, "config-spec-spheres", ImVec2(700.0f, pageRow(1).y)));
 
-    // the first sphere's Location and its Visuals, the rows under its heading
+    // the first sphere's Position and size and its Visuals, the rows under its heading
     for (const auto& [name, place] : { std::pair{ "config-spec-spheres-location", 4 }, std::pair{ "config-spec-spheres-visuals", 6 } }) {
         auto opened = panelOf();
         WARN("Saved " << renderToFile(opened, name, POINTER_AWAY, false, [&opened, place] {
