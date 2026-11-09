@@ -259,10 +259,14 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | F38 | framework | devbench: a snapshot of the ImGui canvases as a PNG                  | done   |
 | F39 | framework | devbench: the input suppressed now is read, and is no event          | done   |
 | M164 | mod | devbench: a picture of the panel                                       | done   |
-| D1 | devbench | files: list, read, write and delete files as the game sees them      | in review |
-| M165 | mod | The end-to-end tests, run through devbench                             | in review |
-| M154 | mod | The release tested in the headset                                      | todo   |
-| M155 | mod | The release perf tested                                                | todo   |
+| D1 | devbench | files: list, read, write and delete files as the game sees them      | done   |
+| M165 | mod | The end-to-end tests, run through devbench                             | done   |
+| M154 | mod | The release tested in the headset                                      | done   |
+| F40 | framework | perf: the ImGui canvases' and the vrui panels' frame end             | done   |
+| M155 | mod | The release perf tested                                                | in review |
+| F41 | framework | The ImGui canvases' frame within the menu's budgets                  | todo   |
+| M166 | mod | The menu's frame cost within its budgets                               | todo   |
+| D2 | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls  | todo   |
 
 M136 to M138 make an MCM change as MCM's menu makes it, so the player sees it in the game: it writes the value, runs its row's action and sends MCM's event as it is made, and keeps the Save bar of M121. A setting the player changed is dirty while its value is not its baseline. Discard sets the dirty settings back in the reverse of the order they were changed, each as a change is made, with its action run again, so a preset that is set back sets its rows back, and a row's own Discard does the same for that setting alone. Save writes nothing, and sends the pause menu's events where the session wrote a ModSetting, so a DLL that reads MCM's file gets the changes at Save. A script's button of an MCM mod no longer asks to save first. M137 changes the Help page's MCM section and the text of what Save does, and M138 makes the store, with its tests. See [MCM compatibility](architecture.md#mcm-compatibility).
 
@@ -313,7 +317,11 @@ M165 is the end-to-end tests, in `tests/e2e/`: pytest tests that drive the runni
 
 They are run by hand, as CI has no game.
 
-M154 tries the release in the headset, on what the end-to-end tests do not reach: the opening gesture and FRIK's, the buttons on the hand, the pointer, SteamVR's keyboard, the haptics, and where the panel is and how it looks, with the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
+M154 tries the release in the headset, on what the end-to-end tests do not reach: the opening gesture and FRIK's, the buttons on the hand, the pointer, SteamVR's keyboard, the haptics, and where the panel is and how it looks, with the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with devbench's perf and Tracy.
+
+- F40 splits the framework's frame end into perf sites: the ImGui canvases' frame, with the mod's content in it, and the vrui panels'. M155 adds the mod's own: its frame update, the menu's parts of it, and each part of the panel.
+- `tests/e2e/test_perf.py` holds each state 10 s and reports what the sites recorded: closed, minimized, the front page, the page with the most rows of the test set and of the showcase, the dialog asking, and FRIK's live preview. The ray on the panel, SteamVR's keyboard and an open editor wait for D2, as devbench does not drive them yet.
+- The budgets are set from the numbers measured. M166 fixes what costs more, with F41 for what is the framework's, and adds the budgets to `test_perf.py` as its checks. Neither is made when nothing costs more.
 
 A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 12.
 

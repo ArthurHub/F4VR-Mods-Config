@@ -13,6 +13,7 @@
 #include "Theme.h"
 #include "common/CommonUtils.h"
 #include "model/Conditions.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -702,6 +703,7 @@ namespace mods_config::ui
      */
     void FullPanel::draw()
     {
+        F4CF_PERF_FUNCTION();
         if (!_styleApplied) {
             theme::applyStyle(ImGui::GetStyle());
             _styleApplied = true;
@@ -711,6 +713,7 @@ namespace mods_config::ui
         _hapticPlayed.reset();
         if (auto* const store = selectedStore()) {
             // the states of the mod's client are asked again in each frame
+            F4CF_PERF_SCOPE("startFrame");
             store->startFrame();
         }
         const auto shown = available(_selection);
@@ -882,6 +885,7 @@ namespace mods_config::ui
      */
     void FullPanel::drawFooter(const ImVec2& pos)
     {
+        F4CF_PERF_FUNCTION();
         const float width = ImGui::GetContentRegionAvail().x;
         ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
 
@@ -917,6 +921,7 @@ namespace mods_config::ui
      */
     void FullPanel::drawDialog()
     {
+        F4CF_PERF_FUNCTION();
         auto* const store = selectedStore();
         if (!store) {
             _leaving.reset();

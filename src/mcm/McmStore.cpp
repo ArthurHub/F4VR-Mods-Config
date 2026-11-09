@@ -11,6 +11,7 @@
 
 #include "common/CommonUtils.h"
 #include "model/SessionEvents.h"
+#include "perf/Perf.h"
 
 using namespace mods_config;
 
@@ -614,6 +615,7 @@ namespace mods_config::mcm
      */
     void McmStore::frameUpdate()
     {
+        F4CF_PERF_FUNCTION();
         if (!_pauseMenuWait) {
             return;
         }

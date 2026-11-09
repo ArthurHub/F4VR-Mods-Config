@@ -23,6 +23,7 @@
 #include "Theme.h"
 #include "model/Conditions.h"
 #include "model/TextStates.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -387,6 +388,7 @@ namespace mods_config::ui
      */
     PageDrawn ModPage::draw(const model::Mod& mod, const model::Page& page, model::Store* store, const float thumbstickSideValue)
     {
+        F4CF_PERF_FUNCTION();
         PageDrawn drawn;
         _sliders.startFrame(thumbstickSideValue);
         _choices.startFrame(thumbstickSideValue);

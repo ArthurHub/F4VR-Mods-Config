@@ -12,6 +12,7 @@
 #include "Drawing.h"
 #include "Theme.h"
 #include "model/Conditions.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -179,6 +180,7 @@ namespace mods_config::ui
      */
     TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height, model::Store* store)
     {
+        F4CF_PERF_FUNCTION();
         TreeDrawn drawn;
         // a row is the same width whether or not the scroll bar shows
         const float rowWidth = _width - theme::SPACE_2 - RIGHT_ROOM;

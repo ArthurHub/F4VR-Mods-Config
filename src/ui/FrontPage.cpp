@@ -11,6 +11,7 @@
 #include "PageRows.h"
 #include "Theme.h"
 #include "Version.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -108,6 +109,7 @@ namespace mods_config::ui
      */
     FrontPageDrawn FrontPage::draw(const std::vector<FrontPageMod>& mods)
     {
+        F4CF_PERF_FUNCTION();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
         drawPageText(std::format("Settings for the mods you have installed. Pick a mod on the left to see its settings.\nVersion {}", Version::NAME));
 

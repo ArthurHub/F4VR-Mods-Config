@@ -5,6 +5,7 @@ It is written to build/e2e/<date>-<time>/index.html, with the pictures beside it
 """
 
 import html
+import json
 import re
 import time
 from datetime import datetime
@@ -22,6 +23,7 @@ AREAS = {
     "test_mcm_keep_revert.py": "MCM Keep and Revert",
     "test_live_preview.py": "Live preview",
     "test_sweep.py": "Sweep",
+    "test_perf.py": "Perf",
 }
 
 STYLE = """
@@ -67,6 +69,12 @@ class Report:
         self.dialogs = []
         self.snapshots = {}
         self.notes = []
+        self.perf = []
+
+    def add_perf(self, scenario, text, sites):
+        """What the mod's perf sites recorded while a scenario was held: the text table for the page, and every site
+        for perf.json."""
+        self.perf.append({"scenario": scenario, "text": text, "perf": sites})
 
     def picture(self, nodeid):
         """The file a picture of the panel at the end of a test is written to."""
@@ -101,6 +109,8 @@ class Report:
         self.folder.mkdir(parents=True, exist_ok=True)
         page = self.folder / "index.html"
         page.write_text(self._html(), encoding="utf-8")
+        if self.perf:
+            (self.folder / "perf.json").write_text(json.dumps(self.perf, indent=2), encoding="utf-8")
         return page
 
     def _shot(self, nodeid):
@@ -149,6 +159,11 @@ class Report:
                 out.append(f"<tr><td>{html.escape(test['name'])}</td><td class='badge {test['outcome']}'>{test['outcome']}</td>"
                            f"<td>{test['duration']:.1f} s</td><td>{self._shot(test['nodeid'])}</td></tr>")
             out.append("</table>")
+
+        if self.perf:
+            out.append("<h2>Cost per frame</h2><div class='meta'>Each state held, as the mod's perf sites recorded it; every site is in perf.json.</div>")
+            for entry in self.perf:
+                out.append(f"<details open><summary>{html.escape(entry['scenario'])}</summary><pre>{html.escape(entry['text'])}</pre></details>")
 
         if self.dialogs:
             out.append("<h2>Game dialogs the run closed</h2><ul class='list'>")

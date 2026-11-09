@@ -11,6 +11,7 @@
 #include "Drawing.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -154,6 +155,7 @@ namespace mods_config::ui
      */
     TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const bool highlightHelp, const model::Mod* report)
     {
+        F4CF_PERF_FUNCTION();
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ImGui::GetContentRegionAvail().x;
         TitleBarDrawn bar;

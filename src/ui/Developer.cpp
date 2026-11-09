@@ -11,6 +11,7 @@
 #include "PageRows.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -163,6 +164,7 @@ namespace mods_config::ui
      */
     DeveloperDrawn DeveloperSection::draw(const std::vector<model::Mod>& mods, DeveloperView& view, const float thumbstickSideValue, const bool scrollTo)
     {
+        F4CF_PERF_FUNCTION();
         DeveloperDrawn drawn;
         _filter.startFrame(thumbstickSideValue);
 

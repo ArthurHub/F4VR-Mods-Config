@@ -8,6 +8,7 @@
 
 #include "Drawing.h"
 #include "Theme.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -175,6 +176,7 @@ namespace mods_config::ui
      */
     void drawHelpPage(const std::vector<ControlHelp>& controls)
     {
+        F4CF_PERF_FUNCTION();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
         drawPageText("How the menu works, with the buttons your config has.");
         drawHeading("Navigation");

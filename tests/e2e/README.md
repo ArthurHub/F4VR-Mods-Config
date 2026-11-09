@@ -13,7 +13,7 @@ Python tests that drive the running game through devbench's REST port, as the pl
 
 ```powershell
 pytest tests/e2e                      # all of them
-pytest tests/e2e -m showcase          # one area: sweep, showcase, dialog, mcm, live, navigation, rows, session
+pytest tests/e2e -m showcase          # one area: sweep, showcase, dialog, mcm, live, navigation, rows, session, perf
 pytest tests/e2e -m sweep -k FallUI   # the sweep of one mod
 pytest tests/e2e -m sweep -rA         # the sweep, with the settings it skipped
 ```
@@ -22,7 +22,7 @@ devbench's port is the one its `runtime.json` has, or `--devbench-port`.
 
 ## The report
 
-A run ends with the link of its report, `build/e2e/<date>-<time>/index.html`: the totals, each failure with its message, each test's result and time, the sweep of each mod with the settings it skipped, failed and knew to fail, and the game's dialogs the run closed. Each test that had the menu open leaves a picture of the panel as it ended, taken with the mod's devbench `snapshot`, beside the report, and the report shows them.
+A run ends with the link of its report, `build/e2e/<date>-<time>/index.html`: the totals, each failure with its message, each test's result and time, the sweep of each mod with the settings it skipped, failed and knew to fail, and the game's dialogs the run closed. Each test that had the menu open leaves a picture of the panel as it ended, taken with the mod's devbench `snapshot`, beside the report, and the report shows them. The perf tests add the cost per frame of each state they held, as the mod's `perf` action's table, and every site of each in `perf.json` beside the report.
 
 A setting whose failure is an open issue is in `KNOWN` in `test_sweep.py`, with the issue's link: the sweep lists it as known, and does not fail on it. Take it out when its issue is closed.
 
@@ -44,5 +44,6 @@ A run that a crash ended leaves the manifest, and the next run puts it back befo
 | `test_navigation.py`      | Back one step at a time, the breadcrumbs of the title bar, the Help page, and Minimize and Restore, with the dialog that asks as a mod with changes is left. |
 | `test_rows.py`            | Reset, Run without saving and Save and run, a confirmation, an MCM button, a client's state in a text, an MCM row's text from the game, its images and its page's plugin requirements, FallUI's translated texts, and a config spec's report. |
 | `test_session.py`         | A loading screen closes the menu without asking, and discards a config spec's pending change with its preview. |
+| `test_perf.py`            | The menu's cost per frame, each state held 10 s: closed, minimized, the front page, the page with the most rows of the test set and of the showcase, the dialog asking, and FRIK's live preview. A report, with no check yet. |
 
 `devbench.py` is the client of devbench, `menu.py` the menu, `stored.py` a value in its file and in the game, `backup.py` the backup, and `report.py` the report.

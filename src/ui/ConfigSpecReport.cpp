@@ -12,6 +12,7 @@
 #include "Drawing.h"
 #include "PageRows.h"
 #include "Theme.h"
+#include "perf/Perf.h"
 
 namespace
 {
@@ -247,6 +248,7 @@ namespace mods_config::ui
      */
     ReportDrawn ConfigSpecReport::draw(const model::Mod& mod, LiveCopyRead* read)
     {
+        F4CF_PERF_FUNCTION();
         ReportDrawn drawn;
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
         std::size_t errors = 0;

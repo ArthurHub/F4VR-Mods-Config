@@ -16,6 +16,7 @@
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
 #include "imgui/ImGuiSettings.h"
+#include "perf/Perf.h"
 #include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
@@ -304,6 +305,7 @@ namespace mods_config
      */
     void ConfigMenu::onFrameUpdate()
     {
+        F4CF_PERF_FUNCTION();
         // the pause menu's events of a Save wait for MCM's file, also after the menu is closed
         _store.frameUpdate();
         // every frame, so a change of the config shows while the menu is open
@@ -422,6 +424,7 @@ namespace mods_config
      */
     void ConfigMenu::doClientRequests()
     {
+        F4CF_PERF_FUNCTION();
         // the panel is shown for them, and a selection can leave the mod that is tuned
         if (isAdjusting() && (_openRequest || _restoreRequested)) {
             _adjust.cancel();
@@ -460,6 +463,7 @@ namespace mods_config
      */
     void ConfigMenu::doAdjust()
     {
+        F4CF_PERF_FUNCTION();
         if (_adjustRequest) {
             const auto request = *_adjustRequest;
             _adjustRequest.reset();
@@ -827,6 +831,7 @@ namespace mods_config
      */
     void ConfigMenu::readChangedLiveCopies()
     {
+        F4CF_PERF_FUNCTION();
         const auto now = std::chrono::steady_clock::now();
         if (now - _liveCopiesChecked < LIVE_COPIES_CHECK) {
             return;

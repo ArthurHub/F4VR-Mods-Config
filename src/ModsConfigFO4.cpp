@@ -4,6 +4,7 @@
 #include "api/FRIKApi.h"
 #include "devbench/MCDevBench.h"
 #include "mcm/McmLoader.h"
+#include "perf/Perf.h"
 #include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersManager.h"
 
@@ -86,6 +87,7 @@ namespace mods_config
      */
     void ModsConfigFO4::onFrameUpdate()
     {
+        F4CF_PERF_FUNCTION();
         if (!isPlayerLoaded()) {
             logger::sample(3000, "no player data - noop");
             return;
