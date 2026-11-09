@@ -26,7 +26,7 @@ The gesture is `kOpenMenuBinding` in the menu's config file, in case it was chan
   <summary>FRIK's config doesn't open with the thumbsticks anymore</summary>
 &#10240;
 
-This menu takes over that gesture. Open FRIK's config from the menu's front page: **Quick launch**, **FRIK Configuration**, **Open**. The menu comes back when FRIK's config closes. FRIK's settings are also in the menu itself, under FRIK, with FRIK v80+.
+This menu takes over that gesture. Open FRIK's config from the menu's front page: **Quick launch**, **FRIK Configuration**, **Open**. The menu comes back when FRIK's config closes. FRIK's settings are also in the menu itself, under FRIK, with FRIK v0.80+.
 
 </details>
 

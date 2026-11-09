@@ -49,7 +49,7 @@ It is in alpha: search, mod categories, editing lists and hand poses, and transl
 Optional:
 
 - MCM VR, to show MCM menus.
-- [FRIK](https://www.nexusmods.com/fallout4/mods/53464), to press the wrist buttons with your fingertip and open FRIK's config from the menu. FRIK v80+ ships its config spec.
+- [FRIK](https://www.nexusmods.com/fallout4/mods/53464), to press the wrist buttons with your fingertip and open FRIK's config from the menu. FRIK v0.80+ ships its config spec.
 
 Install the [Nexus Mods](https://www.nexusmods.com/games/fallout4/mods/110945) package with your mod manager, or extract it into the game's `Data` folder. There is no ESP, so load order doesn't matter. Keep MCM installed: this menu shows MCM's menus, and doesn't replace MCM.
 
