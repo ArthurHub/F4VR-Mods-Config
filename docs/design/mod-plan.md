@@ -9,7 +9,7 @@ A config spec is the new config format of [Declarative schema](schema.md): a mod
 ## How the work is done
 
 - As in the framework plan: one commit at a time, reviewed and tried in the game before it is committed.
-- Mod commits continue from M10 and framework commits from F21. A commit that is added later takes the next free number of all three phases, and a commit keeps its number when it moves to another milestone.
+- Mod commits continue from M10 and framework commits from F21, and devbench's, in its own repository, start from D1. A commit that is added later takes the next free number of all three phases, and a commit keeps its number when it moves to another milestone.
 - Each milestone ends with its "done when", tried in the headset.
 - Code that does not need the running game (the model, the loaders, conditions, the INI file) is unit tested. The tests link the framework and CommonLibF4 with `REL::NO_GAME`, as the framework's linked tests do, so the code under test can use both. The first code commit adds the mod's tests.
 - A loader grows with the rows. The commit that draws a control also adds the parsing of that control and its tests.

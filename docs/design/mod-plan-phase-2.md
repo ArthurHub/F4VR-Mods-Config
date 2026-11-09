@@ -259,7 +259,8 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | F38 | framework | devbench: a snapshot of the ImGui canvases as a PNG                  | done   |
 | F39 | framework | devbench: the input suppressed now is read, and is no event          | done   |
 | M164 | mod | devbench: a picture of the panel                                       | done   |
-| M165 | mod | The end-to-end tests, run through devbench                             | todo   |
+| D1 | devbench | files: list, read, write and delete files as the game sees them      | in review |
+| M165 | mod | The end-to-end tests, run through devbench                             | in review |
 | M154 | mod | The release tested in the headset                                      | todo   |
 | M155 | mod | The release perf tested                                                | todo   |
 
@@ -294,14 +295,23 @@ M158 and M159 read two features of an MCM config that no mod of the test set has
 
 M160 is what a config spec has in place of `textFrom...`: the text and the help of a setting, a button and a section take a `{clientState:name}` placeholder, as a text row's does, on one line. A form's name is written by the config spec's author, translated with a `$` token.
 
-M161 to M165 test the release through devbench, as far as it reaches, before M154 tries it in the headset. The mod's devbench tool drives the menu as the player's presses do, and M161 to M164 give it what the panel shows.
+M161 to M165 test the release through devbench, as far as it reaches, before M154 tries it in the headset. The mod's devbench tool drives the menu as the player's presses do, and M161 to M164 give it what the panel shows. D1 gives the tests the files the menu writes.
 
 - M161 is a page's rows as they are drawn: a row's text and help, with the game's text, the client's states and the `$` tokens in them, a text's lines, the warning a row tells, and the tag of when its pending change takes effect. The session has the status of the help line, the menu's front page its restart notices, and a section is folded and unfolded as its heading's press does.
 - M162 is each config spec's errors and warnings, as the Developer tools list them.
 - M163 publishes the menu's events as devbench events: it opened, closed and was minimized, another mod or page was shown, the Help page, the dialog that asks, and a Save and a Discard, which each store publishes. What each native client and MCM's scripts are told is published where it is sent, with whether a client was told, so a test checks the API's and MCM's events. The native API keeps its events as they are.
 - F38 gives every framework mod's devbench tool a `snapshot` action, which saves the texture its ImGui canvases are drawn into as a PNG, the panel's own as it is dedicated. devbench's `rendertarget` dumps the game's render targets, and the panel is drawn in a texture of the framework's. The render thread copies it after it draws it and reads the copy once the GPU has made it, so neither the game thread nor a frame waits. F39 takes out the framework's `input.suppression` event, which the ImGui pointer fired each time its ray came onto the panel or left it, and an `input` action reads the input a mod suppresses now. M164 moves the submodule to F39.
 
-M165 is the end-to-end tests, in `tests/e2e/`: Python tests that drive the running game through devbench's REST port, with a save loaded and the test set installed. They back up the files a Save writes, and put them back after. A sweep shows each mod and page of the MCM test set and of the config specs, and sets, checks and discards each setting. A test of each page of the showcase walkthrough, of the dialog, of MCM's Keep and Revert, and of FRIK's and Immersive Flashlight's live preview checks a value in its file, in the game, and in its mod through the mod's own devbench tool. They are run by hand, as CI has no game.
+D1 is a commit in devbench's own repository: a `files` tool that lists, reads, writes and deletes files under the game's `Data` folder as the game sees it, so MO2's virtual files are in it, and under `My Games\Fallout4VR`.
+
+M165 is the end-to-end tests, in `tests/e2e/`: pytest tests that drive the running game through devbench's REST port, with the test set installed.
+
+- From the main menu they start a game in QASmoke with `coc qasmoke`, so nothing they do reaches a save. A game already in QASmoke is used as it is, and any other is refused.
+- Before they change anything, they back up the MCM settings, the config specs' files in `Data` and the mods' folders in `My Games` through D1, to a manifest on disk, and put them back after. A run that finds a manifest a crash left puts it back first.
+- A sweep shows each mod and page of the MCM test set and of the config specs, and changes each setting it can, one at a time: it checks the row, saves, checks the file, and sets and saves the value it had.
+- A test of each section of the showcase walkthrough, of the dialog, of MCM's Keep and Revert, and of FRIK's and Immersive Flashlight's live preview checks a value in its file, in the game through the console, and in its mod through the mod's own devbench tool.
+
+They are run by hand, as CI has no game.
 
 M154 tries the release in the headset, on what the end-to-end tests do not reach: the opening gesture and FRIK's, the buttons on the hand, the pointer, SteamVR's keyboard, the haptics, and where the panel is and how it looks, with the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with Tracy, and fixes what costs too much.
 

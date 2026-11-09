@@ -44,6 +44,8 @@ The default preset inherits `cmake-dev + vcpkg + windows + vs2026`. The `release
 - Render tests (`"[render]"`) save the panel as `.bmp` in `build/tests/render/`, check nothing, and are not run by `ctest`: add a case for a new view or state of the panel. `tools/gen_docs_renders.py` (needs Pillow) turns those of the showcase walkthrough into the PNGs of `docs/assets/showcase/`: run the render tests and it again when the panel's look or a showcase page changes.
 - `-DMODS_CONFIG_BUILD_TESTS=OFF` leaves them out.
 
+**End-to-end tests:** [tests/e2e/](tests/e2e/README.md) is pytest tests that drive the running game through devbench's REST port: from the main menu they start a game in QASmoke, back up the files a Save writes through devbench's `files` tool and put them back after, sweep every setting of the MCM test set and the config specs, and test the showcase walkthrough, the dialog, MCM's Keep and Revert, the live preview, Back, the breadcrumbs, Help and Minimize, what a row does beyond its value, and a loading screen ending the session. They are run by hand (`pytest tests/e2e`, after `pip install -r tests/e2e/requirements.txt`), as CI has no game; a run a crash ended is put back by the next one, or by `pytest tests/e2e --e2e-restore`. A new devbench action or a new page of a showcase gets its test there.
+
 Everything else is tested by hand, in the game.
 
 **CI:** `.github/workflows/build.yml` configures and builds Release on every push and pull request to `main`, and runs the unit tests. `.github/workflows/maintenance.yml` runs pre-commit there and commits any fixes back to the branch (pull requests from forks are only checked).

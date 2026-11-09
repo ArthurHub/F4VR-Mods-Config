@@ -305,6 +305,48 @@ namespace mods_config::devbench
         }
 
         /**
+         * Where a setting's value is kept: a file of the selected mod's config spec, with its format, its root, its path
+         * and the names that lead to the value in it, a ModSetting by MCM's name, a global or a property of a game plugin,
+         * a state of the mod's client, or none.
+         */
+        json storageToJson(const model::Storage& storage)
+        {
+            return std::visit(
+                []<typename T>(const T& kept) -> json {
+                    if constexpr (std::is_same_v<T, model::FileStorage>) {
+                        json file = { { "kind", "file" }, { "file", kept.file }, { "path", kept.path } };
+                        const auto& panel = g_modsConfig.menu().fullPanel();
+                        if (const auto& selection = panel.selection(); selection.mod) {
+                            const auto& files = panel.mods()[*selection.mod].files;
+                            if (const auto found = files.find(kept.file); found != files.end()) {
+                                file["format"] = found->second.format == model::FileFormat::Ini ? "ini" : "toml";
+                                file["root"] = found->second.root == model::FileRoot::Data ? "data" : "mygames";
+                                file["filePath"] = found->second.path;
+                            }
+                        }
+                        return file;
+                    } else if constexpr (std::is_same_v<T, model::ModSettingStorage>) {
+                        return { { "kind", "modSetting" }, { "name", kept.name } };
+                    } else if constexpr (std::is_same_v<T, model::GlobalStorage>) {
+                        return { { "kind", "global" }, { "plugin", kept.plugin }, { "formId", std::format("{:X}", kept.formId) } };
+                    } else if constexpr (std::is_same_v<T, model::PropertyStorage>) {
+                        return { { "kind", "property" },
+                            { "plugin", kept.plugin },
+                            { "formId", std::format("{:X}", kept.formId) },
+                            { "script", kept.script },
+                            { "name", kept.name } };
+                    } else if constexpr (std::is_same_v<T, model::ClientStateStorage>) {
+                        return { { "kind", "clientState" }, { "name", kept.name } };
+                    } else if constexpr (std::is_same_v<T, model::UnknownStorage>) {
+                        return { { "kind", "unknown" }, { "type", kept.type } };
+                    } else {
+                        return { { "kind", "none" } };
+                    }
+                },
+                storage);
+        }
+
+        /**
          * A setting as its row shows it: its text and help with the states of its mod's client in them, its value
          * in the store, whether that is available, invalid or dirty and why, the warning it tells, the tag of when
          * its pending change takes effect, whether its row is enabled or read-only, and what the player can set it to.
@@ -329,7 +371,8 @@ namespace mods_config::devbench
                 { "reason", stored.reason.empty() ? json(nullptr) : json(stored.reason) },
                 { "dirty", dirty },
                 { "readOnly", setting.readOnly },
-                { "enabled", !setting.enabledWhen || model::holds(*setting.enabledWhen, &store) } };
+                { "enabled", !setting.enabledWhen || model::holds(*setting.enabledWhen, &store) },
+                { "storage", storageToJson(setting.storage) } };
             const auto defaultValue = store.defaultValue(setting);
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);
             const auto saved = store.savedValue(setting);
@@ -841,11 +884,20 @@ namespace mods_config::devbench
             return { { "open", menu.isOpen() } };
         }
 
-        json runClose(const json&)
+        /**
+         * Closes the menu at once, its unsaved changes dropped, or with ask as the player closes it, with the gesture or
+         * Exit on the wrist: the dialog asks first while the mod that is shown has unsaved changes, and with none the
+         * menu closes on the next frame.
+         */
+        json runClose(const json& args)
         {
             auto& menu = g_modsConfig.menu();
-            menu.close();
-            return { { "open", menu.isOpen() } };
+            if (args.value("ask", false)) {
+                menu.askToClose();
+            } else {
+                menu.close();
+            }
+            return { { "open", menu.isOpen() }, { "asking", menu.isOpen() && menu.fullPanel().isAsking() } };
         }
 
         /**
@@ -861,6 +913,40 @@ namespace mods_config::devbench
             menu.back();
             const auto& selection = menu.selection();
             return { { "open", menu.isOpen() }, { "mod", selection.mod ? json(*selection.mod) : json(nullptr) }, { "page", selection.page } };
+        }
+
+        /**
+         * Presses a breadcrumb of the title bar, as the pointer does, by its place as the title bar draws it: 0 is the
+         * menu's, 1 the mod's, and 2 on the pages' on the way to the page that is shown. A crumb before the last is a
+         * link and the last is where the panel is; over the Help page and a report the menu's crumb is the only link
+         * here. The answer has what the panel shows then, and whether the dialog asks first.
+         */
+        json runBreadcrumb(const json& args)
+        {
+            auto& menu = g_modsConfig.menu();
+            if (!menu.isOpen()) {
+                throw std::runtime_error("the menu is not open");
+            }
+            auto& panel = menu.fullPanel();
+            const auto& selection = panel.selection();
+            const bool overPage = panel.isHelpShown() || panel.report().has_value();
+            const auto level = args.value("level", -1);
+            const std::size_t crumbs = overPage || !selection.mod ? 1 : 2 + selection.page.size();
+            if (level < 0 || static_cast<std::size_t>(level) >= crumbs) {
+                throw std::runtime_error(std::format("the title bar has no crumb {} that is pressed here", level));
+            }
+            const bool link = level == 0 ? selection.mod.has_value() || overPage : static_cast<std::size_t>(level) + 1 < crumbs;
+            if (!link) {
+                throw std::runtime_error("the crumb is where the panel is, which is no link");
+            }
+            ui::Selection pressed;
+            if (level > 0) {
+                pressed.mod = selection.mod;
+                pressed.page.assign(selection.page.begin(), selection.page.begin() + (level - 1));
+            }
+            menu.select(pressed);
+            const auto& shown = menu.selection();
+            return { { "mod", shown.mod ? json(*shown.mod) : json(nullptr) }, { "page", shown.page }, { "helpShown", panel.isHelpShown() }, { "asking", panel.isAsking() } };
         }
 
         /**
@@ -1002,7 +1088,8 @@ namespace mods_config::devbench
         f4cf::devbench::setToolDescription(
             "Mods Config FO4 VR: the in-game configuration menu for mods - open, close and minimize the menu, read its state, the mods it lists and the errors and warnings of "
             "each config spec, show a mod, one of "
-            "its pages or the Help page, go back, read the rows of the page as they are drawn with their values, fold a section, set a value or its default, set a value as the "
+            "its pages or the Help page, go back, press a breadcrumb, read the rows of the page as they are drawn with their values, fold a section, set a value or its default, "
+            "set a value as the "
             "mod's own "
             "client does through the API, run a button, Save or Discard the "
             "changes, and answer the dialog that asks about unsaved changes. Its events: menu.opened, menu.closed, menu.minimized, menu.restored, "
@@ -1020,7 +1107,9 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "close",
-            .description = "close the config menu",
+            .description = "close the config menu at once, its unsaved changes dropped, or with ask as the player closes it: the dialog asks first "
+                           "while the mod that is shown has unsaved changes, and with none it closes on the next frame",
+            .arguments = { { "ask", { { "type", "boolean" }, { "description", "close: close as the player does, with the gesture or Exit on the wrist" } } } },
             .handler = &runClose,
         });
         f4cf::devbench::addAction({
@@ -1028,6 +1117,15 @@ namespace mods_config::devbench
             .description = "one step back in the open menu, as the Back button: a page to the page it is under or to its mod's front page, that to the menu's "
                            "front page, and from there the menu closes",
             .handler = &runBack,
+        });
+        f4cf::devbench::addAction({
+            .name = "breadcrumb",
+            .description = "press a breadcrumb of the title bar, as the pointer does: one before the last is a link, and the dialog asks first when it leaves a mod "
+                           "with unsaved changes; over the Help page and a report only the menu's crumb is pressed",
+            .arguments = { { "level",
+                { { "type", "integer" },
+                    { "description", "breadcrumb: the crumb's place, 0 the menu's, 1 the mod's, 2 and on the pages' on the way to the page that is shown" } } } },
+            .handler = &runBreadcrumb,
         });
         f4cf::devbench::addAction({
             .name = "mods",
@@ -1066,7 +1164,8 @@ namespace mods_config::devbench
                            "folded now), for a button its warning (null for none), buttonText, runnable and enabled, for a text its lines, and for a setting its id, "
                            "type, value, available, invalid, reason, warning (null for none), tag (the help line's tag of when its pending change takes effect, "
                            "null while it is not dirty or that is not known), dirty, saved (the value its row's Discard gives a dirty one back), enabled, default, "
-                           "applies, and its range or options",
+                           "applies, storage (where its value is kept: kind file with its file, format, root, filePath and the path to the value in it, "
+                           "modSetting with MCM's name, global or property with its plugin and formId, clientState, unknown or none), and its range or options",
             .handler = &runPage,
         });
         f4cf::devbench::addAction({
