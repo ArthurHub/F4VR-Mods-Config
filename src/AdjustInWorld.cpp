@@ -106,9 +106,9 @@ namespace mods_config
         const auto stored = store.value(setting);
         const auto* text = std::get_if<std::string>(&stored.value);
         _before = text ? *text : std::string();
-        auto table = model::parseTransformTable(_before);
+        auto table = model::parseTransformTable(_before, setting.tableForm);
         if (!table && setting.defaultValue) {
-            table = model::parseTransformTable(std::get<std::string>(*setting.defaultValue));
+            table = model::parseTransformTable(std::get<std::string>(*setting.defaultValue), setting.tableForm);
         }
         _startTable = table ? *table : model::TransformTable{};
 
@@ -141,7 +141,7 @@ namespace mods_config
         const float seconds = (std::min)(std::chrono::duration<float>(now - _lastFrame).count(), LONGEST_FRAME_SECONDS);
         _lastFrame = now;
         if (_tuning->update(readInput(), seconds)) {
-            _store->set(*_setting, model::transformText(_tuning->table()));
+            _store->set(*_setting, model::transformText(_tuning->table(), _setting->tableForm));
         }
         return false;
     }

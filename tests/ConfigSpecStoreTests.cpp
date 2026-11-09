@@ -1034,6 +1034,58 @@ TEST_CASE("ConfigSpecStore: a setting of an INI file has the file's value or is 
     CHECK_FALSE(session.value(1).invalid);
 }
 
+TEST_CASE("ConfigSpecStore: a binding, a color and a transform of an INI file are its lines, invalid with the reason, and Save writes the menu's line")
+{
+    Session session(R"(
+        { "type": "cf.inputBinding", "text": "Grab", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+          "storage": { "file": "ini", "section": "Main", "key": "sGrab" } },
+        { "type": "cf.inputBinding", "text": "Open", "default": { "hand": "primary", "type": "tap", "button": "a" }, "storage": { "file": "ini", "section": "Main", "key": "sOpen" } },
+        { "type": "cf.color", "text": "Ray", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "file": "ini", "section": "Main", "key": "sRay" } },
+        { "type": "cf.color", "text": "Empty", "default": { "rgb": [255, 255, 255] }, "storage": { "file": "ini", "section": "Main", "key": "sEmpty" } },
+        { "type": "cf.transform", "text": "Mesh", "default": { "scale": 1.0 }, "storage": { "file": "ini", "section": "Main", "key": "sMesh" } },
+        { "type": "cf.transform", "text": "New", "default": { "pos": [0, 0, 12] }, "valueOptions": { "rotation": false },
+          "storage": { "file": "ini", "section": "Main", "key": "sNew" } }
+    )");
+    session.data.write("MyMod.ini", "[Main]\r\nsGrab = off  tap Trigger\r\nsOpen =\r\nsRay = 255, 0, 0\r\nsEmpty =\r\nsMesh = 1,2,3;0,90,0;1.5 ; mesh\r\n");
+    session.store.open(session.mod);
+
+    // the file's line in the menu's words, and an empty binding is off
+    CHECK(session.value(0).value == model::Value("offhand tap trigger"s));
+    CHECK(session.store.defaultValue(session.setting(0)) == session.value(0).value);
+    CHECK(session.value(1).value == model::Value("none"s));
+    CHECK_FALSE(session.value(1).invalid);
+    // a color with no alpha has its default's
+    CHECK(session.value(2).value == model::Value("255,0,0"s));
+    CHECK(model::colorOf(session.setting(2), session.value(2).value) == render::Color::rgba(255, 0, 0, 200));
+    // an empty color is invalid, and so is a transform with a comment after it, as an INI value keeps one
+    CHECK(session.value(3).invalid);
+    CHECK(session.value(3).reason == "Invalid: it is not r,g,b or r,g,b,a, each a whole number in 0..255, as 255,180,107.");
+    CHECK(session.value(4).value == model::Value("1,2,3;0,90,0;1.5 ; mesh"s));
+    CHECK(session.value(4).reason == "Invalid: it is not the seven numbers x,y,z;heading,roll,attitude;scale, as 0,0,12;0,0,0;1.");
+    // a key the file does not have is its default's line
+    CHECK(session.value(5).value == model::Value("0.0,0.0,12.0;0.0,0.0,0.0;1.0"s));
+    CHECK(session.store.dirtyCount() == 0);
+
+    // a value the player sets is the menu's line too, and a table is no line. A value is written where the file's was
+    CHECK(session.store.set(session.setting(1), "main longpress b 1.5 suppress +offhand:grip"s));
+    CHECK(session.value(1).value == model::Value("primary longpress menu 1.5 suppress +offhand:grip"s));
+    CHECK(session.store.set(session.setting(2), "{ rgb = [1, 2, 3] }"s));
+    CHECK(session.value(2).invalid);
+    CHECK(session.store.set(session.setting(2), "1,2,3,4"s));
+    CHECK(session.store.set(session.setting(3), "0,0,0"s));
+    CHECK(session.store.set(session.setting(5), "0,0,10;0,0,0;1"s));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.data.path / "MyMod.ini") ==
+          "[Main]\r\n"
+          "sGrab = off  tap Trigger\r\n"
+          "sOpen =primary longpress menu 1.5 suppress +offhand:grip\r\n"
+          "sRay = 1,2,3,4\r\n"
+          "sEmpty =0,0,0\r\n"
+          "sMesh = 1,2,3;0,90,0;1.5 ; mesh\r\n"
+          "sNew = 0.0,0.0,10.0;0.0,0.0,0.0;1.0\r\n");
+    CHECK(session.store.dirtyCount() == 0);
+}
+
 TEST_CASE("ConfigSpecStore: every setting of the config spec showcase's INI file is available, valid and clean with the shipped file")
 {
     const test_globals::TestGlobals globals;
@@ -1052,8 +1104,9 @@ TEST_CASE("ConfigSpecStore: every setting of the config spec showcase's INI file
             if (const auto* group = std::get_if<model::Group>(&item)) {
                 self(group->items, self);
             } else if (const auto* setting = std::get_if<model::Setting>(&item)) {
+                // a setting with no default is a mistake of the Mistakes page, as a default an INI line cannot have
                 const auto* storage = std::get_if<model::FileStorage>(&setting->storage);
-                if (!storage || storage->file != "ini") {
+                if (!storage || storage->file != "ini" || !setting->defaultValue) {
                     continue;
                 }
                 const auto value = store.value(*setting);

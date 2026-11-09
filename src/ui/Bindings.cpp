@@ -58,15 +58,15 @@ namespace
     }
 
     /**
-     * The binding a value of a binding setting is. None for a value that is no binding.
+     * The binding a value of a binding setting is, in the setting's form. None for a value that is no binding.
      */
-    std::optional<vrcf::InputBinding> bindingOf(const model::Value& value)
+    std::optional<vrcf::InputBinding> bindingOf(const model::Setting& setting, const model::Value& value)
     {
         const auto* text = std::get_if<std::string>(&value);
         if (!text) {
             return std::nullopt;
         }
-        auto binding = model::parseBinding(*text);
+        auto binding = model::parseBinding(*text, setting.tableForm);
         return binding ? std::optional(std::move(*binding)) : std::nullopt;
     }
 
@@ -107,9 +107,9 @@ namespace mods_config::ui
     /**
      * A value of a binding as the help line names it: its sentence. Empty for a value that is no binding.
      */
-    std::string bindingValueName(const model::Value& value, const bool leftHanded)
+    std::string bindingValueName(const model::Setting& setting, const model::Value& value, const bool leftHanded)
     {
-        const auto binding = bindingOf(value);
+        const auto binding = bindingOf(setting, value);
         return binding ? bindingSentence(*binding, leftHanded) : std::string();
     }
 
@@ -146,7 +146,8 @@ namespace mods_config::ui
      * in the full color while it is open. A value that is no binding is its text, as the file has it, in the frame of an
      * invalid value. One that is off is `None`, and one with no value has an empty frame. Returns its left edge.
      */
-    float drawBinding(const float right, const float top, const std::string* value, const ValueLook look, const bool open, const bool leftHanded, const ImageDrawer& drawer)
+    float drawBinding(const model::Setting& setting, const float right, const float top, const std::string* value, const ValueLook look, const bool open, const bool leftHanded,
+        const ImageDrawer& drawer)
     {
         const auto box = controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
         const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
@@ -159,7 +160,7 @@ namespace mods_config::ui
         float textLeft = box.Min.x + theme::SPACE_4;
         std::string text;
         if (value) {
-            const auto binding = bindingOf(*value);
+            const auto binding = bindingOf(setting, *value);
             text = binding ? bindingSentence(*binding, leftHanded) : *value;
             if (binding) {
                 const float iconsRight = drawBindingIcons(*binding, box.Min.x + theme::SPACE_3, box.GetCenter().y, ICON_SCALE, color, leftHanded, drawer);

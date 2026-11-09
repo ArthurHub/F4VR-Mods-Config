@@ -31,11 +31,13 @@ using namespace mods_config;
 namespace
 {
     /**
-     * Whether a setting's value is the TOML text of an inline table of its file: a binding's, a color's and a transform's.
+     * Whether a setting's value is the TOML text of an inline table of its file: a binding's, a color's and a transform's
+     * in a TOML file. In an INI file each is the text of its line, which is read and written as a text.
      */
     bool isTable(const model::Setting& setting)
     {
-        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Color || setting.type == model::SettingType::Transform;
+        const bool tableType = setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Color || setting.type == model::SettingType::Transform;
+        return tableType && setting.tableForm == model::TableForm::Toml;
     }
 
     /**
@@ -168,8 +170,9 @@ namespace
     /**
      * A value of the type a setting keeps, as its control has it: a slider has a number, also for a whole
      * number, a text input that takes a number has the text of it, a binding has its table's text and a haptic its
-     * pattern's name as the framework writes them, a color and a transform their table's text with the keys it has, and
-     * a dropdown of an activation sphere's key the option of a word the framework reads.
+     * pattern's name as the framework writes them, a color and a transform their table's text with the keys it has, each
+     * of the three its line in an INI file, and a dropdown of an activation sphere's key the option of a word the
+     * framework reads.
      * None for a value its control does not show: a switcher of anything but true or false, a slider of a text, and a
      * binding, a haptic, a color and a transform of anything but a text.
      */
@@ -205,7 +208,7 @@ namespace
             return stored;
         case model::SettingType::InputBinding:
             if (const auto* text = std::get_if<std::string>(&stored)) {
-                return model::canonicalBinding(*text);
+                return model::canonicalBinding(*text, setting.tableForm);
             }
             break;
         case model::SettingType::Haptic:
@@ -215,12 +218,12 @@ namespace
             break;
         case model::SettingType::Color:
             if (const auto* text = std::get_if<std::string>(&stored)) {
-                return model::canonicalColor(*text);
+                return model::canonicalColor(*text, setting.tableForm);
             }
             break;
         case model::SettingType::Transform:
             if (const auto* text = std::get_if<std::string>(&stored)) {
-                return model::canonicalTransform(*text);
+                return model::canonicalTransform(*text, setting.tableForm);
             }
             break;
         }
@@ -329,7 +332,7 @@ namespace
             break;
         case model::SettingType::InputBinding:
             if (const auto* text = std::get_if<std::string>(&value)) {
-                return model::canonicalBinding(*text);
+                return model::canonicalBinding(*text, setting.tableForm);
             }
             break;
         case model::SettingType::Haptic:
@@ -339,12 +342,12 @@ namespace
             break;
         case model::SettingType::Color:
             if (const auto* text = std::get_if<std::string>(&value)) {
-                return model::canonicalColor(*text);
+                return model::canonicalColor(*text, setting.tableForm);
             }
             break;
         case model::SettingType::Transform:
             if (const auto* text = std::get_if<std::string>(&value)) {
-                return model::canonicalTransform(*text);
+                return model::canonicalTransform(*text, setting.tableForm);
             }
             break;
         }
@@ -363,18 +366,18 @@ namespace
     std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
         if (setting.type == model::SettingType::InputBinding) {
-            const auto binding = model::parseBinding(std::get<std::string>(value));
+            const auto binding = model::parseBinding(std::get<std::string>(value), setting.tableForm);
             return binding ? model::untakenPart(*binding, setting.valueOptions) : binding.error();
         }
         if (setting.type == model::SettingType::Haptic) {
             return model::findHaptic(value) ? std::string() : std::format("{} is not a haptic pattern, so none plays", std::get<std::string>(value));
         }
         if (setting.type == model::SettingType::Color) {
-            const auto color = model::parseColorTable(std::get<std::string>(value));
+            const auto color = model::parseColorTable(std::get<std::string>(value), setting.tableForm);
             return color ? std::string() : color.error();
         }
         if (setting.type == model::SettingType::Transform) {
-            const auto transform = model::parseTransformTable(std::get<std::string>(value));
+            const auto transform = model::parseTransformTable(std::get<std::string>(value), setting.tableForm);
             return transform ? std::string() : transform.error();
         }
         const auto& limits = setting.valueOptions;
@@ -697,13 +700,13 @@ namespace
             return "Not available: its clientState names no state of its mod's client.";
         }
         if (storage.type == "binding") {
-            return "Not available: a binding is kept in a value of a TOML file.";
+            return "Not available: a binding is kept in a value of a TOML or an INI file.";
         }
         if (storage.type == "color") {
-            return "Not available: a color is kept in a value of a TOML file.";
+            return "Not available: a color is kept in a value of a TOML or an INI file.";
         }
         if (storage.type == "transform") {
-            return "Not available: a transform is kept in a value of a TOML file.";
+            return "Not available: a transform is kept in a value of a TOML or an INI file.";
         }
         if (storage.type == "transform parts") {
             return "Not available: its config spec turns off its position, its rotation and its scale.";
@@ -820,7 +823,7 @@ namespace mods_config::spec
                 entry.baseline = controlValue(*setting, options, *setting->defaultValue);
                 continue;
             }
-            // a binding and a color are the text of their table, which their control reads
+            // a binding, a color and a transform in a TOML file are the text of their table, which their control reads
             auto stored = !isTable(*setting) ? modFile->value(storage.path, setting->valueType) : modFile->tableText(storage.path).transform([](std::string text) {
                 return model::Value(std::move(text));
             });

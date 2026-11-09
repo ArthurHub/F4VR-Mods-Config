@@ -43,8 +43,8 @@ TEST_CASE("ParseCache: a text is parsed once, and the cache is emptied when it i
 
 TEST_CASE("ParseCache: a text that is no table keeps its reason")
 {
-    const auto first = model::parseTransformTable("{ rot = 5 }");
-    const auto again = model::parseTransformTable("{ rot = 5 }");
+    const auto first = model::parseTransformTable("{ rot = 5 }", model::TableForm::Toml);
+    const auto again = model::parseTransformTable("{ rot = 5 }", model::TableForm::Toml);
     REQUIRE_FALSE(first);
     REQUIRE_FALSE(again);
     CHECK(first.error() == again.error());

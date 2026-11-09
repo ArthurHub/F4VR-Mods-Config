@@ -11,7 +11,7 @@ The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which co
 | M170 | mod      | A condition on a setting of the game's INI, with no client state      | in review |
 | M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | in review   |
 | M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | in review   |
-| M173 | mod      | A color, a binding and a transform kept in an INI file                | todo   |
+| M173 | mod      | A color, a binding and a transform kept in an INI file                | in review |
 | M145 | mod      | The client is told what the ray is on                                 | todo   |
 
 The milestone fixes and polishes what the alpha finds. Its commits are added as they come.
@@ -29,7 +29,7 @@ M172 tells the player, in the Help page or the docs, two things the alpha asked:
 - One hand works the menu at a time: a hand pointing away selects nothing in the menu, and the active hand has the mark at the end of its ray. This helps prevent accidental presses while the game keeps running. With both rays on the panel, the other hand can take over with a trigger press, unless a drag is in progress.
 - The menu does not pause the game, on purpose: live changes are seen in the game at once, with the menu still open. Settings marked Save or Restart still wait for that step.
 
-M173 keeps a `cf.color`, a `cf.inputBinding` and a `cf.transform` in an INI file too, which take a TOML file alone now.
+M173 keeps a `cf.color`, a `cf.inputBinding` and a `cf.transform` in an INI file too, as a line of the text form CommonFramework's INI config had, so a mod with no TOML reads them. See [In an INI file](schema.md#in-an-ini-file).
 
 M145 tells a client which item of its config spec the ray is on, a row or a group, as it moves on and off one, beside the page events, so the mod shows in the world what the item sets: Immersive Flashlight lights the activation sphere whose rows the ray is on. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
 

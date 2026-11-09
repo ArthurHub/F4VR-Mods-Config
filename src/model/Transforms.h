@@ -7,9 +7,11 @@
 #include <string>
 #include <string_view>
 
+#include "ConfigDefinition.h"
+
 // The value of a transform setting, which is the TOML text of a CommonFramework transform's inline table,
 // `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, as the framework reads it, with each key optional
-// and the rotation in degrees.
+// and the rotation in degrees, or in an INI file its line of seven numbers, `x,y,z;heading,roll,attitude;scale`.
 
 namespace mods_config::model
 {
@@ -25,9 +27,9 @@ namespace mods_config::model
         bool operator==(const TransformTable&) const = default;
     };
 
-    std::expected<TransformTable, std::string> parseTransformTable(std::string_view text);
-    std::string transformText(const TransformTable& table);
-    std::string canonicalTransform(const std::string& text);
+    std::expected<TransformTable, std::string> parseTransformTable(std::string_view text, TableForm form);
+    std::string transformText(const TransformTable& table, TableForm form);
+    std::string canonicalTransform(const std::string& text, TableForm form);
     float axisValue(const TransformTable& table, std::size_t axis);
     void setAxis(TransformTable& table, std::size_t axis, float value);
 }

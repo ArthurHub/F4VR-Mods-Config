@@ -174,11 +174,11 @@ namespace
         REQUIRE(value);
         REQUIRE(setting.defaultValue);
         if (setting.type == model::SettingType::InputBinding) {
-            CHECK(model::canonicalBinding(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
+            CHECK(model::canonicalBinding(common::TomlEditor::Value(*value.node()).text(), model::TableForm::Toml) == std::get<std::string>(*setting.defaultValue));
         } else if (setting.type == model::SettingType::Color) {
-            CHECK(model::canonicalColor(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
+            CHECK(model::canonicalColor(common::TomlEditor::Value(*value.node()).text(), model::TableForm::Toml) == std::get<std::string>(*setting.defaultValue));
         } else if (setting.type == model::SettingType::Transform) {
-            CHECK(model::canonicalTransform(common::TomlEditor::Value(*value.node()).text()) == std::get<std::string>(*setting.defaultValue));
+            CHECK(model::canonicalTransform(common::TomlEditor::Value(*value.node()).text(), model::TableForm::Toml) == std::get<std::string>(*setting.defaultValue));
         } else if (const auto* on = std::get_if<bool>(&*setting.defaultValue)) {
             CHECK(value.value<bool>() == *on);
         } else if (const auto* whole = std::get_if<int>(&*setting.defaultValue)) {
@@ -1802,6 +1802,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
                                "A default of another type",
                                "A default outside its range",
                                "A binding's default it does not take",
+                               "A slow binding in an INI file",
                                "A haptic's default that is no pattern",
                                "A color's default that is no color",
                                "A transform's default that is no transform",
@@ -2044,7 +2045,7 @@ TEST_CASE("ConfigSpecLoader: a valueType that is no type is a warning, and the s
     CHECK(settings[1].valueType == model::StoredType::Float);
 }
 
-TEST_CASE("ConfigSpecLoader: a binding is the text of its table, with its default an object the framework reads, and offers suppress")
+TEST_CASE("ConfigSpecLoader: a binding is the text of its table or its INI line, with its default an object the framework reads, and offers suppress")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -2061,11 +2062,16 @@ TEST_CASE("ConfigSpecLoader: a binding is the text of its table, with its defaul
               "storage": { "path": ["Main", "kOpen"] } },
             { "type": "cf.inputBinding", "text": "Typo", "default": { "hand": "offhand", "type": "tap", "button": "thumbstik" }, "storage": { "path": ["Main", "kTypo"] } },
             { "type": "cf.inputBinding", "text": "Text", "valueType": "int", "default": "tap trigger", "storage": { "path": ["Main", "kText"] } },
-            { "type": "cf.inputBinding", "text": "In an INI file", "default": { "type": "none" }, "storage": { "file": "ini", "section": "Main", "key": "kBinding" } }
+            { "type": "cf.inputBinding", "text": "In an INI file", "default": { "hand": "primary", "type": "longpress", "button": "thumbstick", "duration": 1.5,
+              "suppress": true, "modifier": { "hand": "offhand", "button": "grip" } }, "storage": { "file": "ini", "section": "Main", "key": "kBinding" } },
+            { "type": "cf.inputBinding", "text": "Off in an INI file", "default": { "type": "none" }, "storage": { "file": "ini", "section": "Main", "key": "kOff" } },
+            { "type": "cf.inputBinding", "text": "Slow in an INI file", "default": { "hand": "primary", "type": "axis", "direction": "up", "accelerate": false },
+              "storage": { "file": "ini", "section": "Main", "key": "kSlow" } },
+            { "type": "cf.inputBinding", "text": "In a state", "default": { "type": "none" }, "storage": { "clientState": "binding" } }
         ]
     })");
     const auto settings = settingsOf(mod);
-    REQUIRE(settings.size() == 5);
+    REQUIRE(settings.size() == 8);
     for (const auto& setting : settings) {
         CHECK(setting.type == model::SettingType::InputBinding);
         CHECK(setting.valueType == model::StoredType::String);
@@ -2078,16 +2084,23 @@ TEST_CASE("ConfigSpecLoader: a binding is the text of its table, with its defaul
     CHECK_FALSE(settings[1].valueOptions.suppress);
     CHECK_FALSE(settings[2].defaultValue);
     CHECK_FALSE(settings[3].defaultValue);
-    CHECK(std::holds_alternative<model::UnknownStorage>(settings[4].storage));
+    // in an INI file, its line in the grammar's own words, and an INI line has no accelerate
+    CHECK(settings[0].tableForm == model::TableForm::Toml);
+    CHECK(settings[4].tableForm == model::TableForm::IniLine);
+    CHECK(settings[4].defaultValue == model::Value("primary longpress thumbstick 1.5 suppress +offhand:grip"s));
+    CHECK(settings[5].defaultValue == model::Value("none"s));
+    CHECK_FALSE(settings[6].defaultValue);
+    CHECK(std::holds_alternative<model::UnknownStorage>(settings[7].storage));
     CHECK(problemLines(mod) ==
           Lines{ "E Typo: Its default is not a binding: 'thumbstik' is not a button, one of trigger, grip, a, b, thumbstick, menu, system. It has no Reset. [Typo] "
                  "content[2].default",
               "E Text: It has no default binding, an object as { \"hand\": \"offhand\", \"type\": \"tap\", \"button\": \"trigger\" }: it has no Reset. [Text] content[3]",
               "W Text: Its valueType \"int\" is not string, which a binding is: it is read as string. [Text] content[3].valueType",
-              "E In an INI file: A binding is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+              "E Slow in an INI file: Its default turns accelerate off, which the line of an INI file cannot have. It has no Reset. [Slow in an INI file] content[6].default",
+              "E In a state: A binding is kept in a value of a TOML or an INI file, and it is not: it is not available. [In a state] content[7].storage" });
 }
 
-TEST_CASE("ConfigSpecLoader: a color is the text of its table, with its default an object the framework reads, and can be RGB only")
+TEST_CASE("ConfigSpecLoader: a color is the text of its table or its INI line, with its default an object the framework reads, and can be RGB only")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -2102,11 +2115,13 @@ TEST_CASE("ConfigSpecLoader: a color is the text of its table, with its default 
               "storage": { "path": ["Light", "cColor"] } },
             { "type": "cf.color", "text": "Out of range", "default": { "rgb": [300, 0, 0] }, "storage": { "path": ["Light", "cOut"] } },
             { "type": "cf.color", "text": "Text", "default": "red", "storage": { "path": ["Light", "cText"] } },
-            { "type": "cf.color", "text": "In an INI file", "default": { "alpha": 10 }, "storage": { "file": "ini", "section": "Main", "key": "cColor" } }
+            { "type": "cf.color", "text": "In an INI file", "default": { "rgb": [190, 255, 190], "alpha": 10 }, "storage": { "file": "ini", "section": "Main", "key": "cColor" } },
+            { "type": "cf.color", "text": "RGB in an INI file", "default": { "rgb": [255, 214, 170] }, "storage": { "file": "ini", "section": "Main", "key": "cLight" } },
+            { "type": "cf.color", "text": "In a state", "default": { "alpha": 10 }, "storage": { "clientState": "color" } }
         ]
     })");
     const auto settings = settingsOf(mod);
-    REQUIRE(settings.size() == 5);
+    REQUIRE(settings.size() == 7);
     for (const auto& setting : settings) {
         CHECK(setting.type == model::SettingType::Color);
         CHECK(setting.valueType == model::StoredType::String);
@@ -2118,12 +2133,16 @@ TEST_CASE("ConfigSpecLoader: a color is the text of its table, with its default 
     CHECK_FALSE(settings[1].valueOptions.alpha);
     CHECK_FALSE(settings[2].defaultValue);
     CHECK_FALSE(settings[3].defaultValue);
-    CHECK(std::holds_alternative<model::UnknownStorage>(settings[4].storage));
+    // in an INI file, its line, with an alpha where the table has one
+    CHECK(settings[4].tableForm == model::TableForm::IniLine);
+    CHECK(settings[4].defaultValue == model::Value("190,255,190,10"s));
+    CHECK(settings[5].defaultValue == model::Value("255,214,170"s));
+    CHECK(std::holds_alternative<model::UnknownStorage>(settings[6].storage));
     CHECK(problemLines(mod) ==
           Lines{ "W Light: Its valueType \"int\" is not string, which a color is: it is read as string. [Light] content[1].valueType",
               "E Out of range: Its default is not a color: rgb has a number that is not a whole number in 0..255. It has no Reset. [Out of range] content[2].default",
               "E Text: It has no default color, an object as { \"rgb\": [255, 255, 255], \"alpha\": 255 }: it has no Reset. [Text] content[3]",
-              "E In an INI file: A color is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+              "E In a state: A color is kept in a value of a TOML or an INI file, and it is not: it is not available. [In a state] content[6].storage" });
 }
 
 TEST_CASE("ConfigSpecLoader: a color's presets are its own or a shared list's, with their names, and one that is no color is left out")
@@ -2297,10 +2316,10 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
     const auto text = [&settings](const std::size_t place) {
         return std::get<std::string>(*settings[place].defaultValue);
     };
-    CHECK(text(0) == model::bindingText(framework.primary));
+    CHECK(text(0) == model::bindingText(framework.primary, model::TableForm::Toml));
     CHECK(text(1) == "Tick");
     CHECK(text(4) == "DoubleClick");
-    CHECK(text(5) == model::bindingText(framework.secondary));
+    CHECK(text(5) == model::bindingText(framework.secondary, model::TableForm::Toml));
     CHECK(text(6) == "DoubleClick");
     // the framework's icon, by its path in the mod's folder of Data
     CHECK(text(7) == R"(Textures\MyMod\)" + framework.iconStyle.textureOrDefault());
@@ -2400,7 +2419,7 @@ TEST_CASE("ConfigSpecLoader: a sphere's keys name a row, hide it or show one tha
     CHECK(primary.help == "Takes it.");
     CHECK_FALSE(primary.valueOptions.suppress);
     CHECK(primary.valueOptions.hands == std::vector{ vrcf::Hand::Offhand });
-    CHECK(primary.defaultValue == model::Value(model::canonicalBinding(R"({ hand = "offhand", type = "tap", button = "grip" })")));
+    CHECK(primary.defaultValue == model::Value(model::canonicalBinding(R"({ hand = "offhand", type = "tap", button = "grip" })", model::TableForm::Toml)));
     CHECK(primary.applies == model::Applies::Save);
     CHECK(setting("Sphere glow").applies == model::Applies::Restart);
     const auto& zone = setting("Zone").valueOptions.transformAxes;
@@ -2456,7 +2475,7 @@ TEST_CASE("ConfigSpecLoader: what a sphere gets wrong is reported where it is in
     CHECK(zone->place == model::RowPlace{ .page = {}, .item = { 0, 3, 0 } });
 }
 
-TEST_CASE("ConfigSpecLoader: a transform is the text of its table, with its default an object the framework reads")
+TEST_CASE("ConfigSpecLoader: a transform is the text of its table or its INI line, with its default an object the framework reads")
 {
     const auto mod = loaded(R"({
         "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
@@ -2470,11 +2489,12 @@ TEST_CASE("ConfigSpecLoader: a transform is the text of its table, with its defa
             { "type": "cf.transform", "text": "Zone", "valueType": "int", "default": { "pos": [0.0, 0.0, 12.0] }, "storage": { "path": ["Hand", "tZone"] } },
             { "type": "cf.transform", "text": "Two numbers", "default": { "pos": [0, 0] }, "storage": { "path": ["Hand", "tTwo"] } },
             { "type": "cf.transform", "text": "Text", "default": "0,0,0;0,0,0;1", "storage": { "path": ["Hand", "tText"] } },
-            { "type": "cf.transform", "text": "In an INI file", "default": {}, "storage": { "file": "ini", "section": "Main", "key": "tMesh" } }
+            { "type": "cf.transform", "text": "In an INI file", "default": { "pos": [0, 0, 12.5] }, "storage": { "file": "ini", "section": "Main", "key": "tMesh" } },
+            { "type": "cf.transform", "text": "In a state", "default": {}, "storage": { "clientState": "transform" } }
         ]
     })");
     const auto settings = settingsOf(mod);
-    REQUIRE(settings.size() == 5);
+    REQUIRE(settings.size() == 6);
     for (const auto& setting : settings) {
         CHECK(setting.type == model::SettingType::Transform);
         CHECK(setting.valueType == model::StoredType::String);
@@ -2484,11 +2504,14 @@ TEST_CASE("ConfigSpecLoader: a transform is the text of its table, with its defa
     CHECK(settings[1].defaultValue == model::Value("{ pos = [0.0, 0.0, 12.0] }"s));
     CHECK_FALSE(settings[2].defaultValue);
     CHECK_FALSE(settings[3].defaultValue);
-    CHECK(std::holds_alternative<model::UnknownStorage>(settings[4].storage));
+    // in an INI file, its line of all seven numbers, a key the table leaves out as the framework reads it
+    CHECK(settings[4].tableForm == model::TableForm::IniLine);
+    CHECK(settings[4].defaultValue == model::Value("0.0,0.0,12.5;0.0,0.0,0.0;1.0"s));
+    CHECK(std::holds_alternative<model::UnknownStorage>(settings[5].storage));
     CHECK(problemLines(mod) == Lines{ "W Zone: Its valueType \"int\" is not string, which a transform is: it is read as string. [Zone] content[1].valueType",
                                    "E Two numbers: Its default is not a transform: pos is not an array of three numbers. It has no Reset. [Two numbers] content[2].default",
                                    "E Text: It has no default transform, an object as { \"pos\": [0, 0, 0], \"rot\": [0, 0, 0], \"scale\": 1 }: it has no Reset. [Text] content[3]",
-                                   "E In an INI file: A transform is kept in a value of a TOML file, and it is not: it is not available. [In an INI file] content[4].storage" });
+                                   "E In a state: A transform is kept in a value of a TOML or an INI file, and it is not: it is not available. [In a state] content[5].storage" });
 }
 
 TEST_CASE("ConfigSpecLoader: a transform's parts are on with their own ranges, or off, or have the range its config spec gives, of a part or of an axis")

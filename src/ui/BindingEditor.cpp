@@ -462,9 +462,9 @@ namespace mods_config::ui
             const auto stored = store.value(setting);
             const auto* text = std::get_if<std::string>(&stored.value);
             _before = text ? *text : std::string();
-            auto binding = model::parseBinding(_before);
+            auto binding = model::parseBinding(_before, setting.tableForm);
             if (!binding && setting.defaultValue) {
-                binding = model::parseBinding(std::get<std::string>(*setting.defaultValue));
+                binding = model::parseBinding(std::get<std::string>(*setting.defaultValue), setting.tableForm);
             }
             _binding = binding ? *binding : vrcf::InputBinding{};
             _typeOn = _binding.isEnabled() ? _binding.type : vrcf::ActivationType::Tap;
@@ -918,12 +918,13 @@ namespace mods_config::ui
     }
 
     /**
-     * Sets the binding as its parts are now in the store, as the TOML text of its table, which the framework writes:
-     * a binding that is off is `{ type = "none" }`, and a `suppress` a setting does not offer stays as it was.
+     * Sets the binding as its parts are now in the store, in its setting's form: the TOML text of its table, which the
+     * framework writes, or an INI line. A binding that is off is `{ type = "none" }` or `none`, and a `suppress` a setting
+     * does not offer stays as it was.
      */
     void BindingEditor::apply(const model::Setting& setting, model::Store& store) const
     {
-        store.set(setting, model::bindingText(_binding));
+        store.set(setting, model::bindingText(_binding, setting.tableForm));
     }
 
     bool BindingEditor::isOpen(const model::Setting& setting) const

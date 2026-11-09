@@ -426,18 +426,18 @@ namespace mods_config::ui
      */
     void ColorEditor::start(const model::Setting& setting, const std::string& text)
     {
-        auto table = model::parseColorTable(text);
+        auto table = model::parseColorTable(text, setting.tableForm);
         if (!table && setting.defaultValue) {
-            table = model::parseColorTable(std::get<std::string>(*setting.defaultValue));
+            table = model::parseColorTable(std::get<std::string>(*setting.defaultValue), setting.tableForm);
         }
         _table = table ? *table : model::ColorTable{};
         _color = model::tableColor(_table, model::colorBase(setting));
     }
 
     /**
-     * Sets the color as its channels are now in the store, as the TOML text of its table: with the keys it had, and the
-     * key of the part that changed, its red, green and blue or its alpha. A color that is RGB only writes no alpha, and
-     * keeps one its value has.
+     * Sets the color as its channels are now in the store, in its setting's form, the TOML text of its table or an INI
+     * line: with the keys it had, and the key of the part that changed, its red, green and blue or its alpha. A color
+     * that is RGB only writes no alpha, and keeps one its value has.
      */
     void ColorEditor::apply(const model::Setting& setting, model::Store& store, const bool rgb, const bool alpha)
     {
@@ -448,7 +448,7 @@ namespace mods_config::ui
         if (alpha && setting.valueOptions.alpha) {
             _table.alpha = bytes[3];
         }
-        store.set(setting, model::colorText(_table));
+        store.set(setting, model::colorText(_table, setting.tableForm));
     }
 
     /**

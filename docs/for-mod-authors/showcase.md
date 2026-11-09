@@ -400,6 +400,8 @@ A config spec can edit several files, named in its root's `files`. A setting's f
 }
 ```
 
+A binding, a color and a transform in an INI file are their lines, for a mod that reads its INI with no TOML: `primary longpress thumbstick 1.5 +offhand:grip`, `255,180,107,200` and `0.0,0.0,12.0;0.0,-5.0,0.0;1.0`. See [In an INI file](../design/schema.md#in-an-ini-file).
+
 A file that is not there yet is created by the first Save that changes one of its settings. A Save writes a file in place, keeping its comments, its blank lines and the order of its keys. See [Files](../design/schema.md#files) and [Storage](../design/schema.md#storage).
 
 ![Files](../assets/showcase/files.png)

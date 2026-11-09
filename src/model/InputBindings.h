@@ -8,13 +8,13 @@
 #include "vrcf/VRControllersManager.h"
 
 // The value of a binding setting, which is the TOML text of a CommonFramework binding's inline table, as the
-// framework reads and writes it.
+// framework reads and writes it, or in an INI file its line, as `primary longpress thumbstick 1.5 +offhand:thumbstick`.
 
 namespace mods_config::model
 {
-    std::expected<vrcf::InputBinding, std::string> parseBinding(std::string_view text);
-    std::string bindingText(const vrcf::InputBinding& binding);
-    std::string canonicalBinding(const std::string& text);
+    std::expected<vrcf::InputBinding, std::string> parseBinding(std::string_view text, TableForm form);
+    std::string bindingText(const vrcf::InputBinding& binding, TableForm form);
+    std::string canonicalBinding(const std::string& text, TableForm form);
 
     bool takesHand(const ValueOptions& options, vrcf::Hand hand);
     bool takesType(const ValueOptions& options, vrcf::ActivationType type);

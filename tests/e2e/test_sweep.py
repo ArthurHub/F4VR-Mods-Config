@@ -39,6 +39,24 @@ def shows(shown, value):
         return False
 
 
+def line_candidates(kind, value):
+    """The values other than its own to try of a binding, a color or a transform kept in an INI file, which is its line:
+    a binding on the other hand, a color with another red, and a transform with another first number."""
+    if kind == "cf.inputBinding":
+        hand, _, rest = value.partition(" ")
+        if hand in ("primary", "offhand"):
+            yield f"{'offhand' if hand == 'primary' else 'primary'} {rest}"
+    elif kind == "cf.color":
+        channels = [int(channel) for channel in value.split(",")]
+        for delta in (1, -1):
+            if 0 <= channels[0] + delta <= 255:
+                yield ",".join(str(channel) for channel in [channels[0] + delta, *channels[1:]])
+    else:
+        first, _, rest = value.partition(",")
+        for delta in (0.1, -0.1):
+            yield f"{round(float(first) + delta, 4)},{rest}"
+
+
 def candidates(row):
     """The values other than a setting's own to try, the likeliest valid first."""
     value, kind = row["value"], row["type"]
@@ -64,6 +82,8 @@ def candidates(row):
             for moved in (number + 1, number - 1):
                 moved = int(moved) if moved.is_integer() and "." not in str(value) else moved
                 yield str(moved) if isinstance(value, str) else moved
+    elif kind in ("cf.inputBinding", "cf.color", "cf.transform") and row["storage"].get("format") == "ini":
+        yield from line_candidates(kind, value)
     elif kind == "cf.inputBinding":
         binding = table(value)
         if binding.get("hand") in ("primary", "offhand"):

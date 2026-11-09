@@ -2718,6 +2718,27 @@
                   "help": "A ; or a # starts a comment only at the start of a line, so a text can have either.",
                   "default": "Sanctuary; Red Rocket",
                   "storage": { "section": "Ini", "key": "sText" }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "INI binding",
+                  "help": "A binding in an INI file is its line, in the framework's words, which a mod with no TOML reads.",
+                  "default": { "hand": "primary", "type": "longpress", "button": "thumbstick", "duration": 1.5, "modifier": { "hand": "offhand", "button": "grip" } },
+                  "storage": { "section": "Ini", "key": "sBinding" }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "INI color",
+                  "help": "A color in an INI file is r,g,b or r,g,b,a, each from 0 to 255.",
+                  "default": { "rgb": [255, 180, 107], "alpha": 200 },
+                  "storage": { "section": "Ini", "key": "sColor" }
+                },
+                {
+                  "type": "cf.transform",
+                  "text": "INI transform",
+                  "help": "A transform in an INI file is its seven numbers: x,y,z;heading,roll,attitude;scale.",
+                  "default": { "pos": [0.0, 0.0, 12.0], "rot": [0.0, -5.0, 0.0], "scale": 1.0 },
+                  "storage": { "section": "Ini", "key": "sTransform" }
                 }
               ]
             },
@@ -3463,25 +3484,11 @@
                   "storage": { "global": "Fallout4.esm|38" }
                 },
                 {
-                  "type": "cf.inputBinding",
-                  "text": "A binding in an INI file",
-                  "help": "A binding is kept in a TOML file, as the framework keeps it.",
-                  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
-                  "storage": { "file": "ini", "section": "Mistakes", "key": "kBinding" }
-                },
-                {
                   "type": "cf.color",
-                  "text": "A color in an INI file",
-                  "help": "A color is kept in a TOML file, as the framework keeps it.",
+                  "text": "A color in a global",
+                  "help": "A binding, a color and a transform are kept in a TOML or an INI file.",
                   "default": { "rgb": [255, 255, 255] },
-                  "storage": { "file": "ini", "section": "Mistakes", "key": "cColor" }
-                },
-                {
-                  "type": "cf.transform",
-                  "text": "A transform in an INI file",
-                  "help": "A transform is kept in a TOML file, as the framework keeps it.",
-                  "default": { "scale": 1.0 },
-                  "storage": { "file": "ini", "section": "Mistakes", "key": "tTransform" }
+                  "storage": { "global": "Fallout4.esm|38" }
                 }
               ]
             },
@@ -3522,6 +3529,13 @@
                   "default": { "hand": "primary", "type": "tap", "button": "grip" },
                   "valueOptions": { "types": ["press"] },
                   "storage": { "path": ["Mistakes", "kUntakenDefault"] }
+                },
+                {
+                  "type": "cf.inputBinding",
+                  "text": "A slow binding in an INI file",
+                  "help": "Its default turns accelerate off, which the line of an INI file cannot have, so it has no Reset.",
+                  "default": { "hand": "primary", "type": "axis", "direction": "up", "accelerate": false },
+                  "storage": { "file": "ini", "section": "Mistakes", "key": "sBinding" }
                 },
                 {
                   "type": "cf.inputBinding",

@@ -1,8 +1,12 @@
 #include "Colors.h"
 
+#include <charconv>
 #include <format>
+#include <ranges>
+#include <vector>
 
 #include "ParseCache.h"
+#include "common/CommonUtils.h"
 #include "common/TomlEditor.h"
 #include "config/ValueParsers.h"
 
@@ -43,21 +47,52 @@ namespace mods_config::model
     }
 
     /**
-     * The color table of the TOML text of an inline table, as the framework reads it from its config, or the
-     * framework's reason it is none, as `rgb has a number that is not a whole number in 0..255`, which starts with the
-     * key it names as it is written. A text that is no TOML value is none too. Parsed once per text (`cachedParse`).
+     * The color table of an INI file's line of a color, parsed each time: `parseColorTable` keeps what it gives.
      */
-    std::expected<ColorTable, std::string> parseColorTable(const std::string_view text)
+    static std::expected<ColorTable, std::string> parseColorLine(const std::string_view text)
     {
-        return cachedParse<parseColorTableText>(text);
+        const auto notColor = [] {
+            return std::unexpected(std::string("it is not r,g,b or r,g,b,a, each a whole number in 0..255, as 255,180,107"));
+        };
+        std::vector<int> channels;
+        for (const auto part : std::views::split(text, ',')) {
+            const auto number = common::trim(std::string(std::string_view(part)));
+            int channel = 0;
+            const auto [end, error] = std::from_chars(number.data(), number.data() + number.size(), channel);
+            if (number.empty() || error != std::errc() || end != number.data() + number.size() || channel < 0 || channel > 255) {
+                return notColor();
+            }
+            channels.push_back(channel);
+        }
+        if (channels.size() != 3 && channels.size() != 4) {
+            return notColor();
+        }
+        return ColorTable{ .rgb = std::array{ channels[0], channels[1], channels[2] }, .alpha = channels.size() == 4 ? std::optional(channels[3]) : std::nullopt };
     }
 
     /**
-     * A color table as the TOML text of its inline table, with the keys it has, rgb before alpha:
-     * `{ rgb = [190, 255, 190], alpha = 200 }`. A table with no key is `{}`.
+     * The color table of a color's text, or the reason it is none. The TOML text of an inline table is read as the
+     * framework reads it from its config, with the framework's reason, as `rgb has a number that is not a whole number
+     * in 0..255`, which starts with the key it names as it is written. An INI line is `r,g,b` or `r,g,b,a`, with spaces
+     * around a number allowed, and has rgb, and alpha where it has four. Parsed once per text (`cachedParse`).
      */
-    std::string colorText(const ColorTable& table)
+    std::expected<ColorTable, std::string> parseColorTable(const std::string_view text, const TableForm form)
     {
+        return form == TableForm::IniLine ? cachedParse<parseColorLine>(text) : cachedParse<parseColorTableText>(text);
+    }
+
+    /**
+     * A color table as the text of its form. The TOML text of its inline table has the keys it has, rgb before alpha:
+     * `{ rgb = [190, 255, 190], alpha = 200 }`, and `{}` for a table with no key. An INI line is `r,g,b`, white for a
+     * table with no rgb, with `,a` where the table has alpha: `190,255,190,200`.
+     */
+    std::string colorText(const ColorTable& table, const TableForm form)
+    {
+        if (form == TableForm::IniLine) {
+            const auto rgb = table.rgb.value_or(std::array{ 255, 255, 255 });
+            const auto line = std::format("{},{},{}", rgb[0], rgb[1], rgb[2]);
+            return table.alpha ? std::format("{},{}", line, *table.alpha) : line;
+        }
         std::string text;
         if (table.rgb) {
             text += std::format("rgb = [{}, {}, {}]", (*table.rgb)[0], (*table.rgb)[1], (*table.rgb)[2]);
@@ -72,10 +107,10 @@ namespace mods_config::model
      * The text of a color as the menu writes it, so two texts of one color are the same text: a file can write a key's
      * place and its spaces in another way. A text that is no color is as it is.
      */
-    std::string canonicalColor(const std::string& text)
+    std::string canonicalColor(const std::string& text, const TableForm form)
     {
-        const auto table = parseColorTable(text);
-        return table ? colorText(*table) : text;
+        const auto table = parseColorTable(text, form);
+        return table ? colorText(*table, form) : text;
     }
 
     /**
@@ -103,7 +138,7 @@ namespace mods_config::model
         if (!text) {
             return WHITE;
         }
-        const auto table = parseColorTable(*text);
+        const auto table = parseColorTable(*text, setting.tableForm);
         return table ? tableColor(*table, WHITE) : WHITE;
     }
 
@@ -117,7 +152,7 @@ namespace mods_config::model
         if (!text) {
             return std::nullopt;
         }
-        const auto table = parseColorTable(*text);
+        const auto table = parseColorTable(*text, setting.tableForm);
         return table ? std::optional(tableColor(*table, colorBase(setting))) : std::nullopt;
     }
 

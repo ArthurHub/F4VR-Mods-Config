@@ -40,7 +40,7 @@ TEST_CASE("TransformTuning: the sticks move a transform, past the deadzone, by t
 
     // a stick that rests does nothing
     CHECK_FALSE(tuning.update({ .primaryX = 0.4f, .primaryY = -0.4f, .offhandY = 0.5f }, SECOND));
-    CHECK(model::transformText(tuning.table()) == "{ pos = [1.0, 2.0, 3.0] }");
+    CHECK(model::transformText(tuning.table(), model::TableForm::Toml) == "{ pos = [1.0, 2.0, 3.0] }");
 
     // the primary's Y along X, its X along Y and the offhand's Y along Z, at a full push
     CHECK(tuning.update({ .primaryY = FULL }, SECOND));

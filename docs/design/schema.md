@@ -331,7 +331,7 @@ A `textinput` whose `valueType` is `int` or `float` takes a number, as MCM's `te
 
 A setting whose `type` starts with `cf.` edits a value in the form CommonFramework fixes for its TOML config; see [CommonFramework-specific controls](controls.md#commonframework-specific-controls). The prefix says the value is the framework's, so an author knows its words and its checks are the framework's too.
 
-`cf.inputBinding` is a controller binding, the inline table of a `k` key. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. `"valueOptions": { "suppress": true }` offers Suppress from the game in its editor, for a binding whose consumer applies it, as an activation sphere's. `hands`, `types` and `buttons` in its `valueOptions` are lists of the framework's words of each, which the binding takes alone, as a menu's Back that is no hold and no press of the trigger: its editor offers those, and a binding of another is invalid, with what it takes. The button of a push is its axis's, and a binding that is off is always taken. A list left out takes every one, and a word that is none of its part's is left out, with a warning. A `default` the setting does not take is an error, and it then has no Reset.
+`cf.inputBinding` is a controller binding, the inline table of a `k` key. It is kept in a value of a TOML file, as the framework keeps it, or of an INI file as its line (see [In an INI file](#in-an-ini-file)), and its `valueType` is `string`, the TOML text of the table or the line. Its `default` is the table as a JSON object, which the framework reads as it reads its config. `"valueOptions": { "suppress": true }` offers Suppress from the game in its editor, for a binding whose consumer applies it, as an activation sphere's. `hands`, `types` and `buttons` in its `valueOptions` are lists of the framework's words of each, which the binding takes alone, as a menu's Back that is no hold and no press of the trigger: its editor offers those, and a binding of another is invalid, with what it takes. The button of a push is its axis's, and a binding that is off is always taken. A list left out takes every one, and a word that is none of its part's is left out, with a warning. A `default` the setting does not take is an error, and it then has no Reset.
 
 ```json
 {
@@ -364,7 +364,7 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
 }
 ```
 
-`cf.color` is a color, the inline table of a `c` key, `{ rgb = [r, g, b], alpha = a }`, each a whole number in 0..255 and each key optional. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. The color shown is the one the framework reads: the keys the value has, over the default's channels. A changed value is written with the keys it had and the key of the part that changed. `"valueOptions": { "alpha": false }` is a color whose opacity means nothing, as a light's: it shows and edits no alpha, and writes `rgb` alone. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
+`cf.color` is a color, the inline table of a `c` key, `{ rgb = [r, g, b], alpha = a }`, each a whole number in 0..255 and each key optional. It is kept in a value of a TOML file, as the framework keeps it, or of an INI file as its line (see [In an INI file](#in-an-ini-file)), and its `valueType` is `string`, the TOML text of the table or the line. Its `default` is the table as a JSON object, which the framework reads as it reads its config. The color shown is the one the framework reads: the keys the value has, over the default's channels. A changed value is written with the keys it had and the key of the part that changed. `"valueOptions": { "alpha": false }` is a color whose opacity means nothing, as a light's: it shows and edits no alpha, and writes `rgb` alone. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
 
 ```json
 {
@@ -389,7 +389,7 @@ Its editor has five basics in its footer, which every color has: white, black, r
 
 A list that several colors use is written once, as a choice's options are: `sharedPresetLists` at the config spec's root holds each list by its name, and a color names one with `"sharedPresets": "lights"` in place of its own `presets`. A color with both uses its own, and a name of no list is a warning, and the color has the basics alone.
 
-`cf.transform` is where a mesh, a light or a zone sits on its node, the inline table of a `t` key, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, with the rotation in degrees and each key optional. It is kept in a value of a TOML file, as the framework keeps it, and its `valueType` is `string`, the TOML text of the table. Its `default` is the table as a JSON object, which the framework reads as it reads its config. A key the value leaves out is what the framework reads for it: no move, no rotation, a scale of 1. A changed value is written with the keys it had and the key of the part that changed. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
+`cf.transform` is where a mesh, a light or a zone sits on its node, the inline table of a `t` key, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, with the rotation in degrees and each key optional. It is kept in a value of a TOML file, as the framework keeps it, or of an INI file as its line (see [In an INI file](#in-an-ini-file)), and its `valueType` is `string`, the TOML text of the table or the line. Its `default` is the table as a JSON object, which the framework reads as it reads its config. A key the value leaves out is what the framework reads for it: no move, no rotation, a scale of 1. A changed value is written with the keys it had and the key of the part that changed. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
 
 Its `valueOptions` has `position`, `rotation` and `scale`, the three parts its editor has a slider for, each `true`, `false` or the range of its sliders:
 
@@ -454,6 +454,23 @@ An author gives an id to a setting that something names, a condition or a script
 Setting IDs are unique across the config spec, given or made. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Two settings whose ids come out the same are an error of the config spec, and giving one of them an id resolves it. Only a setting and a page have an id: nothing names a section or a button.
 
 Scripts read a setting kept in a file by the config spec's `modName` and the setting's `id`, so renaming either breaks the scripts that use it; see [Papyrus API](architecture.md#papyrus-api). For a setting with no `id` of its own, that is renaming its section or its key.
+
+#### In an INI file
+
+A binding, a color and a transform can be kept in an INI file too, for a mod that reads its INI with no TOML. The value is then a line, in the text form CommonFramework's INI config had, which the mod parses itself:
+
+- A color is `r,g,b` or `r,g,b,a`, each a whole number in 0..255, as `255,180,107,200`. A line with no `a` has its default's alpha. A changed color is written with an `a` where it had one or its alpha changed, and a color whose `alpha` is false is written as `r,g,b`.
+- A transform is its seven numbers, `x,y,z;heading,roll,attitude;scale`, with the rotation in degrees, as `0.0,0.0,12.0;0.0,-5.0,0.0;1.0`. A line is all seven numbers or is invalid, and it is written with all seven: a part that is off keeps the file's numbers, and a new key has its default's, a key the default leaves out as the framework reads it.
+- A binding is `<hand> <type> <button> [duration]`, or `<hand> axis <axis> <direction> [threshold]` for a push of a stick or a trigger, then `suppress` and a modifier, `+button` or `+hand:button`, where it has them, as `primary longpress thumbstick 1.5 +offhand:grip`. An off binding is `none`. The menu writes these words alone:
+  - hand: `primary`, `offhand`, `right`, `left`, `any`
+  - type: `press`, `touch`, `hold`, `release`, `tap`, `longpress`, `double`, `axis`
+  - button: `trigger`, `grip`, `a`, `menu` (B), `thumbstick`, `system`
+  - axis: `thumbstick`, `trigger`, `grip`
+  - direction: `up`, `down`, `left`, `right`, `any`, `updown`, `rightleft`
+
+  It reads the other names the framework has for them too, as `off` for `offhand`, and an empty line as off. A line has no `accelerate`: a `default` that turns it off is an error, and the setting then has no Reset.
+
+Spaces around a number are read, and the menu writes none. A line that is none of these is invalid, with what it should be, and so is an empty color or transform. The `default` is the table as a JSON object, as in a TOML file, so a config spec moves a setting between the two files by its `storage` alone. A mod's client is told the line, and hands the line back, see [Native API](../for-mod-authors/native-api.md).
 
 ### Read-only
 

@@ -989,7 +989,7 @@ namespace
                     table[key] = *channel;
                 }
             }
-            const auto color = model::parseColorTable(tomlText(table));
+            const auto color = model::parseColorTable(tomlText(table), model::TableForm::Toml);
             if (!color || !color->rgb) {
                 reading.report(model::Severity::Error, std::format("{} is left out: {}.", which, color ? "it has no rgb"s : color.error()));
                 continue;
@@ -1326,19 +1326,20 @@ namespace
 
     /**
      * The `default` of a binding: the binding's table as a JSON object, as `{ "hand": "offhand", "type": "tap",
-     * "button": "trigger" }`, which the framework reads as it reads the table of its config. It is the TOML text of
-     * the table as the framework writes it. None for a default that is no object, or no binding, which is an error
-     * of the config spec that is reported with the framework's reason, and the setting then has no Reset. So is one
-     * of a hand, a way or a button the setting does not take.
+     * "button": "trigger" }`, which the framework reads as it reads the table of its config. It is the text of its form:
+     * the TOML text of the table as the framework writes it, or an INI file's line. None for a default that is no
+     * object, or no binding, which is an error of the config spec that is reported with the framework's reason, and the
+     * setting then has no Reset. So is one of a hand, a way or a button the setting does not take, and one an INI line
+     * cannot have, which turns `accelerate` off.
      */
-    std::optional<model::Value> loadBindingDefault(const Json& row, const model::ValueOptions& options, ConfigSpecReading& reading)
+    std::optional<model::Value> loadBindingDefault(const Json& row, const model::TableForm form, const model::ValueOptions& options, ConfigSpecReading& reading)
     {
         const auto found = row.find("default");
         if (found == row.end() || !found->is_object()) {
             reading.report(model::Severity::Error, R"(It has no default binding, an object as { "hand": "offhand", "type": "tap", "button": "trigger" }: it has no Reset.)");
             return std::nullopt;
         }
-        const auto binding = model::parseBinding(tomlText(*found));
+        const auto binding = model::parseBinding(tomlText(*found), model::TableForm::Toml);
         if (!binding) {
             const Into into(reading, "default");
             reading.report(model::Severity::Error, std::format("Its default is not a binding: {}. It has no Reset.", binding.error()));
@@ -1349,51 +1350,56 @@ namespace
             reading.report(model::Severity::Error, std::format("Its default is not a binding it takes: {}. It has no Reset.", untaken));
             return std::nullopt;
         }
-        return model::bindingText(*binding);
+        if (form == model::TableForm::IniLine && !binding->accelerate) {
+            const Into into(reading, "default");
+            reading.report(model::Severity::Error, "Its default turns accelerate off, which the line of an INI file cannot have. It has no Reset.");
+            return std::nullopt;
+        }
+        return model::bindingText(*binding, form);
     }
 
     /**
      * The `default` of a color: the color's table as a JSON object, as `{ "rgb": [190, 255, 190], "alpha": 200 }`, which
-     * the framework reads as it reads the table of its config. It is the TOML text of the table, with the keys it has.
-     * None for a default that is no object, or no color, which is an error of the config spec that is reported with
-     * the framework's reason, and the setting then has no Reset.
+     * the framework reads as it reads the table of its config. It is the text of its form: the TOML text of the table,
+     * with the keys it has, or an INI file's line. None for a default that is no object, or no color, which is an error
+     * of the config spec that is reported with the framework's reason, and the setting then has no Reset.
      */
-    std::optional<model::Value> loadColorDefault(const Json& row, ConfigSpecReading& reading)
+    std::optional<model::Value> loadColorDefault(const Json& row, const model::TableForm form, ConfigSpecReading& reading)
     {
         const auto found = row.find("default");
         if (found == row.end() || !found->is_object()) {
             reading.report(model::Severity::Error, R"(It has no default color, an object as { "rgb": [255, 255, 255], "alpha": 255 }: it has no Reset.)");
             return std::nullopt;
         }
-        const auto color = model::parseColorTable(tomlText(*found));
+        const auto color = model::parseColorTable(tomlText(*found), model::TableForm::Toml);
         if (!color) {
             const Into into(reading, "default");
             reading.report(model::Severity::Error, std::format("Its default is not a color: {}. It has no Reset.", color.error()));
             return std::nullopt;
         }
-        return model::colorText(*color);
+        return model::colorText(*color, form);
     }
 
     /**
      * The `default` of a transform: the transform's table as a JSON object, as `{ "pos": [0.0, 0.0, 12.0], "scale": 1.0 }`,
-     * which the framework reads as it reads the table of its config. It is the TOML text of the table, with the keys it
-     * has. None for a default that is no object, or no transform, which is an error of the config spec that is reported
-     * with the framework's reason, and the setting then has no Reset.
+     * which the framework reads as it reads the table of its config. It is the text of its form: the TOML text of the
+     * table, with the keys it has, or an INI file's line. None for a default that is no object, or no transform, which is
+     * an error of the config spec that is reported with the framework's reason, and the setting then has no Reset.
      */
-    std::optional<model::Value> loadTransformDefault(const Json& row, ConfigSpecReading& reading)
+    std::optional<model::Value> loadTransformDefault(const Json& row, const model::TableForm form, ConfigSpecReading& reading)
     {
         const auto found = row.find("default");
         if (found == row.end() || !found->is_object()) {
             reading.report(model::Severity::Error, R"(It has no default transform, an object as { "pos": [0, 0, 0], "rot": [0, 0, 0], "scale": 1 }: it has no Reset.)");
             return std::nullopt;
         }
-        const auto transform = model::parseTransformTable(tomlText(*found));
+        const auto transform = model::parseTransformTable(tomlText(*found), model::TableForm::Toml);
         if (!transform) {
             const Into into(reading, "default");
             reading.report(model::Severity::Error, std::format("Its default is not a transform: {}. It has no Reset.", transform.error()));
             return std::nullopt;
         }
-        return model::transformText(*transform);
+        return model::transformText(*transform, form);
     }
 
     /**
@@ -1444,24 +1450,25 @@ namespace
     }
 
     /**
-     * The `default` of a setting, in its value's type. None for a setting with no default of its type, or
-     * with one that is not one of its values: outside its limits, of a length it does not allow, or none of
-     * its options. Both are errors of the config spec that are reported, and the setting then has no Reset.
+     * The `default` of a setting, in its value's type, and a binding's, a color's and a transform's in its table's form.
+     * None for a setting with no default of its type, or with one that is not one of its values: outside its limits, of
+     * a length it does not allow, or none of its options. Both are errors of the config spec that are reported, and the
+     * setting then has no Reset.
      */
-    std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& options,
-        ConfigSpecReading& reading)
+    std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::TableForm tableForm,
+        const model::ValueOptions& options, ConfigSpecReading& reading)
     {
         if (type == model::SettingType::InputBinding) {
-            return loadBindingDefault(row, options, reading);
+            return loadBindingDefault(row, tableForm, options, reading);
         }
         if (type == model::SettingType::Haptic) {
             return loadHapticDefault(row, reading);
         }
         if (type == model::SettingType::Color) {
-            return loadColorDefault(row, reading);
+            return loadColorDefault(row, tableForm, reading);
         }
         if (type == model::SettingType::Transform) {
-            return loadTransformDefault(row, reading);
+            return loadTransformDefault(row, tableForm, reading);
         }
         auto value = getValue(row, "default", valueType);
         if (!value) {
@@ -1789,22 +1796,26 @@ namespace
      * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
      * config spec, which is reported: a condition names the first, and an author gives one of them an id of its
      * own. Its conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
-     * A binding, a color and a transform are kept in a value of a TOML file, as the framework keeps them: in any other
-     * storage they are not available, which is reported, and so is a transform with no part on.
+     * A binding, a color and a transform are kept in a value of a file: in a TOML file as the table the framework keeps,
+     * and in an INI file as its line, which is the setting's `tableForm`. In any other storage they are not available,
+     * which is reported, and so is a transform with no part on.
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type, reading);
         auto storage = loadStorage(row, own.defaultFile, valueType, reading);
+        auto tableForm = model::TableForm::Toml;
         const bool isTable = type == model::SettingType::InputBinding || type == model::SettingType::Color || type == model::SettingType::Transform;
         if (isTable && !std::holds_alternative<model::UnknownStorage>(storage)) {
             const auto* file = std::get_if<model::FileStorage>(&storage);
-            if (!file || reading.files.at(file->file).format != model::FileFormat::Toml) {
+            if (!file) {
                 const auto* kind = type == model::SettingType::Color ? "color" : type == model::SettingType::Transform ? "transform" : "binding";
                 const Into into(reading, "storage");
-                reading.report(model::Severity::Error, std::format("A {} is kept in a value of a TOML file, and it is not: it is not available.", kind));
+                reading.report(model::Severity::Error, std::format("A {} is kept in a value of a TOML or an INI file, and it is not: it is not available.", kind));
                 storage = model::UnknownStorage{ .type = kind };
+            } else if (reading.files.at(file->file).format == model::FileFormat::Ini) {
+                tableForm = model::TableForm::IniLine;
             }
         }
         const bool readOnly = getBool(row, "readOnly");
@@ -1841,7 +1852,7 @@ namespace
                                        : words == "style"       ? model::SphereWords::Style
                                                                 : model::SphereWords::None;
         }
-        auto defaultValue = readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, valueOptions, reading);
+        auto defaultValue = readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
         auto text = getLabel(row, reading);
         auto help = readShownText(row, "help", reading);
         auto display = loadDisplay(row, reading);
@@ -1855,6 +1866,7 @@ namespace
             .valueOptions = std::move(valueOptions),
             .storage = std::move(storage),
             .valueType = valueType,
+            .tableForm = tableForm,
             .action = std::move(action),
             .visibleWhen = {},
             .enabledWhen = {},
@@ -2158,7 +2170,9 @@ namespace
         if (!key.control.empty() && !isHiddenKey(keys, key.control)) {
             const auto id = sphereKeyId(section, key.control);
             if (key.control.starts_with('k')) {
-                addCondition(row, "visibleWhen", Json{ { "setting", id }, { "notEquals", model::bindingText(vrcf::VRControllersManager::DisabledBinding) } });
+                addCondition(row,
+                    "visibleWhen",
+                    Json{ { "setting", id }, { "notEquals", model::bindingText(vrcf::VRControllersManager::DisabledBinding, model::TableForm::Toml) } });
             } else {
                 addCondition(row, "enabledWhen", Json{ { "setting", id }, { "notEquals", "never" } });
             }

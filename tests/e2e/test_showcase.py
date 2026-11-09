@@ -148,6 +148,13 @@ def test_files(show, game):
     assert (player["storage"]["root"], player["storage"]["format"]) == ("mygames", "toml")
     ini = save_and_check(menu, game, "INI switcher", False)
     assert ini["storage"]["format"] == "ini"
+    # a binding, a color and a transform of an INI file are written as their lines, in the menu's words
+    save_and_check(menu, game, "INI binding", "main tap b +grip")
+    assert file_value(game, CONFIG_SPEC_SHOWCASE, menu.setting("INI binding")["storage"]) == "primary tap menu +grip"
+    save_and_check(menu, game, "INI color", "1, 2, 3")
+    assert file_value(game, CONFIG_SPEC_SHOWCASE, menu.setting("INI color")["storage"]) == "1,2,3"
+    save_and_check(menu, game, "INI transform", "1,2,3;0,90,0;1.5")
+    assert file_value(game, CONFIG_SPEC_SHOWCASE, menu.setting("INI transform")["storage"]) == "1.0,2.0,3.0;0.0,90.0,0.0;1.5"
     deep = save_and_check(menu, game, "A value in a table in a table", False)
     assert deep["storage"]["path"] == ["Files", "Tables", "bDeep"]
 

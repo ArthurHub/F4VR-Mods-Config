@@ -299,6 +299,19 @@ namespace mods_config::model
     };
 
     /**
+     * The text a binding, a color and a transform is kept as, by the format of its file.
+     */
+    enum class TableForm : std::uint8_t
+    {
+        // the TOML text of its inline table, as CommonFramework writes it
+        Toml,
+
+        // the line of an INI file, which a mod reads with no TOML: a binding's words, a color's `r,g,b` or `r,g,b,a`,
+        // and a transform's seven numbers, `x,y,z;heading,roll,attitude;scale`
+        IniLine,
+    };
+
+    /**
      * A ModSetting of MCM: a value MCM keeps for a mod, in the mod's settings file.
      */
     struct ModSettingStorage
@@ -650,6 +663,9 @@ namespace mods_config::model
         // what its value is kept as. An MCM row has it for a text input alone, which takes a text, a whole
         // number or a number: the value of every other is of its type of control
         StoredType valueType = StoredType::String;
+
+        // the text a binding's, a color's and a transform's value is: the form of its file's
+        TableForm tableForm = TableForm::Toml;
 
         // what runs after its value is set, with the value: an MCM row's as it is set, and a config spec's as Save
         // writes it. Most have none

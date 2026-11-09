@@ -93,7 +93,7 @@ namespace mods_config::ui
     std::string transformValueName(const model::Setting& setting, const model::Value& value)
     {
         const auto* text = std::get_if<std::string>(&value);
-        const auto table = text ? model::parseTransformTable(*text) : std::unexpected(std::string());
+        const auto table = text ? model::parseTransformTable(*text, setting.tableForm) : std::unexpected(std::string());
         if (!table) {
             return {};
         }
@@ -129,7 +129,7 @@ namespace mods_config::ui
         if (!value) {
             return box.Min.x;
         }
-        const auto table = model::parseTransformTable(*value);
+        const auto table = model::parseTransformTable(*value, setting.tableForm);
         if (!table) {
             drawText(textLeft, textRight, top, theme::CONTROL_HEIGHT, valueColor(look), *value);
             return box.Min.x;

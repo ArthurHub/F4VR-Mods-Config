@@ -72,7 +72,7 @@ namespace
     std::optional<model::TransformTable> defaultTable(const model::Setting& setting)
     {
         const auto* text = setting.defaultValue ? std::get_if<std::string>(&*setting.defaultValue) : nullptr;
-        const auto table = text ? model::parseTransformTable(*text) : std::unexpected(std::string());
+        const auto table = text ? model::parseTransformTable(*text, setting.tableForm) : std::unexpected(std::string());
         return table ? std::optional(*table) : std::nullopt;
     }
 
@@ -84,7 +84,7 @@ namespace
     {
         const auto saved = store.savedValue(setting);
         const auto* text = saved ? std::get_if<std::string>(&*saved) : nullptr;
-        const auto table = text ? model::parseTransformTable(*text) : std::unexpected(std::string());
+        const auto table = text ? model::parseTransformTable(*text, setting.tableForm) : std::unexpected(std::string());
         return table ? std::optional(*table) : std::nullopt;
     }
 
@@ -256,7 +256,7 @@ namespace mods_config::ui
             const float changed = _sliders.edit(_axes[axis], right, lineTop, sliderRow, value, write, edited.pulse);
             if (write || !common::fEqual(changed, value)) {
                 model::setAxis(_table, axis, changed);
-                store.set(setting, model::transformText(_table));
+                store.set(setting, model::transformText(_table, setting.tableForm));
             }
 
             if (pointed) {
@@ -318,9 +318,9 @@ namespace mods_config::ui
      */
     void TransformEditor::start(const model::Setting& setting, const std::string& text)
     {
-        auto table = model::parseTransformTable(text);
+        auto table = model::parseTransformTable(text, setting.tableForm);
         if (!table && setting.defaultValue) {
-            table = model::parseTransformTable(std::get<std::string>(*setting.defaultValue));
+            table = model::parseTransformTable(std::get<std::string>(*setting.defaultValue), setting.tableForm);
         }
         _table = table ? *table : model::TransformTable{};
         for (std::size_t axis = 0; axis < model::TRANSFORM_AXES; ++axis) {

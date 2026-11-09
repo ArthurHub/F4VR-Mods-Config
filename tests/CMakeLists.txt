@@ -7,12 +7,14 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}_tests
+  ColorsTests.cpp
   ConditionsTests.cpp
   FallUITranslationsTests.cpp
   FileChoicesTests.cpp
   FullPanelRenderTests.cpp
   FullPanelTests.cpp
   IniFileTests.cpp
+  InputBindingsTests.cpp
   LiveCopiesTests.cpp
   McmGameTextsTests.cpp
   McmLoaderTests.cpp

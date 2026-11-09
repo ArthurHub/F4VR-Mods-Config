@@ -84,7 +84,7 @@ namespace
     std::string valueName(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const bool leftHanded)
     {
         if (setting.type == model::SettingType::InputBinding) {
-            return ui::bindingValueName(value, leftHanded);
+            return ui::bindingValueName(setting, value, leftHanded);
         }
         if (setting.type == model::SettingType::Color) {
             return ui::colorValueName(setting, value);
@@ -525,7 +525,7 @@ namespace
             // one whose value is not available has an empty frame
             const auto* text = std::get_if<std::string>(&stored.value);
             const bool editorOpen = context.bindingEditor.isOpen(setting);
-            left = ui::drawBinding(right, top, stored.available ? text : nullptr, look, editorOpen, context.leftHanded, context.imageDrawer);
+            left = ui::drawBinding(setting, right, top, stored.available ? text : nullptr, look, editorOpen, context.leftHanded, context.imageDrawer);
             break;
         }
         case model::SettingType::Color: {
