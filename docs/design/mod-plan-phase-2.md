@@ -207,7 +207,7 @@ The milestone is measured by Immersive Flashlight's TOML. Beside numbers, switch
 - 4 colors, each in one key.
 - 4 gobo textures, each the path of a file, a dropdown of the files of its folder (M76).
 - a flags value and a collision filter, each a text the mod reads as a number, which are text inputs.
-- 4 hand poses and 5 lists of text, which are edited in milestone 13.
+- 4 hand poses and 5 lists of text, which are edited in milestone 15.
 
 Immersive Flashlight's config spec edits each key with the controls of this milestone, and leaves out the `[Debug]` section.
 
@@ -321,11 +321,11 @@ They are run by hand, as CI has no game.
 M154 tries the release in the headset, on what the end-to-end tests do not reach: the opening gesture and FRIK's, the buttons on the hand, the pointer, SteamVR's keyboard, the haptics, and where the panel is and how it looks, with the MCM test set, the config specs of the mod, FRIK and Immersive Flashlight, and the showcases. M155 measures the menu's cost per frame, open and closed, with devbench's perf and Tracy.
 
 - F40 splits the framework's frame end into perf sites: the ImGui canvases' frame, with the mod's content in it, and the vrui panels'. M155 adds the mod's own: its frame update, the menu's parts of it, and each part of the panel.
-- `tests/e2e/test_perf.py` holds each state 10 s and reports what the sites recorded: closed, minimized, the front page, the page with the most rows of the test set and of the showcase, the dialog asking, and FRIK's live preview. The ray on the panel, SteamVR's keyboard and an open editor wait for D2, as devbench does not drive them yet.
+- `tests/e2e/test_perf.py` holds each state 10 s and reports what the sites recorded: closed, minimized, the front page, the page with the most rows of the test set and of the showcase, the dialog asking, and FRIK's live preview. The ray on the panel, SteamVR's keyboard and an open editor wait for [D2](mod-plan-phase-3.md#11-ironing-out), as devbench does not drive them yet.
 - The budgets are set from the numbers measured, and M168 adds them to `test_perf.py` as its checks: the p95 of the mod's whole frame, 0.03 ms closed, 0.06 ms minimized, 0.20 ms open, and 0.45 ms while FRIK's setting is dragged, a little over what QASmoke measured. One that fails in a busier run is raised alone.
 
 M166, F41 and M167 fix what the first measure found. M166: a color, a binding and a transform no longer parse their value's TOML text each frame they are drawn, as the text's parse is kept, which halves the showcase's heaviest page. F41: a reload of a config file that did not change parses nothing, as a preview's Discard reloads the file, which takes 0.2 ms off each preview of every framework mod. M167: a dragged `live` setting is told to its mod's client at most every 50 ms, and always the value it ends on, as a mod can take long to apply a preview: FRIK's reload of its config took 0.4 ms, and a drag told it in every frame. The menu's frame as FRIK's setting is dragged went from 0.56 ms to 0.17 ms on average. The scene depth copy of an upscaled frame, 0.09 ms of the GPU, is left as it is.
 
-A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 12.
+A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 14.
 
 FRIK and Immersive Flashlight are probably released at the same time, with their config specs and their clients.

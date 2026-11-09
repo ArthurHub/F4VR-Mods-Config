@@ -1,8 +1,45 @@
 # Mod work plan, phase 3: After the first release
 
-The commits of milestones 11 to 14 of the [Mod work plan](mod-plan.md), which come after the first release. The plan has how the work is done, the MCM test set and the status of every milestone.
+The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which come after the first release. The plan has how the work is done, the MCM test set and the status of every milestone.
 
-## 11. Mod categories
+## 11. Ironing out
+
+| #    | Repo     | Commit                                                                | Status |
+| ---- | -------- | --------------------------------------------------------------------- | ------ |
+| D2   | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls   | todo   |
+| M169 | mod      | The game's favorites are off while the menu is open                   | todo   |
+| M170 | mod      | A condition on a game setting, with no client state                   | todo   |
+| M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | todo   |
+| M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | todo   |
+| M173 | mod      | A color, a binding and a transform kept in an INI file                | todo   |
+| M145 | mod      | The client is told what the ray is on                                 | todo   |
+
+The milestone fixes and polishes what the alpha finds. Its commits are added as they come.
+
+D2 is a commit in devbench's own repository. With it, `test_perf.py` measures the ray on the panel, SteamVR's keyboard and an open editor, which [M155](mod-plan-phase-2.md#10-first-release) left for it.
+
+M169 turns the game's favorites off while the menu is open, and is tried without ROCK too.
+
+M170 lets a condition name a setting of the game itself, so a config spec conditions a row on one without a mod's DLL answering it as a client state.
+
+M171 adds the breadcrumbs to the Help page, and says more of what Minimize does.
+
+M172 tells the player, in the Help page or the docs, two things the alpha asked:
+
+- One hand points at a time: the trigger of the other hand selects nothing while a ray is on the panel. The hand that points has the mark at the end of its ray. It is on purpose, as the game is not paused, so a press is not made by accident.
+- The menu does not pause the game, on purpose: a change is seen in the game at once, with the menu still open.
+
+M173 keeps a `cf.color`, a `cf.inputBinding` and a `cf.transform` in an INI file too, which take a TOML file alone now.
+
+M145 tells a client which item of its config spec the ray is on, a row or a group, as it moves on and off one, beside the page events, so the mod shows in the world what the item sets: Immersive Flashlight lights the activation sphere whose rows the ray is on. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
+
+## 12. Search
+
+| #   | Repo | Commit                                         | Status |
+| --- | ---- | ---------------------------------------------- | ------ |
+| M91 | mod  | Search in the mod list and in a mod's settings | todo   |
+
+## 13. Mod categories
 
 | #   | Repo | Commit                                                                                          | Status |
 | --- | ---- | ----------------------------------------------------------------------------------------------- | ------ |
@@ -26,24 +63,22 @@ M98 adds the entry that types a new name to the dropdown, with the keyboard of m
 
 M99 adds the import button, which is shown when MCM Categorizer's settings file is found. The file keeps its categories in one value, in an encoding of its own. F4SEMenuFramework reads the same value, and is the reference for it. Before the commit it is checked that MCM Categorizer runs with MCM in VR: if it does not, no player has the file and the commit is dropped.
 
-## 12. Localization and search
+## 14. Localization
 
 | #   | Repo      | Commit                                                                       | Status |
 | --- | --------- | ---------------------------------------------------------------------------- | ------ |
-| M90 | mod       | A translation file is read for a config spec whose mod has no game plugin        | todo   |
+| M90 | mod       | A translation file is read for a config spec whose mod has no game plugin    | todo   |
 | F32 | framework | imgui: glyphs beyond Western European languages, if a translation needs them | todo   |
-| M91 | mod       | Search in the mod list and in a mod's settings                               | todo   |
 
 M90 reads `Interface\Translations\<modName>_<language>.txt` itself. F4SE loads a translation file only for an enabled game plugin, so a mod that is a DLL alone has none loaded.
 
-## 13. Advanced features
+## 15. Advanced features
 
 | #    | Repo | Commit                            | Status |
 | ---- | ---- | --------------------------------- | ------ |
 | M143 | mod  | List                              | todo   |
 | M133 | mod  | HandPose                          | todo   |
 | M144 | mod  | Transform: grabbed with the hand  | todo   |
-| M145 | mod  | The client is told what the ray is on | todo   |
 | M147 | mod  | Menu color                        | todo   |
 
 M143 edits a list of texts, as [List](controls.md#list) has it: Immersive Flashlight has 5.
@@ -52,11 +87,9 @@ M133 edits a hand pose, as [Hand pose](controls.md#hand-pose) has it: Immersive 
 
 M144 has the player grab the object a transform places and move it with the hand to where it should be. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
 
-M145 tells a client which item of its config spec the ray is on, a row or a group, as it moves on and off one, beside the page events, so the mod shows in the world what the item sets: Immersive Flashlight lights the activation sphere whose rows the ray is on. Its design is open; see [Open questions](open-questions.md#commonframework-specific-controls).
-
 M147 lets the player change the menu's color: one house color in the mod's config, which the green of the design system's tokens is made from, the rules, the hover, the selection and the text, with presets of the Pip-Boy's colors and a custom color in the mod's own config spec. The theme is read at runtime in place of the generated constants. A house color cannot hide what other colors say: amber is a pending change and red an invalid one, so an amber or red menu would lose them. Whether the menu can match the Pip-Boy's color by itself is open; see [Open questions](open-questions.md#ui).
 
-## 14. Papyrus API
+## 16. Papyrus API
 
 | #   | Repo | Commit                                                                  | Status |
 | --- | ---- | ----------------------------------------------------------------------- | ------ |
