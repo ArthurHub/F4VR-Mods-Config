@@ -1,6 +1,15 @@
-# The config and the showcases
+# The config, the mod's data and the showcases
 
-What each section of the mod's config holds, and the two showcases. [CLAUDE.md](../../CLAUDE.md) has how to add a config value.
+How the mod's config is shipped and changed, what each of its sections holds, the mod's game `Data` tree, and the two showcases.
+
+## The config file
+
+[data/config/ModsConfigFO4VR.toml](../../data/config/ModsConfigFO4VR.toml) is the shipped default config. It is embedded in the DLL (resource `IDR_CONFIG`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`. A player's `ModsConfigFO4VR.ini` from an older version is moved into it by the framework, with its values, on the first load that finds no TOML.
+
+- To add a value: a member in `Config.h`, a read in `Config::loadConfigInternal()` (`config[SECTION]["key"].value_or(default)`, which gives the default for a key that is missing or of another type), and the key in the shipped file. Write a float with a decimal point (`1.0`) and a string in quotes.
+- `data/mod/ModsConfigFO4/Config/ModsConfigFO4/spec.json` is the mod's own config spec, which edits this TOML. A unit test checks that each of its settings is a key of the shipped TOML, with the shipped value as its default: change the config spec with the TOML.
+- `ConfigBase` watches the file and reloads it on change, so edits apply while the game runs. The reload runs on the watcher's thread: apply anything that calls into the engine from `onFrameUpdate()`.
+- Bump `iVersion` in `[Debug]` when the shipped file changes, so existing users' files are migrated. A value whose type or name changes is moved in `updateConfigToLatestVersionCustom`.
 
 ## Config sections
 
@@ -9,6 +18,10 @@ What each section of the mod's config holds, and the two showcases. [CLAUDE.md](
 - `[Developer]` holds the Developer tools, for a config spec's author: whether they are on, which config specs the menu's front page lists (`attention`, `all` or `one`), the config spec `one` lists by its modName, and whether the front page's section is folded. The front page writes the filter and the fold at once, with `Config::saveDeveloper`.
 - `[Pointer]` holds the menu's pointer: where the ray is on the hand, how the ray and the mark on the panel look, and how fast the thumbstick scrolls. It is read into an `imgui::PointerStyle` and given to the framework's pointer every frame. It also holds the pulse the hand that points gets as its press does something in the panel.
 - `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw, the VR UI dev layout).
+
+## The mod's Data tree
+
+`data/mod/` is the mod's game `Data` tree, packaged beside the DLL. `Meshes\ModsConfigFO4VR\f4cf\` and `Textures\ModsConfigFO4VR\f4cf\` hold the framework's own assets (activation sphere, binding icons, shared VR UI icons): ship them as they came and refresh them from `external/F4VR-CommonFramework/mod-template/` when updating the framework. The mod's own assets go beside them. The UI is drawn with ImGui and the framework's primitive-drawn `vrui` buttons, so the template's NIF button atlases (`ui-common` / `ui-example`) and their source PNGs were removed on purpose.
 
 ## Showcases
 
