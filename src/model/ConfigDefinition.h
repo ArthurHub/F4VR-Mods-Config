@@ -438,8 +438,16 @@ namespace mods_config::model
         // what a comparison compares its setting's value with: one value, or the list of a OneOf and a NotOneOf
         std::vector<Value> values;
 
-        // its `setting` names a state of its mod's client in place of a setting: a config spec's `clientState`
-        bool clientState = false;
+        // what its `setting` names: a setting by its id, a state of its mod's client (a config spec's `clientState`),
+        // or a setting of the game's INI by its name, as `iShadowMapResolution:Display` (`gameIniSetting`)
+        enum class Source : std::uint8_t
+        {
+            Setting,
+            ClientState,
+            GameIniSetting,
+        };
+
+        Source source = Source::Setting;
 
         bool operator==(const Condition&) const = default;
     };

@@ -86,6 +86,8 @@ A state is a value your code answers by its name, asked once a frame while your 
 - **A text:** `"Status: {clientState:status}"`, in a text row, or in the text or the help of a setting, a button or a section.
 - **A setting kept in it:** `"storage": { "clientState": "pipboyType" }`, a value in your DLL's memory, which the setter applies as the menu changes it.
 
+A setting of the game's INI needs no state: the config spec asks it itself, as `{ "gameIniSetting": "iShadowMapResolution:Display", "lessThan": 2048 }` and `{gameIniSetting:iShadowMapResolution:Display}`. See [Conditions](../design/schema.md#conditions).
+
 ```cpp
 modsConfig.addState("calibrating", [] { return std::optional<Value>(isCalibrating()); });
 

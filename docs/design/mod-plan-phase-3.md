@@ -8,7 +8,7 @@ The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which co
 | ---- | -------- | --------------------------------------------------------------------- | ------ |
 | D2   | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls   | todo   |
 | M169 | mod      | The open gesture closes the game's favorites                          | in review |
-| M170 | mod      | A condition on a game setting, with no client state                   | todo   |
+| M170 | mod      | A condition on a setting of the game's INI, with no client state      | in review |
 | M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | todo   |
 | M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | todo   |
 | M173 | mod      | A color, a binding and a transform kept in an INI file                | todo   |
@@ -20,7 +20,7 @@ D2 is a commit in devbench's own repository. With it, `test_perf.py` measures th
 
 M169 closes the game's favorites that the gesture opening and closing the menu opens: the gesture holds the primary thumbstick in, whose press opens them. They are closed as soon as both buttons of the gesture are held, in either order, and when the gesture fires, which is all a gesture with no modifier has. ROCK keeps that press from the favorites, so it is tried without ROCK too.
 
-M170 lets a condition name a setting of the game itself, so a config spec conditions a row on one without a mod's DLL answering it as a client state.
+M170 lets a condition name a setting of the game's INI, `gameIniSetting`, so a config spec conditions a row on one without a mod's DLL answering it as a client state, and a text shows one with `{gameIniSetting:name}`. Its type is the first letter of its name, and it is asked as the page is drawn, so a row follows the game's settings menu. Immersive Flashlight answers two of them as client states, which it moves to this after the commit, in its own repository. See [Conditions](schema.md#conditions).
 
 M171 adds the breadcrumbs to the Help page, and says more of what Minimize does.
 

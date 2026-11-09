@@ -1,6 +1,7 @@
 #include "Conditions.h"
 
 #include <algorithm>
+#include <cctype>
 #include <optional>
 #include <variant>
 
@@ -96,14 +97,18 @@ namespace
      * Whether a condition holds, and none where a value that would tell is not available. So a setting that
      * is off hides a row that needs it and another whose value is not available, and a setting that is on
      * shows a row that needs it or such another. The value of a setting no row shows is off where it is not
-     * available, as MCM's menu reads a hidden switcher. A state of the mod's client is asked of the store as a
-     * setting's value is. With no store no value is available.
+     * available, as MCM's menu reads a hidden switcher. A state of the mod's client and a setting of the game's INI are
+     * asked of the store as a setting's value is. With no store no value is available.
      */
     std::optional<bool> evaluate(const model::Condition& condition, model::Store* store)
     {
         using Kind = model::Condition::Kind;
+        using Source = model::Condition::Source;
         if (condition.kind != Kind::All && condition.kind != Kind::Any && condition.kind != Kind::Not) {
-            const auto stored = !store ? model::StoredValue{} : condition.clientState ? store->clientState(condition.setting) : store->valueById(condition.setting);
+            const auto stored = !store                                       ? model::StoredValue{}
+                                : condition.source == Source::ClientState    ? store->clientState(condition.setting)
+                                : condition.source == Source::GameIniSetting ? store->gameIniSetting(condition.setting)
+                                                                             : store->valueById(condition.setting);
             if (!stored.available) {
                 return condition.offWhenNotAvailable ? std::optional(false) : std::nullopt;
             }
@@ -147,5 +152,27 @@ namespace mods_config::model
     bool surelyHolds(const Condition& condition, Store* store)
     {
         return evaluate(condition, store).value_or(false);
+    }
+
+    /**
+     * The type of a setting of the game's INI, from the first letter of its name as the game reads it: `b` a bool,
+     * `i` and `u` an int, `f` a float, and `s` a string, in either case. None for another letter, as a color's `r`
+     * and `a`, which a condition does not compare.
+     */
+    std::optional<StoredType> gameIniSettingType(const std::string_view name)
+    {
+        switch (name.empty() ? '\0' : static_cast<char>(std::tolower(static_cast<unsigned char>(name.front())))) {
+        case 'b':
+            return StoredType::Bool;
+        case 'i':
+        case 'u':
+            return StoredType::Int;
+        case 'f':
+            return StoredType::Float;
+        case 's':
+            return StoredType::String;
+        default:
+            return std::nullopt;
+        }
     }
 }

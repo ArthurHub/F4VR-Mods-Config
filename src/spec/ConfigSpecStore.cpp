@@ -1313,6 +1313,19 @@ namespace mods_config::spec
     }
 
     /**
+     * The value of a setting of the game's INI as the game runs now, which its settings menu changes while the menu is
+     * open. Not available for one the game does not have, and for a color.
+     */
+    model::StoredValue ConfigSpecStore::gameIniSetting(const std::string_view name)
+    {
+        auto value = getGameIniSetting(name);
+        if (!value) {
+            return { .value = {}, .available = false, .invalid = false, .reason = "Not available: the game's INI has no such setting." };
+        }
+        return { .value = std::move(*value), .available = true, .invalid = false, .reason = {} };
+    }
+
+    /**
      * Tells the mod's client that a page of its config spec that has an `id` is left and another is shown, as the
      * player goes to it. Nothing for the page that is shown already.
      */

@@ -734,7 +734,7 @@ TEST_CASE("ConfigSpecLoader: page conditions cover child pages and their rows")
     })");
     CHECK(mod.problems.empty());
     const auto gate = [](const std::string& name) {
-        return model::Condition{ .kind = model::Condition::Kind::On, .setting = name, .clientState = true };
+        return model::Condition{ .kind = model::Condition::Kind::On, .setting = name, .source = model::Condition::Source::ClientState };
     };
     const auto& parent = mod.pages[0];
     const auto& child = parent.pages[0];
@@ -2683,7 +2683,12 @@ TEST_CASE("ConfigSpecLoader: a condition asks a state of the mod's client by its
     const auto& items = mod.frontPage.items;
     using Kind = model::Condition::Kind;
     const auto stateOf = [](const std::string& name, const Kind kind, std::vector<model::Value> values) {
-        return model::Condition{ .kind = kind, .setting = name, .conditions = {}, .offWhenNotAvailable = false, .values = std::move(values), .clientState = true };
+        return model::Condition{ .kind = kind,
+            .setting = name,
+            .conditions = {},
+            .offWhenNotAvailable = false,
+            .values = std::move(values),
+            .source = model::Condition::Source::ClientState };
     };
     CHECK(std::get<model::Button>(items[0]).enabledWhen == stateOf("ready", Kind::On, {}));
     const auto& equals = std::get<model::Button>(items[1]);
@@ -2706,6 +2711,58 @@ TEST_CASE("ConfigSpecLoader: a condition asks a state of the mod's client by its
                           "Its visibleWhen is left out: lessThan compares numbers, and its value is no number. The row is shown and enabled as if it had none.",
                           "Its visibleWhen is left out: its oneOf is not a list. The row is shown and enabled as if it had none.",
                           "Its visibleWhen is left out: it has no operator for the state 'mode'. The row is shown and enabled as if it had none.",
+                      });
+}
+
+TEST_CASE("ConfigSpecLoader: a condition asks a setting of the game's INI by its name, whose first letter tells its type")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "text", "text": "On", "visibleWhen": { "gameIniSetting": "bUseWandDirectionalMovement:VRInput" } },
+        { "type": "text", "text": "Order", "visibleWhen": { "gameIniSetting": "iShadowMapResolution:Display", "lessThan": 2048 } },
+        { "type": "text", "text": "Float", "visibleWhen": { "gameIniSetting": "fMouseHeadingSensitivity:Controls", "greaterThan": 0.5 } },
+        { "type": "text", "text": "Unsigned", "visibleWhen": { "gameIniSetting": "uGridsToLoad:General", "oneOf": [5, 7] } },
+        { "type": "text", "text": "Text", "visibleWhen": { "gameIniSetting": "sLanguage:General", "notOneOf": ["en"] } },
+        { "type": "text", "text": "No name", "visibleWhen": { "gameIniSetting": "" } },
+        { "type": "text", "text": "Color", "visibleWhen": { "gameIniSetting": "rDefaultColor:Interface", "equals": 1 } },
+        { "type": "text", "text": "Order of a bool", "visibleWhen": { "gameIniSetting": "bShow:Main", "lessThan": 1 } },
+        { "type": "text", "text": "List of a float", "visibleWhen": { "gameIniSetting": "fScale:Main", "oneOf": [1.0] } },
+        { "type": "text", "text": "Other type", "visibleWhen": { "gameIniSetting": "bShow:Main", "equals": 1 } },
+        { "type": "text", "text": "No operator", "visibleWhen": { "gameIniSetting": "bShow:Main", "is": true } }
+    )"));
+    const auto& items = mod.frontPage.items;
+    using Kind = model::Condition::Kind;
+    const auto settingOf = [](const std::string& name, const Kind kind, std::vector<model::Value> values) {
+        return model::Condition{ .kind = kind,
+            .setting = name,
+            .conditions = {},
+            .offWhenNotAvailable = false,
+            .values = std::move(values),
+            .source = model::Condition::Source::GameIniSetting };
+    };
+    CHECK(std::get<model::Text>(items[0]).visibleWhen == settingOf("bUseWandDirectionalMovement:VRInput", Kind::On, {}));
+    CHECK(std::get<model::Text>(items[1]).visibleWhen == settingOf("iShadowMapResolution:Display", Kind::LessThan, { 2048 }));
+    CHECK(std::get<model::Text>(items[2]).visibleWhen == settingOf("fMouseHeadingSensitivity:Controls", Kind::GreaterThan, { 0.5f }));
+    CHECK(std::get<model::Text>(items[3]).visibleWhen == settingOf("uGridsToLoad:General", Kind::OneOf, { 5, 7 }));
+    CHECK(std::get<model::Text>(items[4]).visibleWhen == settingOf("sLanguage:General", Kind::NotOneOf, { "en"s }));
+
+    // one that is not written right, or does not fit the setting's type, is left out, and reported
+    for (std::size_t place = 5; place < items.size(); ++place) {
+        CHECK_FALSE(std::get<model::Text>(items[place]).visibleWhen);
+    }
+    std::vector<std::string> problems;
+    for (const auto& problem : mod.problems) {
+        problems.push_back(problem.message);
+    }
+    const auto leftOut = [](const std::string& reason) {
+        return std::format("Its visibleWhen is left out: {}. The row is shown and enabled as if it had none.", reason);
+    };
+    CHECK(problems == Lines{
+                          leftOut("its gameIniSetting names no setting"),
+                          leftOut("its gameIniSetting 'rDefaultColor:Interface' is of no type a condition compares: the name of one starts with b, i, u, f or s"),
+                          leftOut("lessThan compares numbers, and 'bShow:Main' is no number"),
+                          leftOut("oneOf is of a text or a whole number, and 'fScale:Main' is neither"),
+                          leftOut("its equals has a value that is not of the type of 'bShow:Main'"),
+                          leftOut("it has no operator for the game's INI setting 'bShow:Main'"),
                       });
 }
 

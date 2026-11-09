@@ -11,29 +11,43 @@
 
 namespace
 {
-    constexpr std::string_view PREFIX = "{clientState:";
+    constexpr std::string_view CLIENT_STATE = "{clientState:";
+    constexpr std::string_view GAME_INI_SETTING = "{gameIniSetting:";
 
     /**
-     * Inserts client states in one run, once: returned strings are literal text, even if they contain another
-     * placeholder. An unavailable state says so; an incomplete or empty placeholder stays as written.
+     * Whether a text has a placeholder of either kind.
+     */
+    bool hasPlaceholder(const std::string_view text)
+    {
+        return text.contains(CLIENT_STATE) || text.contains(GAME_INI_SETTING);
+    }
+
+    /**
+     * Inserts client states and settings of the game's INI in one run, once: returned strings are literal text, even if
+     * they contain another placeholder. An unavailable value says so; an incomplete or empty placeholder stays as written.
+     * A name ends at the first `}`, so a setting's name keeps its `:Section`.
      */
     std::string insertStates(const std::string_view text, mods_config::model::Store* store)
     {
         std::string shown;
         std::size_t from = 0;
         while (true) {
-            const auto start = text.find(PREFIX, from);
-            const auto end = start == std::string_view::npos ? std::string_view::npos : text.find('}', start + PREFIX.size());
+            const auto stateStart = text.find(CLIENT_STATE, from);
+            const auto settingStart = text.find(GAME_INI_SETTING, from);
+            const bool isSetting = settingStart < stateStart;
+            const auto start = isSetting ? settingStart : stateStart;
+            const auto prefix = isSetting ? GAME_INI_SETTING : CLIENT_STATE;
+            const auto end = start == std::string_view::npos ? std::string_view::npos : text.find('}', start + prefix.size());
             if (end == std::string_view::npos) {
                 shown += text.substr(from);
                 return shown;
             }
             shown += text.substr(from, start - from);
-            const auto name = text.substr(start + PREFIX.size(), end - start - PREFIX.size());
+            const auto name = text.substr(start + prefix.size(), end - start - prefix.size());
             if (name.empty()) {
                 shown += text.substr(start, end + 1 - start);
             } else {
-                const auto state = store ? store->clientState(name) : mods_config::model::StoredValue{};
+                const auto state = !store ? mods_config::model::StoredValue{} : isSetting ? store->gameIniSetting(name) : store->clientState(name);
                 shown += state.available ? std::visit(
                                                []<typename T>(const T& value) -> std::string {
                                                    if constexpr (std::is_same_v<T, std::string>) {
@@ -53,14 +67,15 @@ namespace
 namespace mods_config::model
 {
     /**
-     * Resolves {clientState:name} in parsed text, keeping the look of each run and the alignment of each line.
-     * Returns none for static text, which is drawn as loaded. State strings are never parsed as markup.
+     * Resolves {clientState:name} and {gameIniSetting:name} in parsed text, keeping the look of each run and the
+     * alignment of each line. Returns none for static text, which is drawn as loaded. Inserted strings are never parsed
+     * as markup.
      */
     std::optional<std::vector<TextLine>> resolveClientText(const std::span<const TextLine> lines, Store* store)
     {
         if (std::ranges::none_of(lines, [](const TextLine& line) {
                 return std::ranges::any_of(line.runs, [](const TextRun& run) {
-                    return run.text.contains(PREFIX);
+                    return hasPlaceholder(run.text);
                 });
             })) {
             return std::nullopt;
@@ -91,12 +106,12 @@ namespace mods_config::model
     }
 
     /**
-     * Resolves {clientState:name} in a text on one line, as a row's label and its help show it: a line break in a
-     * state's text is a space. A text with no placeholder is as it is written.
+     * Resolves both placeholders in a text on one line, as a row's label and its help show it: a line break in an
+     * inserted text is a space. A text with no placeholder is as it is written.
      */
     std::string resolveClientText(const std::string_view text, Store* store)
     {
-        if (!text.contains(PREFIX)) {
+        if (!hasPlaceholder(text)) {
             return std::string(text);
         }
         auto shown = insertStates(text, store);
@@ -106,7 +121,7 @@ namespace mods_config::model
     }
 
     /**
-     * Resolves {clientState:name} in the runs of a label, each keeping its look, on one line as the label's text.
+     * Resolves both placeholders in the runs of a label, each keeping its look, on one line as the label's text.
      */
     std::vector<TextRun> resolveClientRuns(const std::span<const TextRun> runs, Store* store)
     {

@@ -267,7 +267,7 @@ A section of the TOML that is an activation sphere, `cf.activationSphere`: one g
 
 ### Text
 
-A `text` row is a text of its own on the page. With `"html": true`, its text, or a setting's, takes the tags MCM's text does: a size, a color, bold, italic and underline, paragraphs at the left, center or right, and line breaks. A text can show a state of the mod's DLL, as `{clientState:status}`, and so can a setting's, a button's or a section's text and help. The Showcase has four pages of them: sizes, colors, align and lines, and tags.
+A `text` row is a text of its own on the page. With `"html": true`, its text, or a setting's, takes the tags MCM's text does: a size, a color, bold, italic and underline, paragraphs at the left, center or right, and line breaks. A text can show a state of the mod's DLL, as `{clientState:status}`, or a setting of the game's INI, as `{gameIniSetting:iShadowMapResolution:Display}`, and so can a setting's, a button's or a section's text and help. The Showcase has four pages of them: sizes, colors, align and lines, and tags.
 
 ```json
 {
@@ -446,7 +446,7 @@ See [When a change takes effect](../design/schema.md#when-a-change-takes-effect)
 
 ### Conditions
 
-`visibleWhen` shows a row, a section or a page while its condition holds, and `enabledWhen` lets it be edited. A condition asks a setting, named by its `id`, a game plugin or an F4SE plugin, or a state of the mod's DLL, and combines them with `any`, `all` and `not`:
+`visibleWhen` shows a row, a section or a page while its condition holds, and `enabledWhen` lets it be edited. A condition asks a setting, named by its `id`, a game plugin or an F4SE plugin, a setting of the game's INI, or a state of the mod's DLL, and combines them with `any`, `all` and `not`:
 
 ```json
 {
@@ -465,7 +465,9 @@ See [When a change takes effect](../design/schema.md#when-a-change-takes-effect)
 }
 ```
 
-A setting is compared with `equals`, `oneOf`, `lessThan`, `greaterThan` and the others the page has, one row each. See [Conditions](../design/schema.md#conditions).
+A setting is compared with `equals`, `oneOf`, `lessThan`, `greaterThan` and the others the page has, one row each.
+
+A condition can also ask a setting of the game's INI, which the game's settings change, with no DLL: `{ "gameIniSetting": "bUseWandDirectionalMovement:VRInput" }`. Its first letter is its type. A text shows its value with `{gameIniSetting:bUseWandDirectionalMovement:VRInput}`. In the page's section The game's settings, change the game's movement by controller direction with the menu open, and the row and the text follow it. See [Conditions](../design/schema.md#conditions).
 
 ![Conditions](../assets/showcase/conditions.png)
 

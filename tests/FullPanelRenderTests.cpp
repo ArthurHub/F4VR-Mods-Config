@@ -23,6 +23,7 @@
 #include "TestClients.h"
 #include "TestFiles.h"
 #include "TestGlobals.h"
+#include "TestIniSettings.h"
 #include "TestPanel.h"
 #include "TestProperties.h"
 #include "Theme.h"
@@ -1431,6 +1432,29 @@ TEST_CASE("FullPanel render: the ends of the config spec showcase's pages of num
             test_panel::drawFrame(panel, pageRow(3));
         };
         WARN("Saved " << renderToFile(panel, name, pageRow(row), false, scrollToEnd));
+    }
+}
+
+TEST_CASE("FullPanel render: the end of the config spec showcase's conditions, with the game's movement by controller direction off and on", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    test_ini_settings::TestIniSettings ini;
+    for (const bool wand : { false, true }) {
+        ini.values = { { "busewanddirectionalmovement:vrinput", wand } };
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods(mods);
+        select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", "Conditions" });
+        const auto scrollToEnd = [&panel] {
+            test_panel::drawFrame(panel, pageRow(3));
+            test_panel::drawFrame(panel, pageRow(3));
+            ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+            test_panel::drawFrame(panel, pageRow(3));
+        };
+        WARN("Saved " << renderToFile(panel, wand ? "config-spec-showcase-conditions-end-on" : "config-spec-showcase-conditions-end-off", POINTER_AWAY, false, scrollToEnd));
     }
 }
 

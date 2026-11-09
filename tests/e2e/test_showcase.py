@@ -189,6 +189,35 @@ def test_conditions(show):
     assert any_of_two["shown"], "shown while Show rows is off"
 
 
+WAND_MOVEMENT = "bUseWandDirectionalMovement:VRInput"
+
+
+def wand_movement_text(menu):
+    """The value of the game's movement by controller direction, as the text of the Conditions page inserts it."""
+    prefix = "Movement by controller direction: "
+    for row in menu.rows():
+        for line in row["lines"] if row["kind"] == "text" else []:
+            if line.startswith(prefix):
+                return line[len(prefix):]
+    raise AssertionError("the page has no text of the game's movement by controller direction")
+
+
+def test_conditions_game_ini_setting(show, game):
+    menu = show("Conditions")
+    shown = wand_movement_text(menu)
+    assert shown in ("true", "false"), "the text has the game's setting"
+    was = shown == "true"
+    assert menu.setting("With movement by controller direction")["enabled"] is was
+    try:
+        # the console changes the setting as the game's settings do, and the page follows it with the menu open
+        for value in (not was, was):
+            game.console(f'setini "{WAND_MOVEMENT}" {int(value)}')
+            assert wand_movement_text(menu) == str(value).lower()
+            assert menu.setting("With movement by controller direction")["enabled"] is value
+    finally:
+        game.console(f'setini "{WAND_MOVEMENT}" {int(was)}')
+
+
 def test_warnings(show):
     menu = show("Warnings")
     assert menu.setting(id="playerHeight")["warning"], "it warns above 1.4 m, as it is shipped"

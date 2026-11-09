@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "TestClients.h"
+#include "TestIniSettings.h"
 #include "model/Conditions.h"
 #include "model/TextMarkup.h"
 #include "model/TextStates.h"
@@ -137,7 +138,7 @@ TEST_CASE("TextStates: repeated text and conditions share one state query per fr
                                       } } } }
             .calls());
     const auto text = model::plainLines("{clientState:VERSION} / {clientState:version}");
-    const model::Condition condition{ .kind = model::Condition::Kind::Equals, .setting = "version", .values = { "1.2.3"s }, .clientState = true };
+    const model::Condition condition{ .kind = model::Condition::Kind::Equals, .setting = "version", .values = { "1.2.3"s }, .source = model::Condition::Source::ClientState };
     CHECK(model::resolveClientText(text, &session.store)->at(0).runs.at(0).text == "1.2.3 / 1.2.3");
     CHECK(model::holds(condition, &session.store));
     CHECK(asked == 1);
@@ -148,4 +149,32 @@ TEST_CASE("TextStates: repeated text and conditions share one state query per fr
     CHECK(model::resolveClientText(text, &session.store)->at(0).runs.at(0).text == "1.2.4 / 1.2.4");
     CHECK_FALSE(model::holds(condition, &session.store));
     CHECK(asked == 2);
+}
+
+TEST_CASE("TextStates: a setting of the game's INI is inserted and asked by a condition, by its name in any case, as the game has it now")
+{
+    Session session;
+    test_ini_settings::TestIniSettings ini;
+    ini.values = { { "busewanddirectionalmovement:vrinput", true }, { "ishadowmapresolution:display", 1024 }, { "sname:general", "Vault"s } };
+    const auto text = model::plainLines(
+        "Wand {gameIniSetting:bUseWandDirectionalMovement:VRInput}, shadows {gameIniSetting:iShadowMapResolution:Display}, "
+        "{gameIniSetting:sName:General} {clientState:none}, {gameIniSetting:fMissing:Main}, {gameIniSetting:}");
+    CHECK(model::resolveClientText(text, &session.store)->at(0).runs.at(0).text == "Wand true, shadows 1024, Vault Unknown (none), Unknown (fMissing:Main), {gameIniSetting:}");
+    CHECK(model::resolveClientText("Help: {gameIniSetting:iShadowMapResolution:Display}", &session.store) == "Help: 1024");
+
+    using Source = model::Condition::Source;
+    const model::Condition on{ .kind = model::Condition::Kind::On, .setting = "BUSEWANDDIRECTIONALMOVEMENT:VRINPUT", .source = Source::GameIniSetting };
+    const model::Condition low{ .kind = model::Condition::Kind::LessThan, .setting = "iShadowMapResolution:Display", .values = { 2048 }, .source = Source::GameIniSetting };
+    const model::Condition missing{ .kind = model::Condition::Kind::Equals, .setting = "bMissing:Main", .values = { true }, .source = Source::GameIniSetting };
+    CHECK(model::holds(on, &session.store));
+    CHECK(model::holds(low, &session.store));
+
+    // a change the game's settings menu makes is seen as the setting is next asked
+    ini.values["ishadowmapresolution:display"] = 2048;
+    CHECK_FALSE(model::holds(low, &session.store));
+    CHECK(model::resolveClientText("{gameIniSetting:iShadowMapResolution:Display}", &session.store) == "2048");
+
+    // one the game does not have leaves the condition open: the row is shown, and a warning is not told
+    CHECK(model::holds(missing, &session.store));
+    CHECK_FALSE(model::surelyHolds(missing, &session.store));
 }

@@ -705,6 +705,22 @@ A condition can ask a state of the mod's native client, for what only the mod's 
 - The host asks the client as the page is drawn, so a row follows the state as it changes.
 - While the client has not registered the state, or the mod has no client, the state is not available, as a value that cannot be read: the row is shown, and the warning is not told.
 
+A condition can ask a setting of the game's INI, which the game's settings menu changes while the game runs, with no DLL to answer it:
+
+```json
+{
+  "type": "text",
+  "text": "The game's shadows are below High, which may break the beam's shadows.",
+  "visibleWhen": { "gameIniSetting": "iShadowMapResolution:Display", "lessThan": 2048 }
+}
+```
+
+- `gameIniSetting` names the setting as the game does, `name:Section`, in any case. It is looked up in the game's prefs (`Fallout4Prefs.ini`), then in its INI (`Fallout4.ini` and `Fallout4Custom.ini`), and has the value the game runs with now, not the value in the file.
+- Its type is the first letter of its name: `b` a bool, `i` and `u` an int, `f` a float and `s` a string. It takes the operators of a setting of that type, a `oneOf` and a `notOneOf` of a string or an int, and with none it holds while it is on. A name with another letter, as a color's `r`, or an operator or a value that does not fit its type, is not a condition.
+- The host asks it as the page is drawn, so a row follows the game's settings menu with the menu open.
+- A setting the game does not have is not available, as a value that cannot be read: the row is shown, the warning is not told, and the log names it once.
+- A game setting of a plugin (a GMST) is not asked: a plugin sets it, and the player does not change it.
+
 ## Choices
 
 A choice stores a value, never the text the player sees. Its options are in `valueOptions`, as in an MCM config.
@@ -934,6 +950,8 @@ Placeholders are resolved after translation and markup parsing, so a value inher
 
 The text and the help of a setting, a button and a section take placeholders too, as `"text": "Use {clientState:profile}"`. They are on one line, so a line break in a returned string is a space.
 
+A text inserts a setting of the game's INI the same way with `{gameIniSetting:name}`, as `"Shadow map: {gameIniSetting:iShadowMapResolution:Display}"`, by its name as a [condition](#conditions) names it, with no DLL. Its name ends at the `}`, so it keeps its `:Section`. A setting the game does not have shows `Unknown (name)`.
+
 For a version supplied by a native mod, register a string state using the same version constant as the DLL:
 
 ```cpp
@@ -1072,7 +1090,7 @@ A config spec has what an MCM config has, by MCM's names, and more:
 - Every setting has a `default`, for Reset, and can be read-only. A number has its `display`.
 - A setting and a button can warn while a condition holds.
 - `applies` says when a change takes effect.
-- A condition compares any value with its operators, can enable a row as well as show it, and can ask whether a plugin is loaded.
+- A condition compares any value with its operators, can enable a row as well as show it, and can ask whether a plugin is loaded, and a setting of the game's INI.
 - Sections nest and fold, and pages nest.
 - A parameter has its type as a JSON value.
 - A button can run a console command or a function of the mod's DLL, has its own text, and can ask for a confirmation.

@@ -40,13 +40,15 @@ add_executable(${PROJECT_NAME}_tests
   TestFiles.h
   TestGlobals.cpp
   TestGlobals.h
+  TestIniSettings.cpp
+  TestIniSettings.h
   TestProperties.cpp
   TestProperties.h
   TestSwf.h
   TestPanel.h
-  # the mod's sources under test. Not GameActions.cpp, GameGlobals.cpp, GameProperties.cpp and
-  # mcm/McmEvents.cpp, which call the game: TestActions.cpp, TestEvents.cpp, TestGlobals.cpp and
-  # TestProperties.cpp have the tests' own functions in their place
+  # the mod's sources under test. Not GameActions.cpp, GameGlobals.cpp, GameIniSettings.cpp, GameProperties.cpp and
+  # mcm/McmEvents.cpp, which call the game: TestActions.cpp, TestEvents.cpp, TestGlobals.cpp, TestIniSettings.cpp
+  # and TestProperties.cpp have the tests' own functions in their place
   ${SOURCE_DIR}/api/NativeClients.cpp
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp

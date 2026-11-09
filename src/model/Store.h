@@ -200,6 +200,15 @@ namespace mods_config::model
         }
 
         /**
+         * The value of a setting of the game's INI, by its name, which a `gameIniSetting` condition and placeholder ask:
+         * not available for a store whose mods cannot name one, and for a setting the game does not have.
+         */
+        virtual StoredValue gameIniSetting(std::string_view)
+        {
+            return {};
+        }
+
+        /**
          * The page of the selected mod that is shown, after its session starts and as another is shown, which a store
          * tells its mod's client: the mod's front page for none.
          */

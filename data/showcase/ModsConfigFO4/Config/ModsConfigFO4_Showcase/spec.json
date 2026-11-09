@@ -3160,6 +3160,25 @@
             },
             {
               "type": "section",
+              "text": "The game's settings",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Movement by controller direction: {gameIniSetting:bUseWandDirectionalMovement:VRInput}"
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "With movement by controller direction",
+                  "help": "Enabled while the game moves you where the controller points: its INI setting bUseWandDirectionalMovement:VRInput, as the game runs with it now. Change it in the game's settings with the menu open, and the row follows.",
+                  "default": false,
+                  "storage": { "path": ["Conditions", "bWandMovement"] },
+                  "enabledWhen": { "gameIniSetting": "bUseWandDirectionalMovement:VRInput" }
+                }
+              ]
+            },
+            {
+              "type": "section",
               "text": "The mod's DLL",
               "content": [
                 {

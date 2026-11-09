@@ -2,13 +2,14 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "model/ConfigDefinition.h"
 
 // The values a store reads and writes in the game, for a setting of an MCM mod and of a config spec. The mod's are
-// in GameGlobals.cpp and GameProperties.cpp, and the tests' in tests/TestGlobals.cpp and
-// tests/TestProperties.cpp, which keep them in a map.
+// in GameGlobals.cpp, GameProperties.cpp and GameIniSettings.cpp, and the tests' in tests/TestGlobals.cpp,
+// tests/TestProperties.cpp and tests/TestIniSettings.cpp, which keep them in a map.
 namespace mods_config
 {
     // The value of a global of the game, and none for one that is not in the game. Setting one returns false
@@ -28,4 +29,9 @@ namespace mods_config
     // The name or the description of a form of the game, as a GameText of either kind names it. Empty for a form
     // that is not in the game, or has none.
     std::string getFormText(const model::GameText& text);
+
+    // The value of a setting of the game's INI as the game runs with it, by its name in any case, as
+    // `iShadowMapResolution:Display`, in its type. None for one that is not in the game, and for a type a condition
+    // does not compare, as a color.
+    std::optional<model::Value> getGameIniSetting(std::string_view name);
 }

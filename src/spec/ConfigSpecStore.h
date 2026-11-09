@@ -102,6 +102,7 @@ namespace mods_config::spec
         std::optional<model::Value> savedValue(const model::Setting& setting) override;
         model::StoredValue hotkey(const model::Hotkey& hotkey) override;
         model::StoredValue clientState(std::string_view name) override;
+        model::StoredValue gameIniSetting(std::string_view name) override;
         void startFrame() override;
         void showPage(const model::Page* page) override;
         void readAgain() override;

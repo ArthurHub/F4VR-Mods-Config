@@ -23,6 +23,7 @@
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
 #include "model/Colors.h"
+#include "model/Conditions.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
@@ -2532,7 +2533,12 @@ namespace
         if (!named.is_string() || named.get_ref<const std::string&>().empty()) {
             return std::unexpected("its clientState names no state"s);
         }
-        model::Condition state{ .kind = Kind::On, .setting = named.get<std::string>(), .conditions = {}, .offWhenNotAvailable = false, .values = {}, .clientState = true };
+        model::Condition state{ .kind = Kind::On,
+            .setting = named.get<std::string>(),
+            .conditions = {},
+            .offWhenNotAvailable = false,
+            .values = {},
+            .source = model::Condition::Source::ClientState };
         if (condition.size() == 1) {
             return state;
         }
@@ -2562,9 +2568,64 @@ namespace
     }
 
     /**
+     * A condition on a setting of the game's INI: its `gameIniSetting`, by the name the game gives it, and one operator,
+     * as `{ "gameIniSetting": "iShadowMapResolution:Display", "lessThan": 2048 }`, or none, which holds while it is on.
+     * Its type is told by the first letter of its name, so it is checked as a setting's is: an order is of a number,
+     * a `oneOf` and a `notOneOf` of a text or a whole number, and a value of another type is not compared. Or the reason
+     * it is not one. Whether the game has the setting is asked as the page is drawn.
+     */
+    std::expected<model::Condition, std::string> loadGameIniSetting(const Json& condition)
+    {
+        const auto named = condition.at("gameIniSetting");
+        if (!named.is_string() || named.get_ref<const std::string&>().empty()) {
+            return std::unexpected("its gameIniSetting names no setting"s);
+        }
+        const auto& name = named.get_ref<const std::string&>();
+        const auto type = model::gameIniSettingType(name);
+        if (!type) {
+            return std::unexpected(std::format("its gameIniSetting '{}' is of no type a condition compares: the name of one starts with b, i, u, f or s", name));
+        }
+        model::Condition setting{ .kind = Kind::On,
+            .setting = name,
+            .conditions = {},
+            .offWhenNotAvailable = false,
+            .values = {},
+            .source = model::Condition::Source::GameIniSetting };
+        if (condition.size() == 1) {
+            return setting;
+        }
+        const auto op = std::ranges::find_if(OPERATORS, [&condition](const OperatorName& operatorName) {
+            return condition.contains(operatorName.first);
+        });
+        if (op == OPERATORS.end()) {
+            return std::unexpected(std::format("it has no operator for the game's INI setting '{}'", name));
+        }
+        setting.kind = op->second;
+        const bool isList = setting.kind == Kind::OneOf || setting.kind == Kind::NotOneOf;
+        const bool isOrder = setting.kind != Kind::Equals && setting.kind != Kind::NotEquals && !isList;
+        if (isOrder && *type != model::StoredType::Int && *type != model::StoredType::Float) {
+            return std::unexpected(std::format("{} compares numbers, and '{}' is no number", op->first, name));
+        }
+        if (isList && *type != model::StoredType::String && *type != model::StoredType::Int) {
+            return std::unexpected(std::format("{} is of a text or a whole number, and '{}' is neither", op->first, name));
+        }
+        const auto& operand = condition.at(op->first);
+        if (isList && !operand.is_array()) {
+            return std::unexpected(std::format("its {} is not a list", op->first));
+        }
+        for (const auto& value : isList ? operand : Json::array({ operand })) {
+            if (!isComparable(value, *type)) {
+                return std::unexpected(std::format("its {} has a value that is not of the type of '{}'", op->first, name));
+            }
+            setting.values.push_back(conditionValue(value));
+        }
+        return setting;
+    }
+
+    /**
      * A condition of a config spec, or the reason it is not one: a comparison of a setting's value, `all` and
-     * `any` of a list of conditions, `not` of one, a state of the mod's client, or whether a `plugin` or an
-     * `f4sePlugin` is loaded.
+     * `any` of a list of conditions, `not` of one, a state of the mod's client, a setting of the game's INI, or whether
+     * a `plugin` or an `f4sePlugin` is loaded.
      * Whether a plugin is loaded does not change while the game runs, so it is answered here, as an `all` of
      * none, which holds, or an `any` of none, which does not.
      * A condition with a part that is not one is not one as a whole.
@@ -2579,6 +2640,9 @@ namespace
         }
         if (condition.size() <= 2 && condition.contains("clientState")) {
             return loadClientState(condition);
+        }
+        if (condition.size() <= 2 && condition.contains("gameIniSetting")) {
+            return loadGameIniSetting(condition);
         }
         if (condition.size() != 1) {
             return std::unexpected(std::format("{} is not one condition", condition.dump()));

@@ -213,6 +213,7 @@ bNoGamePlugin = false
 bMissingGamePlugin = false
 bF4sePlugin = false
 bNoF4sePlugin = false
+bWandMovement = false
 
 [Warnings]
 fPlayerHeight = 1.45

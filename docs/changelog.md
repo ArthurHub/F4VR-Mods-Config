@@ -5,6 +5,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 ### v0.11.0
 
 - The gesture that opens and closes the menu no longer leaves the game's favorites open.
+- A config spec's condition and text can ask a setting of the game's INI, as the game's settings change it, with no DLL to answer it.
 
 ### v0.10.0
 
