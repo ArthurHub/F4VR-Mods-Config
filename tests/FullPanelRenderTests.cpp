@@ -1223,7 +1223,7 @@ TEST_CASE("FullPanel render: the General page of the config spec showcase with v
                     return found;
                 }
             } else if (const auto* setting = std::get_if<model::Setting>(&item);
-                       setting && setting->type == model::SettingType::TextInput && setting->valueType != model::StoredType::String) {
+                setting && setting->type == model::SettingType::TextInput && setting->valueType != model::StoredType::String) {
                 return setting;
             }
         }

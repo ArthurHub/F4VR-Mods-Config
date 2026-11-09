@@ -260,7 +260,7 @@ namespace mods_config::ui
         const int pointedArrow = row.pointed && !dragged ? boxes.arrowAt(ImGui::GetIO().MousePos.x) : 0;
         const int heldArrow = _arrowHeld == &setting ? _arrowSide : 0;
         drawStepButton(boxes.previous, ControlArrow::Left, value && *value > options.min, pointedArrow < 0, heldArrow < 0, STEP_ARROW_SCALE);
-        drawStepButton(boxes.next, ControlArrow::Right, value && *value<options.max, pointedArrow> 0, heldArrow > 0, STEP_ARROW_SCALE);
+        drawStepButton(boxes.next, ControlArrow::Right, value && *value < options.max, pointedArrow > 0, heldArrow > 0, STEP_ARROW_SCALE);
         drawFrame(track);
         if (dragged) {
             drawOutline(track.Min, track.Max, theme::color::GLOW);
