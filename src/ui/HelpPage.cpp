@@ -134,36 +134,36 @@ namespace
 
     const std::array CHANGES{
         PageLine{ .name = "Save",
-            .text = "A change waits for Save, which writes it, and Discard takes it back. An MCM mod's change is made at once instead: see MCM below. Changes are kept "
-                    "for each mod, and leaving a mod or closing the menu with unsaved changes asks first." },
+            .text = "Changes wait until you select Save, which writes them, or Discard, which drops them. An MCM mod applies a change at once instead: see MCM below. "
+                    "Each mod's changes are separate, and you're asked first when leaving a mod or closing the menu with unsaved changes." },
         PageLine{ .name = "Undo one change",
-            .text = "A changed value is amber, and the undo arrow after it takes back that change alone. Discard, in the footer, takes back all of them.",
+            .text = "A changed value turns amber. Select the undo arrow after it to undo just that change. Discard, in the footer, undoes all of them.",
             .mark = LineMark::Discard },
-        PageLine{ .name = "Reset", .text = "Sets the mod's default, as any other change. The help line names the default.", .mark = LineMark::Reset },
-        PageLine{ .name = "Buttons", .text = "A button that runs a mod's script asks you to save first, as the script reads the saved values. An MCM mod's does not ask." },
-        PageLine{ .name = "When a change takes effect", .text = "A mod can say it, with a mark after the row's name:" },
+        PageLine{ .name = "Reset", .text = "Sets the mod's default value, like any other change. The help line shows the default.", .mark = LineMark::Reset },
+        PageLine{ .name = "Buttons", .text = "A button that runs a mod's script asks you to save first, since the script reads the saved values. An MCM mod's buttons don't ask." },
+        PageLine{ .name = "When a change takes effect", .text = "A mod can show it with a mark after the setting's name:" },
         PageLine{ .name = "Live",
-            .text = "The mod applies the change as you make it, so you see it in the game before you save. It is still unsaved: Save keeps it, and Discard, or "
-                    "leaving without saving, puts the old value back in the game too.",
+            .text = "The mod applies the change as you make it, so you see it in the game before saving. It is still unsaved: Save keeps it, and Discard, or "
+                    "leaving without saving, restores the old value in the game too.",
             .mark = LineMark::Live },
-        PageLine{ .name = "Save", .text = "The mod applies it when you save.", .mark = LineMark::Save },
-        PageLine{ .name = "Restart", .text = "It applies after the game is restarted. The menu's front page reminds you until then.", .mark = LineMark::Restart },
-        PageLine{ .name = "No mark", .text = "The mod does not say, as no MCM mod does.", .mark = LineMark::NoMark },
+        PageLine{ .name = "Save", .text = "The mod applies the change when you save.", .mark = LineMark::Save },
+        PageLine{ .name = "Restart", .text = "The change applies after restarting the game. The front page reminds you until then.", .mark = LineMark::Restart },
+        PageLine{ .name = "No mark", .text = "The mod doesn't say. MCM mods never do.", .mark = LineMark::NoMark },
     };
 
     const std::array MARKS{
-        PageLine{ .name = "Amber value", .text = "Changed, not saved or kept yet.", .nameColor = theme::color::AMBER },
-        PageLine{ .name = "Red value", .text = "Invalid: the help line says why.", .mark = LineMark::Invalid, .nameColor = theme::color::RED },
-        PageLine{ .name = "Warning", .text = "Something to know about the value as it is: the help line says what.", .mark = LineMark::Warning },
-        PageLine{ .name = "Result", .text = "A button gave a result: point at its row to read it.", .mark = LineMark::Info },
-        PageLine{ .name = "Greyed row", .text = "Point at it: the help line says why it cannot be changed.", .nameColor = theme::color::DISABLED },
+        PageLine{ .name = "Amber value", .text = "Changed, but not saved or kept yet.", .nameColor = theme::color::AMBER },
+        PageLine{ .name = "Red value", .text = "Invalid. The help line explains why.", .mark = LineMark::Invalid, .nameColor = theme::color::RED },
+        PageLine{ .name = "Warning", .text = "Something to know about the current value. The help line explains it.", .mark = LineMark::Warning },
+        PageLine{ .name = "Result", .text = "A button returned a result. Point at its row to read it.", .mark = LineMark::Info },
+        PageLine{ .name = "Greyed row", .text = "Can't be changed. Point at it and the help line explains why.", .nameColor = theme::color::DISABLED },
     };
 
     const std::array MCM{
-        PageLine{ .name = "MCM tag", .text = "A mod whose menu is MCM's has it after its name in the list of mods, as its changes work as below." },
+        PageLine{ .name = "MCM tag", .text = "Shown after a mod's name in the list when its menu comes from MCM. Its changes work as described below." },
         PageLine{ .name = "Keep and Revert",
-            .text = "A change is made as you make it, as in MCM's own menu, so you see it in the game and a button's script reads it. Keep accepts it, and some mods "
-                    "apply it only then. Revert sets it back and runs the mod's script for it again." },
+            .text = "Changes apply as you make them, as in MCM's own menu, so you see them in the game and a button's script reads them. Keep accepts a change, and "
+                    "some mods only apply it then. Revert undoes it and runs the mod's script for it again." },
     };
 }
 
@@ -178,7 +178,9 @@ namespace mods_config::ui
     {
         F4CF_PERF_FUNCTION();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
-        drawPageText("How the menu works, with the buttons your config has.");
+        drawPageText(
+            "The menu doesn't pause the game, so you can see changes in the world "
+            "as you make them. The controls below reflect your current button configuration.");
         drawHeading("Navigation");
         for (const auto& control : controls) {
             drawLine({ .name = control.name, .text = control.text });

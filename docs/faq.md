@@ -100,7 +100,7 @@ Either nothing changed, or a value isn't valid. An invalid value is red, and the
   <summary>Does the game pause while the menu is open?</summary>
 &#10240;
 
-No. That's on purpose: you see a change in the world while the menu is open, and try another without closing it.
+No. That's on purpose: live changes show in the world immediately, with the menu still open, so you can try another without closing it. Settings marked **Save** or **Restart** still wait for that step. Minimize is optional: use it when the panel blocks your view.
 
 </details>
 
@@ -141,6 +141,16 @@ The menu adds the default to every setting's help, and some MCM mods write it in
 ## The Menu Itself
 
 <details>
+  <summary>Why doesn't the other hand's trigger select anything? How do I switch hands?</summary>
+&#10240;
+
+One hand works the menu at a time. The mark at the end of its ray shows which hand is active. A trigger on a hand pointing away from the panel selects nothing in the menu: it cannot click where the other hand points. This helps prevent accidental presses while the game keeps running.
+
+To switch, point the other hand at the panel and move the first hand away. If both rays are on the panel, pressing the other hand's trigger makes it active, unless the first hand is holding its trigger down for a drag. Release that trigger first. The inactive ray is fainter and has no mark.
+
+</details>
+
+<details>
   <summary>The menu is too small, too big, or too far away</summary>
 &#10240;
 
@@ -168,7 +178,7 @@ The menu uses SteamVR's keyboard. OpenComposite has none, so type with a real ke
   <summary>Back closes the menu when I didn't mean to</summary>
 &#10240;
 
-Back is a tap of the grip, and on the menu's front page it closes the menu. A longer hold of the grip moves the menu instead. Both are bindings on the **Controls** page of the menu's own settings, as is the opening gesture.
+Back is a tap of the grip while pointing at the menu. It closes the current popup or cancels an edit first, then goes up one level through the pages on each further tap. From Help, it returns to your page. On the menu's front page it closes the menu. A longer hold of the grip moves the menu instead. Both are bindings on the **Controls** page of the menu's own settings, as is the opening gesture.
 
 </details>
 

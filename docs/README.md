@@ -15,13 +15,14 @@ Install and requirements: [main README](../README.md). Problems: [FAQ](faq.md). 
 
 ## Quick Start
 
-- **Open and close:** press in both thumbsticks and hold them. While the menu is minimized, this shows it again.
-- **Point:** the hand that points at the menu works it. The trigger presses and the thumbstick scrolls, and the game doesn't get them while you point.
-- **Back:** tap the grip of the hand that points. On the menu's front page it closes the menu.
-- **Move the menu:** point at it and hold the grip. It follows your hand until you let go.
-- **Bring it in front of you:** press in the offhand thumbstick and hold it. Walk away from the menu and it comes back by itself.
-- **Minimize:** the `–` in the title bar hides the menu, so you can see your change in the world. **Restore** and **Exit** are then on your offhand wrist.
-- **Help:** **? Help** in the title bar shows how the menu works, with the buttons your config has. The line at the bottom of the menu shows the help of whatever you point at.
+- **Open / Close:** Hold both thumbsticks down to open or close the menu. This also restores a minimized menu.
+- **Point and select:** Only one hand controls the menu at a time, indicated by the mark at the end of its ray. Use that hand's trigger to select and thumbstick to scroll. These controls are blocked from the game while pointing at the menu. Point away to use the trigger in-game without accidentally selecting anything. [Switching hands](faq.md#the-menu-itself).
+- **Back:** Tap the pointing hand's grip to close a popup, cancel an edit, or go back one page. From Help, it returns to your previous page. From the front page, it closes the menu.
+- **Move the menu:** Point at the menu and hold the grip to grab it. Move your hand to reposition it, then release.
+- **Recenter:** Hold the offhand thumbstick down to bring the menu in front of you. The menu also returns automatically if you move too far away.
+- **Navigate pages:** The breadcrumbs in the title bar show your current location. Select any earlier page to jump back, or **MODS CONFIG FO4** to return to the front page.
+- **Minimize:** Select **–** in the title bar to hide the menu while inspecting changes in-game. Your current page and unsaved edits are preserved. Use **Restore** on your offhand wrist to bring it back and refresh values, or **Exit** to close the menu (with a warning if you have unsaved changes).
+- **Help:** Select **? Help** in the title bar for instructions and controller mappings based on your configuration. The bottom of the menu also displays contextual help for whatever you're pointing at.
 
 ![The Help page](assets/help-page.jpg)
 
@@ -36,7 +37,7 @@ Pick a mod in the list on the left. Its front page opens, and its pages are unde
 - **When a change takes effect:** each setting says it. A live one shows in the game as you change it, before you Save, and Discard puts the old value back in the game too. Others take effect on Save, or after a restart, which the front page then reminds you of.
 - **MCM mods** have the `MCM` tag in the list. As in MCM's own menu, a change is made in the game as you make it: **Keep** accepts it and **Revert** sets it back.
 
-The game keeps running while the menu is open, so you can try a change, look at it, and change it again without closing the menu.
+The menu does not pause the game, on purpose: live changes show in the world immediately, with the menu still open, so you can try another without closing it. Settings marked **Save** or **Restart** still wait for that step.
 
 ## The Menu's Own Settings
 

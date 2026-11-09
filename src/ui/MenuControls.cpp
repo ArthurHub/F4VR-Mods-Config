@@ -210,33 +210,50 @@ namespace mods_config::ui
 {
     /**
      * The Navigation section of the Help page, as the design system's FullPanelHelp has it: how the menu is opened,
-     * pointed at, moved and minimized, with the buttons and the bindings of the config in their short sentence. A
-     * control the config turns off is left out.
+     * pointed at, stepped back, moved, recentered, navigated by its breadcrumbs and minimized, with the buttons and the
+     * bindings of the config in their short sentence. A control the config turns off is left out.
      */
     std::vector<ControlHelp> menuControls(const MenuButtons& buttons)
     {
         std::vector<ControlHelp> controls;
+
         if (buttons.openMenu.isEnabled()) {
-            controls.push_back(
-                { .name = "Open and close", .text = shortBindingSentence(buttons.openMenu, buttons.leftHanded) + ". While the menu is minimized it shows it again." });
+            controls.push_back({ .name = "Open / Close",
+                .text = shortBindingSentence(buttons.openMenu, buttons.leftHanded) + " to open or close the menu. This also restores a minimized menu." });
         }
-        controls.push_back(
-            { .name = "Pointing at the menu", .text = "That hand's trigger and thumbstick work the menu, and the game does not get them: you do not fire or turn by accident." });
+
+        controls.push_back({ .name = "Point and select",
+            .text = "Only one hand controls the menu at a time, indicated by the mark at the end of its ray. "
+                    "Use that hand's trigger to select and thumbstick to scroll. These inputs are blocked from the game "
+                    "while pointing at the menu. Point away to use the trigger in-game without accidentally selecting anything." });
+
         if (buttons.back.isEnabled()) {
-            controls.push_back({ .name = "Back", .text = shortBindingSentence(buttons.back, buttons.leftHanded) + " while pointing at the menu." });
+            controls.push_back({ .name = "Back",
+                .text = shortBindingSentence(buttons.back, buttons.leftHanded) + " while pointing at the menu to close a popup, cancel an edit, or go back one page. "
+                                                                                 "From Help, it returns to your previous page. From the front page, it closes the menu." });
         }
+
         if (buttons.move.isEnabled()) {
-            controls.push_back(
-                { .name = "Move the menu", .text = shortBindingSentence(buttons.move, buttons.leftHanded) + " while pointing at the menu: it follows the hand until you let go." });
+            controls.push_back({ .name = "Move the menu",
+                .text = shortBindingSentence(buttons.move, buttons.leftHanded) + " while pointing at the menu to grab it. Move your hand to reposition it, then release." });
         }
+
         if (buttons.recenter.isEnabled()) {
             controls.push_back({ .name = "Recenter",
-                .text = shortBindingSentence(buttons.recenter, buttons.leftHanded) +
-                        ": the menu is put in front of you again. It also comes back by itself when you walk away from it." });
+                .text =
+                    shortBindingSentence(buttons.recenter, buttons.leftHanded) + " to bring the menu in front of you. It also returns automatically if you move too far away." });
         }
+
+        controls.push_back({ .name = "Navigate pages",
+            .text = "The breadcrumbs in the title bar show your current location. "
+                    "Select any earlier page to jump back, or MODS CONFIG FO4 to return to the front page." });
+
         controls.push_back({ .name = "Minimize",
-            .text = "On the title bar: the menu is hidden as you left it, your changes too. Your offhand wrist then has Restore, which shows it again with its "
-                    "values read again, and Exit, which closes it." });
+            .text = "Select \xE2\x80\x93 in the title bar to hide the menu while inspecting changes in-game. "
+                    "Your current page and unsaved edits are preserved. "
+                    "Use Restore on your offhand wrist to bring it back and refresh its values, "
+                    "or Exit to close the menu (with a warning if you have unsaved changes)." });
+
         return controls;
     }
 

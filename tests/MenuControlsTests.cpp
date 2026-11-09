@@ -105,13 +105,27 @@ TEST_CASE("MenuControls: the Help page says a binding short, with no time, and a
 TEST_CASE("MenuControls: the Help page's Navigation has the controls of the config, and leaves out the ones it turns off")
 {
     const auto controls = ui::menuControls({ .openMenu = OPEN_MENU, .back = BACK, .move = MOVE, .recenter = RECENTER, .leftHanded = false });
-    CHECK(namesOf(controls) == Names{ "Open and close", "Pointing at the menu", "Back", "Move the menu", "Recenter", "Minimize" });
-    CHECK(controls[0].text == "Long press both thumbsticks. While the menu is minimized it shows it again.");
-    CHECK(controls[2].text == "Tap the grip on either hand while pointing at the menu.");
-    CHECK(controls[3].text == "Long press the grip on either hand while pointing at the menu: it follows the hand until you let go.");
-    CHECK(controls[4].text == "Long press the thumbstick on the off hand: the menu is put in front of you again. It also comes back by itself when you walk away from it.");
+    CHECK(namesOf(controls) == Names{ "Open / Close", "Point and select", "Back", "Move the menu", "Recenter", "Navigate pages", "Minimize" });
+    CHECK(controls[0].text == "Long press both thumbsticks to open or close the menu. This also restores a minimized menu.");
+    CHECK(controls[1].text ==
+          "Only one hand controls the menu at a time, indicated by the mark at the end of its ray. "
+          "Use that hand's trigger to select and thumbstick to scroll. These inputs are blocked from the game "
+          "while pointing at the menu. Point away to use the trigger in-game without accidentally selecting anything.");
+    CHECK(controls[2].text ==
+          "Tap the grip on either hand while pointing at the menu to close a popup, cancel an edit, or go back one page. "
+          "From Help, it returns to your previous page. From the front page, it closes the menu.");
+    CHECK(controls[3].text == "Long press the grip on either hand while pointing at the menu to grab it. Move your hand to reposition it, then release.");
+    CHECK(controls[4].text == "Long press the thumbstick on the off hand to bring the menu in front of you. It also returns automatically if you move too far away.");
+    CHECK(controls[5].text ==
+          "The breadcrumbs in the title bar show your current location. "
+          "Select any earlier page to jump back, or MODS CONFIG FO4 to return to the front page.");
+    CHECK(controls[6].text ==
+          "Select \xE2\x80\x93 in the title bar to hide the menu while inspecting changes in-game. "
+          "Your current page and unsaved edits are preserved. "
+          "Use Restore on your offhand wrist to bring it back and refresh its values, "
+          "or Exit to close the menu (with a warning if you have unsaved changes).");
 
     const InputBinding none{ .type = ActivationType::Disabled };
     const auto fewer = ui::menuControls({ .openMenu = none, .back = none, .move = none, .recenter = none, .leftHanded = false });
-    CHECK(namesOf(fewer) == Names{ "Pointing at the menu", "Minimize" });
+    CHECK(namesOf(fewer) == Names{ "Point and select", "Navigate pages", "Minimize" });
 }

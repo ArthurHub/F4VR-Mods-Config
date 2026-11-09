@@ -9,8 +9,8 @@ The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which co
 | D2   | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls   | todo   |
 | M169 | mod      | The open gesture closes the game's favorites                          | in review |
 | M170 | mod      | A condition on a setting of the game's INI, with no client state      | in review |
-| M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | todo   |
-| M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | todo   |
+| M171 | mod      | The Help page: the breadcrumbs, and more on Minimize                  | in review   |
+| M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | in review   |
 | M173 | mod      | A color, a binding and a transform kept in an INI file                | todo   |
 | M145 | mod      | The client is told what the ray is on                                 | todo   |
 
@@ -26,8 +26,8 @@ M171 adds the breadcrumbs to the Help page, and says more of what Minimize does.
 
 M172 tells the player, in the Help page or the docs, two things the alpha asked:
 
-- One hand points at a time: the trigger of the other hand selects nothing while a ray is on the panel. The hand that points has the mark at the end of its ray. It is on purpose, as the game is not paused, so a press is not made by accident.
-- The menu does not pause the game, on purpose: a change is seen in the game at once, with the menu still open.
+- One hand works the menu at a time: a hand pointing away selects nothing in the menu, and the active hand has the mark at the end of its ray. This helps prevent accidental presses while the game keeps running. With both rays on the panel, the other hand can take over with a trigger press, unless a drag is in progress.
+- The menu does not pause the game, on purpose: live changes are seen in the game at once, with the menu still open. Settings marked Save or Restart still wait for that step.
 
 M173 keeps a `cf.color`, a `cf.inputBinding` and a `cf.transform` in an INI file too, which take a TOML file alone now.
 
