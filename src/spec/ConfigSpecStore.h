@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <expected>
 #include <filesystem>
@@ -105,6 +106,21 @@ namespace mods_config::spec
         void showPage(const model::Page* page) override;
         void readAgain() override;
         std::expected<void, std::string> setPendingValue(std::string_view modName, std::string_view id, const model::Value& value);
+        void frameUpdate();
+
+        // the clock that paces the previews told to a mod's client, which a test sets
+        using Clock = std::function<std::chrono::steady_clock::time_point()>;
+
+        void setPreviewPacing(std::chrono::milliseconds interval, Clock clock)
+        {
+            _previewInterval = interval;
+            _clock = std::move(clock);
+        }
+
+        // the shortest time between two previews of a setting that its mod's client is told, as the client can take long
+        // to apply one, and a value dragged changes in every frame
+        static constexpr std::chrono::milliseconds PREVIEW_INTERVAL{ 50 };
+
         std::string notRunnable(const model::Action& action) const override;
         std::string notPreviewed(const model::Setting& setting) const override;
         model::ActionResult run(const model::Action& action) override;
@@ -153,6 +169,10 @@ namespace mods_config::spec
         {
             model::SettingChange change;
             model::Value baseline;
+
+            // when the client was told its last preview, and the value set since that it is told once the interval is past
+            std::chrono::steady_clock::time_point toldAt;
+            std::optional<model::Value> held;
         };
 
         void readValues(const model::Mod& mod);
@@ -160,6 +180,7 @@ namespace mods_config::spec
         void preview(const model::Setting& setting, const Entry& entry);
         void previewToClient(const model::Setting& setting, const Entry& entry);
         void discardOnClient(ClientPreview& preview) const;
+        void tellHeld(ClientPreview& preview, std::chrono::steady_clock::time_point now) const;
         model::ClientSetting clientSetting(const model::Setting& setting) const;
         model::ClientFile clientFile(const std::string& name) const;
         std::filesystem::path pathOf(const model::File& file) const;
@@ -209,6 +230,10 @@ namespace mods_config::spec
 
         // the `live` settings whose pending value the mod's client was told, by the setting, which is not read through it
         std::unordered_map<const model::Setting*, ClientPreview> _clientPreviews;
+
+        // the shortest time between two previews of a setting told to the client, and the clock that times it
+        std::chrono::milliseconds _previewInterval = PREVIEW_INTERVAL;
+        Clock _clock = std::chrono::steady_clock::now;
 
         // why the last Save did not write every dirty setting, until the next change, Save or Discard
         std::string _saveFailure;

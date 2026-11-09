@@ -15,6 +15,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 - A config spec's setting, button and section can show a state of its mod's DLL in their text and help, as a text row can.
 - The menu's own settings are polished, and its thumbstick bindings are read as the framework reads them.
 - The menu's own Developer page has the VR UI dev layout, with a button that opens its file.
+- A dragged `live` setting is previewed to its mod at most every 50 ms, and always the value it ends on.
 
 ### v0.9.0
 

@@ -263,9 +263,11 @@ Immersive Flashlight's config spec and its client are commits in its own reposit
 | M165 | mod | The end-to-end tests, run through devbench                             | done   |
 | M154 | mod | The release tested in the headset                                      | done   |
 | F40 | framework | perf: the ImGui canvases' and the vrui panels' frame end             | done   |
-| M155 | mod | The release perf tested                                                | in review |
-| F41 | framework | The ImGui canvases' frame within the menu's budgets                  | todo   |
-| M166 | mod | The menu's frame cost within its budgets                               | todo   |
+| M155 | mod | The release perf tested                                                | done   |
+| M166 | mod | A color, binding and transform parse their value once per text        | done   |
+| F41 | framework | config: a reload of an unchanged file parses nothing                 | done   |
+| M167 | mod | A dragged live setting is told to its mod at most every 50 ms          | in review |
+| M168 | mod | The menu's frame cost checked against its budgets                      | todo   |
 | D2 | devbench | Drive the ImGui pointer's ray, the keyboard, and a panel's controls  | todo   |
 
 M136 to M138 make an MCM change as MCM's menu makes it, so the player sees it in the game: it writes the value, runs its row's action and sends MCM's event as it is made, and keeps the Save bar of M121. A setting the player changed is dirty while its value is not its baseline. Discard sets the dirty settings back in the reverse of the order they were changed, each as a change is made, with its action run again, so a preset that is set back sets its rows back, and a row's own Discard does the same for that setting alone. Save writes nothing, and sends the pause menu's events where the session wrote a ModSetting, so a DLL that reads MCM's file gets the changes at Save. A script's button of an MCM mod no longer asks to save first. M137 changes the Help page's MCM section and the text of what Save does, and M138 makes the store, with its tests. See [MCM compatibility](architecture.md#mcm-compatibility).
@@ -321,7 +323,9 @@ M154 tries the release in the headset, on what the end-to-end tests do not reach
 
 - F40 splits the framework's frame end into perf sites: the ImGui canvases' frame, with the mod's content in it, and the vrui panels'. M155 adds the mod's own: its frame update, the menu's parts of it, and each part of the panel.
 - `tests/e2e/test_perf.py` holds each state 10 s and reports what the sites recorded: closed, minimized, the front page, the page with the most rows of the test set and of the showcase, the dialog asking, and FRIK's live preview. The ray on the panel, SteamVR's keyboard and an open editor wait for D2, as devbench does not drive them yet.
-- The budgets are set from the numbers measured. M166 fixes what costs more, with F41 for what is the framework's, and adds the budgets to `test_perf.py` as its checks. Neither is made when nothing costs more.
+- The budgets are set from the numbers measured, and M168 adds them to `test_perf.py` as its checks.
+
+M166, F41 and M167 fix what the first measure found. M166: a color, a binding and a transform no longer parse their value's TOML text each frame they are drawn, as the text's parse is kept, which halves the showcase's heaviest page. F41: a reload of a config file that did not change parses nothing, as a preview's Discard reloads the file, which takes 0.2 ms off each preview of every framework mod. M167: a dragged `live` setting is told to its mod's client at most every 50 ms, and always the value it ends on, as a mod can take long to apply a preview: FRIK's reload of its config took 0.4 ms, and a drag told it in every frame. The menu's frame as FRIK's setting is dragged went from 0.56 ms to 0.17 ms on average. The scene depth copy of an upscaled frame, 0.09 ms of the GPU, is left as it is.
 
 A mod's text is in the game's language where the mod has a translation file for it and the font has its letters. A mod with no game plugin shows its fallback text until milestone 12.
 

@@ -93,11 +93,13 @@ def test_dialog(menu, report):
 
 
 def test_live_preview(menu, report):
-    """FRIK previewing a change of a live setting, changed as fast as devbench takes it."""
+    """FRIK previewing a live setting that is dragged: changed as fast as devbench takes it, between two values that are
+    not its saved one, as a set back to that is a Discard, which is told at once."""
     mod, _, page, path = CASES["FRIK"]
     menu.select(mod, page)
     row = setting_of(menu, path)
-    values = [row["value"], next(candidates(row))]
+    values = list(candidates(row))[:2]
+    assert len(values) == 2, f"{row['id']} has no two values to drag between"
     changes = 0
 
     def change():
@@ -105,7 +107,7 @@ def test_live_preview(menu, report):
         changes += 1
         menu.call("setValue", id=row["id"], value=values[changes % 2])
 
-    measure(menu, report, "FRIK's live preview", during=change)
+    measure(menu, report, "FRIK's live preview, dragged", during=change)
     menu.discard()
     wait_until(lambda: not menu.state()["session"]["dirty"], 3, what="the change discarded")
     report.notes.append(f"FRIK's live preview: {changes} changes in {HOLD_SECONDS} s.")

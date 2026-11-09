@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -103,9 +104,12 @@ namespace
         model::Mod mod;
         ConfigSpecStore store{ data.path, myGames.path };
 
+        // each preview is told at once: the pacing has a test of its own
         explicit Session(const std::string& content = SETTINGS)
             : mod(configSpecOf(content))
-        {}
+        {
+            store.setPreviewPacing(std::chrono::milliseconds(0), std::chrono::steady_clock::now);
+        }
 
         /**
          * Writes the mod's TOML file and starts its session.
@@ -1539,6 +1543,50 @@ TEST_CASE("ConfigSpecStore: a live setting of a file is previewed to its mod's c
     CHECK(session.store.set(session.setting(0), true));
     session.store.close();
     CHECK(told.lines == std::vector<std::string>{ "Preview bEnable:Main main:Main.bEnable false -> true", "Discard bEnable:Main main:Main.bEnable true -> false" });
+}
+
+TEST_CASE("ConfigSpecStore: a preview is told to the client at most once in its interval, and the last value once it is past")
+{
+    Session session;
+    ToldChanges told(session.store);
+    auto now = std::chrono::steady_clock::time_point{};
+    session.store.setPreviewPacing(ConfigSpecStore::PREVIEW_INTERVAL, [&now] {
+        return now;
+    });
+    session.open(MOD_TOML);
+    const auto& scale = session.setting(1);
+
+    // the first is told at once, and a drag within the interval is held, with its last value
+    CHECK(session.store.set(scale, 1.4f));
+    now += std::chrono::milliseconds(20);
+    CHECK(session.store.set(scale, 1.3f));
+    CHECK(session.store.set(scale, 1.2f));
+    session.store.frameUpdate();
+    CHECK(told.lines == std::vector<std::string>{ "Preview fScale:Main main:Main.fScale 1.25 -> 1.4" });
+
+    // the frame past the interval tells it, after the value told before
+    now += std::chrono::milliseconds(30);
+    session.store.frameUpdate();
+    session.store.frameUpdate();
+    CHECK(told.lines == std::vector<std::string>{ "Preview fScale:Main main:Main.fScale 1.25 -> 1.4", "Preview fScale:Main main:Main.fScale 1.4 -> 1.2" });
+
+    // a change past the interval is told at once
+    told.lines.clear();
+    now += std::chrono::milliseconds(60);
+    CHECK(session.store.set(scale, 1.1f));
+    CHECK(told.lines == std::vector<std::string>{ "Preview fScale:Main main:Main.fScale 1.2 -> 1.1" });
+
+    // a value set back to the one told drops what is held, and a Discard is told at once, from the value told
+    told.lines.clear();
+    CHECK(session.store.set(scale, 1.3f));
+    CHECK(session.store.set(scale, 1.1f));
+    now += std::chrono::milliseconds(60);
+    session.store.frameUpdate();
+    CHECK(told.lines.empty());
+    CHECK(session.store.set(scale, 1.4f));
+    CHECK(session.store.set(scale, 1.25f));
+    session.store.frameUpdate();
+    CHECK(told.lines == std::vector<std::string>{ "Preview fScale:Main main:Main.fScale 1.1 -> 1.4", "Discard fScale:Main main:Main.fScale 1.4 -> 1.25" });
 }
 
 TEST_CASE("ConfigSpecStore: a client sets a pending value by its setting's id as the player's edit, which is told back to it")

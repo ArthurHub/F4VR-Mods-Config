@@ -91,7 +91,7 @@ Only one mod has an active editing session.
 
 1. Selecting a mod reads its files, globals, properties and its client's states, and captures the values as the session baseline.
 2. Player edits update a pending model, and so do the edits a mod's own UI hands back; see [The mod's own UI](#the-mods-own-ui).
-3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host, and then sent to the client too, which can do what more it needs. A state of the client is sent to the client, which applies it.
+3. A valid edit of a `live` setting is previewed. A key of a file is sent to the mod's native client, when the mod has one. A global or a property is written into the game by the host, and then sent to the client too, which can do what more it needs. A state of the client is sent to the client, which applies it. A client is sent a setting's preview at most every 50 ms, as a value that is dragged changes in every frame and a mod can take long to apply one: an edit within that time is held, and the last one is sent once it is past. A Discard is sent at once.
 4. The minimized menu retains the same session.
 5. Save establishes a new baseline.
 6. Discard restores the baseline and rolls back live previews.

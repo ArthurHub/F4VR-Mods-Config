@@ -308,6 +308,8 @@ namespace mods_config
         F4CF_PERF_FUNCTION();
         // the pause menu's events of a Save wait for MCM's file, also after the menu is closed
         _store.frameUpdate();
+        // the last value of a preview its mod's client was not told yet, as previews are told at most every 50 ms
+        _configSpecStore.frameUpdate();
         // every frame, so a change of the config shows while the menu is open
         imgui::pointer().setStyle(g_config.pointerStyle);
         if (_developerToSave) {

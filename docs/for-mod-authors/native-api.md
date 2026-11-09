@@ -118,7 +118,7 @@ A button of the config spec can run the same function by its name.
 
 ## Live Preview and Saves
 
-A `live` setting's change reaches your DLL as the player makes it: each valid pending value, and a Discard back to where the session started. After a Save, your DLL is told once what it wrote, every setting of any `applies`.
+A `live` setting's change reaches your DLL as the player makes it: each valid pending value, and a Discard back to where the session started. A value that is dragged is told at most every 50 ms, and always the value it ends on; a Discard and a Save are told at once. After a Save, your DLL is told once what it wrote, every setting of any `applies`.
 
 ```cpp
 modsConfig.subscribeToChanges([](const Change& change) {

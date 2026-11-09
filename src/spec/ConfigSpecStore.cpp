@@ -24,6 +24,7 @@
 #include "model/InputBindings.h"
 #include "model/SessionEvents.h"
 #include "model/Transforms.h"
+#include "perf/Perf.h"
 
 using namespace mods_config;
 
@@ -981,6 +982,7 @@ namespace mods_config::spec
      */
     bool ConfigSpecStore::set(const model::Setting& setting, const model::Value& value)
     {
+        F4CF_PERF_FUNCTION();
         const auto found = _entries.find(&setting);
         if (setting.readOnly || found == _entries.end() || !found->second.notAvailable.empty()) {
             return false;
@@ -1002,9 +1004,13 @@ namespace mods_config::spec
             entry.pending = std::move(*typed);
         }
         if (setting.applies == model::Applies::Live && isInGame(setting.storage) && entry.pendingInvalid.empty()) {
+            F4CF_PERF_SCOPE("preview");
             preview(setting, entry);
         }
-        previewToClient(setting, entry);
+        {
+            F4CF_PERF_SCOPE("previewToClient");
+            previewToClient(setting, entry);
+        }
         return true;
     }
 
@@ -1488,7 +1494,8 @@ namespace mods_config::spec
 
     /**
      * Tells the mod's client the change of a `live` setting: its valid pending value, as a Preview, with the value it was
-     * told before, its baseline at first, and a Discard back to the baseline as the setting is clean again. A setting of
+     * told before, its baseline at first, and a Discard back to the baseline as the setting is clean again. A Preview
+     * within `_previewInterval` of the one before is held, and told by `frameUpdate` once it is past. A setting of
      * the game is in it already, as the store previews it first, and the client can do what more it needs. One of a
      * state of the client is applied by the client as it is told it. An invalid pending value leaves the client with the
      * preview before it. Nothing for a setting that is not `live`.
@@ -1513,20 +1520,52 @@ namespace mods_config::spec
         }
         auto value = storedValue(setting, *entry.pending);
         if (found != _clientPreviews.end()) {
-            auto& change = found->second.change;
-            if (isSameValue(change.value, value)) {
+            auto& preview = found->second;
+            if (isSameValue(preview.change.value, value)) {
+                preview.held.reset();
                 return;
             }
-            change.previous = std::exchange(change.value, std::move(value));
-            change.phase = model::ChangePhase::Preview;
-            _clientCalls.sendChange(_modName, change);
+            preview.held = std::move(value);
+            tellHeld(preview, _clock());
             return;
         }
         const auto baseline = clientBaseline(setting, entry.baseline, value);
         ClientPreview preview{ .change = { .setting = clientSetting(setting), .previous = baseline, .value = std::move(value), .phase = model::ChangePhase::Preview },
-            .baseline = baseline };
+            .baseline = baseline,
+            .toldAt = _clock() };
         _clientCalls.sendChange(_modName, preview.change);
         _clientPreviews.emplace(&setting, std::move(preview));
+    }
+
+    /**
+     * Tells the mod's client the value a preview holds, once `_previewInterval` is past since it was told the one
+     * before: a value dragged changes in every frame, and a mod can take long to apply one.
+     */
+    void ConfigSpecStore::tellHeld(ClientPreview& preview, const std::chrono::steady_clock::time_point now) const
+    {
+        if (!preview.held || now - preview.toldAt < _previewInterval) {
+            return;
+        }
+        preview.change.previous = std::exchange(preview.change.value, std::move(*preview.held));
+        preview.held.reset();
+        preview.change.phase = model::ChangePhase::Preview;
+        preview.toldAt = now;
+        _clientCalls.sendChange(_modName, preview.change);
+    }
+
+    /**
+     * Tells the mod's client the last value of each preview it was not told yet, as its interval is past, so the value
+     * a drag ends on is previewed.
+     */
+    void ConfigSpecStore::frameUpdate()
+    {
+        if (_clientPreviews.empty()) {
+            return;
+        }
+        const auto now = _clock();
+        for (auto& preview : _clientPreviews | std::views::values) {
+            tellHeld(preview, now);
+        }
     }
 
     /**
@@ -1573,6 +1612,7 @@ namespace mods_config::spec
      */
     void ConfigSpecStore::discardOnClient(ClientPreview& preview) const
     {
+        preview.held.reset();
         preview.change.previous = std::exchange(preview.change.value, preview.baseline);
         preview.change.phase = model::ChangePhase::Discard;
         _clientCalls.sendChange(_modName, preview.change);
