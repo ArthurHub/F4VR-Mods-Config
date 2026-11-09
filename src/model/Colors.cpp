@@ -2,6 +2,7 @@
 
 #include <format>
 
+#include "ParseCache.h"
 #include "common/TomlEditor.h"
 #include "config/ValueParsers.h"
 
@@ -14,11 +15,9 @@ namespace
 namespace mods_config::model
 {
     /**
-     * The color table of the TOML text of an inline table, as the framework reads it from its config, or the
-     * framework's reason it is none, as `rgb has a number that is not a whole number in 0..255`, which starts with the
-     * key it names as it is written. A text that is no TOML value is none too.
+     * The color table of the TOML text of an inline table, parsed each time: `parseColorTable` keeps what it gives.
      */
-    std::expected<ColorTable, std::string> parseColorTable(const std::string_view text)
+    static std::expected<ColorTable, std::string> parseColorTableText(const std::string_view text)
     {
         std::string reason = "it is not a table, as { rgb = [255, 255, 255], alpha = 255 }";
         if (const auto document = common::parseToml(std::format("color = {}", text)); document && document->size() == 1) {
@@ -41,6 +40,16 @@ namespace mods_config::model
             reason = read.error();
         }
         return std::unexpected(std::move(reason));
+    }
+
+    /**
+     * The color table of the TOML text of an inline table, as the framework reads it from its config, or the
+     * framework's reason it is none, as `rgb has a number that is not a whole number in 0..255`, which starts with the
+     * key it names as it is written. A text that is no TOML value is none too. Parsed once per text (`cachedParse`).
+     */
+    std::expected<ColorTable, std::string> parseColorTable(const std::string_view text)
+    {
+        return cachedParse<parseColorTableText>(text);
     }
 
     /**

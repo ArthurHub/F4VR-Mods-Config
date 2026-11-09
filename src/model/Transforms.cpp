@@ -4,6 +4,7 @@
 #include <format>
 
 #include "ConfigDefinition.h"
+#include "ParseCache.h"
 #include "common/TomlEditor.h"
 #include "config/ValueParsers.h"
 
@@ -38,10 +39,10 @@ namespace
 namespace mods_config::model
 {
     /**
-     * The transform table of the TOML text of an inline table, as the framework reads it from its config, or the
-     * framework's reason it is none, as `rot is not an array of three numbers`. A text that is no TOML value is none too.
+     * The transform table of the TOML text of an inline table, parsed each time: `parseTransformTable` keeps what it
+     * gives.
      */
-    std::expected<TransformTable, std::string> parseTransformTable(const std::string_view text)
+    static std::expected<TransformTable, std::string> parseTransformTableText(const std::string_view text)
     {
         std::string reason = "it is not a table, as { pos = [0, 0, 0], rot = [0, 0, 0], scale = 1 }";
         if (const auto document = common::parseToml(std::format("transform = {}", text)); document && document->size() == 1) {
@@ -65,6 +66,16 @@ namespace mods_config::model
             reason = read.error();
         }
         return std::unexpected(std::move(reason));
+    }
+
+    /**
+     * The transform table of the TOML text of an inline table, as the framework reads it from its config, or the
+     * framework's reason it is none, as `rot is not an array of three numbers`. A text that is no TOML value is none too.
+     * Parsed once per text (`cachedParse`).
+     */
+    std::expected<TransformTable, std::string> parseTransformTable(const std::string_view text)
+    {
+        return cachedParse<parseTransformTableText>(text);
     }
 
     /**

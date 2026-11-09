@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME}_tests
   ModFileTests.cpp
   NativeClientsTests.cpp
   NumbersTests.cpp
+  ParseCacheTests.cpp
   ConfigSpecLoaderTests.cpp
   ConfigSpecStoreTests.cpp
   SwfImagesTests.cpp

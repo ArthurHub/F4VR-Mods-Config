@@ -4,17 +4,16 @@
 #include <cctype>
 #include <format>
 
+#include "ParseCache.h"
 #include "common/TomlEditor.h"
 #include "vrcf/InputBindingParser.h"
 
 namespace mods_config::model
 {
     /**
-     * The binding of the TOML text of an inline table, as the framework reads it from its config, or the
-     * framework's reason it is none, as `'thumbstik' is not a button, one of trigger, grip, ...`, with its first
-     * letter in upper case. A text that is no TOML value is none too.
+     * The binding of the TOML text of an inline table, parsed each time: `parseBinding` keeps what it gives.
      */
-    std::expected<vrcf::InputBinding, std::string> parseBinding(const std::string_view text)
+    static std::expected<vrcf::InputBinding, std::string> parseBindingText(const std::string_view text)
     {
         std::string reason = R"(it is not a table, as { hand = "offhand", type = "tap", button = "grip" })";
         if (const auto document = common::parseToml(std::format("binding = {}", text)); document && document->size() == 1) {
@@ -28,6 +27,16 @@ namespace mods_config::model
             reason.front() = static_cast<char>(std::toupper(static_cast<unsigned char>(reason.front())));
         }
         return std::unexpected(std::move(reason));
+    }
+
+    /**
+     * The binding of the TOML text of an inline table, as the framework reads it from its config, or the
+     * framework's reason it is none, as `'thumbstik' is not a button, one of trigger, grip, ...`, with its first
+     * letter in upper case. A text that is no TOML value is none too. Parsed once per text (`cachedParse`).
+     */
+    std::expected<vrcf::InputBinding, std::string> parseBinding(const std::string_view text)
+    {
+        return cachedParse<parseBindingText>(text);
     }
 
     /**
