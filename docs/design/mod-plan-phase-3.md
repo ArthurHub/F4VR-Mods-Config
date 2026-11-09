@@ -13,7 +13,7 @@ The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which co
 | M172 | mod      | docs: one hand points at a time, and the menu does not pause the game | in review   |
 | M173 | mod      | A color, a binding and a transform kept in an INI file                | in review |
 | M145 | mod      | The client is told what the ray is on                                 | in review |
-| F42  | framework | f4vr: an activation sphere lights while the menu points at it        | todo   |
+| F42  | framework | f4vr: an activation sphere lights while the menu points at it        | in review |
 
 The milestone fixes and polishes what the alpha finds. Its commits are added as they come.
 
@@ -34,7 +34,7 @@ M173 keeps a `cf.color`, a `cf.inputBinding` and a `cf.transform` in an INI file
 
 M145 tells a client which item of its config spec the ray is on, a row or a group, as it moves on and off one, beside the page events, so the mod shows in the world what the item sets. A section, an activation sphere and a button can have an `id`, a sphere its section's with none, and a `PointedAt` event names the row and each group it is in by their ids, innermost first. It stays across the gaps between rows, while a row's editor is open and during Adjust in world. See [Pointed items](schema.md#pointed-items) and [The client's events](architecture.md#the-clients-events).
 
-F42 lights an activation sphere of a CommonFramework mod by itself while the ray is on its rows, with nothing for the mod to add: the framework keeps the section it read the sphere from, and draws it as `showZone` does while the menu points at that section. A zone row lights it only while that zone is the one in use, in power armor or not.
+F42 lights an activation sphere of a CommonFramework mod by itself while the ray is on its rows, with nothing for the mod to add: the framework keeps the section it read the sphere from, and draws it as `showZone` does while the menu points at that section. A zone row lights it only while that zone is the one in use, in power armor or not. The config overload of a sphere's frame names its config; a mod that builds the frame itself names it with `config`, which Immersive Flashlight does for its three spheres, in its own repository, after the commit.
 
 ## 12. Search
 

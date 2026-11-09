@@ -42,6 +42,7 @@ A mod built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-Com
 - **Live preview** of every `live` setting of its own config file: the framework applies the menu's changes as overrides of the file and reloads the config, as it does for a change of the file.
 - **`configFile`,** a state with the path of the config file the mod loaded, for the file's `pathFromClientState`.
 - **`modVersion`,** a state with the mod's version, for a text as `Version {clientState:modVersion}`.
+- **Lit activation spheres:** a sphere the framework read from a section lights while the ray is on its rows, at its zone's true size. A zone's row lights it only while that zone is in use, in power armor or not. Give the sphere no `id` of its own, so it's named by its section.
 
 What it adds beyond that, it adds to the same client, `ModsConfigFO4Client::get()`, at any time. The framework's [Mods Config client](https://github.com/ArthurHub/F4VR-CommonFramework/blob/main/src/modsconfig/README.md) has the details, and `Settings::modsConfigClient = false` turns the connection off.
 
@@ -170,7 +171,7 @@ modsConfig.subscribeToPointing([](const std::vector<std::string>& ids) {
 ```
 
 - A setting is named by its id, so `isPointedAt("fScale:Main")` asks for one row. A section's id covers its heading and every row in it, its sections too.
-- An activation sphere with no `id` is named by its section, as `ImFl_BodyActivationSphere`.
+- An activation sphere with no `id` is named by its section, as `ImFl_BodyActivationSphere`. A CommonFramework mod's sphere lights by itself: see [CommonFramework Mods](#commonframework-mods).
 - It stays while the ray crosses the gaps between rows, while the row's editor is open, and during Adjust in world. It's empty once the ray leaves the rows, and when the menu leaves your mod, closes, or minimizes for another UI.
 - A section, sphere or button `id` can't be one a setting has, or one another of them has: that's an error in the report, and the item isn't told.
 

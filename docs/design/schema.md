@@ -646,7 +646,7 @@ The mod's native client is told what the ray is on, so it shows in the world wha
 
 - A setting is told by its id, given or made.
 - A section and a button are told by their `id`, and one with none is not told: its rows are still told by theirs.
-- An activation sphere is told by its `id`, or with none by its section, the names of its `storage.path` joined with dots, as `ImFl_BodyActivationSphere`. A key of it is a setting, told by its id and the sphere's, as `tZone:ImFl_BodyActivationSphere` then `ImFl_BodyActivationSphere`.
+- An activation sphere is told by its `id`, or with none by its section, the names of its `storage.path` joined with dots, as `ImFl_BodyActivationSphere`. A key of it is a setting, told by its id and the sphere's, as `tZone:ImFl_BodyActivationSphere` then `ImFl_BodyActivationSphere`. The framework lights a sphere by its section, so a CommonFramework mod's sphere has no `id` of its own.
 
 ```json
 {
