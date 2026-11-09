@@ -154,7 +154,7 @@ namespace
      * sections draw. It tells the help of the section and what it hides while the ray is on it.
      * Returns whether the section is folded, after a press in this frame.
      */
-    bool drawFoldingHeading(const model::Group& group, const PageDrawing& page)
+    bool drawFoldingHeading(const model::Item& item, const model::Group& group, const PageDrawing& page)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
@@ -164,6 +164,7 @@ namespace
         page.drawn.pressActed = page.drawn.pressActed || row.pressed;
         if (row.pointed) {
             page.drawn.pointed = ui::PointedRow{ .text = model::resolveClientText(group.text, page.store), .help = std::move(help) };
+            page.drawn.pointedItem = &item;
         }
         return folded;
     }
@@ -179,10 +180,11 @@ namespace
      * not the outer section's. The depth is how many sections it is in.
      * A section that folds has a heading that a press folds or opens, and its rows are drawn while it is open.
      * One whose heading is not shown keeps its fold, and has no line. The heading of any other tells its help
-     * while the ray is on it.
+     * while the ray is on it. The item is the group's, which the ray on its heading tells.
      */
-    void drawGroup(const model::Group& group, const PageDrawing& page, const int depth, const bool headingShown)
+    void drawGroup(const model::Item& item, const PageDrawing& page, const int depth, const bool headingShown)
     {
+        const auto& group = std::get<model::Group>(item);
         const bool setIn = depth > 0 && depth <= MAX_SET_IN;
         if (setIn) {
             ImGui::Indent(theme::SPACE_3);
@@ -190,7 +192,7 @@ namespace
         const float headingLeft = ImGui::GetCursorScreenPos().x;
         bool folded = false;
         if (group.collapsible) {
-            folded = headingShown ? drawFoldingHeading(group, page) : page.sections.isFolded(group);
+            folded = headingShown ? drawFoldingHeading(item, group, page) : page.sections.isFolded(group);
         } else if (headingShown) {
             const float right = ImGui::GetCursorScreenPos().x + ui::rowWidth();
             const auto heading = model::resolveClientText(group.text, page.store);
@@ -199,8 +201,11 @@ namespace
             } else {
                 ui::sectionHeading(heading, right);
             }
-            if (!group.help.empty() && ImGui::IsItemHovered()) {
-                page.drawn.pointed = ui::PointedRow{ .text = heading, .help = model::resolveClientText(group.help, page.store) };
+            if (ImGui::IsItemHovered()) {
+                page.drawn.pointedItem = &item;
+                if (!group.help.empty()) {
+                    page.drawn.pointed = ui::PointedRow{ .text = heading, .help = model::resolveClientText(group.help, page.store) };
+                }
             }
         }
         if (!folded) {
@@ -234,6 +239,9 @@ namespace
     {
         const PageDrawing& page;
 
+        // the item that is drawn, which the ray on its row tells
+        const model::Item& item;
+
         // how many sections the item is in
         int depth = 0;
 
@@ -251,6 +259,7 @@ namespace
                     .leftHanded = page.leftHanded });
             if (drawn.pointed) {
                 page.drawn.pointed = std::move(drawn.pointed);
+                page.drawn.pointedItem = &item;
             }
             page.drawn.pressActed = page.drawn.pressActed || drawn.pressActed;
             if (drawn.haptic) {
@@ -261,15 +270,16 @@ namespace
             }
         }
 
-        void operator()(const model::Group& group) const
+        void operator()(const model::Group&) const
         {
-            drawGroup(group, page, depth, true);
+            drawGroup(item, page, depth, true);
         }
 
         void operator()(const model::Button& button) const
         {
             if (auto pointed = page.buttons.draw(button, page.store, page.drawn.pressActed)) {
                 page.drawn.pointed = std::move(*pointed);
+                page.drawn.pointedItem = &item;
             }
         }
 
@@ -278,6 +288,7 @@ namespace
             std::string reason;
             if (drawHotkey(hotkey, page, reason)) {
                 page.drawn.pointed = ui::PointedRow{ .text = hotkey.text, .help = ui::readOnlyHelp(std::move(reason), hotkey.help) };
+                page.drawn.pointedItem = &item;
             }
         }
 
@@ -294,6 +305,7 @@ namespace
                 std::string reason;
                 if (ui::drawTexture(image, page.imageDrawer, ui::rowWidth(), reason)) {
                     page.drawn.pointed = ui::PointedRow{ .text = image.texture, .help = std::move(reason), .invalid = true };
+                    page.drawn.pointedItem = &item;
                 }
             } else {
                 drawRow({}, {}, "image", false);
@@ -311,6 +323,7 @@ namespace
             if (drawRow(placeholder.text, placeholder.textRuns, typed ? std::string_view(placeholder.type) : "unknown", true)) {
                 auto help = typed ? std::format("Not available: the menu has no {} control.", placeholder.type) : std::string("Not available: the row has no type of control.");
                 page.drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = std::move(help) };
+                page.drawn.pointedItem = &item;
             }
         }
     };
@@ -349,9 +362,9 @@ namespace
             }
             const auto top = ImGui::GetCursorScreenPos();
             if (isShown(item, page.store)) {
-                std::visit(ItemDrawer{ .page = page, .depth = depth }, item);
-            } else if (const auto* group = std::get_if<model::Group>(&item)) {
-                drawGroup(*group, page, depth, false);
+                std::visit(ItemDrawer{ .page = page, .item = item, .depth = depth }, item);
+            } else if (std::holds_alternative<model::Group>(item)) {
+                drawGroup(item, page, depth, false);
             }
             if (&item == page.focused) {
                 drawFocus(ImRect(top, ImVec2(top.x + ui::rowWidth(), ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y)), page.scrollToFocused);

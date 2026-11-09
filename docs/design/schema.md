@@ -413,7 +413,7 @@ A range whose `min` is not below its `max`, or whose `step` is not above 0, is a
 }
 ```
 
-`cf.activationSphere` is a section of the TOML that the framework reads as an activation sphere (`loadWandActivationConfig`), drawn as one group: its `text` is the group's heading, its `help` the heading's, and `storage.path` the section. A storage that is no section of a TOML file is an error, and the group has no rows. A file that has no such section is a warning: each key shows its default, and a Save adds it. Each key of the section is a setting of its own, of the control of its kind, with the section's `applies`, `live` where none is above it, as the framework previews a key. `keys` says, for each key by its name, how it is shown:
+`cf.activationSphere` is a section of the TOML that the framework reads as an activation sphere (`loadWandActivationConfig`), drawn as one group: its `text` is the group's heading, its `help` the heading's, `storage.path` the section, and its `id` what its mod's client is told while the ray is on its rows, its section with none; see [Pointed items](#pointed-items). A storage that is no section of a TOML file is an error, and the group has no rows. A file that has no such section is a warning: each key shows its default, and a Save adds it. Each key of the section is a setting of its own, of the control of its kind, with the section's `applies`, `live` where none is above it, as the framework previews a key. `keys` says, for each key by its name, how it is shown:
 
 - `true`, or the key left out, shows it, with its default name.
 - `false` hides it: it has no row, and its value is kept as the file has it. `kPrimaryBinding` cannot be hidden: a `false` for it is an error, and it is shown. Hiding `sShowIcon` hides `sIcon`, `cIconColor` and `fIconSize` too, and hiding `sShowSphere` hides the other keys of the sphere.
@@ -451,7 +451,7 @@ A setting's `id` is optional. A setting without one gets its id from its storage
 
 An author gives an id to a setting that something names, a condition or a script, when the name should stay the same after its key is renamed or moved.
 
-Setting IDs are unique across the config spec, given or made. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Two settings whose ids come out the same are an error of the config spec, and giving one of them an id resolves it. Only a setting and a page have an id: nothing names a section or a button.
+Setting IDs are unique across the config spec, given or made. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Two settings whose ids come out the same are an error of the config spec, and giving one of them an id resolves it. A section, an activation sphere and a button can have an `id` too, which only the mod's native client is told; see [Pointed items](#pointed-items). Conditions and scripts name a setting alone.
 
 Scripts read a setting kept in a file by the config spec's `modName` and the setting's `id`, so renaming either breaks the scripts that use it; see [Papyrus API](architecture.md#papyrus-api). For a setting with no `id` of its own, that is renaming its section or its key.
 
@@ -636,9 +636,28 @@ A section is a heading with its own rows, in its `content`. A section can be in 
 - A folded section that has an invalid value or an unsaved change inside it marks its heading, so the player sees that something is there. It counts the settings in it whose rows would show when it is opened, also in the sections in it.
 - Detailed settings are a folded section right after the settings they belong to, as the Advanced section above. There is no flag of its own for them.
 - What a section has goes down to its rows and to the sections in it: its `defaultFile`, its `applies`, and its conditions; see [Conditions](#conditions).
-- A section has a `text` and can have a `help`, as any row.
+- A section has a `text` and can have a `help`, as any row, and an `id`, which its mod's client is told while the ray is on its rows; see [Pointed items](#pointed-items).
 
 An MCM section is a heading row whose rows are the ones after it, up to the next section, and it does not nest. The MCM loader reads it as MCM's menu does.
+
+## Pointed items
+
+The mod's native client is told what the ray is on, so it shows in the world what that item sets, as an activation sphere lit while the ray is on its rows; see [The client's events](architecture.md#the-clients-events). It is told the id of the row and of each group the row is in, innermost first:
+
+- A setting is told by its id, given or made.
+- A section and a button are told by their `id`, and one with none is not told: its rows are still told by theirs.
+- An activation sphere is told by its `id`, or with none by its section, the names of its `storage.path` joined with dots, as `ImFl_BodyActivationSphere`. A key of it is a setting, told by its id and the sphere's, as `tZone:ImFl_BodyActivationSphere` then `ImFl_BodyActivationSphere`.
+
+```json
+{
+  "type": "section",
+  "id": "holsterZones",
+  "text": "Holster zones",
+  "content": []
+}
+```
+
+These ids are unique together with the settings' ids, without regard to case. An `id` of a section, a sphere or a button that a setting has, or a section, a sphere or a button before it, is an error: it is left out, and that item is not told, while the setting keeps its own. No condition, script or call of the API names one: they name settings. A page's `id` is apart from them.
 
 ## Conditions
 
@@ -848,7 +867,7 @@ Mods Config FO4 VR's own config spec uses it for its Config spec setting, whose 
 
 ## Buttons
 
-A button has no storage, default, dirty state, or persisted value.
+A button has no storage, default, dirty state, or persisted value. It can have an `id`, which its mod's client is told while the ray is on it; see [Pointed items](#pointed-items).
 
 Its `action` is an object with a `type`, as in an MCM config:
 

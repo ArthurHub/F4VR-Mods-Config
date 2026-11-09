@@ -140,6 +140,17 @@ namespace mods_config::model
     }
 
     /**
+     * Tells a mod's client what the ray is on in its config spec: the ids of the row and of the groups it is in,
+     * innermost first, or none. Nothing for a mod with no client, or whose client is cut off.
+     */
+    void ClientCalls::sendPointed(const std::string_view modName, const std::vector<std::string>& ids) const
+    {
+        if (const auto* client = find(modName); client && client->onPointed) {
+            client->onPointed(ids);
+        }
+    }
+
+    /**
      * Tells a mod's client a change of a `live` setting of its config spec. Nothing for a mod with no client, or whose
      * client is cut off.
      */

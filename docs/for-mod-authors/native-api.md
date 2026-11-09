@@ -15,6 +15,7 @@ Where to start: [For Mod Authors](README.md). The API in full: [Native API](../d
 - [Quick Launch](#quick-launch)
 - [Live Preview and Saves](#live-preview-and-saves)
 - [The Menu's Events](#the-menus-events)
+- [What the Ray Is On](#what-the-ray-is-on)
 - [Your Own UI](#your-own-ui)
 - [Rules](#rules)
 - [Versions](#versions)
@@ -29,6 +30,7 @@ Where to start: [For Mod Authors](README.md). The API in full: [Native API](../d
 | Quick launch entries | The menu's front page opens your own UI |
 | Handlers of changes and Saves | A `live` setting shows in the game as the player changes it, and your mod applies what a Save wrote |
 | Handlers of the menu's events | Your mod shows in the world what a page sets while the player is on it |
+| What the ray is on | Your mod shows in the world what a section or a row sets while the player points at it |
 | Calls of the menu | Your own UI moves the menu aside and back, hands its edits to the menu, and opens it at a page |
 
 The menu matches your DLL to the config spec whose `modName` is the name it connects under. Without Mods Config FO4 VR installed nothing is called, and your mod works as it does.
@@ -152,6 +154,25 @@ const bool spheresShown = modsConfig.shownPage() == "spheres";
 ```
 
 Immersive Flashlight VR draws its activation spheres in the world while the page of its spheres is shown.
+
+## What the Ray Is On
+
+Your DLL is told what the ray is on in your config spec, so you can show in the world what that row sets: light a zone while the player points at its settings. Give the section, activation sphere or button an `id`, and ask for it:
+
+```cpp
+// each frame, where you draw the zone
+const bool highlight = modsConfig.isPointedAt("holsterZones");
+
+// or as it changes
+modsConfig.subscribeToPointing([](const std::vector<std::string>& ids) {
+    // the row's id first, then each section around it that has an id, innermost first; empty for none
+});
+```
+
+- A setting is named by its id, so `isPointedAt("fScale:Main")` asks for one row. A section's id covers its heading and every row in it, its sections too.
+- An activation sphere with no `id` is named by its section, as `ImFl_BodyActivationSphere`.
+- It stays while the ray crosses the gaps between rows, while the row's editor is open, and during Adjust in world. It's empty once the ray leaves the rows, and when the menu leaves your mod, closes, or minimizes for another UI.
+- A section, sphere or button `id` can't be one a setting has, or one another of them has: that's an error in the report, and the item isn't told.
 
 ## Your Own UI
 

@@ -170,6 +170,10 @@ namespace
         // the section each `cf.activationSphere` row was made into, as both readings of the rows read it
         std::map<const Json*, Json> spheres;
 
+        // the ids of its sections, spheres and buttons so far, in lower case, apart from its settings': no condition
+        // names them
+        std::set<std::string, std::less<>> itemIds;
+
         /**
          * Adds a problem where the reading is: on its row, with the row's place, or else on its page, or else of the
          * config spec itself.
@@ -301,8 +305,8 @@ namespace
     // a page:
     constexpr std::array<std::string_view, 9> PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
     // a row, by its type:
-    constexpr std::array<std::string_view, 10>
-        SECTION_FIELDS{ "type", "text", "help", "content", "isCollapsible", "collapsed", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 11>
+        SECTION_FIELDS{ "type", "id", "text", "help", "content", "isCollapsible", "collapsed", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
     constexpr std::array<std::string_view, 16> SETTING_FIELDS{ "type",
         "id",
         "text",
@@ -319,12 +323,12 @@ namespace
         "applies",
         "visibleWhen",
         "enabledWhen" };
-    constexpr std::array<std::string_view, 12>
-        BUTTON_FIELDS{ "type", "text", "help", "html", "buttonText", "style", "icon", "action", "confirmation", "warnings", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 13>
+        BUTTON_FIELDS{ "type", "id", "text", "help", "html", "buttonText", "style", "icon", "action", "confirmation", "warnings", "visibleWhen", "enabledWhen" };
     constexpr std::array<std::string_view, 4> TEXT_ROW_FIELDS{ "type", "text", "html", "visibleWhen" };
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
-    constexpr std::array<std::string_view, 8> SPHERE_FIELDS{ "type", "text", "help", "storage", "keys", "applies", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 9> SPHERE_FIELDS{ "type", "id", "text", "help", "storage", "keys", "applies", "visibleWhen", "enabledWhen" };
     // a key of a sphere's `keys`, written as an object:
     constexpr std::array<std::string_view, 8> SPHERE_KEY_FIELDS{ "text", "help", "default", "valueOptions", "applies", "visibleWhen", "enabledWhen", "warnings" };
     // a setting's parts:
@@ -2253,7 +2257,7 @@ namespace
         auto section = Json::object();
         section["type"] = "section";
         section["content"] = Json::array();
-        for (const auto* field : { "text", "help", "visibleWhen", "enabledWhen" }) {
+        for (const auto* field : { "id", "text", "help", "visibleWhen", "enabledWhen" }) {
             if (row.contains(field)) {
                 section[field] = row[field];
             }
@@ -2273,6 +2277,14 @@ namespace
             const Into into(reading, "storage");
             reading.report(model::Severity::Error, "An activation sphere is a section of a TOML file, and it is not: it has no rows.");
             return section;
+        }
+        // with no id of its own its client knows it by its section, the names of its path joined with dots
+        if (getText(section, "id").empty()) {
+            std::string id;
+            for (const auto& name : file->path) {
+                id += (id.empty() ? "" : ".") + name;
+            }
+            section["id"] = id;
         }
         if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
             const Into into(reading, "storage");
@@ -2815,6 +2827,65 @@ namespace
     }
 
     /**
+     * Gives the sections, the activation spheres and the buttons of the `content` of a page or a section their `id`,
+     * which their mod's client is told while the ray is on them: once every setting is read, as an id is unique among
+     * the settings' too. One a setting has, or a section or a button before it, is an error, and it is left out: the
+     * setting keeps its own, as conditions name it.
+     */
+    void loadItemIds(const Json& container, std::vector<model::Item>& items, ConfigSpecReading& reading)
+    {
+        const auto content = container.find("content");
+        if (content == container.end() || !content->is_array()) {
+            return;
+        }
+        for (std::size_t place = 0; place < content->size() && place < items.size(); ++place) {
+            const auto& row = readRow((*content)[place], reading);
+            auto& item = items[place];
+            auto* group = std::get_if<model::Group>(&item);
+            auto* button = std::get_if<model::Button>(&item);
+            if (!group && !button) {
+                continue;
+            }
+            const auto into = intoRow(reading, row, place);
+            reading.at.row = rowName(row, reading.translations);
+            reading.at.itemPlaces.push_back(place);
+            if (auto id = getText(row, "id"); !id.empty()) {
+                const auto lower = common::str_tolower(id);
+                if (const auto setting = reading.settings.find(lower); setting != reading.settings.end()) {
+                    reading.report(model::Severity::Error,
+                        std::format("The setting \"{}\" has its id: the setting keeps it, and this tells its mod's client nothing. Give it an id of its own.", setting->second.id));
+                } else if (!reading.itemIds.insert(lower).second) {
+                    reading.report(model::Severity::Error,
+                        std::format("A section or a button before it has the id \"{}\": this tells its mod's client nothing. Give it an id of its own.", id));
+                } else {
+                    (group ? group->id : button->id) = std::move(id);
+                }
+            }
+            if (group) {
+                loadItemIds(row, group->items, reading);
+            }
+        }
+    }
+
+    /**
+     * Gives the sections, the activation spheres and the buttons of a page and of its child pages their `id`.
+     */
+    void loadPageItemIds(const Json& page, model::Page& loaded, ConfigSpecReading& reading)
+    {
+        reading.at.pages.push_back(common::trim(loaded.name));
+        loadItemIds(page, loaded.items, reading);
+        const auto pages = page.find("pages");
+        if (pages == page.end() || !pages->is_array()) {
+            return;
+        }
+        for (std::size_t place = 0; place < pages->size() && place < loaded.pages.size(); ++place) {
+            const Into into(reading, "pages", place);
+            reading.at.pagePlaces.push_back(place);
+            loadPageItemIds((*pages)[place], loaded.pages[place], reading);
+        }
+    }
+
+    /**
      * Gives a page, its items and its child pages their conditions, including those of its parent pages.
      */
     void loadPageConditions(const Json& page, model::Page& loaded, ConfigSpecReading& reading, const RowConditions& above = {})
@@ -3163,6 +3234,14 @@ namespace mods_config::spec
                 const Into into(reading, "pages", place);
                 reading.at.pagePlaces.push_back(place);
                 loadPageConditions((*pages)[place], mod.pages[place], reading);
+            }
+        }
+        loadItemIds(configSpec, mod.frontPage.items, reading);
+        if (const auto pages = configSpec.find("pages"); pages != configSpec.end() && pages->is_array()) {
+            for (std::size_t place = 0; place < pages->size() && place < mod.pages.size(); ++place) {
+                const Into into(reading, "pages", place);
+                reading.at.pagePlaces.push_back(place);
+                loadPageItemIds((*pages)[place], mod.pages[place], reading);
             }
         }
         mod.files = std::move(reading.files);

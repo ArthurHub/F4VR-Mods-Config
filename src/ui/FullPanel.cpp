@@ -167,6 +167,7 @@ namespace mods_config::ui
             _selection = shown;
             _modPage.reset();
             _helpLine.clear();
+            _pointedItem = nullptr;
             updateStatus();
             _modTree.showSelection();
         }
@@ -505,6 +506,7 @@ namespace mods_config::ui
         _pageChanged = true;
         _modPage.reset();
         _helpLine.clear();
+        point(nullptr);
         updateStatus();
         _modTree.showSelection();
     }
@@ -654,6 +656,21 @@ namespace mods_config::ui
     }
 
     /**
+     * The item of the selected mod whose row the ray is on, which the mod's store tells its client as it changes:
+     * none for no row.
+     */
+    void FullPanel::point(const model::Item* item)
+    {
+        if (item == _pointedItem) {
+            return;
+        }
+        _pointedItem = item;
+        if (auto* const store = selectedStore()) {
+            store->showPointed(item);
+        }
+    }
+
+    /**
      * Adjust in world ended: the editor of the transform reads the value it left.
      */
     void FullPanel::resumeTransformEdit()
@@ -685,6 +702,7 @@ namespace mods_config::ui
         _thumbstickSideValue = 0.0f;
         _modPage.reset();
         _helpLine.clear();
+        _pointedItem = nullptr;
         updateStatus();
         _modTree.showTop();
     }
@@ -743,6 +761,7 @@ namespace mods_config::ui
             _pageChanged = false;
         }
         std::optional<PointedRow> pointed;
+        const model::Item* pointedItem = nullptr;
         bool onPage = false;
 
         // a problem of a report whose row a press asks to show, and a config spec whose report a press opens: after
@@ -782,6 +801,8 @@ namespace mods_config::ui
                 const auto& mod = _mods[*_selection.mod];
                 auto drawn = _modPage.draw(mod, *selectedPage(), storeOf(mod), _thumbstickSideValue);
                 pointed = std::move(drawn.pointed);
+                // the item stays in the gap between two rows, as the help line's row does
+                pointedItem = drawn.pointedItem ? drawn.pointedItem : onPage ? _pointedItem : nullptr;
                 _pressActed = drawn.pressActed;
                 _hapticPlayed = drawn.haptic;
                 if (drawn.adjust && _menuActions.adjustTransform) {
@@ -806,6 +827,7 @@ namespace mods_config::ui
             }
         }
         ImGui::EndChild();
+        point(pointedItem);
 
         if (!pointed) {
             pointed = std::move(tree.pointed);

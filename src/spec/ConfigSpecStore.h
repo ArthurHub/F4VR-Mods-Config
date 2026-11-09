@@ -105,6 +105,7 @@ namespace mods_config::spec
         model::StoredValue gameIniSetting(std::string_view name) override;
         void startFrame() override;
         void showPage(const model::Page* page) override;
+        void showPointed(const model::Item* item) override;
         void readAgain() override;
         std::expected<void, std::string> setPendingValue(std::string_view modName, std::string_view id, const model::Value& value);
         void frameUpdate();
@@ -200,6 +201,9 @@ namespace mods_config::spec
 
         // the `id` of the page that is shown, which its mod's client is told as it is left: empty for one with none
         std::string _pageId;
+
+        // what its mod's client was told the ray is on last: the ids of the row and of its groups, innermost first
+        std::vector<std::string> _pointed;
         std::string _modDisplayName;
 
         // the files of the mod that is selected that the menu reads, by their names in its config spec. A file that

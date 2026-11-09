@@ -773,6 +773,9 @@ namespace mods_config::model
 
         // what it asks before it runs: a config spec's button can have it
         std::optional<Confirmation> confirmation;
+
+        // what its mod's client is told it by while the ray is on it: a config spec's button can have it. Empty for none
+        std::string id;
     };
 
     /**
@@ -922,6 +925,10 @@ namespace mods_config::model
         // it starts folded each time its page is shown. Only a section that folds has it
         bool collapsed = false;
         GroupRole role = GroupRole::None;
+
+        // what its mod's client is told it by while the ray is on its heading or a row in it: a config spec's section
+        // can have it, and an activation sphere has its section's with none of its own. Empty for none
+        std::string id;
     };
 
     struct Page

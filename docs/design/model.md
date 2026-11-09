@@ -16,8 +16,8 @@ Mod      a name, a help, its front page, its pages, a category if it has one, an
 Page     a name, an id if it has one, a help, its items, and its pages. The front page is the mod's own, and has no name
 Item     one of:
            Setting
-           Group         a section: its text, its items, whether it folds, and sometimes a role
-           Button        a row that runs an action
+           Group         a section: its text, its items, whether it folds, sometimes a role, and an id if it has one
+           Button        a row that runs an action, with an id if it has one
            Hotkey        a row that shows the key a hotkey of the mod is bound to
            Text, Image, Spacer
            Placeholder   a control the menu does not support, with the reason

@@ -216,6 +216,13 @@ namespace mods_config::model
         {}
 
         /**
+         * The item of the selected mod whose row the ray is on, each frame of the panel, which a store tells its mod's
+         * client as it changes: none for no row.
+         */
+        virtual void showPointed(const Item*)
+        {}
+
+        /**
          * Reads the values of the selected mod again, as its own UI can have changed them: a clean setting takes its
          * new value, and a pending one stays the player's. Nothing for a store that reads its values as they are asked.
          */

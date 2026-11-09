@@ -713,6 +713,64 @@ namespace
         }
         return storage.type == "file" ? "Not available: the setting names no file of its config spec, or no value of it." : "Not available: the setting has no storage.";
     }
+
+    /**
+     * The id an item is told by while the ray is on it: a setting's, and a section's and a button's own. Empty for none.
+     */
+    std::string_view pointedId(const model::Item& item)
+    {
+        if (const auto* setting = std::get_if<model::Setting>(&item)) {
+            return setting->id;
+        }
+        if (const auto* group = std::get_if<model::Group>(&item)) {
+            return group->id;
+        }
+        const auto* button = std::get_if<model::Button>(&item);
+        return button ? std::string_view(button->id) : std::string_view();
+    }
+
+    /**
+     * Finds an item among items and in their groups, and adds to the ids the item's and those of the groups it is in,
+     * innermost first, as it returns from them. Returns whether it found it.
+     */
+    bool addPointedIds(const std::vector<model::Item>& items, const model::Item& target, std::vector<std::string>& ids)
+    {
+        for (const auto& item : items) {
+            const auto* group = std::get_if<model::Group>(&item);
+            if (&item != &target && !(group && addPointedIds(group->items, target, ids))) {
+                continue;
+            }
+            if (const auto id = pointedId(item); !id.empty()) {
+                ids.emplace_back(id);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Finds an item in pages and the pages under them, and adds the ids it tells, as `addPointedIds` does. Returns
+     * whether it found it.
+     */
+    bool addPointedIds(const std::vector<model::Page>& pages, const model::Item& target, std::vector<std::string>& ids)
+    {
+        return std::ranges::any_of(pages, [&target, &ids](const model::Page& page) {
+            return addPointedIds(page.items, target, ids) || addPointedIds(page.pages, target, ids);
+        });
+    }
+
+    /**
+     * What the ray on an item tells its mod's client: the item's id and those of the groups it is in, innermost first,
+     * by where the item is in its config spec, whatever page it is drawn on. Empty for an item the mod does not have.
+     */
+    std::vector<std::string> pointedIds(const model::Mod& mod, const model::Item& item)
+    {
+        std::vector<std::string> ids;
+        if (!addPointedIds(mod.frontPage.items, item, ids)) {
+            addPointedIds(mod.pages, item, ids);
+        }
+        return ids;
+    }
 }
 
 namespace mods_config::spec
@@ -916,6 +974,7 @@ namespace mods_config::spec
     {
         rollBack();
         if (!_modName.empty()) {
+            showPointed(nullptr);
             showPage(nullptr);
             _clientCalls.send(_modName, model::ClientEvent::ModLeft);
         }
@@ -1345,6 +1404,20 @@ namespace mods_config::spec
         if (!_pageId.empty()) {
             _clientCalls.send(_modName, model::ClientEvent::PageShown, _pageId);
         }
+    }
+
+    /**
+     * Tells the mod's client what the ray is on as it changes: the ids of the item's row and of the groups it is in,
+     * innermost first, and none for no item. Nothing while it is what the client was told last.
+     */
+    void ConfigSpecStore::showPointed(const model::Item* item)
+    {
+        auto ids = item && _mod ? pointedIds(*_mod, *item) : std::vector<std::string>();
+        if (_modName.empty() || ids == _pointed) {
+            return;
+        }
+        _pointed = std::move(ids);
+        _clientCalls.sendPointed(_modName, _pointed);
     }
 
     /**

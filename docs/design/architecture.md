@@ -237,19 +237,27 @@ enum class MenuEventType : std::uint32_t
     ModShown,
     ModLeft,
     PageShown,
-    PageLeft
+    PageLeft,
+    PointedAt
 };
 
 struct MenuEvent
 {
     MenuEventType type;
     const char* pageId; // the page's `id` in the config spec, for PageShown and PageLeft
+
+    // for PointedAt: the id of the row the ray is on, then of each group it is in, innermost first
+    const char* const* pointedIds;
+    std::uint32_t pointedCount;
 };
 ```
 
 - Every client is told that the menu opened and closed, so a mod can put its own UI away while the menu is open. A minimized menu is still open.
 - The other events are of the client's own config spec. Its mod is shown as it is selected, and left as another mod or the menu's front page is shown, and as the menu closes.
 - A page of its config spec that has an `id` is shown and left as its mod is, and as another page is shown. A client shows in the world what the page sets while the player is on it: Immersive Flashlight draws its activation spheres while the page of its spheres is shown. A page with no `id` sends none.
+- `PointedAt` tells what the ray is on, so the client shows in the world what that item sets: an activation sphere lights while the ray is on its heading or one of its keys. It names the row by its id, a setting's or the `id` of a section or a button, and then each group the row is in that has an id, innermost first, as the config spec has them, whatever page the row is drawn on: a client asks whether a group's id is among them, and never works out which rows are a group's. An item with no id is left out of it, and an activation sphere has its section's id where it has none of its own; see [Pointed items](schema.md#pointed-items).
+- It is sent as what the ray is on changes, not each frame. It stays across the gaps between rows, while a row's list or editor is open, and while Adjust in world tunes the row with the panel minimized. It is none as the ray leaves the rows, on the menu's front page, Help and a report, as the menu leaves the mod, closes, or minimizes for another UI.
+- It adds a type of event and grows `MenuEvent` at its end, so the API stays at version 1: a client of the header before it is told a type of event it does not know, which it leaves alone, and a client of this header never reads `pointedIds` from a menu before it, which sends no `PointedAt`. The header's C++ client keeps the ids (`pointedIds`, `isPointedAt`) and hands them to the handlers of `subscribeToPointing`, not to those of the menu's events.
 
 ### Functions
 

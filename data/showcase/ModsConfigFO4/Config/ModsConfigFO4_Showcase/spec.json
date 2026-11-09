@@ -825,6 +825,7 @@
                 },
                 {
                   "type": "button",
+                  "id": "noon",
                   "text": "Noon",
                   "help": "Calls SetValue of the game's global GameHour with 12.0, a function of a form: the time of day is noon.",
                   "buttonText": "Set",
@@ -2361,6 +2362,7 @@
             },
             {
               "type": "section",
+              "id": "holsters",
               "text": "Holsters",
               "help": "A section's help, which the help line has while the ray is on its heading.",
               "content": [

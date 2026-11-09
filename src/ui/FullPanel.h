@@ -77,6 +77,7 @@ namespace mods_config::ui
         bool showHelp(bool shown);
         bool back();
         void resumeTransformEdit();
+        void point(const model::Item* item);
         void reset();
         void draw();
         model::Store* selectedStore() const;
@@ -237,6 +238,9 @@ namespace mods_config::ui
         ModTree _modTree;
         ModPage _modPage;
         HelpLine _helpLine;
+
+        // the item of the selected mod whose row the ray is on, which its store was told last: none for no row
+        const model::Item* _pointedItem = nullptr;
 
         // the Developer tools as the settings have them, the front page's section of them, and what writes a change
         DeveloperView _developerView;

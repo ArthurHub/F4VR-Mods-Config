@@ -221,7 +221,8 @@ namespace mods_config
 
     /**
      * Hide the panel and show the offhand buttons in its place, or the other way round.
-     * A panel that is shown again is put in front of the player, wherever it was left.
+     * A panel that is shown again is put in front of the player, wherever it was left. The ray is on no row of a
+     * minimized panel, except while Adjust in world tunes the row's transform.
      */
     void ConfigMenu::setMinimized(const bool minimized)
     {
@@ -230,6 +231,8 @@ namespace mods_config
         }
         if (!minimized) {
             g_uiManager->recenterWorldElement(_panel);
+        } else if (!isAdjusting()) {
+            _fullPanel.point(nullptr);
         }
         _panel->setVisibility(!minimized);
         _wristButtons->setVisibility(minimized && !isAdjusting());

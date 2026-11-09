@@ -28,6 +28,9 @@ namespace mods_config::ui
         // The row of a dropdown while its list is open
         std::optional<PointedRow> pointed;
 
+        // the item whose row the ray is on, for its mod's client: as `pointed`, and a section's heading with no help too
+        const model::Item* pointedItem = nullptr;
+
         // a press did something in this frame: it changed a value, took hold of a slider, opened the list of
         // a dropdown, started the edit of a text input, ran the action of a button, or folded or opened a
         // section. Or the thumbstick stepped a slider or a stepper

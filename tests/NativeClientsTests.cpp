@@ -344,6 +344,51 @@ TEST_CASE("NativeClients: a client is told the menu's events, and one that throw
     CHECK(clients.calls.notRunnable("Broken", "Broken", "any") == CUT_OFF);
 }
 
+TEST_CASE("NativeClients: a client is told what the ray is on as a PointedAt event, and only its own mod's")
+{
+    Clients clients;
+    FakeClient client;
+    std::vector<std::vector<std::string>> told;
+    client.event = [&told](const api::MenuEvent* event) {
+        REQUIRE(event->type == api::MenuEventType::PointedAt);
+        CHECK(event->pageId == nullptr);
+        auto& ids = told.emplace_back();
+        for (std::uint32_t i = 0; i < event->pointedCount; ++i) {
+            ids.emplace_back(event->pointedIds[i]);
+        }
+    };
+    REQUIRE(clients.add("MyMod", client));
+    clients.calls.sendPointed("mymod", { "tZone:BodyGrab", "BodyGrab" });
+    clients.calls.sendPointed("OtherMod", { "fScale:Main" });
+    clients.calls.sendPointed("MyMod", {});
+    CHECK(told == std::vector<std::vector<std::string>>{ { "tZone:BodyGrab", "BodyGrab" }, {} });
+}
+
+TEST_CASE("ModsConfigFO4Api: the C++ client keeps what the ray is on and tells its pointing handlers, not its menu-event handlers")
+{
+    auto& client = api::ModsConfigFO4Client::get();
+    auto told = std::make_shared<std::vector<std::vector<std::string>>>();
+    auto menuEvents = std::make_shared<int>(0);
+    client.subscribeToPointing([told](const std::vector<std::string>& ids) {
+        told->push_back(ids);
+    });
+    client.subscribeToMenuEvents([menuEvents](api::MenuEventType, std::string_view) {
+        ++*menuEvents;
+    });
+    const std::array<const char*, 2> ids{ "tZone:BodyGrab", "BodyGrab" };
+    const api::MenuEvent pointed{ .type = api::MenuEventType::PointedAt, .pageId = nullptr, .pointedIds = ids.data(), .pointedCount = 2 };
+    static_cast<api::IClient&>(client).onEvent(&pointed);
+    CHECK(client.isPointedAt("BodyGrab"));
+    CHECK_FALSE(client.isPointedAt("Body"));
+    CHECK(client.pointedIds() == std::vector<std::string>{ "tZone:BodyGrab", "BodyGrab" });
+
+    const api::MenuEvent none{ .type = api::MenuEventType::PointedAt, .pageId = nullptr, .pointedIds = nullptr, .pointedCount = 0 };
+    static_cast<api::IClient&>(client).onEvent(&none);
+    CHECK_FALSE(client.isPointedAt("BodyGrab"));
+    CHECK(*told == std::vector<std::vector<std::string>>{ { "tZone:BodyGrab", "BodyGrab" }, {} });
+    CHECK(*menuEvents == 0);
+}
+
 TEST_CASE("NativeClients: a client is told a change of a live setting with where it is kept, and one that throws is cut off")
 {
     Clients clients;

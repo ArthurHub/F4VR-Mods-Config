@@ -1450,6 +1450,57 @@ TEST_CASE("FullPanel: the help line keeps its row where the page has none, until
     CHECK(panel.helpLine().text().empty());
 }
 
+TEST_CASE("FullPanel: the mod's client is told the row the ray is on as it changes, kept in a gap and while a list is open, and none off the page")
+{
+    const test_panel::PanelContext context;
+    spec::ConfigSpecStore store({}, {});
+    const auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "switcher", "text": "Enable", "default": false, "storage": { "path": ["Main", "bEnable"] } },
+            { "type": "dropdown", "valueType": "string", "text": "Place", "default": "hip",
+              "valueOptions": { "options": [ { "value": "hip", "text": "Hip" }, { "value": "chest", "text": "Chest" } ] },
+              "storage": { "path": ["Main", "sPlace"] } },
+            { "type": "button", "id": "test", "text": "Test", "action": { "type": "RunConsoleCommand", "command": "tm" } }
+        ]
+    })");
+    REQUIRE(mod);
+    std::vector<std::vector<std::string>> told;
+    store.clientCalls().addClient("MyMod", test_clients::TestClient{ .onPointed = [&told](const std::vector<std::string>& ids) {
+        told.push_back(ids);
+    } }.calls());
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ *mod });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    // the page where it has no row keeps the row, as the help line does
+    point(panel, pageRow(NO_PAGE_ROW));
+    point(panel, pageRow(2));
+    point(panel, test_panel::POINTER_AWAY);
+    CHECK(told == std::vector<std::vector<std::string>>{ { "bEnable:Main" }, { "test" }, {} });
+
+    // the row of an open list is its dropdown's, wherever the ray is
+    press(panel, pageRow(1));
+    REQUIRE(isListOpen());
+    point(panel, listOption(1, 1));
+    point(panel, test_panel::POINTER_AWAY);
+    CHECK(told.back() == std::vector<std::string>{ "sPlace:Main" });
+    panel.back();
+    point(panel, test_panel::POINTER_AWAY);
+    CHECK(told.back().empty());
+
+    // the mod that is left tells none
+    point(panel, pageRow(0));
+    told.clear();
+    panel.reset();
+    CHECK(told == std::vector<std::vector<std::string>>{ {} });
+}
+
 TEST_CASE("FullPanel: the help line does not keep a row of the page that was shown before")
 {
     const test_panel::PanelContext context;

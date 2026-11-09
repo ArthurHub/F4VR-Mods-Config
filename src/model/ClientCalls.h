@@ -149,6 +149,9 @@ namespace mods_config::model
             // an event, with the `id` of the page of a PageShown and a PageLeft
             std::function<void(ClientEvent event, std::string_view pageId)> onEvent;
 
+            // what the ray is on: the id of its row and of each group it is in, innermost first, or none
+            std::function<void(const std::vector<std::string>& ids)> onPointed;
+
             // a change of a `live` setting
             std::function<void(const SettingChange& change)> onChange;
 
@@ -166,6 +169,7 @@ namespace mods_config::model
         std::expected<std::vector<Option>, std::string> options(std::string_view modName, const Setting& setting) const;
         void send(std::string_view modName, ClientEvent event, std::string_view pageId = {}) const;
         void sendToAll(ClientEvent event) const;
+        void sendPointed(std::string_view modName, const std::vector<std::string>& ids) const;
         void sendChange(std::string_view modName, const SettingChange& change) const;
         void sendSave(std::string_view modName, const SaveBatch& batch) const;
         bool addQuickLaunch(ClientQuickLaunch entry);

@@ -304,6 +304,10 @@ namespace mods_config::api
                     [this, kept](const model::ClientEvent event, const std::string_view pageId) {
                         tellEvent(*kept, event, pageId);
                     },
+                .onPointed =
+                    [this, kept](const std::vector<std::string>& ids) {
+                        tellPointed(*kept, ids);
+                    },
                 .onChange =
                     [this, kept](const model::SettingChange& change) {
                         tellChange(*kept, change);
@@ -472,7 +476,7 @@ namespace mods_config::api
     void NativeClients::tellEvent(Registered& registered, const model::ClientEvent event, const std::string_view pageId) const
     {
         const std::string page(pageId);
-        const MenuEvent menuEvent{ .type = static_cast<MenuEventType>(event), .pageId = page.empty() ? nullptr : page.c_str() };
+        const MenuEvent menuEvent{ .type = static_cast<MenuEventType>(event), .pageId = page.empty() ? nullptr : page.c_str(), .pointedIds = nullptr, .pointedCount = 0 };
         auto tell = [&registered, &menuEvent] {
             registered.client->onEvent(&menuEvent);
         };
@@ -482,6 +486,31 @@ namespace mods_config::api
                 { "event", eventName(event) },
                 { "page", page.empty() ? nlohmann::json(nullptr) : nlohmann::json(page) },
                 { "told", told } };
+        });
+    }
+
+    /**
+     * Tells a client what the ray is on as a PointedAt event, inside the guard: the ids of the row and of the groups it
+     * is in, innermost first, or none. It is published as the devbench event `client.pointed`, with whether the client
+     * was told.
+     */
+    void NativeClients::tellPointed(Registered& registered, const std::vector<std::string>& ids) const
+    {
+        std::vector<const char*> texts;
+        texts.reserve(ids.size());
+        for (const auto& id : ids) {
+            texts.push_back(id.c_str());
+        }
+        const MenuEvent menuEvent{ .type = MenuEventType::PointedAt,
+            .pageId = nullptr,
+            .pointedIds = texts.empty() ? nullptr : texts.data(),
+            .pointedCount = static_cast<std::uint32_t>(texts.size()) };
+        auto tell = [&registered, &menuEvent] {
+            registered.client->onEvent(&menuEvent);
+        };
+        const bool told = call(registered, "what the ray is on", tell);
+        f4cf::devbench::emit("client.pointed", [&] {
+            return nlohmann::json{ { "client", registered.name }, { "ids", ids }, { "told", told } };
         });
     }
 

@@ -2475,6 +2475,36 @@ TEST_CASE("ConfigSpecLoader: what a sphere gets wrong is reported where it is in
     CHECK(zone->place == model::RowPlace{ .page = {}, .item = { 0, 3, 0 } });
 }
 
+TEST_CASE(
+    "ConfigSpecLoader: a section, a sphere and a button have the id their client is told, a sphere its section's with none, and one a setting or an item before has is an error")
+{
+    const auto mod = loaded(sphereSpec(R"(
+        { "type": "section", "id": "holsters", "text": "Holsters", "content": [
+            { "type": "button", "id": "test", "text": "Test", "action": { "type": "RunConsoleCommand", "command": "tm" } }
+        ] },
+        { "type": "cf.activationSphere", "text": "Body grab", "storage": { "path": ["Spheres", "Body"] } },
+        { "type": "cf.activationSphere", "id": "head", "text": "Head", "storage": { "path": ["Head"] } },
+        { "type": "section", "text": "No id", "content": [] },
+        { "type": "section", "id": "BENABLED:MAIN", "text": "A setting's", "content": [] },
+        { "type": "button", "id": "Holsters", "text": "A section's", "action": { "type": "RunConsoleCommand", "command": "tm" } },
+        { "type": "switcher", "text": "On", "default": false, "storage": { "path": ["Main", "bEnabled"] } })"));
+    const auto& items = mod.frontPage.items;
+    REQUIRE(items.size() == 7);
+    const auto& holsters = std::get<model::Group>(items[0]);
+    CHECK(holsters.id == "holsters");
+    CHECK(std::get<model::Button>(holsters.items[0]).id == "test");
+    CHECK(std::get<model::Group>(items[1]).id == "Spheres.Body");
+    CHECK(std::get<model::Group>(items[2]).id == "head");
+    CHECK(std::get<model::Group>(items[3]).id.empty());
+    CHECK(std::get<model::Group>(items[4]).id.empty());
+    CHECK(std::get<model::Button>(items[5]).id.empty());
+    CHECK(std::get<model::Setting>(items[6]).id == "bEnabled:Main");
+    CHECK(problemLines(mod) ==
+          Lines{ "E A setting's: The setting \"bEnabled:Main\" has its id: the setting keeps it, and this tells its mod's client nothing. Give it an id of its own. [A setting's] "
+                 "content[4]",
+              "E A section's: A section or a button before it has the id \"Holsters\": this tells its mod's client nothing. Give it an id of its own. [A section's] content[5]" });
+}
+
 TEST_CASE("ConfigSpecLoader: a transform is the text of its table or its INI line, with its default an object the framework reads")
 {
     const auto mod = loaded(R"({

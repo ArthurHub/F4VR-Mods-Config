@@ -24,6 +24,7 @@ namespace test_clients
         std::map<std::string, std::function<std::optional<model::Value>()>> states;
         std::map<std::string, std::function<std::vector<model::Option>(const model::Setting& setting)>> options;
         std::function<void(model::ClientEvent event, std::string_view pageId)> onEvent;
+        std::function<void(const std::vector<std::string>& ids)> onPointed;
 
         /**
          * The client the client calls ask, which finds each by its name with no regard to case, as the menu asks a
@@ -57,7 +58,8 @@ namespace test_clients
                     }
                     return found->second(setting);
                 },
-                .onEvent = onEvent };
+                .onEvent = onEvent,
+                .onPointed = onPointed };
         }
     };
 }

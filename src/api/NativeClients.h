@@ -71,6 +71,7 @@ namespace mods_config::api
         std::optional<model::Value> answerState(Registered& registered, std::string_view name) const;
         std::expected<std::vector<model::Option>, std::string> giveOptions(Registered& registered, const model::Setting& setting) const;
         void tellEvent(Registered& registered, model::ClientEvent event, std::string_view pageId) const;
+        void tellPointed(Registered& registered, const std::vector<std::string>& ids) const;
         void tellChange(Registered& registered, const model::SettingChange& change) const;
         void tellSave(Registered& registered, const model::SaveBatch& batch) const;
         template <typename F>

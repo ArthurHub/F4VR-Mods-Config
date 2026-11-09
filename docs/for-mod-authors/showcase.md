@@ -339,6 +339,8 @@ A section has a heading and rows of its own, and sections inside it. `isCollapsi
 
 ![Sections](../assets/showcase/sections.png)
 
+The Holsters section has an `id`, `holsters`. A mod with a DLL is told it while the ray is on the section's heading or any row in it, so it can show the holsters in the world: see [What the Ray Is On](native-api.md#what-the-ray-is-on). A button can have one too, as Noon on the Buttons page has.
+
 ### Pages
 
 A page can have pages of its own, as deep as you need. A page can be hidden or disabled by a setting, with the pages under it:

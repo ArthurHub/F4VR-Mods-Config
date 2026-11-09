@@ -2232,3 +2232,61 @@ TEST_CASE("ConfigSpecStore: a value of a choice of files that its folder does no
     CHECK_FALSE(empty.value(0).available);
     CHECK(empty.value(0).reason == R"(Not available: no *.dds files in Textures\MyMod\Gobos.)");
 }
+
+TEST_CASE("ConfigSpecStore: the client is told the id of the row the ray is on and of each group around it, innermost first, as it changes, and none as the mod is left")
+{
+    const auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "text", "text": "Front" } ],
+        "pages": [ { "pageDisplayName": "Outer", "pages": [ { "pageDisplayName": "Inner", "content": [
+            { "type": "section", "id": "holsters", "text": "Holsters", "content": [
+                { "type": "section", "text": "No id", "content": [
+                    { "type": "switcher", "text": "Left", "default": false, "storage": { "path": ["Holsters", "bLeft"] } },
+                    { "type": "text", "text": "A note" }
+                ] }
+            ] },
+            { "type": "cf.activationSphere", "text": "Body grab", "storage": { "path": ["BodyGrab"] } }
+        ] } ] } ]
+    })");
+    REQUIRE(mod);
+    std::vector<std::vector<std::string>> told;
+    ConfigSpecStore store({}, {});
+    store.clientCalls().addClient("MyMod", test_clients::TestClient{ .onPointed = [&told](const std::vector<std::string>& ids) {
+        told.push_back(ids);
+    } }.calls());
+    store.open(*mod);
+
+    const auto& items = mod->pages[0].pages[0].items;
+    const auto& holsters = items[0];
+    const auto& noId = std::get<model::Group>(holsters).items[0];
+    const auto& left = std::get<model::Group>(noId).items[0];
+    const auto& note = std::get<model::Group>(noId).items[1];
+    // the sphere's zone is in the section the loader makes of its Location keys
+    const model::Item* zone = nullptr;
+    const auto findZone = [&zone](const std::vector<model::Item>& found, const auto& self) -> void {
+        for (const auto& item : found) {
+            if (const auto* group = std::get_if<model::Group>(&item)) {
+                self(group->items, self);
+            } else if (const auto* setting = std::get_if<model::Setting>(&item); setting && setting->id == "tZone:BodyGrab") {
+                zone = &item;
+            }
+        }
+    };
+    findZone(std::get<model::Group>(items[1]).items, findZone);
+    REQUIRE(zone);
+    const model::Item notOfTheMod = model::Text{};
+
+    store.showPointed(&left);
+    store.showPointed(&note);
+    // the heading of the group is in no other group with an id, so it tells what the row in it told: nothing new
+    store.showPointed(&holsters);
+    store.showPointed(zone);
+    store.showPointed(&notOfTheMod);
+    store.showPointed(nullptr);
+    store.showPointed(zone);
+    store.close();
+    CHECK(told ==
+          std::vector<std::vector<std::string>>{ { "bLeft:Holsters", "holsters" }, { "holsters" }, { "tZone:BodyGrab", "BodyGrab" }, {}, { "tZone:BodyGrab", "BodyGrab" }, {} });
+}

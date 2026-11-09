@@ -1094,7 +1094,8 @@ namespace mods_config::devbench
             "client does through the API, run a button, Save or Discard the "
             "changes, and answer the dialog that asks about unsaved changes. Its events: menu.opened, menu.closed, menu.minimized, menu.restored, "
             "selection.changed (mod and page names), help.shown, help.hidden, dialog.asked, dialog.answered, session.saved (mod, saved, reason), "
-            "session.discarded (mod, and setting for a row's Discard), client.event, client.change and client.saved (what a mod's native client was told, "
+            "session.discarded (mod, and setting for a row's Discard), client.event, client.pointed, client.change and client.saved (what a mod's native "
+            "client was told, "
             "and whether it was), mcm.event (an MCM event sent to the scripts, with its arguments) and mcm.pauseMenu (the pause menu's events sent after "
             "an MCM Save)");
 
