@@ -980,7 +980,7 @@ namespace mods_config::ui
                 if (*_selection.mod < _found.size() && _found[*_selection.mod]) {
                     pageSearch = { .query = &_query, .found = &_found[*_selection.mod]->rows, .filtered = isFiltered() };
                 }
-                auto drawn = _modPage.draw(mod, *selectedPage(), storeOf(mod), _thumbstickSideValue, pageSearch);
+                auto drawn = _modPage.draw(*selectedPage(), storeOf(mod), _thumbstickSideValue, pageSearch);
                 if (pageSearch.filtered && drawn.pointedItem) {
                     _searchPointed = drawn.pointedItem;
                 }

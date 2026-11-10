@@ -69,7 +69,7 @@ namespace mods_config::ui
     public:
         void setImageDrawer(ImageDrawer drawer);
         void setLeftHanded(bool leftHanded);
-        PageDrawn draw(const model::Mod& mod, const model::Page& page, model::Store* store, float thumbstickSideValue, const PageSearch& search = {});
+        PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue, const PageSearch& search = {});
         bool cancelDrag();
         bool closeList();
         bool cancelEdit();

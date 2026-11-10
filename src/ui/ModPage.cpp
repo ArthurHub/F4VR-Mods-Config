@@ -426,7 +426,7 @@ namespace mods_config::ui
      * names of the items the search shows have its match underlined, and while the page is filtered it has their
      * rows alone.
      */
-    PageDrawn ModPage::draw(const model::Mod& mod, const model::Page& page, model::Store* store, const float thumbstickSideValue, const PageSearch& search)
+    PageDrawn ModPage::draw(const model::Page& page, model::Store* store, const float thumbstickSideValue, const PageSearch& search)
     {
         F4CF_PERF_FUNCTION();
         PageDrawn drawn;
