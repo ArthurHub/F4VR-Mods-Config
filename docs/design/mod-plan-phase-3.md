@@ -37,8 +37,8 @@ F42 lights an activation sphere of a CommonFramework mod by itself while the ray
 
 | #    | Repo | Commit                                                | Status    |
 | ---- | ---- | ----------------------------------------------------- | --------- |
-| M91  | mod  | The search field, and the tree it filters             | in review |
-| M174 | mod  | A page shows only its rows that match while searching | in review |
+| M91  | mod  | The search field, and the tree it filters             | done      |
+| M174 | mod  | A page shows only its rows that match while searching | done      |
 
 The design is in [Search](ui-and-vr-interaction.md#search).
 
