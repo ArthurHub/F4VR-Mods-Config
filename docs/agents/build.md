@@ -1,27 +1,25 @@
-# Building, packaging and CI
+# Build, packaging and CI
 
-The build's setup and its optional steps. [CLAUDE.md](../../CLAUDE.md) has the everyday build and test commands.
+[CLAUDE.md](../../CLAUDE.md) has the everyday commands.
 
 ## Prerequisites
 
-- `VCPKG_ROOT` pointing to a vcpkg installation
-- Visual Studio 2022 or 2026 (MSVC toolchain, x64)
-- CMake 4.2+
-- Submodules initialized: `git submodule update --init --recursive`
-- `pre-commit install`, once after cloning, to run the repo's checks on every commit (the hook lives in `.git/hooks/`, not version-controlled)
+- `VCPKG_ROOT` set; Visual Studio 2022 or 2026 (MSVC x64); CMake 4.2+.
+- `git submodule update --init --recursive`.
+- `pre-commit install` once after cloning (the hook isn't version-controlled).
 
 ## Presets
 
-The `default` configure preset inherits `cmake-dev + vcpkg + windows + vs2026`; `vs2022` is the same for VS 2022. The `release` / `debug` / `package` / `tracy` build presets build the `default` configure preset (`tracy` is Release plus the Tracy profiler client). The build output is `build/`; in-source builds are blocked.
+`default` configures for VS 2026 (`vs2022` for VS 2022). Build presets `release`, `debug`, `package`, `tracy` (Release + Tracy client) use it. Output goes to `build/`; in-source builds are blocked.
 
 ## Copying the DLL to the game
 
-`CMakeUserPresets.json` (git-ignored, started from `CMakeUserPresets.json.template`) defines a `custom` preset that sets `POST_BUILD_COPY_PLUGIN` and `COPY_PLUGIN_BASE_PATH` to copy the DLL and PDB to `<path>/F4SE/Plugins/` on each build. Separate several paths with `;`. `COPY_PLUGIN_CONFIGURATIONS` limits the copy to some configurations: `all` (default) or a `;` list like `Release` / `Debug;RelWithDebInfo`.
+Copy `CMakeUserPresets.json.template` to `CMakeUserPresets.json` (git-ignored). Its `custom` preset sets `POST_BUILD_COPY_PLUGIN` and `COPY_PLUGIN_BASE_PATH` (`;`-separated) to copy the DLL and PDB to `<path>/F4SE/Plugins/` on each build; `COPY_PLUGIN_CONFIGURATIONS` limits it (`all`, or e.g. `Release;Debug`). A running game locks the DLL.
 
 ## Packaging
 
-An explicit step, not part of a normal build: `cmake --build --preset package` (or `cmake --build build --config Release --target package_mod`) builds the plugin if needed and runs `cmake/package.cmake`, which writes a versioned `.7z` with the DLL and the `data/mod/` files to `build/package/`. A non-Release archive has the configuration in its file name. It also packs the shared `data/showcase/` game `Data` tree, with both showcases, into one optional Showcase `.7z` for developers.
+`cmake --build --preset package` (target `package_mod`) runs `cmake/package.cmake`: a versioned `.7z` of the DLL and `data/mod/` in `build/package/` (non-Release builds carry the configuration in the name), plus an optional Showcase `.7z` of `data/showcase/`.
 
 ## CI
 
-`.github/workflows/build.yml` configures and builds Release on every push and pull request to `main`, and runs the unit tests. `.github/workflows/maintenance.yml` runs pre-commit there and commits any fixes back to the branch (pull requests from forks are only checked).
+`.github/workflows/build.yml` builds Release and runs the unit tests on pushes and PRs to `main`. `.github/workflows/maintenance.yml` runs pre-commit and commits fixes back (fork PRs are only checked).

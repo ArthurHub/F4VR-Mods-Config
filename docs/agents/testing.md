@@ -1,23 +1,34 @@
-# Tests: the unit tests, their test doubles and the end-to-end tests
+# Tests
 
-How the tests are built, how they stand in for the game, and how they draw the panel. [CLAUDE.md](../../CLAUDE.md) has the commands that run them.
+[CLAUDE.md](../../CLAUDE.md) has the commands. What the unit and e2e tests don't cover is tested by hand in the game.
 
-## The unit test executable
+## Unit tests
 
-- Code that does not need the running game (the settings model, the loaders) is unit tested with Catch2, in an executable built of the framework's test pieces ([mod-tests.md](../../external/F4VR-CommonFramework/docs/mod-tests.md)). A normal build also builds `ModsConfigFO4VR_linked_tests`; `-DMOD_BUILD_TESTS=OFF` leaves it out.
-- The mod's code needs the framework and CommonLibF4, so every test is a linked one, in `tests/linked/`: the executable compiles the sources it covers, listed in `tests/CMakeLists.txt`, with the mod's PCH, and links the framework and CommonLibF4 as the mod does. A new source under test is added to that list, with its `<Name>Tests.cpp`.
-- A test file sits in the folder of its source's `src/` area (`tests/linked/model/ConditionsTests.cpp`), and the mod's name and the folder start each test's CTest name (`ModsConfigFO4VR: linked: model: Conditions: ...`), which the VS Code Testing panel shows as a tree, beside the framework's under `framework` when those are built too. A test file's name is unique across the folders. The helpers the tests share sit in `tests/linked/` itself.
-- The framework's `F4VRCommon::test_no_game` sets CommonLibF4's `REL::NO_GAME`, so there is no game in the process: a test that calls the game fails with an access violation. The game-calling sources (`GameActions.cpp`, `GameGlobals.cpp`, `GameProperties.cpp`, `GameIniSettings.cpp`, `mcm/McmEvents.cpp`) are not compiled: the tests link the doubles below in their place.
+- Catch2, in `ModsConfigFO4VR_linked_tests`, built of the framework's test pieces ([mod-tests.md](../../external/F4VR-CommonFramework/docs/mod-tests.md)). A normal build builds it; `-DMOD_BUILD_TESTS=OFF` skips it.
+- Every test is linked: the executable compiles the sources listed in `tests/CMakeLists.txt` with the mod's PCH and links the framework and CommonLibF4. A new source under test goes in that list, with its `<Name>Tests.cpp`.
+- A test file sits under its source's `src/` area (`tests/linked/model/ConditionsTests.cpp`), with a name unique across folders. CTest names start `ModsConfigFO4VR: linked: <area>: ...`. Shared helpers sit in `tests/linked/`.
+- `REL::NO_GAME` is set (`F4VRCommon::test_no_game`): calling the game crashes with an access violation. The game-calling sources are not compiled; the doubles below replace them.
 
-Everything the unit and end-to-end tests don't cover is tested by hand, in the game.
+## Test doubles
 
-## Test doubles and panel tests
+| Double | Replaces | Fill / read with |
+| --- | --- | --- |
+| `TestGlobals.cpp` | `GameGlobals.cpp` | `TestGlobals` (the map persists across tests; a `TestGlobals` starts it empty) |
+| `TestProperties.cpp` | `GameProperties.cpp` | `TestProperties`: script properties, option lists, form names |
+| `TestIniSettings.cpp` | `GameIniSettings.cpp` | `TestIniSettings`, names in lower case |
+| `TestEvents.cpp` | `mcm/McmEvents.cpp` | `TestEvents` |
+| `TestActions.cpp` | `GameActions.cpp` | `TestActions`: function calls, console commands, Save messages |
+| `TestFiles.h` | — | a per-test folder for MCM's files; `ReadOnly` makes an unwritable file |
+| `TestSwf.h` | — | an in-memory SWF |
 
-- `tests/linked/TestSwf.h` builds an SWF file in memory, for a test of an image.
-- `tests/linked/TestGlobals.cpp` is the tests' own `getGlobal` and `setGlobal`, linked in place of the mod's `GameGlobals.cpp`: it has globals in a map in place of the game's, which a test fills with a `TestGlobals`, for a test of a store, of a condition and of a row that is pressed. The map is kept from test to test: a test that reads a global has a `TestGlobals`, which starts with none. `tests/linked/TestProperties.cpp` is the tests' own `getProperty`, `setProperty`, `getOptionTexts` and `getFormText` in the same way, linked in place of the mod's `GameProperties.cpp`: a test fills its properties of scripts, the lists a choice reads its options from, and the names and descriptions of forms, with a `TestProperties`. `tests/linked/TestIniSettings.cpp` is the tests' own `getGameIniSetting`, linked in place of the mod's `GameIniSettings.cpp`: a test fills the settings of the game's INI, by their names in lower case, with a `TestIniSettings`. A test of a ModSetting writes MCM's files in a folder of its own (`tests/linked/TestFiles.h`, whose `ReadOnly` makes a file that cannot be written), MCM is not called in a test, which has no game. `tests/linked/TestEvents.cpp` is the tests' own `mcm::sendEvent` and `mcm::sendPauseMenuEvents`, linked in place of the mod's `McmEvents.cpp`: it keeps the events the MCM store sends, which a test reads with a `TestEvents`. A source that sends an event needs no more than that. `tests/linked/TestActions.cpp` is the tests' own `callFunction`, `runConsoleCommand`, `openWebLink` and `sendSavedMessage`, linked in place of the mod's `GameActions.cpp`: it keeps the functions a store calls, the console commands it runs and the F4SE messages of its Saves, which a test reads with a `TestActions`.
-- `tests/linked/ui/FullPanelTests.cpp` checks what the panel does: what is selected, and what a press of the pointer on a row of the tree or on a breadcrumb selects. It draws the panel in frames of ImGui with no game and no renderer, which `tests/linked/TestPanel.h` sets up as the framework's canvas does.
-- `tests/linked/ui/FullPanelRenderTests.cpp` draws the panel the same way and saves it as images, to look at a change of the UI before it is tried in the headset. They check nothing and are not run by `ctest`: run `build/tests/Release/ModsConfigFO4VR_linked_tests "[render]"`, and open the `.bmp` files in `build/tests/render/`. Add a case there for a new view or state of the panel. One case draws every page of the MCM showcase, and one every page of the config spec showcase. An image of a page is drawn from its pixels, as the game draws it from its texture, and a config spec's texture from the config spec showcase's DDS file of it. `tools/gen_docs_renders.py` (needs Pillow) turns the renders of the showcase walkthrough into the PNGs of `docs/assets/showcase/`: run the render tests and it again when the panel's look or a showcase page changes.
+All live in `tests/linked/`. MCM itself is never called in a test.
+
+## Panel tests
+
+- `ui/FullPanelTests.cpp` drives the panel in ImGui frames with no game or renderer (`TestPanel.h` sets it up as the framework's canvas does) and checks selection and presses.
+- `ui/FullPanelRenderTests.cpp` saves the panel as `.bmp` files in `build/tests/render/` for a visual check before trying a change in the headset. They check nothing and `ctest` skips them: run `ModsConfigFO4VR_linked_tests "[render]"`. Add a case for a new view or state. They draw every page of both showcases and open pages by position, so moving a page moves its render.
+- `tools/gen_docs_renders.py` (needs Pillow) turns the walkthrough renders into `docs/assets/showcase/` PNGs: rerun both when the panel's look or a showcase page changes.
 
 ## End-to-end tests
 
-[tests/e2e/](../../tests/e2e/README.md) is pytest tests that drive the running game through devbench's REST port: from the main menu they start a game in QASmoke, back up the files a Save writes through devbench's `files` tool and put them back after, sweep every setting of the MCM test set and the config specs, and test the showcase walkthrough, the dialog, MCM's Keep and Revert, the live preview, Back, the breadcrumbs, Help and Minimize, what a row does beyond its value, and a loading screen ending the session. They are run by hand (`pytest tests/e2e`, after `pip install -r tests/e2e/requirements.txt`), as CI has no game; a run a crash ended is put back by the next one, or by `pytest tests/e2e --e2e-restore`. A new devbench action or a new page of a showcase gets its test there.
+[tests/e2e/](../../tests/e2e/README.md): pytest against the running game through devbench, run by hand. A new devbench action or showcase page gets its e2e test.

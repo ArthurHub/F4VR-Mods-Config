@@ -3,7 +3,7 @@
 Mods Config FO4 VR (`ModsConfigFO4VR`) is a C++23 F4SE plugin for Fallout 4 VR, built on the [F4VR Common Framework](external/F4VR-CommonFramework/README.md): a shared in-game configuration menu. A mod ships a declarative JSON config spec or already has an MCM menu, and the player edits the mod's real settings in VR. Every change waits for an explicit Save; a mod that registers through the native API gets live preview.
 
 - Design: [docs/design/](docs/design/README.md). Milestones: [mod-plan.md](docs/design/mod-plan.md), with each phase's commits in `docs/design/mod-plan-phase-<n>.md`. Framework work: [framework-requirements.md](docs/design/framework-requirements.md), [framework-plan.md](docs/design/framework-plan.md).
-- Components, what the menu has so far and each one's responsibility: [docs/agents/components.md](docs/agents/components.md). Read a component's row before changing it.
+- Components and their traps: [docs/agents/components.md](docs/agents/components.md). Read a component's row before changing it.
 - Player and author docs: [docs/README.md](docs/README.md) with `faq.md` and `changelog.md` beside it, [docs/for-mod-authors/](docs/for-mod-authors/README.md) (the guide, the showcase walkthrough, MCM compatibility, the native API), and `docs/nexus.md`, the Nexus page in BBCode. A change a player or an author sees updates them.
 
 ## Build and test

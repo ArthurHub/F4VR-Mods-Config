@@ -1,30 +1,40 @@
-# The config, the mod's data and the showcases
-
-How the mod's config is shipped and changed, what each of its sections holds, the mod's game `Data` tree, and the two showcases.
+# Config, data and showcases
 
 ## The config file
 
-[data/config/ModsConfigFO4VR.toml](../../data/config/ModsConfigFO4VR.toml) is the shipped default config. It is embedded in the DLL (resource `IDR_CONFIG`) and written on first run to `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`. A player's `ModsConfigFO4VR.ini` from an older version is moved into it by the framework, with its values, on the first load that finds no TOML.
+[data/config/ModsConfigFO4VR.toml](../../data/config/ModsConfigFO4VR.toml) is embedded in the DLL (`IDR_CONFIG`) and written on first run to `Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`. The framework migrates an older `ModsConfigFO4VR.ini` into it.
 
-- To add a value: a member in `Config.h`, a read in `Config::loadConfigInternal()` (`config[SECTION]["key"].value_or(default)`, which gives the default for a key that is missing or of another type), and the key in the shipped file. Write a float with a decimal point (`1.0`) and a string in quotes.
-- `data/mod/ModsConfigFO4/Config/ModsConfigFO4/spec.json` is the mod's own config spec, which edits this TOML. A unit test checks that each of its settings is a key of the shipped TOML, with the shipped value as its default: change the config spec with the TOML.
-- `ConfigBase` watches the file and reloads it on change, so edits apply while the game runs. The reload runs on the watcher's thread: apply anything that calls into the engine from `onFrameUpdate()`.
-- Bump `iVersion` in `[Debug]` when the shipped file changes, so existing users' files are migrated. A value whose type or name changes is moved in `updateConfigToLatestVersionCustom`.
+To add a key:
 
-## Config sections
+1. A member in `Config.h` and a read in `Config::loadConfigInternal()` (`config[SECTION]["key"].value_or(default)`).
+2. The key in the shipped TOML: floats with a decimal point (`1.0`), strings quoted.
+3. The setting in the mod's own config spec, `data/mod/ModsConfigFO4/Config/ModsConfigFO4/spec.json`. A unit test checks that every spec setting is a shipped key with the shipped value as its default.
+4. Bump `iVersion` in `[Debug]` so users' files migrate; move a renamed or retyped key in `updateConfigToLatestVersionCustom`.
 
-- The main section is `[ModsConfigFO4VR]`; it must match `NAME` in `CMakeLists.txt`, which the config reads back as both the file name and the default section. It holds the binding that opens the menu, and Back's (`kBackBinding`), a binding of `any` hand that fires only on the hand that points at the panel (`VRControllers.check(binding, hand)`). As shipped Back is a tap of the grip, and the move a long press of it, so the panel moves only when the grip is held longer. `bHighlightHelp` has the title bar's Help stand out: it ships on, and the Help page shown for the first time writes it off, with `Config::saveHelpOpened`.
-- `[Panel]` holds the menu's panel in the world: its scale, which is the size of its text and rows, its distance, height and tilt, the opacity of its background, the binding that moves it (`kMoveBinding`, the framework's `UIManager::setWorldMoveBinding`) and how smoothly it follows the hand, the gesture that puts it in front of the player again, and the distance at which that happens by itself.
-- `[Developer]` holds the Developer tools, for a config spec's author: whether they are on, which config specs the menu's front page lists (`attention`, `all` or `one`), the config spec `one` lists by its modName, and whether the front page's section is folded. The front page writes the filter and the fold at once, with `Config::saveDeveloper`.
-- `[Pointer]` holds the menu's pointer: where the ray is on the hand, how the ray and the mark on the panel look, and how fast the thumbstick scrolls. It is read into an `imgui::PointerStyle` and given to the framework's pointer every frame. It also holds the pulse the hand that points gets as its press does something in the panel.
-- `[Debug]` holds the framework's keys (log level and pattern, flow flags, data dumps, debug draw, the VR UI dev layout).
+The file hot-reloads on the watcher's thread: apply anything that calls the engine from `onFrameUpdate()`.
+
+## Sections
+
+- `[ModsConfigFO4VR]`: must match `NAME` in `CMakeLists.txt`. The open binding, Back (`kBackBinding`, an `any`-hand binding that fires only on the pointing hand: `VRControllers.check(binding, hand)`), `bHighlightHelp` (cleared by `Config::saveHelpOpened` on the first Help).
+- `[Panel]`: the panel's scale, placement, opacity, move binding (`kMoveBinding`, a long grip press; Back is a tap), follow smoothing and recenter.
+- `[Developer]`: Developer tools on/off, the front page filter (`attention` / `all` / `one`) and its fold, written by `Config::saveDeveloper`.
+- `[Pointer]`: the ray, its mark, scroll speed, press pulse; read into an `imgui::PointerStyle` each frame.
+- `[Debug]`: the framework's keys.
 
 ## The mod's Data tree
 
-`data/mod/` is the mod's game `Data` tree, packaged beside the DLL. `Meshes\ModsConfigFO4VR\f4cf\` and `Textures\ModsConfigFO4VR\f4cf\` hold the framework's own assets (activation sphere, binding icons, shared VR UI icons): ship them as they came and refresh them from `external/F4VR-CommonFramework/mod-template/` when updating the framework. The mod's own assets go beside them. The UI is drawn with ImGui and the framework's primitive-drawn `vrui` buttons, so the template's NIF button atlases (`ui-common` / `ui-example`) and their source PNGs were removed on purpose.
+`data/mod/` is packaged beside the DLL. `Meshes\ModsConfigFO4VR\f4cf\` and `Textures\ModsConfigFO4VR\f4cf\` are the framework's assets: ship them as they are, refreshed from `external/F4VR-CommonFramework/mod-template/` when the framework updates. The mod's own assets go beside them. The template's NIF button atlases are left out on purpose: the UI is ImGui plus primitive-drawn vrui buttons.
 
 ## Showcases
 
-`data/showcase/ModsConfigFO4/Config/ModsConfigFO4_Showcase/` is the config spec showcase, "Mods Config FO4: Showcase", in the shared showcase game `Data` tree: a config spec with what a config spec has, one kind a page, and what a config spec can get wrong on its Mistakes page. Its front page has its banner, an image of `data/showcase/Textures/ModsConfigFO4_Showcase/`, and its page General one of each kind of setting, named for its control, with the patterns a page uses most: a section a switcher enables, a folded section a choice shows, a warning and a section that needs a restart. Its page Detailed Examples has the pages of one kind each, the controls first, then the look of a page, then how settings behave, and Mistakes last. Its values are in a TOML file and an INI file beside its `spec.json`, and a setting of its page Files is in a file of `My Games` that is not shipped. Its page Warnings has rows whose warnings hold as it is shipped, and one that is invalid too, in `invalid.toml`. Its page Files also has a section of that shipped TOML file, `invalid.toml`, whose values are not the ones of their settings, as the menu shows a value that is invalid. Its textures are in `data/showcase/Textures/ModsConfigFO4_Showcase/`, DDS files that are not compressed, written by `tools/gen_config_spec_showcase_textures.py` with the pictures of the MCM showcase: change an image there and run it again. Its activation spheres choose from the framework's own files in `Textures\ModsConfigFO4_Showcase\f4cf\` and `Meshes\ModsConfigFO4_Showcase\f4cf\`, copied from the framework's `mod-template` as a CommonFramework mod ships them. Install it in the game to try a change of a config spec in the headset, and add to it what a new commit reads or draws. A unit test loads it and checks that its TOML has the default of each setting, but for the keys of an activation sphere, which leaves out most, as a mod's does, and a render test draws each of its pages (`config-spec-showcase-*.bmp`). Those renders, and of the editors a press opens, are the pictures of the authors' [showcase walkthrough](../for-mod-authors/showcase.md), which `tools/gen_docs_renders.py` writes to `docs/assets/showcase/`: run it again when a page changes, and add a page to its table, and a section to the walkthrough, when one is added. The render tests open its pages by their place, so a page that moves moves them too.
+Both live in the `data/showcase/` Data tree, ship as one optional developer archive, are loaded by a unit test and rendered page by page by the render tests. Add to them whatever a new commit reads or draws, and install them to try a change in the headset.
 
-`data/showcase/MCM/Config/ModsConfigFO4_McmShowcase/` is the MCM showcase in the same game `Data` tree: an MCM config with every kind of row an MCM config has, in every look, one kind a page. It has only what works in MCM too: the config spec showcase demonstrates what the config spec schema adds to MCM. It shows how an MCM menu looks in the mod, and ships with the config spec showcase in one optional archive for developers. Install it in the game to try a change of a row in the headset, and add to it what a new commit draws: a control, a state, an edge case. A unit test loads it, and a render test draws each of its pages (`mcm-showcase-*.bmp`). Its `keybinds.json` has the hotkeys of its hotkey rows, as MCM needs it to bind a key to one. Its `lib.swf` holds the images of its "Images" page, and is written by `tools/gen_mcm_showcase_lib.py`: change an image there and run it again.
+**Config spec showcase:** `data/showcase/ModsConfigFO4/Config/ModsConfigFO4_Showcase/`
+- Pages: General (one of each setting kind plus the common patterns), Detailed Examples (one kind per page: controls, look, behavior), Mistakes last. Values are in a TOML and an INI beside `spec.json`. A Files-page setting lives in an unshipped `My Games` file; `invalid.toml` holds deliberately invalid values.
+- A unit test checks that its TOML has each setting's default (activation-sphere keys excepted).
+- Textures in `data/showcase/Textures/ModsConfigFO4_Showcase/` are uncompressed DDS written by `tools/gen_config_spec_showcase_textures.py`: edit the image there and rerun it. Activation sphere assets are copied from the framework's `mod-template`.
+- Its renders are the pictures of the [showcase walkthrough](../for-mod-authors/showcase.md) (`tools/gen_docs_renders.py`). A new page gets a row in that script's table and a section in the walkthrough.
+
+**MCM showcase:** `data/showcase/MCM/Config/ModsConfigFO4_McmShowcase/`
+- Every MCM row kind in every look, one kind per page, and only what MCM itself supports (the config spec showcase covers what the schema adds).
+- `keybinds.json` backs its hotkey rows. `lib.swf` holds the Images page's images, written by `tools/gen_mcm_showcase_lib.py`: edit the image there and rerun it.
