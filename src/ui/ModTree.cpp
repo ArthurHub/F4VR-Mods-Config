@@ -232,6 +232,7 @@ namespace mods_config::ui
             const auto pos = ImGui::GetCursorScreenPos();
             auto field = _search.draw(pos, rowWidth, mods.size(), search ? std::optional(search->matches) : std::nullopt);
             drawn.searchActed = field.pressActed;
+            drawn.searchPointed = field.pointed.has_value();
             drawn.pointed = std::move(field.pointed);
             ImGui::SetCursorScreenPos(pos);
             ImGui::Dummy(ImVec2(rowWidth, HEADER_HEIGHT));

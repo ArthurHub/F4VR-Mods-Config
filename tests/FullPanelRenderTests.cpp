@@ -630,6 +630,57 @@ TEST_CASE("FullPanel render: the search field idle, under the ray, typed in, wit
     });
     render("show col", false, "search-query-mod-and-row", POINTER_AWAY);
     render("holz", true, "search-nothing-found", POINTER_AWAY);
+
+    // a page reached while searching has its rows that match, in their sections, which are open
+    const auto sections = [](FullPanel& panel) {
+        select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", "Sections" });
+    };
+    render("reach", false, "search-page-filtered", POINTER_AWAY, sections);
+
+    // Back shows it whole, with the focus ring on the last row the ray was on, and the section it is in open
+    const ImVec2 onReach(700.0f, 207.0f);
+    render("reach", false, "search-page-whole", POINTER_AWAY, [&](FullPanel& panel) {
+        sections(panel);
+        for (int i = 0; i < 3; ++i) {
+            test_panel::drawFrame(panel, onReach);
+        }
+        panel.back();
+    });
+
+    // a page with no row that matches says how many do
+    render("reach", false, "search-page-pick", POINTER_AWAY, [](FullPanel& panel) {
+        select(panel, "Mods Config FO4: Showcase");
+    });
+}
+
+TEST_CASE("FullPanel render: a page whose rows that match are all hidden by a condition, while searching", "[.render]")
+{
+    model::Mod mod{ .name = "Flashlight", .displayName = "Immersive Flashlight", .frontPage = {}, .pages = {} };
+    const auto row = [](std::string text) {
+        return model::Setting{ .id = text, .type = model::SettingType::Switcher, .text = std::move(text), .help = {}, .valueOptions = {}, .storage = {} };
+    };
+    auto intensity = row("Intensity");
+    intensity.visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "Show advanced", .conditions = {} };
+    mod.pages.push_back({ .name = "Beam", .items = { row("Show advanced"), std::move(intensity) } });
+
+    mcm::McmStore store;
+    FullPanel panel;
+    panel.setStore(model::Source::Mcm, &store);
+    panel.setMods({ std::move(mod) });
+    const float fieldY = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 20.0f;
+    const ImVec2 onField(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, fieldY);
+    WARN("Saved " << renderToFile(panel, "search-page-hidden", POINTER_AWAY, false, [&] {
+        for (const bool held : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, onField, held);
+        }
+        ImGui::GetIO().AddInputCharactersUTF8("intens");
+        test_panel::drawFrame(panel, POINTER_AWAY);
+        for (const bool down : { true, false }) {
+            ImGui::GetIO().AddKeyEvent(ImGuiKey_Enter, down);
+            test_panel::drawFrame(panel, POINTER_AWAY);
+        }
+        panel.select({ .mod = 0, .page = { 0 } });
+    }));
 }
 
 TEST_CASE("FullPanel render: a mod's front page, with the ray on the row of another mod", "[.render]")

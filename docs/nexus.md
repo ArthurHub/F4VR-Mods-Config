@@ -17,7 +17,7 @@ Unlike MCM, the menu stands in the game world and never pauses the game. With na
 
 If you encounter any bugs, please report them on [url=https://github.com/ArthurHub/F4VR-Mods-Config/issues]GitHub[/url] or in the Bugs tab. Include your [b]ModsConfigFO4VR.log[/b] from [b]Documents\My Games\Fallout4VR\F4SE[/b].
 
-Still planned: search, mod categories, editing lists and hand poses, and translations for mods without a game plugin.[/size]
+Still planned: mod categories, editing lists and hand poses, and translations for mods without a game plugin.[/size]
 
 [size=4][b]Getting Started[/b][/size]
 [list=1]
@@ -56,6 +56,7 @@ Still planned: search, mod categories, editing lists and hand poses, and transla
 [list]
 [*][size=3][b]Existing MCM menus:[/b] Displays your MCM menus with their pages, images, and translations. Buttons and presets run their original scripts, hotkeys are shown, and changes work as they do in MCM. Use Keep or Revert to accept or undo changes.[/size]
 [*][size=3][b]Native mod configuration:[/b] Mods with a config spec can expose their INI, TOML, and script settings directly in VR. Config files retain their comments and layout when saved.[/size]
+[*][size=3][b]Search:[/b] Type a name to find a setting in any mod. The list shows the mods and pages that match, and a page shows only its settings that match.[/size]
 [*][size=3][b]Quick launch:[/b] Open a mod's own configuration interface, such as FRIK's, from the menu. Mods Config returns when that interface closes.[/size]
 [*][size=3][b]Notices:[/b] A mod that can't be shown says why, such as a plugin it needs that isn't loaded, and a saved change that needs a restart tells you so.[/size]
 [/list]

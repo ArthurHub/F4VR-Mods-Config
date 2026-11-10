@@ -38,13 +38,13 @@ F42 lights an activation sphere of a CommonFramework mod by itself while the ray
 | #    | Repo | Commit                                                | Status    |
 | ---- | ---- | ----------------------------------------------------- | --------- |
 | M91  | mod  | The search field, and the tree it filters             | in review |
-| M174 | mod  | A page shows only its rows that match while searching | todo      |
+| M174 | mod  | A page shows only its rows that match while searching | in review |
 
 The design is in [Search](ui-and-vr-interaction.md#search).
 
-M91 makes the tree's header the search field, typed on SteamVR's keyboard, which filters the tree as each key is typed: the mods and pages with a row whose name matches, each with how many, and the match underlined. A word of the query starts a word of the name, in any order, with case and accents ignored, and can match the name of the mod, the page or the section a row is in, as long as one word matches the row's own. The most specific match wins: a section, a page or a mod whose name matches shows all that is under it only when nothing under it does. The selected mod's conditions are asked of its store, and another mod's hold. The MCM mods' rows read their texts from the game once, as a search starts. A press on a page shows it whole.
+M91 makes the tree's header the search field, typed on SteamVR's keyboard, which filters the tree as each key is typed: the mods and pages with a row whose name matches, each with how many, and the match underlined. A word of the query starts a word of the name, in any order, with case and accents ignored, and can match the name of the mod, the page or the section a row is in, as long as one word matches the row's own. The most specific match wins: a section, a page or a mod whose name matches shows all that is under it only when nothing under it does. The selected mod's conditions are asked of its store, and another mod's hold. The MCM mods' rows read their texts from the game once, as a search starts.
 
-M174 shows a page reached while searching with only its rows that match, in their sections, which are open, and editable, and Back and Clear show it whole again, with the focus ring on the last row the ray was on. The content says how many settings match when no page with a match is selected, and a page whose rows that match are all hidden by a condition says so. The design docs and the design system's Search and FullPanelSearch then describe it, in place of the page of results.
+M174 shows a page reached while searching with only its rows that match, in their sections, which are open, and editable, with the match underlined, its crumb marked `(filtered)` and the help line saying that Back shows it whole. Back with the ray on the search field empties it, as Clear does, and the Help page has a Search section. The README and the Nexus page list search. Back and Clear show it whole again, with the match still underlined, with the focus ring on the last row the ray was on. The content says how many settings match when no page with a match is selected, and a page whose rows that match are all hidden by a condition says so. The design docs and the design system's Search and FullPanelSearch describe it, in place of a page of results.
 
 ## 13. Mod categories
 

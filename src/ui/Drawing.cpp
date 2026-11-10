@@ -421,8 +421,9 @@ namespace mods_config::ui
      * The heading of a section of rows at the cursor: its muted text, `space-3` in as a row's text is in its frame,
      * and a line from it to a right edge, where the rows end. ImGui draws the line to the right of the window's
      * work area, past the rows into the room of the scroll bar, so that edge is the heading's while it is drawn.
+     * The ranges of the text a search found are underlined.
      */
-    void sectionHeading(const std::string_view text, const float right)
+    void sectionHeading(const std::string_view text, const float right, const std::span<const model::TextRange> found)
     {
         auto* window = ImGui::GetCurrentWindow();
         const float workRight = window->WorkRect.Max.x;
@@ -435,13 +436,17 @@ namespace mods_config::ui
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         window->WorkRect.Max.x = workRight;
+        const auto min = ImGui::GetItemRectMin();
+        const float textLeft = min.x + HEADING_TEXT_INSET;
+        drawUnderlines(textLeft, textLeft + textWidth(text), min.y, ImGui::GetItemRectSize().y, theme::color::GREEN_MUTED, text, found);
     }
 
     /**
      * The heading of an activation sphere at the cursor, as high as any heading: the sphere's mark, its muted text and a
      * line from it to a right edge. It is drawn here, as ImGui's heading has a line before a text that is this far in.
+     * The ranges of the text a search found are underlined.
      */
-    void sphereHeading(const std::string_view text, const float right)
+    void sphereHeading(const std::string_view text, const float right, const std::span<const model::TextRange> found)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float height = ImGui::GetFontSize() + ImGui::GetStyle().SeparatorTextPadding.y * 2.0f;
@@ -452,6 +457,7 @@ namespace mods_config::ui
         const float textLeft = markLeft + SPHERE_MARK_SIZE + theme::SPACE_1;
         const float textRight = (std::min)(textLeft + textWidth(text), right);
         drawText(textLeft, textRight, pos.y, height, theme::color::GREEN_MUTED, text);
+        drawUnderlines(textLeft, textRight, pos.y, height, theme::color::GREEN_MUTED, text, found);
         const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
         if (ruleLeft < right) {
             const float ruleTop = std::floor(middle - theme::BORDER_FRAME * 0.5f);
@@ -893,9 +899,10 @@ namespace mods_config::ui
      * and down while it is open, its text, and a rule from it to the right edge, as a heading has. The arrow
      * starts where a heading's text does. Its text and its arrow are muted, under the ray too. The counts of what
      * it hides end the rule, in the detail size. A heading with the invalid mark or the warning mark has it before
-     * its text, and its text and its arrow are red or amber.
+     * its text, and its text and its arrow are red or amber. The ranges of the text a search found are underlined.
      */
-    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const std::span<const MarkedCount> counts, const TextMark mark)
+    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const std::span<const MarkedCount> counts, const TextMark mark,
+        const std::span<const model::TextRange> found)
     {
         // the room a rule keeps at the least, as the design system has it
         constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
@@ -918,6 +925,7 @@ namespace mods_config::ui
         }
         const float textRight = (std::min)(textLeft + textWidth(text), ruleRight - RULE_MIN_WIDTH - theme::SPACE_3);
         drawText(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, text);
+        drawUnderlines(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, text, found);
         const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
         if (ruleLeft < ruleRight) {
             const float ruleTop = std::floor(pos.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);

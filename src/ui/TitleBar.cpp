@@ -33,6 +33,9 @@ namespace
     // the title bar's Help
     constexpr auto HELP_MARK = "?";
 
+    // what the last crumb has after its name while the page has only its rows that match
+    constexpr auto FILTERED = " (filtered)";
+
     // the breadcrumb of the front page's Developer section, before a config spec's report
     constexpr auto DEVELOPER_CRUMB = "Developer";
 
@@ -64,9 +67,10 @@ namespace
     /**
      * A breadcrumb of the title bar, in the width it is given: a text that does not fit ends in an ellipsis.
      * Returns whether it was pressed, which only a link is. The crumb of the pages that do not fit is muted, as a
-     * link is while the ray is not on it.
+     * link is while the ray is not on it. A suffix is after the text in the disabled color, dimmer than a link, and the
+     * text shortens before it does.
      */
-    bool crumb(const char* id, const std::string_view text, const ImVec2& min, const float width, const CrumbLook look)
+    bool crumb(const char* id, const std::string_view text, const ImVec2& min, const float width, const CrumbLook look, const std::string_view suffix = {})
     {
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
         bool pressed = false;
@@ -84,7 +88,12 @@ namespace
         } else if (look == CrumbLook::Elided) {
             color = theme::color::GREEN_MUTED;
         }
-        ui::drawText(min.x + theme::SPACE_2, max.x - theme::SPACE_1, min.y, theme::CONTROL_HEIGHT, color, text);
+        const float textLeft = min.x + theme::SPACE_2;
+        const float suffixLeft = (std::min)(textLeft + ui::textWidth(text), max.x - theme::SPACE_2 - ui::textWidth(suffix));
+        ui::drawText(textLeft, suffix.empty() ? max.x - theme::SPACE_1 : suffixLeft, min.y, theme::CONTROL_HEIGHT, color, text);
+        if (!suffix.empty()) {
+            ui::drawText(suffixLeft, max.x, min.y, theme::CONTROL_HEIGHT, theme::color::DISABLED, suffix);
+        }
         return pressed;
     }
 
@@ -150,10 +159,11 @@ namespace mods_config::ui
      * Draws the breadcrumbs and Help, Minimize and Close buttons, with overflowing pages collapsed to an
      * ellipsis and long names shortened. A config spec's report, shown over the menu's front page, has the crumbs
      * of the menu, of the Developer section, and of the config spec's name. Help stands out while it is highlighted,
-     * and is wider, so the crumbs end sooner. Returns the pressed selection, Developer crumb or button and the
-     * hovered help.
+     * and is wider, so the crumbs end sooner. While the page is filtered to its rows that match, its crumb says so
+     * after its name. Returns the pressed selection, Developer crumb or button and the hovered help.
      */
-    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const bool highlightHelp, const model::Mod* report)
+    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const bool highlightHelp, const model::Mod* report,
+        const bool filtered)
     {
         F4CF_PERF_FUNCTION();
         const auto pos = ImGui::GetCursorScreenPos();
@@ -235,19 +245,22 @@ namespace mods_config::ui
 
             // the room of a crumb after another: the gap after the one before, the separator, and a gap
             const float before = gap + separatorWidth + gap;
-            float pagesWidth = 0.0f;
+            const std::string_view suffix = filtered ? FILTERED : "";
+            const float suffixWidth = suffix.empty() ? 0.0f : textWidth(suffix);
+            float pagesWidth = pageNames.empty() ? 0.0f : suffixWidth;
             for (const auto& name : pageNames) {
                 pagesWidth += before + crumbWidth(name);
             }
             const float modRoom = right - at.x - separatorWidth - gap;
             const bool elided = pageNames.size() > 1 && crumbWidth(mod->displayName) + pagesWidth > modRoom;
             if (elided) {
-                pagesWidth = before + crumbWidth(PAGES_ELIDED) + before + crumbWidth(pageNames.back());
+                pagesWidth = before + crumbWidth(PAGES_ELIDED) + before + crumbWidth(pageNames.back()) + suffixWidth;
             }
-            const float modWidth = (std::min)(crumbWidth(mod->displayName), (std::max)(modRoom - pagesWidth, MOD_CRUMB_MIN_WIDTH));
+            const float modFullWidth = crumbWidth(mod->displayName) + (pageNames.empty() ? suffixWidth : 0.0f);
+            const float modWidth = (std::min)(modFullWidth, (std::max)(modRoom - pagesWidth, MOD_CRUMB_MIN_WIDTH));
 
             drawSeparator();
-            if (crumb("mod", mod->displayName, at, modWidth, pageNames.empty() ? CrumbLook::Current : CrumbLook::Link)) {
+            if (crumb("mod", mod->displayName, at, modWidth, pageNames.empty() ? CrumbLook::Current : CrumbLook::Link, pageNames.empty() ? suffix : "")) {
                 bar.pressed = Selection{ .mod = selection.mod, .page = {} };
             }
             at.x += modWidth + gap;
@@ -259,10 +272,10 @@ namespace mods_config::ui
             }
             for (std::size_t level = elided ? pageNames.size() - 1 : 0; level < pageNames.size(); ++level) {
                 const bool last = level + 1 == pageNames.size();
-                const float pageWidth = last ? (std::min)(crumbWidth(pageNames[level]), right - at.x - separatorWidth - gap) : crumbWidth(pageNames[level]);
+                const float pageWidth = last ? (std::min)(crumbWidth(pageNames[level]) + suffixWidth, right - at.x - separatorWidth - gap) : crumbWidth(pageNames[level]);
                 drawSeparator();
                 ImGui::PushID(static_cast<int>(level));
-                if (crumb("page", pageNames[level], at, pageWidth, last ? CrumbLook::Current : CrumbLook::Link)) {
+                if (crumb("page", pageNames[level], at, pageWidth, last ? CrumbLook::Current : CrumbLook::Link, last ? suffix : "")) {
                     bar.pressed = Selection{ .mod = selection.mod, .page = { selection.page.begin(), selection.page.begin() + static_cast<std::ptrdiff_t>(level + 1) } };
                 }
                 ImGui::PopID();

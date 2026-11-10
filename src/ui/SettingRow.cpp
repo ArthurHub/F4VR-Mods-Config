@@ -547,7 +547,12 @@ namespace
             .mark = look == ui::ValueLook::Invalid ? ui::TextMark::Invalid
                     : !warning.empty()             ? ui::TextMark::Warning
                                                    : ui::TextMark::None };
-        ui::drawLabel(state.pos, left - theme::SPACE_3, model::resolveClientText(setting.text, context.store), model::resolveClientRuns(setting.textRuns, context.store), marks);
+        ui::drawLabel(state.pos,
+            left - theme::SPACE_3,
+            model::resolveClientText(setting.text, context.store),
+            model::resolveClientRuns(setting.textRuns, context.store),
+            marks,
+            context.query);
         ImGui::EndDisabled();
     }
 

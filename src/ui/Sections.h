@@ -6,6 +6,7 @@
 #include <imgui.h>
 
 #include "model/ConfigDefinition.h"
+#include "model/Search.h"
 #include "model/Store.h"
 
 namespace mods_config::ui
@@ -36,7 +37,8 @@ namespace mods_config::ui
     public:
         bool isFolded(const model::Group& group) const;
         void setFolded(const model::Group& group, bool folded);
-        bool drawHeading(const model::Group& group, model::Store* store, const ImVec2& pos, float width, const SectionRow& row, std::string& help);
+        bool drawHeading(const model::Group& group, model::Store* store, const ImVec2& pos, float width, const SectionRow& row, std::string& help,
+            const model::SearchQuery* query = nullptr);
         void reset();
 
     private:

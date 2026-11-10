@@ -5,6 +5,8 @@
 #include <numeric>
 #include <string>
 #include <tuple>
+#include <unordered_set>
+#include <variant>
 
 #include <imgui.h>
 
@@ -22,6 +24,10 @@ namespace
     // what the help line says of a mod while no change waits for a Save and the ray is on no row
     constexpr auto NO_UNSAVED = "No unsaved changes";
 
+    // what the help line says with the ray on no row while the page has only its rows that match, in place of a
+    // status that tells nothing to do
+    constexpr auto FILTERED_STATUS = "Only the settings that match are shown. Back shows the whole page.";
+
     // and after a Save that wrote no change that takes effect after a restart, until the next change
     constexpr auto SAVED = "Saved";
 
@@ -34,6 +40,37 @@ namespace
 
     // how the error of a live copy that cannot be read starts, which tells it from the config spec's other problems
     constexpr std::string_view LIVE_COPY_NOT_READ = "The live copy cannot be read";
+
+    /**
+     * Whether the search shows a row of a list of items: a section it shows is one of them, with its rows.
+     */
+    bool hasFound(const std::vector<model::Item>& items, const std::unordered_set<const model::Item*>& found)
+    {
+        return std::ranges::any_of(items, [&found](const model::Item& item) {
+            return found.contains(&item);
+        });
+    }
+
+    /**
+     * Finds the sections an item is in, from the outermost, in a list of items and the sections in it.
+     * Returns whether the item is there.
+     */
+    bool findSections(const std::vector<model::Item>& items, const model::Item& target, std::vector<const model::Group*>& sections)
+    {
+        for (const auto& item : items) {
+            if (&item == &target) {
+                return true;
+            }
+            if (const auto* group = std::get_if<model::Group>(&item)) {
+                sections.push_back(group);
+                if (findSections(group->items, target, sections)) {
+                    return true;
+                }
+                sections.pop_back();
+            }
+        }
+        return false;
+    }
 }
 
 namespace mods_config::ui
@@ -296,11 +333,16 @@ namespace mods_config::ui
     }
 
     /**
-     * Gives the help line the status of the selected mod's editing session.
+     * Gives the help line the status of the selected mod's editing session. While the page has only its rows that
+     * match, and the session has nothing to tell but that it has no changes or saved them, it tells that Back shows the
+     * whole page.
      */
     void FullPanel::updateStatus()
     {
-        const auto status = sessionStatus();
+        auto status = sessionStatus();
+        if (_selection.mod && isFiltered() && status.look == StatusLook::Plain) {
+            status.text = FILTERED_STATUS;
+        }
         _helpLine.setStatus(status.text, status.look);
     }
 
@@ -500,11 +542,13 @@ namespace mods_config::ui
 
     /**
      * Another page is shown in the content pane, from its top: a row of the page before keeps no drag, list,
-     * edit or help, and the tree shows the selection.
+     * edit or help, and the tree shows the selection. While searching it is filtered, until Back.
      */
     void FullPanel::pageShown()
     {
         _pageChanged = true;
+        _pageWhole = false;
+        _searchPointed = nullptr;
         _modPage.reset();
         _helpLine.clear();
         point(nullptr);
@@ -621,7 +665,9 @@ namespace mods_config::ui
      * cancelled, with nothing run, a slider that is dragged
      * has the value it had before the drag, the list of a dropdown that is open is closed, a text input that
      * is edited keeps its value, and the editor of a binding closes its list, or gives back the binding it had as it
-     * opened. With none of them, from the Help page to the page it was shown over, from a
+     * opened. With none of them, from the Help page to the page it was shown over, with the ray on the search field
+     * and a query in it, the query is emptied, as Clear does, from a page filtered by the search
+     * to the whole page, with the focus ring on the last row the ray was on, from a
      * config spec's report to the Developer section of the menu's front page, from the page a problem of a report
      * showed back to the report, from a page of a mod to the page it is under or to the mod's front page, and
      * from there to the menu's front page, which asks first while the mod has unsaved changes.
@@ -635,6 +681,15 @@ namespace mods_config::ui
         }
         if (_modTree.endSearchEdit() || _modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() ||
             _modPage.cancelColorEdit() || _modPage.cancelTransformEdit() || showHelp(false)) {
+            return true;
+        }
+        if (_onSearchField && !_modTree.query().empty()) {
+            _modTree.clearSearch();
+            return true;
+        }
+        if (isFiltered()) {
+            _pageWhole = true;
+            showWhole();
             return true;
         }
         if (_report) {
@@ -714,24 +769,35 @@ namespace mods_config::ui
         _matches = 0;
         _searchStale = false;
         _searchTextsRead = false;
+        _pageWhole = false;
+        _searchPointed = nullptr;
     }
 
     /**
-     * Searches the mods for the query of the search field, before the tree is drawn. Every mod is searched as the
+     * Searches the mods for the query of the search field, before the title bar and the tree are drawn. Every mod is searched as the
      * query changes, as another mod is selected and as the mods change, and the selected mod in each frame, as its
      * conditions are asked of its store and its values change. Another mod has no store, so its conditions hold.
      * As a search first starts since the menu opened, the MCM mods' rows read the texts they take from the game,
-     * which the selected mod alone has, so they are found by them too. A query that changes scrolls the tree to its top.
+     * which the selected mod alone has, so they are found by them too. A query that changes scrolls the tree to its top,
+     * and filters the page again from its top. A query emptied, as by Clear, shows the whole page, with the focus ring
+     * on the last row the ray was on.
      */
     void FullPanel::updateSearch()
     {
         F4CF_PERF_FUNCTION();
         const auto& text = _modTree.query();
         if (text != _searchText) {
+            const bool filtered = isFiltered();
             _searchText = text;
             _query = model::SearchQuery(text);
             _searchStale = true;
+            _pageWhole = false;
             _modTree.showTop();
+            if (_query.empty() && filtered) {
+                showWhole();
+            } else if (isFiltered()) {
+                _pageChanged = true;
+            }
         }
         if (_query.empty()) {
             _found.clear();
@@ -759,6 +825,57 @@ namespace mods_config::ui
         _matches = 0;
         for (const auto& found : _found) {
             _matches += found ? found->total : 0;
+        }
+    }
+
+    /**
+     * Whether the content is filtered by the search: while the query has text, a mod's page has only its rows that
+     * match, and the menu's front page says how many match, until Back shows it whole. Not the Help page and not a
+     * report.
+     */
+    bool FullPanel::isFiltered() const
+    {
+        return !_query.empty() && !_pageWhole && !_helpShown && !_report;
+    }
+
+    /**
+     * Shows the page that was filtered whole, with the focus ring on the last row the ray was on while it was
+     * filtered, and the sections it is in opened, or from its top.
+     */
+    void FullPanel::showWhole()
+    {
+        std::vector<const model::Group*> sections;
+        if (_searchPointed && _selection.mod && findSections(selectedPage()->items, *_searchPointed, sections)) {
+            _modPage.focus(*_searchPointed, sections);
+        } else {
+            _pageChanged = true;
+        }
+        _searchPointed = nullptr;
+    }
+
+    /**
+     * What the content says in place of a page while searching, where the search shows none of its rows: that what
+     * matches on the selected page is hidden by a condition, that nothing matches, or how many settings match, on
+     * the pages in the tree.
+     */
+    void FullPanel::drawSearchText(const model::Page* page)
+    {
+        if (page) {
+            const auto found = model::searchMod(_mods[*_selection.mod], _query, nullptr);
+            if (found && hasFound(page->items, found->rows)) {
+                drawPageText(
+                    std::format("What matches \xE2\x80\x9C{}\xE2\x80\x9D on this page is hidden by the values of other settings. Back shows the whole page.", _searchText));
+                return;
+            }
+        }
+        if (_matches == 0) {
+            drawPageText(std::format("Nothing matches \xE2\x80\x9C{}\xE2\x80\x9D. Search finds the names of mods, pages, sections and settings.", _searchText));
+        } else {
+            drawPageText(std::format("{} setting{} \xE2\x80\x9C{}\xE2\x80\x9D. Pick a page in the tree to change {}.",
+                _matches,
+                _matches == 1 ? " matches" : "s match",
+                _searchText,
+                _matches == 1 ? "it" : "them"));
         }
     }
 
@@ -795,7 +912,8 @@ namespace mods_config::ui
             show(shown);
             _helpShown = helpShown;
         }
-        auto titleBar = drawTitleBar(_mods, _selection, _helpShown, _highlightHelp, _report && !_helpShown ? &_mods[*_report] : nullptr);
+        updateSearch();
+        auto titleBar = drawTitleBar(_mods, _selection, _helpShown, _highlightHelp, _report && !_helpShown ? &_mods[*_report] : nullptr, _selection.mod && isFiltered());
         auto pressed = titleBar.pressed;
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
@@ -804,9 +922,9 @@ namespace mods_config::ui
         const auto bodyPos = ImGui::GetCursorScreenPos();
         const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
 
-        updateSearch();
         const TreeSearch search{ .query = &_query, .found = &_found, .matches = _matches };
         auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore(), _query.empty() ? nullptr : &search);
+        _onSearchField = tree.searchPointed;
         if (tree.pressed) {
             pressed = tree.pressed;
         }
@@ -854,9 +972,18 @@ namespace mods_config::ui
                     _scrollTo.reset();
                 }
                 _reportScroll = ImGui::GetScrollY();
+            } else if (_selection.mod && isFiltered() && !(_found[*_selection.mod] && hasFound(selectedPage()->items, _found[*_selection.mod]->rows))) {
+                drawSearchText(selectedPage());
             } else if (_selection.mod) {
                 const auto& mod = _mods[*_selection.mod];
-                auto drawn = _modPage.draw(mod, *selectedPage(), storeOf(mod), _thumbstickSideValue);
+                PageSearch pageSearch;
+                if (*_selection.mod < _found.size() && _found[*_selection.mod]) {
+                    pageSearch = { .query = &_query, .found = &_found[*_selection.mod]->rows, .filtered = isFiltered() };
+                }
+                auto drawn = _modPage.draw(mod, *selectedPage(), storeOf(mod), _thumbstickSideValue, pageSearch);
+                if (pageSearch.filtered && drawn.pointedItem) {
+                    _searchPointed = drawn.pointedItem;
+                }
                 pointed = std::move(drawn.pointed);
                 // the item stays in the gap between two rows, as the help line's row does
                 pointedItem = drawn.pointedItem ? drawn.pointedItem : onPage ? _pointedItem : nullptr;
@@ -865,6 +992,8 @@ namespace mods_config::ui
                 if (drawn.adjust && _menuActions.adjustTransform) {
                     _menuActions.adjustTransform(*drawn.adjust, *storeOf(mod));
                 }
+            } else if (isFiltered()) {
+                drawSearchText(nullptr);
             } else {
                 auto drawn = _frontPage.draw(frontPageMods());
                 pointed = std::move(drawn.pointed);

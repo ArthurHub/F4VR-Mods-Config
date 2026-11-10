@@ -4,7 +4,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 
 ### v0.12.0
 
-- The tree's header is a search field: type a name and the tree shows the mods and pages with a setting that matches, with how many.
+- The tree's header is a search field: type a name and the tree shows the mods and pages with a setting that matches, with how many, and a page shows only its settings that match, marked `(filtered)`. Back shows the whole page, with the matches still underlined.
 
 ### v0.11.0
 

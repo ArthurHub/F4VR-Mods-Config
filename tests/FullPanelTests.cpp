@@ -37,6 +37,9 @@ namespace
 {
     using Names = std::vector<std::string>;
 
+    // the distance from a section's heading to the row under it
+    constexpr float SECTION_HEADING_PITCH = 45.0f;
+
     // the tree's header and the distance from a row of it to the next, as ModTree.cpp has them
     constexpr float TREE_HEADER_HEIGHT = 40.0f;
     constexpr float TREE_ROW_PITCH = theme::CONTROL_HEIGHT + theme::SPACE_1;
@@ -5724,4 +5727,142 @@ TEST_CASE("FullPanel: the search field says what it searches, and Back ends its 
     CHECK(panel.selection() == Selection{});
     press(panel, treeRow(0));
     CHECK(panel.selection() == selectionOf(2));
+}
+
+namespace
+{
+    model::Item searchedRow(std::string text)
+    {
+        return model::Setting{ .type = model::SettingType::Switcher, .text = std::move(text), .help = "What it does.", .valueOptions = {} };
+    }
+
+    /**
+     * A panel on Alpha's front page, which has Holster size, Strength and Left holster, and a folded section Advanced
+     * with Hip, and a page Extra with Speed. Beta has none.
+     */
+    FullPanel searchedMods()
+    {
+        auto mod = modOf("Alpha");
+        mod.frontPage.items = { searchedRow("Holster size"),
+            searchedRow("Strength"),
+            searchedRow("Left holster"),
+            model::Group{ .text = "Advanced", .items = { searchedRow("Hip") }, .visibleWhen = {}, .collapsible = true, .collapsed = true } };
+        mod.pages.push_back({ .name = "Extra", .items = { searchedRow("Speed") } });
+
+        FullPanel panel;
+        panel.setMods({ std::move(mod), modOf("Beta") });
+        panel.select(selectionOf(0));
+        return panel;
+    }
+}
+
+TEST_CASE("FullPanel: a page reached while searching has only its rows that match, and Back shows it whole")
+{
+    const test_panel::PanelContext context;
+    auto panel = searchedMods();
+    drawFrames(panel, 2);
+
+    search(panel, "hol");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Left holster: What it does.");
+
+    // with the ray on no row the help line says how to see the whole page
+    point(panel, test_panel::POINTER_AWAY);
+    CHECK(panel.helpLine().status() == "Only the settings that match are shown. Back shows the whole page.");
+
+    // a page pressed in the tree has its rows that match too
+    CHECK(pressActs(panel, searchClear()));
+    search(panel, "speed");
+    press(panel, treeRow(1));
+    REQUIRE(panel.selection() == selectionOf(0, 0));
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Speed: What it does.");
+
+    // Back shows the page whole, with the query kept, and then goes a step back
+    CHECK(pressActs(panel, searchClear()));
+    search(panel, "hol");
+    press(panel, treeRow(0));
+    REQUIRE(panel.selection() == selectionOf(0));
+    CHECK(panel.back());
+    point(panel, test_panel::POINTER_AWAY);
+    CHECK(panel.helpLine().status().empty());
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Strength: What it does.");
+    CHECK(panel.back());
+    CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: Back ends the search's edit first, Clear shows the page whole, and a new query filters it again")
+{
+    const test_panel::PanelContext context;
+    auto panel = searchedMods();
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, searchField()));
+    typeText(panel, "hol");
+    CHECK(panel.back());
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Left holster: What it does.");
+
+    CHECK(pressActs(panel, searchClear()));
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Strength: What it does.");
+
+    search(panel, "str");
+    CHECK(panel.back());
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Strength: What it does.");
+    CHECK(pressActs(panel, searchClear()));
+    search(panel, "left");
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Left holster: What it does.");
+    CHECK(panel.selection() == selectionOf(0));
+}
+
+TEST_CASE("FullPanel: Back with the ray on the search field empties the query")
+{
+    const test_panel::PanelContext context;
+    auto panel = searchedMods();
+    drawFrames(panel, 2);
+
+    search(panel, "str");
+    point(panel, searchField());
+    CHECK(panel.back());
+    drawFrames(panel, 1);
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Strength: What it does.");
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Holster size: What it does.");
+    CHECK(panel.selection() == selectionOf(0));
+
+    // with no query it goes back as anywhere else
+    point(panel, searchField());
+    CHECK(panel.back());
+    CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: the page whole again has the focus ring on the last row the ray was on and its section opened")
+{
+    const test_panel::PanelContext context;
+    auto panel = searchedMods();
+    drawFrames(panel, 2);
+    const auto& advanced = std::get<model::Group>(panel.mods()[0].frontPage.items[3]);
+    REQUIRE(panel.isFolded(advanced));
+
+    // the section is open while searching, and its heading is a row before Hip
+    const ImVec2 hip(pageRow(0).x, pageRow(0).y + SECTION_HEADING_PITCH);
+    search(panel, "hip");
+    point(panel, hip);
+    REQUIRE(panel.helpLine().text() == "Hip: What it does.");
+    CHECK(panel.back());
+    drawFrames(panel, 1);
+    CHECK_FALSE(panel.isFolded(advanced));
+
+    // and so does Clear, with the ray on it
+    panel.setFolded(advanced, true);
+    CHECK(pressActs(panel, searchClear()));
+    search(panel, "hip");
+    point(panel, hip);
+    CHECK(pressActs(panel, searchClear()));
+    CHECK_FALSE(panel.isFolded(advanced));
 }

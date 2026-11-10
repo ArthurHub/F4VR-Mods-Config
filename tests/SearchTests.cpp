@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <string>
+#include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include "mcm/McmStore.h"
@@ -214,4 +216,27 @@ TEST_CASE("Search: a row a condition hides is not found with the store, and is w
     const auto found = model::searchMod(mod, SearchQuery("intens"), nullptr);
     REQUIRE(found);
     CHECK(found->pages[0].count == 1);
+}
+
+TEST_CASE("Search: the items it shows are its rows and the sections they are in, which a page has alone while searching")
+{
+    const auto mod = flashlight();
+    const auto& beam = mod.pages[0].items;
+    const auto& advanced = std::get<model::Group>(beam[2]).items;
+
+    // a row in a section, and the section
+    auto found = model::searchMod(mod, SearchQuery("fade"), nullptr);
+    REQUIRE(found);
+    CHECK(found->rows == std::unordered_set<const model::Item*>{ &beam[2], &advanced[1] });
+
+    // a section found by its heading has all its rows
+    found = model::searchMod(mod, SearchQuery("advanced"), nullptr);
+    REQUIRE(found);
+    CHECK(found->rows == std::unordered_set<const model::Item*>{ &beam[2], &advanced[0], &advanced[1] });
+
+    // a page found by its name has all its rows, and a text row is not one
+    found = model::searchMod(mod, SearchQuery("rows"), nullptr);
+    REQUIRE(found);
+    const auto& rows = mod.pages[3].items;
+    CHECK(found->rows == std::unordered_set<const model::Item*>{ &rows[0], &rows[1] });
 }

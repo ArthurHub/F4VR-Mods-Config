@@ -74,8 +74,10 @@ namespace mods_config::ui
     /**
      * Draws a row's plain or formatted label `space-3` inside the row's frame, with its marks after it, each
      * `space-2` after what is before it. The label shortens before a mark does, so the marks always show.
+     * With a query, where it matches a plain label is underlined, as the tree's names are while searching.
      */
-    void drawLabel(const ImVec2& pos, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const RowMarks& marks)
+    void drawLabel(const ImVec2& pos, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const RowMarks& marks,
+        const model::SearchQuery* query)
     {
         const float left = pos.x + theme::SPACE_3;
         float textRight = right;
@@ -89,6 +91,9 @@ namespace mods_config::ui
         float width = 0.0f;
         if (runs.empty()) {
             drawText(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+            if (query) {
+                drawUnderlines(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text, model::matchRanges(*query, text));
+            }
             width = text.empty() ? 0.0f : (std::min)(textWidth(text), textRight - left);
         } else {
             width = drawTextRuns(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, runs);

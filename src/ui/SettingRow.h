@@ -32,6 +32,9 @@ namespace mods_config::ui
         // printed as
         const ImageDrawer& imageDrawer;
         bool leftHanded = false;
+
+        // while searching, for a row the search shows: the query, whose match its name has underlined
+        const model::SearchQuery* query = nullptr;
     };
 
     // Hover help and whether an input acted while drawing and editing a setting row.

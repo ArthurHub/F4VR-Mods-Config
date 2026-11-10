@@ -1277,7 +1277,7 @@ hp_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:90
 write('HandPose', page('<!-- @dsCard group="Settings" height=1240 width=1720 subtitle="A hand pose: a bar a finger and the palm in the row; an editor of each finger&#39;s joints, shown on the player&#39;s own hand" -->', 'Hand pose', hp_body))
 print('ok hand pose')
 
-# ---------------- Search: the tree's header is the field; a query filters the tree and shows the results as a page ----------------
+# ---------------- Search: the tree's header is the field; a query filters the tree and the page that is shown ----------------
 SEARCH = '<svg class="mc-ico" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15 L20 20"/></svg>'
 
 def hit(text, q):
@@ -1315,38 +1315,30 @@ s_tree = ''.join([
     s_row('FRIK', Q, arrow='d'),
     s_row('Weapons', Q, 'page', 1),
     s_row('Immersive Flashlight VR', Q, arrow='d'),
-    s_row('Body stow', Q, 'page', 2, state='is-hover', mark=(40, 20)),
+    s_row('Body stow', Q, 'page', 2, state='is-selected'),
     s_row('Virtual Holsters', Q, count=4, arrow='r'),
 ])
-s_results = ''.join([
-    pagehelp(f'7 settings match “{Q}”. Change them here, or go to their page in the tree.'),
-    section('FRIK » Weapons'),
-    row(hit('Two-handed hold', Q), toggle(True)),
-    section('Immersive Flashlight VR » Body stow'),
-    row(hit('Holster the light on the hip', Q), toggle(False)),
+# the page that is shown has its rows that match alone, in their sections, open, with the match underlined
+s_page = ''.join([
+    section('On the body'),
+    row(hit('Holster the light on the hip', Q), toggle(False), state='is-hover', mark=(360, 24)),
     row(hit('Hip holster offset', Q), slider('6.0', 30)),
-    section('Virtual Holsters'),
-    row(hit('Enable holsters', Q), toggle(True)),
-    row(hit('Holster size', Q), slider('1.00', 50)),
-    row(hit('Left hip holster', Q), toggle(True)),
-    row(hit('Holster haptic', Q), combo('Tick')),
 ])
 fs_body = f'''<div class="mc-world mc-stack" style="gap:16px">
 <div class="mc-panel">
-{crumbs([R, ('Search', 'current')], alone=False)}
+{crumbs([R, ('Immersive Flashlight VR', 'mod'), ('Body stow<span class="note">(filtered)</span>', 'current')], alone=False)}
 <div class="mc-body">
 {nav_search(search_field('is-typing', Q, 7), s_tree)}
 <div class="mc-content">
-<div class="mc-scroll"><div class="rows">{s_results}</div><div class="mc-scrollbar"><i style="top:0;height:84%"></i></div></div>
+<div class="mc-scroll"><div class="rows">{s_page}</div></div>
 </div>
 </div>
-<div class="mc-footer">{helpline('Body stow', '2 settings of Immersive Flashlight VR match. Press it to go to the page.')}{btn('Discard', '', 'is-disabled')}{btn('Save', 'is-primary', 'is-disabled')}</div>
+<div class="mc-footer">{helpline('Holster the light on the hip', 'Stows the light on the hip, where it is out of the way.')}{btn('Discard', '', 'is-disabled')}{btn('Save', 'is-primary', 'is-disabled')}</div>
 </div>
-<div class="mc-keyboard t-body" style="width:1152px">SteamVR's keyboard, shown while the field is typed in: each key filters the results</div>
+<div class="mc-keyboard t-body" style="width:1152px">SteamVR's keyboard, shown while the field is typed in: each key filters the tree and the page</div>
 </div>'''
-write('FullPanelSearch', page('<!-- @dsCard group="Panels" height=900 width=1200 subtitle="Searching: the tree has the mods and pages that match, the content has the settings that match, each editable where it is" -->', 'Full panel, search', fs_body))
+write('FullPanelSearch', page('<!-- @dsCard group="Panels" height=900 width=1200 subtitle="Searching: the tree has the mods and pages that match, and the page that is shown its rows that match, each editable" -->', 'Full panel, search', fs_body))
 
-s_none = ''.join([pagehelp('Nothing matches “holz”. Search finds the names of mods, pages, sections and settings.')])
 sc_body = f'''<div class="mc-world"><div class="mc-sheet" style="display:grid;grid-template-columns:336px 336px 336px;gap:8px 24px;align-items:start;width:1104px">
 <span class="t-detail mc-muted">Idle: it says what it searches</span>
 <span class="t-detail mc-muted">Under the ray</span>
@@ -2216,6 +2208,10 @@ HELP_ROWS = [
     control('Recenter', 'Long press the thumbstick on the off hand to bring the menu in front of you. It also returns automatically if you move too far away.'),
     control('Navigate pages', 'The breadcrumbs in the title bar show your current location. Select any earlier page to jump back, or MODS CONFIG FO4 to return to the front page.'),
     control('Minimize', 'Select – in the title bar to hide the menu while inspecting changes in-game. Your current page and unsaved edits are preserved. Use Restore on your offhand wrist to bring it back and refresh its values, or Exit to close the menu (with a warning if you have unsaved changes).'),
+    section('Search'),
+    control('Search', 'Type in the field above the list of mods to find a setting by its name in every mod: the start of each word, in any order. The list shows the mods and pages that match, with how many.'),
+    control('Filtered page', 'A page you open while searching shows only its settings that match, with the match underlined, and (filtered) after its name in the title bar. Back shows the whole page.'),
+    control('Clear', 'Select the cross in the field, or Back while pointing at the field, to empty the search and show every mod again.'),
     section('Changes'),
     control('Save', 'Changes wait until you select Save, which writes them, or Discard, which drops them. An MCM mod applies a change at once instead: see MCM below. Each mod&#39;s changes are separate, and you&#39;re asked first when leaving a mod or closing the menu with unsaved changes.'),
     legend(DISCARD, 'Undo one change', 'A changed value turns amber. Select the undo arrow after it to undo just that change. Discard, in the footer, undoes all of them.'),
@@ -2251,8 +2247,8 @@ fhp_body = f'''<div class="mc-world mc-stack" style="gap:16px">
 </div>
 <div class="mc-footer">{helpline('Help', 'How the menu works, with the buttons your config has.')}{btn('Discard')}{btn('Save', 'is-primary')}</div>
 </div>
-<span class="t-detail mc-caption">The whole page, as it scrolls: Navigation, Changes, Marks and MCM, none folding. The bindings are said short, with no times</span>
+<span class="t-detail mc-caption">The whole page, as it scrolls: Navigation, Search, Changes, Marks and MCM, none folding. The bindings are said short, with no times</span>
 <div class="mc-sheet" style="width:772px">{''.join(HELP_ROWS)}</div>
 </div>'''
-write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=2150 width=1200 subtitle="The Help page over a page of a mod: Navigation with the buttons of the config, Changes with what Save and each mark of when a change takes effect mean, Marks, and MCM" -->', 'Full panel, Help page', fhp_body))
+write('FullPanelHelp', page('<!-- @dsCard group="Panels" height=2650 width=1200 subtitle="The Help page over a page of a mod: Navigation with the buttons of the config, Search, Changes with what Save and each mark of when a change takes effect mean, Marks, and MCM" -->', 'Full panel, Help page', fhp_body))
 print('ok help')

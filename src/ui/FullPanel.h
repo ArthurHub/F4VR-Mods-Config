@@ -192,6 +192,9 @@ namespace mods_config::ui
         bool leaveReport(bool toDeveloper);
         void updateStatus();
         void updateSearch();
+        bool isFiltered() const;
+        void showWhole();
+        void drawSearchText(const model::Page* page);
         void pageShown();
         bool pressButton(TitleButton button);
         void drawFooter(const ImVec2& pos);
@@ -257,6 +260,16 @@ namespace mods_config::ui
 
         // the MCM mods' rows have the texts they take from the game, which are read once as a search starts
         bool _searchTextsRead = false;
+
+        // the page that is shown is whole while searching, after Back, until another page is shown or the query
+        // changes
+        bool _pageWhole = false;
+
+        // the last item the ray was on while the page was filtered, which has the focus ring as the page is whole
+        const model::Item* _searchPointed = nullptr;
+
+        // the ray is on the search field or its Clear, as the tree was drawn last: Back there empties the query
+        bool _onSearchField = false;
 
         // the Developer tools as the settings have them, the front page's section of them, and what writes a change
         DeveloperView _developerView;

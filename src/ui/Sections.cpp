@@ -98,9 +98,11 @@ namespace mods_config::ui
      * row folds or opens it.
      * Folded, it says at the right what it hides: how many of its settings are invalid, and how many wait for
      * a Save, and the help it tells while the ray is on it has that after the section's own.
+     * With a query, where it matches the heading is underlined.
      * Returns whether the section is folded, after a press in this frame.
      */
-    bool Sections::drawHeading(const model::Group& group, model::Store* store, const ImVec2& pos, const float width, const SectionRow& row, std::string& help)
+    bool Sections::drawHeading(const model::Group& group, model::Store* store, const ImVec2& pos, const float width, const SectionRow& row, std::string& help,
+        const model::SearchQuery* query)
     {
         bool folded = isFolded(group);
         if (row.pressed) {
@@ -126,7 +128,8 @@ namespace mods_config::ui
         if (hidden.unsaved > 0) {
             counts.push_back({ .mark = CountMark::Pending, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
         }
-        drawFoldingHeading(model::resolveClientText(group.text, store), pos, width, folded, counts);
+        const auto text = model::resolveClientText(group.text, store);
+        drawFoldingHeading(text, pos, width, folded, counts, TextMark::None, query ? model::matchRanges(*query, text) : std::vector<model::TextRange>());
         return folded;
     }
 

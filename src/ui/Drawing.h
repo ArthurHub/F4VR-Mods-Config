@@ -152,8 +152,8 @@ namespace mods_config::ui
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
     int countTextLines(std::span<const TextPiece> pieces, float width);
     void drawTextPieces(std::span<const TextPiece> pieces, const ImVec2& pos, float width, int maxLines);
-    void sectionHeading(std::string_view text, float right);
-    void sphereHeading(std::string_view text, float right);
+    void sectionHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
+    void sphereHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
     void drawSectionLine(float left, float top, float bottom, float right);
     void drawOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
     void drawDashedOutline(const ImVec2& min, const ImVec2& max, ImU32 color);
@@ -179,7 +179,8 @@ namespace mods_config::ui
     float restartMarkWidth();
     void drawRestartMark(float left, float middle);
     float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);
-    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, std::span<const MarkedCount> counts, TextMark mark = TextMark::None);
+    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, std::span<const MarkedCount> counts, TextMark mark = TextMark::None,
+        std::span<const model::TextRange> found = {});
     void drawPendingMark(const ImVec2& center);
     float pendingMarkWidth(model::Applies applies);
     void drawAppliesMark(model::Applies applies, const ImVec2& center);

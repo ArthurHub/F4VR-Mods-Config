@@ -9,7 +9,7 @@ The menu stands in the world and never pauses the game, so you see and feel your
 
 ![The menu in the game, on its own mod's page](docs/assets/mods-config-front-page.jpg)
 
-It is in alpha: search, mod categories, editing lists and hand poses, and translations of mods that have no game plugin are still to come.
+It is in alpha: mod categories, editing lists and hand poses, and translations of mods that have no game plugin are still to come.
 
 ## Table of Contents
 
@@ -31,6 +31,7 @@ It is in alpha: search, mod categories, editing lists and hand poses, and transl
 - **Safe editing:** nothing is written until you Save. Discard drops your changes, each row undoes its own, and Reset sets the default. A value that isn't valid is marked red with the reason, and each setting says when it takes effect.
 - **Live preview:** a mod that supports it shows your change in the game as you make it, before you Save.
 - **Controls made for VR:** sliders, switches, dropdowns, colors with a picker, controller bindings with an editor, haptic patterns, positions adjusted in the world, and text typed on SteamVR's keyboard.
+- **Search:** type a name to find a setting in every mod. The list shows the mods and pages that match, and a page only its settings that match.
 - **Quick launch:** open a mod's own config, such as FRIK's, from the menu's front page.
 - **Comfort:** a curved panel you move, size and place as you like. It works with or without FRIK, and without MCM.
 

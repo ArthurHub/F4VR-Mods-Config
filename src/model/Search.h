@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include "ConfigDefinition.h"
@@ -76,6 +77,9 @@ namespace mods_config::model
 
         // how many rows of the mod the search shows, on every page
         std::size_t total = 0;
+
+        // the items the search shows, of every page: its rows, and the sections they are in
+        std::unordered_set<const Item*> rows;
     };
 
     std::vector<TextRange> matchRanges(const SearchQuery& query, std::string_view name);

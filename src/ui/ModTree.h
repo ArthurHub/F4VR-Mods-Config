@@ -27,6 +27,9 @@ namespace mods_config::ui
 
         // a press on the search field did something: it started the edit, or Clear emptied the query
         bool searchActed = false;
+
+        // the ray is on the search field or its Clear
+        bool searchPointed = false;
     };
 
     /**

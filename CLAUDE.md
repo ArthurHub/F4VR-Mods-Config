@@ -31,7 +31,7 @@ The entry point [src/ModsConfigFO4.cpp](src/ModsConfigFO4.cpp) is a `ModBase` su
 
 - `src/ModsConfigFO4.*`, `src/ConfigMenu.*`, `src/Config.*`, `src/AdjustInWorld.*`: the mod, the menu in the world and its vrui buttons, its own config, tuning a transform in the world.
 - `src/ui/`: the Full panel and its parts, drawn with ImGui. Nothing in it knows the game, so a test draws it.
-- `src/model/`: the settings model (`ConfigDefinition.h`, see [docs/design/model.md](docs/design/model.md)), the `Store` interface, and game-free helpers: conditions, choice options, files of a folder, the CommonFramework values.
+- `src/model/`: the settings model (`ConfigDefinition.h`, see [docs/design/model.md](docs/design/model.md)), the `Store` interface, and game-free helpers: conditions, choice options, files of a folder, the CommonFramework values, the search of the mods' names (`Search.h`).
 - `src/spec/`: config specs: the loader, the store, TOML and INI files, live copies.
 - `src/mcm/`: MCM mods: the loader, the store, ModSettings, keybinds, SWF images, FallUI translations.
 - `src/api/`: the native API. `ModsConfigFO4Api.h` is the client header, which mods copy as is and the framework carries a copy of: keep both copies identical. `FRIKApi.h` is FRIK's header: never edit it.

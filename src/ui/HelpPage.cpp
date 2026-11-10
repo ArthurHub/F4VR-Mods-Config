@@ -151,6 +151,16 @@ namespace
         PageLine{ .name = "No mark", .text = "The mod doesn't say. MCM mods never do.", .mark = LineMark::NoMark },
     };
 
+    const std::array SEARCH{
+        PageLine{ .name = "Search",
+            .text = "Type in the field above the list of mods to find a setting by its name in every mod: the start of each word, in any order. "
+                    "The list shows the mods and pages that match, with how many." },
+        PageLine{ .name = "Filtered page",
+            .text = "A page you open while searching shows only its settings that match, with the match underlined, and (filtered) after its name in "
+                    "the title bar. Back shows the whole page." },
+        PageLine{ .name = "Clear", .text = "Select the cross in the field, or Back while pointing at the field, to empty the search and show every mod again." },
+    };
+
     const std::array MARKS{
         PageLine{ .name = "Amber value", .text = "Changed, but not saved or kept yet.", .nameColor = theme::color::AMBER },
         PageLine{ .name = "Red value", .text = "Invalid. The help line explains why.", .mark = LineMark::Invalid, .nameColor = theme::color::RED },
@@ -170,9 +180,9 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Draws the Help page as the design system's FullPanelHelp has it: its introduction, then four sections that do not
-     * fold, Navigation with the controls of the player's config the menu gives, Changes, Marks, and what differs from
-     * MCM's menu. Each line is `Name: text`, its name green or in the color it tells, after its mark where it has one.
+     * Draws the Help page as the design system's FullPanelHelp has it: its introduction, then five sections that do not
+     * fold, Navigation with the controls of the player's config the menu gives, Search, Changes, Marks, and what differs
+     * from MCM's menu. Each line is `Name: text`, its name green or in the color it tells, after its mark where it has one.
      */
     void drawHelpPage(const std::vector<ControlHelp>& controls)
     {
@@ -185,6 +195,7 @@ namespace mods_config::ui
         for (const auto& control : controls) {
             drawLine({ .name = control.name, .text = control.text });
         }
+        drawSection("Search", SEARCH);
         drawSection("Changes", CHANGES);
         drawSection("Marks", MARKS);
         drawSection("MCM", MCM);

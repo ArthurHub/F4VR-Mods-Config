@@ -95,9 +95,10 @@ namespace mods_config::ui
      * unsaved changes for a Save, as the script reads the saved values, which its help says. A button with no action is disabled, and so is one whose action
      * the menu does not run or its store cannot run, which the reason says, and one whose enabledWhen does not hold.
      * After its text it has the invalid mark of a run that failed, the info mark of a result that is not read, or
-     * the warning mark of a warning that holds. Returns the row for the help line while the ray is on it.
+     * the warning mark of a warning that holds. With a query, where it matches its text is underlined.
+     * Returns the row for the help line while the ray is on it.
      */
-    std::optional<PointedRow> Buttons::draw(const model::Button& button, model::Store* store, bool& pressActed)
+    std::optional<PointedRow> Buttons::draw(const model::Button& button, model::Store* store, bool& pressActed, const model::SearchQuery* query)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
@@ -142,7 +143,7 @@ namespace mods_config::ui
             drawButtonRing(box, color);
         }
         drawButtonContent(button, box, color);
-        drawLabel(pos, box.Min.x - theme::SPACE_3, model::resolveClientText(button.text, store), model::resolveClientRuns(button.textRuns, store), { .mark = mark });
+        drawLabel(pos, box.Min.x - theme::SPACE_3, model::resolveClientText(button.text, store), model::resolveClientRuns(button.textRuns, store), { .mark = mark }, query);
         ImGui::EndDisabled();
         if (!row.pointed) {
             return std::nullopt;

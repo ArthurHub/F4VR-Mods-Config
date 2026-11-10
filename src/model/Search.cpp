@@ -227,10 +227,11 @@ namespace
 
         /**
          * Fills what the search shows of a mod: the rows of its front page and its pages, those that match or, with
-         * `all`, every one.
+         * `all`, every one, and the items of the rows and of the sections they are in.
          */
         void fill(ModFound& found, const Mod& mod, const Folded& name, const bool all)
         {
+            _rows = &found.rows;
             _context.push_back(name);
             found.frontCount = countItems(mod.frontPage.items, all);
             found.pages = searchPages(mod.pages, all);
@@ -285,14 +286,18 @@ namespace
         /**
          * How many rows of a list of items, and of the sections in it, the search shows: a setting, a button, a
          * hotkey and a control the menu does not have, that a condition does not hide and that match, or every one
-         * with `all`.
+         * with `all`. Each row it shows is kept, and so is a section with one.
          */
         std::size_t countItems(const std::vector<Item>& items, const bool all)
         {
             std::size_t count = 0;
             for (const auto& item : items) {
                 if (const auto* group = std::get_if<Group>(&item)) {
-                    count += countGroup(*group, all);
+                    const auto rows = countGroup(*group, all);
+                    if (rows > 0) {
+                        _rows->insert(&item);
+                    }
+                    count += rows;
                     continue;
                 }
                 const bool shown = std::visit(
@@ -304,7 +309,10 @@ namespace
                         }
                     },
                     item);
-                count += shown ? 1 : 0;
+                if (shown) {
+                    _rows->insert(&item);
+                    ++count;
+                }
             }
             return count;
         }
@@ -334,6 +342,9 @@ namespace
 
         // the names the item searched now is under: its mod's, its pages' and its sections'
         std::vector<Folded> _context;
+
+        // where the items the search shows are kept: those of the mod it fills
+        std::unordered_set<const Item*>* _rows = nullptr;
     };
 
     std::size_t totalOf(const std::vector<PageFound>& pages)
@@ -389,7 +400,7 @@ namespace mods_config::model
     /**
      * What a query finds in a mod: the rows that match, of its front page and of its pages, and the pages they are
      * on, or, with nothing under it that matches, every page of a mod whose name matches. A mod that is not
-     * available is found by its name alone. With no store, as for a mod that is not selected, a condition holds, so
+     * available is found by its name alone. The items it shows are kept, so its page shows those alone. With no store, as for a mod that is not selected, a condition holds, so
      * a row it would hide is found. None for a mod in which nothing matches.
      */
     std::optional<ModFound> searchMod(const Mod& mod, const SearchQuery& query, Store* store)

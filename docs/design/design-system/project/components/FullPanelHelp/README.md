@@ -6,7 +6,7 @@ The Help page: how the menu works, with the buttons the player's config has. Hel
 
 - The crumbs are `MODS CONFIG FO4 » Help`: the first is pressed to go to the menu's front page, `Help` is where the player is. The Help button is not drawn selected: the crumb says where the player is.
 - The tree keeps the selected mod and page: the Help page is shown in place of the page, and Back shows that page again. A row of the tree goes to its page, as from any page.
-- A text item first, in `green-muted`: "The menu doesn't pause the game, so you can see changes in the world as you make them. The controls below reflect your current button configuration." Then four sections, each under a [SectionHeader](../SectionHeader/README.md) that does not fold: the page scrolls.
+- A text item first, in `green-muted`: "The menu doesn't pause the game, so you can see changes in the world as you make them. The controls below reflect your current button configuration." Then five sections, each under a [SectionHeader](../SectionHeader/README.md) that does not fold: the page scrolls.
 - Each line as the help line has a row's help: `Name: ` in `green`, the text in `green-muted`, in `t-body`, wrapped in the page's width with as many lines as it needs, `space-2` in from the page's edges. A line about a mark has the mark first, as its row draws it, in a 20 px column, `space-2` before the name.
 - **Navigation**, with the shipped bindings:
   - Open / Close: "Long press both thumbsticks to open or close the menu. This also restores a minimized menu."
@@ -16,6 +16,7 @@ The Help page: how the menu works, with the buttons the player's config has. Hel
   - Recenter: "Long press the thumbstick on the off hand to bring the menu in front of you. It also returns automatically if you move too far away."
   - Navigate pages: "The breadcrumbs in the title bar show your current location. Select any earlier page to jump back, or MODS CONFIG FO4 to return to the front page."
   - Minimize: "Select – in the title bar to hide the menu while inspecting changes in-game. Your current page and unsaved edits are preserved. Use Restore on your offhand wrist to bring it back and refresh its values, or Exit to close the menu (with a warning if you have unsaved changes)."
+- **Search**: Search: "Type in the field above the list of mods to find a setting by its name in every mod: the start of each word, in any order. The list shows the mods and pages that match, with how many."; Filtered page: "A page you open while searching shows only its settings that match, with the match underlined, and (filtered) after its name in the title bar. Back shows the whole page."; Clear: "Select the cross in the field, or Back while pointing at the field, to empty the search and show every mod again."
 - **Changes**:
   - Save: "Changes wait until you select Save, which writes them, or Discard, which drops them. An MCM mod applies a change at once instead: see MCM below. Each mod's changes are separate, and you're asked first when leaving a mod or closing the menu with unsaved changes."
   - Undo one change, after the undo arrow in `amber`: "A changed value turns amber. Select the undo arrow after it to undo just that change. Discard, in the footer, undoes all of them."

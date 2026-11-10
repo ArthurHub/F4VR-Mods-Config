@@ -196,8 +196,9 @@ How the menu works, with the buttons the player's config has: not what every VR 
 
 - The crumbs are `MODS CONFIG FO4 » Help`. The tree keeps the selected mod and page, and so does the editing session: the Help page is shown in place of the page, which is not left.
 - Back goes back to the page it was shown over. A row of the tree or the first crumb goes there, as from any page.
-- It is a text, then four sections, each line as `Name: text`, as the help line has a row's help. None folds: the page scrolls.
+- It is a text, then five sections, each line as `Name: text`, as the help line has a row's help. None folds: the page scrolls.
   - **Navigation**: opening and closing the menu, which also shows a minimized one; that the hand that points works the menu and the game does not get its trigger and thumbstick; Back; moving the panel; Recenter, which also happens by itself; and Minimize, with Restore and Exit on the wrist.
+  - **Search**: the field above the list of mods, which finds a setting by the start of each word of its name, in any order; that a page opened while searching has only its settings that match, underlined and marked `(filtered)`, and Back shows it whole; and that Clear, or Back while pointing at the field, empties the search.
   - **Changes**: that nothing is written until Save, for each mod, and that leaving one with changes asks; the undo arrow of one change and Discard; Reset; a button that runs a script, which asks to save first; and each mark of when a change takes effect with what it means. `Live` is the one that needs saying: the mod applies the change as it is made, so it is seen in the game before Save, and Discard or leaving without saving puts the old value back in the game too.
   - **Marks**: the amber and the red value, the warning mark, a button's result, and a greyed row, which says why in the help line.
   - **MCM**: what differs from MCM's menu and from a config spec's mod, and that the `MCM` tag in the tree shows which mods these are: a change is made as it is made, as in MCM's menu, and Keep accepts it and Revert sets it back, so a script's button does not ask to save first; a mod's hotkeys are only shown, and a mod that cannot be shown is greyed, with why. It is always there.
@@ -256,7 +257,7 @@ Back resolves the most local temporary interaction first:
 1. Cancel an active drag or text edit.
 2. Close a popup, dropdown, keyboard, or confirmation.
 3. From the Help page, go back to the page it was shown over.
-4. While searching: from a page of a result, go to the results; from the results, empty the query and go back to where the player was.
+4. While searching: from a page that has only its rows that match, show it whole, with the focus ring on the last row the ray was on.
 5. From a page of a mod, go to the page it is under, or to the mod's front page.
 6. From a mod's front page, go to the menu's front page.
 7. From the menu's front page, close the menu.
@@ -323,9 +324,11 @@ The tree's header is a search field, which finds a setting by its name in every 
 - The most specific match wins: a section, a page or a mod whose name matches shows all that is under it only when nothing under it matches.
 - A setting of the selected mod that a condition hides is not found. Another mod's values are not read, so its conditions hold, and its hidden settings are found.
 - While the query has text, the tree has only the mods with a match, flat, each expanded to its pages with a match, with how many on the right: a mod's row has its front page's. A mod found by its name alone is closed, with how many in all, until it is selected. The match is underlined in each name.
-- The content is the results, with the crumbs `MODS CONFIG FO4 » Search`: the settings that match, under a heading for each mod and page. Each is the setting's own row, changed here as on its page, and Save saves it.
-- A press on a row of the tree goes to that page, with the query kept, and the rows that match are underlined there. Back goes back to the results.
-- Clear, in the field, empties the query and gives the tree back. Back from the results empties it too, and goes back to where the player was.
+- The page that is shown while the query has text has only its rows that match, in their sections, which are open, with the match underlined in each name. Each is the setting's own row, changed there as on the whole page, and Save saves it. A press on a page of the tree goes to it, with the query kept.
+- So the player knows the page is not whole, its crumb is `<page> (filtered)`, with `(filtered)` dimmer than the name, and with the ray on no row the help line says "Only the settings that match are shown. Back shows the whole page.", unless the mod's session has changes to tell.
+- Where the page that is shown has none of them, as the menu's front page, the content says how many settings match: "7 settings match “hol”. Pick a page in the tree to change them.", or that nothing matches. A page whose rows that match are all hidden by a condition says so, as the tree does not have it.
+- Back shows the page whole, with the query kept, and the focus ring on the last row the ray was on, in its sections opened. The rows that match keep their underline. The next Back goes back as with no query.
+- Clear, in the field, empties the query, gives the tree back, and shows the page whole the same way, and so does Back while the ray is on the field. A new query filters the page again.
 
 The look is the design system's [Search](design-system/project/components/Search/README.md).
 

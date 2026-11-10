@@ -33,5 +33,6 @@ namespace mods_config::ui
         std::optional<PointedRow> pointed;
     };
 
-    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, bool helpShown, bool highlightHelp, const model::Mod* report = nullptr);
+    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, bool helpShown, bool highlightHelp, const model::Mod* report = nullptr,
+        bool filtered = false);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 #include "BindingEditor.h"
@@ -14,6 +15,7 @@
 #include "TextInputs.h"
 #include "TransformEditor.h"
 #include "model/ConfigDefinition.h"
+#include "model/Search.h"
 #include "model/Store.h"
 #include "vrcf/VRControllersHaptic.h"
 
@@ -49,13 +51,25 @@ namespace mods_config::ui
      * section that folds folds or opens it. A setting is drawn as its control,
      * with the value its store has for it, and a button as its text and a Run button, which runs its action in
      * the store, after its confirmation where it has one, and a text input as its text in a box, which a press edits. A hotkey is its text and the key the store has for it, which is only shown. Any other row is its text and what it is, until the commit that draws its control.
+     * While searching it has only the rows the search shows, in their sections, which are open.
      */
+    /**
+     * What a page is drawn with while the query has text: the query, and the items the search shows, whose names
+     * have its match underlined, and whether the page has those items alone.
+     */
+    struct PageSearch
+    {
+        const model::SearchQuery* query = nullptr;
+        const std::unordered_set<const model::Item*>* found = nullptr;
+        bool filtered = false;
+    };
+
     class ModPage
     {
     public:
         void setImageDrawer(ImageDrawer drawer);
         void setLeftHanded(bool leftHanded);
-        PageDrawn draw(const model::Mod& mod, const model::Page& page, model::Store* store, float thumbstickSideValue);
+        PageDrawn draw(const model::Mod& mod, const model::Page& page, model::Store* store, float thumbstickSideValue, const PageSearch& search = {});
         bool cancelDrag();
         bool closeList();
         bool cancelEdit();

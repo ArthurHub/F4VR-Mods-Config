@@ -7,6 +7,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -47,9 +48,11 @@ namespace
      * A row at the cursor that has no control, as its text and what it is. It is laid out as a setting's row:
      * the text, and the type where the control ends, before the room of its Reset.
      * A row with a help is disabled, with the look of a row under the ray, and none of a press, which does nothing.
+     * With a query, where it matches the text is underlined.
      * Returns whether the ray is on the row.
      */
-    bool drawRow(const std::string_view text, const std::span<const model::TextRun> runs, const std::string_view type, const bool hasHelp)
+    bool drawRow(const std::string_view text, const std::span<const model::TextRun> runs, const std::string_view type, const bool hasHelp,
+        const model::SearchQuery* query = nullptr)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
@@ -64,7 +67,7 @@ namespace
         ImGui::BeginDisabled(hasHelp);
         const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
         ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
-        ui::drawLabel(pos, typeLeft - theme::SPACE_3, text, runs);
+        ui::drawLabel(pos, typeLeft - theme::SPACE_3, text, runs, {}, query);
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -93,7 +96,19 @@ namespace
         // the item that has the focus ring, and none, and whether the page is scrolled to it in this frame
         const model::Item* focused;
         bool& scrollToFocused;
+
+        // while the query has text: the query and the items the search shows, and whether the page has those alone
+        ui::PageSearch search = {};
     };
+
+    /**
+     * The query whose match an item's name has underlined: while the query has text, for an item the search shows.
+     * None for any other.
+     */
+    const model::SearchQuery* underlinedBy(const model::Item& item, const PageDrawing& page)
+    {
+        return page.search.found && page.search.found->contains(&item) ? page.search.query : nullptr;
+    }
 
     // the least width of the box of a hotkey's key, in the panel's pixels: not a token of the design system
     constexpr float KEY_MIN_WIDTH = 96.0f;
@@ -104,9 +119,10 @@ namespace
      * The key is only shown, so the whole row is always disabled, as a row that cannot be edited is. It has
      * the look of a row under the ray, for its help, but none of a press, which does nothing.
      * A hotkey that is not available looks the same, and the reason tells it from the others.
+     * With a query, where it matches the text is underlined.
      * Returns whether the ray is on the row.
      */
-    bool drawHotkey(const model::Hotkey& hotkey, const PageDrawing& page, std::string& reason)
+    bool drawHotkey(const model::Hotkey& hotkey, const PageDrawing& page, std::string& reason, const model::SearchQuery* query)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
@@ -124,7 +140,7 @@ namespace
         const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - boxWidth, pos.y, boxWidth);
 
         ImGui::BeginDisabled();
-        ui::drawLabel(pos, box.Min.x - theme::SPACE_3, hotkey.text, hotkey.textRuns);
+        ui::drawLabel(pos, box.Min.x - theme::SPACE_3, hotkey.text, hotkey.textRuns, {}, query);
         ui::drawFrame(box);
         ui::drawTextIn(box, name, theme::color::GREEN, 0.5f);
         ImGui::EndDisabled();
@@ -160,7 +176,8 @@ namespace
         const float width = ui::rowWidth();
         const auto row = ui::addRow(true);
         std::string help;
-        const bool folded = page.sections.drawHeading(group, page.store, pos, width, { .shown = row.shown, .pointed = row.pointed, .pressed = row.pressed }, help);
+        const bool folded =
+            page.sections.drawHeading(group, page.store, pos, width, { .shown = row.shown, .pointed = row.pointed, .pressed = row.pressed }, help, underlinedBy(item, page));
         page.drawn.pressActed = page.drawn.pressActed || row.pressed;
         if (row.pointed) {
             page.drawn.pointed = ui::PointedRow{ .text = model::resolveClientText(group.text, page.store), .help = std::move(help) };
@@ -180,7 +197,9 @@ namespace
      * not the outer section's. The depth is how many sections it is in.
      * A section that folds has a heading that a press folds or opens, and its rows are drawn while it is open.
      * One whose heading is not shown keeps its fold, and has no line. The heading of any other tells its help
-     * while the ray is on it. The item is the group's, which the ray on its heading tells.
+     * while the ray is on it. While searching a section that folds is open, with a heading that does not fold, so
+     * its rows that match are seen. While the query has text, where it matches the heading of a section the search
+     * shows is underlined. The item is the group's, which the ray on its heading tells.
      */
     void drawGroup(const model::Item& item, const PageDrawing& page, const int depth, const bool headingShown)
     {
@@ -191,15 +210,17 @@ namespace
         }
         const float headingLeft = ImGui::GetCursorScreenPos().x;
         bool folded = false;
-        if (group.collapsible) {
+        if (group.collapsible && !page.search.filtered) {
             folded = headingShown ? drawFoldingHeading(item, group, page) : page.sections.isFolded(group);
         } else if (headingShown) {
             const float right = ImGui::GetCursorScreenPos().x + ui::rowWidth();
             const auto heading = model::resolveClientText(group.text, page.store);
+            const auto* query = underlinedBy(item, page);
+            const auto found = query ? model::matchRanges(*query, heading) : std::vector<model::TextRange>();
             if (group.role == model::GroupRole::ActivationSphere) {
-                ui::sphereHeading(heading, right);
+                ui::sphereHeading(heading, right, found);
             } else {
-                ui::sectionHeading(heading, right);
+                ui::sectionHeading(heading, right, found);
             }
             if (ImGui::IsItemHovered()) {
                 page.drawn.pointedItem = &item;
@@ -256,7 +277,8 @@ namespace
                     .colorEditor = page.colorEditor,
                     .transformEditor = page.transformEditor,
                     .imageDrawer = page.imageDrawer,
-                    .leftHanded = page.leftHanded });
+                    .leftHanded = page.leftHanded,
+                    .query = underlinedBy(item, page) });
             if (drawn.pointed) {
                 page.drawn.pointed = std::move(drawn.pointed);
                 page.drawn.pointedItem = &item;
@@ -277,7 +299,7 @@ namespace
 
         void operator()(const model::Button& button) const
         {
-            if (auto pointed = page.buttons.draw(button, page.store, page.drawn.pressActed)) {
+            if (auto pointed = page.buttons.draw(button, page.store, page.drawn.pressActed, underlinedBy(item, page))) {
                 page.drawn.pointed = std::move(*pointed);
                 page.drawn.pointedItem = &item;
             }
@@ -286,7 +308,7 @@ namespace
         void operator()(const model::Hotkey& hotkey) const
         {
             std::string reason;
-            if (drawHotkey(hotkey, page, reason)) {
+            if (drawHotkey(hotkey, page, reason, underlinedBy(item, page))) {
                 page.drawn.pointed = ui::PointedRow{ .text = hotkey.text, .help = ui::readOnlyHelp(std::move(reason), hotkey.help) };
                 page.drawn.pointedItem = &item;
             }
@@ -320,7 +342,7 @@ namespace
         void operator()(const model::Placeholder& placeholder) const
         {
             const bool typed = !placeholder.type.empty();
-            if (drawRow(placeholder.text, placeholder.textRuns, typed ? std::string_view(placeholder.type) : "unknown", true)) {
+            if (drawRow(placeholder.text, placeholder.textRuns, typed ? std::string_view(placeholder.type) : "unknown", true, underlinedBy(item, page))) {
                 auto help = typed ? std::format("Not available: the menu has no {} control.", placeholder.type) : std::string("Not available: the row has no type of control.");
                 page.drawn.pointed = ui::PointedRow{ .text = placeholder.text, .help = std::move(help) };
                 page.drawn.pointedItem = &item;
@@ -347,12 +369,15 @@ namespace
      * Draws the items that are shown, each as its row, set in a level from the heading they are under. A row
      * under no heading is at the content's left, as a heading's row is, so its text lines up with a heading's.
      * An item that is not shown has no row and no room. A section that is not shown is
-     * without its heading alone: its items are shown by their own conditions.
-     * The depth is how many sections the items are in.
+     * without its heading alone: its items are shown by their own conditions. While the page has the items the search
+     * shows alone, any other has no row either. The depth is how many sections the items are in.
      */
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page, const int depth)
     {
         for (const auto& item : items) {
+            if (page.search.filtered && page.search.found && !page.search.found->contains(&item)) {
+                continue;
+            }
             // a row is an item of ImGui by the name of its kind: its place in the page tells it from the others
             ImGui::PushID(&item);
             // a section sets in its heading and its rows itself
@@ -397,9 +422,11 @@ namespace mods_config::ui
      * Returns the row the ray is on, for the help line: none in the gap between two rows, and none on a row
      * that has no text of its own, as a text row, an image and a spacer, or on the heading of a section with
      * no help that does not fold. While the list of a dropdown is open it is the row of that dropdown. And
-     * whether a press did something, or the thumbstick stepped a slider or a stepper.
+     * whether a press did something, or the thumbstick stepped a slider or a stepper. While the query has text the
+     * names of the items the search shows have its match underlined, and while the page is filtered it has their
+     * rows alone.
      */
-    PageDrawn ModPage::draw(const model::Mod& mod, const model::Page& page, model::Store* store, const float thumbstickSideValue)
+    PageDrawn ModPage::draw(const model::Mod& mod, const model::Page& page, model::Store* store, const float thumbstickSideValue, const PageSearch& search)
     {
         F4CF_PERF_FUNCTION();
         PageDrawn drawn;
@@ -422,7 +449,8 @@ namespace mods_config::ui
                 .buttons = _buttons,
                 .drawn = drawn,
                 .focused = _focused,
-                .scrollToFocused = _scrollToFocused });
+                .scrollToFocused = _scrollToFocused,
+                .search = search });
         _sliders.endFrame();
         _choices.endFrame();
         _bindingEditor.endFrame();

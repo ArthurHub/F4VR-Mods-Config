@@ -6,6 +6,7 @@
 
 #include "HelpLine.h"
 #include "model/ConfigDefinition.h"
+#include "model/Search.h"
 #include "model/Store.h"
 
 namespace mods_config::ui
@@ -20,7 +21,7 @@ namespace mods_config::ui
     class Buttons
     {
     public:
-        std::optional<PointedRow> draw(const model::Button& button, model::Store* store, bool& pressActed);
+        std::optional<PointedRow> draw(const model::Button& button, model::Store* store, bool& pressActed, const model::SearchQuery* query = nullptr);
         bool drawDialog(model::Store* store);
         bool cancelConfirmation();
         void reset();

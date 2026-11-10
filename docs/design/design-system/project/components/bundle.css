@@ -28,6 +28,7 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-crumb { height: var(--control-height); display: flex; align-items: center; padding: 0 var(--space-2); border-radius: var(--radius-frame); white-space: nowrap; color: var(--green-muted); }
 .mc-crumb.is-mod { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; line-height: var(--control-height); }
 .mc-crumb.is-current { color: var(--green); }
+.mc-crumb .note { margin-left: 0.25em; color: var(--disabled); }
 /* the first crumb is the menu's front page: selected while that page is open, as a tree row is */
 .mc-crumb.is-selected { background: var(--green); color: var(--on-green); }
 .mc-crumb.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); color: var(--green); }
