@@ -2,7 +2,8 @@
 # (external/F4VR-CommonFramework/docs/mod-tests.md). The mod's code under test needs the framework and CommonLibF4, and
 # not the game to run, so every test is in linked/: its executable compiles the sources it covers, with the mod's PCH,
 # and links the framework and CommonLibF4 as the mod does.
-# Test files sit in a folder per src/ area, and the folder starts each test's CTest name ("linked: model: ...").
+# Test files sit in a folder per src/ area, and the mod's name and the folder start each test's CTest name
+# ("ModsConfigFO4VR: linked: model: ..."), so they are a tree of their own beside the framework's, if those are built too.
 # A test file is named *Tests.cpp, and its name is unique across the folders.
 
 if(NOT TARGET F4VRCommon::test_main)
@@ -146,4 +147,4 @@ target_link_libraries(${PROJECT_NAME}_linked_tests PRIVATE F4VRCommon::framework
 # loaded on its first call, which no test makes. Release drops the unused import whole, hence the ignored warning.
 target_link_options(${PROJECT_NAME}_linked_tests PRIVATE /DELAYLOAD:openvr_api.dll /IGNORE:4199)
 
-f4cf_discover_tests_by_folder(${PROJECT_NAME}_linked_tests)
+f4cf_discover_tests_by_folder(${PROJECT_NAME}_linked_tests PREFIX ${PROJECT_NAME})
