@@ -1,59 +1,51 @@
 # Mod work plan
 
-The milestones that build the mod, in the order they are made, in three phases. The commits of each milestone are in the file of its phase. It follows the [Framework work plan](framework-plan.md), which made the panel the menu is drawn on.
+The milestones that build the mod, in order, in three phases; each phase's file has its commits. It follows the [Framework work plan](framework-plan.md), which made the panel.
 
-The menu supports everything MCM has before it gains anything new. It is built so that config specs and the native API are added later without redoing the UI: the UI draws one model, and MCM is the first source that fills it.
-
-A config spec is the new config format of [Declarative schema](schema.md): a mod's `spec.json` under `Data\ModsConfigFO4\Config`.
+The menu supports everything MCM has before it gains anything new, and is built so config specs and the native API come without redoing the UI: the UI draws one model, and MCM is its first source. A config spec is a mod's `spec.json` under `Data\ModsConfigFO4\Config` ([Declarative schema](schema.md)).
 
 ## How the work is done
 
-- As in the framework plan: one commit at a time, reviewed and tried in the game before it is committed.
-- Mod commits continue from M10 and framework commits from F21, and devbench's, in its own repository, start from D1. A commit that is added later takes the next free number of all three phases, and a commit keeps its number when it moves to another milestone.
-- Each milestone ends with its "done when", tried in the headset.
-- Code that does not need the running game (the model, the loaders, conditions, the INI file) is unit tested. The tests link the framework and CommonLibF4 with `REL::NO_GAME`, as the framework's linked tests do, so the code under test can use both. The first code commit adds the mod's tests.
-- A loader grows with the rows. The commit that draws a control also adds the parsing of that control and its tests.
-- A commit that settles an open question updates the design documents with it.
-- Framework commits are in the tables of the phases. What each needs is in [CommonFramework work required](framework-requirements.md).
-
-Status is one of `todo`, `in review`, or `done`.
+- One commit at a time, reviewed and tried in the game before it is committed. Each milestone ends with its "done when", tried in the headset.
+- Numbering: mod commits `M`, framework `F`, devbench (its own repository) `D`. A new commit takes the next free number across all phases; a commit keeps its number when it moves to another milestone.
+- Game-free code (model, loaders, conditions, INI file) is unit tested, linking the framework and CommonLibF4 with `REL::NO_GAME`.
+- The commit that draws a control also adds its parsing and tests.
+- A commit that settles an open question updates the design docs.
+- Status is `todo`, `in review` or `done`.
 
 ## The MCM test set
 
-The test set is the author's Mad God Overhaul mod list: 9 MCM mods with 687 controls.
+The author's Mad God Overhaul mod list: 9 MCM mods, 687 controls.
 
 What it has:
 
-- Controls: `switcher` 298, `section` 97, `slider` 53, `spacer` 46, `text` 42, `button` 32, `textinput` and `textinputFloat` 25, `hotkey` 23, `dropdown` 20, `stepper` 19, `image` 7.
+- Controls: `switcher` 298, `section` 97, `slider` 53, `spacer` 46, `text` 42, `button` 32, `textinput` / `textinputFloat` 25, `hotkey` 23, `dropdown` 20, `stepper` 19, `image` 7.
 - Value sources: `GlobalValue` 262, `ModSetting*` 151, `PropertyValueInt` 2.
-- Actions: `CallFunction` 65, in Sim Settlements 2 and Workshop Framework. Their parameters are strings, with a type prefix or `{value}`.
-- Conditions: `groupCondition` as a number 67 times, and as `AND` 4 times.
-- `help` text on 376 rows, and `html` text on 20.
-- `$` text in 3 mods. Auto Eat's 21 are in the game's translation files. The 132 of FallUI and FallUI Workbench are in FallUI's own files, and 31 of their texts have a token inside them, as `${Key}`.
-- Images: 7, all bitmaps stored in the mod's `lib.swf`.
-- Code in a `lib.swf`: FallUI's and FallUI Workbench's hold code that runs inside MCM's menu and translates their pages. The menu does not run a mod's code.
-- Text input is in FallUI, FallUI Workbench and XDI. Hotkeys are in Sim Settlements 2 and Workshop Framework.
-- A mod that does not act on a change at once: Unlimited Survival Mode's DLL reads MCM's settings file itself, and its page says in a text row that its settings need a restart. XDI's DLL reads MCM's files itself too.
-- MCM in VR is `mcm_vr.dll`. It keeps ModSettings in memory and writes `Data\MCM\Settings\<mod>.ini` on every set.
+- Actions: `CallFunction` 65 (Sim Settlements 2, Workshop Framework), string parameters with a type prefix or `{value}`.
+- Conditions: `groupCondition` as a number 67 times, as `AND` 4 times.
+- `help` on 376 rows, `html` on 20.
+- `$` text in 3 mods: Auto Eat's 21 in the game's translation files; FallUI's and FallUI Workbench's 132 in FallUI's own files, 31 with a nested `${Key}`.
+- 7 images, all bitmaps in the mod's `lib.swf`. FallUI's and FallUI Workbench's `lib.swf` also hold code that translates their pages inside MCM's menu; the menu runs no mod code.
+- Text input in FallUI, FallUI Workbench and XDI; hotkeys in Sim Settlements 2 and Workshop Framework.
+- Mods that read MCM's file themselves: Unlimited Survival Mode's DLL (its page says settings need a restart) and XDI's.
+- MCM VR (`mcm_vr.dll`) keeps ModSettings in memory and writes `Data\MCM\Settings\<mod>.ini` on every set.
 
-What it does not have, from DearModdingUI's inventory of MCM:
+What it lacks, from DearModdingUI's inventory of MCM:
 
-- Controls: `dropdownFiles`, `hiddenSwitcher`, `positioner` and `keyinput`, which MCM's menu has. The inventory also has `color`, `hidden`, `menu` and `enum`, and other names of controls (`switch`, `input`, `header`, `empty`, `keymap`): MCM's menu has none of them, and shows an empty line for a type it does not know.
-- Value sources: `PropertyValueBool`, `PropertyValueFloat`, `PropertyValueString`.
-- Actions: `CallGlobalFunction`, `CallExternalFunction`, and parameters that are plain numbers and booleans. The inventory also has `SendEvent` and `RunConsoleCommand`: MCM runs them for a hotkey alone, and its menu does nothing for them in a row.
-- Conditions: `OR`, and a condition inside a condition.
-- An image that is drawn as vectors or animated.
-- A mod whose `pluginRequirements` are not met, a config that does not parse, and a game language other than English.
-- A script that changes a value while its page is shown.
+- Controls `dropdownFiles`, `hiddenSwitcher`, `positioner`, `keyinput` (MCM has them); the inventory's `color`, `hidden`, `menu`, `enum`, `switch`, `input`, `header`, `empty`, `keymap` aren't MCM types (MCM shows an empty line).
+- `PropertyValueBool`, `PropertyValueFloat`, `PropertyValueString`.
+- `CallGlobalFunction`, `CallExternalFunction`, plain number and bool parameters; `SendEvent` and `RunConsoleCommand` run only for hotkeys.
+- `OR` conditions and nested conditions.
+- Vector or animated images.
+- Unmet `pluginRequirements`, an unparsable config, a non-English game.
+- A script changing a value while its page is shown.
 
-Two mods of the author's other mod lists have some of these, and are installed beside the test set for the trial of [M37](mod-plan-phase-1.md#3-mcm-complete): Global Stash and JOURNEY. The rest is in none of the 65 MCM configs of the author's four mod lists, so the unit tests and the MCM showcase cover it, and there is no test mod with a game plugin of its own. The inventory is DearModdingUI's and not MCM's own documentation, so the table of [M43](mod-plan-phase-1.md#3-mcm-complete) is checked against MCM's.
+Global Stash and JOURNEY, from the author's other lists, cover some of these and are installed beside the test set for [M37](mod-plan-phase-1.md#3-mcm-complete). The rest is in none of the 65 MCM configs of the author's four lists, so unit tests and the MCM showcase cover it; there is no test mod with its own game plugin. The inventory isn't MCM's documentation, so [M43](mod-plan-phase-1.md#3-mcm-complete)'s table is checked against MCM's.
 
 ## Milestones
 
-The milestones are in three phases, each in a file of its own with the commits of its milestones:
-
-- [Phase 1: MCM support](mod-plan-phase-1.md), milestones 1 to 4: the menu supports everything MCM has. It is done.
-- [Phase 2: First release](mod-plan-phase-2.md), milestones 5 to 10: config specs and the native API, up to the first release.
+- [Phase 1: MCM support](mod-plan-phase-1.md), milestones 1 to 4.
+- [Phase 2: First release](mod-plan-phase-2.md), milestones 5 to 10: config specs and the native API.
 - [Phase 3: After the first release](mod-plan-phase-3.md), milestones 11 to 16.
 
 | #   | Milestone                | Done when                                                                                                     | Status |
