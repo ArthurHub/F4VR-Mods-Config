@@ -1,17 +1,15 @@
 # MCM support
 
-Every feature of an MCM config and of MCM VR, and how the menu handles each. It is checked against MCM's own documentation, the [MCM wiki](https://github.com/Neanka/MCM_0.1_AS3/wiki), and against what MCM VR does: its menu, `Interface\MCM_VR.swf`, and its DLL, `mcm_vr.dll`. The menu reads an MCM config as MCM's menu reads it, and the [Mod work plan](mod-plan.md) says where it differs, in the milestone named in the last column.
-
-A feature is handled in one of four ways:
+Every feature of an MCM config and of MCM VR, and how the menu handles it, checked against the [MCM wiki](https://github.com/Neanka/MCM_0.1_AS3/wiki) and MCM VR's `Interface\MCM_VR.swf` and `mcm_vr.dll`. The last column is the [Mod work plan](mod-plan.md) milestone.
 
 - **As in MCM**: the menu does what MCM's menu does.
-- **Read-only**: it is shown, and changed in MCM alone.
-- **Not run**: its row is disabled, and the help line says why.
-- **Not read**: no mod of the author's four mod lists has it, so the menu does not read it, and the row says nothing of it.
+- **Read-only**: shown; changed in MCM alone.
+- **Not run**: the row is disabled; the help line says why.
+- **Not read**: no mod of the author's four mod lists has it, so it is ignored silently.
 
 ## MCM VR
 
-The menu shows MCM mods while `mcm_vr.dll` is loaded, and finds it by that name. It calls nothing of the DLL but MCM's Papyrus functions `MCM.SetModSetting*`, and reads the files MCM writes, so any build of MCM VR serves, and its version is not checked. Flat Fallout 4's MCM is not supported, as the game is not.
+MCM mods show while `mcm_vr.dll` is loaded (found by name). The menu calls only MCM's Papyrus `MCM.SetModSetting*` and reads MCM's files, so any MCM VR build works and its version isn't checked. Flat Fallout 4's MCM is not supported.
 
 ## The config
 
@@ -109,10 +107,12 @@ What a row has beside its type:
 
 ## What MCM's authors work around
 
-MCM has no field for some things a mod needs, and its authors get them from what it has. A config spec has each in a field of its own; see [A config spec and MCM](schema.md#a-config-spec-and-mcm):
+Workarounds for fields MCM lacks, and the config spec field that replaces each ([A config spec and MCM](schema.md#a-config-spec-and-mcm)):
 
-- A row that is shown while something holds: a `hiddenSwitcher` that a script sets. The author's lists have three uses of it. JOURNEY's script sets two from its mode dropdown, to show rows for one mode and for two of them: a config spec's condition on the dropdown's value. Global Stash and NAC X show a row while another mod is installed: a condition on a loaded plugin. Global Stash also shows a warning while it is busy, which follows the game as it plays: that waits for the native API.
-- The groups of conditions are numbers, shared by a whole page, and a group is on while a switcher is: a config spec's condition names the setting, and compares its value.
-- The type of a parameter is written in its text, as `{i}42`: a config spec's parameter is a JSON value with its type.
-- An action gets the value of its row from `{value}` in the text of a parameter: a config spec's setting has an action that Save runs as it writes the value, and its parameter `"{value}"` is that value, in the type of the setting.
-- A switcher with no storage shows rows that are hidden, as FallUI's "Unfold settings": a config spec's section folds.
+| MCM workaround | Config spec |
+| --- | --- |
+| A script-set `hiddenSwitcher` shows rows while something holds: JOURNEY's mode dropdown sets two; Global Stash and NAC X show a row while another mod is installed | A condition on the dropdown's value; a condition on a loaded plugin. Global Stash's busy warning, which follows the game, waits for the native API |
+| Condition groups are page-wide numbers, on while a switcher is | A condition names the setting and compares its value |
+| A parameter's type is in its text, `{i}42` | A typed JSON value |
+| `{value}` in a parameter's text gives the row's value | A setting's action, run by Save, with `"{value}"` in the setting's type |
+| A switcher with no storage unhides rows (FallUI's "Unfold settings") | A section that folds |

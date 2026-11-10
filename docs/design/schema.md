@@ -1,10 +1,6 @@
 # Declarative schema
 
-This document describes the current direction of the Mods Config FO4 VR declarative JSON format. It changes as the work needs it until version 1.0 of the mod, and from then it only grows, as [Schema version](#schema-version) has it.
-
-A config spec has what an MCM config has, by MCM's names wherever MCM has the same thing, and more. [A config spec and MCM](#a-config-spec-and-mcm) lists the differences.
-
-The examples use a made-up mod, My Mod, that keeps its settings where a CommonFramework mod does.
+The config spec JSON format. It changes as needed until mod 1.0, then only grows ([Schema version](#schema-version)). A config spec has everything an MCM config has, under MCM's names where MCM has the same thing, plus more ([A config spec and MCM](#a-config-spec-and-mcm)). Examples use a made-up CommonFramework-style mod, My Mod.
 
 ## Config spec location
 
@@ -12,9 +8,7 @@ The examples use a made-up mod, My Mod, that keeps its settings where a CommonFr
 Data/ModsConfigFO4/Config/<ConfigSpecFolder>/spec.json
 ```
 
-The folder name is organizational. The config spec's `modName` is its machine identity.
-
-One `spec.json` is supported per config spec: a config spec has no includes or fragments. A list of options that several choices use is written once, as a [shared list](#shared-lists).
+The folder name is organizational; `modName` is the identity. One `spec.json` per config spec, with no includes; reused option lists are [shared lists](#shared-lists).
 
 ## Config spec structure
 
@@ -42,126 +36,92 @@ One `spec.json` is supported per config spec: a config spec has no includes or f
 
 ### Required metadata
 
-- `minSchemaVersion`: the lowest version of the Mods Config FO4 VR config spec schema that can read the config spec, as `minMcmVersion` is in an MCM config. See [Schema version](#schema-version).
-- `modName`: the stable, unique identity of the config spec, named as in an MCM config.
-- `displayName`: the mod's name as the player sees it, a localized text.
-- `files`: named settings-file declarations when the config spec has file-backed settings.
-- `content`: the items of the mod's front page, which is shown when the mod is selected. It is not empty. It has no row of its own in the navigation tree: the mod's row is its row.
+| Field | |
+| --- | --- |
+| `minSchemaVersion` | Required. Lowest schema version that reads it, like MCM's `minMcmVersion` ([Schema version](#schema-version)) |
+| `modName` | Required. Stable unique identity, named as in MCM |
+| `displayName` | Required. The mod's name for the player, a localized text |
+| `files` | Required when settings are file-backed ([Files](#files)) |
+| `content` | Required, non-empty. The mod's front page; the mod's tree row is its row |
+| `pages` | Optional. The other pages, in order, each a tree row under the mod; they nest ([Pages](#pages)) |
+| `help` | Optional. Shown while the ray is on the mod's tree row |
+| `applies` | Optional ([When a change takes effect](#when-a-change-takes-effect)) |
+| `sharedLists`, `sharedPresetLists` | Optional ([Shared lists](#shared-lists), [CommonFramework values](#commonframework-values)) |
+| `specVersion` | Optional. For diagnostics, not the mod's release version |
 
-`pages` is optional: the mod's other pages, in order, each a row under the mod in the tree. A page can have pages of its own; see [Pages](#pages). This is the shape of an MCM config, whose root `content` is the mod's front page too.
+Author, website, Nexus ID and mod version may come later.
 
-`help` is optional: what the mod is, shown in the help line while the ray is on the mod's row in the tree.
-
-`applies` is optional: when a change to a setting takes effect in the running mod, `unknown`, `live`, `save` or `restart`. See [When a change takes effect](#when-a-change-takes-effect).
-
-`sharedLists` and `sharedPresetLists` are optional: lists that several choices, or several colors, name. See [Shared lists](#shared-lists) and [CommonFramework values](#commonframework-values).
-
-`specVersion` is useful for diagnostics and config spec evolution but does not represent the installed mod's marketing version.
-
-Author, website, Nexus ID, and mod version may be optional metadata later.
-
-Two config specs with the same `modName` are both [not available](ui-and-vr-interaction.md#notices). The host does not pick one of them.
-
-A mod that has a config spec and an MCM menu, matched by the config spec's `modName` and the MCM config's, is listed by its config spec alone: its MCM menu is left out, so a mod that ships a config spec beside its MCM menu is not listed twice.
-
-IDs are compared without regard to case, both a config spec's `modName` and the ids inside a config spec: two that differ only in case are duplicates. Papyrus scripts name them, and Papyrus does not preserve the case of a string.
-
-A native client is matched to its config spec by the config spec's `modName`. A CommonFramework mod's client registers under the mod's own name, so its config spec uses that name as its `modName`. The F4SE plugin name, when it differs, goes only in `f4sePluginRequirements`.
+- Two config specs with one `modName` are both [not available](ui-and-vr-interaction.md#notices); the host doesn't pick.
+- A mod with both a config spec and an MCM config of the same `modName` is listed by its config spec alone.
+- All ids, `modName` and those inside a config spec, compare case-insensitively (Papyrus doesn't keep string case); ids differing only in case are duplicates.
+- A native client matches by `modName`. A CommonFramework mod's client registers under the mod's framework name, so that is its `modName`; a differing F4SE plugin name goes only in `f4sePluginRequirements`.
 
 ### Schema version
 
-The schema has one version number, and it only grows. A config spec ships with its mod and is not updated when Mods Config FO4 VR is, so a new version adds fields and control types and never changes what an existing one means. A host reads every config spec written for an older version.
+One number that only grows. A config spec ships with its mod and isn't updated with the menu, so new versions only add fields and control types, never change meanings, and every older config spec still reads.
 
-- `minSchemaVersion` is the lowest version that has everything the config spec uses. It is required, a whole number from 1: a config spec without it is not loaded, and the error is reported.
-- On a host below that version the config spec's mod is [not available](ui-and-vr-interaction.md#notices), and the reason names the version it needs.
-- Until version 1.0 of the mod the schema stays at version 1 and changes as the work needs it. From 1.0 these rules hold.
-- A field or a control type added after version 1 is documented with the version that added it.
-- A field the host does not know is reported in diagnostics, and the rest of the config spec is read. A typo is noticed, and a config spec that uses a newer field than its `minSchemaVersion` says still works on an older host, without that field.
+- `minSchemaVersion` is required, a whole number from 1. Without it the config spec isn't loaded (reported).
+- On an older host the mod is [not available](ui-and-vr-interaction.md#notices), naming the version needed.
+- Before mod 1.0 the schema stays at 1 and changes freely; the rules hold from 1.0. Later additions are documented with their version.
+- An unknown field is a diagnostic and the rest is read, so typos are caught and a newer optional field degrades on an older host.
 
 ### Category
 
-`category` is optional: the name of the group the mod is listed under when the mod list is long. See [Mod categories](ui-and-vr-interaction.md#mod-categories).
+`category` (optional) groups the mod in a long list ([Mod categories](ui-and-vr-interaction.md#mod-categories)).
 
-- It is a plain name in English, never a `$` token. Mods are grouped by the name itself, compared without regard to case, and two mods that use different tokens would be in two groups.
-- Mods Config FO4 VR ships a list of names, and an author uses one of them where it fits: `Gameplay`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `VR`, `Utilities`. The menu shows these in the game's language where it has the translation.
-- Any other name is accepted.
-- One category can be spelled in several ways, as case is not compared. A shipped name is shown as the list spells it. Any other name is shown as the player typed it, or else as the first mod in the list writes it.
-- An MCM config can have the same field, at its root.
+- A plain English name, never a `$` token: grouping is by the name, case-insensitive.
+- Shipped names, translated where the game has them: `Gameplay`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `VR`, `Utilities`. Any other name is accepted.
+- A shipped name shows as the list spells it; any other as the player typed it, else as the first mod writes it.
+- An MCM config may have the same root field.
 
-An MCM mod that is already published names no category. Mods Config FO4 VR ships a table that gives one to the mods it knows, in the file that also has the list of names:
-
-```text
-Data/ModsConfigFO4/Categories.json
-```
+Published MCM mods get categories from a shipped table, `Data/ModsConfigFO4/Categories.json`, which also holds the name list:
 
 ```json
 {
   "categories": ["Gameplay", "Combat", "Interface", "Settlements"],
-  "mods": {
-    "SS2": "Settlements",
-    "FallUI": "Interface"
-  }
+  "mods": { "SS2": "Settlements", "FallUI": "Interface" }
 }
 ```
 
-`mods` names a mod by its `modName`. The mod's own `category` comes before the table's, and the player's choice before both.
+Precedence: the player's choice, then the mod's own `category`, then the table (by `modName`).
 
 ### Requirements
 
-Requirements keep a menu from being opened while the mod that owns it is not loaded. With a missing requirement the config spec's mod is [not available](ui-and-vr-interaction.md#notices): its row in the tree is disabled, and the reason names what is missing.
+With a missing requirement the mod is [not available](ui-and-vr-interaction.md#notices): its tree row is disabled and names what's missing.
 
-- `pluginRequirements` lists game plugin files (`.esp`, `.esm`, `.esl`) by file name, as in an MCM config.
-- `f4sePluginRequirements` lists F4SE plugins by the name each registers with F4SE, not by DLL file name. The two can differ: FRIK's DLL is `FRIK.dll` and its F4SE plugin name is `F4VRBody`. The host sends the native save notification to these names.
+- `pluginRequirements`: game plugins (`.esp`/`.esm`/`.esl`) by file name, as in MCM.
+- `f4sePluginRequirements`: F4SE plugins by the name they register, not the DLL name (FRIK's `FRIK.dll` registers as `F4VRBody`). The native save notification goes to these.
 
-A script-only mod lists its game plugin and names no F4SE plugin.
-
-A part of a config spec that needs another mod is shown or enabled by a condition on a loaded plugin; see [Conditions](#conditions).
+A script-only mod lists its plugin and no F4SE plugin. A part that needs another mod uses a plugin [condition](#conditions).
 
 ## Files
-
-Config specs may bind settings to multiple real files:
 
 ```json
 {
   "files": {
-    "main": {
-      "format": "ini",
-      "root": "myGames",
-      "path": "Mods_Config/MyMod/MyMod.ini"
-    },
-    "calibration": {
-      "format": "toml",
-      "root": "myGames",
-      "path": "Mods_Config/MyMod/calibration.toml"
-    },
-    "advanced": {
-      "format": "toml",
-      "root": "data",
-      "path": "F4SE/Plugins/MyMod/advanced.toml"
-    }
+    "main": { "format": "ini", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.ini" },
+    "calibration": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/calibration.toml" },
+    "advanced": { "format": "toml", "root": "data", "path": "F4SE/Plugins/MyMod/advanced.toml" }
   }
 }
 ```
 
-Rules:
+- Paths are always explicit.
+- `format` is `ini` or `toml`; the extension must match.
+- `root` is `data` (the game's `Data`) or `myGames` (`Documents/My Games/Fallout4VR`, located through Windows like CommonFramework, so a redirected Documents folder is followed). The game's own INIs (`Fallout4Custom.ini`) are valid, with `applies` `restart`.
+- Paths are checked as written: absolute paths and `..` are rejected; links aren't resolved.
+- A missing file is created on the first Save that changes one of its settings; a config spec can't forbid it.
+- `pathFromClientState` (optional) names a [client state](architecture.md#a-clients-state) whose text is the file's absolute path, for a mod that picks its file at runtime. Asked on selection and on reading values again. Used while it answers a path under `Data` or `My Games\Fallout4VR` with the right extension; otherwise (no client, cut off, no answer, a path elsewhere, logged) `root` + `path` is used. A CommonFramework client answers `configFile` with the file it loaded ([adapter](architecture.md#commonframework-adapter)). FRIK loads `FRIK_FOLVR.toml` under Fallout London VR unless `bIgnoreFalloutLondonVR` is on, so:
 
-- A target path is always explicit; there is no inferred settings file.
-- `format` is `ini` or `toml`, and the file's extension must match it.
-- `root` initially supports `data`, the game's `Data` directory, and `myGames`, which is `Documents/My Games/Fallout4VR`. The Documents folder is located through Windows, as CommonFramework does, so a redirected Documents folder is followed. The game's own INI files under `myGames`, as `Fallout4Custom.ini`, are valid targets: the game reads them as it starts, so their settings are `applies` `restart`.
-- A path is checked as written: absolute paths and `..` segments are rejected. Links are not resolved.
-- The file does not have to exist. The host creates it on the first Save that changes one of its settings, and a config spec cannot forbid it.
-- `pathFromClientState` is optional: the name of a [state](architecture.md#a-clients-state) of the mod's native client whose text is the file's absolute path, for a mod that loads its file from another path at runtime. The host asks it as the mod is selected and as its values are read again, and reads, previews and saves that file while the client answers it with a path under `Data` or `Documents/My Games/Fallout4VR`. With no client, a client that is cut off or does not answer it, or a path elsewhere, which the log names, it uses the declared `root` and `path`. The file keeps its `format`, and its extension must match it too. A CommonFramework mod's client answers `configFile` with the path of the config file it loaded; see [CommonFramework adapter](architecture.md#commonframework-adapter).
+  ```json
+  "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/FRIK/FRIK.toml", "pathFromClientState": "configFile" }
+  ```
 
-```json
-"main": { "format": "toml", "root": "myGames", "path": "Mods_Config/FRIK/FRIK.toml", "pathFromClientState": "configFile" }
-```
-
-FRIK loads `FRIK_FOLVR.toml` in place of `FRIK.toml` with Fallout London VR, unless its `bIgnoreFalloutLondonVR` is on, so its file names that state, and the menu edits the file FRIK loaded, whatever chose it.
-- A config spec may contain only informational content and buttons, or keep its settings in globals and script properties alone, and therefore need no file declaration.
+- A config spec with only text and buttons, or only globals and properties, needs no files.
 
 ## Pages
 
-A page is a row in the navigation tree, under the mod or under another page. It has a `pageDisplayName`, its own `content`, and can have a `help` and `pages` of its own, so the tree has as many levels as the config spec gives it:
+A page is a tree row under the mod or another page, so the tree has as many levels as the config spec gives.
 
 ```json
 {
@@ -170,33 +130,29 @@ A page is a row in the navigation tree, under the mod or under another page. It 
       "pageDisplayName": "Body",
       "help": "Calibration, and where the body's parts are.",
       "content": [],
-      "pages": [
-        { "pageDisplayName": "Hands", "content": [] }
-      ]
+      "pages": [{ "pageDisplayName": "Hands", "content": [] }]
     }
   ]
 }
 ```
 
-- A page's `content` is required and is not empty. A page with pages under it has rows of its own too.
-- A page's `help` is shown in the help line while the ray is on its row in the tree.
-- A page can have an `id`, unique among the config spec's pages. The mod's native client is told it as the page is shown and left, to show in the world what the page sets; see [The client's events](architecture.md#the-clients-events). A page with no `id` sends none.
-- A page's pages are rows under it in the tree, shown while it or one of them is selected, as a mod's pages are shown while the mod is selected. The breadcrumbs name every level, as `MODS CONFIG FO4 » My Mod » Body » Hands`. See [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior).
-- A page can have `visibleWhen` and `enabledWhen`, using the same [conditions](#conditions) as rows. `visibleWhen` hides its navigation row and its children. `enabledWhen` leaves the row visible but disabled, with an explanation in the help line, and prevents opening it or its children.
-- What a page has goes down to the pages under it: its `defaultFile`, its `applies`, its `visibleWhen` and its `enabledWhen`. Page conditions also cover its content, combined with each row's own conditions.
-- If the selected page becomes hidden or disabled, the menu returns to the nearest visible, enabled parent, or the mod's front page. Unsaved changes stay pending. Direct page requests follow the same rule, including requests from a native client.
-- An MCM config has one level of pages.
+- `content` is required and non-empty, also on a page with sub-pages.
+- `help` shows while the ray is on its tree row.
+- `id` (optional, unique among pages) is told to the client as the page is shown and left ([The client's events](architecture.md#the-clients-events)).
+- Sub-pages show in the tree while the page or one of them is selected; breadcrumbs name every level (`MODS CONFIG FO4 » My Mod » Body » Hands`, [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior)).
+- `visibleWhen` hides the row and its children; `enabledWhen` disables it (with an explanation in the help line) and blocks opening it or its children. Page conditions also join every row's own.
+- `defaultFile`, `applies`, `visibleWhen` and `enabledWhen` are inherited by sub-pages.
+- A selected page that becomes hidden or disabled goes to its nearest visible, enabled ancestor, or the front page; pending changes stay. Direct page requests (including a client's) follow the same rule.
+- MCM has one level of pages.
 
 ## Layout and file defaults
 
-Pages do not belong to files. A page may edit multiple files, and one file may provide settings to several pages.
+Pages don't belong to files: a page may edit several files and a file may span pages. A setting's file is the first of:
 
-Repetitive file references are avoided through inherited `defaultFile` values. A setting takes the first it has:
-
-1. Explicit `storage.file`
-2. The `defaultFile` of the nearest section it is in
-3. The `defaultFile` of the nearest page it is on: its own page, then the pages above it
-4. Config spec-level `defaultFile`
+1. `storage.file`
+2. The nearest enclosing section's `defaultFile`
+3. The nearest page's `defaultFile`, then its ancestors'
+4. The config spec's `defaultFile`
 
 ```json
 {
@@ -204,9 +160,7 @@ Repetitive file references are avoided through inherited `defaultFile` values. A
   "pages": [
     {
       "pageDisplayName": "Body",
-      "content": [
-        { "type": "section", "text": "Calibration", "defaultFile": "calibration", "content": [] }
-      ]
+      "content": [{ "type": "section", "text": "Calibration", "defaultFile": "calibration", "content": [] }]
     }
   ]
 }
@@ -214,26 +168,18 @@ Repetitive file references are avoided through inherited `defaultFile` values. A
 
 ## When a change takes effect
 
-Save writes a change, and the mod acts on it in its own way. Some mods read their file again after a Save, some values are read once, when the game starts, and a mod that reads a value every frame can still keep a copy of it. Only the mod's author knows which, so the config spec can say it, with `applies`:
+Only the author knows when the mod acts on a saved change, so the config spec says it with `applies`:
 
-| Value     | The change takes effect     | What the host does                                                                    |
-| --------- | --------------------------- | ------------------------------------------------------------------------------------- |
-| `unknown` | Not known to the menu       | No preview. The default                                                               |
-| `live`    | As it is made: the mod handles the change it is told of | Sends the pending value to the mod's native client, as a preview, or writes a global or a property into the game |
-| `save`    | After Save                  | No preview                                                                            |
-| `restart` | After the game is restarted | No preview. A Save that wrote it says that a restart is needed                        |
+| Value | Takes effect | The host |
+| --- | --- | --- |
+| `unknown` | Not known (default) | No preview |
+| `live` | As made: the mod handles the change it's told | Previews to the client, or writes a global/property into the game |
+| `save` | After Save | No preview |
+| `restart` | After a game restart | No preview; a Save that wrote it says a restart is needed |
 
-The help line shows the `applies` of the row the ray is on while its change waits for Save, but for `unknown`, which has no mark, as most settings have it. The Help page says what each value means. `unknown` and `save` differ only there: the host does the same for both.
+While a change is pending, the help line shows its `applies` mark (none for `unknown`); the Help page explains each. `unknown` and `save` differ only in that display.
 
-`applies` is optional at every level, and a setting takes the nearest one:
-
-1. The setting's own `applies`
-2. The `applies` of the nearest section it is in
-3. The `applies` of the nearest page it is on: its own page, then the pages above it
-4. Config spec-level `applies`
-5. `unknown`
-
-`unknown` can be written too, for a page, a section or a setting under one that says more.
+A setting takes the first of: its own, the nearest section's, the nearest page's then its ancestors', the config spec's, else `unknown` (front page rows skip the page step). `unknown` can be written to override a level above.
 
 ```json
 {
@@ -241,59 +187,41 @@ The help line shows the `applies` of the row the ray is on while its change wait
   "pages": [
     {
       "pageDisplayName": "Advanced",
-      "content": [
-        { "type": "section", "text": "Game hooks", "applies": "restart", "content": [] }
-      ]
+      "content": [{ "type": "section", "text": "Game hooks", "applies": "restart", "content": [] }]
     }
   ]
 }
 ```
 
-A row of the mod's front page has no page above it, so it goes from its sections to the config spec.
+Choosing:
 
-Which value a mod uses:
+- CommonFramework mod: `live` (the client previews by reloading config values); mark settings read only once `restart`.
+- Rereads its file after Save (watcher, save notification, script save event): `save`.
+- Reads its file only at startup: `restart`.
+- A global or property the mod reads as it plays (as game conditions read a global): `live`; the host previews it.
+- Unsure: leave `unknown`.
 
-- A CommonFramework mod is `live`. The framework's client previews a key by reloading the mod's config values, so a setting that the mod reads only once is marked `restart`.
-- A mod that reads its file again after a Save is `save`. It does so through a file watcher, the save notification, or a script's save event.
-- A mod that reads its file only when the game starts is `restart`.
-- A setting kept in a global or a script property is `live` when the mod reads it as it plays, as the game's conditions read a global. The host previews it itself.
-- A setting the author cannot say of stays `unknown`.
-
-A `live` setting kept in a file, of a mod with no native client, is not previewed, as a preview has nowhere to go. It is still shown as `live`: the mod can act on the change in its own way.
-
-The host does not check what a config spec says. A setting that is `live` in a mod that ignores the change looks broken to the player.
+A `live` file setting of a mod without a client isn't previewed (nowhere to send it) but still shows `live`. The host doesn't verify `applies`: a `live` setting the mod ignores looks broken.
 
 ## Ordering
 
-JSON arrays define display order:
-
-- `pages` defines page order.
-- `content` defines section/control order.
-- `options` defines choice order.
-
-JSON object property order is never meaningful. The `files` map is unordered.
-
-An explicit numeric `order` is not used for ordinary declarative content. Placement of future dynamic or merged contributions can be designed separately.
+Arrays order the display: `pages`, `content`, `options`. Object key order never matters (`files` is unordered). There is no numeric `order`; placing future merged contributions is a separate design.
 
 ## Content items
 
-Every entry in a `content` array has a `type`, which says what the row is. The names are MCM's wherever MCM has the same row:
+Every `content` entry has a `type` (MCM's names where MCM has the row):
 
-- `switcher`, `slider`, `stepper`, `dropdown`, `textinput`: a setting, which is an editable value bound to a file, a global or a property of a script. The type is its control.
-- `cf.inputBinding`: a setting of a CommonFramework controller binding; see [CommonFramework values](#commonframework-values).
-- `cf.haptic`: a setting of a CommonFramework haptic pattern; see [CommonFramework values](#commonframework-values).
-- `cf.color`: a setting of a CommonFramework color; see [CommonFramework values](#commonframework-values).
-- `cf.transform`: a setting of a CommonFramework transform; see [CommonFramework values](#commonframework-values).
-- `cf.activationSphere`: a section of a CommonFramework mod's TOML that is an activation sphere, drawn as one group of its keys; see [CommonFramework values](#commonframework-values).
-- `section`: a heading with its own rows; see [Sections](#sections).
-- `button`: runs an action.
-- `text`, `spacer`, `image`: rows that hold no value; see [Text, spacers and images](#text-spacers-and-images).
+- `switcher`, `slider`, `stepper`, `dropdown`, `textinput`: a setting bound to a file, global, script property or client state; the type is its control.
+- `cf.inputBinding`, `cf.haptic`, `cf.color`, `cf.transform`: CommonFramework settings; `cf.activationSphere`: a TOML section drawn as one group ([CommonFramework values](#commonframework-values)).
+- `section`: a heading with its own rows ([Sections](#sections)).
+- `button`: runs an action ([Buttons](#buttons)).
+- `text`, `spacer`, `image`: no value ([Text, spacers and images](#text-spacers-and-images)).
 
-A section holds its rows in its own `content`, and a page can have pages, so both nest.
+Sections and pages both nest.
 
 ## Settings
 
-Value type, UI control, storage, and application behavior remain separate concepts. `type` is the control, as in an MCM config, and `valueType` is the type of the stored value. When a change takes effect is the setting's `applies`, its own or the nearest one above it; see [When a change takes effect](#when-a-change-takes-effect).
+`type` is the control and `valueType` the stored type (bool, int, float, string); storage and `applies` are separate concepts.
 
 ```json
 {
@@ -303,45 +231,30 @@ Value type, UI control, storage, and application behavior remain separate concep
   "text": "Player Height",
   "help": "Adjusts the estimated player height.",
   "default": 1.0,
-  "valueOptions": {
-    "min": 0.5,
-    "max": 1.5,
-    "step": 0.01
-  },
-  "display": {
-    "decimals": 2,
-    "unit": "m"
-  },
-  "storage": {
-    "section": "MyMod",
-    "key": "fPlayerHeight"
-  }
+  "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 },
+  "display": { "decimals": 2, "unit": "m" },
+  "storage": { "section": "MyMod", "key": "fPlayerHeight" }
 }
 ```
 
-`text` is what the row says, and `help` is its help text, shown in the help line while the row is pointed at. Both are the names MCM uses, and every item that is a row has them: a setting, a section, a button, and an option of a choice.
-
-Settings and button labels can set `"html": true` to style their `text` with the tags described in [Text, spacers and images](#text-spacers-and-images). Labels stay on one line: line and paragraph breaks become spaces, paragraph alignment is ignored, and font sizes are capped at the row's normal text size. Search and the help line use the label without tags. Without `html`, or when it is not the boolean `true`, labels remain plain text. This flag styles the row's label; `help`, `buttonText`, section headings and choice options remain plain text.
-
-Every writable setting has an inline required `default`. Defaults use the same type and constraint validation as player values. The default is the value Reset applies, so it has to match the default the mod itself uses.
-
-A `textinput` whose `valueType` is `int` or `float` takes a number, as MCM's `textinputInt` and `textinputFloat` do. Its limits are the `min` and `max` of its `valueOptions`.
+- Every row (setting, section, button, choice option) has `text` (what it says) and optional `help` (help line), MCM's names.
+- `"html": true` styles a setting's or button's `text` with the [text tags](#text-spacers-and-images), kept to one line: breaks become spaces, alignment is ignored, font sizes cap at the row size. Search and the help line use the untagged label. Only the boolean `true` enables it. `help`, `buttonText`, section headings and options stay plain.
+- Every writable setting has a required inline `default`, validated like a player value. It is what Reset sets, so it must match the mod's own default.
+- A `textinput` with `valueType` `int`/`float` takes a number (MCM's `textinputInt`/`textinputFloat`), limited by `min`/`max`.
 
 ### CommonFramework values
 
-A setting whose `type` starts with `cf.` edits a value in the form CommonFramework fixes for its TOML config; see [CommonFramework-specific controls](controls.md#commonframework-specific-controls). The prefix says the value is the framework's, so an author knows its words and its checks are the framework's too.
+A `cf.` type edits a value in CommonFramework's TOML form ([CommonFramework-specific controls](controls.md#commonframework-specific-controls)); its words and checks are the framework's. `cf.inputBinding`, `cf.color` and `cf.transform` share these rules:
 
-`cf.inputBinding` is a controller binding, the inline table of a `k` key. It is kept in a value of a TOML file, as the framework keeps it, or of an INI file as its line (see [In an INI file](#in-an-ini-file)), and its `valueType` is `string`, the TOML text of the table or the line. Its `default` is the table as a JSON object, which the framework reads as it reads its config. `"valueOptions": { "suppress": true }` offers Suppress from the game in its editor, for a binding whose consumer applies it, as an activation sphere's. `hands`, `types` and `buttons` in its `valueOptions` are lists of the framework's words of each, which the binding takes alone, as a menu's Back that is no hold and no press of the trigger: its editor offers those, and a binding of another is invalid, with what it takes. The button of a push is its axis's, and a binding that is off is always taken. A list left out takes every one, and a word that is none of its part's is left out, with a warning. A `default` the setting does not take is an error, and it then has no Reset.
+- Kept in a TOML value as the framework keeps it, or an INI line ([In an INI file](#in-an-ini-file)). `valueType` is `string`: the table's TOML text or the line.
+- `default` is the table as a JSON object, read as the framework reads its config.
+- A value the framework can't read is invalid with its reason. An invalid `default` is an error, and the setting has no Reset.
+- A changed table is written with the keys it had plus the key of the changed part.
 
-```json
-{
-  "type": "cf.inputBinding",
-  "text": "Grab",
-  "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
-  "valueOptions": { "suppress": true },
-  "storage": { "path": ["HeadActivation", "kPrimaryBinding"] }
-}
-```
+**`cf.inputBinding`**: a `k` key's binding table.
+
+- `"valueOptions": { "suppress": true }` offers Suppress from the game, for a binding whose consumer applies it (an activation sphere's).
+- `hands`, `types`, `buttons` restrict it to those framework words (Back: no hold, no trigger). The editor offers only those, and others are invalid with what it takes. A push's button is its axis's; an off binding is always taken. An omitted list takes all; an unknown word is dropped with a warning. A `default` it doesn't take is an error.
 
 ```json
 {
@@ -353,29 +266,21 @@ A setting whose `type` starts with `cf.` edits a value in the form CommonFramewo
 }
 ```
 
-`cf.haptic` is a haptic pattern, the text of an `s` key: the name of a pattern of the framework's library, or `"none"`. Its `valueType` is `string`, and its options are the menu's, None and the framework's patterns, so it has no `valueOptions`. A text is read as the framework reads it, with no regard to case, spaces, underscores and hyphens, so `"double click"` is DoubleClick, and `"off"` and an empty text are none. A changed value is written as the library names it. Its `default` is the name of a pattern: one the framework does not have is an error, and it then has no Reset. A name the framework does not have in the file is invalid.
+**`cf.haptic`**: an `s` key naming a framework pattern, or `"none"`. `valueType` `string`; the options are None plus the framework's patterns, so no `valueOptions`. Read as the framework reads it, ignoring case, spaces, underscores and hyphens (`"double click"` is DoubleClick; `"off"` and empty are none); written as the library names it. A `default` naming no pattern is an error (no Reset); such a name in the file is invalid.
 
 ```json
-{
-  "type": "cf.haptic",
-  "text": "Entry haptic",
-  "default": "Tick",
-  "storage": { "path": ["HeadActivation", "sEntryHaptic"] }
-}
+{ "type": "cf.haptic", "text": "Entry haptic", "default": "Tick", "storage": { "path": ["HeadActivation", "sEntryHaptic"] } }
 ```
 
-`cf.color` is a color, the inline table of a `c` key, `{ rgb = [r, g, b], alpha = a }`, each a whole number in 0..255 and each key optional. It is kept in a value of a TOML file, as the framework keeps it, or of an INI file as its line (see [In an INI file](#in-an-ini-file)), and its `valueType` is `string`, the TOML text of the table or the line. Its `default` is the table as a JSON object, which the framework reads as it reads its config. The color shown is the one the framework reads: the keys the value has, over the default's channels. A changed value is written with the keys it had and the key of the part that changed. `"valueOptions": { "alpha": false }` is a color whose opacity means nothing, as a light's: it shows and edits no alpha, and writes `rgb` alone. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
+**`cf.color`**: a `c` key, `{ rgb = [r, g, b], alpha = a }`, whole numbers 0..255, each key optional. The shown color is the framework's reading: the value's keys over the default's channels. `"alpha": false` (e.g. a light) shows and edits no alpha and writes `rgb` alone.
 
 ```json
-{
-  "type": "cf.color",
-  "text": "Ray color",
-  "default": { "rgb": [190, 255, 190], "alpha": 200 },
-  "storage": { "path": ["Pointer", "cRayColor"] }
-}
+{ "type": "cf.color", "text": "Ray color", "default": { "rgb": [190, 255, 190], "alpha": 200 }, "storage": { "path": ["Pointer", "cRayColor"] } }
 ```
 
-Its editor has five basics in its footer, which every color has: white, black, red, green and blue, each of which keeps the color's alpha. A color can add a line of presets of its own, which suit what it colors, as a flashlight's whites: `presets` in its `valueOptions`, each written as its `default` is, with an optional `text`, its name in the help line. A preset with an `alpha` sets it on a color that has one, and one with none keeps the color's. A color whose `alpha` is false takes no alpha of a preset. The editor holds 12: those past it are left out, as is a preset that is no color or has no `rgb`, each reported.
+- The editor always has five basics (white, black, red, green, blue), keeping the color's alpha.
+- `presets` in `valueOptions` adds a line of colors that suit it, each written like `default` with an optional `text` for the help line. A preset's `alpha` applies only to a color with alpha; without one the color keeps its alpha. At most 12; extras, non-colors and presets without `rgb` are dropped and reported.
+- `sharedPresetLists` at the root holds named preset lists; a color uses one with `"sharedPresets": "lights"`. Own `presets` win over it. An unknown name is a warning (basics only).
 
 ```json
 "valueOptions": {
@@ -387,17 +292,13 @@ Its editor has five basics in its footer, which every color has: white, black, r
 }
 ```
 
-A list that several colors use is written once, as a choice's options are: `sharedPresetLists` at the config spec's root holds each list by its name, and a color names one with `"sharedPresets": "lights"` in place of its own `presets`. A color with both uses its own, and a name of no list is a warning, and the color has the basics alone.
+**`cf.transform`**: a `t` key placing a mesh, light or zone on its node, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, rotation in degrees, each key optional. An omitted key reads as the framework's (no move, no rotation, scale 1). `valueOptions` has `position`, `rotation`, `scale`, each:
 
-`cf.transform` is where a mesh, a light or a zone sits on its node, the inline table of a `t` key, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, with the rotation in degrees and each key optional. It is kept in a value of a TOML file, as the framework keeps it, or of an INI file as its line (see [In an INI file](#in-an-ini-file)), and its `valueType` is `string`, the TOML text of the table or the line. Its `default` is the table as a JSON object, which the framework reads as it reads its config. A key the value leaves out is what the framework reads for it: no move, no rotation, a scale of 1. A changed value is written with the keys it had and the key of the part that changed. A table the framework cannot read is invalid, with its reason, and a `default` that is none is an error, and it then has no Reset.
+- `true` or omitted: on, with the part's range (position -50..50 by 1, rotation -180°..180° by 1°, scale 0.1..3 by 0.1).
+- `false`: off. The row, editor and Adjust in world leave it out, and the file's value is kept. At least one part must be on, else an error and not available.
+- An object: on, with optional `min`, `max`, `step` over the part's. Position and rotation may also give one axis (`x`/`y`/`z`, `heading`/`roll`/`attitude`) its own object.
 
-Its `valueOptions` has `position`, `rotation` and `scale`, the three parts its editor has a slider for, each `true`, `false` or the range of its sliders:
-
-- `true`, or the part left out, is on, with the part's own range: a position -50 to 50 by 1, a rotation -180° to 180° by 1°, a scale 0.1 to 3 by 0.1.
-- `false` is off: the row, the editor and Adjust in world leave the part out, and its value is kept as the file has it. A transform has at least one part on: one with none is an error, and it is not available.
-- An object is on, with its `min`, `max` and `step`, each optional and the part's own where it is left out. A position's and a rotation's can also have one of an axis, `x`, `y` and `z` or `heading`, `roll` and `attitude`, an object of its own `min`, `max` and `step` over the part's.
-
-A range whose `min` is not below its `max`, or whose `step` is not above 0, is an error, and the part has its own range. A value outside its slider's range is not invalid, as the framework reads it: it is shown as it is, and a step or a drag brings it in. A value is not rounded to its step, and an angle is not wrapped.
+A range with `min` ≥ `max` or `step` ≤ 0 is an error and uses the part's range. A value outside its slider range is valid (the framework reads it): shown as is until a step or drag brings it in. Values aren't rounded to the step; angles aren't wrapped.
 
 ```json
 {
@@ -413,17 +314,27 @@ A range whose `min` is not below its `max`, or whose `step` is not above 0, is a
 }
 ```
 
-`cf.activationSphere` is a section of the TOML that the framework reads as an activation sphere (`loadWandActivationConfig`), drawn as one group: its `text` is the group's heading, its `help` the heading's, `storage.path` the section, and its `id` what its mod's client is told while the ray is on its rows, its section with none; see [Pointed items](#pointed-items). A storage that is no section of a TOML file is an error, and the group has no rows. A file that has no such section is a warning: each key shows its default, and a Save adds it. Each key of the section is a setting of its own, of the control of its kind, with the section's `applies`, `live` where none is above it, as the framework previews a key. `keys` says, for each key by its name, how it is shown:
+**`cf.activationSphere`**: a TOML section the framework reads as an activation sphere (`loadWandActivationConfig`), drawn as one group. `text` and `help` are the heading's, `storage.path` is the section, and `id` is what the client is told while the ray is on its rows (its section without one; [Pointed items](#pointed-items)). Storage that isn't a TOML section is an error (no rows). A missing section is a warning: keys show defaults and a Save adds them. Each key is an ordinary setting of its kind with the section's `applies` (`live` if none above).
 
-- `true`, or the key left out, shows it, with its default name.
-- `false` hides it: it has no row, and its value is kept as the file has it. `kPrimaryBinding` cannot be hidden: a `false` for it is an error, and it is shown. Hiding `sShowIcon` hides `sIcon`, `cIconColor` and `fIconSize` too, and hiding `sShowSphere` hides the other keys of the sphere.
-- An object shows it, with the fields of a setting that it gives: `text`, `help`, `default`, `valueOptions`, `applies`, `visibleWhen`, `enabledWhen` and `warnings`. Its `type`, `valueType` and `storage` are the key's and are not given. Its `valueOptions` is added to the key's own: a binding offers `suppress`, and a slider has a range. A zone has a transform's own ranges, and its scale is the zone's diameter, so a config spec gives it a range that fits its zone. Its `visibleWhen` and `enabledWhen` are joined with the conditions the key has of its own: a haptic has no row while its binding is off, and the look of an icon or a sphere set to `never` is disabled.
+`keys` sets, per key name, how it shows:
 
-The keys and their default names: `kPrimaryBinding` Activate, `sEntryHaptic` Entry haptic and `sShowIcon` Show icon; under Position and size `tZone` Zone and `tZonePA` Zone in power armor; under Activation `sPrimaryHaptic` Primary haptic, `kSecondaryBinding` Secondary activate and `sSecondaryHaptic` Secondary haptic; under Visuals `sIcon` Icon, `cIconColor` Icon color, `fIconSize` Icon size, `sShowSphere` Show sphere and `sSphereStyle` Sphere style. The framework's other keys, `fSphereScale` Sphere size, `sSphereOrientation`, `cSphereColor`, `fSphereGlow`, `sSphereNif`, `sSphereTexture` and `aSphereFalloff`, are hidden unless `keys` names them, and are then shown under Visuals. `sShowIcon`, `sShowSphere`, `sSphereOrientation` and `sSphereStyle` are dropdowns whose value in the file is read as the framework reads it, with no regard to case, spaces, underscores and hyphens and with its other words, so `off` is Never: one it does not read is invalid. A changed value is written as its option has it. A name in `keys` that is none of these is a warning, and is left out. A setting's id is its key and the section, as any key's, so a condition can name it.
+- `true` or omitted: shown with its default name.
+- `false`: no row; the file's value is kept. `kPrimaryBinding` can't be hidden (an error; it shows). Hiding `sShowIcon` also hides `sIcon`, `cIconColor`, `fIconSize`; hiding `sShowSphere` hides the other sphere keys.
+- An object: shown, with setting fields `text`, `help`, `default`, `valueOptions`, `applies`, `visibleWhen`, `enabledWhen`, `warnings` (`type`, `valueType`, `storage` are the key's). `valueOptions` adds to the key's own (a binding's `suppress`, a slider's range). A zone has a transform's ranges and its scale is the zone's diameter, so give it a fitting range. Conditions join the key's built-in ones: a haptic has no row while its binding is off, and icon or sphere looks are disabled when set to `never`.
 
-`sIcon`, `sSphereNif` and `sSphereTexture` are [choices of files](#options-from-a-folder) of the framework's, which every CommonFramework mod ships in its own folders, named by the config spec's `modName`: `sIcon` the `activation-icon-*.dds` of `Textures\<modName>\f4cf`, `sSphereTexture` the `*-sphere.dds` of it, and `sSphereNif` the `*.nif` of `Meshes\<modName>\f4cf`. A pick is written by its path in the Data folder, as `Textures\FRIK\f4cf\activation-icon-ring.dds`. `sIcon`'s default is the framework's hand icon. `sSphereNif` and `sSphereTexture` have first the option of the style's own, an empty text, which is their default. A value in another form, as the framework's short `f4cf\activation-icon-ring.dds` or the `none` of the mesh's own texture, is invalid until a file is picked. A mod with icons of its own gives `sIcon` a `listFromFolder` of its folder and mask, and a `default` there. `aSphereFalloff` is a pair of numbers, which the menu has no control for: naming it is a warning, and its row says so.
+| Group | Keys (default name) |
+| --- | --- |
+| (top) | `kPrimaryBinding` Activate, `sEntryHaptic` Entry haptic, `sShowIcon` Show icon |
+| Position and size | `tZone` Zone, `tZonePA` Zone in power armor |
+| Activation | `sPrimaryHaptic` Primary haptic, `kSecondaryBinding` Secondary activate, `sSecondaryHaptic` Secondary haptic |
+| Visuals | `sIcon` Icon, `cIconColor` Icon color, `fIconSize` Icon size, `sShowSphere` Show sphere, `sSphereStyle` Sphere style |
+| Visuals, only when named in `keys` | `fSphereScale` Sphere size, `sSphereOrientation`, `cSphereColor`, `fSphereGlow`, `sSphereNif`, `sSphereTexture`, `aSphereFalloff` |
 
-A key the file does not have is the framework's default for it, or the `default` its object gives. `tZonePA` is the exception: the framework uses `tZone` without it, so it has a row only while the file has the key, or its object gives a `default`, for a mod with a power-armor zone in its code. That is settled as the config spec is read. `keys` naming it with neither is a warning. With no `default` it has no Reset.
+- `sShowIcon`, `sShowSphere`, `sSphereOrientation`, `sSphereStyle` are dropdowns read as the framework reads them (ignoring case, spaces, underscores, hyphens, with its synonyms: `off` is Never); unreadable values are invalid; changes are written as the option spells it.
+- An unknown name in `keys` is a warning and dropped. Key ids are key + section, so conditions can name them.
+- `sIcon`, `sSphereNif`, `sSphereTexture` are [folder choices](#options-from-a-folder) of the framework files every CommonFramework mod ships under its `modName`: `sIcon` from `Textures\<modName>\f4cf\activation-icon-*.dds`, `sSphereTexture` from `*-sphere.dds` there, `sSphereNif` from `Meshes\<modName>\f4cf\*.nif`. Picks are written as Data paths (`Textures\FRIK\f4cf\activation-icon-ring.dds`). `sIcon` defaults to the framework's hand icon. `sSphereNif` and `sSphereTexture` start with an empty "style's own" option, their default. Other forms (the framework's short `f4cf\…`, the mesh's `none`) are invalid until a file is picked. A mod with its own icons gives `sIcon` a `listFromFolder` and a `default` there.
+- `aSphereFalloff` (a number pair) has no control: naming it is a warning and its row says so.
+- A missing key uses the framework's default or the object's `default`. Exception: `tZonePA` (the framework falls back to `tZone`) has a row only if the file has it or its object gives a `default`, settled at load; naming it with neither is a warning; without a `default` it has no Reset.
 
 ```json
 {
@@ -441,74 +352,69 @@ A key the file does not have is the framework's default for it, or the `default`
 }
 ```
 
-A setting's `id` is optional. A setting without one gets its id from its storage, as a name and where it is, joined by a colon:
+**Setting ids.** `id` is optional; without it the id comes from the storage, `name:where`:
 
-- An INI key: the key and its section, as `fPlayerHeight:MyMod`, which is how MCM names a ModSetting.
-- A JSON or TOML value: the last name of its path, and the names before it joined with dots, as `fScale:Panel` for `["Panel", "fScale"]`. A path of two is named as an INI key is, so a mod that moves its config from INI to TOML keeps its ids. A path of one is its name alone.
-- A global: its form, as `MyMod.esp|1234`.
-- A property of a script: its name and its form, as `fStrength:MyMod.esp|800`.
-- A state of the mod's client: its name, as `pipboyType`.
+| Storage | Made id |
+| --- | --- |
+| INI key | `key:section` (`fPlayerHeight:MyMod`, MCM's ModSetting naming) |
+| JSON/TOML path | last name, then the earlier names joined by dots (`fScale:Panel`); a two-name path matches the INI form, so moving INI→TOML keeps ids; a one-name path is the name |
+| Global | its form (`MyMod.esp|1234`) |
+| Script property | `property:form` (`fStrength:MyMod.esp|800`) |
+| Client state | its name (`pipboyType`) |
 
-An author gives an id to a setting that something names, a condition or a script, when the name should stay the same after its key is renamed or moved.
-
-Setting IDs are unique across the config spec, given or made. This makes conditions, validation issues, API events, search, and diagnostics unambiguous. Two settings whose ids come out the same are an error of the config spec, and giving one of them an id resolves it. A section, an activation sphere and a button can have an `id` too, which only the mod's native client is told; see [Pointed items](#pointed-items). Conditions and scripts name a setting alone.
-
-Scripts read a setting kept in a file by the config spec's `modName` and the setting's `id`, so renaming either breaks the scripts that use it; see [Papyrus API](architecture.md#papyrus-api). For a setting with no `id` of its own, that is renaming its section or its key.
+- Give an id to a setting that a condition or script names, so renaming or moving its key doesn't break it.
+- Ids, given or made, are unique in the config spec; a clash is an error, fixed by giving one an id. Sections, spheres and buttons may have ids too, told only to the client ([Pointed items](#pointed-items)); conditions and scripts name settings only.
+- Scripts read a file setting by `modName` + `id` ([Papyrus API](architecture.md#papyrus-api)); renaming either (or, without an own id, its section or key) breaks them.
 
 #### In an INI file
 
-A binding, a color and a transform can be kept in an INI file too, for a mod that reads its INI with no TOML. The value is then a line, in the text form CommonFramework's INI config had, which the mod parses itself:
+A binding, color or transform can live in an INI file, for a mod without TOML, as a line in CommonFramework's old INI text form, which the mod parses itself:
 
-- A color is `r,g,b` or `r,g,b,a`, each a whole number in 0..255, as `255,180,107,200`. A line with no `a` has its default's alpha. A changed color is written with an `a` where it had one or its alpha changed, and a color whose `alpha` is false is written as `r,g,b`.
-- A transform is its seven numbers, `x,y,z;heading,roll,attitude;scale`, with the rotation in degrees, as `0.0,0.0,12.0;0.0,-5.0,0.0;1.0`. A line is all seven numbers or is invalid, and it is written with all seven: a part that is off keeps the file's numbers, and a new key has its default's, a key the default leaves out as the framework reads it.
-- A binding is `<hand> <type> <button> [duration]`, or `<hand> axis <axis> <direction> [threshold]` for a push of a stick or a trigger, then `suppress` and a modifier, `+button` or `+hand:button`, where it has them, as `primary longpress thumbstick 1.5 +offhand:grip`. An off binding is `none`. The menu writes these words alone:
+- **Color:** `r,g,b` or `r,g,b,a`, 0..255 (`255,180,107,200`). No `a` takes the default's alpha. Written with `a` if it had one or alpha changed; `alpha: false` writes `r,g,b`.
+- **Transform:** all seven numbers `x,y,z;heading,roll,attitude;scale`, degrees (`0.0,0.0,12.0;0.0,-5.0,0.0;1.0`). Fewer is invalid. Always written with seven: an off part keeps the file's numbers; a new key uses the default's (omitted default keys as the framework reads them).
+- **Binding:** `<hand> <type> <button> [duration]`, or `<hand> axis <axis> <direction> [threshold]` for a stick or trigger push, then optional `suppress` and modifier `+button` / `+hand:button` (`primary longpress thumbstick 1.5 +offhand:grip`); off is `none`. Written words:
   - hand: `primary`, `offhand`, `right`, `left`, `any`
   - type: `press`, `touch`, `hold`, `release`, `tap`, `longpress`, `double`, `axis`
   - button: `trigger`, `grip`, `a`, `menu` (B), `thumbstick`, `system`
   - axis: `thumbstick`, `trigger`, `grip`
   - direction: `up`, `down`, `left`, `right`, `any`, `updown`, `rightleft`
 
-  It reads the other names the framework has for them too, as `off` for `offhand`, and an empty line as off. A line has no `accelerate`: a `default` that turns it off is an error, and the setting then has no Reset.
+  The framework's other names are read too (`off` for `offhand`); an empty line is off. A line has no `accelerate`, so a `default` that turns it off is an error (no Reset).
 
-Spaces around a number are read, and the menu writes none. A line that is none of these is invalid, with what it should be, and so is an empty color or transform. The `default` is the table as a JSON object, as in a TOML file, so a config spec moves a setting between the two files by its `storage` alone. A mod's client is told the line, and hands the line back, see [Native API](../for-mod-authors/native-api.md).
+Spaces around numbers are read; none are written. Anything else, or an empty color or transform, is invalid with the expected form. The `default` stays the JSON table, so moving between INI and TOML changes only `storage`. The client is told the line and hands the line back ([Native API](../for-mod-authors/native-api.md)).
 
 ### Read-only
 
-A setting with `"readOnly": true` shows its value and is not edited: a value the mod writes for the player to read, as a measured height. Its row is disabled, the help line says first that it is read-only, and it has no Reset, so it needs no `default`. While its storage has no value, the row shows none.
+`"readOnly": true` shows a value the mod writes for the player (a measured height): disabled, the help line says read-only first, no Reset, so no `default`. With no stored value it shows none.
 
 ### Display
 
-`display` says how a number is shown, in its control and in the help line:
+`display` formats a number in its control and the help line; the stored value is unchanged.
 
-- `decimals`: how many decimals it has. Without it, as many as its `step` has.
-- `unit`: a text after the number, as `m` or `%`. It is a localized text.
-- `percent`: `true` shows the number as a percentage of its range, from 0% at its `min` to 100% at its `max`. An opacity from 0 to 255 that is 217 shows as 85%.
-
-The value stored is the number itself.
+- `decimals`: default as many as `step` has.
+- `unit`: a localized text after the number (`m`, `%`).
+- `percent: true`: a percentage of the range, 0% at `min` to 100% at `max` (217 of 0..255 shows 85%).
 
 ### Warnings
 
-A setting or a button can warn the player while a condition holds, and block nothing: a value that works and has a cost, or a button whose action needs a save to be loaded again.
+A setting or button can warn while a condition holds, without blocking anything (a value with a cost; a button needing a save reload).
 
 ```json
 {
   "id": "playerHeight",
   "warnings": [
-    {
-      "when": { "setting": "playerHeight", "greaterThan": 1.4 },
-      "text": "Above 1.4 m your view can be in the ceiling."
-    }
+    { "when": { "setting": "playerHeight", "greaterThan": 1.4 }, "text": "Above 1.4 m your view can be in the ceiling." }
   ]
 }
 ```
 
-- `when` is a condition on the pending values, as a `visibleWhen` is; see [Conditions](#conditions). `text` is a localized text.
-- While one holds, the row has a warning mark, and the help line shows its text before the row's help. The first that holds is the one shown.
-- A warning does not block Save. An invalid value is not a warning: it has its own mark, and blocks Save.
+- `when` is a [condition](#conditions) on pending values; `text` is localized.
+- While one holds the row has the warning mark and the help line shows the first holding warning before the help.
+- Warnings never block Save; invalid values have their own mark and do.
 
 ### A setting's action
 
-A setting can have an `action`, written as a button's; see [Buttons](#buttons). It runs when Save writes the setting's value, after every file and value of the Save is written, so it finds the saved value. It is how a script mod applies a change, as the action of an MCM row does. A parameter that is exactly `"{value}"` is the value written, in the setting's `valueType`:
+`action`, written as a button's ([Buttons](#buttons)), runs when Save writes the setting, after every file and value is written, so it sees the saved value. It is how a script mod applies a change, like an MCM row's action. A parameter exactly `"{value}"` is the written value in the setting's `valueType`.
 
 ```json
 {
@@ -521,71 +427,50 @@ A setting can have an `action`, written as a button's; see [Buttons](#buttons). 
 }
 ```
 
-A setting that Save does not write runs nothing: one the player did not change, or changed back. A preview and a Discard run nothing either.
+Unwritten settings (unchanged, or changed back), previews and Discards run nothing.
 
 ## Storage
 
-A setting's `storage` says where its value is kept: a key of one of the config spec's files, a global, a property of a script, or a state of the mod's native client. It is apart from the setting's `id`.
+`storage` is where the value is kept, separate from `id`: a file key, a global, a script property, or a client state.
 
 ### INI
 
 ```json
-{
-  "storage": {
-    "file": "main",
-    "section": "MyMod",
-    "key": "fPlayerHeight"
-  }
-}
+{ "storage": { "file": "main", "section": "MyMod", "key": "fPlayerHeight" } }
 ```
 
-A key before the first section has no `section`. A `path` names a key too, as `["MyMod", "fPlayerHeight"]`, and a path of more than two names no key of an INI file.
-
-The INI conventions the host follows are described under [Persistence model](architecture.md#persistence-model).
+A key before the first section has no `section`. A `path` (`["MyMod", "fPlayerHeight"]`) works too; a path longer than two names no INI key. INI conventions: [Persistence model](architecture.md#persistence-model).
 
 ### JSON and TOML
 
-An array represents an unambiguous path without dotted-key escaping rules:
-
 ```json
-{
-  "storage": {
-    "file": "calibration",
-    "path": ["body", "playerHeight"]
-  }
-}
+{ "storage": { "file": "calibration", "path": ["body", "playerHeight"] } }
 ```
 
-- A path has any depth, so a value inside a table is a setting of its own. A CommonFramework TOML is `[Section] key`, a path of two.
-- A table that is a CommonFramework value, as a color or a binding, is one value in one key, edited whole by its control; see [CommonFramework-specific controls](controls.md#commonframework-specific-controls). The path names its key.
-- Any other table is not a value: the config spec names each of its keys.
-- An array is one value, and a path does not name an element of it. Its control is still to be designed.
-
-The resolved storage is included in native `SettingView` data so generic adapters do not parse this config spec themselves.
+- An array path of any depth, with no dotted-key escaping. CommonFramework TOML is `[Section] key`, a two-name path.
+- A CommonFramework table (color, binding, …) is one value in one key, edited whole by its control. Any other table isn't a value: name each key.
+- An array is one value and paths don't index into it; its control isn't designed yet.
+- The resolved storage is in the client's `SettingView`, so adapters don't parse the config spec.
 
 ### Global and script property
 
 ```json
-{
-  "storage": { "global": "MyMod.esp|1234" }
-}
+{ "storage": { "global": "MyMod.esp|1234" } }
 ```
 
 ```json
-{
-  "storage": { "form": "MyMod.esp|800", "scriptName": "MyMod:ConfigScript", "propertyName": "fStrength" }
-}
+{ "storage": { "form": "MyMod.esp|800", "scriptName": "MyMod:ConfigScript", "propertyName": "fStrength" } }
 ```
 
-A form is named as in an MCM config, by its plugin and its id in that plugin. `scriptName` is optional: without it the property is on the form's first script.
+Forms are named as in MCM, plugin and id. Without `scriptName` the property is on the form's first script.
 
-- A mod with no DLL keeps its settings where its scripts and the game read them, as an MCM mod does. The game's own conditions read a global, so a plugin with no scripts is configured too.
-- The value is in the save game, not in a file. A new game starts with the plugin's value, and each save has its own. The setting still has its `default`, for Reset.
-- It has a config spec's lifecycle, as a key of a file has: a change is pending until Save, and Discard drops it. The host previews a `live` one itself, by writing the pending value into the game, and writes the value from before back on Discard. See [Editing session](architecture.md#editing-session).
-- A script reads it itself, so the [Papyrus API](architecture.md#papyrus-api) is for a setting kept in a file.
-- A global or a property that is not in the game is not available, and its row says why, as an MCM row does.
+- For mods without a DLL: values live where scripts and the game read them; game conditions read globals, so even a script-less plugin is configurable.
+- The value is in the save game: a new game starts with the plugin's value. `default` is still required for Reset.
+- Config spec lifecycle: pending until Save, dropped by Discard; a `live` one is previewed by the host writing it into the game and restored on Discard ([Editing session](architecture.md#editing-session)).
+- Scripts read it themselves; the [Papyrus API](architecture.md#papyrus-api) is for file settings.
+- A missing global or property is not available, with the reason.
 
-A config spec has no MCM ModSetting storage: it does not need MCM, and a key of its own file, read through the Papyrus API, is what a ModSetting is for an MCM mod.
+There is no ModSetting storage: config specs don't need MCM, and a file key read through the Papyrus API plays that role.
 
 ### Client state
 
@@ -601,18 +486,18 @@ A config spec has no MCM ModSetting storage: it does not need MCM, and a key of 
 }
 ```
 
-A value that is in the memory of the mod's DLL, and in no file, is a state of the mod's native client, by its name, as a condition and a file's `pathFromClientState` ask it: a value the mod takes from the game's settings, as which Pip-Boy the player uses, or one it measures. The client answers it, and applies a value the menu gives it; see [A client's state](architecture.md#a-clients-state).
+A value held only in the DLL's memory (taken from the game's settings, or measured), named as a condition or `pathFromClientState` names a state. The client answers it and applies what the menu gives it ([A client's state](architecture.md#a-clients-state)).
 
-- It has a config spec's lifecycle, as a global has: a change is pending until Save, and Discard drops it. A `live` one is applied as it is changed, and its value from before is applied again on Discard.
-- The menu keeps it nowhere. A mod that keeps it after the game is restarted writes it itself, as a Save tells it what it wrote.
-- A state the client gives no setter is not changed, so its setting is `readOnly`: a value the mod shows the player, as a measured height, with no file.
-- A condition on the setting names it by its `id`, and has its pending value. A `clientState` condition on the same name has the client's value, which is the preview of a `live` one.
-- With no client, a client that is cut off, or a state it does not answer, the setting is not available, and its row says why.
-- A setting's `action` runs before the client is told what a Save wrote, and the client applies the value itself, so an `action` on it is a warning of the config spec.
+- Config spec lifecycle, like a global: a `live` one is applied as changed and its old value reapplied on Discard.
+- The menu stores it nowhere; a mod persists it itself from the Save it's told.
+- A state with no setter can't change, so mark it `readOnly`.
+- A condition on the setting's `id` sees the pending value; a `clientState` condition on the state's name sees the client's value (the preview, for `live`).
+- No client, a cut-off client, or no answer: not available, with the reason.
+- An `action` on it is a warning: actions run before the client is told the Save, and the client applies the value itself.
 
 ## Sections
 
-A section is a heading with its own rows, in its `content`. A section can be in a section:
+A heading with rows in its own `content`; sections nest.
 
 ```json
 {
@@ -620,64 +505,44 @@ A section is a heading with its own rows, in its `content`. A section can be in 
   "text": "Holsters",
   "content": [
     { "type": "switcher", "valueType": "bool", "text": "Enable holsters", "default": true, "storage": { "section": "Holsters", "key": "bEnabled" } },
-    {
-      "type": "section",
-      "text": "Advanced",
-      "isCollapsible": true,
-      "collapsed": true,
-      "content": []
-    }
+    { "type": "section", "text": "Advanced", "isCollapsible": true, "collapsed": true, "content": [] }
   ]
 }
 ```
 
-- `isCollapsible` makes the section fold: a press on its heading hides its rows, and another shows them again. `collapsed` makes it start folded. A section with `collapsed` and no `isCollapsible` could not be opened, so it is open, and the log says so.
-- A section starts as `collapsed` says each time its page is shown. How the player left it is not remembered.
-- A folded section that has an invalid value or an unsaved change inside it marks its heading, so the player sees that something is there. It counts the settings in it whose rows would show when it is opened, also in the sections in it.
-- Detailed settings are a folded section right after the settings they belong to, as the Advanced section above. There is no flag of its own for them.
-- What a section has goes down to its rows and to the sections in it: its `defaultFile`, its `applies`, and its conditions; see [Conditions](#conditions).
-- A section has a `text` and can have a `help`, as any row, and an `id`, which its mod's client is told while the ray is on its rows; see [Pointed items](#pointed-items).
+- `isCollapsible` makes it fold on a heading press; `collapsed` starts it folded. `collapsed` without `isCollapsible` is ignored (it couldn't open) and logged.
+- It starts as `collapsed` says each time its page is shown; the player's fold isn't remembered.
+- Folded, its heading counts invalid and unsaved settings inside whose rows would show, including nested sections.
+- Detailed settings are a folded section right after what they belong to; there's no separate flag.
+- `defaultFile`, `applies` and conditions are inherited by its rows and nested sections.
+- `text`, optional `help`, and optional `id` (told to the client, [Pointed items](#pointed-items)).
 
-An MCM section is a heading row whose rows are the ones after it, up to the next section, and it does not nest. The MCM loader reads it as MCM's menu does.
+An MCM section is a heading row owning the rows up to the next section, unnested; the MCM loader reads it as MCM does.
 
 ## Pointed items
 
-The mod's native client is told what the ray is on, so it shows in the world what that item sets, as an activation sphere lit while the ray is on its rows; see [The client's events](architecture.md#the-clients-events). It is told the id of the row and of each group the row is in, innermost first:
+The client is told what the ray is on, to show it in the world ([The client's events](architecture.md#the-clients-events)): the row's id, then each enclosing group's, innermost first.
 
-- A setting is told by its id, given or made.
-- A section and a button are told by their `id`, and one with none is not told: its rows are still told by theirs.
-- An activation sphere is told by its `id`, or with none by its section, the names of its `storage.path` joined with dots, as `ImFl_BodyActivationSphere`. A key of it is a setting, told by its id and the sphere's, as `tZone:ImFl_BodyActivationSphere` then `ImFl_BodyActivationSphere`. The framework lights a sphere by its section, so a CommonFramework mod's sphere has no `id` of its own.
+- A setting: its id, given or made.
+- A section or button: its `id`; without one it isn't told (its rows still are).
+- An activation sphere: its `id`, or its section path joined with dots (`ImFl_BodyActivationSphere`). Its keys are settings, told as `tZone:ImFl_BodyActivationSphere` then `ImFl_BodyActivationSphere`. The framework lights spheres by section, so a CommonFramework sphere needs no `id`.
 
 ```json
-{
-  "type": "section",
-  "id": "holsterZones",
-  "text": "Holster zones",
-  "content": []
-}
+{ "type": "section", "id": "holsterZones", "text": "Holster zones", "content": [] }
 ```
 
-These ids are unique together with the settings' ids, without regard to case. An `id` of a section, a sphere or a button that a setting has, or a section, a sphere or a button before it, is an error: it is left out, and that item is not told, while the setting keeps its own. No condition, script or call of the API names one: they name settings. A page's `id` is apart from them.
+These ids share one case-insensitive namespace with setting ids. A section, sphere or button id that a setting, or an earlier section, sphere or button, already has is an error: dropped (that item isn't told; the setting keeps its id). Conditions, scripts and the API name settings only. Page ids are separate.
 
 ## Conditions
 
-A row can be shown or enabled by the pending values of settings: it is shown while its `visibleWhen` holds, and enabled while its `enabledWhen` holds. A row that is not enabled is drawn disabled. A section's conditions cover everything in it, so a row needs every condition above it to hold. A page supports both conditions too, covering its row in the tree, its content and its child pages:
+`visibleWhen` shows and `enabledWhen` enables a row (disabled rows are drawn disabled), evaluated on pending values so the UI reacts at once. A section's conditions cover everything inside, so a row needs every condition above it. Pages take both too, covering their tree row, content and sub-pages.
 
 ```json
 {
   "pageDisplayName": "Calibration",
   "visibleWhen": { "setting": "showCalibration", "equals": true },
   "enabledWhen": { "clientState": "ready" },
-  "content": [ { "type": "text", "text": "Adjust calibration here." } ]
-}
-```
-
-```json
-{
-  "enabledWhen": {
-    "setting": "enableHolsters",
-    "equals": true
-  }
+  "content": [{ "type": "text", "text": "Adjust calibration here." }]
 }
 ```
 
@@ -685,47 +550,32 @@ A row can be shown or enabled by the pending values of settings: it is shown whi
 {
   "visibleWhen": {
     "all": [
-      {
-        "setting": "enableHolsters",
-        "equals": true
-      },
-      {
-        "setting": "interactionMode",
-        "oneOf": ["physical", "hybrid"]
-      }
+      { "setting": "enableHolsters", "equals": true },
+      { "setting": "interactionMode", "oneOf": ["physical", "hybrid"] }
     ]
   }
 }
 ```
 
-Supported scalar values are bool, integer, float, and string. There is no implicit conversion between strings, numbers, and booleans.
+Values are bool, int, float, string, with no implicit conversion. Operators:
 
-Operators:
-
-- All scalar types: `equals`, `notEquals`
-- Numeric types: `lessThan`, `lessThanOrEqual`, `greaterThan`, `greaterThanOrEqual`
+- All types: `equals`, `notEquals`
+- Numbers: `lessThan`, `lessThanOrEqual`, `greaterThan`, `greaterThanOrEqual`
 - Strings and choices: `oneOf`, `notOneOf`
 - Composition: `all`, `any`, `not`
 
-A condition can also ask whether a plugin is loaded, for a row that needs another mod:
+Hiding or disabling a setting doesn't reset it or drop its pending edit. A condition naming a missing setting or comparing incompatible types is invalid as a whole: a developer diagnostic, and the item shows and enables as if unconditioned, so the mistake is visible.
+
+**Plugins**, for rows that need another mod:
 
 ```json
-{
-  "type": "text",
-  "text": "Camera effects are set by the ENB patch.",
-  "visibleWhen": { "plugin": "MyMod - ENB Patch.esp" }
-}
+{ "type": "text", "text": "Camera effects are set by the ENB patch.", "visibleWhen": { "plugin": "MyMod - ENB Patch.esp" } }
 ```
 
-- `plugin` names a game plugin by its file name, and holds while it is loaded, as `pluginRequirements` checks one.
-- `f4sePlugin` names an F4SE plugin by the name it registers with F4SE, as `f4sePluginRequirements` does.
-- Both are answered once, as the game starts, and do not change while it runs. They join with the others, so `{ "not": { "plugin": "..." } }` holds while a plugin is not loaded.
+- `plugin`: a game plugin file name, holds while loaded. `f4sePlugin`: an F4SE plugin's registered name.
+- Answered once at game start; they compose (`{ "not": { "plugin": "..." } }`).
 
-Conditions evaluate pending values so the UI responds immediately. Hiding or disabling a setting does not reset it or discard an existing pending edit.
-
-A condition that names a missing setting or compares incompatible types is invalid as a whole, however it is composed. It creates a developer diagnostic, and the item is shown and enabled as if it had no condition, so the mistake is visible instead of hiding content.
-
-A condition can ask a state of the mod's native client, for what only the mod's code knows and changes while the game runs, as a calibration that is running:
+**Client states**, for what only the mod's code knows and changes at runtime:
 
 ```json
 {
@@ -737,11 +587,11 @@ A condition can ask a state of the mod's native client, for what only the mod's 
 }
 ```
 
-- `clientState` names a state the client registered, by its name; see [A client's state](architecture.md#a-clients-state). It is a value of a type, as a setting's is, and takes the same operators. With none, it holds while the state is on, as a switch's value does. A state that is a setting's storage is asked by the setting's `id`, for its pending value; see [Client state](#client-state).
-- The host asks the client as the page is drawn, so a row follows the state as it changes.
-- While the client has not registered the state, or the mod has no client, the state is not available, as a value that cannot be read: the row is shown, and the warning is not told.
+- `clientState` names a registered state ([A client's state](architecture.md#a-clients-state)), typed like a setting, with the same operators; with no operator it holds while on. A state that is a setting's storage is named by the setting's `id` instead, for its pending value ([Client state](#client-state)).
+- Asked as the page draws, so rows follow it.
+- Unregistered, or no client: not available, so the row shows and the warning isn't told.
 
-A condition can ask a setting of the game's INI, which the game's settings menu changes while the game runs, with no DLL to answer it:
+**Game INI settings**, which the game's settings menu changes at runtime, with no DLL:
 
 ```json
 {
@@ -751,17 +601,15 @@ A condition can ask a setting of the game's INI, which the game's settings menu 
 }
 ```
 
-- `gameIniSetting` names the setting as the game does, `name:Section`, in any case. It is looked up in the game's prefs (`Fallout4Prefs.ini`), then in its INI (`Fallout4.ini` and `Fallout4Custom.ini`), and has the value the game runs with now, not the value in the file.
-- Its type is the first letter of its name: `b` a bool, `i` and `u` an int, `f` a float and `s` a string. It takes the operators of a setting of that type, a `oneOf` and a `notOneOf` of a string or an int, and with none it holds while it is on. A name with another letter, as a color's `r`, or an operator or a value that does not fit its type, is not a condition.
-- The host asks it as the page is drawn, so a row follows the game's settings menu with the menu open.
-- A setting the game does not have is not available, as a value that cannot be read: the row is shown, the warning is not told, and the log names it once.
-- A game setting of a plugin (a GMST) is not asked: a plugin sets it, and the player does not change it.
+- `name:Section`, any case, looked up in `Fallout4Prefs.ini` then `Fallout4.ini`/`Fallout4Custom.ini`, with the value the game runs with now, not the file's.
+- Typed by its first letter: `b` bool, `i`/`u` int, `f` float, `s` string, with that type's operators plus `oneOf`/`notOneOf` for string and int; no operator holds while on. Another letter (a color's `r`) or a mismatched operator or value is not a condition.
+- Asked as the page draws, so rows follow the settings menu.
+- A setting the game lacks is not available (row shows, no warning), logged once.
+- GMSTs aren't supported: plugins set them, not players.
 
 ## Choices
 
-A choice stores a value, never the text the player sees. Its options are in `valueOptions`, as in an MCM config.
-
-A list of texts is the short form, also MCM's. The stored value is the index of the chosen text:
+A choice (`dropdown` or `stepper`) stores a value, never the displayed text; options are in `valueOptions` as in MCM. The short form, a list of texts, stores the index:
 
 ```json
 {
@@ -774,7 +622,7 @@ A list of texts is the short form, also MCM's. The stored value is the index of 
 }
 ```
 
-When the stored value is not the index, each option gives its own:
+Otherwise each option gives its value:
 
 ```json
 {
@@ -791,44 +639,33 @@ When the stored value is not the index, each option gives its own:
 }
 ```
 
-All option values in one choice share the setting's `valueType`. Conditions compare stored values, not translated labels.
-
-An option's `help` is optional, a text the player sees: the help line says it while the ray is on the option in a dropdown's open list, and the row's own help where the option has none.
-
-A choice is a `dropdown` or a `stepper`, as in MCM.
+Option values share the setting's `valueType`; conditions compare values, not labels. An option's optional `help` shows while the ray is on it in an open list, else the row's help.
 
 ### Shared lists
 
-A list of options that several choices use is written once, as in an MCM config. `sharedLists` at the config spec's root holds each list by its name, in either form of `options`, and a choice names one with `sharedOptions` in place of its own `options`:
+`sharedLists` at the root holds named lists (either form); a choice uses one with `sharedOptions` instead of `options`, as in MCM.
 
 ```json
 {
   "sharedLists": { "hands": ["Left", "Right"] },
   "content": [
-    {
-      "type": "stepper",
-      "valueType": "int",
-      "text": "Flashlight hand",
-      "default": 0,
-      "valueOptions": { "sharedOptions": "hands" },
-      "storage": { "section": "Flashlight", "key": "iHand" }
-    }
+    { "type": "stepper", "valueType": "int", "text": "Flashlight hand", "default": 0, "valueOptions": { "sharedOptions": "hands" }, "storage": { "section": "Flashlight", "key": "iHand" } }
   ]
 }
 ```
 
 ### Options from the game
 
-A choice can take its options from the game, as its page is shown, for a list its author does not know: the settlements the player built, or the weathers that other mods add. MCM's two fields do it:
+For lists the author can't know (the player's settlements, weathers other mods add), with MCM's fields:
 
-- `listFromForm` names a FormList, as `"MyMod.esp|900"`. The options are the names of its forms, or the editor ID of a form with no name.
-- `listFromProperty` names a property of a script whose value is an array of texts: `{ "form": "MyMod.esp|800", "scriptName": "MyMod:ConfigScript", "propertyName": "SettlementNames" }`. The options are its texts. `scriptName` is optional: without it, the property is of the form's first script.
+- `listFromForm`: a FormList (`"MyMod.esp|900"`); options are its forms' names, or editor IDs for unnamed forms.
+- `listFromProperty`: a script's string-array property, `{ "form": "MyMod.esp|800", "scriptName": "MyMod:ConfigScript", "propertyName": "SettlementNames" }` (`scriptName` optional: the form's first script).
 
-The list is read as the mod is selected, with the values of the session. A choice of `valueType` `int` stores the place of the option, as MCM does, and one of `valueType` `string` stores its text: a choice of another type has no options. A list that changes its order moves a stored place to another option. While the list cannot be read, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options read is invalid. The `default` is any value of the setting's type, as the options are not known before the game is read.
+Read on selection. `int` stores the option's index (as MCM; a reordered list moves it), `string` stores its text; other types get no options. An unreadable list leaves the choice with no options, disabled, with the reason. A file value not among the options is invalid. `default` is any value of the type, since options aren't known in advance.
 
 ### Options from a folder
 
-A `dropdown` of `valueType` `string` can take its options from the files of a folder, as MCM's `dropdownFiles` does, for a list the player can add to: a mod's gobo textures, or its presets.
+A `string` `dropdown` can list a folder's files, like MCM's `dropdownFiles`, for lists players extend (gobo textures, presets).
 
 ```json
 {
@@ -841,40 +678,32 @@ A `dropdown` of `valueType` `string` can take its options from the files of a fo
 }
 ```
 
-- `root` is `data`, the default, or `myGames`, as a file's is, and `path` is the folder from it, which cannot go up out of it.
-- `mask` names the files with the `*` and `?` of Windows, one pattern: every file without one. The folder alone is listed, not the folders in it, and only its loose files: a file packed in a BA2 is not.
-- `noneText` adds a first option that is no file, with this text, which stores an empty text.
+- `root`: `data` (default) or `myGames`; `path` can't leave it.
+- `mask`: one Windows pattern (`*`, `?`); none lists every file. Only the folder's own loose files, not subfolders or BA2 contents.
+- `noneText`: a first option for no file, storing an empty text.
 
-The folder is listed as the mod is selected, and again as its values are read again, alphabetical with no regard to case. Each file is an option: its name is its text, and its value is the `default` with the file's name in place of the default's, so a pick is written in the form the mod reads, with the default's folder and separators. A choice with no `default` writes its folder's `path` before the name.
-
-A value names a file of the folder with no regard to case, to `/` or `\`, and to a `data\` before a path of the Data folder, and a bare name is the file of that name. Such a value is its option, and is clean: it is written again only as the player picks a file. A value of another folder, or of a file the folder does not have, is invalid. While the folder has no file the mask names, or is not there, the choice has no options, is disabled, and the help line says where it looked, unless it has a `noneText`, whose option it has alone.
-
-The `default` has to be in the folder, a path of it or a bare name: one of another folder is an error, and the setting has no Reset. With the game's folders, the loader warns of a folder with no file its mask names, and of a default whose file the folder does not have.
-
-A `stepper`, or a choice of another `valueType`, with a `listFromFolder` is an error, and has no options.
+- Listed on selection and on reading values again, alphabetically, case-insensitive. An option's text is the file name; its value is the `default` with the file name swapped in, so picks keep the default's folder and separators. With no `default`, the folder's `path` prefixes the name.
+- A value matches a file ignoring case, `/` vs `\`, and a leading `data\`; a bare name matches too. A match is its option and clean (rewritten only on a new pick). Another folder or a missing file is invalid.
+- An empty or missing folder leaves no options, disabled, and the help line says where it looked; with `noneText` only that option.
+- The `default` must be in the folder (path or bare name); otherwise an error and no Reset. With the game's folders, the loader warns of an empty folder and of a default file that's missing.
+- `listFromFolder` on a `stepper` or a non-string choice is an error (no options).
 
 ### Options from the mod's client
-
-A choice can take its options from the mod's native client, for a list only the mod's code knows:
 
 ```json
 "valueOptions": { "listFromClientCallback": true }
 ```
 
-The client registers a callback for the setting's id with the [native API](architecture.md#options-from-a-client), and the host calls it as the mod is selected. It returns the options in either form of `options`: texts, or values with their texts, the values in the setting's `valueType`. While no callback is registered for the setting, the choice has no options, is disabled, and the help line says why. A value of the file that is none of the options is invalid, and the `default` is any value of the setting's type, as for options from the game.
-
-Mods Config FO4 VR's own config spec uses it for its Config spec setting, whose options are the config specs the menu found: the menu registers that callback through the native API, with its own client.
+The client answers through the [native API](architecture.md#options-from-a-client) on selection, in either option form with values in the setting's `valueType`. Without an answer the choice has no options, disabled, with the reason. A file value not among them is invalid; `default` is any value of the type. The menu's own config spec uses it for its Config spec setting (the config specs it found).
 
 ## Buttons
 
-A button has no storage, default, dirty state, or persisted value. It can have an `id`, which its mod's client is told while the ray is on it; see [Pointed items](#pointed-items).
+No storage, default, dirty state or value. An optional `id` is told to the client ([Pointed items](#pointed-items)). `action.type`:
 
-Its `action` is an object with a `type`, as in an MCM config:
-
-- `CallFunction` calls a function of a script on a form, and `CallGlobalFunction` a global function of a script, as in an MCM config. So a script-only mod has buttons too.
-- `RunConsoleCommand` runs a console command, as MCM runs one for a hotkey. It needs no script, so a mod with no plugin of its own has buttons too.
-- `CallNativeFunction` runs a function that the mod's native client registered, by its name.
-- `OpenURL` opens a link through Windows' default handler, normally the desktop browser for web links. It needs no script or native client and is only available for buttons.
+- `CallFunction` (a script function on a form) and `CallGlobalFunction`, as in MCM, so script-only mods have buttons.
+- `RunConsoleCommand`, as MCM runs one for a hotkey; needs no script.
+- `CallNativeFunction`: a function of the mod's client, by name.
+- `OpenURL`: opens the literal `url` through Windows' default handler (the browser for web links), unvalidated; buttons only. A launch failure shows in the help line; the menu stays open in VR.
 
 ```json
 {
@@ -887,48 +716,14 @@ Its `action` is an object with a `type`, as in an MCM config:
 ```
 
 ```json
-{
-  "type": "button",
-  "text": "Hide the HUD",
-  "action": { "type": "RunConsoleCommand", "command": "tm" }
-}
+{ "type": "button", "text": "Hide the HUD", "action": { "type": "RunConsoleCommand", "command": "tm" } }
 ```
-
-The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON values, each given to the script in its own type: a number written with no point is an int, one with a point or an exponent is a float, `true` and `false` are bools, and a text is a string. A text is never read for a type: the `{i}`, `{f}` and `{b}` of an MCM config are not a config spec's. `"{value}"` is the value of a setting's action; see [A setting's action](#a-settings-action).
-
-`OpenURL` passes its literal `url` to Windows without validating it. A launch failure is shown in the button's help line. The menu stays open in VR.
 
 ```json
-{
-  "type": "button",
-  "text": "Documentation",
-  "buttonText": "Open",
-  "action": { "type": "OpenURL", "url": "https://example.com/docs" }
-}
+{ "type": "button", "text": "Documentation", "buttonText": "Open", "action": { "type": "OpenURL", "url": "https://example.com/docs" } }
 ```
 
-`buttonText` is the text on the button, in place of `Run`. It is a localized text.
-
-`style` makes a button that matters stand out, so the player does not miss it, and `icon` draws a mark before its text:
-
-```json
-{
-  "type": "button",
-  "text": "Calibrate height",
-  "buttonText": "Calibrate",
-  "style": "important",
-  "icon": "target",
-  "action": { "type": "CallNativeFunction", "function": "calibrate" }
-}
-```
-
-- `style` is `important` or `dangerous`. With none the button looks as every other.
-  - `important` draws the button's outline, text and icon in the accent color, which no state of the menu uses. Keep it for the one or two buttons of a page a player must find, as a calibration or the mod's own UI: a page whose buttons are all important has none that stands out.
-  - `dangerous` draws them in red, for an action that cannot be taken back. A press always asks first: the button's `confirmation`, red, or with none, one made from the button, its `text` as the title with a question mark, its `help` as the message and its `buttonText` or `Run` as the confirming button. A `confirmation` that is `dangerous` makes its button `dangerous` too.
-- `icon` names one of the menu's drawn icons: `play`, `stop`, `bolt`, `target`, `check`, `window`, `external`, `link`, `gear`, `import`, `export`, `copy`, `eye`, `hand`, `sound`, `pin`, `refresh` and `trash`. It is drawn in the color of the button's text, before it. An `OpenURL` button with no `icon` has `link`.
-- A `style` or an `icon` that is none of these is a warning, and the button is drawn without it. An MCM button has neither.
-
-`CallNativeFunction` is the config spec's own action:
+**Parameters.** `CallFunction`/`CallGlobalFunction` `params` is a list of JSON values, each passed in its JSON type: a number without a point is an int, with a point or exponent a float, `true`/`false` bools, text a string. Text is never parsed for a type (no MCM `{i}`, `{f}`, `{b}`). `"{value}"` is a setting action's value ([A setting's action](#a-settings-action)). `CallNativeFunction` `params` is an object of named values, typed the same way:
 
 ```json
 {
@@ -936,23 +731,28 @@ The `params` of a `CallFunction` and a `CallGlobalFunction` are a list of JSON v
   "text": "Calibrate Height",
   "help": "Measures the current player height and updates calibration.",
   "buttonText": "Calibrate",
-  "action": {
-    "type": "CallNativeFunction",
-    "function": "calibrate",
-    "params": { "mode": "height", "includeScale": true, "sampleCount": 30 }
-  }
+  "action": { "type": "CallNativeFunction", "function": "calibrate", "params": { "mode": "height", "includeScale": true, "sampleCount": 30 } }
 }
 ```
 
-Its `params` are named, typed JSON values, where the `params` of MCM's actions are a list. Each is given to the function in its own type, as a `CallFunction`'s: a number written with no point is an int, one with a point or an exponent is a float, `true` and `false` are bools, and a text is a string. In a config spec without a native client, or whose client did not register the function, such a button is shown disabled.
+Without a client, or a client lacking the function, a native button is disabled. A button opening the mod's own UI (FRIK's calibration) is a native function that minimizes and restores the menu ([The mod's own UI](architecture.md#the-mods-own-ui)).
 
-A button that opens the mod's own UI, as FRIK's calibration, is a `CallNativeFunction` too. Its function minimizes the menu as it opens its UI, and shows the menu again as the UI closes; see [The mod's own UI](architecture.md#the-mods-own-ui).
+**Look.** `buttonText` (localized) replaces `Run`. `style` and `icon`:
 
-A button can use ordinary visibility and enablement conditions, and [warnings](#warnings).
+```json
+{ "type": "button", "text": "Calibrate height", "buttonText": "Calibrate", "style": "important", "icon": "target", "action": { "type": "CallNativeFunction", "function": "calibrate" } }
+```
 
-A `CallFunction` and a `CallGlobalFunction` call a script, which reads the saved values: the globals, properties and files that Save writes. So while its mod has unsaved changes, a press on such a button asks to save them first, with Cancel, Run without saving and Save and run. Save and run saves the changes and then runs the button, and is disabled while a change is invalid, as Save is. Run without saving runs it with the changes pending. Save and run stands for the button's confirmation too, with the confirmation's title and message, and is red for a dangerous one, so a button never asks twice. The button's help line says beforehand that it asks to save first. An MCM button does not ask: an MCM change is made as it is made, so the script reads it already; see [MCM compatibility](architecture.md#mcm-compatibility). A console command, a link and a function of the mod's DLL, which has the `live` values as a preview, run with the changes pending and do not ask.
+- `style` `important`: outline, text and icon in the accent color, which no menu state uses. Keep it for the one or two buttons a player must find; if everything is important nothing stands out.
+- `style` `dangerous`: red, for irreversible actions. Always confirms: its `confirmation` in red, or one made from the button (`text` + `?` as title, `help` as message, `buttonText` or `Run` as the confirm button). A `dangerous` confirmation makes its button dangerous.
+- `icon`, drawn in the text color before it: `play`, `stop`, `bolt`, `target`, `check`, `window`, `external`, `link`, `gear`, `import`, `export`, `copy`, `eye`, `hand`, `sound`, `pin`, `refresh`, `trash`. `OpenURL` defaults to `link`.
+- An unknown `style` or `icon` is a warning and ignored. MCM buttons have neither.
 
-Optional confirmation is declarative:
+Buttons take `visibleWhen`, `enabledWhen` and [warnings](#warnings).
+
+**Save first.** Script calls (`CallFunction`/`CallGlobalFunction`) read saved values, so while the mod has unsaved changes a press asks: Cancel, Run without saving (runs with changes pending), Save and run (saves then runs; disabled while a change is invalid). Save and run also stands in for the button's confirmation, with its title and message, red if dangerous, so a button never asks twice. The help line says beforehand that it will ask. MCM buttons don't ask (MCM changes are already made, [MCM compatibility](architecture.md#mcm-compatibility)); console commands, links and native functions (which see `live` previews) run with changes pending.
+
+**Confirmation:**
 
 ```json
 {
@@ -967,11 +767,11 @@ Optional confirmation is declarative:
 
 ## Text, spacers and images
 
-These rows hold no value. `text` and `spacer` are as in an MCM config.
+Rows without a value. `text` and `spacer` are as in MCM.
 
-A `text` is a paragraph in the panel's muted color, wrapped to the width of the rows.
+**`text`** is a paragraph in the muted color, wrapped to the rows' width.
 
-A text row can insert the value of a native client state with `{clientState:name}`:
+**Placeholders.** `{clientState:name}` inserts a state of the selected mod's client (registered with `addState`):
 
 ```json
 [
@@ -980,172 +780,114 @@ A text row can insert the value of a native client state with `{clientState:name
 ]
 ```
 
-The state belongs to the selected mod's client, registered with `addState`, as for a `clientState` condition. Text and conditions share the same cache: a state is asked once per frame, without regard to case, and its displayed value updates on the next frame. Strings are inserted as written, numbers as text, and bools as `true` or `false`. An unavailable state, including one with no native client, shows `Unknown (name)`, using the state name from the placeholder, such as `Unknown (version)`.
+- Shares the conditions' cache: asked once per frame, case-insensitive, updating next frame. Strings as written, numbers as text, bools `true`/`false`. Unavailable (including no client) shows `Unknown (name)`.
+- Resolved after translation and markup, so the value takes the placeholder's formatting as plain text; tags and placeholders inside it aren't interpreted. Line breaks start a new line. Keep a placeholder inside one formatting run (`<b>{clientState:version}</b>`). Plain braces and incomplete or empty placeholders stay as written.
+- Settings', buttons' and sections' `text` and `help` take placeholders too, on one line (a line break becomes a space).
+- `{gameIniSetting:name}` inserts a game INI setting by its [condition](#conditions) name, keeping `:Section` (`{gameIniSetting:iShadowMapResolution:Display}`), with no DLL; missing shows `Unknown (name)`.
+- A native mod's version: register a string state with the DLL's own constant, `modsConfig.addState("version", [] { return std::optional<Value>(std::string(VERSION)); });` (client setup: the framework's [modsconfig README](../../external/F4VR-CommonFramework/src/modsconfig/README.md)).
 
-Placeholders are resolved after translation and markup parsing, so a value inherits the placeholder's formatting and is shown as plain text. Tags and placeholders inside a returned value are not interpreted. Line breaks in a returned string start another line. Keep each placeholder inside one formatting run, such as `<b>{clientState:version}</b>`. Ordinary braces and incomplete or empty placeholders stay as written.
-
-The text and the help of a setting, a button and a section take placeholders too, as `"text": "Use {clientState:profile}"`. They are on one line, so a line break in a returned string is a space.
-
-A text inserts a setting of the game's INI the same way with `{gameIniSetting:name}`, as `"Shadow map: {gameIniSetting:iShadowMapResolution:Display}"`, by its name as a [condition](#conditions) names it, with no DLL. Its name ends at the `}`, so it keeps its `:Section`. A setting the game does not have shows `Unknown (name)`.
-
-For a version supplied by a native mod, register a string state using the same version constant as the DLL:
-
-```cpp
-modsConfig.addState("version", [] { return std::optional<Value>(std::string(VERSION)); });
-```
-
-Here `VERSION` is the mod's own version constant; see [The native API](../../external/F4VR-CommonFramework/src/modsconfig/README.md) for the client setup.
-
-With `html`, the text takes the tags that MCM configs use, including around placeholders:
+**Tags.** With `"html": true`, MCM's tags, also around placeholders:
 
 ```json
 { "type": "text", "text": "<p align='center'><font size='24'>Calibration</font></p>Stand straight and look ahead.<br><font color='#FFFFFF'>Do not move</font> until it is done.", "html": true }
 ```
 
-| Tag            | What it does                                                                                          |
-| -------------- | ----------------------------------------------------------------------------------------------------- |
-| `<br>`         | Starts a new line                                                                                     |
-| `<p>`          | A paragraph on lines of its own. Its `align` is `left`, `center` or `right`                           |
-| `<font size>`  | The size of its text, on the scale of MCM's menu: 20 is the size of the rows' text                    |
-| `<font color>` | The color of its text, as `#RRGGBB`                                                                   |
-| `<b>`          | Its text is bold                                                                                      |
-| `<i>`          | Its text is italic. A text that is both bold and italic is bold: the panel has no face for both       |
-| `<u>`          | Its text is underlined, with the spaces between its words                                             |
+| Tag | Effect |
+| --- | --- |
+| `<br>` | New line |
+| `<p>` | Paragraph on its own lines; `align` is `left`, `center` or `right` |
+| `<font size>` | MCM menu scale: 20 is the rows' text size |
+| `<font color>` | `#RRGGBB` |
+| `<b>`, `<i>` | Bold, italic; both is bold (no bold-italic face) |
+| `<u>` | Underlined, including spaces between words |
 
-A size is a size of MCM's menu, where the ordinary text is about 20, so a text copied from an MCM config looks here as it does there: a 40 is twice the rows' text and a 10 is half of it. The panel draws a size at 1.05 times its number, as its rows' text is 21 px. A size is not limited: a small one is hard to read in the headset, and it is the author's to choose.
+Sizes follow MCM so copied text looks the same: 40 is twice the rows' text, 10 half. The panel draws a size at 1.05× its number (rows are 21 px). Sizes aren't limited; small ones are the author's call. Other tags are dropped, keeping their text; entities (`&amp;`) are decoded. `help` is plain text; MCM help tags are stripped ([Help line](ui-and-vr-interaction.md#help-line)).
 
-Any other tag is dropped and its text is kept. Entities, as `&amp;`, are decoded.
-
-A `help` is plain text. The tags that an MCM config has in a help are removed; see [Help line](ui-and-vr-interaction.md#help-line).
-
-A `spacer` is empty space, one line high or `numLines`:
+**`spacer`**: empty space, one line or `numLines`.
 
 ```json
 { "type": "spacer", "numLines": 2 }
 ```
 
-An MCM `image` names a picture inside the mod's SWF, which a config spec does not have. A config spec's `image` names a texture file by its path under `Data/Textures`, and can give the size it is drawn at, in the panel's pixels:
+**`image`**: MCM names a picture in the mod's SWF; a config spec names a texture under `Data/Textures`, with optional size in panel pixels:
 
 ```json
 { "type": "image", "texture": "MyMod/config/logo.dds", "width": 512, "height": 128 }
 ```
 
-The texture is loaded by the game, as a texture of a mesh is, from a loose file or a BA2 archive, in any DDS format the game reads. With no size it is drawn at its own, and with one side alone the other is of its aspect. One wider than the rows is as wide as they are. A texture the game does not load is a box of its size that names it, and the help line has the reason while the ray is on it, as the log has it.
+Loaded by the game like a mesh texture (loose or BA2, any DDS format the game reads). No size: its own; one side: the other keeps the aspect; wider than the rows: shrunk to fit. An unloadable texture is a box of its size naming it, with the reason in the help line and log.
 
-A warning is a `text` row, as in MCM. The one warning the host draws itself is the mark of a setting that needs a restart; see [When a change takes effect](#when-a-change-takes-effect).
+A warning to the player is a `text` row, as in MCM; the only one the host draws is the restart mark ([When a change takes effect](#when-a-change-takes-effect)).
 
 ## Validation
 
-The limits in `valueOptions` cover ordinary scalar validation:
+`valueOptions` limits are the whole validation; the mod isn't asked and cross-setting expressions aren't planned.
 
 ```json
-{
-  "valueOptions": {
-    "min": 0.5,
-    "max": 1.5,
-    "step": 0.01
-  }
-}
+{ "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 } }
 ```
 
 ```json
-{
-  "valueOptions": {
-    "allowEmpty": false,
-    "minLength": 1,
-    "maxLength": 64
-  }
-}
+{ "valueOptions": { "allowEmpty": false, "minLength": 1, "maxLength": 64 } }
 ```
 
-`allowEmpty` of false is a `minLength` of 1. A length is counted in characters, not bytes. A text input takes no character past its `maxLength` as it is typed.
-
-Choice values must be members of their declared options.
-
-These limits are the whole validation. The mod's code is not asked, and expressions across settings are not planned.
-
-Config spec/schema errors disable only the affected content where safe and appear in diagnostics: in the log, and to the config spec's author in [Developer tools](ui-and-vr-interaction.md#developer-tools). A config spec that cannot be read at all is [not available](ui-and-vr-interaction.md#notices). Player input errors disable Save until corrected.
+- `allowEmpty: false` equals `minLength: 1`. Lengths count characters, not bytes; typing stops at `maxLength`.
+- Choice values must be among their options.
+- Config spec errors disable only the affected content where safe and go to the log and [Developer tools](ui-and-vr-interaction.md#developer-tools); an unreadable config spec is [not available](ui-and-vr-interaction.md#notices). Invalid player input disables Save until fixed.
 
 ## Localization
 
-A text the player sees has one of three forms. Plain text is always valid:
+Every player-visible text (mod and page names, sections, settings, helps, options and their short texts, button texts, confirmations, units) takes one of three forms:
 
 ```json
-{
-  "text": "Player Height",
-  "help": "Adjusts the estimated player height."
-}
+{ "text": "Player Height" }
 ```
-
-A text that starts with `$` is a token, as in an MCM config:
 
 ```json
-{
-  "text": "$MyMod_PlayerHeight"
-}
+{ "text": "$MyMod_PlayerHeight" }
 ```
-
-A token with a fallback keeps the English text in the config spec:
 
 ```json
-{
-  "text": {
-    "token": "$MyMod_PlayerHeight",
-    "fallback": "Player Height"
-  }
-}
+{ "text": { "token": "$MyMod_PlayerHeight", "fallback": "Player Height" } }
 ```
 
-The translations are the game's translation files, the ones a mod with an MCM menu already has:
+Translations are the game's translation files, as MCM mods already have: `Data/Interface/Translations/MyMod_en.txt`, `MyMod_fr.txt`. Each line is a token, a tab, the text; files are UTF-16 LE with a BOM (the only form F4SE reads).
 
-```text
-Data/Interface/Translations/
-├── MyMod_en.txt
-└── MyMod_fr.txt
-```
+- F4SE loads `<plugin>_<language>.txt` for each enabled plugin in the game's language, with no English fallback; tokens are looked up among them as for MCM.
+- A mod without a game plugin: the host reads `<modName>_<language>.txt` itself.
+- The `fallback` shows when no file has the token, so English fallbacks need no English file.
+- A token without a fallback that no file has shows as written, with a diagnostic, as in MCM.
 
-Each line of a file is a token, a tab, and its text. A file is UTF-16 LE with a byte order mark, which is the only form F4SE reads.
-
-Rules:
-
-- F4SE loads one file for every enabled game plugin, named `<plugin>_<language>.txt`, for the language the game is set to. It does not fall back to English. The host looks a token up among them, as it does for an MCM config.
-- A mod with no game plugin has no file loaded by F4SE. The host reads `<modName>_<language>.txt` for its config spec itself.
-- The fallback is shown when no file has the token: the game is set to a language the mod has no file for, or the file misses the token. So a config spec whose fallbacks are English needs no English file.
-- A token with no fallback is shown as it is written when no file has it, as in MCM, with a diagnostic.
-- Every text the player sees takes these forms: the name of a mod and of a page, a section, a setting, a help, an option and its short text, the text on a button, a confirmation, and a unit.
-
-A language can be shown only if the UI font has its characters. The font covers Western European languages today; wider coverage is an open question.
-
-This is what an MCM config does, with the fallback added. The texts of an MCM config therefore carry over to a config spec as they are.
+A language shows only if the UI font has its glyphs: Western European today; wider coverage is open. MCM texts carry over to a config spec as they are.
 
 ## A config spec and MCM
 
-A config spec has what an MCM config has, by MCM's names, and more:
+Beyond MCM, a config spec has:
 
-- Its settings are kept in the mod's own INI and TOML files, and in globals and properties of its scripts.
-- Every setting has a `default`, for Reset, and can be read-only. A number has its `display`.
-- A setting and a button can warn while a condition holds.
-- `applies` says when a change takes effect.
-- A condition compares any value with its operators, can enable a row as well as show it, and can ask whether a plugin is loaded, and a setting of the game's INI.
-- Sections nest and fold, and pages nest.
-- A parameter has its type as a JSON value.
-- A button can run a console command or a function of the mod's DLL, has its own text, and can ask for a confirmation.
-- The mod and each page have a help, and the mod's DLL is told which of its pages is shown.
-- A text can have a fallback, and an image is a texture file.
+- Settings in the mod's own INI and TOML files, plus globals and properties.
+- A `default` on every setting, read-only settings, and number `display`.
+- Warnings on settings and buttons.
+- `applies`.
+- Conditions that compare any value, enable as well as show, and check loaded plugins and game INI settings.
+- Nesting, folding sections and nesting pages.
+- Typed JSON parameters.
+- Buttons that run console commands or DLL functions, with their own text and confirmations.
+- Help on the mod and pages, and pages told to the mod's DLL.
+- Text fallbacks, and images as texture files.
 
-What an MCM config has that a config spec does not, and what the config spec has in its place:
+What MCM has and what replaces it:
 
-| MCM                                                    | A config spec                                                                                          |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `hiddenSwitcher`, set by a script to show rows         | A condition on a value, as a dropdown's, or on a loaded plugin. A row shown by game state that changes, as a mod's busy warning, is a condition on a state of the mod's client |
-| `groupControl` and `groupCondition`, groups by number  | `visibleWhen` and `enabledWhen`, which name settings by their ids                                  |
-| `{i}`, `{f}` and `{b}` in the text of a parameter      | A JSON value with its type                                                                         |
-| `{value}` in the text of a parameter                   | A parameter that is exactly `"{value}"`, in the setting's type                                     |
-| A switcher with no storage that shows hidden rows      | A section that folds                                                                               |
-| `textinputInt`, `textinputFloat`                       | A `textinput` whose `valueType` is `int` or `float`                                                |
-| ModSetting storage                                     | A key of the config spec's file, which scripts read through the Papyrus API                            |
-| `hotkey`, `keyinput`                                   | The [InputBinding](controls.md#commonframework-specific-controls) control, for a CommonFramework mod |
-| `dropdownFiles`                                        | A dropdown with a `listFromFolder`; see [Options from a folder](#options-from-a-folder)             |
-| `textFrom...` and `helpFrom...`, a row's text from the game | A `{clientState:name}` in the text or the help, for a mod's DLL; see [Text, spacers and images](#text-spacers-and-images). A form's name is written by the author, translated with a `$` token |
-| `positioner`, `CallExternalFunction`                   | None: they are of MCM's own Flash menu                                                             |
-| `ownerModName`, pages under another mod                | None: a config spec's pages are its mod's alone                                                        |
+| MCM | A config spec |
+| --- | --- |
+| `hiddenSwitcher`, set by a script to show rows | A condition on a value or loaded plugin; for changing game state (a busy warning), a condition on a client state |
+| `groupControl` / `groupCondition` by number | `visibleWhen` / `enabledWhen` naming setting ids |
+| `{i}`, `{f}`, `{b}` in parameter text | Typed JSON values |
+| `{value}` in parameter text | A parameter exactly `"{value}"`, in the setting's type |
+| A storage-less switcher that shows hidden rows | A folding section |
+| `textinputInt`, `textinputFloat` | `textinput` with `valueType` `int` / `float` |
+| ModSetting storage | A file key, read by scripts through the Papyrus API |
+| `hotkey`, `keyinput` | [InputBinding](controls.md#commonframework-specific-controls), for CommonFramework mods |
+| `dropdownFiles` | A dropdown with [`listFromFolder`](#options-from-a-folder) |
+| `textFrom…` / `helpFrom…` | `{clientState:name}` in text or help ([Text, spacers and images](#text-spacers-and-images)); form names are written by the author and translated with `$` tokens |
+| `positioner`, `CallExternalFunction` | None: MCM's Flash menu only |
+| `ownerModName`, pages under another mod | None: a config spec's pages are its own |
