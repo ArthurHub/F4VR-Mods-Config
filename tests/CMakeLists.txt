@@ -1,57 +1,64 @@
-# Unit tests for the mod's code that does not need the running game: the settings model and its loaders.
-# The executable compiles the sources it covers, with the mod's PCH, and links the framework and CommonLibF4 as the
-# mod does, so the code under test can use both. There is no game in the process: Setup.cpp sets REL::NO_GAME, so
-# CommonLibF4 resolves every game address into a range that cannot be used, and a test that calls the game fails
-# with an access violation.
+# The mod's unit tests, run with ctest, built of the framework's test pieces
+# (external/F4VR-CommonFramework/docs/mod-tests.md). The mod's code under test needs the framework and CommonLibF4, and
+# not the game to run, so every test is in linked/: its executable compiles the sources it covers, with the mod's PCH,
+# and links the framework and CommonLibF4 as the mod does.
+# Test files sit in a folder per src/ area, and the folder starts each test's CTest name ("linked: model: ...").
+# A test file is named *Tests.cpp, and its name is unique across the folders.
 
-find_package(Catch2 3 CONFIG REQUIRED)
+if(NOT TARGET F4VRCommon::test_main)
+  message(FATAL_ERROR ">> Catch2 not found for the unit tests. Add \"catch2\" to vcpkg.json, or configure with -DMOD_BUILD_TESTS=OFF.")
+endif()
 
-add_executable(${PROJECT_NAME}_tests
-  ColorsTests.cpp
-  ConditionsTests.cpp
-  FallUITranslationsTests.cpp
-  FileChoicesTests.cpp
-  FullPanelRenderTests.cpp
-  FullPanelTests.cpp
-  IniFileTests.cpp
-  InputBindingsTests.cpp
-  LiveCopiesTests.cpp
-  McmGameTextsTests.cpp
-  McmLoaderTests.cpp
-  McmStoreTests.cpp
-  MenuControlsTests.cpp
-  ModFileTests.cpp
-  NativeClientsTests.cpp
-  NumbersTests.cpp
-  ParseCacheTests.cpp
-  SearchTests.cpp
-  ConfigSpecLoaderTests.cpp
-  ConfigSpecStoreTests.cpp
-  SwfImagesTests.cpp
-  TextMarkupTests.cpp
-  TextStatesTests.cpp
-  TomlFileTests.cpp
-  TransformTuningTests.cpp
-  TransformsTests.cpp
-  TranslationsTests.cpp
-  Setup.cpp
-  TestActions.cpp
-  TestActions.h
-  TestClients.h
-  TestEvents.cpp
-  TestEvents.h
-  TestFiles.h
-  TestGlobals.cpp
-  TestGlobals.h
-  TestIniSettings.cpp
-  TestIniSettings.h
-  TestProperties.cpp
-  TestProperties.h
-  TestSwf.h
-  TestPanel.h
+
+# >>> The tests of linked/, linked with the framework and CommonLibF4. There is no game in the process:
+# F4VRCommon::test_no_game sets REL::NO_GAME, so CommonLibF4 resolves every game address into a range that cannot be
+# used, and a test that calls the game fails with an access violation.
+add_executable(${PROJECT_NAME}_linked_tests
+  linked/api/NativeClientsTests.cpp
+  linked/mcm/FallUITranslationsTests.cpp
+  linked/mcm/McmGameTextsTests.cpp
+  linked/mcm/McmLoaderTests.cpp
+  linked/mcm/McmStoreTests.cpp
+  linked/mcm/SwfImagesTests.cpp
+  linked/model/ColorsTests.cpp
+  linked/model/ConditionsTests.cpp
+  linked/model/FileChoicesTests.cpp
+  linked/model/InputBindingsTests.cpp
+  linked/model/ParseCacheTests.cpp
+  linked/model/SearchTests.cpp
+  linked/model/TextMarkupTests.cpp
+  linked/model/TextStatesTests.cpp
+  linked/model/TransformTuningTests.cpp
+  linked/model/TransformsTests.cpp
+  linked/model/TranslationsTests.cpp
+  linked/spec/ConfigSpecLoaderTests.cpp
+  linked/spec/ConfigSpecStoreTests.cpp
+  linked/spec/IniFileTests.cpp
+  linked/spec/LiveCopiesTests.cpp
+  linked/spec/ModFileTests.cpp
+  linked/spec/TomlFileTests.cpp
+  linked/ui/FullPanelRenderTests.cpp
+  linked/ui/FullPanelTests.cpp
+  linked/ui/MenuControlsTests.cpp
+  linked/ui/NumbersTests.cpp
+  # the helpers the tests share, beside the area folders
+  linked/TestActions.cpp
+  linked/TestActions.h
+  linked/TestClients.h
+  linked/TestEvents.cpp
+  linked/TestEvents.h
+  linked/TestFiles.h
+  linked/TestGlobals.cpp
+  linked/TestGlobals.h
+  linked/TestIniSettings.cpp
+  linked/TestIniSettings.h
+  linked/TestPanel.h
+  linked/TestProperties.cpp
+  linked/TestProperties.h
+  linked/TestSwf.h
   # the mod's sources under test. Not GameActions.cpp, GameGlobals.cpp, GameIniSettings.cpp, GameProperties.cpp and
-  # mcm/McmEvents.cpp, which call the game: TestActions.cpp, TestEvents.cpp, TestGlobals.cpp, TestIniSettings.cpp
-  # and TestProperties.cpp have the tests' own functions in their place
+  # mcm/McmEvents.cpp, which call the game: linked/TestActions.cpp, linked/TestEvents.cpp, linked/TestGlobals.cpp,
+  # linked/TestIniSettings.cpp and linked/TestProperties.cpp have the tests' own functions in their place
   ${SOURCE_DIR}/api/NativeClients.cpp
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp
@@ -114,11 +121,11 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/UnsavedDialog.cpp
 )
 
-# No link-time optimization: the tests don't need it, and it makes their link slow
-set_target_properties(${PROJECT_NAME}_tests PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+# No link-time optimization, which the framework's test pieces are not compiled for
+set_target_properties(${PROJECT_NAME}_linked_tests PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
 
-target_compile_features(${PROJECT_NAME}_tests PRIVATE cxx_std_23)
-target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE
+target_compile_features(${PROJECT_NAME}_linked_tests PRIVATE cxx_std_23)
+target_compile_definitions(${PROJECT_NAME}_linked_tests PRIVATE _UNICODE
   # where FullPanelRenderTests.cpp saves its images
   MODS_CONFIG_TEST_OUTPUT_DIR="${CMAKE_CURRENT_BINARY_DIR}/render"
   # the MCM showcase, which is an optional file of the mod
@@ -129,14 +136,14 @@ target_compile_definitions(${PROJECT_NAME}_tests PRIVATE _UNICODE
   # the config spec showcase, which is an optional file of the mod
   MODS_CONFIG_SPEC_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/ModsConfigFO4/Config"
 )
-target_include_directories(${PROJECT_NAME}_tests PRIVATE ${BUILD_DIR}/include ${SOURCE_DIR})
-target_precompile_headers(${PROJECT_NAME}_tests PRIVATE ${SOURCE_DIR}/PCH.h)
-target_compile_options(${PROJECT_NAME}_tests PRIVATE /utf-8 /permissive- /W4 /external:anglebrackets /external:W0)
-target_link_libraries(${PROJECT_NAME}_tests PRIVATE F4VRCommon::framework Catch2::Catch2WithMain ZLIB::ZLIB delayimp)
+# linked/ for the helpers the tests share ("TestPanel.h")
+target_include_directories(${PROJECT_NAME}_linked_tests PRIVATE ${BUILD_DIR}/include ${SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/linked)
+target_precompile_headers(${PROJECT_NAME}_linked_tests PRIVATE ${SOURCE_DIR}/PCH.h)
+target_compile_options(${PROJECT_NAME}_linked_tests PRIVATE /utf-8 /permissive- /W4 /external:anglebrackets /external:W0)
+target_link_libraries(${PROJECT_NAME}_linked_tests PRIVATE F4VRCommon::framework F4VRCommon::test_main F4VRCommon::test_no_game ZLIB::ZLIB delayimp)
 
 # openvr_api.dll is in the game's folder and not here, and the executable would not start without it. So it is
 # loaded on its first call, which no test makes. Release drops the unused import whole, hence the ignored warning.
-target_link_options(${PROJECT_NAME}_tests PRIVATE /DELAYLOAD:openvr_api.dll /IGNORE:4199)
+target_link_options(${PROJECT_NAME}_linked_tests PRIVATE /DELAYLOAD:openvr_api.dll /IGNORE:4199)
 
-include(Catch)
-catch_discover_tests(${PROJECT_NAME}_tests)
+f4cf_discover_tests_by_folder(${PROJECT_NAME}_linked_tests)

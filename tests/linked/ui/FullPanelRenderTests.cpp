@@ -36,7 +36,7 @@
 
 // The Full panel drawn without the game and saved as an image, to look at a change of the UI before it is tried
 // in the headset. They check nothing, so they are not run with the other tests. Run them by their tag:
-//     ModsConfigFO4VR_tests "[render]"
+//     ModsConfigFO4VR_linked_tests "[render]"
 // Each says where its image is, a .bmp file in the build folder.
 
 using namespace mods_config;

@@ -12,11 +12,11 @@ Mods Config FO4 VR (`ModsConfigFO4VR`) is a C++23 F4SE plugin for Fallout 4 VR, 
 cmake --preset default                                    # VS 2026; the vs2022 preset for VS 2022
 cmake --build --preset release                            # or debug / tracy / package
 ctest --test-dir build -C Release --output-on-failure     # the unit tests
-build/tests/Release/ModsConfigFO4VR_tests "<test name>"   # one test
+build/tests/Release/ModsConfigFO4VR_linked_tests "<test name>"   # one test
 ```
 
 - Prerequisites, presets, copying the DLL to the game, packaging and CI: [docs/agents/build.md](docs/agents/build.md).
-- Catch2 unit tests in `tests/` cover the game-free code; the pytest tests in [tests/e2e/](tests/e2e/README.md) drive the running game and are run by hand. Before adding or writing a test, read [docs/agents/testing.md](docs/agents/testing.md).
+- Catch2 unit tests in `tests/linked/<src area>/` cover the game-free code, built of the framework's test pieces; the pytest tests in [tests/e2e/](tests/e2e/README.md) drive the running game and are run by hand. Before adding or writing a test, read [docs/agents/testing.md](docs/agents/testing.md).
 - After editing code, run `pre-commit run --files <changed files>`: it formats `src/` and `tests/` with clang-format and runs the repo's checks.
 
 ## Code style

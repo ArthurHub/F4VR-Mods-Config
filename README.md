@@ -87,7 +87,7 @@ It needs Visual Studio 2022 or 2026 (x64, C++ desktop workload), CMake 4.2+ and 
 
 - `cmake --build --preset package` builds the versioned `.7z` in `build/package/`, and the optional Showcase archive from `data/showcase/`.
 - `cmake --build --preset tracy` is a Release build whose timed sections are also [Tracy](https://github.com/wolfpld/tracy) zones.
-- The build also makes `ModsConfigFO4VR_tests`, the unit tests of the code that does not need the game: `ctest --test-dir build -C Release --output-on-failure`.
+- The build also makes `ModsConfigFO4VR_linked_tests`, the unit tests of the code that does not need the game: `ctest --test-dir build -C Release --output-on-failure`.
 - `CMakeUserPresets.json.template` has a preset that copies the DLL to your game on each build.
 
 The design is in [docs/design/](docs/design/README.md).

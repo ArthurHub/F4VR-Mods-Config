@@ -8,8 +8,8 @@
 #include "model/ConfigDefinition.h"
 
 // The values a store reads and writes in the game, for a setting of an MCM mod and of a config spec. The mod's are
-// in GameGlobals.cpp, GameProperties.cpp and GameIniSettings.cpp, and the tests' in tests/TestGlobals.cpp,
-// tests/TestProperties.cpp and tests/TestIniSettings.cpp, which keep them in a map.
+// in GameGlobals.cpp, GameProperties.cpp and GameIniSettings.cpp, and the tests' in tests/linked/TestGlobals.cpp,
+// tests/linked/TestProperties.cpp and tests/linked/TestIniSettings.cpp, which keep them in a map.
 namespace mods_config
 {
     // The value of a global of the game, and none for one that is not in the game. Setting one returns false

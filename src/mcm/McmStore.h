@@ -25,12 +25,12 @@ namespace mods_config::mcm
 
     // Sends an event of MCM's menu to the scripts that wait for it, with the texts their function takes.
     // The mod's is in McmEvents.cpp, which calls the scripts of the game, and the tests' in
-    // tests/TestEvents.cpp, which keeps what is sent.
+    // tests/linked/TestEvents.cpp, which keeps what is sent.
     void sendEvent(const std::string& event, const std::vector<std::string>& arguments = {});
 
     // Tells the game's listeners of its menus that the pause menu opened and then closed, which it did not: a
     // DLL reads its MCM file as the pause menu closes, which MCM's menu is in. The mod's is in McmEvents.cpp,
-    // and the tests' in tests/TestEvents.cpp, which keeps the two events as sent.
+    // and the tests' in tests/linked/TestEvents.cpp, which keeps the two events as sent.
     void sendPauseMenuEvents();
 
     /**

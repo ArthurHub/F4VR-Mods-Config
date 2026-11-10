@@ -1,7 +1,7 @@
 """Writes the pictures of the config spec showcase walkthrough: a PNG of each of its pages and of the editors a
 press opens, from the render tests.
 
-    build/tests/Release/ModsConfigFO4VR_tests "[render]"   (ctest does not run them)
+    build/tests/Release/ModsConfigFO4VR_linked_tests "[render]"   (ctest does not run them)
     python tools/gen_docs_renders.py
 
 It reads the renders in build/tests/render/ and writes docs/assets/showcase/, each in 256 colors, which a flat

@@ -247,9 +247,10 @@ add_custom_target(package_mod
 add_dependencies(package_mod ${PROJECT_NAME})
 
 
-# >>> Unit tests for the code that does not need the running game (tests/), run with ctest
-option(MODS_CONFIG_BUILD_TESTS "Build the mod's unit tests" ON)
-if(MODS_CONFIG_BUILD_TESTS)
+# >>> Unit tests (tests/), run with `ctest --test-dir build -C Release`. They need catch2 in vcpkg.json.
+# See external/F4VR-CommonFramework/docs/mod-tests.md
+option(MOD_BUILD_TESTS "Build the mod's unit tests" ON)
+if(MOD_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
