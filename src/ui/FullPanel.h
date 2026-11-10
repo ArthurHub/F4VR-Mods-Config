@@ -20,6 +20,7 @@
 #include "TitleBar.h"
 #include "UnsavedDialog.h"
 #include "model/ConfigDefinition.h"
+#include "model/Search.h"
 #include "model/Store.h"
 
 namespace mods_config::ui
@@ -190,6 +191,7 @@ namespace mods_config::ui
         bool leave();
         bool leaveReport(bool toDeveloper);
         void updateStatus();
+        void updateSearch();
         void pageShown();
         bool pressButton(TitleButton button);
         void drawFooter(const ImVec2& pos);
@@ -241,6 +243,20 @@ namespace mods_config::ui
 
         // the item of the selected mod whose row the ray is on, which its store was told last: none for no row
         const model::Item* _pointedItem = nullptr;
+
+        // the search field's query as it was last searched, its words, and what it found in each mod, by the mod's
+        // place, with the mod that was selected then, whose conditions were asked of its store
+        std::string _searchText;
+        model::SearchQuery _query;
+        std::vector<std::optional<model::ModFound>> _found;
+        std::optional<std::size_t> _searchedMod;
+        std::size_t _matches = 0;
+
+        // every mod is searched again in the next frame, as the mods changed
+        bool _searchStale = false;
+
+        // the MCM mods' rows have the texts they take from the game, which are read once as a search starts
+        bool _searchTextsRead = false;
 
         // the Developer tools as the settings have them, the front page's section of them, and what writes a change
         DeveloperView _developerView;

@@ -171,6 +171,7 @@ namespace mods_config::ui
             updateStatus();
             _modTree.showSelection();
         }
+        _searchStale = true;
         _liveCopyReads[folder] =
             LiveCopyRead{ .result = dropped == 0 ? std::format("Reloaded at {}.", time)
                                                  : std::format("Reloaded at {}: {} unsaved change{} dropped.", time, dropped, dropped == 1 ? " was" : "s were"),
@@ -632,8 +633,8 @@ namespace mods_config::ui
             _leaving.reset();
             return true;
         }
-        if (_modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() || _modPage.cancelColorEdit() ||
-            _modPage.cancelTransformEdit() || showHelp(false)) {
+        if (_modTree.endSearchEdit() || _modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() ||
+            _modPage.cancelColorEdit() || _modPage.cancelTransformEdit() || showHelp(false)) {
             return true;
         }
         if (_report) {
@@ -705,6 +706,60 @@ namespace mods_config::ui
         _pointedItem = nullptr;
         updateStatus();
         _modTree.showTop();
+        _modTree.clearSearch();
+        _searchText.clear();
+        _query = {};
+        _found.clear();
+        _searchedMod.reset();
+        _matches = 0;
+        _searchStale = false;
+        _searchTextsRead = false;
+    }
+
+    /**
+     * Searches the mods for the query of the search field, before the tree is drawn. Every mod is searched as the
+     * query changes, as another mod is selected and as the mods change, and the selected mod in each frame, as its
+     * conditions are asked of its store and its values change. Another mod has no store, so its conditions hold.
+     * As a search first starts since the menu opened, the MCM mods' rows read the texts they take from the game,
+     * which the selected mod alone has, so they are found by them too. A query that changes scrolls the tree to its top.
+     */
+    void FullPanel::updateSearch()
+    {
+        F4CF_PERF_FUNCTION();
+        const auto& text = _modTree.query();
+        if (text != _searchText) {
+            _searchText = text;
+            _query = model::SearchQuery(text);
+            _searchStale = true;
+            _modTree.showTop();
+        }
+        if (_query.empty()) {
+            _found.clear();
+            _matches = 0;
+            return;
+        }
+        if (!_searchTextsRead && _mcmStore) {
+            for (auto& mod : _mods) {
+                if (mod.source == model::Source::Mcm && mod.notAvailable.empty()) {
+                    _mcmStore->readTexts(mod);
+                }
+            }
+            _searchTextsRead = true;
+        }
+        if (_searchStale || _searchedMod != _selection.mod || _found.size() != _mods.size()) {
+            _found.assign(_mods.size(), std::nullopt);
+            for (std::size_t place = 0; place < _mods.size(); ++place) {
+                _found[place] = model::searchMod(_mods[place], _query, _selection.mod == place ? selectedStore() : nullptr);
+            }
+            _searchedMod = _selection.mod;
+            _searchStale = false;
+        } else if (_selection.mod) {
+            _found[*_selection.mod] = model::searchMod(_mods[*_selection.mod], _query, selectedStore());
+        }
+        _matches = 0;
+        for (const auto& found : _found) {
+            _matches += found ? found->total : 0;
+        }
     }
 
     /**
@@ -749,7 +804,9 @@ namespace mods_config::ui
         const auto bodyPos = ImGui::GetCursorScreenPos();
         const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
 
-        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore());
+        updateSearch();
+        const TreeSearch search{ .query = &_query, .found = &_found, .matches = _matches };
+        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore(), _query.empty() ? nullptr : &search);
         if (tree.pressed) {
             pressed = tree.pressed;
         }
@@ -857,7 +914,7 @@ namespace mods_config::ui
         } else {
             acted = pressButton(titleBar.pressedButton);
         }
-        _pressActed = _pressActed || acted;
+        _pressActed = _pressActed || acted || tree.searchActed;
         drawDialog();
     }
 

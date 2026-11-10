@@ -11,6 +11,7 @@
 
 #include "Theme.h"
 #include "model/ConfigDefinition.h"
+#include "model/Search.h"
 
 // What the parts of the panel draw with, in the look of the design system.
 
@@ -146,6 +147,7 @@ namespace mods_config::ui
     float textWidth(std::string_view text);
     void drawPageText(std::string_view text);
     void drawText(float left, float right, float top, float height, ImU32 color, std::string_view text);
+    void drawUnderlines(float left, float right, float top, float height, ImU32 color, std::string_view text, std::span<const model::TextRange> ranges);
     float drawTextRuns(float left, float right, float top, float height, ImU32 color, std::span<const model::TextRun> runs);
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
     int countTextLines(std::span<const TextPiece> pieces, float width);

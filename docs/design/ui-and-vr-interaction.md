@@ -33,7 +33,7 @@ The primary browsing and editing state.
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ MODS CONFIG FO4 » Immersive Flashlight VR            [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
-│ Mods              │ General                                             │
+│ Search 4 mods     │ General                                             │
 │                   │ Enabled                    [ On ]                   │
 │ ▾ Flashlight      │ Brightness       [-] [====o----] [1.25] [Reset]     │
 │     Beam          │                                                     │
@@ -42,7 +42,7 @@ The primary browsing and editing state.
 │ ▸ Holsters        │                                                     │
 │ ▸ Sim Settlements │                                                     │
 │                   │                                                     │
-│ Search / Filter   │                                                     │
+│                   │                                                     │
 ├───────────────────┴─────────────────────────────────────────────────────┤
 │ Brightness: How bright the beam is. (Default: 1.00) [Discard]  [Save]   │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -89,7 +89,7 @@ What the Full panel shows while no mod is selected. It is what the menu opens on
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ MODS CONFIG FO4                                      [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
-│ Mods              │ Settings for the mods you have installed. Pick a    │
+│ Search 4 mods     │ Settings for the mods you have installed. Pick a    │
 │                   │ mod on the left to see its settings.                │
 │ ▸ Flashlight      │ Version 1.0.0                                       │
 │ ▸ FRIK            │                                                     │
@@ -181,7 +181,7 @@ How the menu works, with the buttons the player's config has: not what every VR 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ MODS CONFIG FO4 » Help                               [?] [Minimize] [X] │
 ├───────────────────┬─────────────────────────────────────────────────────┤
-│ Mods              │ How the menu works, with the buttons your config    │
+│ Search 4 mods     │ How the menu works, with the buttons your config    │
 │                   │ has.                                                │
 │ ▾ Flashlight      │ Navigation ──────────────────────────────────────── │
 │     Beam          │ Pointing at the menu: That hand's trigger and       │
@@ -310,17 +310,19 @@ Keeping the help in one place avoids layout movement and makes it discoverable w
 - A list longer than its area scrolls with the thumbstick while the ray is on it, and shows a scroll bar: the tree, a page's rows, and the list of a dropdown. About nine rows fit in the Full panel's tree, so most lists of mods scroll.
 - The tree always keeps room for its scroll bar, so its rows do not narrow when the bar appears, as when a category or a mod is opened near the bottom.
 - A row that is selected from outside the tree, from a breadcrumb, with Back, or when the panel is shown again, is scrolled into view. A category that is opened near the bottom scrolls to show its first mods.
-- Search comes after the first release, with the localization; see [Search](#search).
+- The tree's header is the search field; see [Search](#search).
 - The selected mod and current page survive minimizing and showing the panel again.
 
 ## Search
 
-The tree's header is a search field, which finds a setting by its name in every mod. It comes after the first release, with the localization ([Mod work plan](mod-plan.md), M91). Until then the header says `Mods` and the count.
+The tree's header is a search field, which finds a setting by its name in every mod ([Mod work plan](mod-plan.md), milestone 12).
 
-- Idle the field says what it searches: "Search 11 mods". A press on it shows the keyboard, as a text input does, and each key filters as it is typed.
-- It finds the names as the player sees them: a mod's display name, a page's, a section's heading and a setting's text, of a config spec and of an MCM mod alike. Not the help. Each word of the query starts a word of the name, in any order, with case and accents ignored, so "hol siz" finds "Holster size".
-- A setting that a condition hides is not found. One that a condition disables is found, and is disabled in the results.
-- While the query has text, the tree has only the mods with a match, flat, each expanded to its pages that have a setting that matches, with how many. A mod whose name matches is there with its pages closed. The match is underlined in each name.
+- Idle the field says what it searches: "Search 11 mods". A press on it shows the keyboard, as a text input does, and each key filters as it is typed. The keyboard's Done and its close button both keep the query, and closing the menu empties it.
+- It finds the names as the player sees them: a mod's display name, a page's, a section's heading, and the text of a setting, a button and a hotkey, of a config spec and of an MCM mod alike, an MCM row's text from the game too. Not the help, and not a text row. Each word of the query starts a word of the name, in any order, with case and accents ignored, so "hol siz" finds "Holster size". A word of Chinese, Japanese or Korean, which put no spaces between words, matches anywhere in the name.
+- A word can match the name of the mod, the page or the section a row is in, as long as one word matches the row's own name: "frik height" finds FRIK's Height.
+- The most specific match wins: a section, a page or a mod whose name matches shows all that is under it only when nothing under it matches.
+- A setting of the selected mod that a condition hides is not found. Another mod's values are not read, so its conditions hold, and its hidden settings are found.
+- While the query has text, the tree has only the mods with a match, flat, each expanded to its pages with a match, with how many on the right: a mod's row has its front page's. A mod found by its name alone is closed, with how many in all, until it is selected. The match is underlined in each name.
 - The content is the results, with the crumbs `MODS CONFIG FO4 » Search`: the settings that match, under a heading for each mod and page. Each is the setting's own row, changed here as on its page, and Save saves it.
 - A press on a row of the tree goes to that page, with the query kept, and the rows that match are underlined there. Back goes back to the results.
 - Clear, in the field, empties the query and gives the tree back. Back from the results empties it too, and goes back to where the player was.

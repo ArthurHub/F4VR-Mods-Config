@@ -24,6 +24,7 @@ add_executable(${PROJECT_NAME}_tests
   NativeClientsTests.cpp
   NumbersTests.cpp
   ParseCacheTests.cpp
+  SearchTests.cpp
   ConfigSpecLoaderTests.cpp
   ConfigSpecStoreTests.cpp
   SwfImagesTests.cpp
@@ -67,6 +68,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/model/FileChoices.cpp
   ${SOURCE_DIR}/model/Haptics.cpp
   ${SOURCE_DIR}/model/InputBindings.cpp
+  ${SOURCE_DIR}/model/Search.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp
   ${SOURCE_DIR}/model/TransformTuning.cpp
@@ -100,6 +102,7 @@ add_executable(${PROJECT_NAME}_tests
   ${SOURCE_DIR}/ui/ConfigSpecReport.cpp
   ${SOURCE_DIR}/ui/PageImages.cpp
   ${SOURCE_DIR}/ui/PageRows.cpp
+  ${SOURCE_DIR}/ui/SearchField.cpp
   ${SOURCE_DIR}/ui/Sections.cpp
   ${SOURCE_DIR}/ui/SettingRow.cpp
   ${SOURCE_DIR}/ui/Sliders.cpp

@@ -2,6 +2,10 @@
 
 Not released: each is a milestone of the [work plan](design/mod-plan.md).
 
+### v0.12.0
+
+- The tree's header is a search field: type a name and the tree shows the mods and pages with a setting that matches, with how many.
+
 ### v0.11.0
 
 - The gesture that opens and closes the menu no longer leaves the game's favorites open.

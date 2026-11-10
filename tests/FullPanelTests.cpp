@@ -5624,3 +5624,104 @@ TEST_CASE("FullPanel: a press on a transform opens its editor, of a slider for e
     drawFrames(panel, 1);
     CHECK(value(3) == "{ pos = [50.0, 0.0, 0.0] }");
 }
+
+namespace
+{
+    /**
+     * The middle of the search field, the tree's header, and of its Clear at its right.
+     */
+    ImVec2 searchField()
+    {
+        return { CONTENT_START + theme::SPACE_2 + 100.0f, CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + TREE_HEADER_HEIGHT * 0.5f };
+    }
+
+    ImVec2 searchClear()
+    {
+        constexpr float ROW_WIDTH = theme::NAV_WIDTH - theme::SPACE_2 - (theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1);
+        return { CONTENT_START + theme::SPACE_2 + ROW_WIDTH - theme::SPACE_1 - 16.0f, searchField().y };
+    }
+
+    /**
+     * A query typed in the search field: a press on it, its characters, and Enter.
+     */
+    void search(FullPanel& panel, const char* query)
+    {
+        CHECK(pressActs(panel, searchField()));
+        typeText(panel, query);
+        pressKey(panel, ImGuiKey_Enter);
+    }
+}
+
+TEST_CASE("FullPanel: a query in the search field filters the tree as it is typed, to the mods and pages that match")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    drawFrames(panel, 2);
+
+    // the field is edited, and each key filters: the rows are Alpha and its page Second
+    CHECK(pressActs(panel, searchField()));
+    CHECK(ImGui::GetActiveID() != 0);
+    typeText(panel, "sec");
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0, 1));
+
+    // the tree stays filtered on the page it went to, and the query can change
+    CHECK(pressActs(panel, searchClear()));
+    search(panel, "only");
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(2, 0));
+
+    // a mod found by its name is closed until it is selected
+    CHECK(pressActs(panel, searchClear()));
+    search(panel, "beta");
+    press(panel, treeRow(0));
+    CHECK(panel.selection() == selectionOf(1));
+}
+
+TEST_CASE("FullPanel: the keyboard's close button keeps the query, Clear empties it, and so does a menu that opens again")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    drawFrames(panel, 2);
+
+    CHECK(pressActs(panel, searchField()));
+    typeText(panel, "sec");
+    pressKey(panel, ImGuiKey_Escape);
+    CHECK(ImGui::GetActiveID() == 0);
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0, 1));
+
+    // the whole tree again: Alpha is open, with its pages First and Second
+    point(panel, searchClear());
+    CHECK(panel.helpLine().text() == "Clear: Empties the search, and shows every mod again.");
+    CHECK(pressActs(panel, searchClear()));
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0, 0));
+
+    search(panel, "only");
+    panel.reset();
+    drawFrames(panel, 2);
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(1));
+}
+
+TEST_CASE("FullPanel: the search field says what it searches, and Back ends its edit with the query kept")
+{
+    const test_panel::PanelContext context;
+    auto panel = threeMods();
+    drawFrames(panel, 2);
+    point(panel, searchField());
+    CHECK(panel.helpLine().text() == "Search: Finds a setting by its name in every mod: the start of each word, in any order.");
+
+    CHECK(pressActs(panel, searchField()));
+    typeText(panel, "gam");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK(ImGui::GetActiveID() == 0);
+
+    // Gamma is found by its name alone, so it is the only row, closed
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == Selection{});
+    press(panel, treeRow(0));
+    CHECK(panel.selection() == selectionOf(2));
+}

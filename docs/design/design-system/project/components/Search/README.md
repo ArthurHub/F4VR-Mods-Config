@@ -1,6 +1,6 @@
 # Search
 
-The search of the mods and their settings: the tree's header is the field, a query filters the tree, and the settings that match are a page of their own. It comes with the localization, after the first release (M91); until then the header says `Mods` and the count.
+The search of the mods and their settings: the tree's header is the field, a query filters the tree, and the settings that match are a page of their own.
 
 **Provides:** the query; the mods and pages with a setting that matches, how many on each page, and the mods whose name matches; the settings that match.
 
@@ -8,24 +8,26 @@ The search of the mods and their settings: the tree's header is the field, a que
 
 - It is the tree's header: 40 px high, the width of the rows, in `track` with a `frame-border` outline and `radius-frame`. A drawn magnifier (20 px), then the text.
 - Idle it says what it searches, in `t-detail` `green-muted`: "Search 11 mods". Hover: `hover`, its text `green`.
-- A press on it shows SteamVR's keyboard, as a [text input](../../../../controls.md#text-input) does. Each key filters as it is typed: the keyboard's text reaches the field as character events.
+- A press on it shows SteamVR's keyboard, as a [text input](../../../../controls.md#text-input) does. Each key filters as it is typed: the keyboard's text reaches the field as character events. Done and the keyboard's close button both keep the query.
 - Typing: a `green` outline, the query in `t-body` `green` with a caret, then how many settings match in `t-detail` `green-muted`, then Clear.
 - With a query and the keyboard closed: the query in `green`, the count and Clear, with the `frame-border` outline.
 - **Clear** is a 32 px icon button (`X`) at the right of the field. It empties the query and gives the tree back. Hover: `hover` with a `frame-border` outline.
 
 ## What it finds
 
-- The names as the player sees them, in their language: a mod's display name, a page's, a section's heading, and a setting's text. Not the help.
-- Each word of the query starts a word of the name, in any order, with case and accents ignored: "hol siz" finds "Holster size", and "ster" finds nothing.
+- The names as the player sees them, in their language: a mod's display name, a page's, a section's heading, and the text of a setting, a button and a hotkey. Not the help, and not a text row.
+- Each word of the query starts a word of the name, in any order, with case and accents ignored: "hol siz" finds "Holster size", and "ster" finds nothing. A word of Chinese, Japanese or Korean matches anywhere in the name.
+- A word can match the name of the mod, the page or the section a row is in, with one word matching the row's own: "frik height" finds FRIK's Height.
+- The most specific match wins: a section, a page or a mod whose name matches shows all that is under it only when nothing under it matches.
 - The settings of MCM mods too, by the text of their rows.
-- A setting a condition hides is not found. One that a condition disables is found, and shown disabled.
+- A setting of the selected mod that a condition hides is not found. Another mod's conditions hold, as its values are not read.
 
 ## The tree while searching
 
-- It has the mods with a match, alphabetical, flat even where the list is grouped by category, each expanded to its pages that have a setting that matches. A page's row has how many on the right, in `t-detail` `green-muted`, and a mod's row how many on its front page.
-- A mod whose name matches is there with all its pages, closed.
-- Where a word of the query starts a word of a row's name, it is underlined: a 2 px line in the text's color under those letters (`AddLine` from the start of the match to its end, at the bottom of the text).
-- A press on a row goes to that page, with the query kept: its rows that match are underlined, and the tree stays filtered. The row is selected as any page's.
+- It has the mods with a match, alphabetical, flat even where the list is grouped by category, each expanded to its pages that have a match. A page's row has how many on the right, in `t-detail` `green-muted`, before the `MCM` tag, and a mod's row how many on its front page.
+- A mod found by its name alone is there closed, with how many in all, until it is selected.
+- Where a word of the query starts a word of a row's name, it is underlined: a 2 px line in the text's color under those letters, at the bottom of the text, which stops where a shortened name ends in its ellipsis.
+- A press on a row goes to that page, with the query kept, and the tree stays filtered. The row is selected as any page's.
 - Nothing matches: the tree says "No mod matches" in `t-body` `green-muted`.
 
 ## The results

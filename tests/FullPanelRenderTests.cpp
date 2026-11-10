@@ -584,6 +584,54 @@ TEST_CASE("FullPanel render: mods that are not available, in the tree and in the
     WARN("Saved " << renderToFile(panel, "mods-not-available", onRow));
 }
 
+TEST_CASE("FullPanel render: the search field idle, under the ray, typed in, with a query and Clear under the ray, and nothing found", "[.render]")
+{
+    const auto specs = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    const float fieldTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2;
+    const ImVec2 onField(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, fieldTop + 20.0f);
+    constexpr float ROW_WIDTH = theme::NAV_WIDTH - theme::SPACE_2 - (theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1);
+    const ImVec2 onClear(test_panel::CONTENT_START + theme::SPACE_2 + ROW_WIDTH - theme::SPACE_1 - 16.0f, onField.y);
+
+    // the test set and the config spec showcase, searched for a query: typed and left in the field, or as it is typed
+    const auto render = [&](const char* query, const bool typing, const std::string& name, const ImVec2 pointer, const std::function<void(FullPanel&)>& after = {}) {
+        auto panel = testSetPanel();
+        auto mods = panel.mods();
+        mods.insert(mods.end(), specs.begin(), specs.end());
+        panel.setMods(std::move(mods));
+        WARN("Saved " << renderToFile(panel, name, pointer, false, [&] {
+            if (!*query) {
+                return;
+            }
+            for (const bool held : { false, false, true, false, false }) {
+                test_panel::drawFrame(panel, onField, held);
+            }
+            ImGui::GetIO().AddInputCharactersUTF8(query);
+            test_panel::drawFrame(panel, POINTER_AWAY);
+            if (!typing) {
+                for (const bool down : { true, false }) {
+                    ImGui::GetIO().AddKeyEvent(ImGuiKey_Enter, down);
+                    test_panel::drawFrame(panel, POINTER_AWAY);
+                }
+            }
+            if (after) {
+                after(panel);
+            }
+        }));
+    };
+    render("", false, "search-idle", POINTER_AWAY);
+    render("", false, "search-idle-under-ray", onField);
+    render("col", true, "search-typing", POINTER_AWAY);
+    render("col", false, "search-query-clear-under-ray", onClear, [](FullPanel& panel) {
+        select(panel, "Mods Config FO4: Showcase");
+    });
+    // a page of one mod is selected, and not the page in the same place of another
+    render("col", false, "search-page-selected", POINTER_AWAY, [](FullPanel& panel) {
+        select(panel, "FallUI - Inventory", { "    Coloring" });
+    });
+    render("show col", false, "search-query-mod-and-row", POINTER_AWAY);
+    render("holz", true, "search-nothing-found", POINTER_AWAY);
+}
+
 TEST_CASE("FullPanel render: a mod's front page, with the ray on the row of another mod", "[.render]")
 {
     auto panel = testSetPanel();

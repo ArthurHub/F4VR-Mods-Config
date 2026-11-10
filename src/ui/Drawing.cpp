@@ -48,6 +48,9 @@ namespace
     constexpr float UNDERLINE_OFFSET = 0.0625f;
     constexpr float UNDERLINE_THICKNESS = 0.042f;
 
+    // the line of the search under a match, at the bottom of the text, as the design system's Search has it
+    constexpr float SEARCH_UNDERLINE = 2.0f;
+
     // the text of the Restart mark, and its height: a line of the detail size of 22 inside its outline, as the
     // design system's tag has it
     constexpr auto RESTART_TEXT = "Restart";
@@ -269,6 +272,28 @@ namespace mods_config::ui
         ImGui::PushStyleColor(ImGuiCol_Text, color);
         ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), ImVec2(left, y), ImVec2(right, y + ImGui::GetFontSize()), right, text.data(), text.data() + text.size(), nullptr);
         ImGui::PopStyleColor();
+    }
+
+    /**
+     * The line of the search under ranges of the bytes of a line of text that `drawText` drew from `left`: 2 px at
+     * the bottom of the text, in its color. A text that ends in an ellipsis has no line past the letters before it.
+     */
+    void drawUnderlines(const float left, const float right, const float top, const float height, const ImU32 color, const std::string_view text,
+        const std::span<const model::TextRange> ranges)
+    {
+        if (ranges.empty()) {
+            return;
+        }
+        const float bottom = top + (height + ImGui::GetFontSize()) * 0.5f;
+        const float shown = textWidth(text) <= right - left ? right : right - textWidth("\xE2\x80\xA6");
+        auto* drawList = ImGui::GetWindowDrawList();
+        for (const auto& range : ranges) {
+            const float start = left + textWidth(text.substr(0, range.begin));
+            const float end = (std::min)(left + textWidth(text.substr(0, range.end)), shown);
+            if (end > start) {
+                drawList->AddRectFilled(ImVec2(start, bottom - SEARCH_UNDERLINE), ImVec2(end, bottom), ImGui::GetColorU32(color));
+            }
+        }
     }
 
     /**
