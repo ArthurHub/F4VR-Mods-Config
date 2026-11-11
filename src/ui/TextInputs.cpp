@@ -22,11 +22,13 @@ namespace
     constexpr const char* FIELD_ID = "##field";
 
     /**
-     * The box of a text input that ends at the right of the control column.
+     * The box of a text input that ends at the right of the control column, and of a dropdown whose new value is typed:
+     * the dropdown's own box.
      */
-    ImRect fieldBox(const float right, const float top)
+    ImRect fieldBox(const model::Setting& setting, const float right, const float top)
     {
-        return ui::controlBox(right - FIELD_WIDTH, top, FIELD_WIDTH);
+        const float width = setting.type == model::SettingType::Dropdown ? ui::DROPDOWN_WIDTH : FIELD_WIDTH;
+        return ui::controlBox(right - width, top, width);
     }
 
     /**
@@ -93,7 +95,7 @@ namespace mods_config::ui
         }
 
         // drawn under the field, which draws its text and caret alone
-        const auto box = fieldBox(right, top);
+        const auto box = fieldBox(setting, right, top);
         drawFrame(box);
         drawOutline(box.Min, box.Max, theme::color::GREEN);
 
@@ -112,7 +114,7 @@ namespace mods_config::ui
             countWidth = textWidth(std::format("{} / {}", most, most)) + theme::SPACE_4;
             ImGui::PopFont();
         }
-        ImGui::SetNextItemWidth(FIELD_WIDTH - countWidth);
+        ImGui::SetNextItemWidth(box.GetWidth() - countWidth);
         const bool isNumber = setting.valueType != model::StoredType::String;
         const auto flags = isNumber ? ImGuiInputTextFlags_CallbackCharFilter : most > 0 ? ImGuiInputTextFlags_CallbackEdit : ImGuiInputTextFlags_None;
         ImGui::InputText(FIELD_ID, &_text, flags, flags != ImGuiInputTextFlags_None ? fieldCallback : nullptr, const_cast<model::Setting*>(&setting));
@@ -153,7 +155,7 @@ namespace mods_config::ui
      */
     float TextInputs::draw(const model::Setting& setting, const float right, const float top, const std::string& text, const ValueLook look) const
     {
-        const auto box = fieldBox(right, top);
+        const auto box = fieldBox(setting, right, top);
         if (!isEdited(setting)) {
             drawFrame(box, look);
             drawTextIn(box, text, valueColor(look), 0.0f, theme::SPACE_4);

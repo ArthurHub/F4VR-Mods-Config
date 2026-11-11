@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "model/Categories.h"
+#include "model/ChoiceOptions.h"
 
 using namespace mods_config;
 using model::CategorySource;
@@ -239,6 +240,8 @@ TEST_CASE("Categories: the Categories page is filled with a row for each mod, in
     CHECK(first.defaultValue == model::Value(std::string()));
     CHECK(first.help == "Reset gives No category: the mod has no category of its own.");
     CHECK(first.valueOptions.clientOptions);
+    CHECK(first.valueOptions.typedOption);
+    CHECK(first.valueOptions.maxLength == 24);
     CHECK(first.applies == model::Applies::Save);
     CHECK(first.omitDefault);
     CHECK(first.notSearched);
@@ -261,4 +264,18 @@ TEST_CASE("Categories: the Categories page is filled with a row for each mod, in
     // a config spec with no such page is left as it is
     auto other = mod("Other");
     CHECK(!model::addCategoryRows(other, mods, known));
+}
+
+TEST_CASE("Categories: a typed name is trimmed, takes the spelling of an option it is in another case, and an empty one is none")
+{
+    const auto options = model::categoryOptions({}, *model::readCategoryTable(R"({ "categories": ["Gameplay"] })"), {});
+    const auto typed = [&options](const std::string_view text) {
+        return model::typedOptionValue(text, options);
+    };
+    CHECK(typed("  Mods I Like ") == model::Value(std::string("Mods I Like")));
+    CHECK(typed("gAMEPLAY") == model::Value(std::string("Gameplay")));
+    // the text of the option of no category gives no category
+    CHECK(typed("no category") == model::Value(std::string()));
+    CHECK_FALSE(typed("   "));
+    CHECK_FALSE(typed(""));
 }

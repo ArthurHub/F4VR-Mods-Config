@@ -21,6 +21,7 @@
 #include "Theme.h"
 #include "Transforms.h"
 #include "common/CommonUtils.h"
+#include "model/ChoiceOptions.h"
 #include "model/Conditions.h"
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
@@ -353,9 +354,19 @@ namespace
         if (isChoice) {
             bool pulse = false;
             const auto picked = context.choices.edit(setting, state.choiceOptions, state.right, state.pos.y, edited.choiceRow, edited.chosen, pulse);
-            if (picked && picked != edited.chosen && context.store->set(setting, state.choiceOptions[*picked].value)) {
+            // the place after the options is Type a new name, which starts the edit of a text in the dropdown's box
+            const bool typesNew = picked == state.choiceOptions.size();
+            if (picked && !typesNew && picked != edited.chosen && context.store->set(setting, state.choiceOptions[*picked].value)) {
                 edited.chosen = picked;
                 pulse = true;
+            }
+            if (options.typedOption) {
+                const auto typed = context.textInputs.edit(setting, state.right, state.pos.y, typesNew, std::string(), pulse);
+                const auto value = typed ? model::typedOptionValue(*typed, state.choiceOptions) : std::nullopt;
+                if (value && context.store->set(setting, *value)) {
+                    state.refresh();
+                    edited.chosen = ui::chosenOption(state.choiceOptions, state.stored);
+                }
             }
             // a haptic plays the option picked, also the one it is at already, and its value on Play
             if (edited.haptic && picked) {
@@ -422,6 +433,9 @@ namespace
                 const bool isNone = !files->noneText.empty() && *option == 0;
                 return ui::PointedRow{ .text = pointed.text, .help = isNone ? std::string() : std::format("In {}.", model::folderText(*files)) };
             }
+        }
+        if (setting.valueOptions.typedOption && context.choices.isListOpen(setting) && context.choices.pointedOption() == state.choiceOptions.size()) {
+            return ui::PointedRow{ .text = ui::TYPED_OPTION_TEXT, .help = ui::TYPED_OPTION_HELP };
         }
         if (context.choices.isListOpen(setting)) {
             if (const auto option = context.choices.pointedOption(); option && *option < state.choiceOptions.size() && !state.choiceOptions[*option].help.empty()) {
@@ -499,6 +513,11 @@ namespace
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown: {
+            // a dropdown whose new value is typed has the field of the text in its box, which its edit draws
+            if (context.textInputs.isEdited(setting)) {
+                left = context.textInputs.draw(setting, right, top, {}, look);
+                break;
+            }
             // a choice of files shows the name of a file its folder does not have, and that it has none
             std::string unchosen;
             if (setting.valueOptions.folderOptions) {

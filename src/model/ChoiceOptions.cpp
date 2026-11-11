@@ -1,5 +1,6 @@
 #include "ChoiceOptions.h"
 
+#include <algorithm>
 #include <format>
 
 #include "GameValues.h"
@@ -39,6 +40,24 @@ namespace
 
 namespace mods_config::model
 {
+    /**
+     * The value a text typed in a dropdown's entry that types a new value gives: the text without the spaces around
+     * it, or the value of the option whose text it is without regard to case, so a name in use keeps its spelling.
+     * None for a text that is empty then, which sets nothing.
+     */
+    std::optional<Value> typedOptionValue(const std::string_view text, const std::vector<Option>& options)
+    {
+        auto typed = common::trim(std::string(text));
+        if (typed.empty()) {
+            return std::nullopt;
+        }
+        const auto key = common::str_tolower(typed);
+        const auto option = std::ranges::find_if(options, [&key](const Option& option) {
+            return common::str_tolower(option.text) == key;
+        });
+        return option != options.end() ? option->value : Value(std::move(typed));
+    }
+
     /**
      * Reads the options of the choices of a mod that read them in the game or from its client, as the mod is
      * selected, and of a config spec's choices of files, from the folders of their roots. It forgets those of the mod

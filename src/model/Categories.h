@@ -14,6 +14,8 @@
 
 namespace mods_config::model
 {
+    class Store;
+
     // what the mods with no category are under, last
     constexpr auto NO_CATEGORY = "No category";
 
@@ -22,6 +24,12 @@ namespace mods_config::model
     constexpr auto CATEGORIES_PAGE_ID = "categories";
     constexpr auto CATEGORIES_FILE = "categories";
     constexpr auto CATEGORY_SETTING_ID = "category.";
+
+    // the section of that page the rows of the mods are in
+    constexpr auto CATEGORY_ROWS_ID = "categoryMods";
+
+    // the most characters of a name the player types, which a row of the tree has room for
+    constexpr int CATEGORY_NAME_MAX_LENGTH = 24;
 
     // where the shipped table is, from the game's folder
     constexpr auto CATEGORY_TABLE_FILE = R"(Data\ModsConfigFO4\Categories.json)";
@@ -94,4 +102,5 @@ namespace mods_config::model
     std::vector<std::string> categoryNames(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
     std::vector<Option> categoryOptions(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
     bool addCategoryRows(Mod& own, const std::vector<Mod>& mods, const CategoryTable& table);
+    CategoryChoices withPendingChoices(CategoryChoices choices, const Mod& own, Store& store);
 }

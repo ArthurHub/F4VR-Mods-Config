@@ -13,6 +13,10 @@
 
 namespace mods_config::ui
 {
+    // the entry that a dropdown with a typed entry ends with, and what the help line says of it
+    constexpr auto TYPED_OPTION_TEXT = "Type a new name";
+    constexpr auto TYPED_OPTION_HELP = "Opens the keyboard to type a name that is not in the list.";
+
     /**
      * What the row of a stepper or a dropdown tells of the pointer in the frame that is drawn.
      */
@@ -39,8 +43,9 @@ namespace mods_config::ui
     using OptionDecoration = std::function<void(std::size_t option, const ImRect& box, bool chosen)>;
 
     /**
-     * What a list of options has beside its options' texts: a muted text after each, as a file's extension, and a line
-     * over them that is not pressed, with a text at its left and one at its right, as a folder and how many files it has.
+     * What a list of options has beside its options' texts: a muted text after each, as a file's extension, a line
+     * over them that is not pressed, with a text at its left and one at its right, as a folder and how many files it has,
+     * and an entry after them that does something other than pick, as typing a new value.
      */
     struct ListExtras
     {
@@ -50,6 +55,10 @@ namespace mods_config::ui
         // the line over the options: none while both are empty
         std::string_view headerLeft;
         std::string_view headerRight;
+
+        // the entry after the options, set apart by a rule: none while empty. A press on it picks the place after the
+        // options
+        std::string_view action;
     };
 
     std::optional<std::size_t> chosenOption(const std::vector<model::Option>& options, const model::StoredValue& stored);

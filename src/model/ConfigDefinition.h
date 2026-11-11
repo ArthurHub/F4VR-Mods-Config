@@ -226,6 +226,11 @@ namespace mods_config::model
         // id (`listFromClientCallback`)
         bool clientOptions = false;
 
+        // a dropdown of texts whose list ends with an entry that types a value that is not in it, on the keyboard, of
+        // at most `maxLength` characters. Only a setting the menu makes has it: its store reads its options again as it
+        // is set, so its client can offer the pending values
+        bool typedOption = false;
+
         // the folder a dropdown's options are the files of. A config spec's has none in `options` until its store lists it
         std::optional<FolderOptions> folderOptions;
 

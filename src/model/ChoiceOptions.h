@@ -3,6 +3,7 @@
 #include <expected>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -15,6 +16,8 @@
 
 namespace mods_config::model
 {
+    std::optional<Value> typedOptionValue(std::string_view text, const std::vector<Option>& options);
+
     /**
      * The options of the choices of the mod a store has the session of: a choice's own, the ones it reads in
      * the game, which are read with `getOptionTexts`, the ones its mod's client gives, or a config spec's files of a

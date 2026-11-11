@@ -28,6 +28,8 @@ namespace
     // The options of a list are this far from each other, and from the edge of the list
     constexpr float LIST_GAP = theme::SPACE_1;
     constexpr float LIST_PADDING = theme::SPACE_2;
+    // the entry that does something other than pick is this much further from the options, with a rule in the middle
+    constexpr float ACTION_GAP = theme::SPACE_1;
     // the options a list shows at most: one with more scrolls
     constexpr std::size_t LIST_MAX_OPTIONS = 5;
     // The thumbstick steps a stepper from this far off its center, of 1 for a full push, as it steps a slider
@@ -141,17 +143,19 @@ namespace
     constexpr float LIST_HEADER_HEIGHT = theme::SPACE_1 + theme::FONT_SIZE_DETAIL + theme::SPACE_2;
 
     /**
-     * Where the list of a dropdown is, by the box of the dropdown and the number of its options: as wide as
-     * the box, and as high as its options, up to the most it shows, and its header. It is under the box, or over it where
+     * Where the list of a dropdown is, by the box of the dropdown and the number of its entries: as wide as
+     * the box, and as high as its entries, up to the most it shows, its header, and the room of the rule over an entry
+     * that does something other than pick. It is under the box, or over it where
      * the window it is in, the page or a binding's editor, has no room under it. Where it has room for neither, it
      * is at the bottom of the window, over the box. The list is so never over the title bar and the footer.
      */
-    ImRect listBox(const ImRect& box, const std::size_t options, const bool header)
+    ImRect listBox(const ImRect& box, const std::size_t entries, const bool header, const bool action)
     {
         const auto& page = ImGui::GetCurrentWindow()->InnerRect;
-        const auto shown = static_cast<float>((std::min)(options, LIST_MAX_OPTIONS));
+        const auto shown = static_cast<float>((std::min)(entries, LIST_MAX_OPTIONS));
         const float headerHeight = header ? LIST_HEADER_HEIGHT + theme::BORDER_FRAME + LIST_GAP : 0.0f;
-        const float height = (std::min)(shown * (theme::CONTROL_HEIGHT + LIST_GAP) - LIST_GAP + LIST_PADDING * 2.0f + headerHeight, page.GetHeight());
+        const float actionRoom = action ? ACTION_GAP : 0.0f;
+        const float height = (std::min)(shown * (theme::CONTROL_HEIGHT + LIST_GAP) - LIST_GAP + LIST_PADDING * 2.0f + headerHeight + actionRoom, page.GetHeight());
         float top = page.Max.y - height;
         if (box.Max.y + height <= page.Max.y) {
             top = box.Max.y;
@@ -238,8 +242,9 @@ namespace mods_config::ui
      * The list of a dropdown: a press on the row opens it, at the box of the dropdown. One with many
      * options scrolls, from the chosen option as it opens. A press on an option picks it and closes the
      * list, and a press beside the list closes it and does nothing else: ImGui gives the page under an open
-     * list no press. The list of a haptic has each pattern's shape after its option's text.
-     * Returns the option that was picked, and none.
+     * list no press. The list of a haptic has each pattern's shape after its option's text, and the list of a dropdown
+     * with a typed entry ends with Type a new name.
+     * Returns the option that was picked, the place after the options for Type a new name, and none.
      */
     std::optional<std::size_t> Choices::editList(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
         const std::optional<std::size_t> chosen, bool& pulse)
@@ -275,7 +280,10 @@ namespace mods_config::ui
             }
             folder = model::folderText(*files);
             count = std::format("{} file{}", fileCount, fileCount == 1 ? "" : "s");
-            extras = { .suffixes = extensions, .headerLeft = folder, .headerRight = count };
+            extras = { .suffixes = extensions, .headerLeft = folder, .headerRight = count, .action = {} };
+        }
+        if (setting.valueOptions.typedOption) {
+            extras.action = TYPED_OPTION_TEXT;
         }
         OptionDecoration decorate;
         if (setting.type == model::SettingType::Haptic) {
@@ -295,7 +303,8 @@ namespace mods_config::ui
      * The list of options of a dropdown that is open, by its popup's id, at the box of its dropdown, inside the window it
      * is drawn in: the page, or the editor of a binding. One with many options scrolls, from the chosen option as it
      * opens. A press on an option picks it and closes the list. Nothing for a list that is not open. An option can have
-     * more drawn after its text, and a muted text, and the list a line over its options, which stays as they scroll.
+     * more drawn after its text, and a muted text, and the list a line over its options, which stays as they scroll,
+     * and an entry after them that does something other than pick, under a rule, which is the place after the options.
      * Returns the option that was picked, and the one the ray is on.
      */
     ListDrawn drawList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen,
@@ -305,7 +314,8 @@ namespace mods_config::ui
             return {};
         }
         const bool header = !extras.headerLeft.empty() || !extras.headerRight.empty();
-        const auto list = listBox(box, texts.size(), header);
+        const bool action = !extras.action.empty();
+        const auto list = listBox(box, texts.size() + (action ? 1 : 0), header, action);
         ImGui::SetNextWindowPos(list.Min);
         ImGui::SetNextWindowSize(list.GetSize());
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(LIST_PADDING, LIST_PADDING));
@@ -354,6 +364,19 @@ namespace mods_config::ui
                 ImGui::SetScrollHereY();
             }
             ImGui::PopID();
+        }
+        if (action) {
+            ImGui::Dummy(ImVec2(0.0f, ACTION_GAP - LIST_GAP));
+            const auto pos = ImGui::GetCursorScreenPos();
+            const float ruleY = pos.y - (LIST_GAP + ACTION_GAP) * 0.5f;
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(pos.x, ruleY), ImVec2(pos.x + width, ruleY), theme::color::RULE, theme::BORDER_FRAME);
+            if (listAction(extras.action, width)) {
+                drawn.picked = texts.size();
+                ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::IsItemHovered()) {
+                drawn.pointed = texts.size();
+            }
         }
         if (header) {
             ImGui::EndChild();

@@ -11,7 +11,8 @@ namespace mods_config::ui
     /**
      * The text inputs of the page that is shown: how one is drawn, and how the player edits one. A press on
      * its row starts its edit in ImGui's field, which the framework shows SteamVR's keyboard for, and the
-     * text is written as the field is left with another text than it started with.
+     * text is written as the field is left with another text than it started with. A dropdown with a typed entry is
+     * edited so too, in its box, from an empty text, as the entry is picked.
      * It points into the page that is shown, so it is reset as another page is.
      */
     class TextInputs

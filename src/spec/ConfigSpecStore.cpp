@@ -1062,8 +1062,14 @@ namespace mods_config::spec
             entry.pending.reset();
             entry.pendingInvalid.clear();
         } else {
-            entry.pendingInvalid = typedReason(setting, _options.of(setting), *typed);
             entry.pending = std::move(*typed);
+        }
+        // the client offers the pending values of a choice with a typed entry: a typed value is one of its options then
+        if (setting.valueOptions.typedOption) {
+            _options.readAgain();
+        }
+        if (entry.pending) {
+            entry.pendingInvalid = typedReason(setting, _options.of(setting), *entry.pending);
         }
         if (setting.applies == model::Applies::Live && isInGame(setting.storage) && entry.pendingInvalid.empty()) {
             F4CF_PERF_SCOPE("preview");
@@ -1314,9 +1320,13 @@ namespace mods_config::spec
         rollBack();
         _saveFailure.clear();
         _lastSave.reset();
+        const bool typed = hasPendingTyped();
         for (auto& entry : _entries | std::views::values) {
             entry.pending.reset();
             entry.pendingInvalid.clear();
+        }
+        if (typed) {
+            _options.readAgain();
         }
         model::publishDiscarded(_modName);
     }
@@ -1337,11 +1347,24 @@ namespace mods_config::spec
         _lastSave.reset();
         entry.pending.reset();
         entry.pendingInvalid.clear();
+        if (setting.valueOptions.typedOption) {
+            _options.readAgain();
+        }
         if (_previews.contains(&setting)) {
             preview(setting, entry);
         }
         previewToClient(setting, entry);
         model::publishDiscarded(_modName, &setting);
+    }
+
+    /**
+     * Whether a choice with a typed entry has a pending value, which its client offers among its options.
+     */
+    bool ConfigSpecStore::hasPendingTyped() const
+    {
+        return std::ranges::any_of(_entries, [](const auto& entry) {
+            return entry.first->valueOptions.typedOption && entry.second.pending;
+        });
     }
 
     /**
@@ -1462,6 +1485,10 @@ namespace mods_config::spec
                 entry.pending = pending;
                 entry.pendingInvalid = found->second.pendingInvalid;
             }
+        }
+        // the options were read with nothing pending
+        if (hasPendingTyped()) {
+            _options.readAgain();
         }
         // a setting the client shows that is clean now, as its file has the player's value, ends its preview
         for (auto preview = _clientPreviews.begin(); preview != _clientPreviews.end();) {

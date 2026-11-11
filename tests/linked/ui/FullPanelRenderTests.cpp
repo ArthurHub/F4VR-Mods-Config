@@ -2581,3 +2581,73 @@ TEST_CASE("FullPanel render: the Categories page of the mod's own config spec, w
     }
     WARN("Saved " << renderToFile(panel, "categories-page", test_panel::POINTER_AWAY));
 }
+
+TEST_CASE("FullPanel render: Type a new name in the list of a row of the Categories page, the name typed, and offered in another row", "[.render]")
+{
+    auto own = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
+    REQUIRE(own.size() == 1);
+    const auto table = model::readCategoryTable(R"({ "categories": ["Gameplay"] })");
+    REQUIRE(table);
+    const auto in = [](const std::string& modName, const std::string& name, const std::string& category = {}) {
+        auto mod = modOf(name);
+        mod.name = modName;
+        mod.category = category;
+        return mod;
+    };
+    std::vector<model::Mod> mods{ in("MyMod", "A mod of no table", "My Own"), in("FallUI", "FallUI - Inventory"), in("Plain", "Plain mod"), in("XDI", "XDI") };
+    REQUIRE(model::addCategoryRows(own[0], mods, *table));
+    mods.push_back(std::move(own[0]));
+
+    // the rows offer the names in use, and the ones pending on the page, as the menu's own client does
+    for (const auto& [name, typed, enter, other] : std::initializer_list<std::tuple<const char*, const char*, bool, bool>>{ { "categories-typed-entry", nullptr, false, false },
+             { "categories-typed-name", "Mods I Like", false, false },
+             { "categories-typed-offered", "Mods I Like", true, true } }) {
+        spec::ConfigSpecStore store({}, {});
+        FullPanel panel;
+        const auto options = [&](const model::Setting&) {
+            const auto& listed = panel.mods();
+            const auto& ownMod = *std::ranges::find(listed, "ModsConfigFO4VR", &model::Mod::name);
+            return model::categoryOptions(listed, *table, model::withPendingChoices({}, ownMod, store));
+        };
+        std::map<std::string, std::function<std::vector<model::Option>(const model::Setting&)>> callbacks;
+        for (const auto& mod : mods) {
+            callbacks[model::CATEGORY_SETTING_ID + mod.name] = options;
+        }
+        store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = callbacks }.calls());
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setCategoriesMinMods(0);
+        panel.setMods(mods);
+        const auto ownPlace = static_cast<std::size_t>(std::ranges::find(panel.mods(), "ModsConfigFO4VR", &model::Mod::name) - panel.mods().begin());
+        const auto& ownMod = panel.mods()[ownPlace];
+        const auto page = static_cast<std::size_t>(std::ranges::find(ownMod.pages, model::CATEGORIES_PAGE_ID, &model::Page::id) - ownMod.pages.begin());
+        panel.select({ .mod = ownPlace, .page = { page } });
+
+        // the dropdown of the first row, A mod of no table, and Type a new name after its four options
+        const ImVec2 firstRow(855.0f, 212.0f);
+        const ImVec2 entry(855.0f, 480.0f);
+        const auto press = [&panel](const ImVec2 at) {
+            for (const bool held : { false, false, true, false, false }) {
+                test_panel::drawFrame(panel, at, held);
+            }
+        };
+        const auto act = [&] {
+            press(firstRow);
+            if (!typed) {
+                return;
+            }
+            press(entry);
+            ImGui::GetIO().AddInputCharactersUTF8(typed);
+            test_panel::drawFrame(panel, POINTER_AWAY);
+            if (enter) {
+                for (const bool down : { true, false }) {
+                    ImGui::GetIO().AddKeyEvent(ImGuiKey_Enter, down);
+                    test_panel::drawFrame(panel, POINTER_AWAY);
+                }
+            }
+            if (other) {
+                press(ImVec2(firstRow.x, firstRow.y + 2.0f * theme::ROW_PITCH));
+            }
+        };
+        WARN("Saved " << renderToFile(panel, name, typed ? POINTER_AWAY : entry, false, act));
+    }
+}

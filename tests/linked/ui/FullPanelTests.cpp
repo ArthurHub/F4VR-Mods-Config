@@ -5988,3 +5988,129 @@ TEST_CASE("FullPanel: a mod the player gave a category is under it, and the tree
     press(panel, treeRow(2));
     CHECK(panel.selection() == selectionOf(3));
 }
+
+namespace
+{
+    /**
+     * A panel with a config spec's mod, shown on its front page: two dropdowns of texts whose lists end with Type a new
+     * name, whose options the mod's client gives: Combat, Gameplay, the values of both that are none of them, and No
+     * category, as the menu's own client gives the categories.
+     */
+    FullPanel typedChoices(spec::ConfigSpecStore& store)
+    {
+        auto mod = spec::loadConfigSpec(R"({
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+            "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } }, "defaultFile": "main",
+            "content": [
+                { "type": "dropdown", "valueType": "string", "id": "first", "text": "First", "default": "", "valueOptions": { "listFromClientCallback": true },
+                  "storage": { "path": ["Main", "sFirst"] } },
+                { "type": "dropdown", "valueType": "string", "id": "second", "text": "Second", "default": "", "valueOptions": { "listFromClientCallback": true },
+                  "storage": { "path": ["Main", "sSecond"] } }
+            ]
+        })");
+        REQUIRE(mod);
+        for (auto& item : mod->frontPage.items) {
+            auto& options = std::get<model::Setting>(item).valueOptions;
+            options.typedOption = true;
+            options.maxLength = 24;
+        }
+        const auto names = [&store](const model::Setting&) {
+            std::vector<model::Option> options{ { .value = "Combat"s, .text = "Combat" }, { .value = "Gameplay"s, .text = "Gameplay" } };
+            for (const auto* id : { "first", "second" }) {
+                const auto stored = store.valueById(id);
+                const auto* text = std::get_if<std::string>(&stored.value);
+                if (text && !text->empty() && std::ranges::find(options, model::Value(*text), &model::Option::value) == options.end()) {
+                    options.push_back({ .value = *text, .text = *text });
+                }
+            }
+            options.push_back({ .value = std::string(), .text = "No category" });
+            return options;
+        };
+        store.clientCalls().addClient("MyMod", test_clients::TestClient{ .options = { { "first", names }, { "second", names } } }.calls());
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods({ std::move(*mod) });
+        panel.select(selectionOf(0));
+        drawFrames(panel, 2);
+        return panel;
+    }
+
+    /**
+     * Where Type a new name is in the open list of the dropdown of a row, after its options: further from them than
+     * they are from each other.
+     */
+    ImVec2 typedEntry(const int place, const int options)
+    {
+        const auto option = listOption(place, options);
+        return { option.x, option.y + theme::SPACE_1 };
+    }
+}
+
+TEST_CASE("FullPanel: Type a new name, last in the list of a dropdown, types its value on the keyboard, which the other dropdowns offer at once")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = typedChoices(store);
+
+    // it is after the options, and the help line says what it does
+    press(panel, pageRow(0));
+    point(panel, typedEntry(0, 3));
+    REQUIRE(isListOpen());
+    CHECK(panel.helpLine().text() == "Type a new name: Opens the keyboard to type a name that is not in the list.");
+
+    // a press on it closes the list and edits an empty text in the dropdown's box, which is written trimmed
+    CHECK(pressActs(panel, typedEntry(0, 3)));
+    CHECK_FALSE(isListOpen());
+    CHECK(ImGui::GetActiveID() != 0);
+    typeText(panel, "  Mods I Like ");
+    pressKey(panel, ImGuiKey_Enter);
+    CHECK(ImGui::GetActiveID() == 0);
+    CHECK(store.valueById("first").value == model::Value("Mods I Like"s));
+    CHECK_FALSE(store.valueById("first").invalid);
+
+    // the other dropdown has it among its options, before No category
+    CHECK(pressActs(panel, pageRow(1)));
+    CHECK(pressActs(panel, listOption(1, 2)));
+    CHECK(store.valueById("second").value == model::Value("Mods I Like"s));
+}
+
+TEST_CASE("FullPanel: a name typed in another case takes the option's spelling, a long one is cut, and an empty one, Back and the keyboard's close button set nothing")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = typedChoices(store);
+    const auto type = [&panel](const char* text, const ImGuiKey key) {
+        pressActs(panel, pageRow(0));
+        pressActs(panel, typedEntry(0, 3));
+        typeText(panel, text);
+        pressKey(panel, key);
+    };
+    const auto first = [&store] {
+        return store.valueById("first").value;
+    };
+
+    type("combat", ImGuiKey_Enter);
+    CHECK(first() == model::Value("Combat"s));
+    type("   ", ImGuiKey_Enter);
+    CHECK(first() == model::Value("Combat"s));
+    type("Zeta", ImGuiKey_Escape);
+    CHECK(first() == model::Value("Combat"s));
+
+    // the text of the option of no category picks it
+    type("no category", ImGuiKey_Enter);
+    CHECK(first() == model::Value(std::string()));
+
+    // at most 24 characters
+    type("A name far longer than the row has room for", ImGuiKey_Enter);
+    CHECK(first() == model::Value("A name far longer than t"s));
+
+    pressActs(panel, pageRow(0));
+    pressActs(panel, typedEntry(0, 4));
+    typeText(panel, "Zeta");
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK(ImGui::GetActiveID() == 0);
+    CHECK(first() == model::Value("A name far longer than t"s));
+}

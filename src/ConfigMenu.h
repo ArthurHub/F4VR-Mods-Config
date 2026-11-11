@@ -56,6 +56,7 @@ namespace mods_config
         void setMods(std::vector<model::Mod> mods, model::Translations translations, model::CategoryTable categories);
         void readCategoryChoices();
         void addOwnCategoryRows(model::Mod& mod) const;
+        model::CategoryChoices offeredCategoryChoices();
         const std::vector<model::Mod>& mods() const;
 
         void select(const ui::Selection& selection);

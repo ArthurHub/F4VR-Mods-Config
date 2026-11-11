@@ -187,6 +187,7 @@ namespace mods_config::spec
         model::ClientFile clientFile(const std::string& name) const;
         std::filesystem::path pathOf(const model::File& file) const;
         void rollBack();
+        bool hasPendingTyped() const;
 
         // the folders a path of a config spec's file is from: the game's Data folder, and
         // `Documents\My Games\Fallout4VR`

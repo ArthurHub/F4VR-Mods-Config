@@ -578,6 +578,21 @@ namespace mods_config::ui
     }
 
     /**
+     * The entry of the list that is open that does something other than pick, as typing a new value, at the cursor: its
+     * text where an option's is, in `green-muted`, and in `green` with the look of a row under the ray. Returns whether
+     * it was pressed.
+     */
+    bool listAction(const std::string_view text, const float width)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const bool pressed = ImGui::InvisibleButton("action", ImVec2(width, theme::CONTROL_HEIGHT));
+        drawRowState();
+        const auto color = ImGui::IsItemHovered() || ImGui::IsItemActive() ? theme::color::GREEN : theme::color::GREEN_MUTED;
+        drawText(pos.x + theme::SPACE_3 + CHECK_SIZE + theme::SPACE_3, pos.x + width - theme::SPACE_4, pos.y, theme::CONTROL_HEIGHT, color, text);
+        return pressed;
+    }
+
+    /**
      * One line of text, as `drawText` draws it, with a text after it in another color, as a file's extension, which
      * keeps its room: the text ends in an ellipsis before it where both do not fit.
      */

@@ -1,11 +1,13 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <variant>
@@ -2420,4 +2422,86 @@ TEST_CASE("ConfigSpecStore: a row of the Categories page of the mod's own config
     REQUIRE(store.save());
     CHECK(model::loadCategoryChoices(file).empty());
     CHECK(store.dirtyCount() == 0);
+}
+
+TEST_CASE("ConfigSpecStore: a choice with a typed entry has its options read again as it is set, discarded and read again, so its client can offer a pending value")
+{
+    Session session(R"(
+        { "type": "dropdown", "valueType": "string", "id": "first", "text": "First", "default": "", "valueOptions": { "listFromClientCallback": true },
+          "storage": { "path": ["Main", "sFirst"] } },
+        { "type": "dropdown", "valueType": "string", "id": "second", "text": "Second", "default": "", "valueOptions": { "listFromClientCallback": true },
+          "storage": { "path": ["Main", "sSecond"] } }
+    )");
+    for (auto& item : session.mod.frontPage.items) {
+        std::get<model::Setting>(item).valueOptions.typedOption = true;
+    }
+    auto& store = session.store;
+    // the client offers its names and the values of both choices, as the menu offers the pending categories
+    const auto names = [&session](const model::Setting&) {
+        std::vector<model::Option> options{ { .value = std::string(), .text = "None" }, { .value = "Combat"s, .text = "Combat" } };
+        for (const auto* id : { "first", "second" }) {
+            const auto stored = session.store.valueById(id);
+            const auto* text = std::get_if<std::string>(&stored.value);
+            if (text && std::ranges::find(options, model::Value(*text), &model::Option::value) == options.end()) {
+                options.push_back({ .value = *text, .text = *text });
+            }
+        }
+        return options;
+    };
+    store.clientCalls().addClient("MyMod", test_clients::TestClient{ .options = { { "first", names }, { "second", names } } }.calls());
+    session.open("[Main]\r\nsFirst = \"Combat\"\r\n");
+    CHECK(store.options(session.setting(1)).size() == 2);
+
+    // a typed value is one of the options of both, and so not invalid
+    REQUIRE(store.set(session.setting(0), "Mods I Like"s));
+    CHECK_FALSE(session.value(0).invalid);
+    REQUIRE(store.options(session.setting(1)).size() == 3);
+    CHECK(store.options(session.setting(1)).back().text == "Mods I Like");
+
+    // the values read again keep it
+    store.readAgain();
+    CHECK(store.options(session.setting(1)).size() == 3);
+    CHECK(session.value(0).value == model::Value("Mods I Like"s));
+    CHECK_FALSE(session.value(0).invalid);
+
+    // discarded, it is offered no more, and neither is one after a Discard of all
+    store.discard(session.setting(0));
+    CHECK(store.options(session.setting(1)).size() == 2);
+    REQUIRE(store.set(session.setting(1), "Another"s));
+    CHECK(store.options(session.setting(0)).size() == 3);
+    store.discard();
+    CHECK(store.options(session.setting(0)).size() == 2);
+}
+
+TEST_CASE("ConfigSpecStore: a name typed in a row of the Categories page is offered by the others at once, as the menu's own client gives them")
+{
+    auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
+    REQUIRE(mods.size() == 1);
+    auto& own = mods[0];
+    const auto table = model::readCategoryTable(R"({ "categories": ["Gameplay", "Settlements"], "mods": { "SS2": "Settlements" } })");
+    REQUIRE(table);
+    const std::vector<model::Mod> listed{ model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .frontPage = {}, .pages = {} } };
+    REQUIRE(model::addCategoryRows(own, listed, *table));
+
+    const test_files::TempFolder data;
+    const test_files::TempFolder myGames;
+    ConfigSpecStore store{ data.path, myGames.path };
+    const auto names = [&](const model::Setting&) {
+        return model::categoryOptions(listed, *table, model::withPendingChoices({}, own, store));
+    };
+    store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = { { "category.SS2", names }, { "category.ModsConfigFO4VR", names } } }.calls());
+    store.open(own);
+
+    const auto& rows = std::get<model::Group>(std::ranges::find(own.pages, model::CATEGORIES_PAGE_ID, &model::Page::id)->items.back()).items;
+    const auto& first = std::get<model::Setting>(rows.at(0));
+    const auto& second = std::get<model::Setting>(rows.at(1));
+    REQUIRE(first.id == "category.ModsConfigFO4VR");
+    REQUIRE(second.id == "category.SS2");
+    CHECK(model::withPendingChoices({}, own, store).empty());
+
+    REQUIRE(store.set(second, "Mods I Like"s));
+    CHECK(model::withPendingChoices({ { "ss2", "Gameplay" } }, own, store) == model::CategoryChoices{ { "ss2", "Mods I Like" } });
+    CHECK_FALSE(store.value(second).invalid);
+    const auto texts = store.options(first) | std::views::transform(&model::Option::text) | std::ranges::to<std::vector>();
+    CHECK(texts == std::vector<std::string>{ "Gameplay", "Mods I Like", "Settlements", "No category" });
 }

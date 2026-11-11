@@ -273,7 +273,7 @@ namespace mods_config
         for (const auto& mod : mods) {
             api::ModsConfigFO4Client::get().addOptions(model::CATEGORY_SETTING_ID + mod.name, [this] {
                 std::vector<api::Option> options;
-                for (const auto& option : model::categoryOptions(this->mods(), _categoryTable, _categoryChoices)) {
+                for (const auto& option : model::categoryOptions(this->mods(), _categoryTable, offeredCategoryChoices())) {
                     options.push_back({ .value = std::get<std::string>(option.value), .text = option.text });
                 }
                 return options;
@@ -293,6 +293,17 @@ namespace mods_config
     {
         _categoryChoices = model::loadCategoryChoices(CATEGORIES_PATH);
         _fullPanel.setCategoryChoices(_categoryChoices);
+    }
+
+    /**
+     * The player's choices the rows of the Categories page offer the names of: their file's, and the ones on the page that
+     * wait for a Save, so a name typed in a row is in the others' lists.
+     */
+    model::CategoryChoices ConfigMenu::offeredCategoryChoices()
+    {
+        const auto& mods = this->mods();
+        const auto own = std::ranges::find_if(mods, isOwnMod);
+        return own != mods.end() ? model::withPendingChoices(_categoryChoices, *own, _configSpecStore) : _categoryChoices;
     }
 
     const std::vector<model::Mod>& ConfigMenu::mods() const
