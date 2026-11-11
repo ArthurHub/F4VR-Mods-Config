@@ -53,7 +53,7 @@ namespace mods_config
         void requestRestore();
         void requestReadAgain(std::string_view modName);
 
-        void setMods(std::vector<model::Mod> mods, model::Translations translations);
+        void setMods(std::vector<model::Mod> mods, model::Translations translations, model::CategoryTable categories);
         const std::vector<model::Mod>& mods() const;
 
         void select(const ui::Selection& selection);

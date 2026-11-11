@@ -153,6 +153,15 @@
               "default": 8.0,
               "valueOptions": { "min": 4.0, "max": 20.0, "step": 0.5 },
               "storage": { "path": ["Panel", "fTreeWidth"] }
+            },
+            {
+              "type": "slider",
+              "valueType": "int",
+              "text": "Min mods to group by category",
+              "help": "The mod list is grouped by category when it has at least this many mods. A shorter list is one list by name. 0 always groups it.",
+              "default": 20,
+              "valueOptions": { "min": 0, "max": 100, "step": 1 },
+              "storage": { "path": ["Panel", "iCategoriesMinMods"] }
             }
           ]
         },

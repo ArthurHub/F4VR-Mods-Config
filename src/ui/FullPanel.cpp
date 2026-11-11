@@ -83,7 +83,40 @@ namespace mods_config::ui
     {
         std::ranges::sort(mods, common::CaseInsensitiveComparator(), &model::Mod::displayName);
         _mods = std::move(mods);
+        groupMods();
         reset();
+    }
+
+    /**
+     * The shipped table of the categories, which gives a mod with no category of its own one.
+     */
+    void FullPanel::setCategoryTable(model::CategoryTable table)
+    {
+        _categoryTable = std::move(table);
+        groupMods();
+    }
+
+    /**
+     * From how many mods the tree is grouped by category: 0 groups any list.
+     */
+    void FullPanel::setCategoriesMinMods(const int minMods)
+    {
+        if (_categoriesMinMods != minMods) {
+            _categoriesMinMods = minMods;
+            groupMods();
+        }
+    }
+
+    /**
+     * Groups the mods by their categories again, as the mods, the table or the number the tree is grouped from
+     * changes: none for a list too short to be grouped, whose tree is flat.
+     */
+    void FullPanel::groupMods()
+    {
+        _categories.clear();
+        if (_categoriesMinMods && !_mods.empty() && model::isGrouped(_mods.size(), *_categoriesMinMods)) {
+            _categories = model::groupByCategory(_mods, _categoryTable);
+        }
     }
 
     void FullPanel::setQuickLaunch(std::vector<QuickLaunchEntry> entries)
@@ -179,6 +212,7 @@ namespace mods_config::ui
             sorted.push_back(std::move(_mods[order[place]]));
         }
         _mods = std::move(sorted);
+        groupMods();
         const auto keep = [&placeOf](std::optional<std::size_t>& place) {
             if (place) {
                 place = placeOf[*place];
@@ -923,7 +957,7 @@ namespace mods_config::ui
         const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
 
         const TreeSearch search{ .query = &_query, .found = &_found, .matches = _matches };
-        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore(), _query.empty() ? nullptr : &search);
+        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore(), _query.empty() ? nullptr : &search, _categories.empty() ? nullptr : &_categories);
         _onSearchField = tree.searchPointed;
         if (tree.pressed) {
             pressed = tree.pressed;

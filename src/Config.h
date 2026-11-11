@@ -53,6 +53,9 @@ namespace mods_config
         // it has the rest of the panel's width.
         float treeWidth = 0.0f;
 
+        // From how many mods the tree is grouped by category: 0 groups any list.
+        int categoriesMinMods = 0;
+
         // How much the panel's background hides the world behind it: 0 for none of it, 255 for all.
         std::uint8_t panelBackgroundOpacity = 0;
 

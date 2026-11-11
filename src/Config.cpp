@@ -57,6 +57,7 @@ namespace mods_config
         panelHeight = (std::max)(panel["fPanelHeight"].value_or(16.0f), 10.0f);
         // a tree narrower than this cuts most names short, and the page beside it keeps room for its controls
         treeWidth = std::clamp(panel["fTreeWidth"].value_or(8.0f), 4.0f, panelWidth - 9.0f);
+        categoriesMinMods = (std::max)(panel["iCategoriesMinMods"].value_or(20), 0);
         panelBackgroundOpacity = static_cast<std::uint8_t>(std::clamp(panel["iBackgroundOpacity"].value_or(217), 0, 255));
 
         // the grip of the hand that points, held longer than a tap, which is Back

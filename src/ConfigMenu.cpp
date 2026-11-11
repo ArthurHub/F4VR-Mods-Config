@@ -239,13 +239,14 @@ namespace mods_config
     }
 
     /**
-     * The mods the menu lists, and the texts of the game's language they were read with, which a config spec is read
-     * again with from its live copy.
+     * The mods the menu lists, the texts of the game's language they were read with, which a config spec is read
+     * again with from its live copy, and the shipped table of their categories.
      */
-    void ConfigMenu::setMods(std::vector<model::Mod> mods, model::Translations translations)
+    void ConfigMenu::setMods(std::vector<model::Mod> mods, model::Translations translations, model::CategoryTable categories)
     {
         // the textures are kept by the pixels of the mods that are replaced
         _imageTextures.clear();
+        _fullPanel.setCategoryTable(std::move(categories));
         _fullPanel.setMods(std::move(mods));
         _translations = std::move(translations);
     }
@@ -601,6 +602,7 @@ namespace mods_config
         // the canvas follows the size at its next frame, with as many pixels per unit
         _panel->setSize(g_config.panelWidth, g_config.panelHeight);
         _fullPanel.setTreeWidth(g_config.treeWidth * imgui::CANVAS_PIXELS_PER_UNIT);
+        _fullPanel.setCategoriesMinMods(g_config.categoriesMinMods);
         _panel->setScale(g_config.panelScale);
         _panel->setPosition(0, g_config.panelDistance, g_config.panelElevation);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(g_config.panelTilt, 0, 0));

@@ -40,6 +40,11 @@ namespace
     constexpr float TAG_PADDING = 1.0f;
     constexpr float TAG_GAP = theme::SPACE_2;
 
+    // the room the rule of a category's row keeps at the least, and how many of the first mods of a category that a
+    // press opened are scrolled to
+    constexpr float CATEGORY_RULE_MIN_WIDTH = theme::SPACE_4;
+    constexpr std::size_t CATEGORY_SHOWN_MODS = 3;
+
     /**
      * The arrow before the name of a row: none for a page with no pages, down for a row whose pages are the
      * rows under it, and right for any other mod or page.
@@ -187,6 +192,44 @@ namespace
     }
 
     /**
+     * The row of a category at the cursor, in the width of every row: its arrow, down while its mods are the rows
+     * under it, its name, a rule from it to the count of its mods, and the count in the detail size. It is muted, also
+     * under the ray, where it has the look of a row. It is never selected: a press opens and closes it.
+     * Returns whether it was pressed.
+     */
+    bool categoryRow(const std::string_view name, const std::size_t count, const bool open, const float width)
+    {
+        const auto min = ImGui::GetCursorScreenPos();
+        const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
+        const bool pressed = ImGui::InvisibleButton("category", ImVec2(width, theme::CONTROL_HEIGHT));
+        if (!ImGui::IsItemVisible()) {
+            return pressed;
+        }
+        const auto color = theme::color::GREEN_MUTED;
+        ui::drawRowState();
+        const float left = min.x + theme::SPACE_2;
+        drawArrow(left, min.y, open, color);
+
+        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+        const auto countText = std::to_string(count);
+        const float countRight = max.x - theme::SPACE_3;
+        const float countLeft = countRight - ui::textWidth(countText);
+        ui::drawText(countLeft, countRight, min.y, theme::CONTROL_HEIGHT, color, countText);
+        ImGui::PopFont();
+
+        const float ruleRight = countLeft - theme::SPACE_2;
+        const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
+        const float nameRight = (std::min)(nameLeft + ui::textWidth(name), ruleRight - CATEGORY_RULE_MIN_WIDTH - theme::SPACE_3);
+        ui::drawText(nameLeft, nameRight, min.y, theme::CONTROL_HEIGHT, color, name);
+        const float ruleLeft = std::ceil(nameRight) + theme::SPACE_3;
+        if (ruleLeft < ruleRight) {
+            const float ruleTop = std::floor(min.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);
+            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(ruleRight, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+        }
+        return pressed;
+    }
+
+    /**
      * What the help line says of a page's row: its help, and why it is disabled before it for one that is.
      */
     std::string pageHelp(const model::Page& page, const bool enabled)
@@ -208,12 +251,14 @@ namespace mods_config::ui
      * and so are the pages of a page of it that is open.
      * A mod that is not available is a disabled row, in its place, which says why while the ray is on it. An
      * MCM mod's row has the MCM tag, as its change is made at once, which its help says.
-     * With a search, the rows are the mods and pages it found (`drawFound`).
+     * With a search, the rows are the mods and pages it found (`drawFound`), and else with categories, the tree is
+     * grouped by them (`drawCategories`).
      * Returns what a pressed row selects, and the row the ray is on where it has something to say: the reason
      * of a mod that is not available, the help of an MCM mod, or the help of a mod or a page, which a config spec
      * gives them.
      */
-    TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height, model::Store* store, const TreeSearch* search)
+    TreeDrawn ModTree::draw(const std::vector<model::Mod>& mods, const Selection& selection, const float height, model::Store* store, const TreeSearch* search,
+        const std::vector<model::CategoryGroup>* categories)
     {
         F4CF_PERF_FUNCTION();
         TreeDrawn drawn;
@@ -245,33 +290,12 @@ namespace mods_config::ui
             if (ImGui::BeginChild("ModRows", ImVec2(rowWidth + RIGHT_ROOM - theme::SPACE_1, 0.0f))) {
                 if (search) {
                     drawFound(mods, selection, *search, rowWidth, drawn);
-                }
-                for (std::size_t modIndex = 0; !search && modIndex < mods.size(); ++modIndex) {
-                    const auto& mod = mods[modIndex];
-                    const bool selected = selection.mod == modIndex;
-                    const bool open = selected && !mod.pages.empty();
-                    const bool mcm = mod.source == model::Source::Mcm;
-                    const std::string_view tag = mcm ? MCM_TAG : "";
-                    ImGui::PushID(static_cast<int>(modIndex));
-                    if (!mod.notAvailable.empty()) {
-                        if (disabledRow(mod.displayName, tag, 0, Arrow::Closed, rowWidth)) {
-                            drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
-                        }
-                        ImGui::PopID();
-                        continue;
+                } else if (categories) {
+                    drawCategories(mods, *categories, selection, rowWidth, drawn, store);
+                } else {
+                    for (std::size_t modIndex = 0; modIndex < mods.size(); ++modIndex) {
+                        drawMod(mods, modIndex, 0, selection, rowWidth, drawn, store);
                     }
-                    bool pointed = false;
-                    if (treeRow(mod.displayName, tag, 0, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed)) {
-                        drawn.pressed = Selection{ .mod = modIndex, .page = {} };
-                    }
-                    if (pointed && (mcm || !mod.help.empty())) {
-                        drawn.pointed = PointedRow{ .text = mod.displayName, .help = mcm ? MCM_HELP : mod.help };
-                    }
-                    if (open) {
-                        std::vector<std::size_t> path;
-                        drawPages(mod.pages, modIndex, selection, path, rowWidth, drawn, store);
-                    }
-                    ImGui::PopID();
                 }
                 _showSelection = false;
             }
@@ -283,12 +307,95 @@ namespace mods_config::ui
     }
 
     /**
-     * The rows of the pages of the selected mod, or of a page of it, under its row: `path` is the place of that
-     * page, and is empty for the mod. A page with pages is open while it or one of its pages is selected, and its
-     * pages are the rows under it, a level further in. Tells a pressed row and a pointed one with a help.
+     * The rows of a grouped tree: a row for each category, and under one that is open the rows of its mods, a level
+     * further in. A press opens and closes a category, and several can be open. The category of the selected mod is
+     * opened as the mod is selected, and as its row is to be scrolled to, so the row is there. A category that a
+     * press opened has the selected row scrolled to, where it has it, and else the rows of its first mods, where they
+     * are under the shown rows.
      */
-    void ModTree::drawPages(const std::vector<model::Page>& pages, const std::size_t modIndex, const Selection& selection, std::vector<std::size_t>& path, const float rowWidth,
-        TreeDrawn& drawn, model::Store* store) const
+    void ModTree::drawCategories(const std::vector<model::Mod>& mods, const std::vector<model::CategoryGroup>& categories, const Selection& selection, const float rowWidth,
+        TreeDrawn& drawn, model::Store* store)
+    {
+        for (const auto& category : categories) {
+            const auto key = model::categoryKey(category.name);
+            if (_showSelection && selection.mod && std::ranges::find(category.mods, *selection.mod) != category.mods.end()) {
+                _openCategories.insert(key);
+            }
+            bool open = _openCategories.contains(key);
+            // not a number, which a mod's place is
+            ImGui::PushID(key.c_str());
+            if (categoryRow(category.name.empty() ? model::NO_CATEGORY : category.name, category.mods.size(), open, rowWidth)) {
+                open = !open;
+                if (open) {
+                    _openCategories.insert(key);
+                    // the selected row, which can be far under the category's with the pages of its mod open
+                    if (selection.mod && std::ranges::find(category.mods, *selection.mod) != category.mods.end()) {
+                        _showSelection = true;
+                    } else {
+                        _openedCategory = key;
+                    }
+                } else {
+                    _openCategories.erase(key);
+                }
+            }
+            for (std::size_t place = 0; open && place < category.mods.size(); ++place) {
+                const float rowBottom = drawMod(mods, category.mods[place], 1, selection, rowWidth, drawn, store);
+                if (_openedCategory == key && place + 1 == (std::min)(category.mods.size(), CATEGORY_SHOWN_MODS)) {
+                    if (rowBottom > ImGui::GetWindowPos().y + ImGui::GetWindowHeight()) {
+                        ImGui::SetScrollFromPosY(rowBottom + theme::SPACE_1 - ImGui::GetWindowPos().y, 1.0f);
+                    }
+                    _openedCategory.reset();
+                }
+            }
+            ImGui::PopID();
+        }
+    }
+
+    /**
+     * The row of a mod, at a level of the tree, and the rows of its pages under it while it is selected. A mod that
+     * is not available is a disabled row. Tells a pressed row and a pointed one with something to say. Returns the
+     * bottom of the mod's own row, on the screen.
+     */
+    float ModTree::drawMod(const std::vector<model::Mod>& mods, const std::size_t modIndex, const int level, const Selection& selection, const float rowWidth, TreeDrawn& drawn,
+        model::Store* store) const
+    {
+        const auto& mod = mods[modIndex];
+        const bool selected = selection.mod == modIndex;
+        const bool open = selected && !mod.pages.empty();
+        const bool mcm = mod.source == model::Source::Mcm;
+        const std::string_view tag = mcm ? MCM_TAG : "";
+        ImGui::PushID(static_cast<int>(modIndex));
+        if (!mod.notAvailable.empty()) {
+            if (disabledRow(mod.displayName, tag, level, Arrow::Closed, rowWidth)) {
+                drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
+            }
+            ImGui::PopID();
+            return ImGui::GetItemRectMax().y;
+        }
+        bool pointed = false;
+        if (treeRow(mod.displayName, tag, level, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed)) {
+            drawn.pressed = Selection{ .mod = modIndex, .page = {} };
+        }
+        const float rowBottom = ImGui::GetItemRectMax().y;
+        if (pointed && (mcm || !mod.help.empty())) {
+            drawn.pointed = PointedRow{ .text = mod.displayName, .help = mcm ? MCM_HELP : mod.help };
+        }
+        if (open) {
+            std::vector<std::size_t> path;
+            drawPages(mod.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);
+        }
+        ImGui::PopID();
+        return rowBottom;
+    }
+
+    /**
+     * The rows of the pages of the selected mod, or of a page of it, under its row, at a level of the tree: `path` is
+     * the place of that page, and is empty for the mod. A page with pages is open while it or one of its pages is
+     * selected, and its pages are the rows under it, a level further in. Tells a pressed row and a pointed one with
+     * a help.
+     */
+    void ModTree::drawPages(const std::vector<model::Page>& pages, const std::size_t modIndex, const int level, const Selection& selection, std::vector<std::size_t>& path,
+        const float rowWidth, TreeDrawn& drawn, model::Store* store) const
     {
         for (std::size_t pageIndex = 0; pageIndex < pages.size(); ++pageIndex) {
             const auto& page = pages[pageIndex];
@@ -302,15 +409,15 @@ namespace mods_config::ui
             ImGui::PushID(static_cast<int>(pageIndex));
             bool pointed = false;
             if (!enabled) {
-                pointed = disabledRow(page.name, {}, static_cast<int>(path.size()), arrow, rowWidth);
-            } else if (treeRow(page.name, {}, static_cast<int>(path.size()), arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
+                pointed = disabledRow(page.name, {}, level, arrow, rowWidth);
+            } else if (treeRow(page.name, {}, level, arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
             if (pointed && (!enabled || !page.help.empty())) {
                 drawn.pointed = PointedRow{ .text = page.name, .help = pageHelp(page, enabled) };
             }
             if (open && enabled) {
-                drawPages(page.pages, modIndex, selection, path, rowWidth, drawn, store);
+                drawPages(page.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);
             }
             ImGui::PopID();
             path.pop_back();

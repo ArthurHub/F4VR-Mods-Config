@@ -16,11 +16,11 @@ namespace
     using Json = nlohmann::json;
 
     /**
-     * Whether two names are the same category: a category is known by its name without regard to case.
+     * Whether two names are the same category.
      */
     bool sameName(const std::string_view one, const std::string_view other)
     {
-        return common::str_tolower(std::string(one)) == common::str_tolower(std::string(other));
+        return mods_config::model::categoryKey(one) == mods_config::model::categoryKey(other);
     }
 }
 
@@ -45,6 +45,14 @@ namespace mods_config::model
     {
         auto name = common::trim(std::string(text));
         return name.starts_with('$') ? std::string() : name;
+    }
+
+    /**
+     * What a category is known by: its name in lower case, as its name is without regard to case.
+     */
+    std::string categoryKey(const std::string_view name)
+    {
+        return common::str_tolower(std::string(name));
     }
 
     /**
@@ -122,5 +130,44 @@ namespace mods_config::model
             return { .name = listed->second, .source = CategorySource::Table };
         }
         return {};
+    }
+
+    /**
+     * Whether a list of so many mods is grouped by category: one of at least `minMods` mods, and any list with 0.
+     */
+    bool isGrouped(const std::size_t modCount, const int minMods)
+    {
+        return minMods <= 0 || modCount >= static_cast<std::size_t>(minMods);
+    }
+
+    /**
+     * The mods of a list by their categories: the categories in the order of their names, without regard to case,
+     * and the mods with none last, each with its mods in the list's order. A category is known by its name without
+     * regard to case, and is spelled as the first of its mods writes it, a shipped name as the table spells it.
+     * A category with no mod is not there.
+     */
+    std::vector<CategoryGroup> groupByCategory(const std::vector<Mod>& mods, const CategoryTable& table)
+    {
+        std::map<std::string, CategoryGroup> byName;
+        for (std::size_t place = 0; place < mods.size(); ++place) {
+            auto name = ownCategory(mods[place], table).name;
+            auto& group = byName[categoryKey(name)];
+            if (group.mods.empty()) {
+                group.name = std::move(name);
+            }
+            group.mods.push_back(place);
+        }
+
+        std::vector<CategoryGroup> groups;
+        groups.reserve(byName.size());
+        for (auto& [key, group] : byName) {
+            if (!key.empty()) {
+                groups.push_back(std::move(group));
+            }
+        }
+        if (const auto none = byName.find(std::string()); none != byName.end()) {
+            groups.push_back(std::move(none->second));
+        }
+        return groups;
     }
 }

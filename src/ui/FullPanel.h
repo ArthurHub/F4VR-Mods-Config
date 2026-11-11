@@ -73,6 +73,8 @@ namespace mods_config::ui
         void setStore(model::Source source, model::Store* store);
         void setThumbstickSideValue(float value);
         void setTreeWidth(float width);
+        void setCategoryTable(model::CategoryTable table);
+        void setCategoriesMinMods(int minMods);
         bool select(const Selection& selection);
         bool close();
         bool showHelp(bool shown);
@@ -239,6 +241,16 @@ namespace mods_config::ui
         // has no values
         model::Store* _mcmStore = nullptr;
         model::Store* _configSpecStore = nullptr;
+
+        void groupMods();
+
+        // the shipped table of the categories, and from how many mods the tree is grouped by category: none for a
+        // panel that is not told, whose tree is flat
+        model::CategoryTable _categoryTable;
+        std::optional<int> _categoriesMinMods;
+
+        // the mods by their categories, which the tree is grouped by: empty for a flat tree
+        std::vector<model::CategoryGroup> _categories;
 
         ModTree _modTree;
         ModPage _modPage;

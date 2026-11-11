@@ -5866,3 +5866,106 @@ TEST_CASE("FullPanel: the page whole again has the focus ring on the last row th
     CHECK(pressActs(panel, searchClear()));
     CHECK_FALSE(panel.isFolded(advanced));
 }
+
+namespace
+{
+    model::Mod modIn(const std::string& name, const std::string& category, const Names& pages = {})
+    {
+        auto mod = modOf(name, pages);
+        mod.category = category;
+        return mod;
+    }
+
+    /**
+     * A panel with four mods whose tree is grouped. In its order they are Alpha with two pages and Gamma with one in
+     * Combat, Delta in Interface, and Beta with no category: the mods are 0 Alpha, 1 Beta, 2 Delta and 3 Gamma.
+     */
+    FullPanel groupedMods()
+    {
+        FullPanel panel;
+        panel.setMods({ modIn("Gamma", "Combat", { "Only" }), modIn("Alpha", "combat", { "First", "Second" }), modOf("Beta"), modIn("Delta", "Interface") });
+        panel.setCategoriesMinMods(0);
+        return panel;
+    }
+}
+
+TEST_CASE("FullPanel: a grouped tree has a row for each category, closed, and a press opens and closes one, selecting nothing")
+{
+    const test_panel::PanelContext context;
+    auto panel = groupedMods();
+    drawFrames(panel, 2);
+
+    // Combat, Interface and No category: no mod has a row yet
+    press(panel, treeRow(0));
+    CHECK(panel.selection() == Selection{});
+
+    // Combat is open, with Alpha and Gamma under it
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == selectionOf(3));
+    // Gamma is open, with its page, and Interface is after it
+    press(panel, treeRow(3));
+    CHECK(panel.selection() == selectionOf(3, 0));
+    press(panel, treeRow(4));
+    CHECK(panel.selection() == selectionOf(3, 0));
+
+    // Interface is open too, with Delta under it: several are open
+    press(panel, treeRow(5));
+    CHECK(panel.selection() == selectionOf(2));
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0));
+
+    // Combat closes, with the selected mod in it, which stays selected: Interface is the second row now
+    press(panel, treeRow(0));
+    CHECK(panel.selection() == selectionOf(0));
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == selectionOf(2));
+
+    // the mods with no category are under the last row
+    press(panel, treeRow(3));
+    press(panel, treeRow(4));
+    CHECK(panel.selection() == selectionOf(1));
+}
+
+TEST_CASE("FullPanel: the category of a mod that is selected from outside the tree is opened")
+{
+    const test_panel::PanelContext context;
+    auto panel = groupedMods();
+    drawFrames(panel, 2);
+
+    panel.select(selectionOf(3));
+    drawFrames(panel, 2);
+
+    // Combat is open: Alpha is its first mod
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0));
+}
+
+TEST_CASE("FullPanel: the tree is grouped from a number of mods, and is one list of the mods under it")
+{
+    const test_panel::PanelContext context;
+    auto panel = groupedMods();
+    panel.setCategoriesMinMods(5);
+    drawFrames(panel, 2);
+
+    // four mods are one list: Beta is the second row
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(1));
+
+    // and from four they are grouped: the second row is Interface, which is no mod
+    panel.select({});
+    panel.setCategoriesMinMods(4);
+    drawFrames(panel, 2);
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == Selection{});
+}
+
+TEST_CASE("FullPanel: a search of a grouped tree shows the mods it found in one list")
+{
+    const test_panel::PanelContext context;
+    auto panel = groupedMods();
+    drawFrames(panel, 2);
+    search(panel, "Gamma");
+
+    press(panel, treeRow(0));
+    CHECK(panel.selection() == selectionOf(3));
+}

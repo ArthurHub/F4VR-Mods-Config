@@ -123,3 +123,38 @@ TEST_CASE("Categories: the shipped table has the ten shipped names, and every mo
         CHECK(std::ranges::find(shipped.names, category) != shipped.names.end());
     }
 }
+
+TEST_CASE("Categories: a list is grouped from a number of mods, and any list with 0")
+{
+    CHECK(model::isGrouped(30, 30));
+    CHECK(model::isGrouped(31, 30));
+    CHECK(!model::isGrouped(29, 30));
+    CHECK(model::isGrouped(1, 0));
+    CHECK(model::isGrouped(0, 0));
+}
+
+TEST_CASE("Categories: the mods are grouped by their categories in the order of the names, with the mods of none last")
+{
+    const auto known = table(R"({ "categories": ["Interface", "Settlements"], "mods": { "SS2": "Settlements" } })");
+    const std::vector<model::Mod> mods{ mod("Alpha", "settlements"), mod("Beta"), mod("Gamma", "interface"), mod("SS2"), mod("Delta", "combat"), mod("Epsilon", "Combat") };
+
+    const auto groups = model::groupByCategory(mods, known);
+
+    REQUIRE(groups.size() == 4);
+    // any other name is as the first of its mods writes it
+    CHECK(groups[0] == model::CategoryGroup{ .name = "combat", .mods = { 4, 5 } });
+    // a shipped name is as the table spells it
+    CHECK(groups[1] == model::CategoryGroup{ .name = "Interface", .mods = { 2 } });
+    // the mod's own and the table's are one category
+    CHECK(groups[2] == model::CategoryGroup{ .name = "Settlements", .mods = { 0, 3 } });
+    CHECK(groups[3] == model::CategoryGroup{ .name = "", .mods = { 1 } });
+}
+
+TEST_CASE("Categories: mods that all have a category have no group of none, and no mods have no groups")
+{
+    const auto groups = model::groupByCategory({ mod("Alpha", "Combat"), mod("Beta", "Combat") }, {});
+    REQUIRE(groups.size() == 1);
+    CHECK(groups[0] == model::CategoryGroup{ .name = "Combat", .mods = { 0, 1 } });
+
+    CHECK(model::groupByCategory({}, {}).empty());
+}

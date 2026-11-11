@@ -14,6 +14,9 @@
 
 namespace mods_config::model
 {
+    // what the mods with no category are under, last
+    constexpr auto NO_CATEGORY = "No category";
+
     // where the shipped table is, from the game's folder
     constexpr auto CATEGORY_TABLE_FILE = R"(Data\ModsConfigFO4\Categories.json)";
 
@@ -55,8 +58,23 @@ namespace mods_config::model
         bool operator==(const ModCategory&) const = default;
     };
 
+    /**
+     * A category of a grouped list of mods: its name as it is shown, empty for the mods with none, and the places of
+     * its mods in the list, in the list's order.
+     */
+    struct CategoryGroup
+    {
+        std::string name;
+        std::vector<std::size_t> mods;
+
+        bool operator==(const CategoryGroup&) const = default;
+    };
+
     std::string categoryName(std::string_view text);
+    std::string categoryKey(std::string_view name);
     std::expected<CategoryTable, std::string> readCategoryTable(std::string_view text);
     CategoryTable loadCategoryTable(const std::filesystem::path& file);
     ModCategory ownCategory(const Mod& mod, const CategoryTable& table);
+    bool isGrouped(std::size_t modCount, int minMods);
+    std::vector<CategoryGroup> groupByCategory(const std::vector<Mod>& mods, const CategoryTable& table);
 }

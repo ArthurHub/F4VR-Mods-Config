@@ -46,6 +46,10 @@ fPanelHeight = 16.0
 # fPanelWidth.
 fTreeWidth = 8.0
 
+# The list of the mods is grouped by category when it has at least this many mods: a shorter list is one
+# list in the order of the names. 0 groups any list.
+iCategoriesMinMods = 20
+
 # Where the menu is put in front of you: how far from your eyes, and how much above them, in game units,
 # about 1.4 cm each. A negative height is below the eyes.
 fDistance = 160.0

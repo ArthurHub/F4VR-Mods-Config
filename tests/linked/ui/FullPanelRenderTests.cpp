@@ -2488,3 +2488,49 @@ TEST_CASE("FullPanel render: a script button of a mod with unsaved changes asks 
     CHECK(store.set(height, "3"s));
     WARN("Saved " << renderToFile(panel, "button-save-first-invalid", POINTER_AWAY, false, press(pageRow(1))));
 }
+
+TEST_CASE("FullPanel render: a tree grouped by category, closed, with one open and the ray on a category, and with a mod of it selected", "[.render]")
+{
+    const auto in = [](const std::string& name, const std::string& category, const std::vector<std::string>& pages = {}) {
+        auto mod = modOf(name, pages);
+        mod.category = category;
+        return mod;
+    };
+    std::vector<model::Mod> mods;
+    mods.push_back(in("FallUI", "Interface", { "Inventory", "HUD" }));
+    mods.push_back(in("Mods Config FO4", "Interface"));
+    mods.push_back(in("Chemfluence", "Combat"));
+    mods.push_back(in("Pack Attack NPC Edition", "Combat"));
+    mods.push_back(in("Sim Settlements 2", "Settlements"));
+    mods.push_back(in("A category with a name too long for its row", "A category with a name too long for its row"));
+    mods.push_back(modOf("XDI"));
+    mods.push_back(modOf("What's Your Name?"));
+    mods[2].source = model::Source::Mcm;
+
+    FullPanel panel;
+    panel.setMods(std::move(mods));
+    panel.setCategoriesMinMods(0);
+
+    const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
+    const auto row = [rowsTop](const int place) {
+        return ImVec2(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f,
+            rowsTop + static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_1) + theme::CONTROL_HEIGHT * 0.5f);
+    };
+    WARN("Saved " << renderToFile(panel, "categories-closed", test_panel::POINTER_AWAY));
+
+    const auto press = [&panel](const ImVec2 at) {
+        for (const bool pressed : { false, false, true, false, false }) {
+            test_panel::drawFrame(panel, at, pressed);
+        }
+    };
+
+    // Interface, the third category, is opened, and the ray stays on it
+    WARN("Saved " << renderToFile(panel, "categories-open", row(2), false, [&] {
+        press(row(2));
+    }));
+
+    // FallUI, its first mod, is selected, with its pages under it
+    WARN("Saved " << renderToFile(panel, "categories-mod-selected", test_panel::POINTER_AWAY, false, [&] {
+        press(row(3));
+    }));
+}
