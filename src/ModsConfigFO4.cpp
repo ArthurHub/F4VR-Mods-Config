@@ -5,6 +5,7 @@
 #include "devbench/MCDevBench.h"
 #include "f4vr/F4VRUtils.h"
 #include "mcm/McmLoader.h"
+#include "model/Categories.h"
 #include "perf/Perf.h"
 #include "spec/ConfigSpecLoader.h"
 #include "vrcf/VRControllersManager.h"
@@ -94,6 +95,11 @@ namespace mods_config
         // once: what a mod's menu holds does not change while the game runs
         const auto translations = loadGameTranslations();
         auto mods = spec::withConfigSpecs(mcm::loadInstalledMods(translations), spec::loadInstalledConfigSpecs(translations));
+        const auto categories = model::loadCategoryTable(model::CATEGORY_TABLE_FILE);
+        for (const auto& mod : mods) {
+            const auto category = model::ownCategory(mod, categories);
+            logger::debug("'{}' has {}", mod.name, category.name.empty() ? "no category" : std::format("the category '{}'", category.name));
+        }
         _menu.setMods(std::move(mods), translations);
     }
 

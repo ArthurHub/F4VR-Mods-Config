@@ -2870,3 +2870,26 @@ TEST_CASE("ConfigSpecLoader: a dropdown of a string lists the files of a folder,
     REQUIRE(alone);
     CHECK(alone->problems.size() == 6);
 }
+
+TEST_CASE("ConfigSpecLoader: a config spec's category is read as it is written, also of a mod that is not available, and one that is no plain name is a warning")
+{
+    const auto named = loaded(R"({ "minSchemaVersion": 1, "modName": "MyMod", "category": " Gameplay " })");
+    CHECK(named.category == "Gameplay");
+    CHECK(named.problems.empty());
+
+    const auto none = loaded(R"({ "minSchemaVersion": 1, "modName": "MyMod" })");
+    CHECK(none.category.empty());
+    CHECK(none.problems.empty());
+
+    for (const auto* category : { R"("$Gameplay")", "3", R"("  ")" }) {
+        const auto mod = loaded(std::format(R"({{ "minSchemaVersion": 1, "modName": "MyMod", "category": {} }})", category));
+        CHECK(mod.category.empty());
+        REQUIRE(mod.problems.size() == 1);
+        CHECK(mod.problems[0].severity == model::Severity::Warning);
+        CHECK(mod.problems[0].path == "category");
+    }
+
+    const auto newer = loaded(R"({ "minSchemaVersion": 99, "modName": "MyMod", "category": "Combat" })");
+    CHECK(!newer.notAvailable.empty());
+    CHECK(newer.category == "Combat");
+}

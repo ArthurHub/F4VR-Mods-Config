@@ -1057,6 +1057,10 @@ namespace mods_config::model
         std::string help;
         Source source = Source::Mcm;
 
+        // the `category` of its own config, as it writes it, which a long list of mods is grouped by: empty for none.
+        // A mod that is not available has it too
+        std::string category;
+
         // a config spec's files, by the names it gives them. None for an MCM mod
         std::map<std::string, File> files;
 

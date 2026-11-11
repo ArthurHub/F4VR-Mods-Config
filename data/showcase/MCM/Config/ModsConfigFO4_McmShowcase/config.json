@@ -2,6 +2,7 @@
   "modName": "ModsConfigFO4_McmShowcase",
   "displayName": "Mods Config FO4: MCM Compatibility",
   "minMcmVersion": 2,
+  "category": "Utilities",
   "sharedLists": { "weather": ["Clear", "Cloudy", "Rain", "Storm"] },
   "content": [
     {

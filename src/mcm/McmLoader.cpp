@@ -15,6 +15,7 @@
 #include "FallUITranslations.h"
 #include "McmConfigImages.h"
 #include "common/CommonUtils.h"
+#include "model/Categories.h"
 #include "model/FileChoices.h"
 #include "model/TextMarkup.h"
 
@@ -1017,6 +1018,8 @@ namespace mods_config::mcm
         if (mod.displayName.empty()) {
             mod.displayName = mod.name;
         }
+        // no field of MCM's: its menu does not read it, and the menu groups a long list of mods by it
+        mod.category = model::categoryName(getText(config, "category"));
         mod.notAvailable = findMissingPlugins(config, isPluginLoaded);
         if (!mod.notAvailable.empty()) {
             return mod;

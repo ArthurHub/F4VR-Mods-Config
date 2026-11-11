@@ -22,6 +22,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/Categories.h"
 #include "model/Colors.h"
 #include "model/Conditions.h"
 #include "model/Haptics.h"
@@ -3214,10 +3215,17 @@ namespace mods_config::spec
         // a newer schema can say anything in another way, so nothing more of it is read
         auto reason = *schemaVersion > SCHEMA_VERSION ? std::format("its spec.json needs a newer Mods Config FO4 VR, one that reads schema version {}", *schemaVersion)
                                                       : findMissingRequirements(configSpec, plugins);
+        mod.category = model::categoryName(getText(configSpec, "category"));
         if (!reason.empty()) {
-            return notAvailableMod(std::move(mod.name), std::move(mod.displayName), std::move(reason));
+            auto notAvailable = notAvailableMod(std::move(mod.name), std::move(mod.displayName), std::move(reason));
+            notAvailable.category = std::move(mod.category);
+            return notAvailable;
         }
         checkFields(configSpec, ROOT_FIELDS, reading);
+        if (configSpec.contains("category") && mod.category.empty()) {
+            const Into into(reading, "category");
+            reading.report(model::Severity::Warning, "The category is not read: it is a plain name, as \"Gameplay\", and not a `$` token.");
+        }
         mod.help = readShownText(configSpec, "help", reading);
         mod.f4sePlugins = requiredPlugins(configSpec, "f4sePluginRequirements");
         reading.files = loadFiles(configSpec, reading);

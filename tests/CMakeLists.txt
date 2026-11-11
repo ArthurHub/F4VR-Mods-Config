@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/mcm/McmLoaderTests.cpp
   linked/mcm/McmStoreTests.cpp
   linked/mcm/SwfImagesTests.cpp
+  linked/model/CategoriesTests.cpp
   linked/model/ColorsTests.cpp
   linked/model/ConditionsTests.cpp
   linked/model/FileChoicesTests.cpp
@@ -69,6 +70,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/mcm/McmModSettings.cpp
   ${SOURCE_DIR}/mcm/McmStore.cpp
   ${SOURCE_DIR}/mcm/SwfImages.cpp
+  ${SOURCE_DIR}/model/Categories.cpp
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
   ${SOURCE_DIR}/model/ClientCalls.cpp
   ${SOURCE_DIR}/model/Colors.cpp
@@ -134,6 +136,8 @@ target_compile_definitions(${PROJECT_NAME}_linked_tests PRIVATE _UNICODE
   # the mod's own config spec, and the config file it edits as the mod ships it
   MODS_CONFIG_SPECS_DIR="${ROOT_DIR}/data/mod/ModsConfigFO4/Config"
   MODS_CONFIG_SHIPPED_CONFIG="${ROOT_DIR}/data/config/ModsConfigFO4VR.toml"
+  # the table of the categories of known mods, as the mod ships it
+  MODS_CONFIG_CATEGORY_TABLE="${ROOT_DIR}/data/mod/ModsConfigFO4/Categories.json"
   # the config spec showcase, which is an optional file of the mod
   MODS_CONFIG_SPEC_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/ModsConfigFO4/Config"
 )

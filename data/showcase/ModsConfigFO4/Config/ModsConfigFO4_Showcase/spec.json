@@ -3,6 +3,7 @@
   "modName": "ModsConfigFO4_Showcase",
   "displayName": "Mods Config FO4: Showcase",
   "help": "What a config spec can do, for a mod author writing one: one of each kind of setting, a page for each kind in all its forms, and its mistakes.",
+  "category": "Utilities",
   "specVersion": 1,
   "pluginRequirements": ["Fallout4.esm"],
   "f4sePluginRequirements": ["ModsConfigFO4VR"],

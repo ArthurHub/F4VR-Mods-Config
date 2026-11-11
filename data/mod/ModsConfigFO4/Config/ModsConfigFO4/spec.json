@@ -3,6 +3,7 @@
   "modName": "ModsConfigFO4VR",
   "displayName": "Mods Config FO4 VR",
   "help": "This menu: the panel it stands on, the buttons that work it, and the pointer you use it with.",
+  "category": "Interface",
   "specVersion": 1,
   "files": {
     "config": {

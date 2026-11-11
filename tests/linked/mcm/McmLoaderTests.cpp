@@ -1530,3 +1530,18 @@ TEST_CASE("McmLoader: a value row has the global function its action calls, with
     // its row is set as any other, and nothing runs
     CHECK(std::get<model::UnknownAction>(actionOf(2)).type == "CallExternalFunction");
 }
+
+TEST_CASE("McmLoader: a config's category is read as it is written, also of a mod that is not available, and a `$` token is none")
+{
+    CHECK(loaded(R"({ "modName": "MyMod", "category": " Gameplay " })").category == "Gameplay");
+    CHECK(loaded(R"({ "modName": "MyMod" })").category.empty());
+    CHECK(loaded(R"({ "modName": "MyMod", "category": "$Gameplay" })").category.empty());
+    CHECK(loaded(R"({ "modName": "MyMod", "category": 3 })").category.empty());
+
+    const auto missing = mcm::loadConfig(R"({ "modName": "MyMod", "category": "Combat", "pluginRequirements": ["Missing.esp"] })", {}, {}, {}, [](std::string_view) {
+        return false;
+    });
+    REQUIRE(missing);
+    CHECK(!missing->notAvailable.empty());
+    CHECK(missing->category == "Combat");
+}
