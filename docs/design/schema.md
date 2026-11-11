@@ -74,7 +74,7 @@ One number that only grows. A config spec ships with its mod and isn't updated w
 - A shipped name shows as the list spells it; any other as the player typed it, else as the first mod writes it.
 - An MCM config may have the same root field.
 
-Published MCM mods get categories from a shipped table, `Data/ModsConfigFO4/Categories.json`, which also holds the name list. It has the MCM mods of the author's four mod lists, by `modName` in any case:
+Published MCM mods get categories from a shipped table, `Data/ModsConfigFO4/Categories.json`, which also holds the name list. It has the MCM mods of the author's four mod lists and those of the Nexus mods with 100,000 downloads or more, by `modName` in any case. A Nexus mod is listed by its config's folder, which is the `modName` of most mods:
 
 ```json
 {
