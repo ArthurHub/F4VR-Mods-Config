@@ -97,6 +97,15 @@ namespace mods_config::ui
     }
 
     /**
+     * The categories the player gave mods, as their file has them: at first, and after a Save wrote it.
+     */
+    void FullPanel::setCategoryChoices(model::CategoryChoices choices)
+    {
+        _categoryChoices = std::move(choices);
+        groupMods();
+    }
+
+    /**
      * From how many mods the tree is grouped by category: 0 groups any list.
      */
     void FullPanel::setCategoriesMinMods(const int minMods)
@@ -108,14 +117,14 @@ namespace mods_config::ui
     }
 
     /**
-     * Groups the mods by their categories again, as the mods, the table or the number the tree is grouped from
-     * changes: none for a list too short to be grouped, whose tree is flat.
+     * Groups the mods by their categories again, as the mods, the table, the player's choices or the number the tree
+     * is grouped from changes: none for a list too short to be grouped, whose tree is flat.
      */
     void FullPanel::groupMods()
     {
         _categories.clear();
         if (_categoriesMinMods && !_mods.empty() && model::isGrouped(_mods.size(), *_categoriesMinMods)) {
-            _categories = model::groupByCategory(_mods, _categoryTable);
+            _categories = model::groupByCategory(_mods, _categoryTable, _categoryChoices);
         }
     }
 

@@ -17,6 +17,7 @@
 #include "TestGlobals.h"
 #include "TestProperties.h"
 #include "common/CommonUtils.h"
+#include "model/Categories.h"
 #include "model/Colors.h"
 #include "model/Conditions.h"
 #include "spec/ConfigSpecLoader.h"
@@ -2289,4 +2290,134 @@ TEST_CASE("ConfigSpecStore: the client is told the id of the row the ray is on a
     store.close();
     CHECK(told ==
           std::vector<std::vector<std::string>>{ { "bLeft:Holsters", "holsters" }, { "holsters" }, { "tZone:BodyGrab", "BodyGrab" }, {}, { "tZone:BodyGrab", "BodyGrab" }, {} });
+}
+
+namespace
+{
+    // two choices of a text, kept at the root of the TOML file
+    constexpr auto CHOICES = R"(
+        { "type": "dropdown", "valueType": "string", "text": "First", "default": "a",
+          "valueOptions": { "options": [ { "value": "a", "text": "A" }, { "value": "b", "text": "B" } ] }, "storage": { "path": ["first"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Second", "default": "a",
+          "valueOptions": { "options": [ { "value": "a", "text": "A" }, { "value": "b", "text": "B" } ] }, "storage": { "path": ["second"] } }
+    )";
+
+    /**
+     * A session of two choices that keep no value that is their default.
+     */
+    struct OmitSession : Session
+    {
+        OmitSession()
+            : Session(CHOICES)
+        {
+            for (auto& item : mod.frontPage.items) {
+                std::get<model::Setting>(item).omitDefault = true;
+            }
+        }
+    };
+}
+
+TEST_CASE("ConfigSpecStore: a Save keeps no value that is the default of a setting that keeps none: its key is removed")
+{
+    OmitSession s;
+    s.open("# choices\nfirst = \"b\"\nsecond = \"b\"\n");
+    CHECK(s.value(0).value == model::Value(std::string("b")));
+
+    // set to its default, it is dirty, and the Save removes its key
+    REQUIRE(s.store.set(s.setting(0), std::string("a")));
+    CHECK(s.store.isDirty(s.setting(0)));
+    REQUIRE(s.store.save());
+
+    CHECK(readFile(s.myGames.path / MOD_FILE) == "# choices\nsecond = \"b\"\n");
+    CHECK(!s.store.isDirty(s.setting(0)));
+    CHECK(s.value(0).value == model::Value(std::string("a")));
+    CHECK(s.value(0).available);
+    CHECK(!s.value(0).invalid);
+
+    // and another value is written again
+    REQUIRE(s.store.set(s.setting(0), std::string("b")));
+    REQUIRE(s.store.save());
+    CHECK(readFile(s.myGames.path / MOD_FILE) == "# choices\nsecond = \"b\"\nfirst = \"b\"\n");
+}
+
+TEST_CASE("ConfigSpecStore: a Save removes the key of a clean setting whose file has its default, where it keeps none")
+{
+    OmitSession s;
+    s.open("first = \"a\"\nsecond = \"a\"\n");
+    CHECK(s.store.dirtyCount() == 0);
+
+    REQUIRE(s.store.set(s.setting(1), std::string("b")));
+    REQUIRE(s.store.save());
+
+    CHECK(readFile(s.myGames.path / MOD_FILE) == "second = \"b\"\n");
+    CHECK(s.store.dirtyCount() == 0);
+}
+
+TEST_CASE("ConfigSpecStore: a setting that keeps its default has it written, as any setting has")
+{
+    Session s(CHOICES);
+    s.open("first = \"b\"\n");
+
+    REQUIRE(s.store.set(s.setting(0), std::string("a")));
+    REQUIRE(s.store.save());
+
+    CHECK(readFile(s.myGames.path / MOD_FILE) == "first = \"a\"\n");
+}
+
+TEST_CASE("ConfigSpecStore: a row of the Categories page of the mod's own config spec keeps a mod's category in Categories.toml, and none that is the mod's own")
+{
+    auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
+    REQUIRE(mods.size() == 1);
+    auto& own = mods[0];
+    const auto table = model::readCategoryTable(R"({ "categories": ["Gameplay", "Settlements"], "mods": { "SS2": "Settlements" } })");
+    REQUIRE(table);
+    const std::vector<model::Mod> listed{ model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .frontPage = {}, .pages = {} } };
+    REQUIRE(model::addCategoryRows(own, listed, *table));
+
+    const test_files::TempFolder data;
+    const test_files::TempFolder myGames;
+    const auto file = myGames.path / "Mods_Config" / "ModsConfigFO4VR" / "Categories.toml";
+    ConfigSpecStore store{ data.path, myGames.path };
+    // the menu's own client gives the names, as the menu does
+    const auto names = [&](const model::Setting&) {
+        return model::categoryOptions(listed, *table, model::loadCategoryChoices(file));
+    };
+    store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = { { "category.SS2", names }, { "category.ModsConfigFO4VR", names } } }.calls());
+    store.open(own);
+
+    const auto page = std::ranges::find(own.pages, model::CATEGORIES_PAGE_ID, &model::Page::id);
+    REQUIRE(page != own.pages.end());
+    const auto& rows = std::get<model::Group>(page->items.back()).items;
+    const auto row = std::ranges::find_if(rows, [](const model::Item& item) {
+        return std::get<model::Setting>(item).id == "category.SS2";
+    });
+    REQUIRE(row != rows.end());
+    const auto& ss2 = std::get<model::Setting>(*row);
+
+    // with no file, the mod has the category it has without the player's choice
+    auto value = store.value(ss2);
+    CHECK(value.available);
+    CHECK(!value.invalid);
+    CHECK(value.value == model::Value(std::string("Settlements")));
+    CHECK(store.options(ss2).size() == 3);
+
+    // another category is kept under the mod's modName
+    REQUIRE(store.set(ss2, std::string("Gameplay")));
+    REQUIRE(store.save());
+    CHECK(model::loadCategoryChoices(file) == model::CategoryChoices{ { "ss2", "Gameplay" } });
+
+    // and so is no category, as an empty text
+    REQUIRE(store.set(ss2, std::string()));
+    REQUIRE(store.save());
+    CHECK(model::loadCategoryChoices(file) == model::CategoryChoices{ { "ss2", "" } });
+
+    // Reset gives the mod's own, which is not kept
+    const auto reset = store.defaultValue(ss2);
+    REQUIRE(reset);
+    CHECK(*reset == model::Value(std::string("Settlements")));
+    REQUIRE(store.set(ss2, *reset));
+    CHECK(store.isDirty(ss2));
+    REQUIRE(store.save());
+    CHECK(model::loadCategoryChoices(file).empty());
+    CHECK(store.dirtyCount() == 0);
 }

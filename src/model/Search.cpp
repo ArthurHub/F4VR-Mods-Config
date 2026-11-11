@@ -302,7 +302,10 @@ namespace
                 }
                 const bool shown = std::visit(
                     [this, all]<typename T>(const T& row) {
-                        if constexpr (std::is_same_v<T, Setting> || std::is_same_v<T, Button> || std::is_same_v<T, Hotkey> || std::is_same_v<T, Placeholder>) {
+                        if constexpr (std::is_same_v<T, Setting>) {
+                            // a row the menu makes is shown with its section or its page, and not found by its own text
+                            return (!row.visibleWhen || holds(*row.visibleWhen, _store)) && (all || (!row.notSearched && matches(fold(row.text))));
+                        } else if constexpr (std::is_same_v<T, Button> || std::is_same_v<T, Hotkey> || std::is_same_v<T, Placeholder>) {
                             return (!row.visibleWhen || holds(*row.visibleWhen, _store)) && (all || matches(fold(row.text)));
                         } else {
                             return false;

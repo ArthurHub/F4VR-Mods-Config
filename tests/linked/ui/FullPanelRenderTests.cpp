@@ -2534,3 +2534,50 @@ TEST_CASE("FullPanel render: a tree grouped by category, closed, with one open a
         press(row(3));
     }));
 }
+
+TEST_CASE("FullPanel render: the Categories page of the mod's own config spec, with a mod given another category", "[.render]")
+{
+    auto own = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
+    REQUIRE(own.size() == 1);
+    const auto table = model::loadCategoryTable(MODS_CONFIG_CATEGORY_TABLE);
+    const auto in = [](const std::string& modName, const std::string& name, const std::string& category = {}) {
+        auto mod = modOf(name);
+        mod.name = modName;
+        mod.category = category;
+        return mod;
+    };
+    std::vector<model::Mod> mods{ in("SS2", "Sim Settlements 2"),
+        in("FallUI", "FallUI - Inventory"),
+        in("XDI", "XDI"),
+        in("MyMod", "A mod of no table", "My Own"),
+        in("Plain", "Plain mod") };
+    REQUIRE(model::addCategoryRows(own[0], mods, table));
+    mods.push_back(std::move(own[0]));
+
+    spec::ConfigSpecStore store({}, {});
+    std::map<std::string, std::function<std::vector<model::Option>(const model::Setting&)>> options;
+    for (const auto& mod : mods) {
+        options[model::CATEGORY_SETTING_ID + mod.name] = [&](const model::Setting&) {
+            return model::categoryOptions(mods, table, {});
+        };
+    }
+    store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = options }.calls());
+
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setCategoriesMinMods(0);
+    panel.setMods(mods);
+    const auto ownPlace = static_cast<std::size_t>(std::ranges::find(panel.mods(), "ModsConfigFO4VR", &model::Mod::name) - panel.mods().begin());
+    const auto& ownMod = panel.mods()[ownPlace];
+    const auto page = static_cast<std::size_t>(std::ranges::find(ownMod.pages, model::CATEGORIES_PAGE_ID, &model::Page::id) - ownMod.pages.begin());
+    panel.select({ .mod = ownPlace, .page = { page } });
+
+    // XDI is given another category, which waits for a Save
+    const auto& rows = std::get<model::Group>(ownMod.pages[page].items.back()).items;
+    for (const auto& item : rows) {
+        if (const auto& row = std::get<model::Setting>(item); row.id == "category.XDI") {
+            REQUIRE(store.set(row, std::string("Gameplay")));
+        }
+    }
+    WARN("Saved " << renderToFile(panel, "categories-page", test_panel::POINTER_AWAY));
+}

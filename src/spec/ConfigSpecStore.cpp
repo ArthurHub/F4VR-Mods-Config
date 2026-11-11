@@ -1175,12 +1175,22 @@ namespace mods_config::spec
             for (const auto* setting : _settingList) {
                 const auto& entry = _entries.at(setting);
                 const auto* storage = std::get_if<model::FileStorage>(&setting->storage);
-                if (entry.pending && storage && storage->file == name) {
-                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending), .table = isTable(*setting) });
+                if (!storage || storage->file != name) {
+                    continue;
+                }
+                // a value that is the default of a setting that keeps none of it is removed, also one that was there
+                // before the session, which is not a change the mod is told
+                const auto isDefault = [setting](const std::optional<model::Value>& value) {
+                    return setting->omitDefault && value && setting->defaultValue && isSameValue(*value, *setting->defaultValue);
+                };
+                if (entry.pending) {
+                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending), .table = isTable(*setting), .remove = isDefault(entry.pending) });
                     settings.push_back(setting);
+                } else if (isDefault(entry.baseline) && file->contains(storage->path)) {
+                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.baseline), .table = false, .remove = true });
                 }
             }
-            if (changes.empty()) {
+            if (settings.empty()) {
                 continue;
             }
             if (const auto result = file->prepare(changes); !result) {

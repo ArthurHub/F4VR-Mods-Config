@@ -17,6 +17,12 @@ namespace mods_config::model
     // what the mods with no category are under, last
     constexpr auto NO_CATEGORY = "No category";
 
+    // the page of the mod's own config spec that the menu fills with a row for each mod, the file of the config spec
+    // the player's choices are kept in, and what the id of a mod's row starts with, before its `modName`
+    constexpr auto CATEGORIES_PAGE_ID = "categories";
+    constexpr auto CATEGORIES_FILE = "categories";
+    constexpr auto CATEGORY_SETTING_ID = "category.";
+
     // where the shipped table is, from the game's folder
     constexpr auto CATEGORY_TABLE_FILE = R"(Data\ModsConfigFO4\Categories.json)";
 
@@ -45,7 +51,12 @@ namespace mods_config::model
         Mod,
         // the shipped table
         Table,
+        // the player's choice, which can be no category
+        Player,
     };
+
+    // the category the player gave a mod, by the mod's `modName` in lower case: an empty name for no category
+    using CategoryChoices = std::map<std::string, std::string>;
 
     /**
      * The category of a mod, and what gave it: an empty name, of no source, for a mod with none.
@@ -74,7 +85,13 @@ namespace mods_config::model
     std::string categoryKey(std::string_view name);
     std::expected<CategoryTable, std::string> readCategoryTable(std::string_view text);
     CategoryTable loadCategoryTable(const std::filesystem::path& file);
+    std::expected<CategoryChoices, std::string> readCategoryChoices(std::string_view text);
+    CategoryChoices loadCategoryChoices(const std::filesystem::path& file);
     ModCategory ownCategory(const Mod& mod, const CategoryTable& table);
+    ModCategory categoryOf(const Mod& mod, const CategoryTable& table, const CategoryChoices& choices);
     bool isGrouped(std::size_t modCount, int minMods);
-    std::vector<CategoryGroup> groupByCategory(const std::vector<Mod>& mods, const CategoryTable& table);
+    std::vector<CategoryGroup> groupByCategory(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices = {});
+    std::vector<std::string> categoryNames(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
+    std::vector<Option> categoryOptions(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
+    bool addCategoryRows(Mod& own, const std::vector<Mod>& mods, const CategoryTable& table);
 }

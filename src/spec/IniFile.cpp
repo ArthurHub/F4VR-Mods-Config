@@ -259,6 +259,9 @@ namespace mods_config::spec
     {
         auto edited = text;
         for (const auto& change : changes) {
+            if (change.remove) {
+                return std::unexpected(std::format("{} cannot be removed from {}: only a TOML file removes a key", pathName(change.path), name()));
+            }
             if (!keyOf(change.path)) {
                 return std::unexpected(std::format("{} is no key of {}, which has a section and a key", pathName(change.path), name()));
             }

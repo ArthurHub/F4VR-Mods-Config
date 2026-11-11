@@ -146,7 +146,8 @@ namespace mods_config::spec
     /**
      * A text with values set in it: each replaces the text of the one the text has, and one it does not have is
      * added, and a change of a table's text is written as the table. `common::TomlEditor` checks that each reads back.
-     * Returns the reason for a text that is no TOML, and for a value that cannot be set.
+     * A change that removes its key has `common::TomlEditor` take the key's lines out, after the values are set.
+     * Returns the reason for a text that is no TOML, and for a value that cannot be set or a key that cannot be removed.
      */
     std::expected<std::string, std::string> TomlFile::edit(const std::string& text, const std::span<const Change> changes) const
     {
@@ -157,7 +158,13 @@ namespace mods_config::spec
 
         std::vector<common::TomlEditor::Edit> edits;
         edits.reserve(changes.size());
-        for (const auto& [path, value, table] : changes) {
+        std::vector<const Change*> removed;
+        for (const auto& change : changes) {
+            const auto& [path, value, table, remove] = change;
+            if (remove) {
+                removed.push_back(&change);
+                continue;
+            }
             if (table) {
                 // the table's text is a value of a document, which the edit writes as the table, in the order of its keys
                 const auto& tableValue = std::get<std::string>(value);
@@ -175,8 +182,14 @@ namespace mods_config::spec
                     },
                     value) });
         }
-        if (!editor.set(edits)) {
+        if (!edits.empty() && !editor.set(edits)) {
             return std::unexpected(editor.error());
+        }
+        for (const auto* change : removed) {
+            const std::vector<std::string_view> path(change->path.begin(), change->path.end());
+            if (!editor.remove(path)) {
+                return std::unexpected(std::format("{} cannot be removed from {}: {}", pathText(change->path), name(), editor.error()));
+            }
         }
         return editor.text();
     }

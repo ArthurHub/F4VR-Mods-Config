@@ -75,6 +75,7 @@ namespace mods_config::ui
         void setTreeWidth(float width);
         void setCategoryTable(model::CategoryTable table);
         void setCategoriesMinMods(int minMods);
+        void setCategoryChoices(model::CategoryChoices choices);
         bool select(const Selection& selection);
         bool close();
         bool showHelp(bool shown);
@@ -248,6 +249,9 @@ namespace mods_config::ui
         // panel that is not told, whose tree is flat
         model::CategoryTable _categoryTable;
         std::optional<int> _categoriesMinMods;
+
+        // the category the player gave a mod, which is before the mod's own and the table's
+        model::CategoryChoices _categoryChoices;
 
         // the mods by their categories, which the tree is grouped by: empty for a flat tree
         std::vector<model::CategoryGroup> _categories;

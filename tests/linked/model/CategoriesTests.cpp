@@ -158,3 +158,107 @@ TEST_CASE("Categories: mods that all have a category have no group of none, and 
 
     CHECK(model::groupByCategory({}, {}).empty());
 }
+
+TEST_CASE("Categories: the player's choices are read by their modName in any case, with an empty text for no category")
+{
+    const auto choices = model::readCategoryChoices("SS2 = \"Gameplay\"\n\"My Mod\" = \"\"\nOther = 3\nSpaced = \" Combat \"\n");
+
+    REQUIRE(choices);
+    CHECK(*choices == model::CategoryChoices{ { "ss2", "Gameplay" }, { "my mod", "" }, { "spaced", "Combat" } });
+
+    CHECK(model::readCategoryChoices("")->empty());
+    CHECK(!model::readCategoryChoices("SS2 = "));
+    CHECK(model::loadCategoryChoices("no-such-folder/Categories.toml").empty());
+}
+
+TEST_CASE("Categories: the player's choice is before a mod's own category and the table's, and can be no category")
+{
+    const auto known = table(R"({ "categories": ["Gameplay", "Settlements"], "mods": { "SS2": "Settlements" } })");
+    const model::CategoryChoices choices{ { "ss2", "gameplay" }, { "mymod", "" }, { "other", "My Own" } };
+
+    // a shipped name is spelled as the table spells it
+    CHECK(model::categoryOf(mod("SS2"), known, choices) == ModCategory{ .name = "Gameplay", .source = CategorySource::Player });
+    CHECK(model::categoryOf(mod("MyMod", "Settlements"), known, choices) == ModCategory{ .name = "", .source = CategorySource::Player });
+    CHECK(model::categoryOf(mod("Other"), known, choices) == ModCategory{ .name = "My Own", .source = CategorySource::Player });
+    // a mod with no choice has its own
+    CHECK(model::categoryOf(mod("Untouched", "Settlements"), known, choices) == ModCategory{ .name = "Settlements", .source = CategorySource::Mod });
+    CHECK(model::categoryOf(mod("SS2"), known, {}) == ModCategory{ .name = "Settlements", .source = CategorySource::Table });
+
+    const auto groups = model::groupByCategory({ mod("SS2"), mod("MyMod", "Settlements"), mod("Untouched", "Settlements") }, known, choices);
+    REQUIRE(groups.size() == 3);
+    CHECK(groups[0] == model::CategoryGroup{ .name = "Gameplay", .mods = { 0 } });
+    CHECK(groups[1] == model::CategoryGroup{ .name = "Settlements", .mods = { 2 } });
+    CHECK(groups[2] == model::CategoryGroup{ .name = "", .mods = { 1 } });
+}
+
+TEST_CASE("Categories: the names a mod can be given are the shipped ones and the others in use, in the order of their names, and no category is the last option")
+{
+    const auto known = table(R"({ "categories": ["Gameplay", "Settlements"], "mods": { "SS2": "Settlements" } })");
+    const std::vector<model::Mod> mods{ mod("SS2"), mod("Alpha", "Zeta"), mod("Beta", "gameplay"), mod("Gamma", "zeta"), mod("Delta") };
+    const model::CategoryChoices choices{ { "alpha", "My Own" }, { "delta", "" }, { "gone", "Not Listed" } };
+
+    // Zeta is in use as the category Alpha has without the player's choice, and the choice of a mod that is not
+    // listed is not
+    CHECK(model::categoryNames(mods, known, choices) == std::vector<std::string>{ "Gameplay", "My Own", "Settlements", "Zeta" });
+
+    const auto options = model::categoryOptions(mods, known, choices);
+    REQUIRE(options.size() == 5);
+    CHECK(options[0].value == model::Value(std::string("Gameplay")));
+    CHECK(options[0].text == "Gameplay");
+    CHECK(options[4].value == model::Value(std::string()));
+    CHECK(options[4].text == "No category");
+}
+
+TEST_CASE("Categories: the Categories page is filled with a row for each mod, in the order of their names, kept under its modName")
+{
+    const auto known = table(R"({ "categories": ["Interface", "Settlements"], "mods": { "SS2": "Settlements" } })");
+    auto own = mod("ModsConfigFO4VR", "interface");
+    own.displayName = "Mods Config FO4 VR";
+    own.pages.push_back({ .name = "Panel", .items = {} });
+    own.pages.push_back({ .name = "Categories", .items = { model::Text{} }, .pages = {}, .id = "categories" });
+    auto ss2 = mod("SS2");
+    ss2.displayName = "Sim Settlements 2";
+    auto alpha = mod("Alpha");
+    alpha.displayName = "alpha";
+    // the mod's own is among the mods the menu lists, and has one row
+    const std::vector<model::Mod> mods{ ss2, own, alpha };
+
+    REQUIRE(model::addCategoryRows(own, mods, known));
+
+    const auto& page = own.pages[1];
+    REQUIRE(page.items.size() == 2);
+    const auto& section = std::get<model::Group>(page.items[1]);
+    CHECK(section.text == "Mods");
+    REQUIRE(section.items.size() == 3);
+
+    const auto& first = std::get<model::Setting>(section.items[0]);
+    CHECK(first.id == "category.Alpha");
+    CHECK(first.text == "alpha");
+    CHECK(first.type == model::SettingType::Dropdown);
+    CHECK(first.storage == model::Storage(model::FileStorage{ .file = "categories", .path = { "Alpha" } }));
+    CHECK(first.defaultValue == model::Value(std::string()));
+    CHECK(first.help == "Reset gives No category: the mod has no category of its own.");
+    CHECK(first.valueOptions.clientOptions);
+    CHECK(first.applies == model::Applies::Save);
+    CHECK(first.omitDefault);
+    CHECK(first.notSearched);
+
+    const auto& second = std::get<model::Setting>(section.items[1]);
+    CHECK(second.id == "category.ModsConfigFO4VR");
+    CHECK(second.defaultValue == model::Value(std::string("Interface")));
+    CHECK(second.help == "Reset gives Interface, the mod's own category.");
+
+    const auto& third = std::get<model::Setting>(section.items[2]);
+    CHECK(third.id == "category.SS2");
+    CHECK(third.defaultValue == model::Value(std::string("Settlements")));
+    CHECK(third.help == "Reset gives Settlements, from the table of known mods.");
+
+    // filled again, its rows are replaced
+    REQUIRE(model::addCategoryRows(own, { ss2 }, known));
+    REQUIRE(own.pages[1].items.size() == 2);
+    CHECK(std::get<model::Group>(own.pages[1].items[1]).items.size() == 2);
+
+    // a config spec with no such page is left as it is
+    auto other = mod("Other");
+    CHECK(!model::addCategoryRows(other, mods, known));
+}

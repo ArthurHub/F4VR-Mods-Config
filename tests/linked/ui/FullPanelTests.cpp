@@ -5969,3 +5969,22 @@ TEST_CASE("FullPanel: a search of a grouped tree shows the mods it found in one 
     press(panel, treeRow(0));
     CHECK(panel.selection() == selectionOf(3));
 }
+
+TEST_CASE("FullPanel: a mod the player gave a category is under it, and the tree is grouped again as the choices change")
+{
+    const test_panel::PanelContext context;
+    auto panel = groupedMods();
+    panel.setCategoryChoices({ { "beta", "Combat" } });
+    drawFrames(panel, 2);
+
+    // Combat has Alpha, Beta and Gamma, and there is no row for the mods with no category
+    press(panel, treeRow(0));
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == selectionOf(1));
+
+    // with no choice, Beta has no category again: the second mod of Combat is Gamma
+    panel.setCategoryChoices({});
+    drawFrames(panel, 2);
+    press(panel, treeRow(2));
+    CHECK(panel.selection() == selectionOf(3));
+}

@@ -16,6 +16,7 @@
 #include "common/CommonUtils.h"
 #include "common/TomlEditor.h"
 #include "f4vr/WandActivationSphere.h"
+#include "model/Categories.h"
 #include "model/Colors.h"
 #include "model/InputBindings.h"
 #include "model/TextMarkup.h"
@@ -2892,4 +2893,23 @@ TEST_CASE("ConfigSpecLoader: a config spec's category is read as it is written, 
     const auto newer = loaded(R"({ "minSchemaVersion": 99, "modName": "MyMod", "category": "Combat" })");
     CHECK(!newer.notAvailable.empty());
     CHECK(newer.category == "Combat");
+}
+
+TEST_CASE("ConfigSpecLoader: the mod's own config spec has the Categories page the menu fills, and the file of the player's categories")
+{
+    auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
+    REQUIRE(mods.size() == 1);
+    auto& mod = mods[0];
+    CHECK(mod.problems.empty());
+    CHECK(mod.category == "Interface");
+    CHECK(mod.files.at(model::CATEGORIES_FILE) ==
+          model::File{ .format = model::FileFormat::Toml, .root = model::FileRoot::MyGames, .path = "Mods_Config/ModsConfigFO4VR/Categories.toml", .pathFromClientState = {} });
+
+    REQUIRE(model::addCategoryRows(mod, {}, {}));
+    const auto page = std::ranges::find(mod.pages, model::CATEGORIES_PAGE_ID, &model::Page::id);
+    REQUIRE(page != mod.pages.end());
+    CHECK(page->name == "Categories");
+    // its text, and the section of the rows, which has the mod's own
+    REQUIRE(page->items.size() == 2);
+    CHECK(std::get<model::Group>(page->items[1]).items.size() == 1);
 }

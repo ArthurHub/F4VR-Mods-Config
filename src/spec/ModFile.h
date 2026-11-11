@@ -32,6 +32,10 @@ namespace mods_config::spec
 
             // the value is the TOML text of a table, as a binding's, which is written as the table and not as a text
             bool table = false;
+
+            // the key is removed from the file, with its value, and one the file does not have stays so: the value is
+            // not written. Only a TOML file removes a key
+            bool remove = false;
         };
 
         explicit ModFile(std::filesystem::path path)

@@ -54,6 +54,8 @@ namespace mods_config
         void requestReadAgain(std::string_view modName);
 
         void setMods(std::vector<model::Mod> mods, model::Translations translations, model::CategoryTable categories);
+        void readCategoryChoices();
+        void addOwnCategoryRows(model::Mod& mod) const;
         const std::vector<model::Mod>& mods() const;
 
         void select(const ui::Selection& selection);
@@ -155,6 +157,13 @@ namespace mods_config
 
         // what the panel shows
         ui::FullPanel _fullPanel;
+
+        // the shipped table of the categories, and the categories the player gave mods, as their file has them
+        model::CategoryTable _categoryTable;
+        model::CategoryChoices _categoryChoices;
+
+        // a Save wrote the player's categories, which the frame update reads again
+        bool _categoriesSaved = false;
 
         // The textures of the images that were drawn, each by the pixels of the mod it is made from. They are
         // on the GPU while the menu is open, and are made again from the pixels when it is opened again

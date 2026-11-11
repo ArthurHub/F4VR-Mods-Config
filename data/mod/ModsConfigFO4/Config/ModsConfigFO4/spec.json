@@ -11,6 +11,11 @@
       "root": "myGames",
       "path": "Mods_Config/ModsConfigFO4VR/ModsConfigFO4VR.toml",
       "pathFromClientState": "configFile"
+    },
+    "categories": {
+      "format": "toml",
+      "root": "myGames",
+      "path": "Mods_Config/ModsConfigFO4VR/Categories.toml"
     }
   },
   "defaultFile": "config",
@@ -392,6 +397,19 @@
               "storage": { "path": ["Pointer", "tRayOffset"] }
             }
           ]
+        }
+      ]
+    },
+    {
+      "pageDisplayName": "Categories",
+      "id": "categories",
+      "help": "The category each mod is under while the mod list is grouped.",
+      "defaultFile": "categories",
+      "applies": "save",
+      "content": [
+        {
+          "type": "text",
+          "text": "Give a mod another category. The mod list is grouped by category when it is long: see Min mods to group by category on the Panel page."
         }
       ]
     },

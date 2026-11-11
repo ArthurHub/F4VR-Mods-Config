@@ -247,3 +247,36 @@ TEST_CASE("TomlFile: a write that cannot be made in full writes nothing, with th
         CHECK(readFile(mod.path) == "[Main]\nbEnabled = yes\n");
     }
 }
+
+TEST_CASE("TomlFile: a change that removes its key takes its line out, and keeps the rest of the file")
+{
+    ModFile mod("# the categories\r\nSS2 = \"Gameplay\"\r\n\"My Mod\" = \"Combat\"   # moved\r\nFallUI = \"\"\r\n\r\n[Main]\r\niCount = 3\r\nfScale = 1.5\r\n");
+    const std::vector<TomlFile::Change> changes{
+        { .path = { "My Mod" }, .value = std::string("Combat"), .table = false, .remove = true },
+        { .path = { "Main", "iCount" }, .value = 3, .table = false, .remove = true },
+        { .path = { "SS2" }, .value = std::string("Settlements") },
+        // a key the file does not have stays so
+        { .path = { "Missing" }, .value = std::string("Gameplay"), .table = false, .remove = true },
+    };
+
+    REQUIRE(writeChanges(mod.file, changes));
+
+    CHECK(readFile(mod.path) == "# the categories\r\nSS2 = \"Settlements\"\r\nFallUI = \"\"\r\n\r\n[Main]\r\nfScale = 1.5\r\n");
+    CHECK(!mod.file.contains(Path{ "My Mod" }));
+    CHECK(!mod.file.contains(Path{ "Main", "iCount" }));
+    CHECK(!mod.file.contains(Path{ "Missing" }));
+    CHECK(mod.file.value(Path{ "SS2" }, StoredType::String) == model::Value(std::string("Settlements")));
+}
+
+TEST_CASE("TomlFile: a key that is not alone on its lines is not removed, and nothing is written")
+{
+    const std::string text = "hand = { x = 1, y = 2 }\r\n";
+    ModFile mod(text);
+    const std::vector<TomlFile::Change> changes{ { .path = { "hand", "x" }, .value = 1, .table = false, .remove = true } };
+
+    const auto written = writeChanges(mod.file, changes);
+
+    REQUIRE(!written);
+    CHECK(written.error().contains("hand.x cannot be removed"));
+    CHECK(readFile(mod.path) == text);
+}

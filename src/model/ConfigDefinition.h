@@ -693,6 +693,13 @@ namespace mods_config::model
 
         // the row warns of the first whose condition holds: a config spec's setting can have them
         std::vector<Warning> warnings;
+
+        // a Save keeps no value that is its default: its key is removed from its file, so the setting follows its
+        // default as that changes. Only a setting the menu makes has it, in a TOML file
+        bool omitDefault = false;
+
+        // a search does not find the row by its text: only a setting the menu makes has it
+        bool notSearched = false;
     };
 
     /**
