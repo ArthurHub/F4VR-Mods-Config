@@ -62,7 +62,7 @@ Global Stash and JOURNEY, from the author's other lists, cover some of these and
 | 10  | First release            | The mod is ready for alpha testing: its Nexus page, README and docs are written, and it is tested and perf tested in the headset | done   |
 | 11  | Ironing out              | What the alpha finds is fixed                                                                                 | done   |
 | 12  | Search                   | A setting is found by typing its name                                                                         | done   |
-| 13  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | todo   |
+| 13  | Mod categories           | The mod list is grouped by category, and a mod that the player moved is in its category after a restart       | done   |
 | 14  | Localization             | A mod with no game plugin is shown in another language                                                        | todo   |
 | 15  | Advanced features        | A list and a hand pose of Immersive Flashlight VR are edited, and a transform is grabbed with the hand        | todo   |
 | 16  | Papyrus API              | A script-only mod reads its saved settings and is told of a Save                                              | todo   |

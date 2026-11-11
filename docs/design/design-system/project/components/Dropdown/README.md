@@ -11,6 +11,6 @@ A choice from a longer list: a frame showing the current option that opens a pop
 - A press anywhere on the row opens the list. Trigger picks, the thumbstick scrolls, Back closes without changing anything, and so does a press beside the list.
 - The popup is as wide as the frame, and under it, or over it where the page has no room under it. It is never over the title bar and the footer. It shows five options at most: a longer list scrolls inside the popup, from the current option as it opens, with a `scrollbar-size` position bar on its right.
 - A pending choice shows its label in `amber`.
-- An entry that does something other than pick, such as **Type a new name** in the category list, is last, set apart by a `rule` line and drawn in `green-muted`.
+- An entry that does something other than pick, such as **Type a new name** in the category list, is last, set apart by a `rule` line in an extra `space-1` and drawn in `green-muted`, `green` under the ray. Type a new name edits a text in the dropdown's box, as a `TextInput` does.
 
 The framework opens a popup of ImGui inside a dedicated panel.

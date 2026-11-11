@@ -32,7 +32,7 @@ Every row item has a `text` (what the row says) and an optional `help` (shown in
 | type | How it's edited, by MCM's names: switcher, slider, stepper, dropdown, textinput |
 | valueType | bool, int, float or string. A CommonFramework table is a string of its TOML text |
 | text, help | As above |
-| valueOptions | Number min/max/step, text length limits, choice options or where they're read in the game, color alpha, transform axis ranges and parts, binding `suppress` and allowed hands/ways/buttons |
+| valueOptions | Number min/max/step, text length limits, choice options or where they're read in the game, a dropdown's entry that types a new value, color alpha, transform axis ranges and parts, binding `suppress` and allowed hands/ways/buttons |
 | display | Number decimals, unit or percentage (config spec only) |
 | readOnly | Shown, not edited (config spec only) |
 | warnings | Texts with conditions; while one holds the row is marked and the help line shows it (config spec only) |
@@ -42,6 +42,8 @@ Every row item has a `text` (what the row says) and an optional `help` (shown in
 | default | What Reset gives (config spec only; for MCM the store answers) |
 | applies | `unknown`, `live`, `save`, `restart` |
 | action | Runs after Save writes the value |
+| omitDefault | Save removes the key of a value equal to the default (the menu's own Categories rows only) |
+| notSearched | Search doesn't find the row by its text (the menu's own Categories rows only) |
 
 Shaped by MCM:
 

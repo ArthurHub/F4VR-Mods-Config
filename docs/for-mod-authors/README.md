@@ -82,6 +82,7 @@ Data\
 - Mods Config FO4 VR is not a requirement of your mod: without it, `spec.json` is a file nobody reads.
 - `minSchemaVersion` is `1`. From version 1.0 of Mods Config FO4 VR the schema only grows, so a config spec keeps working on every later version.
 - Your settings file doesn't have to exist: the menu creates it on the first Save that changes one of its settings.
+- Give your mod a `category`, as `"category": "Gameplay"`, so a long list shows it under that name. Use one of the ten shipped names where one fits: [Category](../design/schema.md#category). An MCM config can have the same root field.
 
 ## Testing It in the Game
 

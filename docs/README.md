@@ -8,6 +8,7 @@ Install and requirements: [main README](../README.md). Problems: [FAQ](faq.md). 
 
 - [Quick Start](#quick-start)
 - [Editing a Mod's Settings](#editing-a-mods-settings)
+- [Mod Categories](#mod-categories)
 - [The Menu's Own Settings](#the-menus-own-settings)
 - [For Players](#for-players)
 - [For Mod Authors](#for-mod-authors)
@@ -39,15 +40,22 @@ Pick a mod in the list on the left. Its front page opens, and its pages are unde
 
 The menu does not pause the game, on purpose: live changes show in the world immediately, with the menu still open, so you can try another without closing it. Settings marked **Save** or **Restart** still wait for that step.
 
+## Mod Categories
+
+With 20 mods or more, the list is grouped by category: Gameplay, Interface, Settlements and so on, with **No category** last. A press on a category opens or closes it. A mod is in the category its author gave it, or the one the menu knows for it.
+
+To move a mod, pick **Mods Config FO4 VR**, then the **Categories** page: each mod has a dropdown of the categories. **Type a new name**, last in the list, makes a category of your own. Save keeps your choices, and **Reset** puts a mod back in its own category. Change from how many mods the list is grouped with **Min mods to group by category** on the **Panel** page: 0 always groups it.
+
 ## The Menu's Own Settings
 
 The menu is in its own list: pick **Mods Config FO4 VR**. Its changes apply as you make them, and Save keeps them.
 
 | Page | What's there |
 | --- | --- |
-| **Panel** | How big the menu is and where it stands: its scale, its distance and how high it is, the background's opacity, its width and height, the mod list's width, the scroll speed, its tilt and curve, how far you walk before it comes back in front of you, and how smoothly it follows your hand as you move it. |
+| **Panel** | How big the menu is and where it stands: its scale, its distance and how high it is, the background's opacity, its width and height, the mod list's width, the scroll speed, its tilt and curve, how far you walk before it comes back in front of you, how smoothly it follows your hand as you move it, and from how many mods the list is grouped by category. |
 | **Controls** | The bindings that open the menu, go back, move it and bring it in front of you, each changed with its editor, and the haptic a press gives. |
 | **Pointer** | The ray's color, width, length and fade, the mark where it meets the menu, and where the ray starts on your hand. |
+| **Categories** | The category of each mod, with a dropdown per mod. See [Mod Categories](#mod-categories). |
 | **Developer** | For a config spec's author: **Developer tools**, which lists each config spec's problems on the menu's front page, and the log's level. |
 
 ![The Controls page](assets/mods-config-controls-bindings.jpg)
@@ -55,6 +63,7 @@ The menu is in its own list: pick **Mods Config FO4 VR**. Its changes apply as y
 They are kept in a file the running game reloads as you save it, so you can edit it on the desktop too:
 
 - Config: `%USERPROFILE%\Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`
+- Your categories: `Categories.toml` beside it, one line per mod you moved.
 - Log: `%USERPROFILE%\Documents\My Games\Fallout4VR\F4SE\ModsConfigFO4VR.log`
 
 ## For Players

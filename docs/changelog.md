@@ -2,6 +2,12 @@
 
 Not released: each is a milestone of the [work plan](design/mod-plan.md).
 
+### v0.13.0
+
+- A list of 20 mods or more is grouped by category, from the mod's own `category` or the menu's table of known mods, with No category last. The number is on the Panel page.
+- The Categories page of the menu's own settings moves a mod to another category, or a new one typed on the keyboard. Save keeps it in `Categories.toml`, and Reset gives the mod its own again.
+- A config spec and an MCM config can name their mod's `category`.
+
 ### v0.12.0
 
 - The tree's header is a search field: type a name and the tree shows the mods and pages with a setting that matches, with how many, and a page shows only its settings that match, marked `(filtered)`. Back shows the whole page, with the matches still underlined.

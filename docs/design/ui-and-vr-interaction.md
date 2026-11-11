@@ -246,7 +246,7 @@ Priority:
 - Mods are the top level unless grouped by category; only the selected mod is expanded, its pages under it (not the front page, which is the mod's own row). A mod's front page is its root `content`, in MCM and config spec alike, and its `pages` are the rows under it; no pages, no rows.
 - A config spec page with subpages is expanded while it or a subpage is selected, its pages one step further in. Each level is indented by the same small step up to the third. A page with subpages has an arrow, as a mod does, and names of a level line up with or without one. See [ModTree](design-system/project/components/ModTree/README.md).
 - A list longer than its area scrolls with the thumbstick while the ray is on it, with a scroll bar: tree, page rows, dropdown lists. About nine rows fit in the tree. The tree always reserves its scroll bar's room, so rows don't narrow when it appears.
-- A row selected from outside the tree (crumb, Back, panel shown again) is scrolled into view; a category opened near the bottom scrolls to show its first mods.
+- A row selected from outside the tree (crumb, Back, panel shown again) is scrolled into view; a category opened near the bottom scrolls to show its first mods, and the selected mod's category, opened again, to show the selection.
 - The tree's header is the [search field](#search).
 - The selected mod and page survive minimize and restore.
 
@@ -285,10 +285,10 @@ A long list of mods is grouped by category.
 │ ▸ No category ──── 2 │
 ```
 
-- Under 30 mods the list is flat; at 30 or more, categories are the top level. The threshold is a setting; 0 always groups.
-- A mod has one category or none; categories don't nest. Its category is the first it has of: the player's choice, its own `category`, the shipped table of known mods ([Category](schema.md#category)). Otherwise it's under `No category`, the last row.
+- Under 20 mods the list is flat; at 20 or more, categories are the top level. The threshold counts every mod and is a setting; 0 always groups.
+- A mod has one category or none; categories don't nest. Its category is the first it has of: the player's choice, its own `category`, the shipped table of known mods ([Category](schema.md#category)). Otherwise it's under `No category`, the last row. A not-available mod is under its category too.
 - Categories and their mods are alphabetical; an empty category isn't shown.
-- A press opens or closes a category (no selection). Several can be open; the selected mod's is open.
+- A press opens or closes a category (no selection). Several can be open; the selected mod's is open. Which ones are open is kept until the game closes, in no file.
 - A category row has its name muted, a line, and its mod count.
 - Categories aren't in the crumbs, and Back doesn't stop at them.
 
@@ -296,11 +296,13 @@ A long list of mods is grouped by category.
 
 The mod's own entry has a `Categories` page that the menu fills: a row per mod with a dropdown of category names. It is there while the list is flat too.
 
-- The dropdown has the shipped names and those in use, including `No category` (removes the author's category); its last entry, `Type a new name`, opens the keyboard.
+- The dropdown has every name, the shipped ones and those in use, alphabetical, then `No category` (removes the author's category); its last entry, `Type a new name`, opens the keyboard in the dropdown's box.
+- A typed name is trimmed and at most 24 characters, so it fits a tree row; an empty one sets nothing. A name in the list, in any case, is that one: its spelling is kept, and `No category` gives no category. A typed name is in every row's list at once, while it waits for Save.
 - A row is an ordinary setting of the mod's own config spec: Save saves, Discard takes back, Reset gives the category the mod has without the player's choice. The tree regroups after Save.
 - Choices are in `Categories.toml` beside `ModsConfigFO4VR.toml`, one key per mod named by its `modName`; empty text is `No category`. `ModsConfigFO4VR.toml` holds only the mod's shipped keys.
-- Only a choice that differs from the mod's own category is kept; Save removes any other key, so an unmoved or reset mod follows its own category and the table as they change.
-- When [MCM Categorizer](https://www.nexusmods.com/fallout4/mods/66311)'s `Data/MCM/Settings/MCMCategorizer.ini` exists, the page has an `Import from MCM Categorizer` button at the top. It gives each mod in one of its categories that name as a pending choice (Save keeps, Discard takes back). The file is only read.
+- Only a choice that differs from the mod's own category is kept; Save removes any other key, so an unmoved or reset mod follows its own category and the table as they change. A mod that is no longer installed keeps its key.
+- Search doesn't find the page's rows by the mods' names: a mod's name finds the mod.
+- Later ([M99](mod-plan-phase-3.md#15-advanced-features)): when [MCM Categorizer](https://www.nexusmods.com/fallout4/mods/66311)'s `Data/MCM/Settings/MCMCategorizer.ini` exists, the page has an `Import from MCM Categorizer` button at the top. It gives each mod in one of its categories that name as a pending choice (Save keeps, Discard takes back). The file is only read.
 
 ## MCM presentation
 

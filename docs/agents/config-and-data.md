@@ -16,14 +16,16 @@ The file hot-reloads on the watcher's thread: apply anything that calls the engi
 ## Sections
 
 - `[ModsConfigFO4VR]`: must match `NAME` in `CMakeLists.txt`. The open binding, Back (`kBackBinding`, an `any`-hand binding that fires only on the pointing hand: `VRControllers.check(binding, hand)`), `bHighlightHelp` (cleared by `Config::saveHelpOpened` on the first Help).
-- `[Panel]`: the panel's scale, placement, opacity, move binding (`kMoveBinding`, a long grip press; Back is a tap), follow smoothing and recenter.
+- `[Panel]`: the panel's scale, placement, opacity, move binding (`kMoveBinding`, a long grip press; Back is a tap), follow smoothing and recenter, and `iCategoriesMinMods`, from how many mods the tree is grouped.
+
+The player's categories are in `Categories.toml` beside the config, which only the mod's own config spec writes (its file `categories`): one key per mod by `modName`.
 - `[Developer]`: Developer tools on/off, the front page filter (`attention` / `all` / `one`) and its fold, written by `Config::saveDeveloper`.
 - `[Pointer]`: the ray, its mark, scroll speed, press pulse; read into an `imgui::PointerStyle` each frame.
 - `[Debug]`: the framework's keys.
 
 ## The mod's Data tree
 
-`data/mod/` is packaged beside the DLL. `Meshes\ModsConfigFO4VR\f4cf\` and `Textures\ModsConfigFO4VR\f4cf\` are the framework's assets: ship them as they are, refreshed from `external/F4VR-CommonFramework/mod-template/` when the framework updates. The mod's own assets go beside them. The template's NIF button atlases are left out on purpose: the UI is ImGui plus primitive-drawn vrui buttons.
+`data/mod/` is packaged beside the DLL. `Meshes\ModsConfigFO4VR\f4cf\` and `Textures\ModsConfigFO4VR\f4cf\` are the framework's assets: ship them as they are, refreshed from `external/F4VR-CommonFramework/mod-template/` when the framework updates. The mod's own assets go beside them. `ModsConfigFO4\Categories.json` is the shipped table of category names and of known mods' categories. The template's NIF button atlases are left out on purpose: the UI is ImGui plus primitive-drawn vrui buttons.
 
 ## Showcases
 
