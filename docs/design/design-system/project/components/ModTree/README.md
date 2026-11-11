@@ -43,7 +43,7 @@ From `iCategoriesMinMods` mods (20 as shipped; 0 groups any list) the categories
 
 ## Scrolling
 
-About nine rows fit in the Full panel's tree, so most lists scroll: a flat list of up to 19 mods, ten closed categories, or one category opened.
+About nine rows fit in the Full panel's tree, so most lists scroll: a flat list of up to 19 mods, twelve closed categories, or one category opened.
 
 - The `Mods` header stays. The rows scroll under it with the thumbstick while the ray is on the tree.
 - While the rows are longer than their area, a `scrollbar-size` bar shows on the right of the pane, styled as the content pane's: `track`, with a `frame-border` grab.

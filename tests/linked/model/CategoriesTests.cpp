@@ -113,11 +113,13 @@ TEST_CASE("Categories: a mod's own category is spelled as the table spells a shi
     CHECK(model::ownCategory(mod("MyMod", "my own"), known).name == "my own");
 }
 
-TEST_CASE("Categories: the shipped table has the ten shipped names, and every mod of it is in one of them")
+TEST_CASE("Categories: the shipped table has the twelve shipped names, and every mod of it is in one of them")
 {
     const auto shipped = model::loadCategoryTable(MODS_CONFIG_CATEGORY_TABLE);
 
-    CHECK(shipped.names == std::vector<std::string>{ "Gameplay", "Combat", "Weapons and Armor", "Settlements", "Characters", "Interface", "Visuals", "Audio", "VR", "Utilities" });
+    const std::vector<std::string>
+        names{ "Gameplay", "Survival", "Combat", "Weapons and Armor", "Settlements", "Characters", "Interface", "Visuals", "Audio", "Performance", "VR", "Utilities" };
+    CHECK(shipped.names == names);
     CHECK(!shipped.mods.empty());
     for (const auto& [modName, category] : shipped.mods) {
         INFO(modName << ": " << category);

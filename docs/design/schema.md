@@ -70,7 +70,7 @@ One number that only grows. A config spec ships with its mod and isn't updated w
 `category` (optional) groups the mod in a long list ([Mod categories](ui-and-vr-interaction.md#mod-categories)).
 
 - A plain English name, never a `$` token, which is a warning and isn't read: grouping is by the name, case-insensitive.
-- Shipped names, in English: `Gameplay`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `VR`, `Utilities`. Any other name is accepted.
+- Shipped names, in English: `Gameplay`, `Survival`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `Performance`, `VR`, `Utilities`. Any other name is accepted.
 - A shipped name shows as the list spells it; any other as the player typed it, else as the first mod writes it.
 - An MCM config may have the same root field.
 
