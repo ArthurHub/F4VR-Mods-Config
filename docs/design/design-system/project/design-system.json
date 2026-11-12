@@ -13,9 +13,9 @@
   "groups": [],
   "lastChange": {
     "by": "Arthur",
-    "at": "2026-11-09T20:49:28Z",
+    "at": "2026-11-12T15:20:00Z",
     "via": "Claude Code",
-    "note": "FullPanelHelp: the Help page in plain, direct words: its introduction, Navigation with page navigation and one hand pointing at a time, and Changes, Marks and MCM."
+    "note": "ModTree: the pending dot after the name of a page with unsaved changes, with those of its pages while it is closed, and its count in the help line."
   },
   "layout": "files",
   "libraries": [],

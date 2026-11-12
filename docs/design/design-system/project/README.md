@@ -25,7 +25,7 @@ Every text color below is checked with a white world behind the glass, the worst
 | --- | --- | --- | --- | --- |
 | `green` | 9.0:1 | 6.8:1 | 5.6:1 | All primary text and every value |
 | `green-muted` | 8.3:1 | 6.3:1 | 5.2:1 | Descriptions, units, counts, status |
-| `amber` | 7.7:1 | 5.8:1 | 4.8:1 | A pending value and the unsaved count |
+| `amber` | 7.7:1 | 5.8:1 | 4.8:1 | A pending value, the dot of a page with unsaved changes, and the unsaved count |
 | `red` | 6.0:1 | 4.5:1 | — | An invalid value and its reason, and a dangerous button; never on `pressed` |
 | `accent` | 7.4:1 | 5.6:1 | 4.6:1 | An important button: its outline, label and icon |
 | `on-green` on `green` | 13:1 | | | Text on any solid green fill |

@@ -2542,6 +2542,14 @@
                 {
                   "type": "text",
                   "text": "This page is shown and enabled by the switches on its parent page. Its child inherits both conditions."
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "On the conditional page",
+                  "help": "Change it, then turn off Enable conditional page: the page's row keeps its pending dot while it is disabled.",
+                  "default": false,
+                  "storage": { "path": ["Pages", "bConditional"] }
                 }
               ],
               "pages": [

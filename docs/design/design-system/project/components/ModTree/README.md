@@ -2,7 +2,7 @@
 
 The navigation: every mod in one alphabetical list, with the selected mod expanded to its pages, and a config spec's page that has pages of its own expanded to them.
 
-**Provides:** each mod's display name, page names (with the pages under each, and whether each is shown and enabled) and availability; what is selected: a mod's front page, a page, or nothing while the menu's front page is open.
+**Provides:** each mod's display name, page names (with the pages under each, and whether each is shown and enabled) and availability; what is selected: a mod's front page, a page, or nothing while the menu's front page is open; and how many unsaved changes each page of the selected mod has.
 
 - Fixed at `nav-width` in a `plate` pane, in the same place with or without a selected mod.
 - A `t-detail` `green-muted` header says `Mods` and the count. The menu's front page has no row of its own: the first breadcrumb, `MODS CONFIG FO4`, is its entry, and is selected while it is open. No tree row is selected then.
@@ -29,6 +29,19 @@ A config spec's page can have a `visibleWhen` and an `enabledWhen`, which go dow
 - A page whose `enabledWhen` does not hold is in its place, disabled: its name at `opacity-disabled`, with its arrow, closed, when it has pages. It is not pressed, and its pages are not shown. Under the ray it has a row's hover look, and the help line says "This page is disabled." before the page's help.
 - An MCM page whose own `pluginRequirements` are not all loaded is disabled the same way, and the help line says "Not available:" and the reason, as for a mod, before its `messageIfMissingReqs`. One with `hideIfMissingReqs` is not in the tree.
 - When the page that is shown comes to be hidden or disabled, as a setting changes, the menu shows the nearest page above it that is not, or the mod's front page. Its unsaved changes stay, and so does the Help page.
+
+## Unsaved changes
+
+Only the selected mod can have unsaved changes: leaving it asks first. The Save bar counts them, and the tree shows where they are.
+
+- A page with unsaved changes has the pending dot after its name, `space-2` after it, as a setting's row has: the `amber` dot alone, with no count. The name shortens with an ellipsis before the dot does. The mod's row is its front page, and has the dot for the front page's changes.
+- A page counts the changes of its rows that are shown: a row whose `visibleWhen` does not hold is not counted, and a page whose `visibleWhen` does not hold is not in the tree and counts nothing. A change whose value is invalid is counted: it is unsaved too.
+- A page whose pages are not the rows under it, closed or disabled, counts theirs too, as a folded section counts what it hides. An open page counts only its own: its pages have their own dots.
+- A disabled page has its dot, faded with its name.
+- The selected row has its dot in `on-green`, on the bar.
+- A closed category that holds the selected mod has the dot after its name, for every change of the mod, and its rule starts after the dot.
+- While the ray is on a row with the dot, the help line has the row's help and then the count: "Holsters: 2 unsaved changes.", "This page is disabled. 1 unsaved change."
+- The rows of a search have no dot: the rows they lead to show their own marks.
 
 ## Categories
 

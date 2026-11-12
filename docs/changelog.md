@@ -2,6 +2,10 @@
 
 Not released: each is a milestone of the [work plan](design/mod-plan.md).
 
+### v0.14.0
+
+- A page with unsaved changes has the pending dot in the tree, and a closed page shows the changes of its pages too.
+
 ### v0.13.0
 
 - A list of 20 mods or more is grouped by category, from the mod's own `category` or the menu's table of known mods, with No category last. The number is on the Panel page.

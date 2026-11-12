@@ -33,6 +33,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/model/TransformTuningTests.cpp
   linked/model/TransformsTests.cpp
   linked/model/TranslationsTests.cpp
+  linked/model/UnsavedPagesTests.cpp
   linked/spec/ConfigSpecLoaderTests.cpp
   linked/spec/ConfigSpecStoreTests.cpp
   linked/spec/IniFileTests.cpp
@@ -91,6 +92,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/spec/ConfigSpecStore.cpp
   ${SOURCE_DIR}/spec/TomlFile.cpp
   ${SOURCE_DIR}/model/Translations.cpp
+  ${SOURCE_DIR}/model/UnsavedPages.cpp
   ${SOURCE_DIR}/ui/BindingEditor.cpp
   ${SOURCE_DIR}/ui/Bindings.cpp
   ${SOURCE_DIR}/ui/ButtonIcons.cpp

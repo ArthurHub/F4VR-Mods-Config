@@ -182,7 +182,7 @@ namespace mods_config::ui
     float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);
     void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, std::span<const MarkedCount> counts, TextMark mark = TextMark::None,
         std::span<const model::TextRange> found = {});
-    void drawPendingMark(const ImVec2& center);
+    void drawPendingMark(const ImVec2& center, ImU32 color = theme::color::AMBER);
     float pendingMarkWidth(model::Applies applies);
     void drawAppliesMark(model::Applies applies, const ImVec2& center);
     void drawInvalidMark(const ImVec2& center);

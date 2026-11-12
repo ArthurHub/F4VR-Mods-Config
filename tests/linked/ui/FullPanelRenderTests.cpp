@@ -784,6 +784,65 @@ TEST_CASE("FullPanel render: the mark of when a pending change takes effect on e
     WARN("Saved " << renderToFile(panel, "discard-hover", ImVec2(slot, pageRow(0).y)));
 }
 
+TEST_CASE("FullPanel render: the pending dot on the tree's pages with unsaved changes: a closed page with the ray on it, a disabled one and the selected one", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    const auto setting = [](const std::string_view text, const std::string_view key) {
+        return std::format(R"({{ "type": "switcher", "text": "{}", "default": false, "storage": {{ "path": ["Main", "{}"] }} }})", text, key);
+    };
+    auto mod = spec::loadConfigSpec(std::format(R"({{
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "Immersive Flashlight VR",
+        "files": {{ "main": {{ "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" }} }},
+        "defaultFile": "main",
+        "content": [ {}, {} ],
+        "pages": [
+            {{ "pageDisplayName": "Holsters", "content": [ {} ],
+              "pages": [ {{ "pageDisplayName": "Left hip", "content": [ {} ] }}, {{ "pageDisplayName": "Right hip", "content": [ {} ] }} ] }},
+            {{ "pageDisplayName": "Experimental options of the beam", "enabledWhen": {{ "setting": "bUnlock:Main", "equals": true }}, "content": [ {} ] }},
+            {{ "pageDisplayName": "Beam", "content": [ {} ] }}
+        ]
+    }})",
+        setting("Enable", "bEnable"),
+        setting("Unlock", "bUnlock"),
+        setting("Holsters", "bHolsters"),
+        setting("Left hip", "bLeft"),
+        setting("Right hip", "bRight"),
+        setting("Experimental", "bExperimental"),
+        setting("Shadows", "bShadows")));
+    REQUIRE(mod);
+    const auto settingOf = [](const model::Page& page) -> const model::Setting& {
+        return std::get<model::Setting>(page.items[0]);
+    };
+
+    // a change on the front page, on both pages under Holsters, on the disabled page and on Beam, made in the
+    // session the panel opens: the store knows a setting by its place in the panel's mods
+    const auto render = [&](const std::vector<std::size_t>& page, const std::string& name, const ImVec2 pointer) {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods({ *mod });
+        panel.select({ .mod = 0, .page = page });
+        const auto& shown = panel.mods()[0];
+        CHECK(store.set(settingOf(shown.frontPage), true));
+        CHECK(store.set(settingOf(shown.pages[0].pages[0]), true));
+        CHECK(store.set(settingOf(shown.pages[0].pages[1]), true));
+        CHECK(store.set(settingOf(shown.pages[1]), true));
+        CHECK(store.set(settingOf(shown.pages[2]), true));
+        WARN("Saved " << renderToFile(panel, name, pointer));
+    };
+    // the rows of the tree: the mod's, then its pages
+    const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
+    const auto treeRow = [rowsTop](const int row) {
+        return ImVec2(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f,
+            rowsTop + static_cast<float>(row) * (theme::CONTROL_HEIGHT + theme::SPACE_1) + theme::CONTROL_HEIGHT * 0.5f);
+    };
+    // Beam selected: Holsters closed on its two pages' changes, with the ray on it
+    render({ 2 }, "tree-unsaved-closed", treeRow(1));
+    // Left hip selected: Holsters open with no change of its own, and the ray on the disabled page
+    render({ 0, 0 }, "tree-unsaved-open", treeRow(4));
+}
+
 TEST_CASE("FullPanel render: a page under the tree's last rows is scrolled to", "[.render]")
 {
     auto panel = testSetPanel();

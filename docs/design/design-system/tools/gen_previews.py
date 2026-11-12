@@ -146,17 +146,19 @@ def mcm_tag(name, kind='mod'):
     """The MCM tag after the name of an MCM mod's row, at the row's right."""
     return '<span class="mc-tree-tag">MCM</span>' if kind == 'mod' and name in MCM_MODS else ''
 
-def tree_row(name, kind='mod', state='', arrow=None, mark=None, cat=False, depth=None):
+def tree_row(name, kind='mod', state='', arrow=None, mark=None, cat=False, depth=None, unsaved=False):
     """A row of the tree. Each level is set in by IndentSpacing (space-8), up to the third: a mod's pages are a level
     in, a page's pages a level further, and in a grouped tree the category is the top. Every row keeps the arrow's
     column, so the names of a level line up: a mod always has its arrow, and a page has one only when it has pages
-    of its own. An MCM mod has the MCM tag at its right."""
+    of its own. An MCM mod has the MCM tag at its right. A page with unsaved changes has the pending dot after its
+    name, in on-green on the selected bar."""
     if depth is None:
         depth = (1 if kind == 'page' else 0) + (1 if cat else 0)
     a = {'r': ARROW_R, 'd': ARROW_D, None: ''}[arrow]
     cls = 'mc-tree-row t-body' + (f' d{min(depth, 3)}' if depth else '') + (f' {state}' if state else '')
     mk = f'<span class="mc-mark" style="right:{mark[0]}px;top:{mark[1]}px"></span>' if mark else ''
-    return f'<div class="{cls}"><span class="arrow">{a}</span><span class="name">{name}</span>{mcm_tag(name, kind)}{mk}</div>'
+    nm = f'<span class="name has-dot">{name}</span>{DOT}' if unsaved else f'<span class="name">{name}</span>'
+    return f'<div class="{cls}"><span class="arrow">{a}</span>{nm}{mcm_tag(name, kind)}{mk}</div>'
 
 def cat_row(name, count, open_=False, state='', mark=None):
     """A category: opened and closed by pressing it, never selected. Its rule and count set it apart from a mod."""
@@ -182,8 +184,9 @@ def nav(rows, root_state='', count=5, offset=0, height=None):
     return (f'<div class="mc-nav"{st}><div class="mc-nav-head t-detail"><span>Mods</span><span>{count}</span></div>'
             f'<div class="mc-nav-rows"><div class="list"{lst}>{rows}</div></div>{bar}</div>')
 
-def flat_mods(open_mod=None, pages=(), selected=None, hover=None):
-    """One install of 11 mods, the same in every Full panel mock: too many for the tree, so it scrolls."""
+def flat_mods(open_mod=None, pages=(), selected=None, hover=None, unsaved=()):
+    """One install of 11 mods, the same in every Full panel mock: too many for the tree, so it scrolls. The pages
+    named in unsaved have the pending dot."""
     out = []
     for m in ('Baka Fullscreen Pip-Boy', 'Better Locational Damage', 'Companion Command', 'FallUI - HUD', 'FRIK',
               'Immersive Flashlight VR', 'Mods Config FO4', 'Sim Settlements 2', 'Virtual Holsters', 'Virtual Reloads',
@@ -199,7 +202,7 @@ def flat_mods(open_mod=None, pages=(), selected=None, hover=None):
                 if name == selected: pst = 'is-selected'
                 if hover and name == hover[0]: pst, pmk = 'is-hover', hover[1]
                 else: pmk = None
-                out.append(tree_row(name, kind='page', state=pst, mark=pmk, depth=depth, arrow=arrow))
+                out.append(tree_row(name, kind='page', state=pst, mark=pmk, depth=depth, arrow=arrow, unsaved=name in unsaved))
     return ''.join(out)
 
 def page(marker, title, body):
@@ -404,9 +407,10 @@ DISABLED_CAL = '<span style="opacity:var(--opacity-disabled)">Calibration</span>
 page_tree = flat_mods('Immersive Flashlight VR', ('Beam', (DISABLED_CAL, 1, None, 'is-disabled'), 'Hand mount'), selected='Beam',
                       hover=(DISABLED_CAL, (64, 20)))
 # a config spec's page with pages of its own: open while one of them is selected, a level further in; another that has
-# pages is closed, its arrow pointing right
+# pages is closed, its arrow pointing right. Pages with unsaved changes have the pending dot: the selected one in
+# on-green, and a closed one for the changes of its pages
 NESTED_PAGES = (('Beam', 1, 'r'), ('Hand mount', 1, 'd'), ('Primary hand', 2, None), ('Off hand', 2, None), ('Battery', 1, None))
-nested_tree = flat_mods('Immersive Flashlight VR', NESTED_PAGES, selected='Off hand')
+nested_tree = flat_mods('Immersive Flashlight VR', NESTED_PAGES, selected='Off hand', unsaved=('Beam', 'Off hand'))
 grouped_tree = ''.join([
     cat_row('Audio', 2), cat_row('Characters', 3), cat_row('Combat', 6, state='is-hover', mark=(150, 20)),
     cat_row('Gameplay', 5), cat_row('Interface', 3), cat_row('Settlements', 4), cat_row('Utilities', 2),
@@ -419,13 +423,15 @@ mt_body = f'''<div class="mc-world mc-stack" style="gap:16px"><div style="displa
 <div class="mc-sheet" style="width:336px;padding:0">{nav(home_tree, '', 7, height=TREE_H)}</div></div>
 <div class="mc-stack"><span class="t-detail mc-caption">11 mods, a page selected, a page disabled</span>
 <div class="mc-sheet" style="width:336px;padding:0">{nav(page_tree, '', 11, height=TREE_H)}</div></div>
-<div class="mc-stack"><span class="t-detail mc-caption">A page of a page: its page open, a level in</span>
+<div class="mc-stack"><span class="t-detail mc-caption">A page of a page, a level in; unsaved dots</span>
 <div class="mc-sheet" style="width:336px;padding:0">{nav(nested_tree, '', 11, offset=4 * (ROW_H + ROW_GAP), height=TREE_H)}</div></div>
 </div>
 <span class="t-detail mc-caption">A page disabled by its enabledWhen: the help line says so before the page&#39;s help</span>
 <div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{helpline('Calibration', 'This page is disabled. Measures your height and the length of your arms.')}</div></div>
+<span class="t-detail mc-caption">A page with the pending dot: the help line counts its unsaved changes, with those of its pages while it is closed</span>
+<div class="mc-sheet" style="width:1120px;padding:0"><div class="mc-footer">{helpline('Beam', 'How the beam looks. 2 unsaved changes.')}</div></div>
 </div>'''
-write('ModTree', page('<!-- @dsCard group="Navigation" height=740 width=1470 subtitle="Flat under 30 mods, grouped by category from 30; the pages of a page a level in; a page disabled by its condition; a bar while the list scrolls" -->', 'Mod tree', mt_body))
+write('ModTree', page('<!-- @dsCard group="Navigation" height=860 width=1470 subtitle="Flat under 30 mods, grouped by category from 30; the pages of a page a level in; a page disabled by its condition; the pending dot on a page with unsaved changes; a bar while the list scrolls" -->', 'Mod tree', mt_body))
 
 # ---------------- FullPanel ----------------
 fp_nav = flat_mods('Immersive Flashlight VR', ('Beam', 'Hand mount'), selected='Immersive Flashlight VR')

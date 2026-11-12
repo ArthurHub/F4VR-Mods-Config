@@ -949,12 +949,13 @@ namespace mods_config::ui
     }
 
     /**
-     * The mark of a value that waits for a Save, around a point: an amber dot.
+     * The mark of a value that waits for a Save, around a point: a dot, amber but on a fill whose text has
+     * another color, as the selected row of the tree.
      */
-    void drawPendingMark(const ImVec2& center)
+    void drawPendingMark(const ImVec2& center, const ImU32 color)
     {
         constexpr float RADIUS = 5.0f;
-        ImGui::GetWindowDrawList()->AddCircleFilled(center, RADIUS, ImGui::GetColorU32(theme::color::AMBER));
+        ImGui::GetWindowDrawList()->AddCircleFilled(center, RADIUS, ImGui::GetColorU32(color));
     }
 
     /**

@@ -12,6 +12,7 @@
 #include "Drawing.h"
 #include "Theme.h"
 #include "model/Conditions.h"
+#include "model/UnsavedPages.h"
 #include "perf/Perf.h"
 
 namespace
@@ -103,13 +104,43 @@ namespace
     };
 
     /**
+     * A name in a row from its left up to `right`, with the pending dot `space-2` after it while its page has
+     * unsaved changes: the name ends in an ellipsis before the dot does, so the dot always shows. The dot is
+     * amber, or the color of the text on a fill. Returns the right edge of what it drew.
+     */
+    float drawNameWithDot(const float left, const float right, const float top, const ImU32 color, const std::string_view name, const bool unsaved, const bool onFill)
+    {
+        if (!unsaved) {
+            ui::drawText(left, right, top, theme::CONTROL_HEIGHT, color, name);
+            return (std::min)(left + ui::textWidth(name), right);
+        }
+        const float nameRight = right - theme::SPACE_2 - ui::PENDING_MARK_WIDTH;
+        ui::drawText(left, nameRight, top, theme::CONTROL_HEIGHT, color, name);
+        const float dotLeft = (std::min)(left + ui::textWidth(name), nameRight) + theme::SPACE_2;
+        ui::drawPendingMark(ImVec2(dotLeft + ui::PENDING_MARK_WIDTH * 0.5f, top + theme::CONTROL_HEIGHT * 0.5f), onFill ? theme::color::ON_GREEN : theme::color::AMBER);
+        return dotLeft + ui::PENDING_MARK_WIDTH;
+    }
+
+    /**
+     * What the help line says of a row whose page has unsaved changes: its help, then how many, as
+     * `2 unsaved changes.`
+     */
+    std::string withUnsaved(const std::string& help, const std::size_t unsaved)
+    {
+        if (unsaved == 0) {
+            return help;
+        }
+        return std::format("{}{}{} unsaved change{}.", help, help.empty() ? "" : " ", unsaved, unsaved == 1 ? "" : "s");
+    }
+
+    /**
      * The name of a row from its left, and its tag at the row's right where it has one, as an MCM mod's: the tag
      * is inside the row, so the row's look under the ray has it, and the name ends in an ellipsis before it, so
-     * the tags of the rows line up. While the tree is searched, the count is before the tag in the detail size, and
-     * the match is underlined in the name.
+     * the tags of the rows line up. The pending dot follows the name while its page has unsaved changes. While the
+     * tree is searched, the count is before the tag in the detail size, and the match is underlined in the name.
      */
     void drawName(const float left, const ImVec2& min, const ImVec2& max, const ImU32 color, const std::string_view name, const std::string_view tag, const bool onFill,
-        const RowFound& found)
+        const RowFound& found, const bool unsaved)
     {
         float right = max.x - theme::SPACE_3;
         if (!tag.empty()) {
@@ -124,7 +155,7 @@ namespace
             right = countLeft - theme::SPACE_2;
         }
         const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
-        ui::drawText(nameLeft, right, min.y, theme::CONTROL_HEIGHT, color, name);
+        drawNameWithDot(nameLeft, right, min.y, color, name, unsaved, onFill);
         ui::drawUnderlines(nameLeft, right, min.y, theme::CONTROL_HEIGHT, color, name, found.ranges);
     }
 
@@ -134,10 +165,11 @@ namespace
      * arrow, which every row keeps, so the names of a level line up whether or not they have one, and has its
      * tag after it, where it has one. The selected row is a solid bar, whose tip is inside the row, and any
      * other has the look of a row under the ray. With `show`, a selected row that is not whole in
-     * the shown rows is scrolled to. Returns whether the row was pressed, and tells whether the ray is on it.
+     * the shown rows is scrolled to. With `unsaved`, the pending dot follows the name.
+     * Returns whether the row was pressed, and tells whether the ray is on it.
      */
     bool treeRow(const std::string_view name, const std::string_view tag, const int level, const Arrow arrow, const bool selected, const bool show, const float width,
-        bool& pointed, const RowFound& found = {})
+        bool& pointed, const RowFound& found = {}, const bool unsaved = false)
     {
         const auto min = ImGui::GetCursorScreenPos();
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
@@ -162,16 +194,18 @@ namespace
         if (arrow != Arrow::None) {
             drawArrow(left, min.y, arrow == Arrow::Open, color);
         }
-        drawName(left, min, max, color, name, tag, selected, found);
+        drawName(left, min, max, color, name, tag, selected, found, unsaved);
         return pressed;
     }
 
     /**
      * The row of a mod or page that is not available, at the cursor, in the width of every row, with its tag
      * where it has one. It is disabled: it has the look of a row under the ray, so the reason in the help line is
-     * seen to be its, and none of a press, which does nothing. Returns whether the ray is on the row.
+     * seen to be its, and none of a press, which does nothing. With `unsaved`, the pending dot follows the name,
+     * faded with it. Returns whether the ray is on the row.
      */
-    bool disabledRow(const std::string_view name, const std::string_view tag, const int level, const Arrow arrow, const float width, const RowFound& found = {})
+    bool disabledRow(const std::string_view name, const std::string_view tag, const int level, const Arrow arrow, const float width, const RowFound& found = {},
+        const bool unsaved = false)
     {
         const auto min = ImGui::GetCursorScreenPos();
         ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
@@ -186,7 +220,7 @@ namespace
         if (arrow != Arrow::None) {
             drawArrow(left, min.y, false, theme::color::GREEN);
         }
-        drawName(left, min, ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT), theme::color::GREEN, name, tag, false, found);
+        drawName(left, min, ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT), theme::color::GREEN, name, tag, false, found, unsaved);
         ImGui::EndDisabled();
         return pointed;
     }
@@ -194,14 +228,16 @@ namespace
     /**
      * The row of a category at the cursor, in the width of every row: its arrow, down while its mods are the rows
      * under it, its name, a rule from it to the count of its mods, and the count in the detail size. It is muted, also
-     * under the ray, where it has the look of a row. It is never selected: a press opens and closes it.
-     * Returns whether it was pressed.
+     * under the ray, where it has the look of a row. It is never selected: a press opens and closes it. With
+     * `unsaved`, while it is closed on the selected mod, the pending dot follows the name.
+     * Returns whether it was pressed, and tells whether the ray is on it.
      */
-    bool categoryRow(const std::string_view name, const std::size_t count, const bool open, const float width)
+    bool categoryRow(const std::string_view name, const std::size_t count, const bool open, const float width, const bool unsaved, bool& pointed)
     {
         const auto min = ImGui::GetCursorScreenPos();
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
         const bool pressed = ImGui::InvisibleButton("category", ImVec2(width, theme::CONTROL_HEIGHT));
+        pointed = ImGui::IsItemHovered();
         if (!ImGui::IsItemVisible()) {
             return pressed;
         }
@@ -219,9 +255,10 @@ namespace
 
         const float ruleRight = countLeft - theme::SPACE_2;
         const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
-        const float nameRight = (std::min)(nameLeft + ui::textWidth(name), ruleRight - CATEGORY_RULE_MIN_WIDTH - theme::SPACE_3);
-        ui::drawText(nameLeft, nameRight, min.y, theme::CONTROL_HEIGHT, color, name);
-        const float ruleLeft = std::ceil(nameRight) + theme::SPACE_3;
+        const float dotWidth = unsaved ? theme::SPACE_2 + ui::PENDING_MARK_WIDTH : 0.0f;
+        const float nameRight = (std::min)(nameLeft + ui::textWidth(name) + dotWidth, ruleRight - CATEGORY_RULE_MIN_WIDTH - theme::SPACE_3);
+        const float drawnRight = drawNameWithDot(nameLeft, nameRight, min.y, color, name, unsaved, false);
+        const float ruleLeft = std::ceil(drawnRight) + theme::SPACE_3;
         if (ruleLeft < ruleRight) {
             const float ruleTop = std::floor(min.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);
             ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(ruleRight, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
@@ -262,6 +299,8 @@ namespace mods_config::ui
     {
         F4CF_PERF_FUNCTION();
         TreeDrawn drawn;
+        // the pages are counted only while the session has a change, which most frames it has not
+        _unsavedStore = store && store->dirtyCount() > 0 ? store : nullptr;
         // a row is the same width whether or not the scroll bar shows
         const float rowWidth = _width - theme::SPACE_2 - RIGHT_ROOM;
 
@@ -322,14 +361,23 @@ namespace mods_config::ui
                 _openCategories.insert(key);
             }
             bool open = _openCategories.contains(key);
+            const bool hasSelected = selection.mod && std::ranges::find(category.mods, *selection.mod) != category.mods.end();
+            // closed, it tells the unsaved changes of the selected mod it hides
+            const std::size_t unsaved = !open && hasSelected && _unsavedStore ? model::unsavedChanges(mods[*selection.mod], *_unsavedStore) : 0;
+            const auto& name = category.name.empty() ? std::string(model::NO_CATEGORY) : category.name;
             // not a number, which a mod's place is
             ImGui::PushID(key.c_str());
-            if (categoryRow(category.name.empty() ? model::NO_CATEGORY : category.name, category.mods.size(), open, rowWidth)) {
+            bool pointed = false;
+            const bool pressed = categoryRow(name, category.mods.size(), open, rowWidth, unsaved > 0, pointed);
+            if (pointed && unsaved > 0) {
+                drawn.pointed = PointedRow{ .text = name, .help = withUnsaved({}, unsaved) };
+            }
+            if (pressed) {
                 open = !open;
                 if (open) {
                     _openCategories.insert(key);
                     // the selected row, which can be far under the category's with the pages of its mod open
-                    if (selection.mod && std::ranges::find(category.mods, *selection.mod) != category.mods.end()) {
+                    if (hasSelected) {
                         _showSelection = true;
                     } else {
                         _openedCategory = key;
@@ -372,13 +420,15 @@ namespace mods_config::ui
             ImGui::PopID();
             return ImGui::GetItemRectMax().y;
         }
+        // the mod's row is its front page, and its pages are the rows under it while it is selected
+        const std::size_t unsaved = selected && _unsavedStore ? model::unsavedChanges(mod.frontPage, *_unsavedStore, false) : 0;
         bool pointed = false;
-        if (treeRow(mod.displayName, tag, level, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed)) {
+        if (treeRow(mod.displayName, tag, level, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed, {}, unsaved > 0)) {
             drawn.pressed = Selection{ .mod = modIndex, .page = {} };
         }
         const float rowBottom = ImGui::GetItemRectMax().y;
-        if (pointed && (mcm || !mod.help.empty())) {
-            drawn.pointed = PointedRow{ .text = mod.displayName, .help = mcm ? MCM_HELP : mod.help };
+        if (pointed && (mcm || !mod.help.empty() || unsaved > 0)) {
+            drawn.pointed = PointedRow{ .text = mod.displayName, .help = withUnsaved(mcm ? MCM_HELP : mod.help, unsaved) };
         }
         if (open) {
             std::vector<std::size_t> path;
@@ -406,15 +456,17 @@ namespace mods_config::ui
             const bool enabled = page.notAvailable.empty() && (!page.enabledWhen || model::holds(*page.enabledWhen, store));
             const bool open = !page.pages.empty() && std::ranges::starts_with(selection.page, path);
             const auto arrow = page.pages.empty() ? Arrow::None : open ? Arrow::Open : Arrow::Closed;
+            // a page whose pages are not the rows under it tells their changes too
+            const std::size_t unsaved = _unsavedStore ? model::unsavedChanges(page, *_unsavedStore, !(open && enabled)) : 0;
             ImGui::PushID(static_cast<int>(pageIndex));
             bool pointed = false;
             if (!enabled) {
-                pointed = disabledRow(page.name, {}, level, arrow, rowWidth);
-            } else if (treeRow(page.name, {}, level, arrow, selection.page == path, _showSelection, rowWidth, pointed)) {
+                pointed = disabledRow(page.name, {}, level, arrow, rowWidth, {}, unsaved > 0);
+            } else if (treeRow(page.name, {}, level, arrow, selection.page == path, _showSelection, rowWidth, pointed, {}, unsaved > 0)) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
-            if (pointed && (!enabled || !page.help.empty())) {
-                drawn.pointed = PointedRow{ .text = page.name, .help = pageHelp(page, enabled) };
+            if (pointed && (!enabled || !page.help.empty() || unsaved > 0)) {
+                drawn.pointed = PointedRow{ .text = page.name, .help = withUnsaved(pageHelp(page, enabled), unsaved) };
             }
             if (open && enabled) {
                 drawPages(page.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);

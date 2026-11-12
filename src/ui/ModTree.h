@@ -107,5 +107,9 @@ namespace mods_config::ui
 
         // the category a press opened, whose first mods are scrolled to when they are drawn next: none for none
         std::optional<std::string> _openedCategory;
+
+        // the selected mod's store while its session has a change, which the rows of its pages count theirs in:
+        // none while it has none, in the frame that is drawn
+        model::Store* _unsavedStore = nullptr;
     };
 }

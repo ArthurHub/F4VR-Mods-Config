@@ -61,6 +61,10 @@ svg.mc-ico.is-pending { color: var(--amber); }
 .mc-tree-row.d3 { padding-left: calc(var(--space-2) + 3 * var(--space-4)); }
 .mc-tree-row.is-hover { background: var(--hover); box-shadow: inset 0 0 0 var(--border-frame) var(--frame-border); }
 .mc-tree-row.is-selected { background: var(--green); color: var(--on-green); border-radius: var(--radius-frame) 0 0 var(--radius-frame); }
+/* the pending dot after the name of a page with unsaved changes: the name shortens before it, and it is on-green on the bar */
+.mc-tree-row .name.has-dot { flex: 0 1 auto; }
+.mc-tree-row .mc-dot { flex: none; margin-right: auto; }
+.mc-tree-row.is-selected .mc-dot { background: var(--on-green); }
 /* the Pip-Boy tip, inside the row: the selected bar points at the content it opened, from 10 px left of its right edge */
 .mc-tree-row.is-selected { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
 /* an MCM mod's tag: 10 px text 1 px inside a rule outline, 8 px from the row's right edge (its padding is space-3) */
