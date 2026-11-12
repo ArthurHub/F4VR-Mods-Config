@@ -2537,26 +2537,50 @@ TEST_CASE("ConfigSpecLoader: a sphere's Icons picks its icon, its binding icon o
         { "type": "cf.activationSphere", "text": "Hand", "storage": { "path": ["Hand"] }, "keys": { "tBindingIcon": false,
             "icons": { "text": "Marks", "help": "Which marks show.", "valueOptions": { "options": [
                 { "value": "on", "text": "On", "sets": { "sShowIcon:Hand": "always", "sShowBindingIcon:Hand": "always" } } ] } } } },
-        { "type": "cf.activationSphere", "text": "Foot", "storage": { "path": ["Foot"] }, "keys": { "tBindingIcon": false } })"));
+        { "type": "cf.activationSphere", "text": "Foot", "storage": { "path": ["Foot"] }, "keys": { "tBindingIcon": false } },
+        { "type": "cf.activationSphere", "text": "Arm", "storage": { "path": ["Arm"] }, "keys": { "sShowBindingIcon": { "default": "wheninside" },
+            "tBindingIcon": { "default": { "pos": [1.0, -1.0, 0.0], "scale": 1.5 } }, "fIconSize": { "default": 2.0 } } },
+        { "type": "cf.activationSphere", "text": "Leg", "storage": { "path": ["Leg"] }, "keys": { "sShowIcon": { "default": "never" },
+            "sShowBindingIcon": { "default": "wheninside" }, "tBindingIcon": { "default": { "pos": [0.0, 0.0, 0.0], "scale": 2.0 } } } },
+        { "type": "cf.activationSphere", "text": "Eye", "storage": { "path": ["Eye"] }, "keys": { "sShowIcon": { "default": "always" } } })"));
     CHECK(mod.problems.empty());
     const auto settings = settingsOf(mod);
     const auto& icons = *std::ranges::find(settings, "Icons", &model::Setting::text);
     CHECK(icons.id == "icons:Body");
     CHECK(model::setsOthers(icons));
-    const auto words = [&icons](const std::size_t option) {
+    const auto words = [](const model::Setting& choice, const std::size_t option) {
         Lines texts;
-        for (const auto& set : icons.valueOptions.options[option].sets) {
+        for (const auto& set : choice.valueOptions.options[option].sets) {
             texts.push_back(std::format("{} = {}", set.setting, std::get<std::string>(set.value)));
         }
         std::ranges::sort(texts);
         return texts;
     };
     REQUIRE(icons.valueOptions.options.size() == 4);
-    CHECK(words(0) == Lines{ "sShowBindingIcon:Body = never", "sShowIcon:Body = never" });
-    CHECK(words(1) == Lines{ "sShowBindingIcon:Body = never", "sShowIcon:Body = wheninside" });
+    CHECK(words(icons, 0) == Lines{ "sShowBindingIcon:Body = never", "sShowIcon:Body = never" });
+    CHECK(words(icons, 1) == Lines{ "sShowBindingIcon:Body = never", "sShowIcon:Body = wheninside" });
     // the binding alone is in the icon's place, and with the icon beside it
-    CHECK(words(2) == Lines{ "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = never", "tBindingIcon:Body = { pos = [0.0, 0.0, 0.0], scale = 1.0 }" });
-    CHECK(words(3) == Lines{ "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = wheninside", "tBindingIcon:Body = { pos = [0.65, -0.65, 0.0], scale = 1.2 }" });
+    CHECK(words(icons, 2) == Lines{ "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = never", "tBindingIcon:Body = { pos = [0.0, 0.0, 0.0], scale = 1.25 }" });
+    CHECK(words(icons, 3) == Lines{ "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = wheninside", "tBindingIcon:Body = { pos = [0.65, -0.65, 0.0], scale = 1.0 }" });
+
+    // the mod's defaults: both shown is its binding icon's default, and the binding alone goes with its icon size
+    const auto& arm = std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items[4]).items[2]);
+    REQUIRE(arm.valueOptions.options.size() == 4);
+    CHECK(words(arm, 2) == Lines{ "sShowBindingIcon:Arm = wheninside", "sShowIcon:Arm = never", "tBindingIcon:Arm = { pos = [0.0, 0.0, 0.0], scale = 2.5 }" });
+    CHECK(words(arm, 3) == Lines{ "sShowBindingIcon:Arm = wheninside", "sShowIcon:Arm = wheninside", "tBindingIcon:Arm = { pos = [1.0, -1.0, 0.0], scale = 1.5 }" });
+
+    // the binding alone as the mod's default keeps its size
+    const auto& leg = std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items[5]).items[2]);
+    REQUIRE(leg.valueOptions.options.size() == 4);
+    CHECK(words(leg, 2) == Lines{ "sShowBindingIcon:Leg = wheninside", "sShowIcon:Leg = never", "tBindingIcon:Leg = { pos = [0.0, 0.0, 0.0], scale = 2.0 }" });
+
+    // an icon the mod shows always is turned on always, and its help says so
+    const auto& eye = std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items[6]).items[2]);
+    REQUIRE(eye.valueOptions.options.size() == 4);
+    CHECK(words(eye, 1) == Lines{ "sShowBindingIcon:Eye = never", "sShowIcon:Eye = always" });
+    CHECK(eye.valueOptions.options[1].help == "Its icon shows all the time.");
+    CHECK(words(eye, 3) == Lines{ "sShowBindingIcon:Eye = wheninside", "sShowIcon:Eye = always", "tBindingIcon:Eye = { pos = [0.65, -0.65, 0.0], scale = 1.0 }" });
+    CHECK(eye.valueOptions.options[3].help == "Its icon shows all the time, and the icons of its bindings beside it while a hand is in the zone.");
 
     // hidden, Show icon is a main row again
     const auto& head = std::get<model::Group>(mod.frontPage.items[1]);

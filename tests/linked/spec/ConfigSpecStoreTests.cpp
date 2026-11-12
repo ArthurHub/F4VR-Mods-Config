@@ -779,14 +779,34 @@ TEST_CASE("ConfigSpecStore: a sphere's Icons sets when its icon and its binding 
     CHECK(session.store.set(session.sphereKey(ICONS), "both"s));
     CHECK(value(SHOW_ICON) == model::Value("wheninside"s));
     CHECK(value(SHOW_BINDING_ICON) == model::Value("wheninside"s));
-    CHECK(value(BINDING_ICON) == model::Value("{ pos = [0.65, -0.65, 0.0], scale = 1.2 }"s));
+    CHECK(value(BINDING_ICON) == model::Value("{ pos = [0.65, -0.65, 0.0], scale = 1.0 }"s));
     CHECK(value(ICONS) == model::Value("both"s));
 
     // the binding alone is in the icon's place
     CHECK(session.store.set(session.sphereKey(ICONS), "binding"s));
     CHECK(value(SHOW_ICON) == model::Value("never"s));
-    CHECK(value(BINDING_ICON) == model::Value("{ pos = [0.0, 0.0, 0.0], scale = 1.0 }"s));
+    CHECK(value(BINDING_ICON) == model::Value("{ pos = [0.0, 0.0, 0.0], scale = 1.25 }"s));
     CHECK(value(ICONS) == model::Value("binding"s));
+}
+
+TEST_CASE("ConfigSpecStore: a sphere's Icons has the mod's defaults as an option, which is its default")
+{
+    Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] }, "keys": {
+        "sShowBindingIcon": { "default": "wheninside" }, "tBindingIcon": { "default": { "pos": [0.8, -0.7, 0.0], "scale": 1.4 } } } })");
+    session.open(
+        "[Body]\r\n"
+        "sShowBindingIcon = \"WhenInside\"\r\n"
+        "tBindingIcon = { pos = [0.8, -0.7, 0.0], scale = 1.4 }\r\n");
+    constexpr std::size_t ICONS = 2;
+    constexpr std::size_t BINDING_ICON = 13;
+
+    CHECK(session.store.value(session.sphereKey(ICONS)).value == model::Value("both"s));
+    CHECK(session.store.defaultValue(session.sphereKey(ICONS)) == model::Value("both"s));
+
+    // back from the binding alone, the binding icon is at the mod's place again
+    CHECK(session.store.set(session.sphereKey(ICONS), "binding"s));
+    CHECK(session.store.set(session.sphereKey(ICONS), "both"s));
+    CHECK(session.store.value(session.sphereKey(BINDING_ICON)).value == model::Value("{ pos = [0.8, -0.7, 0.0], scale = 1.4 }"s));
 }
 
 TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework does, with no regard to case and separators, and with its other words")

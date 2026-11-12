@@ -22,6 +22,7 @@
 #include "IniFile.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
+#include "model/ActivationSpheres.h"
 #include "model/Categories.h"
 #include "model/Colors.h"
 #include "model/Conditions.h"
@@ -2292,22 +2293,70 @@ namespace
     }
 
     /**
+     * The default of a key of a sphere: the `default` of its object in `keys`, or the framework's.
+     */
+    Json sphereKeyDefault(const Json& keys, const std::string_view name)
+    {
+        if (const auto own = keys.find(std::string(name)); own != keys.end() && own->is_object() && own->contains("default")) {
+            return own->at("default");
+        }
+        const auto key = std::ranges::find(SPHERE_KEYS, name, &SphereKey::name);
+        return key != SPHERE_KEYS.end() ? Json::parse(key->row).value("default", Json()) : Json();
+    }
+
+    /**
+     * When a sphere's Show word draws its icon, as the help of an Icons option says it.
+     */
+    std::string_view sphereShownWhen(const std::string_view word)
+    {
+        if (word == "always") {
+            return "all the time";
+        }
+        return word == "whenavailable" ? "while it can be used" : "while a hand is in the zone";
+    }
+
+    /**
      * The Icons row of a sphere: a stepper of the icons it draws, whose options set the keys that say when the icon and
-     * the binding icon are drawn, and the binding icon's place and size where it has a row: at the zone's center for the
-     * binding alone, in the icon's place, and at the lower right of an icon of the framework's size for both. Its object
-     * in `keys` gives it its `text`, `help` and
-     * conditions, and `valueOptions`, whose `options` replace the four.
+     * the binding icon are drawn, and the binding icon's place and size where it has a row. Each key turns on with the
+     * word of its default, and the option of both defaults sets the binding icon's default, so the mod's defaults are an
+     * option; the others place it by the default icon size: in the icon's place for the binding alone, and at the icon's
+     * lower right for both. Its object in `keys` gives it its `text`, `help` and conditions, and `valueOptions`, whose
+     * `options` replace the four.
      */
     Json sphereIconsRow(const Json& keys, const model::FileStorage& section, ConfigSpecReading& reading)
     {
         const auto showIcon = sphereKeyId(section, SPHERE_SHOW_ICON);
         const auto showBindingIcon = sphereKeyId(section, SPHERE_SHOW_BINDING_ICON);
         const bool hasPlace = !isHiddenKey(keys, SPHERE_BINDING_ICON);
+        const auto defaultWord = [&keys](const std::string_view name) {
+            const auto word = sphereKeyDefault(keys, name);
+            return word.is_string() ? model::canonicalSphereWord(model::SphereWords::Visibility, {}, word.get<std::string>()) : std::string();
+        };
+        const auto defaultIcon = defaultWord(SPHERE_SHOW_ICON);
+        const auto defaultBinding = defaultWord(SPHERE_SHOW_BINDING_ICON);
+        // a key turns on with the word of its default, and with when inside for a default that is off
+        const auto onWord = [](const std::string& word) {
+            return word == "always" || word == "whenavailable" ? word : std::string("wheninside");
+        };
+        const auto iconOn = onWord(defaultIcon);
+        const auto bindingOn = onWord(defaultBinding);
+        const auto defaultPlace = sphereKeyDefault(keys, SPHERE_BINDING_ICON);
+        const auto defaultSize = sphereKeyDefault(keys, "fIconSize");
+        const double iconSize = defaultSize.is_number() ? defaultSize.get<double>() : 1.0;
+
+        // pos and scale are for an icon of size 1: x right and y down by pos, each icon scale big
         const auto sets = [&](const std::string_view icon, const std::string_view binding, const std::optional<double> pos, const std::optional<double> scale) {
             Json set{ { showIcon, icon }, { showBindingIcon, binding } };
-            if (pos && hasPlace) {
-                // 0 - pos keeps the center's y a zero, where -pos is -0
-                set[sphereKeyId(section, SPHERE_BINDING_ICON)] = Json{ { "pos", Json::array({ *pos, 0.0 - *pos, 0.0 }) }, { "scale", scale.value_or(1.0) } };
+            if (!pos || !hasPlace) {
+                return set;
+            }
+            Json& place = set[sphereKeyId(section, SPHERE_BINDING_ICON)];
+            if (icon == defaultIcon && binding == defaultBinding && defaultPlace.is_object()) {
+                place = Json{ { "pos", defaultPlace.value("pos", Json::array({ 0.0, 0.0, 0.0 })) }, { "scale", defaultPlace.value("scale", 1.0) } };
+            } else {
+                // 0 - x keeps the center's y a zero, where -x is -0
+                const double x = *pos * iconSize;
+                place = Json{ { "pos", Json::array({ x, 0.0 - x, 0.0 }) }, { "scale", scale.value_or(1.0) * iconSize } };
             }
             return set;
         };
@@ -2321,13 +2370,14 @@ namespace
             { "text", "Icons" },
             { "help", "Which icons show at the zone: its icon, the icons of its bindings, or both. Visuals sets when each shows and how it looks." },
             { MADE_ROW_PATH, std::format("keys.{}", SPHERE_ICONS) } };
+        const auto iconWhen = sphereShownWhen(iconOn);
+        const auto bindingWhen = sphereShownWhen(bindingOn);
+        const auto bothHelp = iconOn == bindingOn ? std::format("Its icon shows {}, and the icons of its bindings beside it.", iconWhen)
+                                                  : std::format("Its icon shows {}, and the icons of its bindings beside it {}.", iconWhen, bindingWhen);
         row["valueOptions"]["options"] = Json::array({ option("none", "None", "No icon shows.", sets("never", "never", std::nullopt, std::nullopt)),
-            option("icon", "Icon", "Its icon shows while a hand is in the zone.", sets("wheninside", "never", std::nullopt, std::nullopt)),
-            option("binding", "Binding", "The icons of its bindings show while a hand is in the zone, in the icon's place.", sets("never", "wheninside", 0.0f, 1.25f)),
-            option("both",
-                "Icon and binding",
-                "Its icon shows while a hand is in the zone, and the icons of its bindings beside it.",
-                sets("wheninside", "wheninside", 0.65f, 1.0f)) });
+            option("icon", "Icon", std::format("Its icon shows {}.", iconWhen), sets(iconOn, "never", std::nullopt, std::nullopt)),
+            option("binding", "Binding", std::format("The icons of its bindings show {}, in the icon's place.", bindingWhen), sets("never", bindingOn, 0.0, 1.25)),
+            option("both", "Icon and binding", bothHelp, sets(iconOn, bindingOn, 0.65, 1.0)) });
 
         if (const auto own = keys.find(SPHERE_ICONS); own != keys.end() && own->is_object()) {
             const Into into(reading, row[MADE_ROW_PATH].get_ref<const std::string&>());
