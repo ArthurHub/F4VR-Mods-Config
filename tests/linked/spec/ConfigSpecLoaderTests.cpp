@@ -2274,6 +2274,10 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
                                  "Icon",
                                  "Icon color",
                                  "Icon size",
+                                 "Show binding icon",
+                                 "Binding icons",
+                                 "Binding icon position",
+                                 "Binding icon color",
                                  "Show sphere",
                                  "Sphere style" });
     for (std::size_t place = 3; place < 6; ++place) {
@@ -2285,7 +2289,7 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
 
     // each key is a setting of its own, by its key and the section, with the control of its kind, and `live` with none above it
     const auto settings = settingsOf(mod);
-    REQUIRE(settings.size() == 12);
+    REQUIRE(settings.size() == 16);
     for (const auto& setting : settings) {
         CHECK(setting.applies == model::Applies::Live);
         CHECK_FALSE(setting.help.empty());
@@ -2296,8 +2300,8 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
     CHECK(settings[0].valueOptions.suppress);
     CHECK(settings[1].type == model::SettingType::Haptic);
     CHECK(settings[2].type == model::SettingType::Dropdown);
-    // when the icon and the sphere are drawn: each option says what it means
-    for (const auto place : { 2, 10 }) {
+    // when the icon, the binding icon and the sphere are drawn: each option says what it means
+    for (const auto place : { 2, 10, 14 }) {
         REQUIRE(settings[place].valueOptions.options.size() == 4);
         for (const auto& option : settings[place].valueOptions.options) {
             CHECK_FALSE(option.help.empty());
@@ -2324,16 +2328,16 @@ TEST_CASE("ConfigSpecLoader: an activation sphere is a group of its section's ke
     // the framework's icon, by its path in the mod's folder of Data
     CHECK(text(7) == R"(Textures\MyMod\)" + framework.iconStyle.textureOrDefault());
     CHECK(framework.showIcon == f4vr::parseActivationSphereVisibility(text(2), f4vr::ActivationSphereVisibility::Always));
-    CHECK(framework.showSphere == f4vr::parseActivationSphereVisibility(text(10), f4vr::ActivationSphereVisibility::Always));
-    CHECK(f4vr::findSphereStylePreset(text(11)) == framework.sphereStyle);
+    CHECK(framework.showSphere == f4vr::parseActivationSphereVisibility(text(14), f4vr::ActivationSphereVisibility::Always));
+    CHECK(f4vr::findSphereStylePreset(text(15)) == framework.sphereStyle);
     CHECK(common::fEqual(std::get<float>(*settings[9].defaultValue), framework.iconStyle.size));
     const auto iconColor = model::colorOf(settings[8], *settings[8].defaultValue);
     REQUIRE(iconColor);
     CHECK(std::abs(iconColor->a - framework.iconStyle.color.a) < 0.01f);
 
     // every style the list has is one the framework has
-    CHECK(settings[11].valueOptions.options.size() == 33);
-    for (const auto& option : settings[11].valueOptions.options) {
+    CHECK(settings[15].valueOptions.options.size() == 33);
+    for (const auto& option : settings[15].valueOptions.options) {
         CHECK(f4vr::findSphereStylePreset(std::get<std::string>(option.value)));
     }
 }
@@ -2405,6 +2409,10 @@ TEST_CASE("ConfigSpecLoader: a sphere's keys name a row, hide it or show one tha
                                 "Primary haptic",
                                 "Secondary haptic",
                                 "Visuals:",
+                                "Show binding icon",
+                                "Binding icons",
+                                "Binding icon position",
+                                "Binding icon color",
                                 "Show sphere",
                                 "Sphere style",
                                 "Sphere glow" });
@@ -2437,9 +2445,73 @@ TEST_CASE("ConfigSpecLoader: a sphere's keys name a row, hide it or show one tha
 
     // with the sphere's control hidden its look is hidden, also a key that is named, and a section with no row is left out
     const auto& head = std::get<model::Group>(mod.frontPage.items[1]);
-    CHECK(
-        rowTexts(head) ==
-        Lines{ "Activate", "Entry haptic", "Show icon", "Activation:", "Primary haptic", "Secondary activate", "Secondary haptic", "Visuals:", "Icon", "Icon color", "Icon size" });
+    CHECK(rowTexts(head) == Lines{ "Activate",
+                                "Entry haptic",
+                                "Show icon",
+                                "Activation:",
+                                "Primary haptic",
+                                "Secondary activate",
+                                "Secondary haptic",
+                                "Visuals:",
+                                "Icon",
+                                "Icon color",
+                                "Icon size",
+                                "Show binding icon",
+                                "Binding icons",
+                                "Binding icon position",
+                                "Binding icon color" });
+}
+
+TEST_CASE("ConfigSpecLoader: a sphere's binding icon has its rows after the icon's, with the framework's defaults")
+{
+    const auto mod = loaded(sphereSpec(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } },
+        { "type": "cf.activationSphere", "text": "Head", "storage": { "path": ["Head"] }, "keys": { "sShowBindingIcon": false, "cBindingIconColor": true } },
+        { "type": "cf.activationSphere", "text": "Hand", "storage": { "path": ["Hand"] }, "keys": { "cBindingIconColor": false } })"));
+    CHECK(mod.problems.empty());
+    REQUIRE(mod.frontPage.items.size() == 3);
+    const auto visuals = [&mod](const std::size_t sphere) {
+        const auto& group = std::get<model::Group>(mod.frontPage.items[sphere]);
+        return rowTexts(std::get<model::Group>(group.items.back()));
+    };
+
+    // the binding icon's rows are after the icon's
+    CHECK(visuals(0) ==
+          Lines{ "Icon", "Icon color", "Icon size", "Show binding icon", "Binding icons", "Binding icon position", "Binding icon color", "Show sphere", "Sphere style" });
+    // hiding the key that says when it is shown hides its look, also a key that is named
+    CHECK(visuals(1) == Lines{ "Icon", "Icon color", "Icon size", "Show sphere", "Sphere style" });
+    CHECK(visuals(2) == Lines{ "Icon", "Icon color", "Icon size", "Show binding icon", "Binding icons", "Binding icon position", "Show sphere", "Sphere style" });
+
+    const auto settings = settingsOf(mod);
+    const auto setting = [&settings](const std::string& text) -> const model::Setting& {
+        return *std::ranges::find(settings, text, &model::Setting::text);
+    };
+    const auto text = [&setting](const std::string& row) {
+        return std::get<std::string>(*setting(row).defaultValue);
+    };
+
+    // what the framework reads for a key the file does not have
+    const f4vr::WandActivationConfig framework;
+    CHECK(framework.showBindingIcon == f4vr::parseActivationSphereVisibility(text("Show binding icon"), f4vr::ActivationSphereVisibility::Always));
+    CHECK(framework.bindingIconStyle.bindings == f4vr::parseActivationBindingIcons(text("Binding icons"), f4vr::ActivationBindingIcons::All));
+    CHECK(setting("Binding icons").valueOptions.sphereWords == model::SphereWords::BindingIcons);
+    for (const auto& option : setting("Binding icons").valueOptions.options) {
+        const auto& word = std::get<std::string>(option.value);
+        CHECK(f4vr::parseActivationBindingIcons(word, f4vr::ActivationBindingIcons::All) == f4vr::parseActivationBindingIcons(word, f4vr::ActivationBindingIcons::Primary));
+    }
+    const auto position = model::parseTransformTable(text("Binding icon position"), model::TableForm::Toml);
+    REQUIRE(position);
+    CHECK(position->pos == std::array{ 0.0f, 0.0f, 0.0f });
+    CHECK(common::fEqual(*position->scale, framework.bindingIconStyle.transform.scale));
+    CHECK_FALSE(setting("Binding icon position").valueOptions.transformAxes[model::TRANSFORM_ROTATION].on);
+    const auto color = model::colorOf(setting("Binding icon color"), *setting("Binding icon color").defaultValue);
+    REQUIRE(color);
+    CHECK(std::abs(color->a - framework.bindingIconStyle.color.a) < 0.01f);
+
+    // its look is disabled while it is never shown
+    for (const auto* row : { "Binding icons", "Binding icon position", "Binding icon color" }) {
+        REQUIRE(setting(row).enabledWhen);
+        CHECK(setting(row).enabledWhen->setting == "sShowBindingIcon:Body");
+    }
 }
 
 TEST_CASE("ConfigSpecLoader: what a sphere gets wrong is reported where it is in spec.json, and on the row it is on")

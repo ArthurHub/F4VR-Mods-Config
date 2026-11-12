@@ -183,6 +183,8 @@ namespace mods_config::model
         Orientation,
         // a preset of a sphere's look
         Style,
+        // which bindings the binding icon shows
+        BindingIcons,
     };
 
     /**

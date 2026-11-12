@@ -695,7 +695,7 @@ TEST_CASE("ConfigSpecStore: a sphere's binding set to None hides its haptic, and
     constexpr std::size_t SECONDARY = 5;
     constexpr std::size_t SECONDARY_HAPTIC = 6;
     constexpr std::size_t ICON = 7;
-    constexpr std::size_t SPHERE_STYLE = 11;
+    constexpr std::size_t SPHERE_STYLE = 15;
     const auto shown = [&session](const std::size_t place) {
         return model::holds(*session.sphereKey(place).visibleWhen, &session.store);
     };
@@ -727,8 +727,8 @@ TEST_CASE("ConfigSpecStore: a sphere's icon, mesh and texture are choices of the
     session.data.write(R"(Meshes\MyMod\f4cf\activation-sphere.nif)", "");
     session.open("[Body]\r\nsIcon = 'Textures\\MyMod\\f4cf\\activation-icon-ring.dds'\r\n");
     constexpr std::size_t ICON = 7;
-    constexpr std::size_t MESH = 12;
-    constexpr std::size_t TEXTURE = 13;
+    constexpr std::size_t MESH = 16;
+    constexpr std::size_t TEXTURE = 17;
     REQUIRE(session.sphereKey(MESH).text == "Sphere mesh");
     REQUIRE(session.sphereKey(TEXTURE).text == "Sphere texture");
 
@@ -767,9 +767,9 @@ TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework do
         "sSphereOrientation = \"head\"\r\n");
     constexpr std::size_t SHOW_ICON = 2;
     constexpr std::size_t ICON = 7;
-    constexpr std::size_t SHOW_SPHERE = 10;
-    constexpr std::size_t SPHERE_STYLE = 11;
-    constexpr std::size_t SPHERE_ORIENTATION = 12;
+    constexpr std::size_t SHOW_SPHERE = 14;
+    constexpr std::size_t SPHERE_STYLE = 15;
+    constexpr std::size_t SPHERE_ORIENTATION = 16;
     const auto word = [&session](const std::size_t place) {
         const auto stored = session.store.value(session.sphereKey(place));
         CHECK_FALSE(stored.invalid);
@@ -798,6 +798,16 @@ TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework do
         const auto stored = typo.store.value(typo.sphereKey(place));
         CHECK(stored.value == model::Value(text));
         CHECK(stored.invalid);
+    }
+
+    // which bindings have an icon, with the framework's other words for them
+    constexpr std::size_t BINDING_ICONS = 11;
+    for (const auto& [synonym, option] : { std::pair{ "Both", "all"s }, std::pair{ "hand", "inside"s }, std::pair{ "When_Inside", "inside"s } }) {
+        Session icons(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } })");
+        icons.open(std::format("[Body]\r\nsBindingIcons = \"{}\"\r\n", synonym));
+        const auto stored = icons.store.value(icons.sphereKey(BINDING_ICONS));
+        CHECK(stored.value == model::Value(option));
+        CHECK_FALSE(stored.invalid);
     }
 }
 

@@ -1852,10 +1852,11 @@ namespace
         }
         if (made) {
             const auto words = getText(row, MADE_WORDS);
-            valueOptions.sphereWords = words == "visibility"    ? model::SphereWords::Visibility
-                                       : words == "orientation" ? model::SphereWords::Orientation
-                                       : words == "style"       ? model::SphereWords::Style
-                                                                : model::SphereWords::None;
+            valueOptions.sphereWords = words == "visibility"     ? model::SphereWords::Visibility
+                                       : words == "orientation"  ? model::SphereWords::Orientation
+                                       : words == "style"        ? model::SphereWords::Style
+                                       : words == "bindingIcons" ? model::SphereWords::BindingIcons
+                                                                 : model::SphereWords::None;
         }
         auto defaultValue = readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
         auto text = getLabel(row, reading);
@@ -2024,6 +2025,36 @@ namespace
             false,
             R"({ "type": "slider", "valueType": "float", "text": "Icon size", "help": "The icon's longer side, in game units.", "default": 1.0,
                 "valueOptions": { "min": 0.1, "max": 10, "step": 0.1 } })" },
+        SphereKey{ "sShowBindingIcon",
+            SpherePart::Visuals,
+            "",
+            false,
+            R"({ "type": "dropdown", "valueType": "string", "madeWords": "visibility", "text": "Show binding icon", "help": "When the icons of the buttons that fire it are drawn, in a row that faces you.", "default": "never",
+                "valueOptions": { "options": [ { "value": "never", "text": "Never", "help": "Not drawn." },
+                    { "value": "always", "text": "Always", "help": "Drawn all the time, which shows where the zone is." },
+                    { "value": "wheninside", "text": "When inside", "help": "Drawn while a hand that works the gesture is in the zone." },
+                    { "value": "whenavailable", "text": "When available", "help": "Drawn while the gesture can be used, as one that needs a drawn weapon while one is drawn." } ] } })" },
+        SphereKey{ "sBindingIcons",
+            SpherePart::Visuals,
+            "sShowBindingIcon",
+            false,
+            R"({ "type": "dropdown", "valueType": "string", "madeWords": "bindingIcons", "text": "Binding icons", "help": "Which bindings have an icon. One the gesture can't use right now has none.", "default": "inside",
+                "valueOptions": { "options": [ { "value": "inside", "text": "Of the hand inside", "help": "The bindings of a hand that is in the zone." },
+                    { "value": "all", "text": "All", "help": "Both bindings." },
+                    { "value": "primary", "text": "Primary", "help": "The primary binding only." },
+                    { "value": "secondary", "text": "Secondary", "help": "The secondary binding only." } ] } })" },
+        SphereKey{ "tBindingIcon",
+            SpherePart::Visuals,
+            "sShowBindingIcon",
+            false,
+            R"({ "type": "cf.transform", "text": "Binding icon position", "help": "Where the row of icons is from the zone's center: x right, y up, z toward your eyes. A positive x starts the row there, a negative x ends it there. Its scale is each icon's longer side, in game units.",
+                "default": { "pos": [0.0, 0.0, 0.0], "scale": 1.0 },
+                "valueOptions": { "position": { "min": -10, "max": 10, "step": 0.1 }, "rotation": false, "scale": { "min": 0.1, "max": 10, "step": 0.1 } } })" },
+        SphereKey{ "cBindingIconColor",
+            SpherePart::Visuals,
+            "sShowBindingIcon",
+            false,
+            R"({ "type": "cf.color", "text": "Binding icon color", "help": "The tint of the binding icons, and their opacity.", "default": { "rgb": [255, 255, 255], "alpha": 230 } })" },
         SphereKey{ "sShowSphere",
             SpherePart::Visuals,
             "",

@@ -319,7 +319,7 @@ A range with `min` ≥ `max` or `step` ≤ 0 is an error and uses the part's ran
 `keys` sets, per key name, how it shows:
 
 - `true` or omitted: shown with its default name.
-- `false`: no row; the file's value is kept. `kPrimaryBinding` can't be hidden (an error; it shows). Hiding `sShowIcon` also hides `sIcon`, `cIconColor`, `fIconSize`; hiding `sShowSphere` hides the other sphere keys.
+- `false`: no row; the file's value is kept. `kPrimaryBinding` can't be hidden (an error; it shows). Hiding `sShowIcon` also hides `sIcon`, `cIconColor`, `fIconSize`; hiding `sShowBindingIcon` hides `sBindingIcons`, `tBindingIcon`, `cBindingIconColor`; hiding `sShowSphere` hides the other sphere keys.
 - An object: shown, with setting fields `text`, `help`, `default`, `valueOptions`, `applies`, `visibleWhen`, `enabledWhen`, `warnings` (`type`, `valueType`, `storage` are the key's). `valueOptions` adds to the key's own (a binding's `suppress`, a slider's range). A zone has a transform's ranges and its scale is the zone's diameter, so give it a fitting range. Conditions join the key's built-in ones: a haptic has no row while its binding is off, and icon or sphere looks are disabled when set to `never`.
 
 | Group | Keys (default name) |
@@ -327,10 +327,11 @@ A range with `min` ≥ `max` or `step` ≤ 0 is an error and uses the part's ran
 | (top) | `kPrimaryBinding` Activate, `sEntryHaptic` Entry haptic, `sShowIcon` Show icon |
 | Position and size | `tZone` Zone, `tZonePA` Zone in power armor |
 | Activation | `sPrimaryHaptic` Primary haptic, `kSecondaryBinding` Secondary activate, `sSecondaryHaptic` Secondary haptic |
-| Visuals | `sIcon` Icon, `cIconColor` Icon color, `fIconSize` Icon size, `sShowSphere` Show sphere, `sSphereStyle` Sphere style |
+| Visuals | `sIcon` Icon, `cIconColor` Icon color, `fIconSize` Icon size, `sShowBindingIcon` Show binding icon, `sBindingIcons` Binding icons, `tBindingIcon` Binding icon position, `cBindingIconColor` Binding icon color, `sShowSphere` Show sphere, `sSphereStyle` Sphere style |
 | Visuals, only when named in `keys` | `fSphereScale` Sphere size, `sSphereOrientation`, `cSphereColor`, `fSphereGlow`, `sSphereNif`, `sSphereTexture`, `aSphereFalloff` |
 
-- `sShowIcon`, `sShowSphere`, `sSphereOrientation`, `sSphereStyle` are dropdowns read as the framework reads them (ignoring case, spaces, underscores, hyphens, with its synonyms: `off` is Never); unreadable values are invalid; changes are written as the option spells it.
+- The binding icon is the icons of the gesture's bindings, in a row facing the player. `tBindingIcon` has no rotation; its scale is each icon's size.
+- `sShowIcon`, `sShowSphere`, `sShowBindingIcon`, `sBindingIcons`, `sSphereOrientation`, `sSphereStyle` are dropdowns read as the framework reads them (ignoring case, spaces, underscores, hyphens, with its synonyms: `off` is Never, `both` is All); unreadable values are invalid; changes are written as the option spells it.
 - An unknown name in `keys` is a warning and dropped. Key ids are key + section, so conditions can name them.
 - `sIcon`, `sSphereNif`, `sSphereTexture` are [folder choices](#options-from-a-folder) of the framework files every CommonFramework mod ships under its `modName`: `sIcon` from `Textures\<modName>\f4cf\activation-icon-*.dds`, `sSphereTexture` from `*-sphere.dds` there, `sSphereNif` from `Meshes\<modName>\f4cf\*.nif`. Picks are written as Data paths (`Textures\FRIK\f4cf\activation-icon-ring.dds`). `sIcon` defaults to the framework's hand icon. `sSphereNif` and `sSphereTexture` start with an empty "style's own" option, their default. Other forms (the framework's short `f4cf\…`, the mesh's `none`) are invalid until a file is picked. A mod with its own icons gives `sIcon` a `listFromFolder` and a `default` there.
 - `aSphereFalloff` (a number pair) has no control: naming it is a warning and its row says so.
