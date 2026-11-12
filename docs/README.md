@@ -77,7 +77,7 @@ They are kept in a file the running game reloads as you save it, so you can edit
 
 A config spec gives your mod a menu with no code: one `spec.json`, installed with your mod under `Data\ModsConfigFO4\Config\<your mod>\`, which reads and writes your INI or TOML files and your scripts' globals and properties. A DLL can also register with the native API, for live preview, buttons that run its functions, and its own UI opened from the menu.
 
-Start at [For Mod Authors](for-mod-authors/README.md): which way fits your mod, your first config spec from the Showcase, how it ships, and how you test it in the game.
+Start at [For Mod Authors](for-mod-authors/README.md): which way fits your mod, your first config spec from the Showcase, how it ships, and how you test it in the game. An AI agent can write the config spec, with [the prompt](for-mod-authors/ai-agent.md) for it.
 
 ## Design
 

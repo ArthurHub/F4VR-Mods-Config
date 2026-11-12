@@ -117,6 +117,7 @@ There are several integration options:[/size]
 [*][size=3][b]Native API:[/b] A DLL can register for live previews, buttons that execute native functions, and custom configuration interfaces.[/size]
 [*][size=3][b]MCM compatibility:[/b] Existing MCM menus work as they are. A config spec can also replace an MCM menu with more advanced controls.[/size]
 [*][size=3][b]Showcase:[/b] The optional Showcase download includes an MCM menu and a config spec demonstrating the available features. Use it as a starting point.[/size]
+[*][size=3][b]AI agent prompt:[/b] A [url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/for-mod-authors/ai-agent.md]ready prompt[/url] for an AI agent that writes your mod's config spec from its files.[/size]
 [/list]
 [size=3]See the [url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/for-mod-authors/README.md]Mod Author Documentation[/url] for implementation details.[/size]
 

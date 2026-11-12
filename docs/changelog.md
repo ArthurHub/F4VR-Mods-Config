@@ -9,6 +9,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 - An activation sphere's binding icon, the icons of the buttons that fire it, has rows under Visuals: when it shows, which bindings, its position and size, and its color.
 - An activation sphere's top rows have Icons: None, Icon, Binding, or Icon and binding, which turns each on and puts the binding icon in the icon's place or beside it. Show icon is under Visuals.
 - A config spec's stepper or dropdown can be a set of presets: each option sets other settings, as Quality sets Low, Medium or High on several rows, and the row shows the option whose values they have. An option's `alsoSets` are set by a pick too but don't decide the option, so a player tunes them and keeps it: an activation sphere's Icons keeps its option as the binding icon is moved or sized.
+- For mod authors: a ready prompt for an AI agent that writes a mod's config spec from its files, and fixes it from the errors the menu reports.
 
 ### v0.13.0
 

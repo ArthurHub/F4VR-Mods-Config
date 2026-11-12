@@ -31,6 +31,8 @@ A mod can ship both, with the config spec's `modName` the MCM config's `modName`
 
 Start from the Showcase: an optional download on the Nexus page, whose config spec uses every feature. Its front page and its **General** page are a complete small config spec, and its **Detailed Examples** page has everything else.
 
+An AI agent can write it for you, from your mod's files: [the prompt](ai-agent.md).
+
 ![The Showcase's General page](../assets/showcase/general.png)
 
 1. Copy the Showcase's `Data\ModsConfigFO4\Config\ModsConfigFO4_Showcase\spec.json` to `Data\ModsConfigFO4\Config\<your mod>\spec.json`. The folder's name is yours to choose.
@@ -97,5 +99,6 @@ The Showcase's **Mistakes** page has what a config spec can get wrong, each with
 ## Next
 
 - **[The Showcase walkthrough](showcase.md):** each thing a config spec does, with the Showcase's JSON for it and a picture of the page it draws.
+- **[Writing it with an AI agent](ai-agent.md):** a ready prompt for an agent that writes your config spec from your mod's files.
 - **[MCM compatibility](mcm.md):** what your MCM menu gets as it is, what a config spec adds, and moving from MCM, or keeping both.
 - **[The native API](native-api.md),** for DLL authors: what your DLL adds to its config spec, and how.
