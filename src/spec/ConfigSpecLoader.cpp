@@ -27,6 +27,7 @@
 #include "model/Conditions.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
+#include "model/OptionSets.h"
 #include "model/TextMarkup.h"
 #include "model/Transforms.h"
 #include "vrcf/InputBindingParser.h"
@@ -115,13 +116,18 @@ namespace
     constexpr std::string_view MADE_MOD_NAME = "<modName>";
 
     /**
-     * What a condition knows of the setting it names: its id as its config spec has it, and what its value is.
+     * What a condition knows of the setting it names: its id as its config spec has it, and what its value is. And what
+     * an option that sets it checks its value by: its table's form, its value options, and whether it is a choice that
+     * sets other settings itself, which no option sets.
      */
     struct SettingInfo
     {
         std::string id;
         model::SettingType type = model::SettingType::Switcher;
         model::StoredType valueType = model::StoredType::Bool;
+        model::TableForm tableForm = model::TableForm::Toml;
+        model::ValueOptions valueOptions;
+        bool setsOthers = false;
     };
 
     /**
@@ -358,7 +364,7 @@ namespace
     constexpr std::array<std::string_view, 6> TRANSFORM_POSITION_FIELDS{ "min", "max", "step", "x", "y", "z" };
     constexpr std::array<std::string_view, 6> TRANSFORM_ROTATION_FIELDS{ "min", "max", "step", "heading", "roll", "attitude" };
     constexpr std::array<std::string_view, 3> TRANSFORM_RANGE_FIELDS{ "min", "max", "step" };
-    constexpr std::array<std::string_view, 3> OPTION_FIELDS{ "value", "text", "help" };
+    constexpr std::array<std::string_view, 4> OPTION_FIELDS{ "value", "text", "help", "sets" };
     constexpr std::array<std::string_view, 3> PRESET_FIELDS{ "rgb", "alpha", "text" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 4> LIST_FOLDER_FIELDS{ "root", "path", "mask", "noneText" };
@@ -1794,6 +1800,32 @@ namespace
     }
 
     /**
+     * The list of options a choice's `valueOptions` writes: its own `options`, or the shared list it names. None for a
+     * choice that takes them from elsewhere, or names no list.
+     */
+    const Json* writtenOptions(const Json& row, const ConfigSpecReading& reading)
+    {
+        const auto found = row.find("valueOptions");
+        if (found == row.end() || !found->is_object()) {
+            return nullptr;
+        }
+        const auto own = found->find("options");
+        const auto* list = own != found->end() ? &*own : findSharedList(reading.sharedLists, getText(*found, "sharedOptions"));
+        return list && list->is_array() ? list : nullptr;
+    }
+
+    /**
+     * Whether an option a choice writes has `sets`, which makes it a choice kept in the settings they set.
+     */
+    bool hasOptionSets(const Json& row, const ConfigSpecReading& reading)
+    {
+        const auto* list = writtenOptions(row, reading);
+        return list && std::ranges::any_of(*list, [](const Json& option) {
+            return option.is_object() && option.contains("sets");
+        });
+    }
+
+    /**
      * A setting of a config spec, or a row made for a key of an activation sphere, which has no warning of a key its file
      * does not have, as a sphere leaves out most: its author's `id`, or one it gets from where its value is kept, its own
      * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, and
@@ -1804,12 +1836,33 @@ namespace
      * A binding, a color and a transform are kept in a value of a file: in a TOML file as the table the framework keeps,
      * and in an INI file as its line, which is the setting's `tableForm`. In any other storage they are not available,
      * which is reported, and so is a transform with no part on.
+     * A stepper or a dropdown whose options have `sets` is kept in the settings they set (`SetsStorage`): it has no
+     * storage, default or `applies` of its own, and its options' sets are read once every setting is (`loadOptionSets`).
+     * One with a storage too is an error, and so is any other type with them: their sets are ignored.
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type, reading);
-        auto storage = loadStorage(row, own.defaultFile, valueType, reading);
+        bool sets = hasOptionSets(row, reading);
+        if (sets && type != model::SettingType::Stepper && type != model::SettingType::Dropdown) {
+            const Into into(reading, "valueOptions");
+            reading.report(model::Severity::Error, "Only a stepper and a dropdown have options that set other settings: its options' sets are ignored.");
+            sets = false;
+        } else if (sets && row.contains("storage")) {
+            const Into into(reading, "storage");
+            reading.report(model::Severity::Error, "It has a storage, and options that set other settings: its options' sets are ignored.");
+            sets = false;
+        }
+        if (sets && row.contains("default")) {
+            const Into into(reading, "default");
+            reading.report(model::Severity::Warning, "Its default is left out: it is the option whose sets are the defaults of their settings.");
+        }
+        if (sets && findApplies(row)) {
+            const Into into(reading, "applies");
+            reading.report(model::Severity::Warning, "Its applies is left out: each setting its options set takes effect as its own says.");
+        }
+        auto storage = sets ? model::Storage(model::SetsStorage{}) : loadStorage(row, own.defaultFile, valueType, reading);
         auto tableForm = model::TableForm::Toml;
         const bool isTable = type == model::SettingType::InputBinding || type == model::SettingType::Color || type == model::SettingType::Transform;
         if (isTable && !std::holds_alternative<model::UnknownStorage>(storage)) {
@@ -1839,12 +1892,22 @@ namespace
         if (id.empty()) {
             id = idOf(storage);
         }
-        if (!id.empty() && !reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType }).second) {
-            reading.report(model::Severity::Error,
-                std::format("A setting before it has the id \"{}\": a condition names that one. Give one of them an id of its own.",
-                    reading.settings.at(common::str_tolower(id)).id));
+        SettingInfo* info = nullptr;
+        if (!id.empty()) {
+            const auto [found, added] = reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType });
+            if (added) {
+                info = &found->second;
+            } else {
+                reading.report(model::Severity::Error,
+                    std::format("A setting before it has the id \"{}\": a condition names that one. Give one of them an id of its own.", found->second.id));
+            }
         }
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
+        if (info) {
+            info->tableForm = tableForm;
+            info->valueOptions = valueOptions;
+            info->setsOthers = sets;
+        }
         if (type == model::SettingType::Transform && !std::ranges::any_of(valueOptions.transformAxes, &model::TransformAxis::on)) {
             const Into into(reading, "valueOptions");
             reading.report(model::Severity::Error, "Its position, its rotation and its scale are all off: it is not available.");
@@ -1858,7 +1921,7 @@ namespace
                                        : words == "bindingIcons" ? model::SphereWords::BindingIcons
                                                                  : model::SphereWords::None;
         }
-        auto defaultValue = readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
+        auto defaultValue = sets || readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
         auto text = getLabel(row, reading);
         auto help = readShownText(row, "help", reading);
         auto display = loadDisplay(row, reading);
@@ -1876,7 +1939,7 @@ namespace
             .action = std::move(action),
             .visibleWhen = {},
             .enabledWhen = {},
-            .applies = own.applies,
+            .applies = sets ? model::Applies::Unknown : own.applies,
             .defaultValue = std::move(defaultValue),
             .display = std::move(display),
             .readOnly = readOnly,
@@ -2826,6 +2889,108 @@ namespace
     };
 
     /**
+     * A value an option sets on a setting, checked as the setting's default is: a binding, a color and a transform are
+     * their table as a JSON object, a haptic the name of its pattern, and any other a value of the setting's type that is
+     * one of its values. A binding is the whole binding, in the setting's form; a color and a transform are the TOML
+     * text of the parts they name. None for a value that is not one, which is reported.
+     */
+    std::optional<model::Value> loadSetValue(const Json& value, const SettingInfo& target, ConfigSpecReading& reading)
+    {
+        const auto leftOut = [&reading](const std::string& why) {
+            reading.report(model::Severity::Error, std::format("Its value {}: it is left out.", why));
+            return std::nullopt;
+        };
+        const bool isTable = target.type == model::SettingType::InputBinding || target.type == model::SettingType::Color || target.type == model::SettingType::Transform;
+        if (isTable && !value.is_object()) {
+            return leftOut(std::format("{} is not a table, an object as the setting's default is", value.dump()));
+        }
+        if (target.type == model::SettingType::InputBinding) {
+            const auto binding = model::parseBinding(tomlText(value), model::TableForm::Toml);
+            if (!binding) {
+                return leftOut(std::format("is not a binding: {}", binding.error()));
+            }
+            if (const auto untaken = model::untakenPart(*binding, target.valueOptions); !untaken.empty()) {
+                return leftOut(std::format("is not a binding the setting takes: {}", untaken));
+            }
+            if (target.tableForm == model::TableForm::IniLine && !binding->accelerate) {
+                return leftOut("turns accelerate off, which the line of an INI file cannot have"s);
+            }
+            return model::bindingText(*binding, target.tableForm);
+        }
+        if (target.type == model::SettingType::Color) {
+            const auto color = model::parseColorTable(tomlText(value), model::TableForm::Toml);
+            return color ? std::optional<model::Value>(model::colorText(*color, model::TableForm::Toml)) : leftOut(std::format("is not a color: {}", color.error()));
+        }
+        if (target.type == model::SettingType::Transform) {
+            const auto transform = model::parseTransformTable(tomlText(value), model::TableForm::Toml);
+            return transform ? std::optional<model::Value>(model::transformText(*transform, model::TableForm::Toml))
+                             : leftOut(std::format("is not a transform: {}", transform.error()));
+        }
+        if (target.type == model::SettingType::Haptic) {
+            const auto haptic = value.is_string() ? std::optional<model::Value>(model::canonicalHaptic(value.get<std::string>())) : std::nullopt;
+            return haptic && model::findHaptic(*haptic) ? haptic : leftOut(std::format("{} is not a haptic pattern of the framework", value.dump()));
+        }
+        const auto typed = getValue(Json{ { "value", value } }, "value", target.valueType);
+        if (!typed) {
+            return leftOut(std::format("{} is not of the setting's type", value.dump()));
+        }
+        if (!isValueOf(*typed, target.type, target.valueOptions)) {
+            return leftOut(std::format("{} is not one of the setting's values: outside its limits, of a length it does not allow, or none of its options", value.dump()));
+        }
+        return typed;
+    }
+
+    /**
+     * The values the options of a choice that sets other settings set, once every setting of its config spec is read, so
+     * an option can name one after it: each option's `sets`, an object of values by the ids of their settings, as a
+     * condition names a setting. An option with none changes nothing and is never the choice's value, and is reported.
+     * So is an id of no setting, and of a choice that sets other settings, and a value that is not one of its setting's
+     * (`loadSetValue`): each is left out, and the option keeps the rest.
+     */
+    void loadOptionSets(const Json& row, model::Setting& setting, ConfigSpecReading& reading)
+    {
+        const auto* list = writtenOptions(row, reading);
+        if (!list) {
+            return;
+        }
+        const Into into(reading, "valueOptions");
+        for (std::size_t place = 0; place < list->size(); ++place) {
+            const auto& written = (*list)[place];
+            const auto value = written.is_object() ? getValue(written, "value", setting.valueType) : std::nullopt;
+            const auto option = value ? std::ranges::find_if(setting.valueOptions.options,
+                                            [&value](const model::Option& loaded) {
+                                                return isSameValue(loaded.value, *value);
+                                            })
+                                      : setting.valueOptions.options.end();
+            if (option == setting.valueOptions.options.end()) {
+                continue;
+            }
+            const Into intoOption(reading, "options", place);
+            const auto sets = written.find("sets");
+            if (sets == written.end() || !sets->is_object() || sets->empty()) {
+                reading.report(model::Severity::Warning, "It sets no setting: picking it changes nothing, and the row never shows it.");
+                continue;
+            }
+            const Into intoSets(reading, "sets");
+            for (const auto& [id, set] : sets->items()) {
+                const Into intoSet(reading, id);
+                const auto target = reading.settings.find(common::str_tolower(id));
+                if (target == reading.settings.end()) {
+                    reading.report(model::Severity::Error, std::format("\"{}\" names no setting: it is left out.", id));
+                    continue;
+                }
+                if (target->second.setsOthers) {
+                    reading.report(model::Severity::Error, std::format("\"{}\" is a choice that sets other settings, which no option sets: it is left out.", id));
+                    continue;
+                }
+                if (auto loaded = loadSetValue(set, target->second, reading)) {
+                    option->sets.push_back({ .setting = target->second.id, .value = std::move(*loaded) });
+                }
+            }
+        }
+    }
+
+    /**
      * Gives the items of the `content` of a page or a section their conditions: a row's `visibleWhen` and
      * `enabledWhen`, each joined with those of the sections it is in, so a row needs every condition above
      * it, and the warnings of a setting and a button. A section's heading is shown by its `visibleWhen` too.
@@ -2854,6 +3019,9 @@ namespace
             if (auto* setting = std::get_if<model::Setting>(&item)) {
                 setting->enabledWhen = own.enabledWhen;
                 setting->warnings = loadWarnings(row, reading);
+                if (model::setsOthers(*setting)) {
+                    loadOptionSets(row, *setting, reading);
+                }
             } else if (auto* button = std::get_if<model::Button>(&item)) {
                 button->enabledWhen = own.enabledWhen;
                 button->warnings = loadWarnings(row, reading);

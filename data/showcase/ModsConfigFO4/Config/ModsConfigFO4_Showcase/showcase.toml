@@ -55,6 +55,10 @@ sSettlement = "Abernathy Farm"
 iCompanion = 0
 sTexture = 'data\Textures\ModsConfigFO4_Showcase\banner.dds'
 sOptionalTexture = ''
+fDistance = 4000.0
+bShadows = true
+sDetail = "medium"
+cGlow = { rgb = [255, 191, 51], alpha = 255 }
 
 [TextInputs]
 sText = "Hello"

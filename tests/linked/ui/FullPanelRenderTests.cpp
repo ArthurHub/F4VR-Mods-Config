@@ -1593,6 +1593,30 @@ TEST_CASE("FullPanel render: the ends of the config spec showcase's pages of num
     }
 }
 
+TEST_CASE("FullPanel render: the end of the config spec showcase's choices, of which Quality shows none of its options, with the ray on it", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods(mods);
+    select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", "Choices" });
+
+    // the Draw distance set by hand is none of Quality's options, whose row is this one of the page's end
+    constexpr int QUALITY_ROW = 3;
+    const auto& sets = std::get<model::Group>(panel.mods()[0].pages[1].pages[2].items.back());
+    CHECK(store.set(std::get<model::Setting>(sets.items[1]), 5000.0f));
+    const auto scrollToEnd = [&panel] {
+        test_panel::drawFrame(panel, pageRow(3));
+        test_panel::drawFrame(panel, pageRow(3));
+        ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+        test_panel::drawFrame(panel, pageRow(3));
+    };
+    WARN("Saved " << renderToFile(panel, "config-spec-showcase-choices-end", pageRow(QUALITY_ROW), false, scrollToEnd));
+}
+
 TEST_CASE("FullPanel render: the end of the config spec showcase's conditions, with the game's movement by controller direction off and on", "[.render]")
 {
     const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);

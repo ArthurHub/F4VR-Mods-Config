@@ -19,6 +19,7 @@
 #include "model/Categories.h"
 #include "model/Colors.h"
 #include "model/InputBindings.h"
+#include "model/OptionSets.h"
 #include "model/TextMarkup.h"
 #include "model/Transforms.h"
 #include "spec/ConfigSpecLoader.h"
@@ -1774,7 +1775,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,
     // and a read-only setting needs none. The default of an activation sphere's key is the framework's, and a sphere
-    // leaves out most of its keys, as a mod's does
+    // leaves out most of its keys, as a mod's does. A choice that sets other settings has no value of its own
     const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR) / "ModsConfigFO4_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
@@ -1782,7 +1783,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     std::unordered_set<std::string> sphereKeys;
     addSphereKeys(mod.pages, sphereKeys);
     for (const auto& setting : settingsOf(mod)) {
-        if (sphereKeys.contains(setting.id)) {
+        if (sphereKeys.contains(setting.id) || model::setsOthers(setting)) {
             continue;
         }
         if (setting.readOnly) {
@@ -2984,4 +2985,90 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has the Categories page t
     // its text, and the section of the rows, which has the mod's own
     REQUIRE(page->items.size() == 2);
     CHECK(std::get<model::Group>(page->items[1]).items.size() == 1);
+}
+
+namespace
+{
+    // a choice whose options set the three settings after it, of which one is a transform
+    constexpr auto QUALITY = R"(
+        { "type": "stepper", "valueType": "string", "id": "quality", "text": "Quality", "valueOptions": { "options": [
+            { "value": "low", "text": "Low", "sets": { "fScale": 0.5, "zone": { "pos": [0, 0, 12] } } },
+            { "value": "high", "text": "High", "sets": { "FSCALE": 1.5, "sPlace": "chest" } } ] } },
+        { "type": "slider", "valueType": "float", "id": "fScale", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "path": ["Main", "fScale"] } },
+        { "type": "dropdown", "valueType": "string", "id": "sPlace", "text": "Place", "default": "hip",
+          "valueOptions": { "options": [ { "value": "hip", "text": "Hip" }, { "value": "chest", "text": "Chest" } ] }, "storage": { "path": ["Main", "sPlace"] } },
+        { "type": "cf.transform", "id": "zone", "text": "Zone", "default": { "scale": 1.0 }, "storage": { "path": ["Main", "tZone"] } })";
+
+    /**
+     * The value an option of a choice sets on a setting, by its id, and none where it sets none.
+     */
+    std::optional<model::Value> setOn(const model::Option& option, const std::string& id)
+    {
+        const auto found = std::ranges::find(option.sets, id, &model::OptionSet::setting);
+        return found != option.sets.end() ? std::optional(found->value) : std::nullopt;
+    }
+}
+
+TEST_CASE("ConfigSpecLoader: a stepper whose options set other settings is kept in them, with no default or applies of its own")
+{
+    const auto mod = loaded(configSpecOf(QUALITY));
+    CHECK(mod.problems.empty());
+    const auto& quality = std::get<model::Setting>(mod.frontPage.items[0]);
+    CHECK(model::setsOthers(quality));
+    CHECK(quality.applies == model::Applies::Unknown);
+    CHECK_FALSE(quality.defaultValue);
+    REQUIRE(quality.valueOptions.options.size() == 2);
+
+    // each value is the setting's own, named by its id as its config spec has it, which is read in any case; a transform
+    // has the parts it names
+    const auto& low = quality.valueOptions.options[0];
+    CHECK(low.sets.size() == 2);
+    CHECK(setOn(low, "fScale") == model::Value(0.5f));
+    CHECK(setOn(low, "zone") == model::Value("{ pos = [0.0, 0.0, 12.0] }"s));
+    const auto& high = quality.valueOptions.options[1];
+    CHECK(setOn(high, "fScale") == model::Value(1.5f));
+    CHECK(setOn(high, "sPlace") == model::Value("chest"s));
+}
+
+TEST_CASE("ConfigSpecLoader: what an option sets that is not a setting's value is left out and reported, and so is a choice's own storage")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "stepper", "valueType": "string", "id": "quality", "text": "Quality", "default": "low", "applies": "save", "valueOptions": { "options": [
+            { "value": "low", "text": "Low", "sets": { "fScale": 2.5, "sPlace": "belt", "nothing": 1, "other": "a", "zone": 3 } },
+            { "value": "high", "text": "High", "sets": { "fScale": "high" } },
+            { "value": "none", "text": "None" } ] } },
+        { "type": "stepper", "valueType": "string", "id": "other", "text": "Other", "valueOptions": { "options": [
+            { "value": "a", "text": "A", "sets": { "fScale": 1.0 } } ] } },
+        { "type": "dropdown", "valueType": "string", "text": "Kept", "default": "a", "storage": { "path": ["Main", "sKept"] }, "valueOptions": { "options": [
+            { "value": "a", "text": "A", "sets": { "fScale": 1.0 } } ] } },
+        { "type": "slider", "valueType": "float", "id": "fScale", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "path": ["Main", "fScale"] } },
+        { "type": "dropdown", "valueType": "string", "id": "sPlace", "text": "Place", "default": "hip",
+          "valueOptions": { "options": [ { "value": "hip", "text": "Hip" }, { "value": "chest", "text": "Chest" } ] }, "storage": { "path": ["Main", "sPlace"] } },
+        { "type": "cf.transform", "id": "zone", "text": "Zone", "default": { "scale": 1.0 }, "storage": { "path": ["Main", "tZone"] } })"));
+    Lines messages;
+    for (const auto& problem : mod.problems) {
+        messages.push_back(problem.message);
+    }
+    std::ranges::sort(messages);
+    Lines expected{ "Its default is left out: it is the option whose sets are the defaults of their settings.",
+        "Its applies is left out: each setting its options set takes effect as its own says.",
+        "It has a storage, and options that set other settings: its options' sets are ignored.",
+        "Its value 2.5 is not one of the setting's values: outside its limits, of a length it does not allow, or none of its options: it is left out.",
+        "\"nothing\" names no setting: it is left out.",
+        "\"other\" is a choice that sets other settings, which no option sets: it is left out.",
+        "Its value \"belt\" is not one of the setting's values: outside its limits, of a length it does not allow, or none of its options: it is left out.",
+        "Its value 3 is not a table, an object as the setting's default is: it is left out.",
+        "Its value \"high\" is not of the setting's type: it is left out.",
+        "It sets no setting: picking it changes nothing, and the row never shows it." };
+    std::ranges::sort(expected);
+    CHECK(messages == expected);
+
+    // the options keep what is right, and a choice with a storage is as any
+    const auto settings = settingsOf(mod);
+    CHECK(settings[0].valueOptions.options[0].sets.empty());
+    CHECK(settings[0].valueOptions.options.size() == 3);
+    CHECK_FALSE(model::setsOthers(settings[2]));
+    CHECK(std::holds_alternative<model::FileStorage>(settings[2].storage));
 }

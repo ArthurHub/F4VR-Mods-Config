@@ -58,6 +58,19 @@ def test_choices(show, game):
     assert menu.setting("Texture")["options"], "the files of the showcase's texture folder"
 
 
+def test_choices_that_set_other_settings(show):
+    menu = show("Choices")
+    quality = menu.setting("Quality")
+    menu.set(quality["id"], "low")
+    assert menu.setting("Draw distance")["value"] == 2000
+    assert menu.setting("Shadows")["value"] is False
+    assert menu.setting("Quality")["value"] == "low"
+    menu.set(menu.setting("Draw distance")["id"], 5000)
+    assert menu.setting("Quality")["value"] == "", "a setting changed by hand leaves it with none of its options"
+    menu.discard(quality["id"])
+    assert not menu.setting("Draw distance")["dirty"], "its Discard takes back the settings it set"
+
+
 def test_text_inputs(show, game):
     menu = show("Text inputs")
     code = menu.setting("Code of 3 to 8 characters")

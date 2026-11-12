@@ -697,6 +697,34 @@ A `string` `dropdown` can list a folder's files, like MCM's `dropdownFiles`, for
 
 The client answers through the [native API](architecture.md#options-from-a-client) on selection, in either option form with values in the setting's `valueType`. Without an answer the choice has no options, disabled, with the reason. A file value not among them is invalid; `default` is any value of the type. The menu's own config spec uses it for its Config spec setting (the config specs it found).
 
+### Options that set other settings
+
+A `stepper` or `dropdown` whose written options (its own or a shared list) have `sets` is a choice of presets: picking an option sets other settings, and the choice keeps no value of its own.
+
+```json
+{
+  "type": "stepper",
+  "valueType": "string",
+  "id": "quality",
+  "text": "Quality",
+  "valueOptions": {
+    "options": [
+      { "value": "low", "text": "Low", "sets": { "drawDistance": 2000, "shadows": false } },
+      { "value": "high", "text": "High", "sets": { "drawDistance": 8000, "shadows": true, "glowColor": { "alpha": 255 } } }
+    ]
+  }
+}
+```
+
+- `sets` names settings by id, as a [condition](#conditions) does, of any storage, on any page, hidden or not. Each value is checked as that setting's `default` is.
+- A color's or a transform's value is a table that sets only the parts it names (`{ "alpha": 255 }` keeps the color). A binding is a whole binding.
+- **Its value** is the first option whose `sets` all match their settings' values, numbers compared as a condition's `equals` does, and a table on the parts it names. While none matches, the row shows no option, and its help line says "None of its options: their settings are set otherwise." From there a stepper's left arrow picks the last option and its right arrow the first.
+- **A pick** sets each named setting as a change of its own: pending, previewed and saved as any. A setting that is read-only or not available is skipped. A mod's DLL that hands back a value for the choice's `id` picks as the player does.
+- It is pending while one of its settings is, and its Discard takes them all back. Its default, which Reset picks, is the option matching their defaults; with none it has no Reset. It has no `applies` (each setting takes effect as its own says) and never counts as a change: its settings count on their own rows.
+- No `storage`, `default` or `applies`: a `storage` with `sets` is an error and the `sets` are ignored; a `default` or `applies` is a warning and left out. `sets` on any other type is an error.
+- An option with no `sets` is a warning: it changes nothing and is never the value. An id of no setting, of another choice with `sets`, or a value that isn't one of its setting's, is an error, and that entry is left out.
+- It can have an `id`, so conditions can name it; its value is the matching option's, or none.
+
 ## Buttons
 
 No storage, default, dirty state or value. An optional `id` is told to the client ([Pointed items](#pointed-items)). `action.type`:

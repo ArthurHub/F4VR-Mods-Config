@@ -2693,6 +2693,44 @@ TEST_CASE("FullPanel: a button of a stepper goes to the option before or after, 
     CHECK(outside() == 0.0f);
 }
 
+TEST_CASE("FullPanel: a stepper that sets other settings with none of its options says why, and goes to its last before it and its first after it")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    const auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } }, "defaultFile": "main",
+        "content": [
+            { "type": "stepper", "valueType": "string", "id": "quality", "text": "Quality", "valueOptions": { "options": [
+                { "value": "low", "text": "Low", "sets": { "fScale": 0.5 } },
+                { "value": "high", "text": "High", "sets": { "fScale": 1.5 } } ] } },
+            { "type": "slider", "valueType": "float", "id": "fScale", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+              "storage": { "path": ["Main", "fScale"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ *mod });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    const auto& scale = std::get<model::Setting>(panel.mods()[0].frontPage.items[1]);
+    const auto scaleValue = [&store, &scale] {
+        return std::get<float>(store.value(scale).value);
+    };
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text().find("None of its options: their settings are set otherwise.") != std::string::npos);
+
+    CHECK(pressActs(panel, stepperButton(0, false)));
+    CHECK(common::fEqual(scaleValue(), 1.5f));
+    REQUIRE(store.set(scale, 1.0f));
+    drawFrames(panel, 1);
+    CHECK(pressActs(panel, stepperButton(0, true)));
+    CHECK(common::fEqual(scaleValue(), 0.5f));
+}
+
 TEST_CASE("FullPanel: a press on the row of a stepper goes to the option after, and from the last to the first")
 {
     const test_panel::PanelContext context;

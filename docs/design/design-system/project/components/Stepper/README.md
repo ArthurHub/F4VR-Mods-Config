@@ -10,3 +10,4 @@ Two kinds: a numeric stepper (minus, value, plus) where precision matters more t
 - A push of the thumbstick to a side steps the choice stepper whose row the ray is on, once for a push.
 - Numeric: the value box is `value-width`, centered digits. Choice: the label box is 280 px, centered text.
 - Pending: the value or label in `amber`.
+- A choice that sets other settings ([schema](../../../../schema.md#options-that-set-other-settings)) whose settings match none of its options shows an empty label, and the help line says why. Its previous button is enabled and picks the last option; its next button picks the first.

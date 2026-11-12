@@ -22,6 +22,7 @@
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
+#include "model/OptionSets.h"
 #include "model/SessionEvents.h"
 #include "model/Transforms.h"
 #include "perf/Perf.h"
@@ -847,6 +848,10 @@ namespace mods_config::spec
                 entry.notAvailable = unknownStorageReason(*unknown);
                 continue;
             }
+            // its value is the settings' its options set, which are read as settings of their own
+            if (model::setsOthers(*setting)) {
+                continue;
+            }
             if (isInGame(setting->storage)) {
                 auto stored = readGame(*setting);
                 if (!stored) {
@@ -1006,6 +1011,12 @@ namespace mods_config::spec
      */
     model::StoredValue ConfigSpecStore::value(const model::Setting& setting)
     {
+        if (model::setsOthers(setting)) {
+            if (const auto option = setOption(setting, Reading::Current)) {
+                return { .value = setting.valueOptions.options[*option].value, .available = true, .invalid = false, .reason = {} };
+            }
+            return { .value = model::blankChoiceValue(setting), .available = true, .invalid = false, .reason = "None of its options: their settings are set otherwise." };
+        }
         const auto none = noneValue(setting, _options.of(setting));
         const auto found = _entries.find(&setting);
         if (found == _entries.end()) {
@@ -1045,6 +1056,9 @@ namespace mods_config::spec
     bool ConfigSpecStore::set(const model::Setting& setting, const model::Value& value)
     {
         F4CF_PERF_FUNCTION();
+        if (model::setsOthers(setting)) {
+            return pickSets(setting, value);
+        }
         const auto found = _entries.find(&setting);
         if (setting.readOnly || found == _entries.end() || !found->second.notAvailable.empty()) {
             return false;
@@ -1087,11 +1101,24 @@ namespace mods_config::spec
      */
     std::optional<model::Value> ConfigSpecStore::defaultValue(const model::Setting& setting)
     {
+        if (model::setsOthers(setting)) {
+            const auto option = setOption(setting, Reading::Default);
+            return option ? std::optional(setting.valueOptions.options[*option].value) : std::nullopt;
+        }
         return setting.defaultValue ? controlValue(setting, _options.of(setting), *setting.defaultValue) : std::nullopt;
     }
 
+    /**
+     * Whether a setting has a pending value. A choice that sets other settings has none of its own: it is dirty while one
+     * of them is.
+     */
     bool ConfigSpecStore::isDirty(const model::Setting& setting) const
     {
+        if (model::setsOthers(setting)) {
+            return std::ranges::any_of(setTargets(setting), [this](const model::Setting* target) {
+                return isDirty(*target);
+            });
+        }
         const auto found = _entries.find(&setting);
         return found != _entries.end() && found->second.pending.has_value();
     }
@@ -1338,6 +1365,12 @@ namespace mods_config::spec
      */
     void ConfigSpecStore::discard(const model::Setting& setting)
     {
+        if (model::setsOthers(setting)) {
+            for (const auto* target : setTargets(setting)) {
+                discard(*target);
+            }
+            return;
+        }
         const auto found = _entries.find(&setting);
         if (found == _entries.end() || !found->second.pending) {
             return;
@@ -1372,6 +1405,10 @@ namespace mods_config::spec
      */
     std::optional<model::Value> ConfigSpecStore::savedValue(const model::Setting& setting)
     {
+        if (model::setsOthers(setting)) {
+            const auto option = isDirty(setting) ? setOption(setting, Reading::Saved) : std::nullopt;
+            return option ? std::optional(setting.valueOptions.options[*option].value) : std::nullopt;
+        }
         const auto found = _entries.find(&setting);
         return found != _entries.end() && found->second.pending ? found->second.baseline : std::nullopt;
     }
@@ -1698,6 +1735,85 @@ namespace mods_config::spec
      * A setting as the mod's client is told it: its id and type, and where it is kept, in a file of the mod, in the game
      * or in a state of the client.
      */
+    /**
+     * The settings the options of a choice that sets other settings set, each once, in the order the options name them.
+     * An id of no setting of the session is left out.
+     */
+    std::vector<const model::Setting*> ConfigSpecStore::setTargets(const model::Setting& choice) const
+    {
+        std::vector<const model::Setting*> targets;
+        for (const auto& option : choice.valueOptions.options) {
+            for (const auto& set : option.sets) {
+                const auto found = _settings.find(set.setting);
+                if (found != _settings.end() && std::ranges::find(targets, found->second) == targets.end()) {
+                    targets.push_back(found->second);
+                }
+            }
+        }
+        return targets;
+    }
+
+    /**
+     * The option of a choice that sets other settings that their values are: the first whose sets they all have, as
+     * `model::hasSetValue` matches one. Of their values now, their defaults, or their baselines while they are dirty. An
+     * option that sets nothing is never one, nor one whose setting has no such value. None for no option.
+     */
+    std::optional<std::size_t> ConfigSpecStore::setOption(const model::Setting& choice, const Reading reading)
+    {
+        const auto valueOf = [this, reading](const model::Setting& target) -> std::optional<model::Value> {
+            if (reading == Reading::Default) {
+                return defaultValue(target);
+            }
+            if (reading == Reading::Saved) {
+                if (auto saved = savedValue(target)) {
+                    return saved;
+                }
+            }
+            const auto stored = value(target);
+            return stored.available ? std::optional(stored.value) : std::nullopt;
+        };
+        const auto& options = choice.valueOptions.options;
+        for (std::size_t place = 0; place < options.size(); ++place) {
+            const auto& sets = options[place].sets;
+            const bool holds = !sets.empty() && std::ranges::all_of(sets, [this, &valueOf](const model::OptionSet& set) {
+                const auto found = _settings.find(set.setting);
+                const auto have = found != _settings.end() ? valueOf(*found->second) : std::nullopt;
+                return have && model::hasSetValue(*found->second, *have, set.value);
+            });
+            if (holds) {
+                return place;
+            }
+        }
+        return std::nullopt;
+    }
+
+    /**
+     * Sets the values an option of a choice that sets other settings sets, each a pending value of its own setting,
+     * previewed and saved as any: a transform's and a color's on the parts it names. A setting that is read-only or not
+     * available is left as it is. Returns false for a value that is no option.
+     */
+    bool ConfigSpecStore::pickSets(const model::Setting& choice, const model::Value& picked)
+    {
+        const auto& options = choice.valueOptions.options;
+        const auto option = std::ranges::find_if(options, [&picked](const model::Option& candidate) {
+            return isSameValue(candidate.value, picked);
+        });
+        if (option == options.end()) {
+            return false;
+        }
+        for (const auto& sets : option->sets) {
+            const auto found = _settings.find(sets.setting);
+            if (found == _settings.end() || found->second->readOnly) {
+                continue;
+            }
+            const auto& target = *found->second;
+            if (const auto current = value(target); current.available) {
+                set(target, model::withSetValue(target, current.value, sets.value));
+            }
+        }
+        return true;
+    }
+
     model::ClientSetting ConfigSpecStore::clientSetting(const model::Setting& setting) const
     {
         model::ClientSetting told{ .id = setting.id, .valueType = setting.valueType };

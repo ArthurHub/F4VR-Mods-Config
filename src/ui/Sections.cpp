@@ -12,6 +12,7 @@
 #include "Drawing.h"
 #include "Theme.h"
 #include "model/Conditions.h"
+#include "model/OptionSets.h"
 #include "model/TextStates.h"
 
 namespace
@@ -38,8 +39,9 @@ namespace
                 countHidden(group->items, store, hidden);
                 continue;
             }
+            // a choice that sets other settings saves nothing of its own: they count on their rows
             const auto* setting = std::get_if<model::Setting>(&item);
-            if (!setting || (setting->visibleWhen && !model::holds(*setting->visibleWhen, &store))) {
+            if (!setting || model::setsOthers(*setting) || (setting->visibleWhen && !model::holds(*setting->visibleWhen, &store))) {
                 continue;
             }
             const auto stored = store.value(*setting);

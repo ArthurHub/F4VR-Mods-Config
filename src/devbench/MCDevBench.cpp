@@ -339,6 +339,8 @@ namespace mods_config::devbench
                         return { { "kind", "clientState" }, { "name", kept.name } };
                     } else if constexpr (std::is_same_v<T, model::UnknownStorage>) {
                         return { { "kind", "unknown" }, { "type", kept.type } };
+                    } else if constexpr (std::is_same_v<T, model::SetsStorage>) {
+                        return { { "kind", "sets" } };
                     } else {
                         return { { "kind", "none" } };
                     }

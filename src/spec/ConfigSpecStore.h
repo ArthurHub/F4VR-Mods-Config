@@ -53,6 +53,9 @@ namespace mods_config::spec
      * as it is told a change: a preview of a `live` one, its Discard, and what a Save wrote. The store writes nothing.
      * The mod's client can set a pending value as the player does, as its own UI hands its edits back: only a valid one.
      * The action of a button runs at once, with `callFunction` and `runConsoleCommand`.
+     * A choice whose options set other settings is kept in them: its value is the first option whose values they have,
+     * and none while no option's are; a pick sets them, each a pending value of its own. It is dirty while one of them is,
+     * a Discard of it takes them back, and its default and its saved value are the option of their defaults and baselines.
      */
     class ConfigSpecStore : public model::Store
     {
@@ -188,6 +191,18 @@ namespace mods_config::spec
         std::filesystem::path pathOf(const model::File& file) const;
         void rollBack();
         bool hasPendingTyped() const;
+
+        // which values of the settings a choice sets are matched with its options
+        enum class Reading : std::uint8_t
+        {
+            Current,
+            Default,
+            Saved,
+        };
+
+        std::vector<const model::Setting*> setTargets(const model::Setting& choice) const;
+        std::optional<std::size_t> setOption(const model::Setting& choice, Reading reading);
+        bool pickSets(const model::Setting& choice, const model::Value& picked);
 
         // the folders a path of a config spec's file is from: the game's Data folder, and
         // `Documents\My Games\Fallout4VR`

@@ -48,8 +48,8 @@ Every row item has a `text` (what the row says) and an optional `help` (shown in
 Shaped by MCM:
 
 - **The loader makes an id where MCM has none.** In the test set, 33 of 393 value rows have no id and three ids are on two rows each. A made id is the page and the row's position, `main/2` or `page1/1`: stable across runs and languages. MCM's own id text is kept as `sourceId` for its events. A config spec setting has its author's id or one made from its storage ([schema](schema.md#settings)).
-- **The default is the store's to answer.** MCM has defaults only for ModSettings, from the mod's `settings.ini`, which the MCM store reads on selection; a row without one has no Reset. A config spec setting always has a `default` (its absence is an error), except a read-only one.
-- **Storage has several forms:** global, script property, MCM ModSetting, file key. An MCM row may have none (FallUI's "Unfold settings" switchers: a ModSetting source without an id); the store holds its value, starting off, for as long as the mod is selected, written nowhere. A config spec setting always has storage.
+- **The default is the store's to answer.** MCM has defaults only for ModSettings, from the mod's `settings.ini`, which the MCM store reads on selection; a row without one has no Reset. A config spec setting always has a `default` (its absence is an error), except a read-only one and a [choice that sets other settings](#a-choice-that-sets-other-settings).
+- **Storage has several forms:** global, script property, MCM ModSetting, file key. An MCM row may have none (FallUI's "Unfold settings" switchers: a ModSetting source without an id); the store holds its value, starting off, for as long as the mod is selected, written nowhere. A config spec setting always has storage; a choice that sets other settings has theirs.
 
 `applies` resolves to the setting's own, else the nearest enclosing group's, page's, then mod's, else `unknown`. MCM settings are `unknown` (no such field).
 
@@ -95,6 +95,14 @@ A condition compares one setting's value (by id) or joins conditions with all / 
 A value the framework writes as a TOML inline table (color, input binding, transform) is a string setting holding the table's TOML text, with its own control; the store writes it back as the inline table, not a quoted string. A haptic is a string setting naming a pattern. See [Controls](controls.md#commonframework-specific-controls).
 
 A control spanning several keys is a group with a role: ordinary settings, one per key, with the role deciding how the group is drawn (activation sphere; a color in three keys). Each setting is one key, so dirty state, Save and preview need nothing new.
+
+## A choice that sets other settings
+
+A choice whose options set other settings ([schema](schema.md#options-that-set-other-settings)) is a setting whose storage is those settings. Each option has `sets`: the ids of the settings it sets, each with its value. A color's or a transform's value is the TOML text of the parts it names.
+
+- The store answers its value from theirs: the first option whose `sets` they all have, or a value of its type that is no option while none matches. A pick sets each of them, so dirty state, Save and preview stay theirs.
+- It is dirty while one of them is, and its Discard is theirs. Its default and its saved value are the options matching their defaults and their saved values.
+- The counts of changes (footer, folded section, tree) skip it: what counts is what Save writes.
 
 ## Examples
 

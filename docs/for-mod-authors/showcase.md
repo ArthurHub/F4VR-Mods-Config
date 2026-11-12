@@ -89,6 +89,26 @@ The options can also come from elsewhere:
 - **The game:** `"listFromForm": "Fallout4.esm|1D98E2"`, the names of a FormList's forms, here the settlements. See [Options from the game](../design/schema.md#options-from-the-game).
 - **A folder:** `"listFromFolder": { "path": "Textures/ModsConfigFO4_Showcase", "mask": "*.dds" }`, the files a player can add to, as MCM's `dropdownFiles`. See [Options from a folder](../design/schema.md#options-from-a-folder).
 
+A choice can also be a set of presets: each option has `sets`, the values it gives other settings by their ids, and the choice keeps no value of its own. Its **Quality** sets the three rows under it, and shows the option whose values they have, or none once you change one of them yourself. A color's value sets only the parts it names, as **Glow** sets only the alpha of **Glow color**:
+
+```json
+{
+  "type": "stepper",
+  "valueType": "string",
+  "id": "choicesQuality",
+  "text": "Quality",
+  "valueOptions": {
+    "options": [
+      { "value": "low", "text": "Low", "sets": { "choicesDistance": 2000, "choicesShadows": false, "choicesDetail": "low" } },
+      { "value": "medium", "text": "Medium", "sets": { "choicesDistance": 4000, "choicesShadows": true, "choicesDetail": "medium" } },
+      { "value": "high", "text": "High", "sets": { "choicesDistance": 8000, "choicesShadows": true, "choicesDetail": "high" } }
+    ]
+  }
+}
+```
+
+See [Options that set other settings](../design/schema.md#options-that-set-other-settings).
+
 ![Choices](../assets/showcase/choices.png)
 
 A press on a dropdown opens its list, and a list of a folder's files says the folder and how many it has:

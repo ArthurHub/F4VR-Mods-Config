@@ -3,6 +3,7 @@
 #include <variant>
 
 #include "Conditions.h"
+#include "OptionSets.h"
 
 namespace mods_config::model
 {
@@ -18,8 +19,9 @@ namespace mods_config::model
                 count += unsavedChanges(group->items, store);
                 continue;
             }
+            // a choice that sets other settings saves nothing of its own: they count on their rows
             const auto* setting = std::get_if<Setting>(&item);
-            if (!setting || !store.isDirty(*setting) || (setting->visibleWhen && !holds(*setting->visibleWhen, &store))) {
+            if (!setting || setsOthers(*setting) || !store.isDirty(*setting) || (setting->visibleWhen && !holds(*setting->visibleWhen, &store))) {
                 continue;
             }
             if (store.value(*setting).available) {

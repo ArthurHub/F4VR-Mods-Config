@@ -7,6 +7,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 - A page with unsaved changes has the pending dot in the tree, and a closed page shows the changes of its pages too.
 - A config spec reads an INI value that has a comment after it, as `fTarget=8.5  # target`, and Save keeps the comment.
 - An activation sphere's binding icon, the icons of the buttons that fire it, has rows under Visuals: when it shows, which bindings, its position and size, and its color.
+- A config spec's stepper or dropdown can be a set of presets: each option sets other settings, as Quality sets Low, Medium or High on several rows, and the row shows the option whose values they have.
 
 ### v0.13.0
 

@@ -22,6 +22,7 @@
 #include "model/Categories.h"
 #include "model/Colors.h"
 #include "model/Conditions.h"
+#include "model/UnsavedPages.h"
 #include "spec/ConfigSpecLoader.h"
 #include "spec/ConfigSpecStore.h"
 #include "spec/TomlFile.h"
@@ -2514,4 +2515,97 @@ TEST_CASE("ConfigSpecStore: a name typed in a row of the Categories page is offe
     CHECK_FALSE(store.value(second).invalid);
     const auto texts = store.options(first) | std::views::transform(&model::Option::text) | std::ranges::to<std::vector>();
     CHECK(texts == std::vector<std::string>{ "Gameplay", "Mods I Like", "Settlements", "No category" });
+}
+
+namespace
+{
+    // a choice whose options set the three settings after it, of which one is a transform: Low is their defaults
+    constexpr auto QUALITY = R"(
+        { "type": "stepper", "valueType": "string", "id": "quality", "text": "Quality", "valueOptions": { "options": [
+            { "value": "low", "text": "Low", "sets": { "fScale": 1.0, "sPlace": "hip" } },
+            { "value": "high", "text": "High", "sets": { "fScale": 1.5, "sPlace": "chest" } },
+            { "value": "far", "text": "Far", "sets": { "zone": { "pos": [0, 0, 12] } } } ] } },
+        { "type": "slider", "valueType": "float", "id": "fScale", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "path": ["Main", "fScale"] } },
+        { "type": "dropdown", "valueType": "string", "id": "sPlace", "text": "Place", "default": "hip",
+          "valueOptions": { "options": [ { "value": "hip", "text": "Hip" }, { "value": "chest", "text": "Chest" } ] }, "storage": { "path": ["Main", "sPlace"] } },
+        { "type": "cf.transform", "id": "zone", "text": "Zone", "default": { "scale": 1.0 }, "storage": { "path": ["Main", "tZone"] } })";
+}
+
+TEST_CASE("ConfigSpecStore: a choice that sets other settings is the first option whose values they have, and none while no option's are")
+{
+    Session session(QUALITY);
+    session.open(
+        "[Main]\r\n"
+        "fScale = 1.5\r\n"
+        "sPlace = \"chest\"\r\n"
+        "tZone = { scale = 2.0 }\r\n");
+    const auto& quality = session.setting(0);
+    CHECK(session.value(0).value == model::Value("high"s));
+    CHECK_FALSE(session.store.isDirty(quality));
+    // its default is the option of their defaults
+    CHECK(session.store.defaultValue(quality) == model::Value("low"s));
+
+    // a setting changed on its own row can leave it with none, which says why
+    CHECK(session.store.set(session.setting(1), 0.75f));
+    const auto blank = session.value(0);
+    CHECK(blank.available);
+    CHECK_FALSE(blank.invalid);
+    CHECK(blank.value == model::Value(""s));
+    CHECK(blank.reason == "None of its options: their settings are set otherwise.");
+    CHECK(session.store.isDirty(quality));
+    CHECK(session.store.savedValue(quality) == model::Value("high"s));
+}
+
+TEST_CASE("ConfigSpecStore: a pick of a choice that sets other settings sets each, of a transform the parts it names, and its Discard takes them back")
+{
+    Session session(QUALITY);
+    session.open(
+        "[Main]\r\n"
+        "fScale = 1.5\r\n"
+        "sPlace = \"chest\"\r\n"
+        "tZone = { scale = 2.0 }\r\n");
+    const auto& quality = session.setting(0);
+    CHECK(session.store.set(quality, "low"s));
+    CHECK(session.value(1).value == model::Value(1.0f));
+    CHECK(session.value(2).value == model::Value("hip"s));
+    CHECK(session.value(0).value == model::Value("low"s));
+    CHECK(session.store.isDirty(quality));
+    CHECK(session.store.savedValue(quality) == model::Value("high"s));
+
+    // the settings count, and the choice does not
+    CHECK(session.store.dirtyCount() == 2);
+    CHECK(model::unsavedChanges(session.mod.frontPage, session.store, false) == 2);
+
+    // a transform keeps the parts the option does not name; the first option whose values the settings have is the value
+    CHECK(session.store.set(quality, "far"s));
+    CHECK(session.value(3).value == model::Value("{ pos = [0.0, 0.0, 12.0], scale = 2.0 }"s));
+    CHECK(session.value(0).value == model::Value("low"s));
+
+    // no option is no pick
+    CHECK_FALSE(session.store.set(quality, "medium"s));
+
+    session.store.discard(quality);
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(0).value == model::Value("high"s));
+    CHECK(session.value(3).value == model::Value("{ scale = 2.0 }"s));
+
+    // a Save writes the settings, and nothing of the choice
+    CHECK(session.store.set(quality, "low"s));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Main]\r\n"
+          "fScale = 1.0\r\n"
+          "sPlace = \"hip\"\r\n"
+          "tZone = { scale = 2.0 }\r\n");
+}
+
+TEST_CASE("ConfigSpecStore: a mod's client hands back a pick of a choice that sets other settings as the player picks one")
+{
+    Session session(QUALITY);
+    session.open("[Main]\r\n");
+    REQUIRE(session.store.setPendingValue("MyMod", "quality", "high"s));
+    CHECK(session.value(1).value == model::Value(1.5f));
+    CHECK(session.value(2).value == model::Value("chest"s));
+    CHECK(session.value(0).value == model::Value("high"s));
 }

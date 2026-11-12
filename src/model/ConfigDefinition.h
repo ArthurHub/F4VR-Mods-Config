@@ -48,6 +48,19 @@ namespace mods_config::model
     /**
      * An option of a choice: the value that is stored while it is chosen, what the player sees, and its help.
      */
+    /**
+     * A value an option of a choice sets on another setting as it is picked. A transform's and a color's is the TOML
+     * text of the parts of its table it sets, which keep the others; any other is a whole value as its setting has it.
+     */
+    struct OptionSet
+    {
+        // the id of the setting, as its config spec has it
+        std::string setting;
+        Value value;
+
+        bool operator==(const OptionSet&) const = default;
+    };
+
     struct Option
     {
         Value value;
@@ -55,6 +68,9 @@ namespace mods_config::model
 
         // what the help line says while the ray is on it in the open list: empty for none, which keeps the row's
         std::string help;
+
+        // what it sets on other settings, of a choice kept in them (`SetsStorage`): empty for any other choice
+        std::vector<OptionSet> sets;
 
         bool operator==(const Option&) const = default;
     };
@@ -383,6 +399,15 @@ namespace mods_config::model
     };
 
     /**
+     * A choice whose options set other settings (`Option::sets`): it is kept in them, and its value is the first option
+     * whose values they have.
+     */
+    struct SetsStorage
+    {
+        bool operator==(const SetsStorage&) const = default;
+    };
+
+    /**
      * A storage the menu does not read: the value of its setting is not available.
      */
     struct UnknownStorage
@@ -396,7 +421,7 @@ namespace mods_config::model
     /**
      * Where the value of a setting is kept. Only the store reads it.
      */
-    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, ClientStateStorage, UnknownStorage>;
+    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, ClientStateStorage, SetsStorage, UnknownStorage>;
 
     /**
      * When a change of a setting takes effect in the running mod, as its config spec says it: the menu cannot tell.

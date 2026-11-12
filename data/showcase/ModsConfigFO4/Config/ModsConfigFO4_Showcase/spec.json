@@ -710,6 +710,79 @@
                   "storage": { "path": ["Choices", "sOptionalTexture"] }
                 }
               ]
+            },
+            {
+              "type": "section",
+              "text": "Choices that set other settings",
+              "help": "A choice whose options have sets is kept in the settings they set: each option sets them, and the choice shows the first option whose values they have.",
+              "content": [
+                {
+                  "type": "stepper",
+                  "valueType": "string",
+                  "id": "choicesQuality",
+                  "text": "Quality",
+                  "help": "Each option sets the three rows under it. Change one of them yourself, and Quality shows none of its options.",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "low", "text": "Low", "sets": { "choicesDistance": 2000, "choicesShadows": false, "choicesDetail": "low" } },
+                      { "value": "medium", "text": "Medium", "sets": { "choicesDistance": 4000, "choicesShadows": true, "choicesDetail": "medium" } },
+                      { "value": "high", "text": "High", "sets": { "choicesDistance": 8000, "choicesShadows": true, "choicesDetail": "high" } }
+                    ]
+                  }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "id": "choicesDistance",
+                  "text": "Draw distance",
+                  "help": "Set by Quality, and by you.",
+                  "default": 4000,
+                  "valueOptions": { "min": 1000, "max": 10000, "step": 500 },
+                  "storage": { "path": ["Choices", "fDistance"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "id": "choicesShadows",
+                  "text": "Shadows",
+                  "help": "Set by Quality, and by you.",
+                  "default": true,
+                  "storage": { "path": ["Choices", "bShadows"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "id": "choicesDetail",
+                  "text": "Detail",
+                  "help": "Set by Quality, and by you.",
+                  "default": "medium",
+                  "valueOptions": {
+                    "options": [ { "value": "low", "text": "Low" }, { "value": "medium", "text": "Medium" }, { "value": "high", "text": "High" } ]
+                  },
+                  "storage": { "path": ["Choices", "sDetail"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "id": "choicesGlow",
+                  "text": "Glow",
+                  "help": "Its options set only the alpha of the color under it, which keeps the color you pick.",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "dim", "text": "Dim", "sets": { "choicesGlowColor": { "alpha": 60 } } },
+                      { "value": "bright", "text": "Bright", "sets": { "choicesGlowColor": { "alpha": 255 } } }
+                    ]
+                  }
+                },
+                {
+                  "type": "cf.color",
+                  "id": "choicesGlowColor",
+                  "text": "Glow color",
+                  "help": "Its alpha is set by Glow, and its color by you.",
+                  "default": { "rgb": [255, 191, 51], "alpha": 255 },
+                  "storage": { "path": ["Choices", "cGlow"] }
+                }
+              ]
             }
           ]
         },

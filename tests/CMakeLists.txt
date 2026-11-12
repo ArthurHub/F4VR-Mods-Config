@@ -26,6 +26,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/model/ConditionsTests.cpp
   linked/model/FileChoicesTests.cpp
   linked/model/InputBindingsTests.cpp
+  linked/model/OptionSetsTests.cpp
   linked/model/ParseCacheTests.cpp
   linked/model/SearchTests.cpp
   linked/model/TextMarkupTests.cpp
@@ -79,6 +80,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/model/FileChoices.cpp
   ${SOURCE_DIR}/model/Haptics.cpp
   ${SOURCE_DIR}/model/InputBindings.cpp
+  ${SOURCE_DIR}/model/OptionSets.cpp
   ${SOURCE_DIR}/model/Search.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp

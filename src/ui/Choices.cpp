@@ -15,6 +15,7 @@
 #include "Theme.h"
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
+#include "model/OptionSets.h"
 
 namespace
 {
@@ -205,7 +206,8 @@ namespace mods_config::ui
      * The option the player picks in this frame for a stepper or a dropdown that ends at the right, by its
      * place among the options, and none where they pick none. The setting has an option at least.
      * A press on a button of a stepper goes to the option before or after, and stops at the first and the
-     * last. A press anywhere else on its row goes to the option after, and from the last to the first, as
+     * last. With no option chosen, the one after is the first, and of a choice that sets other settings the one before is
+     * the last. A press anywhere else on its row goes to the option after, and from the last to the first, as
      * in MCM's menu. A push of the thumbstick to a side, while the ray is on the row, goes to the option
      * before or after as the buttons do.
      * A press on the row of a dropdown opens its list, which tells that the hand gets its pulse, and so does one on the
@@ -230,6 +232,9 @@ namespace mods_config::ui
             return std::nullopt;
         }
         if (row.pressed ? boxes.onPrevious(x) : _step < 0) {
+            if (!chosen && model::setsOthers(setting)) {
+                return count - 1;
+            }
             return chosen && *chosen > 0 ? std::optional(*chosen - 1) : std::nullopt;
         }
         if (row.pressed ? boxes.onNext(x) : _step > 0) {
@@ -431,7 +436,8 @@ namespace mods_config::ui
         const bool onPrevious = boxes.onPrevious(x);
         const bool onNext = boxes.onNext(x);
         const auto after = chosen ? *chosen + 1 : 0;
-        drawStepButton(boxes.previous, ControlArrow::Left, chosen && *chosen > 0, row.pointed && onPrevious, row.held && onPrevious);
+        const bool hasPrevious = chosen ? *chosen > 0 : model::setsOthers(setting);
+        drawStepButton(boxes.previous, ControlArrow::Left, hasPrevious, row.pointed && onPrevious, row.held && onPrevious);
         drawFrame(boxes.option, look);
         drawTextIn(boxes.option, option, valueColor(look), 0.5f, theme::SPACE_3);
         drawStepButton(boxes.next, ControlArrow::Right, after < options.size(), row.pointed && onNext, row.held && onNext);
