@@ -1736,17 +1736,19 @@ namespace mods_config::spec
      * or in a state of the client.
      */
     /**
-     * The settings the options of a choice that sets other settings set, each once, in the order the options name them.
-     * An id of no setting of the session is left out.
+     * The settings the options of a choice that sets other settings set, by their `sets` and their `alsoSets`, each once,
+     * in the order the options name them. An id of no setting of the session is left out.
      */
     std::vector<const model::Setting*> ConfigSpecStore::setTargets(const model::Setting& choice) const
     {
         std::vector<const model::Setting*> targets;
         for (const auto& option : choice.valueOptions.options) {
-            for (const auto& set : option.sets) {
-                const auto found = _settings.find(set.setting);
-                if (found != _settings.end() && std::ranges::find(targets, found->second) == targets.end()) {
-                    targets.push_back(found->second);
+            for (const auto* sets : { &option.sets, &option.alsoSets }) {
+                for (const auto& set : *sets) {
+                    const auto found = _settings.find(set.setting);
+                    if (found != _settings.end() && std::ranges::find(targets, found->second) == targets.end()) {
+                        targets.push_back(found->second);
+                    }
                 }
             }
         }
@@ -1788,9 +1790,9 @@ namespace mods_config::spec
     }
 
     /**
-     * Sets the values an option of a choice that sets other settings sets, each a pending value of its own setting,
-     * previewed and saved as any: a transform's and a color's on the parts it names. A setting that is read-only or not
-     * available is left as it is. Returns false for a value that is no option.
+     * Sets the values an option of a choice that sets other settings sets, its `sets` and its `alsoSets`, each a pending
+     * value of its own setting, previewed and saved as any: a transform's and a color's on the parts it names. A setting
+     * that is read-only or not available is left as it is. Returns false for a value that is no option.
      */
     bool ConfigSpecStore::pickSets(const model::Setting& choice, const model::Value& picked)
     {
@@ -1801,14 +1803,16 @@ namespace mods_config::spec
         if (option == options.end()) {
             return false;
         }
-        for (const auto& sets : option->sets) {
-            const auto found = _settings.find(sets.setting);
-            if (found == _settings.end() || found->second->readOnly) {
-                continue;
-            }
-            const auto& target = *found->second;
-            if (const auto current = value(target); current.available) {
-                set(target, model::withSetValue(target, current.value, sets.value));
+        for (const auto* sets : { &option->sets, &option->alsoSets }) {
+            for (const auto& setValue : *sets) {
+                const auto found = _settings.find(setValue.setting);
+                if (found == _settings.end() || found->second->readOnly) {
+                    continue;
+                }
+                const auto& target = *found->second;
+                if (const auto current = value(target); current.available) {
+                    set(target, model::withSetValue(target, current.value, setValue.value));
+                }
             }
         }
         return true;

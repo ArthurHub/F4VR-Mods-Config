@@ -2553,6 +2553,9 @@ TEST_CASE("ConfigSpecLoader: a sphere's Icons picks its icon, its binding icon o
         for (const auto& set : choice.valueOptions.options[option].sets) {
             texts.push_back(std::format("{} = {}", set.setting, std::get<std::string>(set.value)));
         }
+        for (const auto& set : choice.valueOptions.options[option].alsoSets) {
+            texts.push_back(std::format("also {} = {}", set.setting, std::get<std::string>(set.value)));
+        }
         std::ranges::sort(texts);
         return texts;
     };
@@ -2560,26 +2563,26 @@ TEST_CASE("ConfigSpecLoader: a sphere's Icons picks its icon, its binding icon o
     CHECK(words(icons, 0) == Lines{ "sShowBindingIcon:Body = never", "sShowIcon:Body = never" });
     CHECK(words(icons, 1) == Lines{ "sShowBindingIcon:Body = never", "sShowIcon:Body = wheninside" });
     // the binding alone is in the icon's place, and with the icon beside it
-    CHECK(words(icons, 2) == Lines{ "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = never", "tBindingIcon:Body = { pos = [0.0, 0.0, 0.0], scale = 1.25 }" });
-    CHECK(words(icons, 3) == Lines{ "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = wheninside", "tBindingIcon:Body = { pos = [0.65, -0.65, 0.0], scale = 1.0 }" });
+    CHECK(words(icons, 2) == Lines{ "also tBindingIcon:Body = { pos = [0.0, 0.0, 0.0], scale = 1.25 }", "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = never" });
+    CHECK(words(icons, 3) == Lines{ "also tBindingIcon:Body = { pos = [0.65, -0.65, 0.0], scale = 1.0 }", "sShowBindingIcon:Body = wheninside", "sShowIcon:Body = wheninside" });
 
     // the mod's defaults: both shown is its binding icon's default, and the binding alone goes with its icon size
     const auto& arm = std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items[4]).items[2]);
     REQUIRE(arm.valueOptions.options.size() == 4);
-    CHECK(words(arm, 2) == Lines{ "sShowBindingIcon:Arm = wheninside", "sShowIcon:Arm = never", "tBindingIcon:Arm = { pos = [0.0, 0.0, 0.0], scale = 2.5 }" });
-    CHECK(words(arm, 3) == Lines{ "sShowBindingIcon:Arm = wheninside", "sShowIcon:Arm = wheninside", "tBindingIcon:Arm = { pos = [1.0, -1.0, 0.0], scale = 1.5 }" });
+    CHECK(words(arm, 2) == Lines{ "also tBindingIcon:Arm = { pos = [0.0, 0.0, 0.0], scale = 2.5 }", "sShowBindingIcon:Arm = wheninside", "sShowIcon:Arm = never" });
+    CHECK(words(arm, 3) == Lines{ "also tBindingIcon:Arm = { pos = [1.0, -1.0, 0.0], scale = 1.5 }", "sShowBindingIcon:Arm = wheninside", "sShowIcon:Arm = wheninside" });
 
     // the binding alone as the mod's default keeps its size
     const auto& leg = std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items[5]).items[2]);
     REQUIRE(leg.valueOptions.options.size() == 4);
-    CHECK(words(leg, 2) == Lines{ "sShowBindingIcon:Leg = wheninside", "sShowIcon:Leg = never", "tBindingIcon:Leg = { pos = [0.0, 0.0, 0.0], scale = 2.0 }" });
+    CHECK(words(leg, 2) == Lines{ "also tBindingIcon:Leg = { pos = [0.0, 0.0, 0.0], scale = 2.0 }", "sShowBindingIcon:Leg = wheninside", "sShowIcon:Leg = never" });
 
     // an icon the mod shows always is turned on always, and its help says so
     const auto& eye = std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items[6]).items[2]);
     REQUIRE(eye.valueOptions.options.size() == 4);
     CHECK(words(eye, 1) == Lines{ "sShowBindingIcon:Eye = never", "sShowIcon:Eye = always" });
     CHECK(eye.valueOptions.options[1].help == "Its icon shows all the time.");
-    CHECK(words(eye, 3) == Lines{ "sShowBindingIcon:Eye = wheninside", "sShowIcon:Eye = always", "tBindingIcon:Eye = { pos = [0.65, -0.65, 0.0], scale = 1.0 }" });
+    CHECK(words(eye, 3) == Lines{ "also tBindingIcon:Eye = { pos = [0.65, -0.65, 0.0], scale = 1.0 }", "sShowBindingIcon:Eye = wheninside", "sShowIcon:Eye = always" });
     CHECK(eye.valueOptions.options[3].help == "Its icon shows all the time, and the icons of its bindings beside it while a hand is in the zone.");
 
     // hidden, Show icon is a main row again
@@ -2597,8 +2600,8 @@ TEST_CASE("ConfigSpecLoader: a sphere's Icons picks its icon, its binding icon o
     // with the binding icon's place hidden, no option sets it
     const auto& foot = std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items[3]).items[2]);
     REQUIRE(foot.valueOptions.options.size() == 4);
-    CHECK(foot.valueOptions.options[2].sets.size() == 2);
-    CHECK(foot.valueOptions.options[3].sets.size() == 2);
+    CHECK(foot.valueOptions.options[2].alsoSets.empty());
+    CHECK(foot.valueOptions.options[3].alsoSets.empty());
 }
 
 TEST_CASE("ConfigSpecLoader: what a sphere gets wrong is reported where it is in spec.json, and on the row it is on")
@@ -3157,4 +3160,32 @@ TEST_CASE("ConfigSpecLoader: what an option sets that is not a setting's value i
     CHECK(settings[0].valueOptions.options.size() == 3);
     CHECK_FALSE(model::setsOthers(settings[2]));
     CHECK(std::holds_alternative<model::FileStorage>(settings[2].storage));
+}
+
+TEST_CASE("ConfigSpecLoader: an option's alsoSets are read as its sets are, and an option with alsoSets alone is never the value")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "stepper", "valueType": "string", "id": "quality", "text": "Quality", "valueOptions": { "options": [
+            { "value": "low", "text": "Low", "sets": { "fScale": 0.5 }, "alsoSets": { "zone": { "pos": [0, 0, 12] }, "nothing": 1 } },
+            { "value": "near", "text": "Near", "alsoSets": { "zone": { "pos": [0, 0, 4] } } } ] } },
+        { "type": "slider", "valueType": "float", "id": "fScale", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "path": ["Main", "fScale"] } },
+        { "type": "cf.transform", "id": "zone", "text": "Zone", "default": { "scale": 1.0 }, "storage": { "path": ["Main", "tZone"] } })"));
+    Lines messages;
+    for (const auto& problem : mod.problems) {
+        messages.push_back(problem.message);
+    }
+    std::ranges::sort(messages);
+    CHECK(messages == Lines{ "\"nothing\" names no setting: it is left out.", "It has no sets: the row never shows it, and picking it sets only its alsoSets." });
+
+    // a choice of alsoSets alone is kept in the settings too
+    const auto& quality = std::get<model::Setting>(mod.frontPage.items[0]);
+    CHECK(model::setsOthers(quality));
+    const auto& low = quality.valueOptions.options[0];
+    CHECK(setOn(low, "fScale") == model::Value(0.5f));
+    REQUIRE(low.alsoSets.size() == 1);
+    CHECK(low.alsoSets[0] == model::OptionSet{ .setting = "zone", .value = "{ pos = [0.0, 0.0, 12.0] }"s });
+    const auto& closer = quality.valueOptions.options[1];
+    CHECK(closer.sets.empty());
+    CHECK(closer.alsoSets.size() == 1);
 }

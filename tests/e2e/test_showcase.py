@@ -66,7 +66,9 @@ def test_choices_that_set_other_settings(show):
     assert menu.setting("Shadows")["value"] is False
     assert menu.setting("Quality")["value"] == "low"
     menu.set(menu.setting("Draw distance")["id"], 5000)
-    assert menu.setting("Quality")["value"] == "", "a setting changed by hand leaves it with none of its options"
+    assert menu.setting("Quality")["value"] == "low", "a setting of its alsoSets tuned by hand keeps its option"
+    menu.set(menu.setting("Shadows")["id"], True)
+    assert menu.setting("Quality")["value"] == "", "a setting of its sets changed by hand leaves it with none of its options"
     menu.discard(quality["id"])
     assert not menu.setting("Draw distance")["dirty"], "its Discard takes back the settings it set"
 

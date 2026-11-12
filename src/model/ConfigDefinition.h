@@ -72,6 +72,9 @@ namespace mods_config::model
         // what it sets on other settings, of a choice kept in them (`SetsStorage`): empty for any other choice
         std::vector<OptionSet> sets;
 
+        // what it sets as well as it is picked, which the choice's value is not read from: a place a player tunes
+        std::vector<OptionSet> alsoSets;
+
         bool operator==(const Option&) const = default;
     };
 

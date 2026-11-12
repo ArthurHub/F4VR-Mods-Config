@@ -89,7 +89,7 @@ The options can also come from elsewhere:
 - **The game:** `"listFromForm": "Fallout4.esm|1D98E2"`, the names of a FormList's forms, here the settlements. See [Options from the game](../design/schema.md#options-from-the-game).
 - **A folder:** `"listFromFolder": { "path": "Textures/ModsConfigFO4_Showcase", "mask": "*.dds" }`, the files a player can add to, as MCM's `dropdownFiles`. See [Options from a folder](../design/schema.md#options-from-a-folder).
 
-A choice can also be a set of presets: each option has `sets`, the values it gives other settings by their ids, and the choice keeps no value of its own. Its **Quality** sets the three rows under it, and shows the option whose values they have, or none once you change one of them yourself. A color's value sets only the parts it names, as **Glow** sets only the alpha of **Glow color**:
+A choice can also be a set of presets: each option has `sets`, the values it gives other settings by their ids, and the choice keeps no value of its own. Its **Quality** sets the three rows under it, and shows the option whose `sets` they have, or none once you change one of them yourself. A setting in `alsoSets` is set by a pick too, but Quality isn't read from it, so you can tune **Draw distance** and Quality keeps its option. A color's value sets only the parts it names, as **Glow** sets only the alpha of **Glow color**:
 
 ```json
 {
@@ -99,9 +99,9 @@ A choice can also be a set of presets: each option has `sets`, the values it giv
   "text": "Quality",
   "valueOptions": {
     "options": [
-      { "value": "low", "text": "Low", "sets": { "choicesDistance": 2000, "choicesShadows": false, "choicesDetail": "low" } },
-      { "value": "medium", "text": "Medium", "sets": { "choicesDistance": 4000, "choicesShadows": true, "choicesDetail": "medium" } },
-      { "value": "high", "text": "High", "sets": { "choicesDistance": 8000, "choicesShadows": true, "choicesDetail": "high" } }
+      { "value": "low", "text": "Low", "sets": { "choicesShadows": false, "choicesDetail": "low" }, "alsoSets": { "choicesDistance": 2000 } },
+      { "value": "medium", "text": "Medium", "sets": { "choicesShadows": true, "choicesDetail": "medium" }, "alsoSets": { "choicesDistance": 4000 } },
+      { "value": "high", "text": "High", "sets": { "choicesShadows": true, "choicesDetail": "high" }, "alsoSets": { "choicesDistance": 8000 } }
     ]
   }
 }

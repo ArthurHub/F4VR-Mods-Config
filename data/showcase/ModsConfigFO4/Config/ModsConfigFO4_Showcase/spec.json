@@ -721,12 +721,12 @@
                   "valueType": "string",
                   "id": "choicesQuality",
                   "text": "Quality",
-                  "help": "Each option sets the three rows under it. Change one of them yourself, and Quality shows none of its options.",
+                  "help": "Each option sets the three rows under it. Change Shadows or Detail yourself, and Quality shows none of its options; tune Draw distance, and it keeps its option.",
                   "valueOptions": {
                     "options": [
-                      { "value": "low", "text": "Low", "sets": { "choicesDistance": 2000, "choicesShadows": false, "choicesDetail": "low" } },
-                      { "value": "medium", "text": "Medium", "sets": { "choicesDistance": 4000, "choicesShadows": true, "choicesDetail": "medium" } },
-                      { "value": "high", "text": "High", "sets": { "choicesDistance": 8000, "choicesShadows": true, "choicesDetail": "high" } }
+                      { "value": "low", "text": "Low", "sets": { "choicesShadows": false, "choicesDetail": "low" }, "alsoSets": { "choicesDistance": 2000 } },
+                      { "value": "medium", "text": "Medium", "sets": { "choicesShadows": true, "choicesDetail": "medium" }, "alsoSets": { "choicesDistance": 4000 } },
+                      { "value": "high", "text": "High", "sets": { "choicesShadows": true, "choicesDetail": "high" }, "alsoSets": { "choicesDistance": 8000 } }
                     ]
                   }
                 },
@@ -735,7 +735,7 @@
                   "valueType": "float",
                   "id": "choicesDistance",
                   "text": "Draw distance",
-                  "help": "Set by Quality, and by you.",
+                  "help": "Set by Quality as it is picked, and tuned by you without leaving Quality's option.",
                   "default": 4000,
                   "valueOptions": { "min": 1000, "max": 10000, "step": 500 },
                   "storage": { "path": ["Choices", "fDistance"] }

@@ -98,9 +98,9 @@ A control spanning several keys is a group with a role: ordinary settings, one p
 
 ## A choice that sets other settings
 
-A choice whose options set other settings ([schema](schema.md#options-that-set-other-settings)) is a setting whose storage is those settings. Each option has `sets`: the ids of the settings it sets, each with its value. A color's or a transform's value is the TOML text of the parts it names.
+A choice whose options set other settings ([schema](schema.md#options-that-set-other-settings)) is a setting whose storage is those settings. Each option has `sets`: the ids of the settings it sets, each with its value, and `alsoSets`, set the same way by a pick but never read back. A color's or a transform's value is the TOML text of the parts it names.
 
-- The store answers its value from theirs: the first option whose `sets` they all have, or a value of its type that is no option while none matches. A pick sets each of them, so dirty state, Save and preview stay theirs.
+- The store answers its value from theirs: the first option whose `sets` they all have, or a value of its type that is no option while none matches. A pick sets each of its `sets` and `alsoSets`, so dirty state, Save and preview stay theirs.
 - It is dirty while one of them is, and its Discard is theirs. Its default and its saved value are the options matching their defaults and their saved values.
 - The counts of changes (footer, folded section, tree) skip it: what counts is what Save writes.
 

@@ -366,7 +366,7 @@ namespace
     constexpr std::array<std::string_view, 6> TRANSFORM_POSITION_FIELDS{ "min", "max", "step", "x", "y", "z" };
     constexpr std::array<std::string_view, 6> TRANSFORM_ROTATION_FIELDS{ "min", "max", "step", "heading", "roll", "attitude" };
     constexpr std::array<std::string_view, 3> TRANSFORM_RANGE_FIELDS{ "min", "max", "step" };
-    constexpr std::array<std::string_view, 4> OPTION_FIELDS{ "value", "text", "help", "sets" };
+    constexpr std::array<std::string_view, 5> OPTION_FIELDS{ "value", "text", "help", "sets", "alsoSets" };
     constexpr std::array<std::string_view, 3> PRESET_FIELDS{ "rgb", "alpha", "text" };
     constexpr std::array<std::string_view, 3> LIST_PROPERTY_FIELDS{ "form", "scriptName", "propertyName" };
     constexpr std::array<std::string_view, 4> LIST_FOLDER_FIELDS{ "root", "path", "mask", "noneText" };
@@ -1817,13 +1817,13 @@ namespace
     }
 
     /**
-     * Whether an option a choice writes has `sets`, which makes it a choice kept in the settings they set.
+     * Whether an option a choice writes has `sets` or `alsoSets`, which makes it a choice kept in the settings they set.
      */
     bool hasOptionSets(const Json& row, const ConfigSpecReading& reading)
     {
         const auto* list = writtenOptions(row, reading);
         return list && std::ranges::any_of(*list, [](const Json& option) {
-            return option.is_object() && option.contains("sets");
+            return option.is_object() && (option.contains("sets") || option.contains("alsoSets"));
         });
     }
 
@@ -2317,7 +2317,7 @@ namespace
 
     /**
      * The Icons row of a sphere: a stepper of the icons it draws, whose options set the keys that say when the icon and
-     * the binding icon are drawn, and the binding icon's place and size where it has a row. Each key turns on with the
+     * the binding icon are drawn, and also set the binding icon's place and size where it has a row. Each key turns on with the
      * word of its default, and the option of both defaults sets the binding icon's default, so the mod's defaults are an
      * option; the others place it by the default icon size: in the icon's place for the binding alone, and at the icon's
      * lower right for both. Its object in `keys` gives it its `text`, `help` and conditions, and `valueOptions`, whose
@@ -2344,13 +2344,20 @@ namespace
         const auto defaultSize = sphereKeyDefault(keys, "fIconSize");
         const double iconSize = defaultSize.is_number() ? defaultSize.get<double>() : 1.0;
 
-        // pos and scale are for an icon of size 1: x right and y down by pos, each icon scale big
-        const auto sets = [&](const std::string_view icon, const std::string_view binding, const std::optional<double> pos, const std::optional<double> scale) {
-            Json set{ { showIcon, icon }, { showBindingIcon, binding } };
+        // the Show keys are its sets, and the binding icon's place its alsoSets, so a player who tunes the place keeps the
+        // option. pos and scale are for an icon of size 1: x right and y down by pos, each icon scale big
+        const auto option = [&](const std::string_view value,
+                                const std::string_view text,
+                                const std::string_view help,
+                                const std::string_view icon,
+                                const std::string_view binding,
+                                const std::optional<double> pos = std::nullopt,
+                                const std::optional<double> scale = std::nullopt) {
+            Json written{ { "value", value }, { "text", text }, { "help", help }, { "sets", Json{ { showIcon, icon }, { showBindingIcon, binding } } } };
             if (!pos || !hasPlace) {
-                return set;
+                return written;
             }
-            Json& place = set[sphereKeyId(section, SPHERE_BINDING_ICON)];
+            Json place;
             if (icon == defaultIcon && binding == defaultBinding && defaultPlace.is_object()) {
                 place = Json{ { "pos", defaultPlace.value("pos", Json::array({ 0.0, 0.0, 0.0 })) }, { "scale", defaultPlace.value("scale", 1.0) } };
             } else {
@@ -2358,10 +2365,8 @@ namespace
                 const double x = *pos * iconSize;
                 place = Json{ { "pos", Json::array({ x, 0.0 - x, 0.0 }) }, { "scale", scale.value_or(1.0) * iconSize } };
             }
-            return set;
-        };
-        const auto option = [](const std::string_view value, const std::string_view text, const std::string_view help, Json set) {
-            return Json{ { "value", value }, { "text", text }, { "help", help }, { "sets", std::move(set) } };
+            written["alsoSets"] = Json{ { sphereKeyId(section, SPHERE_BINDING_ICON), std::move(place) } };
+            return written;
         };
 
         Json row{ { "type", "stepper" },
@@ -2374,10 +2379,10 @@ namespace
         const auto bindingWhen = sphereShownWhen(bindingOn);
         const auto bothHelp = iconOn == bindingOn ? std::format("Its icon shows {}, and the icons of its bindings beside it.", iconWhen)
                                                   : std::format("Its icon shows {}, and the icons of its bindings beside it {}.", iconWhen, bindingWhen);
-        row["valueOptions"]["options"] = Json::array({ option("none", "None", "No icon shows.", sets("never", "never", std::nullopt, std::nullopt)),
-            option("icon", "Icon", std::format("Its icon shows {}.", iconWhen), sets(iconOn, "never", std::nullopt, std::nullopt)),
-            option("binding", "Binding", std::format("The icons of its bindings show {}, in the icon's place.", bindingWhen), sets("never", bindingOn, 0.0, 1.25)),
-            option("both", "Icon and binding", bothHelp, sets(iconOn, bindingOn, 0.65, 1.0)) });
+        row["valueOptions"]["options"] = Json::array({ option("none", "None", "No icon shows.", "never", "never"),
+            option("icon", "Icon", std::format("Its icon shows {}.", iconWhen), iconOn, "never"),
+            option("binding", "Binding", std::format("The icons of its bindings show {}, in the icon's place.", bindingWhen), "never", bindingOn, 0.0, 1.25),
+            option("both", "Icon and binding", bothHelp, iconOn, bindingOn, 0.65, 1.0) });
 
         if (const auto own = keys.find(SPHERE_ICONS); own != keys.end() && own->is_object()) {
             const Into into(reading, row[MADE_ROW_PATH].get_ref<const std::string&>());
@@ -3058,11 +3063,40 @@ namespace
     }
 
     /**
+     * The values an option's `sets` or `alsoSets` (its `field`) set: an object of values by the ids of their settings, as
+     * a condition names a setting. An id of no setting, and of a choice that sets other settings, and a value that is
+     * not one of its setting's (`loadSetValue`), is reported and left out, and the option keeps the rest.
+     */
+    std::vector<model::OptionSet> loadSetValues(const Json& written, const char* field, ConfigSpecReading& reading)
+    {
+        std::vector<model::OptionSet> loaded;
+        const auto sets = written.find(field);
+        if (sets == written.end() || !sets->is_object()) {
+            return loaded;
+        }
+        const Into intoSets(reading, field);
+        for (const auto& [id, set] : sets->items()) {
+            const Into intoSet(reading, id);
+            const auto target = reading.settings.find(common::str_tolower(id));
+            if (target == reading.settings.end()) {
+                reading.report(model::Severity::Error, std::format("\"{}\" names no setting: it is left out.", id));
+                continue;
+            }
+            if (target->second.setsOthers) {
+                reading.report(model::Severity::Error, std::format("\"{}\" is a choice that sets other settings, which no option sets: it is left out.", id));
+                continue;
+            }
+            if (auto value = loadSetValue(set, target->second, reading)) {
+                loaded.push_back({ .setting = target->second.id, .value = std::move(*value) });
+            }
+        }
+        return loaded;
+    }
+
+    /**
      * The values the options of a choice that sets other settings set, once every setting of its config spec is read, so
-     * an option can name one after it: each option's `sets`, an object of values by the ids of their settings, as a
-     * condition names a setting. An option with none changes nothing and is never the choice's value, and is reported.
-     * So is an id of no setting, and of a choice that sets other settings, and a value that is not one of its setting's
-     * (`loadSetValue`): each is left out, and the option keeps the rest.
+     * an option can name one after it: each option's `sets`, which its value is read from, and `alsoSets`, set too as
+     * it is picked (`loadSetValues`). An option with no `sets` is never the choice's value, and is reported.
      */
     void loadOptionSets(const Json& row, model::Setting& setting, ConfigSpecReading& reading)
     {
@@ -3085,25 +3119,12 @@ namespace
             const Into intoOption(reading, "options", place);
             const auto sets = written.find("sets");
             if (sets == written.end() || !sets->is_object() || sets->empty()) {
-                reading.report(model::Severity::Warning, "It sets no setting: picking it changes nothing, and the row never shows it.");
-                continue;
+                reading.report(model::Severity::Warning,
+                    written.contains("alsoSets") ? "It has no sets: the row never shows it, and picking it sets only its alsoSets."
+                                                 : "It sets no setting: picking it changes nothing, and the row never shows it.");
             }
-            const Into intoSets(reading, "sets");
-            for (const auto& [id, set] : sets->items()) {
-                const Into intoSet(reading, id);
-                const auto target = reading.settings.find(common::str_tolower(id));
-                if (target == reading.settings.end()) {
-                    reading.report(model::Severity::Error, std::format("\"{}\" names no setting: it is left out.", id));
-                    continue;
-                }
-                if (target->second.setsOthers) {
-                    reading.report(model::Severity::Error, std::format("\"{}\" is a choice that sets other settings, which no option sets: it is left out.", id));
-                    continue;
-                }
-                if (auto loaded = loadSetValue(set, target->second, reading)) {
-                    option->sets.push_back({ .setting = target->second.id, .value = std::move(*loaded) });
-                }
-            }
+            option->sets = loadSetValues(written, "sets", reading);
+            option->alsoSets = loadSetValues(written, "alsoSets", reading);
         }
     }
 

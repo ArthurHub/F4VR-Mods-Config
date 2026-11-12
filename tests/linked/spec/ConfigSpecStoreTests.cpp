@@ -782,6 +782,10 @@ TEST_CASE("ConfigSpecStore: a sphere's Icons sets when its icon and its binding 
     CHECK(value(BINDING_ICON) == model::Value("{ pos = [0.65, -0.65, 0.0], scale = 1.0 }"s));
     CHECK(value(ICONS) == model::Value("both"s));
 
+    // the binding icon moved and sized on its own row keeps the option
+    CHECK(session.store.set(session.sphereKey(BINDING_ICON), "{ pos = [0.9, -0.7, 0.0], scale = 1.3 }"s));
+    CHECK(value(ICONS) == model::Value("both"s));
+
     // the binding alone is in the icon's place
     CHECK(session.store.set(session.sphereKey(ICONS), "binding"s));
     CHECK(value(SHOW_ICON) == model::Value("never"s));
@@ -2650,6 +2654,39 @@ TEST_CASE("ConfigSpecStore: a pick of a choice that sets other settings sets eac
           "fScale = 1.0\r\n"
           "sPlace = \"hip\"\r\n"
           "tZone = { scale = 2.0 }\r\n");
+}
+
+TEST_CASE("ConfigSpecStore: a pick sets an option's alsoSets too, which a player tunes on their own rows and keeps the option, and its Discard takes them back")
+{
+    Session session(R"(
+        { "type": "stepper", "valueType": "string", "id": "quality", "text": "Quality", "valueOptions": { "options": [
+            { "value": "low", "text": "Low", "sets": { "fScale": 1.0 }, "alsoSets": { "zone": { "pos": [0, 0, 6] } } },
+            { "value": "high", "text": "High", "sets": { "fScale": 1.5 }, "alsoSets": { "zone": { "pos": [0, 0, 12] } } } ] } },
+        { "type": "slider", "valueType": "float", "id": "fScale", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "path": ["Main", "fScale"] } },
+        { "type": "cf.transform", "id": "zone", "text": "Zone", "default": { "scale": 1.0 }, "storage": { "path": ["Main", "tZone"] } })");
+    session.open(
+        "[Main]\r\n"
+        "fScale = 1.0\r\n"
+        "tZone = { scale = 2.0 }\r\n");
+    const auto& quality = session.setting(0);
+
+    // the zone is no option's, and the value is read from the scale alone
+    CHECK(session.value(0).value == model::Value("low"s));
+
+    CHECK(session.store.set(quality, "high"s));
+    CHECK(session.value(1).value == model::Value(1.5f));
+    CHECK(session.value(2).value == model::Value("{ pos = [0.0, 0.0, 12.0], scale = 2.0 }"s));
+    CHECK(session.value(0).value == model::Value("high"s));
+
+    // the zone tuned on its own row keeps the option, and the choice is pending with it
+    CHECK(session.store.set(session.setting(2), "{ pos = [0.0, 0.0, 10.0], scale = 2.0 }"s));
+    CHECK(session.value(0).value == model::Value("high"s));
+    CHECK(session.store.isDirty(quality));
+
+    session.store.discard(quality);
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(2).value == model::Value("{ scale = 2.0 }"s));
 }
 
 TEST_CASE("ConfigSpecStore: a mod's client hands back a pick of a choice that sets other settings as the player picks one")

@@ -331,7 +331,7 @@ A range with `min` ≥ `max` or `step` ≤ 0 is an error and uses the part's ran
 | Visuals, only when named in `keys` | `fSphereScale` Sphere size, `sSphereOrientation`, `cSphereColor`, `fSphereGlow`, `sSphereNif`, `sSphereTexture`, `aSphereFalloff` |
 
 - The binding icon is the icons of the gesture's bindings, in a row facing the player. `tBindingIcon` has no rotation; its scale is each icon's size.
-- **Icons** (`icons`, no key of the file) is a [choice that sets other settings](#options-that-set-other-settings), the player's pick of which icons show: None, Icon, Binding (the binding icon in the icon's place: `tBindingIcon` `{ pos = [0, 0, 0], scale = 1.25 }`) or Icon and binding (both `wheninside`, the binding icon at the icon's lower right: `{ pos = [0.65, -0.65, 0], scale = 1 }`). Each Show key turns off with `never` and on with its default's word, or `wheninside` for a default of `never`; a file whose Show keys say another word shows it blank. Those places are for an icon of size 1 and are multiplied by `fIconSize`'s default. The option of the Show keys' defaults sets `tBindingIcon`'s default instead, so a mod that gives its own defaults in `keys` has them as an option, and as Icons' default. `"icons": false` hides it, as does hiding `sShowIcon` or `sShowBindingIcon`, and Show icon is then a top row. An object gives it `text`, `help`, `visibleWhen`, `enabledWhen`, and `valueOptions` whose `options` replace the four, naming the keys by their ids (`sShowIcon:BodySphere`), as a mod with a bigger icon moves the binding icon further right. With `tBindingIcon` hidden no option sets it.
+- **Icons** (`icons`, no key of the file) is a [choice that sets other settings](#options-that-set-other-settings), the player's pick of which icons show: None, Icon, Binding (the binding icon in the icon's place: `tBindingIcon` `{ pos = [0, 0, 0], scale = 1.25 }`) or Icon and binding (both `wheninside`, the binding icon at the icon's lower right: `{ pos = [0.65, -0.65, 0], scale = 1 }`). Each Show key turns off with `never` and on with its default's word, or `wheninside` for a default of `never`; a file whose Show keys say another word shows it blank. The Show keys are its `sets` and the binding icon's place its `alsoSets`, so moving or sizing the binding icon keeps the option. Those places are for an icon of size 1 and are multiplied by `fIconSize`'s default. The option of the Show keys' defaults sets `tBindingIcon`'s default instead, so a mod that gives its own defaults in `keys` has them as an option, and as Icons' default. `"icons": false` hides it, as does hiding `sShowIcon` or `sShowBindingIcon`, and Show icon is then a top row. An object gives it `text`, `help`, `visibleWhen`, `enabledWhen`, and `valueOptions` whose `options` replace the four, naming the keys by their ids (`sShowIcon:BodySphere`), as a mod with a bigger icon moves the binding icon further right. With `tBindingIcon` hidden no option sets it.
 - `sShowIcon`, `sShowSphere`, `sShowBindingIcon`, `sBindingIcons`, `sSphereOrientation`, `sSphereStyle` are dropdowns read as the framework reads them (ignoring case, spaces, underscores, hyphens, with its synonyms: `off` is Never, `both` is All); unreadable values are invalid; changes are written as the option spells it.
 - An unknown name in `keys` is a warning and dropped. Key ids are key + section, so conditions can name them; Icons is `icons` + section.
 - `sIcon`, `sSphereNif`, `sSphereTexture` are [folder choices](#options-from-a-folder) of the framework files every CommonFramework mod ships under its `modName`: `sIcon` from `Textures\<modName>\f4cf\activation-icon-*.dds`, `sSphereTexture` from `*-sphere.dds` there, `sSphereNif` from `Meshes\<modName>\f4cf\*.nif`. Picks are written as Data paths (`Textures\FRIK\f4cf\activation-icon-ring.dds`). `sIcon` defaults to the framework's hand icon. `sSphereNif` and `sSphereTexture` start with an empty "style's own" option, their default. Other forms (the framework's short `f4cf\…`, the mesh's `none`) are invalid until a file is picked. A mod with its own icons gives `sIcon` a `listFromFolder` and a `default` there.
@@ -700,7 +700,7 @@ The client answers through the [native API](architecture.md#options-from-a-clien
 
 ### Options that set other settings
 
-A `stepper` or `dropdown` whose written options (its own or a shared list) have `sets` is a choice of presets: picking an option sets other settings, and the choice keeps no value of its own.
+A `stepper` or `dropdown` whose written options (its own or a shared list) have `sets` or `alsoSets` is a choice of presets: picking an option sets other settings, and the choice keeps no value of its own.
 
 ```json
 {
@@ -710,20 +710,20 @@ A `stepper` or `dropdown` whose written options (its own or a shared list) have 
   "text": "Quality",
   "valueOptions": {
     "options": [
-      { "value": "low", "text": "Low", "sets": { "drawDistance": 2000, "shadows": false } },
-      { "value": "high", "text": "High", "sets": { "drawDistance": 8000, "shadows": true, "glowColor": { "alpha": 255 } } }
+      { "value": "low", "text": "Low", "sets": { "shadows": false }, "alsoSets": { "drawDistance": 2000 } },
+      { "value": "high", "text": "High", "sets": { "shadows": true, "glowColor": { "alpha": 255 } }, "alsoSets": { "drawDistance": 8000 } }
     ]
   }
 }
 ```
 
-- `sets` names settings by id, as a [condition](#conditions) does, of any storage, on any page, hidden or not. Each value is checked as that setting's `default` is.
+- `sets` and `alsoSets` name settings by id, as a [condition](#conditions) does, of any storage, on any page, hidden or not. Each value is checked as that setting's `default` is.
 - A color's or a transform's value is a table that sets only the parts it names (`{ "alpha": 255 }` keeps the color). A binding is a whole binding.
-- **Its value** is the first option whose `sets` all match their settings' values, numbers compared as a condition's `equals` does, and a table on the parts it names. While none matches, the row shows no option, and its help line says "None of its options: their settings are set otherwise." From there a stepper's left arrow picks the last option and its right arrow the first.
-- **A pick** sets each named setting as a change of its own: pending, previewed and saved as any. A setting that is read-only or not available is skipped. A mod's DLL that hands back a value for the choice's `id` picks as the player does.
-- It is pending while one of its settings is, and its Discard takes them all back. Its default, which Reset picks, is the option matching their defaults; with none it has no Reset. It has no `applies` (each setting takes effect as its own says) and never counts as a change: its settings count on their own rows.
+- **Its value** is the first option whose `sets` all match their settings' values, numbers compared as a condition's `equals` does, and a table on the parts it names. `alsoSets` are not compared: they are what a player tunes after the pick, as a place or a size, and a tuned one keeps the option. While none matches, the row shows no option, and its help line says "None of its options: their settings are set otherwise." From there a stepper's left arrow picks the last option and its right arrow the first.
+- **A pick** sets each setting of its `sets` and `alsoSets` as a change of its own: pending, previewed and saved as any. A setting that is read-only or not available is skipped. A mod's DLL that hands back a value for the choice's `id` picks as the player does.
+- It is pending while one of the settings of its `sets` or `alsoSets` is, and its Discard takes them all back. Its default, which Reset picks, is the option matching their defaults; with none it has no Reset. It has no `applies` (each setting takes effect as its own says) and never counts as a change: its settings count on their own rows.
 - No `storage`, `default` or `applies`: a `storage` with `sets` is an error and the `sets` are ignored; a `default` or `applies` is a warning and left out. `sets` on any other type is an error.
-- An option with no `sets` is a warning: it changes nothing and is never the value. An id of no setting, of another choice with `sets`, or a value that isn't one of its setting's, is an error, and that entry is left out.
+- An option with no `sets` is a warning: it is never the value, and a pick sets only its `alsoSets`. An id of no setting, of another choice with `sets`, or a value that isn't one of its setting's, is an error, and that entry is left out.
 - It can have an `id`, so conditions can name it; its value is the matching option's, or none.
 
 ## Buttons
