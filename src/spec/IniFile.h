@@ -15,10 +15,11 @@ namespace mods_config::spec
     /**
      * An INI file of a config spec's mod, read as CommonFramework mods and SimpleIni read one. A value is named by
      * its section and its key, or by its key alone before the first section, with no regard to case, and is the
-     * text after its `=`, with no spaces around it. A line that starts with `;` or `#` is a comment, so a value
-     * can have either. A key the file has more than once has the value of its last, and a write sets each of
-     * them. A write changes the text of the values alone: the comments, the blank lines, the order of the keys
-     * and every other line stay as they are.
+     * text after its `=`, with no spaces around it. A line that starts with `;` or `#` is a comment, and so is a
+     * `;` or `#` after a value with a space before it, as `8.5  # target`, which SimpleIni reads as part of the
+     * value. A key the file has more than once has the value of its last, and a write sets each of them. A write
+     * changes the text of the values alone: the comments, trailing ones too, the blank lines, the order of the
+     * keys and every other line stay as they are.
      */
     class IniFile : public ModFile
     {

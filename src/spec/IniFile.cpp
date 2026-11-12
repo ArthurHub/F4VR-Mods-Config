@@ -208,6 +208,25 @@ namespace
     }
 
     /**
+     * Where the trailing comment of a value line starts, the text after its `=` starting at `valueStart`, or the
+     * line's end where it has none. A comment is a `;` or `#` with a space or a tab before it and some value
+     * before that, so `#FF0000` and `a;b` are values whole, and `8.5   # target` is `8.5`.
+     */
+    std::size_t trailingCommentAt(const std::string_view content, const std::size_t valueStart)
+    {
+        const auto valueBegin = content.find_first_not_of(SPACES, valueStart);
+        if (valueBegin == std::string_view::npos) {
+            return content.size();
+        }
+        for (auto at = content.find_first_of(";#", valueBegin + 1); at != std::string_view::npos; at = content.find_first_of(";#", at + 1)) {
+            if (SPACES.contains(content[at - 1])) {
+                return at;
+            }
+        }
+        return content.size();
+    }
+
+    /**
      * The line break of a text: the one of its first line, and `\r\n` where it has none, as a file of Windows.
      */
     std::string_view lineBreakOf(const std::string_view text)
@@ -292,7 +311,8 @@ namespace mods_config::spec
     /**
      * The lines of a text. A line whose first character, after its spaces, is `[` and that has a `]` starts the
      * section named between them. A line that starts with `;` or `#` is a comment, and any other line with an
-     * `=` and a key before it is a value, all of the text after the `=`. A line break is `\r\n` or `\n`.
+     * `=` and a key before it is a value: the text after the `=`, up to a trailing comment, a `;` or `#` with a
+     * space before it and some value before that. A line break is `\r\n` or `\n`.
      */
     std::vector<IniFile::Line> IniFile::parse(const std::string_view text)
     {
@@ -318,7 +338,7 @@ namespace mods_config::spec
                 line.kind = Line::Kind::Value;
                 line.key = trimmed(content.substr(0, equals));
                 const auto keyEnd = content.find_last_not_of(SPACES, equals - 1) + 1;
-                const auto valueEnd = content.find_last_not_of(SPACES) + 1;
+                const auto valueEnd = content.find_last_not_of(SPACES, trailingCommentAt(content, equals + 1) - 1) + 1;
                 const auto valueBegin = valueEnd > equals + 1 ? content.find_first_not_of(SPACES, equals + 1) : equals + 1;
                 line.separator = content.substr(keyEnd, valueBegin - keyEnd);
                 line.valueBegin = begin + valueBegin;

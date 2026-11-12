@@ -1022,7 +1022,7 @@ TEST_CASE("ConfigSpecStore: a setting of an INI file has the file's value or is 
     CHECK(session.value(1).value == model::Value(12.0f));
     CHECK(session.value(1).reason == "Invalid: iCount of [Main] is 12 in MyMod.ini, which is not from 0 to 10.");
     CHECK(session.value(2).reason == R"(Invalid: fScale of [Main] is "abc" in MyMod.ini, which is not a number.)");
-    CHECK(session.value(3).value == model::Value("You ; and me"s));
+    CHECK(session.value(3).value == model::Value("You"s));
     // a key the file does not have is its default
     CHECK(session.value(4).value == model::Value(true));
     CHECK_FALSE(session.value(4).invalid);
@@ -1049,7 +1049,7 @@ TEST_CASE("ConfigSpecStore: a binding, a color and a transform of an INI file ar
         { "type": "cf.transform", "text": "New", "default": { "pos": [0, 0, 12] }, "valueOptions": { "rotation": false },
           "storage": { "file": "ini", "section": "Main", "key": "sNew" } }
     )");
-    session.data.write("MyMod.ini", "[Main]\r\nsGrab = off  tap Trigger\r\nsOpen =\r\nsRay = 255, 0, 0\r\nsEmpty =\r\nsMesh = 1,2,3;0,90,0;1.5 ; mesh\r\n");
+    session.data.write("MyMod.ini", "[Main]\r\nsGrab = off  tap Trigger\r\nsOpen =\r\nsRay = 255, 0, 0\r\nsEmpty =\r\nsMesh = 1,2,3;0,90 ; mesh\r\n");
     session.store.open(session.mod);
 
     // the file's line in the menu's words, and an empty binding is off
@@ -1060,10 +1060,10 @@ TEST_CASE("ConfigSpecStore: a binding, a color and a transform of an INI file ar
     // a color with no alpha has its default's
     CHECK(session.value(2).value == model::Value("255,0,0"s));
     CHECK(model::colorOf(session.setting(2), session.value(2).value) == render::Color::rgba(255, 0, 0, 200));
-    // an empty color is invalid, and so is a transform with a comment after it, as an INI value keeps one
+    // an empty color is invalid, and so is a transform short of its scale, with no comment in its value
     CHECK(session.value(3).invalid);
     CHECK(session.value(3).reason == "Invalid: it is not r,g,b or r,g,b,a, each a whole number in 0..255, as 255,180,107.");
-    CHECK(session.value(4).value == model::Value("1,2,3;0,90,0;1.5 ; mesh"s));
+    CHECK(session.value(4).value == model::Value("1,2,3;0,90"s));
     CHECK(session.value(4).reason == "Invalid: it is not the seven numbers x,y,z;heading,roll,attitude;scale, as 0,0,12;0,0,0;1.");
     // a key the file does not have is its default's line
     CHECK(session.value(5).value == model::Value("0.0,0.0,12.0;0.0,0.0,0.0;1.0"s));
@@ -1084,7 +1084,7 @@ TEST_CASE("ConfigSpecStore: a binding, a color and a transform of an INI file ar
           "sOpen =primary longpress menu 1.5 suppress +offhand:grip\r\n"
           "sRay = 1,2,3,4\r\n"
           "sEmpty =0,0,0\r\n"
-          "sMesh = 1,2,3;0,90,0;1.5 ; mesh\r\n"
+          "sMesh = 1,2,3;0,90 ; mesh\r\n"
           "sNew = 0.0,0.0,10.0;0.0,0.0,0.0;1.0\r\n");
     CHECK(session.store.dirtyCount() == 0);
 }

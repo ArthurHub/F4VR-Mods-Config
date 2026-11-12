@@ -40,7 +40,7 @@ The host writes each mod's declared files directly; it keeps no mirror of settin
 
 - **TOML** is edited with the framework's `TomlEditor`: values replaced in place, a new key added after its table's last value; comments, blank lines, order and other values' formatting kept.
 - **INI** is read as SimpleIni / CommonFramework read it and edited line by line: a value's text replaced in place, a new key added after its section's last value or in a new section at the end; every other line kept.
-  - `;` or `#` starts a comment only at line start, so values may contain them. A value is the text after `=`, trimmed.
+  - `;` or `#` starts a comment at line start, or after a value with a space or tab before it (`8.5  # target`), which SimpleIni would read as part of the value. A value is the text after `=` up to that comment, trimmed, so `#FF0000` and `a;b` stay whole. A write keeps the trailing comment.
   - Section and key names are case-insensitive. A key before any section is named by the key alone.
   - A duplicate key reads as its last occurrence; a write sets every occurrence. Duplicate sections are one section.
   - Bools read `1/true/yes/on` and `0/false/no/off` in any case; written in the file's existing word and case, or `1`/`0` for a new key.

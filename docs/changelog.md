@@ -5,6 +5,7 @@ Not released: each is a milestone of the [work plan](design/mod-plan.md).
 ### v0.14.0
 
 - A page with unsaved changes has the pending dot in the tree, and a closed page shows the changes of its pages too.
+- A config spec reads an INI value that has a comment after it, as `fTarget=8.5  # target`, and Save keeps the comment.
 
 ### v0.13.0
 

@@ -30,7 +30,7 @@ namespace
         "fScale = 1.250\r\n"
         "fWhole = 2\r\n"
         "sEmpty =\r\n"
-        "sName = C:\\Games ; not a comment\r\n"
+        "sName = C:\\Games ; the game's folder\r\n"
         "; fScale = 9.0\r\n"
         "# sName = commented\r\n"
         "\r\n"
@@ -113,17 +113,37 @@ TEST_CASE("IniFile: a value is read by its section and its key, in the type of i
     CHECK(mod.file.contains(Path{ "body", "FX" }));
 }
 
-TEST_CASE("IniFile: a comment is a line that starts with ; or #, so a value can have either")
+TEST_CASE("IniFile: a comment is a line that starts with ; or #, or a ; or # after a value with a space before it")
 {
     const ModFile mod;
-    CHECK(mod.file.value(Path{ "Main", "sName" }, StoredType::String) == model::Value(std::string("C:\\Games ; not a comment")));
+    CHECK(mod.file.value(Path{ "Main", "sName" }, StoredType::String) == model::Value(std::string("C:\\Games")));
     const auto scale = mod.file.value(Path{ "Main", "fScale" }, StoredType::Float);
     REQUIRE(scale);
     CHECK(common::fEqual(std::get<float>(*scale), 1.25f));
 
-    const ModFile hash("[Main]\r\n  # iCount = 9\r\niCount = 3 # three\r\n");
-    CHECK(hash.file.value(Path{ "Main", "iCount" }, StoredType::String) == model::Value(std::string("3 # three")));
-    CHECK(hash.file.value(Path{ "Main", "iCount" }, StoredType::Int).error() == "iCount of [Main] is \"3 # three\" in MyMod.ini, which is not a whole number");
+    const ModFile trailing(
+        "[Main]\r\n"
+        "  # iCount = 9\r\n"
+        "iCount = 3 # three\r\n"
+        "fTarget=8.5       #The target frame time\r\n"
+        "bOn = true\t; on\r\n");
+    CHECK(trailing.file.value(Path{ "Main", "iCount" }, StoredType::Int) == model::Value(3));
+    const auto target = trailing.file.value(Path{ "Main", "fTarget" }, StoredType::Float);
+    REQUIRE(target);
+    CHECK(common::fEqual(std::get<float>(*target), 8.5f));
+    CHECK(trailing.file.value(Path{ "Main", "bOn" }, StoredType::Bool) == model::Value(true));
+
+    // a ; or # with no space before it, or with no value before it, is part of the value
+    const ModFile inside("[Main]\r\nsColor = #FF0000\r\nsList=a;b#c\r\nsEmpty = ; nothing\r\n");
+    CHECK(inside.file.value(Path{ "Main", "sColor" }, StoredType::String) == model::Value(std::string("#FF0000")));
+    CHECK(inside.file.value(Path{ "Main", "sList" }, StoredType::String) == model::Value(std::string("a;b#c")));
+    CHECK(inside.file.value(Path{ "Main", "sEmpty" }, StoredType::String) == model::Value(std::string("; nothing")));
+}
+
+TEST_CASE("IniFile: a write keeps a value's trailing comment and the spaces before it")
+{
+    ModFile mod("[Main]\r\nfTarget=8.5       #The target frame time\r\nbOn = true\t; on\r\n");
+    CHECK(mod.write({ { { "Main", "fTarget" }, 11.0f }, { { "Main", "bOn" }, false } }) == "[Main]\r\nfTarget=11.0       #The target frame time\r\nbOn = false\t; on\r\n");
 }
 
 TEST_CASE("IniFile: a bool is 1, true, yes or on, and 0, false, no or off, in any case")
@@ -166,7 +186,7 @@ TEST_CASE("IniFile: a value the file does not have, or of another type, is not o
     CHECK(mod.file.value(Path{ "Other", "fScale" }, StoredType::Float).error() == "fScale of [Other] is not in MyMod.ini");
     CHECK(mod.file.value(Path{ "iCount" }, StoredType::Int).error() == "iCount is not in MyMod.ini");
     CHECK(mod.file.value(Path{ "Main", "fScale" }, StoredType::Int).error() == "fScale of [Main] is \"1.250\" in MyMod.ini, which is not a whole number");
-    CHECK(mod.file.value(Path{ "Main", "sName" }, StoredType::Float).error() == "sName of [Main] is \"C:\\Games ; not a comment\" in MyMod.ini, which is not a number");
+    CHECK(mod.file.value(Path{ "Main", "sName" }, StoredType::Float).error() == "sName of [Main] is \"C:\\Games\" in MyMod.ini, which is not a number");
     CHECK(mod.file.value(Path{ "Main", "sEmpty" }, StoredType::Int).error() == "sEmpty of [Main] is \"\" in MyMod.ini, which is not a whole number");
 
     // a whole number has to fit in an int
@@ -213,7 +233,7 @@ TEST_CASE("IniFile: a write changes the values alone, and keeps the comments, th
           "fScale = 0.8\r\n"
           "fWhole = 2\r\n"
           "sEmpty =full\r\n"
-          "sName = D:\\Games\r\n"
+          "sName = D:\\Games ; the game's folder\r\n"
           "; fScale = 9.0\r\n"
           "# sName = commented\r\n"
           "\r\n"
@@ -252,7 +272,7 @@ TEST_CASE("IniFile: a key the file does not have is added after the last value o
             { { "Extra", "bOn" }, true },
             { { "Extra", "sName" }, std::string("Me") },
         });
-        CHECK(text.contains("sName = C:\\Games ; not a comment\r\niNew = 7\r\n; fScale = 9.0\r\n"));
+        CHECK(text.contains("sName = C:\\Games ; the game's folder\r\niNew = 7\r\n; fScale = 9.0\r\n"));
         CHECK(text.ends_with("[Body]\r\nfX=-0.5\r\nfY=0.25\r\n\r\n[Extra]\r\nbOn=1\r\nsName=Me\r\n"));
         CHECK(mod.file.value(Path{ "Main", "iNew" }, StoredType::Int) == model::Value(7));
         CHECK(mod.file.value(Path{ "Extra", "bOn" }, StoredType::Bool) == model::Value(true));
@@ -315,6 +335,11 @@ TEST_CASE("IniFile: a write that cannot be made in full writes nothing, with the
 
         const std::vector<IniFile::Change> spaces{ { { "Main", "sName" }, std::string(" padded ") } };
         CHECK_FALSE(writeChanges(mod.file, spaces));
+        CHECK(readFile(mod.path) == MOD_INI);
+
+        // a text that a trailing comment would cut short
+        const std::vector<IniFile::Change> comment{ { { "Main", "sName" }, std::string("D:\\Games # mine") } };
+        CHECK(writeChanges(mod.file, comment).error() == "sName of [Main] cannot be written as \"D:\\Games # mine\" in MyMod.ini");
         CHECK(readFile(mod.path) == MOD_INI);
     }
 
