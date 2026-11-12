@@ -1699,6 +1699,7 @@
               "keys": {
                 "kPrimaryBinding": { "text": "Take the light", "help": "Takes the light from your chest." },
                 "sEntryHaptic": { "text": "Hand reaches the light" },
+                "icons": { "text": "The light's marks" },
                 "sShowIcon": { "text": "Show the light's mark" },
                 "tZone": { "text": "Chest zone", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },
                 "tZonePA": { "text": "Chest zone in power armor", "valueOptions": { "position": { "step": 0.1 }, "rotation": false, "scale": { "min": 1, "max": 40, "step": 0.5 } } },

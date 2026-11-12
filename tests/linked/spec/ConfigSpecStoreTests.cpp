@@ -669,7 +669,7 @@ TEST_CASE("ConfigSpecStore: a sphere's key the file leaves out is its default, a
         "[Body]\r\n"
         "tZone = { pos = [1.0, 2.0, 3.0], scale = 20.0 }\r\n"
         "sEntryHaptic = \"Click\"  # entry\r\n");
-    constexpr std::size_t ICON_SIZE = 9;
+    constexpr std::size_t ICON_SIZE = 10;
     CHECK(session.store.value(session.sphereKey(1)).value == model::Value("Click"s));
     CHECK(session.store.value(session.sphereKey(ICON_SIZE)).value == model::Value(1.0f));
     CHECK(session.store.dirtyCount() == 0);
@@ -691,12 +691,12 @@ TEST_CASE("ConfigSpecStore: a sphere's binding set to None hides its haptic, and
         "kSecondaryBinding = { hand = \"primary\", type = \"tap\", button = \"grip\" }\r\n"
         "sShowIcon = \"always\"\r\n");
     constexpr std::size_t PRIMARY = 0;
-    constexpr std::size_t SHOW_ICON = 2;
+    constexpr std::size_t SHOW_ICON = 7;
     constexpr std::size_t PRIMARY_HAPTIC = 4;
     constexpr std::size_t SECONDARY = 5;
     constexpr std::size_t SECONDARY_HAPTIC = 6;
-    constexpr std::size_t ICON = 7;
-    constexpr std::size_t SPHERE_STYLE = 15;
+    constexpr std::size_t ICON = 8;
+    constexpr std::size_t SPHERE_STYLE = 16;
     const auto shown = [&session](const std::size_t place) {
         return model::holds(*session.sphereKey(place).visibleWhen, &session.store);
     };
@@ -727,9 +727,9 @@ TEST_CASE("ConfigSpecStore: a sphere's icon, mesh and texture are choices of the
     }
     session.data.write(R"(Meshes\MyMod\f4cf\activation-sphere.nif)", "");
     session.open("[Body]\r\nsIcon = 'Textures\\MyMod\\f4cf\\activation-icon-ring.dds'\r\n");
-    constexpr std::size_t ICON = 7;
-    constexpr std::size_t MESH = 16;
-    constexpr std::size_t TEXTURE = 17;
+    constexpr std::size_t ICON = 8;
+    constexpr std::size_t MESH = 17;
+    constexpr std::size_t TEXTURE = 18;
     REQUIRE(session.sphereKey(MESH).text == "Sphere mesh");
     REQUIRE(session.sphereKey(TEXTURE).text == "Sphere texture");
 
@@ -757,6 +757,38 @@ TEST_CASE("ConfigSpecStore: a sphere's icon, mesh and texture are choices of the
           "sSphereTexture = \"Textures\\\\MyMod\\\\f4cf\\\\debug-sphere.dds\"\r\n");
 }
 
+TEST_CASE("ConfigSpecStore: a sphere's Icons sets when its icon and its binding icon show, and moves the binding icon beside the icon for both")
+{
+    Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } })");
+    session.open(
+        "[Body]\r\n"
+        "sShowIcon = \"Always\"\r\n"
+        "tBindingIcon = { scale = 0.8 }\r\n");
+    constexpr std::size_t ICONS = 2;
+    constexpr std::size_t SHOW_ICON = 7;
+    constexpr std::size_t SHOW_BINDING_ICON = 11;
+    constexpr std::size_t BINDING_ICON = 13;
+    const auto value = [&session](const std::size_t place) {
+        return session.store.value(session.sphereKey(place)).value;
+    };
+
+    // an icon shown always is none of its options, and its default is the framework's icon alone
+    CHECK(value(ICONS) == model::Value(""s));
+    CHECK(session.store.defaultValue(session.sphereKey(ICONS)) == model::Value("icon"s));
+
+    CHECK(session.store.set(session.sphereKey(ICONS), "both"s));
+    CHECK(value(SHOW_ICON) == model::Value("wheninside"s));
+    CHECK(value(SHOW_BINDING_ICON) == model::Value("wheninside"s));
+    CHECK(value(BINDING_ICON) == model::Value("{ pos = [0.65, -0.65, 0.0], scale = 1.2 }"s));
+    CHECK(value(ICONS) == model::Value("both"s));
+
+    // the binding alone is in the icon's place
+    CHECK(session.store.set(session.sphereKey(ICONS), "binding"s));
+    CHECK(value(SHOW_ICON) == model::Value("never"s));
+    CHECK(value(BINDING_ICON) == model::Value("{ pos = [0.0, 0.0, 0.0], scale = 1.0 }"s));
+    CHECK(value(ICONS) == model::Value("binding"s));
+}
+
 TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework does, with no regard to case and separators, and with its other words")
 {
     Session session(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] }, "keys": { "sSphereOrientation": true } })");
@@ -766,11 +798,11 @@ TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework do
         "sShowSphere = \"inside\"\r\n"
         "sSphereStyle = \"Cyan_Subtle\"\r\n"
         "sSphereOrientation = \"head\"\r\n");
-    constexpr std::size_t SHOW_ICON = 2;
-    constexpr std::size_t ICON = 7;
-    constexpr std::size_t SHOW_SPHERE = 14;
-    constexpr std::size_t SPHERE_STYLE = 15;
-    constexpr std::size_t SPHERE_ORIENTATION = 16;
+    constexpr std::size_t SHOW_ICON = 7;
+    constexpr std::size_t ICON = 8;
+    constexpr std::size_t SHOW_SPHERE = 15;
+    constexpr std::size_t SPHERE_STYLE = 16;
+    constexpr std::size_t SPHERE_ORIENTATION = 17;
     const auto word = [&session](const std::size_t place) {
         const auto stored = session.store.value(session.sphereKey(place));
         CHECK_FALSE(stored.invalid);
@@ -802,7 +834,7 @@ TEST_CASE("ConfigSpecStore: a sphere's dropdown reads a word as the framework do
     }
 
     // which bindings have an icon, with the framework's other words for them
-    constexpr std::size_t BINDING_ICONS = 11;
+    constexpr std::size_t BINDING_ICONS = 12;
     for (const auto& [synonym, option] : { std::pair{ "Both", "all"s }, std::pair{ "hand", "inside"s }, std::pair{ "When_Inside", "inside"s } }) {
         Session icons(R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } })");
         icons.open(std::format("[Body]\r\nsBindingIcons = \"{}\"\r\n", synonym));

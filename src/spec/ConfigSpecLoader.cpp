@@ -338,6 +338,7 @@ namespace
     constexpr std::array<std::string_view, 9> SPHERE_FIELDS{ "type", "id", "text", "help", "storage", "keys", "applies", "visibleWhen", "enabledWhen" };
     // a key of a sphere's `keys`, written as an object:
     constexpr std::array<std::string_view, 8> SPHERE_KEY_FIELDS{ "text", "help", "default", "valueOptions", "applies", "visibleWhen", "enabledWhen", "warnings" };
+    constexpr std::array<std::string_view, 5> SPHERE_ICONS_FIELDS{ "text", "help", "valueOptions", "visibleWhen", "enabledWhen" };
     // a setting's parts:
     constexpr std::array<std::string_view, 22> VALUE_OPTIONS_FIELDS{ "min",
         "max",
@@ -2021,6 +2022,12 @@ namespace
     constexpr auto SPHERE_PRIMARY_BINDING = "kPrimaryBinding";
     constexpr auto SPHERE_ZONE_PA = "tZonePA";
     constexpr auto SPHERE_STYLE = "sSphereStyle";
+    constexpr auto SPHERE_SHOW_ICON = "sShowIcon";
+    constexpr auto SPHERE_SHOW_BINDING_ICON = "sShowBindingIcon";
+    constexpr auto SPHERE_BINDING_ICON = "tBindingIcon";
+
+    // the name in `keys` of a sphere's Icons row, which is no key of its section
+    constexpr auto SPHERE_ICONS = "icons";
 
     constexpr std::array SPHERE_KEYS{
         SphereKey{ SPHERE_PRIMARY_BINDING,
@@ -2110,7 +2117,7 @@ namespace
             SpherePart::Visuals,
             "sShowBindingIcon",
             false,
-            R"({ "type": "cf.transform", "text": "Binding icon position", "help": "Where the row of icons is from the zone's center: x right, y up, z toward your eyes. A positive x starts the row there, a negative x ends it there. Its scale is each icon's longer side, in game units.",
+            R"({ "type": "cf.transform", "text": "Binding icon position and size", "help": "Where the row of icons is from the zone's center: x right, y up, z toward your eyes. A positive x starts the row there, a negative x ends it there. Its scale is each icon's longer side, in game units.",
                 "default": { "pos": [0.0, 0.0, 0.0], "scale": 1.0 },
                 "valueOptions": { "position": { "min": -10, "max": 10, "step": 0.1 }, "rotation": false, "scale": { "min": 0.1, "max": 10, "step": 0.1 } } })" },
         SphereKey{ "cBindingIconColor",
@@ -2285,6 +2292,58 @@ namespace
     }
 
     /**
+     * The Icons row of a sphere: a stepper of the icons it draws, whose options set the keys that say when the icon and
+     * the binding icon are drawn, and the binding icon's place and size where it has a row: at the zone's center for the
+     * binding alone, in the icon's place, and at the lower right of an icon of the framework's size for both. Its object
+     * in `keys` gives it its `text`, `help` and
+     * conditions, and `valueOptions`, whose `options` replace the four.
+     */
+    Json sphereIconsRow(const Json& keys, const model::FileStorage& section, ConfigSpecReading& reading)
+    {
+        const auto showIcon = sphereKeyId(section, SPHERE_SHOW_ICON);
+        const auto showBindingIcon = sphereKeyId(section, SPHERE_SHOW_BINDING_ICON);
+        const bool hasPlace = !isHiddenKey(keys, SPHERE_BINDING_ICON);
+        const auto sets = [&](const std::string_view icon, const std::string_view binding, const std::optional<double> pos, const std::optional<double> scale) {
+            Json set{ { showIcon, icon }, { showBindingIcon, binding } };
+            if (pos && hasPlace) {
+                // 0 - pos keeps the center's y a zero, where -pos is -0
+                set[sphereKeyId(section, SPHERE_BINDING_ICON)] = Json{ { "pos", Json::array({ *pos, 0.0 - *pos, 0.0 }) }, { "scale", scale.value_or(1.0) } };
+            }
+            return set;
+        };
+        const auto option = [](const std::string_view value, const std::string_view text, const std::string_view help, Json set) {
+            return Json{ { "value", value }, { "text", text }, { "help", help }, { "sets", std::move(set) } };
+        };
+
+        Json row{ { "type", "stepper" },
+            { "valueType", "string" },
+            { "id", sphereKeyId(section, SPHERE_ICONS) },
+            { "text", "Icons" },
+            { "help", "Which icons show at the zone: its icon, the icons of its bindings, or both. Visuals sets when each shows and how it looks." },
+            { MADE_ROW_PATH, std::format("keys.{}", SPHERE_ICONS) } };
+        row["valueOptions"]["options"] = Json::array({ option("none", "None", "No icon shows.", sets("never", "never", std::nullopt, std::nullopt)),
+            option("icon", "Icon", "Its icon shows while a hand is in the zone.", sets("wheninside", "never", std::nullopt, std::nullopt)),
+            option("binding", "Binding", "The icons of its bindings show while a hand is in the zone, in the icon's place.", sets("never", "wheninside", 0.0f, 1.25f)),
+            option("both",
+                "Icon and binding",
+                "Its icon shows while a hand is in the zone, and the icons of its bindings beside it.",
+                sets("wheninside", "wheninside", 0.65f, 1.0f)) });
+
+        if (const auto own = keys.find(SPHERE_ICONS); own != keys.end() && own->is_object()) {
+            const Into into(reading, row[MADE_ROW_PATH].get_ref<const std::string&>());
+            checkFields(*own, SPHERE_ICONS_FIELDS, reading);
+            for (const auto& [field, value] : own->items()) {
+                if (field == "valueOptions") {
+                    row[field].merge_patch(value);
+                } else if (std::ranges::find(SPHERE_ICONS_FIELDS, field) != SPHERE_ICONS_FIELDS.end()) {
+                    row[field] = value;
+                }
+            }
+        }
+        return row;
+    }
+
+    /**
      * Whether a sphere's power-armor zone has a row: its file has the key, or its object in `keys` gives the `default` of
      * a mod that has one of its own. With neither the framework uses the zone, so it is as if `keys` hid it, as it is with
      * a file that is not there: `keys` naming it then, of a file that is read, is reported.
@@ -2322,7 +2381,7 @@ namespace
             reading.report(model::Severity::Warning, "Its keys are not an object: each key is shown with its default name.");
             return Json::object();
         }
-        std::vector<std::string_view> names;
+        std::vector<std::string_view> names{ SPHERE_ICONS };
         for (const auto& key : SPHERE_KEYS) {
             names.push_back(key.name);
         }
@@ -2346,7 +2405,9 @@ namespace
     /**
      * The section a `cf.activationSphere` row is, which the rows of a config spec are then read as: its heading, its main
      * rows, and Position and size, Activation and Visuals, which fold and start folded, each left out with no row. Each key that is
-     * shown is an ordinary setting of the section's file. Its `applies` is its own, or the nearest above it, or `live`, as
+     * shown is an ordinary setting of the section's file. The main rows end with Icons (`sphereIconsRow`), which picks
+     * the icons it draws, and Show icon is then under Visuals: unless `keys` hides Icons, or a Show key it sets, as
+     * `icons: false` does. Its `applies` is its own, or the nearest above it, or `live`, as
      * the framework previews a key. Its storage is the section, in a TOML file: one that is not has no rows, and is
      * reported, and so is a file that has no such section, whose keys show their defaults.
      */
@@ -2393,13 +2454,19 @@ namespace
         }
 
         const auto keys = sphereKeys(row, reading);
+        const bool icons = !isHiddenKey(keys, SPHERE_ICONS) && !isHiddenKey(keys, SPHERE_SHOW_ICON) && !isHiddenKey(keys, SPHERE_SHOW_BINDING_ICON);
         std::array<Json, SPHERE_SECTIONS.size() + 1> rows{ Json::array(), Json::array(), Json::array(), Json::array() };
         for (const auto& key : SPHERE_KEYS) {
             const bool hiddenWithControl = key.control.starts_with('s') && isHiddenKey(keys, key.control);
             const bool shown = !isHiddenKey(keys, key.name) && !hiddenWithControl && (!key.namedOnly || keys.contains(std::string(key.name)));
             if (shown && (key.name != SPHERE_ZONE_PA || hasZonePA(keys, *file, reading))) {
-                rows[static_cast<std::size_t>(key.part)].push_back(sphereKeyRow(key, keys, *file, reading));
+                // with the Icons row, Show icon is the first of the icon's rows
+                const auto part = icons && key.name == SPHERE_SHOW_ICON ? SpherePart::Visuals : key.part;
+                rows[static_cast<std::size_t>(part)].push_back(sphereKeyRow(key, keys, *file, reading));
             }
+        }
+        if (icons) {
+            rows[0].push_back(sphereIconsRow(keys, *file, reading));
         }
         section["content"] = std::move(rows[0]);
         for (std::size_t part = 0; part < SPHERE_SECTIONS.size(); ++part) {
