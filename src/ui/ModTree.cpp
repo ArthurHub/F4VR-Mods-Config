@@ -45,6 +45,8 @@ namespace
     // press opened are scrolled to
     constexpr float CATEGORY_RULE_MIN_WIDTH = theme::SPACE_4;
     constexpr std::size_t CATEGORY_SHOWN_MODS = 3;
+    // how many of the first pages of a mod that a press selected are scrolled to
+    constexpr std::size_t MOD_SHOWN_PAGES = 4;
 
     /**
      * The arrow before the name of a row: none for a page with no pages, down for a row whose pages are the
@@ -405,7 +407,7 @@ namespace mods_config::ui
      * bottom of the mod's own row, on the screen.
      */
     float ModTree::drawMod(const std::vector<model::Mod>& mods, const std::size_t modIndex, const int level, const Selection& selection, const float rowWidth, TreeDrawn& drawn,
-        model::Store* store) const
+        model::Store* store)
     {
         const auto& mod = mods[modIndex];
         const bool selected = selection.mod == modIndex;
@@ -425,6 +427,9 @@ namespace mods_config::ui
         bool pointed = false;
         if (treeRow(mod.displayName, tag, level, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed, {}, unsaved > 0)) {
             drawn.pressed = Selection{ .mod = modIndex, .page = {} };
+            if (!selected && !mod.pages.empty()) {
+                _openedMod = modIndex;
+            }
         }
         const float rowBottom = ImGui::GetItemRectMax().y;
         if (pointed && (mcm || !mod.help.empty() || unsaved > 0)) {
@@ -433,6 +438,15 @@ namespace mods_config::ui
         if (open) {
             std::vector<std::size_t> path;
             drawPages(mod.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);
+            if (_openedMod == modIndex) {
+                // the room of the first pages, under the mod's row, scrolled to where they are under the shown rows
+                const float shownCount = static_cast<float>((std::min)(mod.pages.size(), MOD_SHOWN_PAGES));
+                const float pagesBottom = rowBottom + shownCount * (theme::SPACE_1 + theme::CONTROL_HEIGHT);
+                if (pagesBottom > ImGui::GetWindowPos().y + ImGui::GetWindowHeight()) {
+                    ImGui::SetScrollFromPosY(pagesBottom + theme::SPACE_1 - ImGui::GetWindowPos().y, 1.0f);
+                }
+                _openedMod.reset();
+            }
         }
         ImGui::PopID();
         return rowBottom;

@@ -84,8 +84,7 @@ namespace mods_config::ui
     private:
         void drawCategories(const std::vector<model::Mod>& mods, const std::vector<model::CategoryGroup>& categories, const Selection& selection, float rowWidth, TreeDrawn& drawn,
             model::Store* store);
-        float drawMod(const std::vector<model::Mod>& mods, std::size_t modIndex, int level, const Selection& selection, float rowWidth, TreeDrawn& drawn,
-            model::Store* store) const;
+        float drawMod(const std::vector<model::Mod>& mods, std::size_t modIndex, int level, const Selection& selection, float rowWidth, TreeDrawn& drawn, model::Store* store);
         void drawPages(const std::vector<model::Page>& pages, std::size_t modIndex, int level, const Selection& selection, std::vector<std::size_t>& path, float rowWidth,
             TreeDrawn& drawn, model::Store* store) const;
         void drawFound(const std::vector<model::Mod>& mods, const Selection& selection, const TreeSearch& search, float rowWidth, TreeDrawn& drawn) const;
@@ -107,6 +106,9 @@ namespace mods_config::ui
 
         // the category a press opened, whose first mods are scrolled to when they are drawn next: none for none
         std::optional<std::string> _openedCategory;
+
+        // the mod a press selected, whose first pages are scrolled to when they are drawn next: none for none
+        std::optional<std::size_t> _openedMod;
 
         // the selected mod's store while its session has a change, which the rows of its pages count theirs in:
         // none while it has none, in the frame that is drawn
