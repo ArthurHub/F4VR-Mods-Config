@@ -1,6 +1,8 @@
-## Development versions
+## v1.0.0
 
-Not released: each is a milestone of the [work plan](design/mod-plan.md).
+The first release. From it, the config spec schema and the native API only grow: a config spec and a DLL built for 1.0 keep working on every later version.
+
+## Development versions
 
 ### v0.14.0
 

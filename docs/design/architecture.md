@@ -136,7 +136,6 @@ A mod's DLL talks to the host through [`ModsConfigFO4Api.h`](../../src/api/ModsC
 
 - The API only grows: methods and struct fields are added only at the end, nothing changes or is removed, and `getVersion` counts additions. A client uses later additions after checking `apiVersion()`; one that needs a newer menu asks `connect` for that version.
 - A client registers with its header's version, so the host calls only the `IClient` methods it has.
-- Before mod 1.0, V1 changes as milestones need and stays version 1, so clients rebuild against the menu's header. From 1.0 it only grows.
 
 ### The client
 

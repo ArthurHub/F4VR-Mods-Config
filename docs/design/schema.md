@@ -1,6 +1,6 @@
 # Declarative schema
 
-The config spec JSON format. It changes as needed until mod 1.0, then only grows ([Schema version](#schema-version)). A config spec has everything an MCM config has, under MCM's names where MCM has the same thing, plus more ([A config spec and MCM](#a-config-spec-and-mcm)). Examples use a made-up CommonFramework-style mod, My Mod.
+The config spec JSON format. It only grows ([Schema version](#schema-version)). A config spec has everything an MCM config has, under MCM's names where MCM has the same thing, plus more ([A config spec and MCM](#a-config-spec-and-mcm)). Examples use a made-up CommonFramework-style mod, My Mod.
 
 ## Config spec location
 
@@ -62,7 +62,7 @@ One number that only grows. A config spec ships with its mod and isn't updated w
 
 - `minSchemaVersion` is required, a whole number from 1. Without it the config spec isn't loaded (reported).
 - On an older host the mod is [not available](ui-and-vr-interaction.md#notices), naming the version needed.
-- Before mod 1.0 the schema stays at 1 and changes freely; the rules hold from 1.0. Later additions are documented with their version.
+- Later additions are documented with their version.
 - An unknown field is a diagnostic and the rest is read, so typos are caught and a newer optional field degrades on an older host.
 
 ### Category

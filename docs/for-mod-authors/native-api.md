@@ -214,5 +214,4 @@ modsConfig.addQuickLaunch("openPipboyConfig", { .text = "FRIK: Pip-Boy", .help =
 
 ## Versions
 
-- Until version 1.0 of Mods Config FO4 VR, the API changes as the work needs it, so build your DLL with the header of the menu it runs with.
-- From 1.0 it only grows: a newer menu takes a client of an older header. A client of a newer header checks `modsConfig.apiVersion()` before it uses what was added, or passes the version it needs to `connect`, which an older menu then refuses.
+- The API only grows: a newer menu takes a client of an older header. A client of a newer header checks `modsConfig.apiVersion()` before it uses what was added, or passes the version it needs to `connect`, which an older menu then refuses.

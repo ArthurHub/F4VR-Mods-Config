@@ -9,8 +9,6 @@ The menu stands in the world and never pauses the game, so you see and feel your
 
 ![The menu in the game, on its own mod's page](docs/assets/mods-config-front-page.jpg)
 
-It is in alpha: editing lists and hand poses, and translations of mods that have no game plugin are still to come.
-
 ## Table of Contents
 
 - [Features](#features)
