@@ -1,31 +1,43 @@
 # For Mod Authors
 
-How to give your mod a page in Mods Config FO4 VR: which way fits your mod, your first config spec, how it ships with your mod, and how you test it in the game.
+How to give your mod a page in Mods Config FO4 VR: why a config spec, your first one, how it ships with your mod, and how you test it in the game.
 
-Using the menu: [documentation](../README.md). Problems: [FAQ](../faq.md#for-mod-authors).
-
-## Contents
-
-- [Which Way Fits Your Mod](#which-way-fits-your-mod)
+- [Why a Config Spec](#why-a-config-spec)
 - [Your First Config Spec](#your-first-config-spec)
-- [Shipping It](#shipping-it)
 - [Testing It in the Game](#testing-it-in-the-game)
-- [Next](#next)
+- [Shipping It](#shipping-it)
+- More
+  - [Showcase walkthrough](showcase.md)
+  - [MCM compatibility](mcm.md)
+  - [Config Spec vs MCM](config-spec-vs-mcm.md)
+  - [Native API](native-api.md)
+  - [AI agent prompt](ai-agent.md)
+  - [FAQ](../faq.md#for-mod-authors)
 
-## Which Way Fits Your Mod
+## Why a Config Spec
 
-| Your mod has | What you do | What players get |
-| --- | --- | --- |
-| An MCM menu | Nothing | Its MCM menu, as it is. A change is made as the player makes it, as in MCM's menu, with Keep and Revert. |
-| Settings in INI or TOML files, or in its scripts' globals and properties | A config spec: one `spec.json`, and no code | Its page in the menu: VR controls, Save and Discard, values checked as they are typed, and when each change takes effect. |
-| A DLL built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework) | A config spec. The framework connects your DLL to the menu by itself | All of the above, and live preview: each change shows in the game as it is made, before Save. |
-| A DLL of its own | A config spec, and the [native API](native-api.md) | Live preview, buttons that run your functions, options and states only your code knows, and your own UI opened from the menu. |
+Your MCM menu already works in Mods Config FO4 VR, as it is. A config spec gives your players, and you, more:
 
-A config spec says what the page shows and where each value is kept. The menu reads and writes your mod's real files: there is no copy of your settings anywhere else. Your mod keeps reading its files as it does now, and a CommonFramework mod already reloads its TOML as it changes.
+- **Your own files:** INI and TOML files, in `Data` or `My Games`, and your scripts' globals and properties, edited in place.
+- **A richer page, with no code:** pages and sections that nest, conditions, warnings, presets, and images as textures.
+- **Save and Discard,** with Reset to a default, and when each change takes effect.
+- **Live preview** before Save, for globals, properties and any DLL.
+- **The Common Framework's controls:** bindings, haptics, colors, and positions tuned in the world.
+- **Tools for you:** errors and warnings with where each is, and a live copy that reloads as you save it. See [Testing It in the Game](#testing-it-in-the-game).
 
-### Both an MCM menu and a config spec
+The full list, and moving from MCM: [Config spec vs MCM](config-spec-vs-mcm.md).
 
-A mod can ship both, with the config spec's `modName` the MCM config's `modName`. Mods Config FO4 VR lists the mod by its config spec, and MCM's own menu keeps showing the MCM config. So you keep MCM for the players who use it, and give the players of this menu its VR controls, Save and Discard, and live preview: the best of both. See [Keeping both](mcm.md#keeping-both), which has what both menus should share.
+### From No Code to a DLL
+
+- **No code:** a config spec, one `spec.json`, is all a mod with its settings in files, globals or properties needs.
+- **The [native API](native-api.md),** for a mod with a DLL: live preview of each change before Save, buttons that run your functions, states and options only your code knows, your own UI opened from the menu, and what the player is on, to show in the world what it sets.
+- **Easier on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework):** the framework connects your DLL by itself and handles the config's lifecycle. It applies each live change by reloading your config, with no code, and you add only what is your own, through the same API.
+
+### Keep Your MCM Menu Too
+
+You don't lose the players who don't have Mods Config FO4 VR. Ship your config spec beside your MCM config, with the same `modName`: this menu shows the config spec, and MCM keeps showing your MCM menu to everyone else.
+
+Moving is quick, since a config spec uses MCM's names and most of an MCM config carries over: [Moving From MCM](config-spec-vs-mcm.md#moving-from-mcm). A global or a property is the same value in both menus; a ModSetting isn't: [Keeping Both](mcm.md#keeping-both).
 
 ## Your First Config Spec
 
@@ -70,6 +82,20 @@ An AI agent can write it for you, from your mod's files: [the prompt](ai-agent.m
 
 Every field is in the [config spec schema](../design/schema.md).
 
+## Testing It in the Game
+
+Turn on **Developer tools**: in the menu, pick **Mods Config FO4 VR**, then the **Developer** page.
+
+- The menu's front page then has a **Developer** section, with each config spec's errors and warnings. Press your mod's row for its report: each problem, and where it is in `spec.json`. A press on a problem goes to its row.
+- **Read the live copy**, in the report, copies your `spec.json` to `Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\Dev\<your mod>\spec.json` and reads that copy instead. It reads it again each time you save it, so you edit it on the desktop while the game runs, and see the change in the headset. **Edit on desktop** opens it in your editor. When it's right, copy it back into your mod.
+- The log, `Documents\My Games\Fallout4VR\F4SE\ModsConfigFO4VR.log`, has every problem too.
+
+| | |
+| --- | --- |
+| [![The front page's Developer section](../assets/developer-front-page.jpg)](../assets/developer-front-page.jpg) | [![The Showcase's report, with Read the live copy and its errors](../assets/developer-report.jpg)](../assets/developer-report.jpg) |
+
+The Showcase's **Mistakes** page has what a config spec can get wrong, each with the error the menu reports.
+
 ## Shipping It
 
 The config spec ships in your mod's archive, beside the rest of your files:
@@ -85,20 +111,3 @@ Data\
 - `minSchemaVersion` is `1`. From version 1.0 of Mods Config FO4 VR the schema only grows, so a config spec keeps working on every later version.
 - Your settings file doesn't have to exist: the menu creates it on the first Save that changes one of its settings.
 - Give your mod a `category`, as `"category": "Gameplay"`, so a long list shows it under that name. Use one of the twelve shipped names where one fits: [Category](../design/schema.md#category). An MCM config can have the same root field.
-
-## Testing It in the Game
-
-Turn on **Developer tools**: in the menu, pick **Mods Config FO4 VR**, then the **Developer** page.
-
-- The menu's front page then has a **Developer** section, with each config spec's errors and warnings. Press your mod's row for its report: each problem, and where it is in `spec.json`. A press on a problem goes to its row.
-- **Read the live copy**, in the report, copies your `spec.json` to `Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\Dev\<your mod>\spec.json` and reads that copy instead. It reads it again each time you save it, so you edit it on the desktop while the game runs, and see the change in the headset. **Edit on desktop** opens it in your editor. When it's right, copy it back into your mod.
-- The log, `Documents\My Games\Fallout4VR\F4SE\ModsConfigFO4VR.log`, has every problem too.
-
-The Showcase's **Mistakes** page has what a config spec can get wrong, each with the error the menu reports.
-
-## Next
-
-- **[The Showcase walkthrough](showcase.md):** each thing a config spec does, with the Showcase's JSON for it and a picture of the page it draws.
-- **[Writing it with an AI agent](ai-agent.md):** a ready prompt for an agent that writes your config spec from your mod's files.
-- **[MCM compatibility](mcm.md):** what your MCM menu gets as it is, what a config spec adds, and moving from MCM, or keeping both.
-- **[The native API](native-api.md),** for DLL authors: what your DLL adds to its config spec, and how.

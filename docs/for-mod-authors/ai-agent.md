@@ -2,7 +2,7 @@
 
 A ready prompt for an AI coding agent, such as Claude Code, Codex or Copilot, that writes your mod's config spec. The config spec is a new format, so the prompt points the agent at its docs and the Showcase before it writes anything.
 
-Where to start: [For Mod Authors](README.md). Every field of a config spec: the [config spec schema](../design/schema.md).
+Where to start: [For Mod Authors](README.md). Every field of a config spec: the [config spec schema](../design/schema.md). Each thing it does, with its JSON: the [Showcase walkthrough](showcase.md).
 
 ## Before You Start
 
@@ -23,7 +23,7 @@ Write a config spec for my Fallout 4 VR mod: one `spec.json` that gives the mod 
 2. The schema, every field: https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/docs/design/schema.md
 3. The Showcase config spec, a working example of every feature: https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/data/showcase/ModsConfigFO4/Config/ModsConfigFO4_Showcase/spec.json
    Its front page and General page are a complete small config spec, and its Detailed Examples page has the rest. Its Mistakes page is wrong on purpose: never copy from it.
-4. If the mod has an MCM menu (`Data\MCM\Config\<mod>\config.json`): https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/docs/for-mod-authors/mcm.md
+4. If the mod has an MCM menu (`Data\MCM\Config\<mod>\config.json`): https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/docs/for-mod-authors/config-spec-vs-mcm.md
 5. If the mod has a DLL not built on the F4VR Common Framework: https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/docs/for-mod-authors/native-api.md
    Write the config spec first; the native API is a later step I decide on.
 
@@ -34,7 +34,7 @@ Work from the mod's files and source, never from guesses.
 - Find each setting a player should change: keys of its INI and TOML files, and its scripts' globals and properties. For each, note where it is kept (file, section and key; or plugin and form id, script and property), its type, its default, its range or options, and what it does in the game.
 - `default` is the mod's own default, what Reset sets: take it from the shipped file or the code that reads the setting.
 - Take ranges from the code (clamps, checks) or the shipped file's comments. Where there are none, choose a sensible range and tell me.
-- An MCM config is the best map of the settings: carry it over as the MCM guide's "Moving to a Config Spec" table says.
+- An MCM config is the best map of the settings: carry it over as the "Moving From MCM" table of Config Spec vs MCM says.
 - Ask me before you guess: a setting's meaning, range or file, or whether players should change it at all.
 
 ## Write it
@@ -64,8 +64,3 @@ You can't run the game; I test it, and you fix what the menu reports.
 
 When you are done, list for me: the settings you left out and why, each default and range you chose rather than found, and what to check in the headset.
 ````
-
-## Next
-
-- **[The Showcase walkthrough](showcase.md):** each thing a config spec does, with the JSON the agent copies from.
-- **[Testing It in the Game](README.md#testing-it-in-the-game):** the Developer report and the live copy the prompt uses.

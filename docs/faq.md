@@ -196,7 +196,7 @@ Pick **Mods Config FO4 VR** in the list, then the **Categories** page, and pick 
   <summary>How do I give my mod a menu?</summary>
 &#10240;
 
-With a config spec: a `spec.json` installed with your mod under `Data\ModsConfigFO4\Config\<your mod>\`. It needs no code. Start from the Showcase download's config spec. See [For Mod Authors](for-mod-authors/README.md).
+With a config spec: a `spec.json` installed with your mod under `Data\ModsConfigFO4\Config\<your mod>\`. It needs no code. Start from the Showcase download's config spec, or have an AI agent write it from your mod's files with [the prompt](for-mod-authors/ai-agent.md). See [For Mod Authors](for-mod-authors/README.md).
 
 </details>
 
@@ -204,7 +204,7 @@ With a config spec: a `spec.json` installed with your mod under `Data\ModsConfig
   <summary>My mod has an MCM menu. Do I have to change anything?</summary>
 &#10240;
 
-No: it's shown as it is. A config spec whose `modName` is your MCM config's `modName` replaces it in this menu, and MCM's own menu keeps the MCM config.
+No: it's shown as it is. To give the players of this menu more, as Save and Discard, live preview and a richer page, ship a config spec beside it with the same `modName`. This menu shows the config spec, and MCM's own menu keeps your MCM config, so no player loses it. See [Config spec vs MCM](for-mod-authors/config-spec-vs-mcm.md).
 
 </details>
 

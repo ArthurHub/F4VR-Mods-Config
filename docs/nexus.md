@@ -54,13 +54,15 @@ Still planned: editing lists and hand poses, and translations for mods without a
 
 [size=3][b]Manage your mods[/b][/size]
 [list]
+[*][size=3][b]Search:[/b] Find any setting across all your mods by typing its name, which MCM can't do. The list shows the mods and pages that match, with how many, and a page shows only its settings that match.[/size]
+[*][size=3][b]Categories:[/b] A long mod list is grouped by category. Move a mod to another category, or type a new one, on the Categories page.[/size]
 [*][size=3][b]Existing MCM menus:[/b] Displays your MCM menus with their pages, images, and translations. Buttons and presets run their original scripts, hotkeys are shown, and changes work as they do in MCM. Use Keep or Revert to accept or undo changes.[/size]
 [*][size=3][b]Native mod configuration:[/b] Mods with a config spec can expose their INI, TOML, and script settings directly in VR. Config files retain their comments and layout when saved.[/size]
-[*][size=3][b]Search:[/b] Type a name to find a setting in any mod. The list shows the mods and pages that match, and a page shows only its settings that match.[/size]
-[*][size=3][b]Categories:[/b] A long mod list is grouped by category. Move a mod to another category, or type a new one, on the Categories page.[/size]
 [*][size=3][b]Quick launch:[/b] Open a mod's own configuration interface, such as FRIK's, from the menu. Mods Config returns when that interface closes.[/size]
 [*][size=3][b]Notices:[/b] A mod that can't be shown says why, such as a plugin it needs that isn't loaded, and a saved change that needs a restart tells you so.[/size]
 [/list]
+
+[center][img]https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/docs/assets/search.jpg[/img][/center]
 
 [size=3][b]Built for VR[/b][/size]
 [list]
@@ -108,18 +110,15 @@ Still planned: editing lists and hand poses, and translations for mods without a
 Other mods show up through their existing MCM menus, or through a config spec their author adds.[/size]
 
 [size=4][b]For Mod Authors[/b][/size]
-[size=3]Mods Config FO4 VR is designed to make VR-native configuration accessible to other mod developers.
-
-There are several integration options:[/size]
+[size=3]MCM menus work as they are. A config spec, one JSON file with no code, gives your mod's page more, and can ship beside your MCM menu:[/size]
 [list]
-[*][size=3][b]Config spec (no code):[/b] Add a JSON file to your mod to expose INI, TOML, and Papyrus global or property settings through the menu.[/size]
-[*][size=3][b]F4VR CommonFramework:[/b] Mods using CommonFramework can get live preview support without additional code.[/size]
-[*][size=3][b]Native API:[/b] A DLL can register for live previews, buttons that execute native functions, and custom configuration interfaces.[/size]
-[*][size=3][b]MCM compatibility:[/b] Existing MCM menus work as they are. A config spec can also replace an MCM menu with more advanced controls.[/size]
-[*][size=3][b]Showcase:[/b] The optional Showcase download includes an MCM menu and a config spec demonstrating the available features. Use it as a starting point.[/size]
-[*][size=3][b]AI agent prompt:[/b] A [url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/for-mod-authors/ai-agent.md]ready prompt[/url] for an AI agent that writes your mod's config spec from its files.[/size]
+[*][size=3][b]Your own files:[/b] INI and TOML files, and Papyrus globals and properties, edited in place.[/size]
+[*][size=3][b]A richer page:[/b] pages and sections that nest, conditions, warnings, presets, and images as textures.[/size]
+[*][size=3][b]Save and Discard,[/b] with Reset to a default, and when each change takes effect.[/size]
+[*][size=3][b]Live preview[/b] before Save: with no code for F4VR CommonFramework mods, and for any DLL through the native API.[/size]
+[*][size=3][b]Developer tools:[/b] errors and warnings in the headset, and a live copy that reloads as you save it.[/size]
 [/list]
-[size=3]See the [url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/for-mod-authors/README.md]Mod Author Documentation[/url] for implementation details.[/size]
+[size=3]Start from the optional Showcase download, or have an AI agent write it with the [url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/for-mod-authors/ai-agent.md]ready prompt[/url]. Details: [url=https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/for-mod-authors/README.md]Mod Author Documentation[/url].[/size]
 
 [size=4][b]Configuration File[/b][/size]
 [size=3]The menu's own settings are stored in [b]ModsConfigFO4VR.toml[/b]. The game reloads this file when it is saved, and you can edit these settings directly through Mods Config.
