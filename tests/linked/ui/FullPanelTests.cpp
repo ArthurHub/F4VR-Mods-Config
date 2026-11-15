@@ -30,6 +30,15 @@
 
 using namespace mods_config;
 using test_panel::CONTENT_START;
+using test_panel::drawFrames;
+using test_panel::pageRow;
+using test_panel::point;
+using test_panel::pressActs;
+using test_panel::pressKey;
+using test_panel::search;
+using test_panel::searchField;
+using test_panel::TREE_HEADER_HEIGHT;
+using test_panel::typeText;
 using ui::FullPanel;
 using ui::Selection;
 
@@ -40,8 +49,7 @@ namespace
     // the distance from a section's heading to the row under it
     constexpr float SECTION_HEADING_PITCH = 45.0f;
 
-    // the tree's header and the distance from a row of it to the next, as ModTree.cpp has them
-    constexpr float TREE_HEADER_HEIGHT = 40.0f;
+    // the distance from a row of the tree to the next, as ModTree.cpp has it
     constexpr float TREE_ROW_PITCH = theme::CONTROL_HEIGHT + theme::SPACE_1;
 
     // what the help line says of an MCM mod's row in the tree
@@ -85,13 +93,6 @@ namespace
         return { .mod = mod, .page = { page } };
     }
 
-    void drawFrames(FullPanel& panel, const int count)
-    {
-        for (int i = 0; i < count; ++i) {
-            test_panel::drawFrame(panel, test_panel::POINTER_AWAY);
-        }
-    }
-
     /**
      * A press of the trigger with the ray at a place on the panel: the ray comes there, presses and lets go.
      */
@@ -109,16 +110,6 @@ namespace
     {
         const float rowsTop = CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + TREE_HEADER_HEIGHT + theme::SPACE_1;
         return { CONTENT_START + theme::SPACE_2 + 100.0f, rowsTop + static_cast<float>(place) * TREE_ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f };
-    }
-
-    /**
-     * The middle of a row of a page, by its place among the rows, while the page is at its top and has rows of
-     * controls alone.
-     */
-    ImVec2 pageRow(const int place)
-    {
-        const float rowsTop = CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3;
-        return { CONTENT_START + theme::NAV_WIDTH + theme::SPACE_4 + 200.0f, rowsTop + static_cast<float>(place) * theme::ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f };
     }
 
     // a place of the page under the rows of the mod with a help, where the page is empty
@@ -287,19 +278,6 @@ namespace
     }
 
     /**
-     * A press at a place on the panel. Returns whether it acted in one of its frames.
-     */
-    bool pressActs(FullPanel& panel, const ImVec2 at)
-    {
-        bool acted = false;
-        for (const bool pressed : { false, false, true, false, false }) {
-            test_panel::drawFrame(panel, at, pressed);
-            acted = acted || panel.pressActed();
-        }
-        return acted;
-    }
-
-    /**
      * The value of the first setting of the first mod's front page that is kept in a global, by the global's
      * id, as a number: what the store has for it, pending a Save or not. A switcher is 1 or 0, and a choice
      * the place of its option.
@@ -447,16 +425,6 @@ namespace
     bool isListOpen()
     {
         return !ImGui::GetCurrentContext()->OpenPopupStack.empty();
-    }
-
-    /**
-     * The ray at a place on the panel, for the frames ImGui needs to find what it is on.
-     */
-    void point(FullPanel& panel, const ImVec2 at)
-    {
-        for (int i = 0; i < 3; ++i) {
-            test_panel::drawFrame(panel, at);
-        }
     }
 
     /**
@@ -1913,27 +1881,6 @@ namespace
         panel.setMods({ std::move(mod) });
         panel.select(selectionOf(0));
         return panel;
-    }
-
-    /**
-     * Characters typed into the field that is edited, with the ray on no row, as the keys of the window and
-     * SteamVR's keyboard type them.
-     */
-    void typeText(FullPanel& panel, const char* text)
-    {
-        ImGui::GetIO().AddInputCharactersUTF8(text);
-        test_panel::drawFrame(panel, test_panel::POINTER_AWAY);
-    }
-
-    /**
-     * A key pressed in one frame and let go of in the next, as the framework sends one.
-     */
-    void pressKey(FullPanel& panel, const ImGuiKey key)
-    {
-        for (const bool down : { true, false }) {
-            ImGui::GetIO().AddKeyEvent(key, down);
-            test_panel::drawFrame(panel, test_panel::POINTER_AWAY);
-        }
     }
 
     /**
@@ -5669,27 +5616,12 @@ TEST_CASE("FullPanel: a press on a transform opens its editor, of a slider for e
 namespace
 {
     /**
-     * The middle of the search field, the tree's header, and of its Clear at its right.
+     * The middle of the search field's Clear, at its right.
      */
-    ImVec2 searchField()
-    {
-        return { CONTENT_START + theme::SPACE_2 + 100.0f, CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + TREE_HEADER_HEIGHT * 0.5f };
-    }
-
     ImVec2 searchClear()
     {
         constexpr float ROW_WIDTH = theme::NAV_WIDTH - theme::SPACE_2 - (theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1);
         return { CONTENT_START + theme::SPACE_2 + ROW_WIDTH - theme::SPACE_1 - 16.0f, searchField().y };
-    }
-
-    /**
-     * A query typed in the search field: a press on it, its characters, and Enter.
-     */
-    void search(FullPanel& panel, const char* query)
-    {
-        CHECK(pressActs(panel, searchField()));
-        typeText(panel, query);
-        pressKey(panel, ImGuiKey_Enter);
     }
 }
 

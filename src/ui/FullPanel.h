@@ -16,6 +16,7 @@
 #include "MenuControls.h"
 #include "ModPage.h"
 #include "ModTree.h"
+#include "SearchSession.h"
 #include "Selection.h"
 #include "StoreSession.h"
 #include "TitleBar.h"
@@ -103,6 +104,12 @@ namespace mods_config::ui
         const HelpLine& helpLine() const
         {
             return _helpLine;
+        }
+
+        // the search of the mods for the search field's query, as the panel last drew it
+        const SearchSession& search() const
+        {
+            return _search;
         }
 
         // whether a section that folds, of the page that is shown, is folded now
@@ -198,7 +205,7 @@ namespace mods_config::ui
         void updateSearch();
         bool isFiltered() const;
         void showWhole();
-        void drawSearchText(const model::Page* page);
+        void drawSearchText(bool hiddenByConditions);
         void pageShown();
         bool pressButton(TitleButton button);
         void drawFooter(const ImVec2& pos);
@@ -264,26 +271,8 @@ namespace mods_config::ui
         // the selected mod's editing session, as its store is told of it, with the row the ray is on
         StoreSession _session;
 
-        // the search field's query as it was last searched, its words, and what it found in each mod, by the mod's
-        // place, with the mod that was selected then, whose conditions were asked of its store
-        std::string _searchText;
-        model::SearchQuery _query;
-        std::vector<std::optional<model::ModFound>> _found;
-        std::optional<std::size_t> _searchedMod;
-        std::size_t _matches = 0;
-
-        // every mod is searched again in the next frame, as the mods changed
-        bool _searchStale = false;
-
-        // the MCM mods' rows have the texts they take from the game, which are read once as a search starts
-        bool _searchTextsRead = false;
-
-        // the page that is shown is whole while searching, after Back, until another page is shown or the query
-        // changes
-        bool _pageWhole = false;
-
-        // the last item the ray was on while the page was filtered, which has the focus ring as the page is whole
-        const model::Item* _searchPointed = nullptr;
+        // the search of the mods for the search field's query, and whether the page has only its rows that match
+        SearchSession _search;
 
         // the ray is on the search field or its Clear, as the tree was drawn last: Back there empties the query
         bool _onSearchField = false;

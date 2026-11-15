@@ -4,9 +4,12 @@
 #include <vector>
 
 #include "TestPanel.h"
+#include "TestStore.h"
 #include "ui/FullPanel.h"
 
 using namespace mods_config;
+using test_store::Calls;
+using test_store::RecordingStore;
 using ui::FullPanel;
 using ui::Selection;
 
@@ -14,151 +17,6 @@ using ui::Selection;
 // and in which order, as the player selects, pages, points, steps back, closes the menu and answers the dialog.
 namespace
 {
-    using Calls = std::vector<std::string>;
-
-    /**
-     * A store that records each lifecycle call it gets, with Save and Discard, in order: the mod, or the page's name
-     * ("front" for a mod's front page, "none" for no page), or whether a row is pointed. Its changes are a count the
-     * test sets, which Save and Discard clear.
-     */
-    class RecordingStore final : public model::Store
-    {
-    public:
-        Calls calls;
-        std::size_t dirty = 0;
-
-        void open(const model::Mod& mod) override
-        {
-            calls.push_back("open " + mod.name);
-        }
-
-        void close() override
-        {
-            calls.emplace_back("close");
-        }
-
-        void pageShown() override
-        {
-            calls.emplace_back("pageShown");
-        }
-
-        void readTexts(model::Mod& mod) override
-        {
-            calls.push_back("readTexts " + mod.name);
-        }
-
-        void showPage(const model::Page* page) override
-        {
-            calls.push_back("showPage " + (!page ? std::string("none") : page->name.empty() ? std::string("front") : page->name));
-        }
-
-        void showPointed(const model::Item* item) override
-        {
-            calls.push_back(item ? "showPointed row" : "showPointed none");
-        }
-
-        void startFrame() override
-        {
-            calls.emplace_back("startFrame");
-        }
-
-        model::StoredValue value(const model::Setting&) override
-        {
-            return {};
-        }
-
-        model::StoredValue valueById(std::string_view) override
-        {
-            return {};
-        }
-
-        bool set(const model::Setting&, const model::Value&) override
-        {
-            return false;
-        }
-
-        std::optional<model::Value> defaultValue(const model::Setting&) override
-        {
-            return std::nullopt;
-        }
-
-        const std::vector<model::Option>& options(const model::Setting& setting) const override
-        {
-            return setting.valueOptions.options;
-        }
-
-        bool isDirty(const model::Setting&) const override
-        {
-            return false;
-        }
-
-        std::size_t dirtyCount() const override
-        {
-            return dirty;
-        }
-
-        std::size_t invalidCount() const override
-        {
-            return 0;
-        }
-
-        std::optional<model::Applies> applies(const model::Setting&) const override
-        {
-            return std::nullopt;
-        }
-
-        std::size_t dirtyRestartCount() const override
-        {
-            return 0;
-        }
-
-        std::optional<std::size_t> lastSave() const override
-        {
-            return std::nullopt;
-        }
-
-        std::size_t savedRestartCount(const model::Mod&) const override
-        {
-            return 0;
-        }
-
-        std::expected<void, std::string> save() override
-        {
-            calls.emplace_back("save");
-            dirty = 0;
-            return {};
-        }
-
-        std::string_view saveFailure() const override
-        {
-            return {};
-        }
-
-        void discard() override
-        {
-            calls.emplace_back("discard");
-            dirty = 0;
-        }
-
-        void discard(const model::Setting&) override
-        {}
-
-        std::optional<model::Value> savedValue(const model::Setting&) override
-        {
-            return std::nullopt;
-        }
-
-        model::StoredValue hotkey(const model::Hotkey&) override
-        {
-            return {};
-        }
-
-        model::ActionResult run(const model::Action&) override
-        {
-            return {};
-        }
-    };
-
     /**
      * A config spec of a folder named as the mod, with pages by their names. Its front page has two rows.
      */

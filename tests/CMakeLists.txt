@@ -46,6 +46,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/ui/FullPanelTests.cpp
   linked/ui/MenuControlsTests.cpp
   linked/ui/NumbersTests.cpp
+  linked/ui/SearchSessionTests.cpp
   linked/ui/StoreSessionTests.cpp
   # the helpers the tests share, beside the area folders
   linked/TestActions.cpp
@@ -61,6 +62,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/TestPanel.h
   linked/TestProperties.cpp
   linked/TestProperties.h
+  linked/TestStore.h
   linked/TestSwf.h
   # the mod's sources under test. Not GameActions.cpp, GameGlobals.cpp, GameIniSettings.cpp, GameProperties.cpp and
   # mcm/McmEvents.cpp, which call the game: linked/TestActions.cpp, linked/TestEvents.cpp, linked/TestGlobals.cpp,
@@ -120,6 +122,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/ui/PageImages.cpp
   ${SOURCE_DIR}/ui/PageRows.cpp
   ${SOURCE_DIR}/ui/SearchField.cpp
+  ${SOURCE_DIR}/ui/SearchSession.cpp
   ${SOURCE_DIR}/ui/Sections.cpp
   ${SOURCE_DIR}/ui/SettingRow.cpp
   ${SOURCE_DIR}/ui/Sliders.cpp

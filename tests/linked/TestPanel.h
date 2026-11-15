@@ -128,4 +128,86 @@ namespace test_panel
         // ImGui only counts a user error in a Release build, and shows it in a tooltip of the next frame
         CHECK(GImGui->ErrorCountCurrentFrame == 0);
     }
+
+    // the tree's header, the search field, as ModTree.cpp has it
+    constexpr float TREE_HEADER_HEIGHT = 40.0f;
+
+    inline void drawFrames(ui::FullPanel& panel, const int count)
+    {
+        for (int i = 0; i < count; ++i) {
+            drawFrame(panel, POINTER_AWAY);
+        }
+    }
+
+    /**
+     * A press at a place on the panel. Returns whether it acted in one of its frames.
+     */
+    inline bool pressActs(ui::FullPanel& panel, const ImVec2 at)
+    {
+        bool acted = false;
+        for (const bool pressed : { false, false, true, false, false }) {
+            drawFrame(panel, at, pressed);
+            acted = acted || panel.pressActed();
+        }
+        return acted;
+    }
+
+    /**
+     * The ray at a place on the panel, for the frames ImGui needs to find what it is on.
+     */
+    inline void point(ui::FullPanel& panel, const ImVec2 at)
+    {
+        for (int i = 0; i < 3; ++i) {
+            drawFrame(panel, at);
+        }
+    }
+
+    /**
+     * The middle of a row of a page, by its place among the rows, while the page is at its top and has rows of
+     * controls alone.
+     */
+    inline ImVec2 pageRow(const int place)
+    {
+        const float rowsTop = CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3;
+        return { CONTENT_START + theme::NAV_WIDTH + theme::SPACE_4 + 200.0f, rowsTop + static_cast<float>(place) * theme::ROW_PITCH + theme::CONTROL_HEIGHT * 0.5f };
+    }
+
+    /**
+     * Characters typed into the field that is edited, with the ray on no row, as the keys of the window and
+     * SteamVR's keyboard type them.
+     */
+    inline void typeText(ui::FullPanel& panel, const char* text)
+    {
+        ImGui::GetIO().AddInputCharactersUTF8(text);
+        drawFrame(panel, POINTER_AWAY);
+    }
+
+    /**
+     * A key pressed in one frame and let go of in the next, as the framework sends one.
+     */
+    inline void pressKey(ui::FullPanel& panel, const ImGuiKey key)
+    {
+        for (const bool down : { true, false }) {
+            ImGui::GetIO().AddKeyEvent(key, down);
+            drawFrame(panel, POINTER_AWAY);
+        }
+    }
+
+    /**
+     * The middle of the search field, the tree's header.
+     */
+    inline ImVec2 searchField()
+    {
+        return { CONTENT_START + theme::SPACE_2 + 100.0f, CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + TREE_HEADER_HEIGHT * 0.5f };
+    }
+
+    /**
+     * A query typed in the search field: a press on it, its characters, and Enter.
+     */
+    inline void search(ui::FullPanel& panel, const char* query)
+    {
+        CHECK(pressActs(panel, searchField()));
+        typeText(panel, query);
+        pressKey(panel, ImGuiKey_Enter);
+    }
 }

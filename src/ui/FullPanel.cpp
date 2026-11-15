@@ -5,7 +5,6 @@
 #include <numeric>
 #include <string>
 #include <tuple>
-#include <unordered_set>
 #include <variant>
 
 #include <imgui.h>
@@ -40,16 +39,6 @@ namespace
 
     // how the error of a live copy that cannot be read starts, which tells it from the config spec's other problems
     constexpr std::string_view LIVE_COPY_NOT_READ = "The live copy cannot be read";
-
-    /**
-     * Whether the search shows a row of a list of items: a section it shows is one of them, with its rows.
-     */
-    bool hasFound(const std::vector<model::Item>& items, const std::unordered_set<const model::Item*>& found)
-    {
-        return std::ranges::any_of(items, [&found](const model::Item& item) {
-            return found.contains(&item);
-        });
-    }
 
     /**
      * Finds the sections an item is in, from the outermost, in a list of items and the sections in it.
@@ -253,7 +242,7 @@ namespace mods_config::ui
             updateStatus();
             _modTree.showSelection();
         }
-        _searchStale = true;
+        _search.modReplaced();
         _liveCopyReads[folder] =
             LiveCopyRead{ .result = dropped == 0 ? std::format("Reloaded at {}.", time)
                                                  : std::format("Reloaded at {}: {} unsaved change{} dropped.", time, dropped, dropped == 1 ? " was" : "s were"),
@@ -576,8 +565,7 @@ namespace mods_config::ui
     void FullPanel::pageShown()
     {
         _pageChanged = true;
-        _pageWhole = false;
-        _searchPointed = nullptr;
+        _search.pageShown();
         _modPage.reset();
         _helpLine.clear();
         point(nullptr);
@@ -717,7 +705,6 @@ namespace mods_config::ui
             return true;
         }
         if (isFiltered()) {
-            _pageWhole = true;
             showWhole();
             return true;
         }
@@ -782,69 +769,29 @@ namespace mods_config::ui
         updateStatus();
         _modTree.showTop();
         _modTree.clearSearch();
-        _searchText.clear();
-        _query = {};
-        _found.clear();
-        _searchedMod.reset();
-        _matches = 0;
-        _searchStale = false;
-        _searchTextsRead = false;
-        _pageWhole = false;
-        _searchPointed = nullptr;
+        _search.reset();
     }
 
     /**
-     * Searches the mods for the query of the search field, before the title bar and the tree are drawn. Every mod is searched as the
-     * query changes, as another mod is selected and as the mods change, and the selected mod in each frame, as its
-     * conditions are asked of its store and its values change. Another mod has no store, so its conditions hold.
-     * As a search first starts since the menu opened, the MCM mods' rows read the texts they take from the game,
-     * which the selected mod alone has, so they are found by them too. A query that changes scrolls the tree to its top,
-     * and filters the page again from its top. A query emptied, as by Clear, shows the whole page, with the focus ring
-     * on the last row the ray was on.
+     * Searches the mods for the query of the search field, before the title bar and the tree are drawn, as the search
+     * session has it. A query that changes scrolls the tree to its top, and filters the page again from its top. A
+     * query emptied, as by Clear, shows the whole page, with the focus ring on the last row the ray was on.
      */
     void FullPanel::updateSearch()
     {
         F4CF_PERF_FUNCTION();
-        const auto& text = _modTree.query();
-        if (text != _searchText) {
-            const bool filtered = isFiltered();
-            _searchText = text;
-            _query = model::SearchQuery(text);
-            _searchStale = true;
-            _pageWhole = false;
-            _modTree.showTop();
-            if (_query.empty() && filtered) {
-                showWhole();
-            } else if (isFiltered()) {
-                _pageChanged = true;
-            }
-        }
-        if (_query.empty()) {
-            _found.clear();
-            _matches = 0;
+        const bool filtered = isFiltered();
+        const auto storeOfMod = [this](const model::Mod& mod) {
+            return storeOf(mod);
+        };
+        if (!_search.update(_modTree.query(), _mods, _selection.mod, storeOfMod)) {
             return;
         }
-        if (!_searchTextsRead && _mcmStore) {
-            for (auto& mod : _mods) {
-                if (mod.source == model::Source::Mcm && mod.notAvailable.empty()) {
-                    _mcmStore->readTexts(mod);
-                }
-            }
-            _searchTextsRead = true;
-        }
-        if (_searchStale || _searchedMod != _selection.mod || _found.size() != _mods.size()) {
-            _found.assign(_mods.size(), std::nullopt);
-            for (std::size_t place = 0; place < _mods.size(); ++place) {
-                _found[place] = model::searchMod(_mods[place], _query, _selection.mod == place ? selectedStore() : nullptr);
-            }
-            _searchedMod = _selection.mod;
-            _searchStale = false;
-        } else if (_selection.mod) {
-            _found[*_selection.mod] = model::searchMod(_mods[*_selection.mod], _query, selectedStore());
-        }
-        _matches = 0;
-        for (const auto& found : _found) {
-            _matches += found ? found->total : 0;
+        _modTree.showTop();
+        if (_search.query().empty() && filtered) {
+            showWhole();
+        } else if (isFiltered()) {
+            _pageChanged = true;
         }
     }
 
@@ -855,7 +802,7 @@ namespace mods_config::ui
      */
     bool FullPanel::isFiltered() const
     {
-        return !_query.empty() && !_pageWhole && !_helpShown && !_report;
+        return _search.filtered() && !_helpShown && !_report;
     }
 
     /**
@@ -864,13 +811,13 @@ namespace mods_config::ui
      */
     void FullPanel::showWhole()
     {
+        const auto* pointed = _search.showWhole();
         std::vector<const model::Group*> sections;
-        if (_searchPointed && _selection.mod && findSections(selectedPage()->items, *_searchPointed, sections)) {
-            _modPage.focus(*_searchPointed, sections);
+        if (pointed && _selection.mod && findSections(selectedPage()->items, *pointed, sections)) {
+            _modPage.focus(*pointed, sections);
         } else {
             _pageChanged = true;
         }
-        _searchPointed = nullptr;
     }
 
     /**
@@ -878,24 +825,22 @@ namespace mods_config::ui
      * matches on the selected page is hidden by a condition, that nothing matches, or how many settings match, on
      * the pages in the tree.
      */
-    void FullPanel::drawSearchText(const model::Page* page)
+    void FullPanel::drawSearchText(const bool hiddenByConditions)
     {
-        if (page) {
-            const auto found = model::searchMod(_mods[*_selection.mod], _query, nullptr);
-            if (found && hasFound(page->items, found->rows)) {
-                drawPageText(
-                    std::format("What matches \xE2\x80\x9C{}\xE2\x80\x9D on this page is hidden by the values of other settings. Back shows the whole page.", _searchText));
-                return;
-            }
+        const auto& text = _search.text();
+        const auto matches = _search.matches();
+        if (hiddenByConditions) {
+            drawPageText(std::format("What matches \xE2\x80\x9C{}\xE2\x80\x9D on this page is hidden by the values of other settings. Back shows the whole page.", text));
+            return;
         }
-        if (_matches == 0) {
-            drawPageText(std::format("Nothing matches \xE2\x80\x9C{}\xE2\x80\x9D. Search finds the names of mods, pages, sections and settings.", _searchText));
+        if (matches == 0) {
+            drawPageText(std::format("Nothing matches \xE2\x80\x9C{}\xE2\x80\x9D. Search finds the names of mods, pages, sections and settings.", text));
         } else {
             drawPageText(std::format("{} setting{} \xE2\x80\x9C{}\xE2\x80\x9D. Pick a page in the tree to change {}.",
-                _matches,
-                _matches == 1 ? " matches" : "s match",
-                _searchText,
-                _matches == 1 ? "it" : "them"));
+                matches,
+                matches == 1 ? " matches" : "s match",
+                text,
+                matches == 1 ? "it" : "them"));
         }
     }
 
@@ -942,8 +887,8 @@ namespace mods_config::ui
         const auto bodyPos = ImGui::GetCursorScreenPos();
         const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
 
-        const TreeSearch search{ .query = &_query, .found = &_found, .matches = _matches };
-        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore(), _query.empty() ? nullptr : &search, _categories.empty() ? nullptr : &_categories);
+        const TreeSearch search{ .query = &_search.query(), .found = &_search.found(), .matches = _search.matches() };
+        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore(), _search.query().empty() ? nullptr : &search, _categories.empty() ? nullptr : &_categories);
         _onSearchField = tree.searchPointed;
         if (tree.pressed) {
             pressed = tree.pressed;
@@ -992,17 +937,17 @@ namespace mods_config::ui
                     _scrollTo.reset();
                 }
                 _reportScroll = ImGui::GetScrollY();
-            } else if (_selection.mod && isFiltered() && !(_found[*_selection.mod] && hasFound(selectedPage()->items, _found[*_selection.mod]->rows))) {
-                drawSearchText(selectedPage());
+            } else if (_selection.mod && isFiltered() && !_search.showsRows(*_selection.mod, *selectedPage())) {
+                drawSearchText(_search.hiddenByConditions(*_selection.mod, _mods[*_selection.mod], *selectedPage()));
             } else if (_selection.mod) {
                 const auto& mod = _mods[*_selection.mod];
                 PageSearch pageSearch;
-                if (*_selection.mod < _found.size() && _found[*_selection.mod]) {
-                    pageSearch = { .query = &_query, .found = &_found[*_selection.mod]->rows, .filtered = isFiltered() };
+                if (const auto* found = _search.foundIn(*_selection.mod)) {
+                    pageSearch = { .query = &_search.query(), .found = &found->rows, .filtered = isFiltered() };
                 }
                 auto drawn = _modPage.draw(*selectedPage(), storeOf(mod), _thumbstickSideValue, pageSearch);
-                if (pageSearch.filtered && drawn.pointedItem) {
-                    _searchPointed = drawn.pointedItem;
+                if (pageSearch.filtered) {
+                    _search.pointWhileFiltered(drawn.pointedItem);
                 }
                 pointed = std::move(drawn.pointed);
                 // the item stays in the gap between two rows, as the help line's row does
@@ -1013,7 +958,7 @@ namespace mods_config::ui
                     _menuActions.adjustTransform(*drawn.adjust, *storeOf(mod));
                 }
             } else if (isFiltered()) {
-                drawSearchText(nullptr);
+                drawSearchText(false);
             } else {
                 auto drawn = _frontPage.draw(frontPageMods());
                 pointed = std::move(drawn.pointed);

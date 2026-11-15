@@ -20,12 +20,13 @@
 | `TestActions.cpp` | `GameActions.cpp` | `TestActions`: function calls, console commands, Save messages |
 | `TestFiles.h` | — | a per-test folder for MCM's files; `ReadOnly` makes an unwritable file |
 | `TestSwf.h` | — | an in-memory SWF |
+| `TestStore.h` | a store | `RecordingStore`: the lifecycle calls the panel makes, in order; a dirty count and the value conditions read by id |
 
 All live in `tests/linked/`. MCM itself is never called in a test.
 
 ## Panel tests
 
-- `ui/FullPanelTests.cpp` drives the panel in ImGui frames with no game or renderer (`TestPanel.h` sets it up as the framework's canvas does) and checks selection and presses.
+- `ui/FullPanelTests.cpp` drives the panel in ImGui frames with no game or renderer (`TestPanel.h` sets it up as the framework's canvas does, with the shared frame, press, point and search helpers) and checks selection and presses. `ui/StoreSessionTests.cpp` and `ui/SearchSessionTests.cpp` drive the panel's private sessions through it.
 - `ui/FullPanelRenderTests.cpp` saves the panel as `.bmp` files in `build/tests/render/` for a visual check before trying a change in the headset. They check nothing and `ctest` skips them: run `ModsConfigFO4VR_linked_tests "[render]"`. Add a case for a new view or state. They draw every page of both showcases and open pages by position, so moving a page moves its render.
 - `tools/gen_docs_renders.py` (needs Pillow) turns the walkthrough renders into `docs/assets/showcase/` PNGs: rerun both when the panel's look or a showcase page changes.
 
