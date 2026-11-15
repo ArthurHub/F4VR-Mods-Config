@@ -11,53 +11,18 @@
 
 #include "Drawing.h"
 #include "Theme.h"
-#include "model/Conditions.h"
-#include "model/OptionSets.h"
 #include "model/TextStates.h"
+#include "model/UnsavedPages.h"
 
 namespace
 {
     using namespace mods_config;
 
     /**
-     * What a folded section hides: how many of its settings are invalid, and how many others wait for a Save.
-     */
-    struct HiddenValues
-    {
-        int invalid = 0;
-        int unsaved = 0;
-    };
-
-    /**
-     * Counts the settings of items, and of the sections in them, whose rows would be shown: those whose
-     * condition holds. One is counted by the mark its row has: invalid, or else dirty.
-     */
-    void countHidden(const std::vector<model::Item>& items, model::Store& store, HiddenValues& hidden)
-    {
-        for (const auto& item : items) {
-            if (const auto* group = std::get_if<model::Group>(&item)) {
-                countHidden(group->items, store, hidden);
-                continue;
-            }
-            // a choice that sets other settings saves nothing of its own: they count on their rows
-            const auto* setting = std::get_if<model::Setting>(&item);
-            if (!setting || model::setsOthers(*setting) || (setting->visibleWhen && !model::holds(*setting->visibleWhen, &store))) {
-                continue;
-            }
-            const auto stored = store.value(*setting);
-            if (stored.invalid) {
-                ++hidden.invalid;
-            } else if (stored.available && store.isDirty(*setting)) {
-                ++hidden.unsaved;
-            }
-        }
-    }
-
-    /**
      * The help of the heading of a section that folds: its own, and then what it hides while it is folded,
      * as `Folded: 1 invalid value, 2 unsaved changes.`
      */
-    std::string foldedHelp(const std::string& help, const HiddenValues& hidden)
+    std::string foldedHelp(const std::string& help, const model::FoldedMarks& hidden)
     {
         std::string what;
         if (hidden.invalid > 0) {
@@ -112,10 +77,7 @@ namespace mods_config::ui
             _folded[&group] = folded;
         }
 
-        HiddenValues hidden;
-        if (folded && store && row.shown) {
-            countHidden(group.items, *store, hidden);
-        }
+        const auto hidden = folded && store && row.shown ? model::foldedMarks(group.items, *store) : model::FoldedMarks{};
         if (row.pointed) {
             help = foldedHelp(model::resolveClientText(group.help, store), hidden);
         }

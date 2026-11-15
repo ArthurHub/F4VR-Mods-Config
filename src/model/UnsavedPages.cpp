@@ -5,11 +5,36 @@
 #include "Conditions.h"
 #include "OptionSets.h"
 
+namespace
+{
+    using namespace mods_config::model;
+
+    /**
+     * The setting of an item that a count asks of. None for a section, a row of no setting, and a choice that sets
+     * other settings, which saves nothing of its own: they count on their rows.
+     */
+    const Setting* countedSetting(const Item& item)
+    {
+        const auto* setting = std::get_if<Setting>(&item);
+        return setting && !setsOthers(*setting) ? setting : nullptr;
+    }
+
+    /**
+     * Whether a setting's row is shown, as its condition holds. A count asks it after what is cheaper to ask of the
+     * store, as a condition can read the game.
+     */
+    bool isShown(const Setting& setting, Store& store)
+    {
+        return !setting.visibleWhen || holds(*setting.visibleWhen, &store);
+    }
+}
+
 namespace mods_config::model
 {
     /**
      * How many settings of items, and of the sections in them, wait for a Save where their rows show it: dirty,
      * with their condition holding and their value available. A change that is invalid counts, as it is unsaved too.
+     * The condition and the value of a setting that is not dirty are not read, as the tree counts every frame.
      */
     std::size_t unsavedChanges(const std::vector<Item>& items, Store& store)
     {
@@ -19,16 +44,40 @@ namespace mods_config::model
                 count += unsavedChanges(group->items, store);
                 continue;
             }
-            // a choice that sets other settings saves nothing of its own: they count on their rows
-            const auto* setting = std::get_if<Setting>(&item);
-            if (!setting || setsOthers(*setting) || !store.isDirty(*setting) || (setting->visibleWhen && !holds(*setting->visibleWhen, &store))) {
-                continue;
-            }
-            if (store.value(*setting).available) {
+            const auto* setting = countedSetting(item);
+            if (setting && store.isDirty(*setting) && isShown(*setting, store) && store.value(*setting).available) {
                 ++count;
             }
         }
         return count;
+    }
+
+    /**
+     * What the rows of the settings of a folded section's items, and of the sections in them, would mark, where their
+     * condition holds: each is counted by its row's mark, invalid, or else unsaved while dirty and available.
+     */
+    FoldedMarks foldedMarks(const std::vector<Item>& items, Store& store)
+    {
+        FoldedMarks marks;
+        for (const auto& item : items) {
+            if (const auto* group = std::get_if<Group>(&item)) {
+                const auto inner = foldedMarks(group->items, store);
+                marks.invalid += inner.invalid;
+                marks.unsaved += inner.unsaved;
+                continue;
+            }
+            const auto* setting = countedSetting(item);
+            if (!setting || !isShown(*setting, store)) {
+                continue;
+            }
+            const auto stored = store.value(*setting);
+            if (stored.invalid) {
+                ++marks.invalid;
+            } else if (stored.available && store.isDirty(*setting)) {
+                ++marks.unsaved;
+            }
+        }
+        return marks;
     }
 
     /**

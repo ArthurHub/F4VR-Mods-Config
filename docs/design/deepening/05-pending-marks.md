@@ -4,44 +4,38 @@ Part of [Deepen the hot spots](README.md), which holds the shared decisions, tes
 
 ## Problem Statement
 
-The option set helpers in the model are four small pure functions, unit tested. The rule that matters is how a page's pending changes are counted and marked, and that is written out by callers:
+Two walks over a page's rows count its pending changes:
 
-- The section headings count hidden pending and invalid rows with their own recursive walk.
+- The section headings count a folded section's invalid and unsaved rows with their own recursive walk, in the panel.
 - The tree's unsaved marks count with a near-identical walk in the unsaved pages module.
-- Both carry the same skip for a choice whose options set other settings.
+- Both carry the same filter: a setting whose row is shown, and not a choice whose options set other settings.
 
-When the rule changes, as it did for `alsoSets`, both walks must change together. The headings' walk is reached only through render tests.
+The headings' walk is reached only through panel and render tests.
 
 ## Solution
 
-The unsaved pages module grows into the one walk over a page's rows. It decides which rows are visible and which are skipped, and returns the counts and marks. The section headings and the tree ask it, and their own walks go.
+The headings' walk moves into the unsaved pages module beside the tree's, as `foldedMarks`, and both share one filter. They stay two counts, as they count different things.
 
 ## User Stories
 
-1. As the maintainer, I want one walk over a page's rows that decides which pending changes are counted, so that the section headings, the tree's unsaved marks and the change counts agree.
-2. As the maintainer, I want the walk to own the rule that a choice whose options set other settings is skipped in the counts, so that the rule is written once.
-3. As the maintainer, I want the walk to own which rows are visible, so that a hidden row's pending change is counted the same way in a heading and in the tree.
-4. As the maintainer, I want the counting rule tested once in the model, so that it is not reached only through render tests.
-5. As a player, I want the headings' counts and the tree's unsaved marks to show what they show today, so that the change is invisible to me.
+1. As the maintainer, I want the rows a count asks of decided in one place, so that the section headings and the tree's unsaved marks skip the same rows.
+2. As the maintainer, I want the headings' counts tested in the model, so that they are not reached only through the panel.
+3. As a player, I want the headings' counts and the tree's unsaved marks to show what they show today, so that the change is invisible to me.
 
 ## Implementation Decisions
 
-- **The walk.** The unsaved pages module in the model becomes the one walk over a page's rows. It decides visibility (conditions, folded or hidden sections), skips a choice whose options set other settings, and returns each section's and page's pending and invalid counts.
-- **Callers.** The section headings and the tree's unsaved marks ask it. Their own recursive walks are deleted.
-- **What stays in the store.** How the config spec store derives an option-set choice's value, dirty state, default and Discard from the settings it sets. The four option set helpers stay as they are.
-- **Its store dependency.** The walk asks the store only for what it reads. Once [08](08-store-read-interface.md) lands, it takes the read part.
+- **Two counts, one filter.** The tree counts unsaved changes: dirty and available, an invalid change included. A folded heading counts its rows' marks: invalid, saved or not, or else unsaved. The two numbers differ on purpose, so they stay two functions over one filter: a setting, not a choice whose options set other settings, whose condition holds.
+- **What each reads.** The tree counts the selected mod's pages every frame, and an MCM store reads the game for a value or a condition. So the tree asks whether a setting is dirty before its condition and its value. The headings read the value of each shown row, as they count only a folded section on screen.
+- **Callers.** The section headings call `foldedMarks`. Their own walk is deleted. The tree keeps calling `unsavedChanges`.
+- **What stays.** The option set helpers, and how the config spec store derives an option-set choice's value, dirty state, default and Discard.
 
 ## Testing Decisions
 
-- **Seam.** Tests go through the walk's interface in the model: pages with nested sections, hidden rows, invalid rows, and an option-set choice with its set settings and `alsoSets`.
-- **Prior art:** the existing unsaved pages and option sets tests.
-- **Regression net.** The existing panel and render tests pass unchanged. The headings' counts are now checked by the walk's tests, not only by renders.
+- **Seam.** Tests go through `foldedMarks` and `unsavedChanges` in the model: nested sections, hidden and unavailable rows, invalid rows saved or not, and a choice that sets other settings.
+- **Prior art:** the existing unsaved pages tests.
+- **Regression net.** The existing panel and render tests pass unchanged.
 
 ## Out of Scope
 
 - Changing what counts as pending or invalid.
 - The option-set rules inside the config spec store.
-
-## Further Notes
-
-- Third in the suggested order. It does not depend on another change.

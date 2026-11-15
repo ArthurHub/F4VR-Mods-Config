@@ -209,6 +209,45 @@ TEST_CASE("A dirty setting that is invalid is counted, and one that is not avail
     CHECK(model::unsavedChanges(mod.pages[0], store, false) == 1);
 }
 
+TEST_CASE("A choice that sets other settings is not counted, and they are", "[unsaved]")
+{
+    auto choice = setting("preset");
+    choice.storage = model::SetsStorage{};
+    const model::Page shown = page("Page", { std::move(choice), setting("target") });
+    DirtyStore store;
+    store.dirty = { "preset", "target" };
+    store.invalid = { "preset" };
+    CHECK(model::unsavedChanges(shown, store, false) == 1);
+    CHECK(model::foldedMarks(shown.items, store) == model::FoldedMarks{ .invalid = 0, .unsaved = 1 });
+}
+
+TEST_CASE("A folded section marks its invalid settings, saved or not, and its other unsaved ones", "[unsaved]")
+{
+    const auto mod = someMod();
+    DirtyStore store;
+    store.dirty = { "parent", "inSection1" };
+    store.invalid = { "parent", "inSection2" };
+    // an invalid change is marked invalid alone, and an invalid value of its file is marked too
+    CHECK(model::foldedMarks(mod.pages[0].items, store) == model::FoldedMarks{ .invalid = 2, .unsaved = 1 });
+}
+
+TEST_CASE("A folded section marks the settings of the sections in it, and not a hidden or unavailable one", "[unsaved]")
+{
+    model::Group inner{ .text = "Inner", .items = {}, .visibleWhen = {} };
+    inner.items.emplace_back(setting("deep"));
+    inner.items.emplace_back(setting("hidden", on("bShow")));
+    inner.items.emplace_back(setting("missing"));
+    const std::vector<model::Item> items{ setting("top"), std::move(inner) };
+    DirtyStore store;
+    store.dirty = { "top", "deep", "hidden", "missing" };
+    store.notAvailable = { "missing" };
+    store.values = { { "bShow", false } };
+    CHECK(model::foldedMarks(items, store) == model::FoldedMarks{ .invalid = 0, .unsaved = 2 });
+
+    store.values = { { "bShow", true } };
+    CHECK(model::foldedMarks(items, store) == model::FoldedMarks{ .invalid = 0, .unsaved = 3 });
+}
+
 TEST_CASE("A mod counts its front page and every page in the tree", "[unsaved]")
 {
     auto mod = someMod();
