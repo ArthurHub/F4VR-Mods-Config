@@ -30,9 +30,9 @@ The mod page owns its own Back step. One game-free row view is computed from the
 
 ## Testing Decisions
 
-- **Seam.** Tests go through the panel's interface, with the existing test panel.
-- **Back:** each kind of open editor or list, then Back. Assert that the editor closed, the value was restored or kept as today, and the page stayed.
-- **Row view:** enabled, warning and tag for valid, invalid, dirty, unavailable and condition-disabled rows. Assert through the panel's rows as drawn, not pixels.
+- **Seam.** Back is tested through the panel's interface, with the existing test panel. The row view is a pure function of the setting and its store, so it is tested at its own interface: the panel has no query of its rows as drawn, and both callers read the one function.
+- **Back:** the existing panel test of each kind of open editor or list, then Back, is the regression net: each asserts that the editor closed, the value was restored or kept as today, and the page stayed.
+- **Row view:** enabled, editable, look, warning, mark and tag for valid, invalid, dirty, unavailable, condition-disabled and read-only rows, through `rowViewOf`.
 - **Prior art:** the existing panel tests.
 - **e2e:** devbench's rows report keeps its existing e2e checks, run by hand.
 

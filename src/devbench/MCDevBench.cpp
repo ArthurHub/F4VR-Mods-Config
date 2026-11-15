@@ -16,6 +16,7 @@
 #include "model/Conditions.h"
 #include "model/TextStates.h"
 #include "ui/PageRows.h"
+#include "ui/RowView.h"
 
 namespace mods_config::devbench
 {
@@ -365,31 +366,29 @@ namespace mods_config::devbench
         }
 
         /**
-         * A setting as its row shows it: its text and help with the states of its mod's client in them, its value
-         * in the store, whether that is available, invalid or dirty and why, the warning it tells, the tag of when
-         * its pending change takes effect, whether its row is enabled or read-only, and what the player can set it to.
+         * A setting as its row shows it: its text and help with the states of its mod's client in them, its row view
+         * as the panel draws it (its value in the store, whether that is available, invalid or dirty and why, the
+         * warning it tells, the tag of when its pending change takes effect, whether its row is enabled), whether it
+         * is read-only, and what the player can set it to.
          */
         json settingToJson(const model::Setting& setting, model::Store& store)
         {
-            const auto stored = store.value(setting);
-            const bool dirty = store.isDirty(setting);
-            // an invalid value has its mark in the place of a warning's, and the tag is told while the change is pending
-            const auto warning = stored.invalid ? std::string_view() : ui::warningOf(setting.warnings, &store);
-            const auto applies = dirty ? store.applies(setting) : std::nullopt;
+            const auto view = ui::rowViewOf(setting, &store);
+            const auto& stored = view.stored;
             json row = { { "kind", "setting" },
                 { "id", setting.id },
                 { "type", settingTypeName(setting.type) },
                 { "text", model::resolveClientText(setting.text, &store) },
                 { "help", model::resolveClientText(setting.help, &store) },
-                { "warning", textOrNull(warning) },
-                { "tag", textOrNull(applies ? ui::appliesTag(*applies) : std::string_view()) },
+                { "warning", textOrNull(view.warning) },
+                { "tag", textOrNull(view.applies ? ui::appliesTag(*view.applies) : std::string_view()) },
                 { "value", valueToJson(stored.value) },
                 { "available", stored.available },
                 { "invalid", stored.invalid },
                 { "reason", stored.reason.empty() ? json(nullptr) : json(stored.reason) },
-                { "dirty", dirty },
+                { "dirty", view.dirty },
                 { "readOnly", setting.readOnly },
-                { "enabled", !setting.enabledWhen || model::holds(*setting.enabledWhen, &store) },
+                { "enabled", view.enabled },
                 { "storage", storageToJson(setting.storage) } };
             const auto defaultValue = store.defaultValue(setting);
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);

@@ -46,6 +46,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/ui/FullPanelTests.cpp
   linked/ui/MenuControlsTests.cpp
   linked/ui/NumbersTests.cpp
+  linked/ui/RowViewTests.cpp
   linked/ui/SearchSessionTests.cpp
   linked/ui/StoreSessionTests.cpp
   # the helpers the tests share, beside the area folders
@@ -121,6 +122,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/ui/ConfigSpecReport.cpp
   ${SOURCE_DIR}/ui/PageImages.cpp
   ${SOURCE_DIR}/ui/PageRows.cpp
+  ${SOURCE_DIR}/ui/RowView.cpp
   ${SOURCE_DIR}/ui/SearchField.cpp
   ${SOURCE_DIR}/ui/SearchSession.cpp
   ${SOURCE_DIR}/ui/Sections.cpp

@@ -18,6 +18,7 @@
 #include "Drawing.h"
 #include "Haptics.h"
 #include "Numbers.h"
+#include "RowView.h"
 #include "Theme.h"
 #include "Transforms.h"
 #include "common/CommonUtils.h"
@@ -153,32 +154,28 @@ namespace
         {
             pos = ImGui::GetCursorScreenPos();
             width = ui::rowWidth();
-            enabled = !setting.enabledWhen || model::holds(*setting.enabledWhen, context.store);
-            row = ui::addRow(enabled && !setting.readOnly && !context.textInputs.isEdited(setting));
+            view = ui::rowViewOf(setting, context.store);
+            row = ui::addRow(view.enabled && !setting.readOnly && !context.textInputs.isEdited(setting));
             right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
-            stored = context.store ? context.store->value(setting) : model::StoredValue{};
-            editable = stored.available && enabled && !setting.readOnly;
-            showsValue = stored.available || !setting.readOnly;
+            showsValue = view.stored.available || !setting.readOnly;
 
             // the slot is pressed a little beside it too, as a button of a stepper is. A press is its own when it began
             // there: a slider that is dragged and let go on it is not reset
             const auto& io = ImGui::GetIO();
             slotBox = ui::controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
-            defaultValue = stored.available ? defaultOf(setting, *context.store) : std::nullopt;
-            dirty = stored.available && context.store->isDirty(setting);
-            onSlot = (dirty || defaultValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
+            defaultValue = view.stored.available ? defaultOf(setting, *context.store) : std::nullopt;
+            onSlot = (view.dirty || defaultValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
             slotHeld = onSlot && io.MouseClickedPos[ImGuiMouseButton_Left].x >= slotBox.Min.x - theme::SPACE_1;
             onPlay = setting.type == model::SettingType::Haptic && row.pointed && !onSlot && ui::HapticBoxes(right, pos.y).onPlay(io.MousePos.x);
             resets = resetsNow();
         }
 
         /**
-         * Reads the value again after a change set in the store, with whether it is dirty and Reset can set it.
+         * Reads the row view again after a change set in the store, and whether Reset can set the default.
          */
         void refresh()
         {
-            stored = context.store->value(setting);
-            dirty = stored.available && context.store->isDirty(setting);
+            view = ui::rowViewOf(setting, context.store);
             resets = resetsNow();
         }
 
@@ -187,7 +184,7 @@ namespace
          */
         bool resetsNow() const
         {
-            return editable && !dirty && defaultValue && (stored.invalid || !model::sameValue(stored.value, *defaultValue));
+            return view.editable && !view.dirty && defaultValue && (view.stored.invalid || !model::sameValue(view.stored.value, *defaultValue));
         }
 
         /**
@@ -195,7 +192,7 @@ namespace
          */
         bool discards() const
         {
-            return editable && dirty;
+            return view.editable && view.dirty;
         }
 
         const model::Setting& setting;
@@ -207,15 +204,14 @@ namespace
         // where the control ends on the right, before the slot
         float right = 0.0f;
         ui::Row row;
-        bool enabled = false;
-        model::StoredValue stored;
-        bool editable = false;
+
+        // how the row looks, on its value as it is after a press in this frame
+        ui::RowView view;
 
         // a read-only setting whose storage has no value shows none
         bool showsValue = false;
         ImRect slotBox;
         std::optional<model::Value> defaultValue;
-        bool dirty = false;
         bool onSlot = false;
         bool slotHeld = false;
         bool resets = false;
@@ -270,7 +266,7 @@ namespace
             return false;
         }
         bool acted = true;
-        if (state.dirty) {
+        if (state.view.dirty) {
             state.context.store->discard(state.setting);
         } else {
             acted = state.context.store->set(state.setting, *state.defaultValue);
@@ -290,13 +286,13 @@ namespace
         const auto& setting = state.setting;
         const auto& context = state.context;
         const auto& options = setting.valueOptions;
-        const auto* on = std::get_if<bool>(&state.stored.value);
-        const auto* number = std::get_if<float>(&state.stored.value);
-        const bool shown = state.editable && model::isControlValue(setting.type, state.stored.value);
+        const auto* on = std::get_if<bool>(&state.view.stored.value);
+        const auto* number = std::get_if<float>(&state.view.stored.value);
+        const bool shown = state.view.editable && model::isControlValue(setting.type, state.view.stored.value);
         const bool isSwitcher = shown && setting.type == model::SettingType::Switcher;
         const bool isSlider = shown && setting.type == model::SettingType::Slider && options.max > options.min;
-        const bool isHaptic = state.editable && setting.type == model::SettingType::Haptic;
-        const bool isChoice = state.editable && model::isChoice(setting.type) && !state.choiceOptions.empty();
+        const bool isHaptic = state.view.editable && setting.type == model::SettingType::Haptic;
+        const bool isChoice = state.view.editable && model::isChoice(setting.type) && !state.choiceOptions.empty();
         const bool isText = shown && setting.type == model::SettingType::TextInput;
         const bool isBinding = shown && setting.type == model::SettingType::InputBinding;
         const bool isColor = shown && setting.type == model::SettingType::Color;
@@ -309,7 +305,7 @@ namespace
             .color = isColor,
             .transform = isTransform,
             .sliderValue = number ? *number : options.min,
-            .chosen = ui::chosenOption(state.choiceOptions, state.stored),
+            .chosen = ui::chosenOption(state.choiceOptions, state.view.stored),
             .choiceRow = { .pointed = isChoice && state.row.pointed, .held = isChoice && state.row.held, .pressed = isChoice && rowPressed } };
         if (isSlider) {
             bool write = false;
@@ -338,20 +334,20 @@ namespace
                 const auto value = typed ? model::typedOptionValue(*typed, state.choiceOptions) : std::nullopt;
                 if (value && context.store->set(setting, *value)) {
                     state.refresh();
-                    edited.chosen = ui::chosenOption(state.choiceOptions, state.stored);
+                    edited.chosen = ui::chosenOption(state.choiceOptions, state.view.stored);
                 }
             }
             // a haptic plays the option picked, also the one it is at already, and its value on Play
             if (edited.haptic && picked) {
                 edited.played = hapticPattern(state.choiceOptions[*picked].value);
             } else if (edited.haptic && rowPressed && state.onPlay) {
-                edited.played = hapticPattern(state.stored.value);
+                edited.played = hapticPattern(state.view.stored.value);
             }
             edited.pulse = edited.pulse || pulse || edited.played.has_value();
         }
         if (isText) {
             bool pulse = false;
-            const auto typed = context.textInputs.edit(setting, state.right, state.pos.y, rowPressed, std::get<std::string>(state.stored.value), pulse);
+            const auto typed = context.textInputs.edit(setting, state.right, state.pos.y, rowPressed, std::get<std::string>(state.view.stored.value), pulse);
             if (typed && context.store->set(setting, *typed)) {
                 state.refresh();
             }
@@ -385,11 +381,11 @@ namespace
      * what Play plays, and while its list is open it is the help of the option the ray is on: a haptic's and a
      * file's always, and any other's where the option has a help of its own.
      */
-    ui::PointedRow pointedRow(SettingRowState& state, const ControlEdited& edited, const std::string_view warning, const std::optional<model::Applies> applies)
+    ui::PointedRow pointedRow(SettingRowState& state, const ControlEdited& edited)
     {
         const auto& setting = state.setting;
         const auto& context = state.context;
-        auto& stored = state.stored;
+        auto& stored = state.view.stored;
         const auto nameOf = [&](const model::Value& value) {
             return valueName(setting, state.choiceOptions, value, context.leftHanded);
         };
@@ -456,21 +452,21 @@ namespace
         // the tag of when it takes effect is told as it is changed
         return ui::PointedRow{ .text = model::resolveClientText(setting.text, context.store),
             .help = std::move(help),
-            .warning = warning,
+            .warning = state.view.warning,
             .invalid = invalid,
-            .applies = state.dirty ? applies : std::nullopt };
+            .applies = state.view.applies };
     }
 
     /**
      * Draws the control of a setting row in the look of its value, disabled where it cannot be edited, and the row's
      * text with its marks on the left of it.
      */
-    void drawControl(const SettingRowState& state, const ControlEdited& edited, const std::string_view warning, const std::optional<model::Applies> applies)
+    void drawControl(const SettingRowState& state, const ControlEdited& edited)
     {
         const auto& setting = state.setting;
         const auto& context = state.context;
-        const auto& stored = state.stored;
-        const auto look = stored.invalid ? ui::ValueLook::Invalid : state.dirty ? ui::ValueLook::Pending : ui::ValueLook::Saved;
+        const auto& stored = state.view.stored;
+        const auto look = state.view.look;
         const float right = state.right;
         const float top = state.pos.y;
         float left = right;
@@ -533,12 +529,7 @@ namespace
             break;
         }
         }
-        // an invalid value has its mark in the place of a warning's, which it has none of
-        const ui::RowMarks marks{ .pending = look == ui::ValueLook::Pending,
-            .applies = applies.value_or(model::Applies::Unknown),
-            .mark = look == ui::ValueLook::Invalid ? ui::TextMark::Invalid
-                    : !warning.empty()             ? ui::TextMark::Warning
-                                                   : ui::TextMark::None };
+        const ui::RowMarks marks{ .pending = look == ui::ValueLook::Pending, .applies = state.view.applies.value_or(model::Applies::Unknown), .mark = state.view.mark };
         ui::drawLabel(state.pos,
             left - theme::SPACE_3,
             model::resolveClientText(setting.text, context.store),
@@ -554,13 +545,13 @@ namespace
      */
     void drawSlot(const SettingRowState& state)
     {
-        if (!state.dirty && !state.defaultValue) {
+        if (!state.view.dirty && !state.defaultValue) {
             return;
         }
-        const bool active = state.discards() || (!state.dirty && state.resets);
+        const bool active = state.discards() || (!state.view.dirty && state.resets);
         ImGui::BeginDisabled(!active);
         ui::drawButtonFrame(state.slotBox, active && state.onSlot, active && state.onSlot && state.slotHeld && state.row.held);
-        if (state.dirty) {
+        if (state.view.dirty) {
             ui::drawDiscardIcon(state.slotBox.GetCenter());
         } else {
             ui::drawResetIcon(state.slotBox.GetCenter());
@@ -580,7 +571,7 @@ namespace mods_config::ui
     SettingRowDrawn drawSettingRow(const model::Setting& setting, const SettingRowContext& context)
     {
         SettingRowState state(setting, context);
-        if ((!state.enabled || setting.readOnly) && state.row.shown) {
+        if ((!state.view.enabled || setting.readOnly) && state.row.shown) {
             drawRowState();
         }
         SettingRowDrawn drawn;
@@ -592,15 +583,13 @@ namespace mods_config::ui
 
         // on the pending value, as it is after a press in this frame: a slider, a switcher and a choice can be set in
         // this frame too
-        state.dirty = state.stored.available && context.store->isDirty(setting);
-        const auto warning = state.stored.invalid ? std::string_view() : warningOf(setting.warnings, context.store);
-        const auto applies = context.store ? context.store->applies(setting) : std::nullopt;
+        state.refresh();
 
         // the ray is on the list then, and the help line keeps the row of its dropdown, and so it does while the editor of
         // a binding is open, where the ray is on none of its parts
         if (state.row.pointed || context.choices.isListOpen(setting) || context.bindingEditor.isOpen(setting) || context.colorEditor.isOpen(setting) ||
             context.transformEditor.isOpen(setting)) {
-            drawn.pointed = pointedRow(state, edited, warning, applies);
+            drawn.pointed = pointedRow(state, edited);
         }
         if (edited.bindingEdited.pointed) {
             drawn.pointed = std::move(edited.bindingEdited.pointed);
@@ -614,7 +603,7 @@ namespace mods_config::ui
         if (!state.row.shown) {
             return drawn;
         }
-        drawControl(state, edited, warning, applies);
+        drawControl(state, edited);
         drawSlot(state);
         return drawn;
     }
