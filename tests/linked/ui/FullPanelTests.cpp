@@ -4282,8 +4282,8 @@ TEST_CASE("FullPanel: a config spec read again drops its unsaved changes and kee
     CHECK(panel.selection() == pageOf({ 0 }));
     CHECK(store.dirtyCount() == 0);
     CHECK(panel.mods()[0].liveCopy == LIVE_COPY);
-    REQUIRE(panel.liveCopyRead("MyFolder"));
-    CHECK(panel.liveCopyRead("MyFolder")->result == "Reloaded at 10:42:05: 1 unsaved change was dropped.");
+    REQUIRE(panel.modList().liveCopyRead("MyFolder"));
+    CHECK(panel.modList().liveCopyRead("MyFolder")->result == "Reloaded at 10:42:05: 1 unsaved change was dropped.");
 
     // the session is the new mod's: its row is set as before
     drawFrames(panel, 2);
@@ -4293,21 +4293,21 @@ TEST_CASE("FullPanel: a config spec read again drops its unsaved changes and kee
     // a page that is gone shows the mod's front page
     CHECK(panel.replaceMod(liveCopyOf("My Mod", false), "10:43:00") == 1);
     CHECK(panel.selection() == Selection{ .mod = 0 });
-    CHECK(panel.liveCopyRead("MyFolder")->result == "Reloaded at 10:43:00: 1 unsaved change was dropped.");
+    CHECK(panel.modList().liveCopyRead("MyFolder")->result == "Reloaded at 10:43:00: 1 unsaved change was dropped.");
 
     // a mod that is not available now shows the menu's front page
     auto missing = liveCopyOf("My Mod");
     missing.notAvailable = "its plugin SS2.esm is not loaded";
     CHECK(panel.replaceMod(std::move(missing), "10:44:00") == 0);
     CHECK(panel.selection() == Selection{});
-    CHECK(panel.liveCopyRead("MyFolder")->result == "Reloaded at 10:44:00.");
+    CHECK(panel.modList().liveCopyRead("MyFolder")->result == "Reloaded at 10:44:00.");
 
     // a folder the panel has no config spec of is not put in
     auto other = liveCopyOf("Other");
     other.folder = "OtherFolder";
     CHECK(panel.replaceMod(std::move(other), "10:45:00") == 0);
     CHECK(panel.mods().size() == 1);
-    CHECK_FALSE(panel.liveCopyRead("OtherFolder"));
+    CHECK_FALSE(panel.modList().liveCopyRead("OtherFolder"));
 }
 
 TEST_CASE("FullPanel: a config spec read again keeps its place among the mods by its name, and its report stays")
@@ -4335,8 +4335,8 @@ TEST_CASE("FullPanel: a live copy that cannot be read keeps what was read last, 
     spec::ConfigSpecStore store({}, myGames.path);
     auto panel = reportPanel(store);
     const auto problems = panel.mods()[0].problems.size();
-    panel.liveCopyNotRead("MyFolder", LIVE_COPY, "10:42:05", "Not valid JSON: line 4");
-    panel.liveCopyNotRead("MyFolder", LIVE_COPY, "10:42:09", "Not valid JSON: line 5");
+    panel.modList().liveCopyNotRead("MyFolder", LIVE_COPY, "10:42:05", "Not valid JSON: line 4");
+    panel.modList().liveCopyNotRead("MyFolder", LIVE_COPY, "10:42:09", "Not valid JSON: line 5");
 
     const auto& mod = panel.mods()[0];
     CHECK(mod.liveCopy == LIVE_COPY);
@@ -4369,13 +4369,13 @@ TEST_CASE("FullPanel: Reload has the info mark of a read until the ray leaves it
     panel.replaceMod(liveCopyOf("My Mod"), "10:42:05");
     drawFrames(panel, 2);
     openLiveSpec(panel);
-    CHECK_FALSE(panel.liveCopyRead("MyFolder")->seen);
+    CHECK_FALSE(panel.modList().liveCopyRead("MyFolder")->seen);
 
     CHECK(rowWithHelp(panel, "Reload:"));
     CHECK(panel.helpLine().text() == "Reload: Reloaded at 10:42:05. Reads the live copy again now.");
-    CHECK_FALSE(panel.liveCopyRead("MyFolder")->seen);
+    CHECK_FALSE(panel.modList().liveCopyRead("MyFolder")->seen);
     CHECK(rowWithHelp(panel, "Edit on desktop:"));
-    CHECK(panel.liveCopyRead("MyFolder")->seen);
+    CHECK(panel.modList().liveCopyRead("MyFolder")->seen);
 }
 
 TEST_CASE("FullPanel: Overwrite warns while the installed spec.json is newer than the live copy")
@@ -4391,7 +4391,7 @@ TEST_CASE("FullPanel: Overwrite warns while the installed spec.json is newer tha
     CHECK(rowWithHelp(panel, "Re-copy the installed spec.json:"));
     CHECK(panel.helpLine().text() == "Re-copy the installed spec.json: Copies the installed spec.json over the live copy, which loses the copy's edits, and reads it.");
 
-    panel.setLiveCopyStale("MyFolder", true);
+    panel.modList().setLiveCopyStale("MyFolder", true);
     // the help line keeps the row it had until the ray is on another
     CHECK(rowWithHelp(panel, "Reload:"));
     CHECK(rowWithHelp(panel, "Re-copy the installed spec.json:"));
@@ -4401,7 +4401,7 @@ TEST_CASE("FullPanel: Overwrite warns while the installed spec.json is newer tha
 
     // the next read says it again, or not
     panel.replaceMod(liveCopyOf("My Mod"), "10:43:00");
-    CHECK_FALSE(panel.liveCopyRead("MyFolder")->stale);
+    CHECK_FALSE(panel.modList().liveCopyRead("MyFolder")->stale);
 }
 
 TEST_CASE("FullPanel: the sub-section of the live copy starts folded, and says while it is folded that the copy is stale")
@@ -4412,7 +4412,7 @@ TEST_CASE("FullPanel: the sub-section of the live copy starts folded, and says w
     auto panel = reportPanel(store);
     CHECK(panel.openReport(0));
     panel.replaceMod(liveCopyOf("My Mod"), "10:42:05");
-    panel.setLiveCopyStale("MyFolder", true);
+    panel.modList().setLiveCopyStale("MyFolder", true);
     drawFrames(panel, 2);
     CHECK_FALSE(rowWithHelp(panel, "Reload:"));
     CHECK(rowWithHelp(panel, "Live spec.json:"));
@@ -5854,7 +5854,7 @@ namespace
     {
         FullPanel panel;
         panel.setMods({ modIn("Gamma", "Combat", { "Only" }), modIn("Alpha", "combat", { "First", "Second" }), modOf("Beta"), modIn("Delta", "Interface") });
-        panel.setCategoriesMinMods(0);
+        panel.modList().setCategoriesMinMods(0);
         return panel;
     }
 }
@@ -5914,7 +5914,7 @@ TEST_CASE("FullPanel: the tree is grouped from a number of mods, and is one list
 {
     const test_panel::PanelContext context;
     auto panel = groupedMods();
-    panel.setCategoriesMinMods(5);
+    panel.modList().setCategoriesMinMods(5);
     drawFrames(panel, 2);
 
     // four mods are one list: Beta is the second row
@@ -5923,7 +5923,7 @@ TEST_CASE("FullPanel: the tree is grouped from a number of mods, and is one list
 
     // and from four they are grouped: the second row is Interface, which is no mod
     panel.select({});
-    panel.setCategoriesMinMods(4);
+    panel.modList().setCategoriesMinMods(4);
     drawFrames(panel, 2);
     press(panel, treeRow(1));
     CHECK(panel.selection() == Selection{});
@@ -5944,7 +5944,7 @@ TEST_CASE("FullPanel: a mod the player gave a category is under it, and the tree
 {
     const test_panel::PanelContext context;
     auto panel = groupedMods();
-    panel.setCategoryChoices({ { "beta", "Combat" } });
+    panel.modList().setCategoryChoices({ { "beta", "Combat" } });
     drawFrames(panel, 2);
 
     // Combat has Alpha, Beta and Gamma, and there is no row for the mods with no category
@@ -5953,7 +5953,7 @@ TEST_CASE("FullPanel: a mod the player gave a category is under it, and the tree
     CHECK(panel.selection() == selectionOf(1));
 
     // with no choice, Beta has no category again: the second mod of Combat is Gamma
-    panel.setCategoryChoices({});
+    panel.modList().setCategoryChoices({});
     drawFrames(panel, 2);
     press(panel, treeRow(2));
     CHECK(panel.selection() == selectionOf(3));

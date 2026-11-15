@@ -45,6 +45,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/ui/FullPanelRenderTests.cpp
   linked/ui/FullPanelTests.cpp
   linked/ui/MenuControlsTests.cpp
+  linked/ui/ModListTests.cpp
   linked/ui/NumbersTests.cpp
   linked/ui/RowViewTests.cpp
   linked/ui/SearchSessionTests.cpp
@@ -117,6 +118,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/ui/HelpLine.cpp
   ${SOURCE_DIR}/ui/HelpPage.cpp
   ${SOURCE_DIR}/ui/MenuControls.cpp
+  ${SOURCE_DIR}/ui/ModList.cpp
   ${SOURCE_DIR}/ui/ModPage.cpp
   ${SOURCE_DIR}/ui/Numbers.cpp
   ${SOURCE_DIR}/ui/ConfigSpecReport.cpp

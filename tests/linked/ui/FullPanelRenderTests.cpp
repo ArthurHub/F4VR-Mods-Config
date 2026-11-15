@@ -2359,14 +2359,14 @@ TEST_CASE("FullPanel render: the config spec showcase read from its live copy: i
         live.liveCopy = copy;
         panel.replaceMod(std::move(live), "10:42:05");
         if (notRead) {
-            panel.liveCopyNotRead(folder,
+            panel.modList().liveCopyNotRead(folder,
                 copy,
                 "10:43:12",
                 "Not valid JSON: [json.exception.parse_error.101] parse error at line 41, column 7: syntax error while parsing object separator - unexpected string "
                 "literal; expected '}'");
         }
         // and its installed spec.json is newer than the copy, which Overwrite warns of, as the menu tells it after a read
-        panel.setLiveCopyStale(folder, true);
+        panel.modList().setLiveCopyStale(folder, true);
         return panel;
     };
 
@@ -2592,7 +2592,7 @@ TEST_CASE("FullPanel render: a tree grouped by category, closed, with one open a
 
     FullPanel panel;
     panel.setMods(std::move(mods));
-    panel.setCategoriesMinMods(0);
+    panel.modList().setCategoriesMinMods(0);
 
     const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
     const auto row = [rowsTop](const int place) {
@@ -2648,7 +2648,7 @@ TEST_CASE("FullPanel render: the Categories page of the mod's own config spec, w
 
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
-    panel.setCategoriesMinMods(0);
+    panel.modList().setCategoriesMinMods(0);
     panel.setMods(mods);
     const auto ownPlace = static_cast<std::size_t>(std::ranges::find(panel.mods(), "ModsConfigFO4VR", &model::Mod::name) - panel.mods().begin());
     const auto& ownMod = panel.mods()[ownPlace];
@@ -2698,7 +2698,7 @@ TEST_CASE("FullPanel render: Type a new name in the list of a row of the Categor
         }
         store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = callbacks }.calls());
         panel.setStore(model::Source::ConfigSpec, &store);
-        panel.setCategoriesMinMods(0);
+        panel.modList().setCategoriesMinMods(0);
         panel.setMods(mods);
         const auto ownPlace = static_cast<std::size_t>(std::ranges::find(panel.mods(), "ModsConfigFO4VR", &model::Mod::name) - panel.mods().begin());
         const auto& ownMod = panel.mods()[ownPlace];

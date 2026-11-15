@@ -22,8 +22,8 @@ One game-free mod list module, owned by the panel, holds the mods, their order, 
 2. As the maintainer, I want the category table, the player's category choices and the grouping of the tree held once, so that the menu and the panel never hold two copies that can drift.
 3. As the maintainer, I want the rows of the menu's own Categories page refilled by the module that owns the mod list, so that no reload path can forget to refill them.
 4. As a player, I want the tree regrouped as soon as I save a new category for a mod, so that the menu shows my choice, as it does today.
-5. As the maintainer, I want a Save of the categories detected as a Save of the menu's own mod, not by matching a file id, so that changing the own config spec's files cannot silently break regrouping.
-6. As the maintainer, I want the categories offered on the Categories page to include pending choices read through the Store interface, so that the mod list does not reach into a concrete store.
+5. As the maintainer, I want any Save the menu's own client hears to read the categories again, not one matched by a file id, so that changing the own config spec's files cannot silently break regrouping.
+6. As the maintainer, I want the categories offered on the Categories page to include pending choices read through the read part of the Store interface, so that the mod list does not reach into a concrete store.
 7. As the maintainer, I want "reload, then rows refilled and tree regrouped" tested through the panel, so that this path is covered by a unit test.
 8. As a player, I want the tree's grouping, category rows and their open state to look as today, so that the change is invisible to me.
 
@@ -35,27 +35,29 @@ One game-free mod list module, owned by the panel, holds the mods, their order, 
   - the category table, the player's category choices and the minimum number of mods to group from;
   - the groups by category, made again as any of these change;
   - the last read of each config spec's live copy, and whether its installed spec.json is newer;
-  - the name of the menu's own mod, which it is told once, and refilling that mod's Categories page.
-- **Refilling the Categories page.** Setting the mods, replacing one and setting the category table each refill the rows of the own mod's Categories page. So no reload path refills them, and the order the menu tells the table and the mods in does not matter.
-- **Replacing a mod** is split by whose state it is. The panel's `replaceMod` counts the selected mod's dropped changes, ends the store session, and has the mod list replace the mod. The mod list puts it in, sorts again, regroups, refills the Categories page, records the "Reloaded at" read, and returns the new place of each old place, none for a folder it does not list. The panel remaps its selection, report, Back's report and pending leave from those places, and starts the session again. A live copy that is not read, and a stale installed spec.json, go to the mod list directly.
-- **The panel's interface.** `setMods` and `replaceMod` stay, as they do panel work too. The category setters leave the panel: callers set the table, the choices and the minimum on the mod list. `FullPanel::mods()` and `ConfigMenu::mods()` stay, as reads of the mod list, so devbench, the quick launch list, read again and the Developer options do not change.
-- **Offered categories.** The mod list gives the options of a mod's category row, from the mods, the table, the choices and the pending choices of the own mod read through a `model::Store&`. The menu registers them on its own native API client as today: the registration stays out of the mod list.
-- **Detecting a Save.** The menu keeps its own client's Save subscription, and reads the choices again after a Save of its own mod, matched by the mod's name. The file's path stays a constant, moved next to the other category constants in `Categories.h`. This wiring is in the menu until [04](04-menu-controller.md) moves it into the controller.
-- **No copies left.** The menu drops its category table and its choices, and keeps only the flag its Save subscription sets for the frame update. The panel drops its own category state.
+  - the menu's own mod, and refilling its Categories page. The menu tells it the name once, with `setOwnMod(Version::PROJECT)` at startup; the own mod is the config spec of that name, matched without case.
+- **Refilling the Categories page.** Setting the mods, setting the category table, and replacing the own mod each refill the rows of the own mod's Categories page, so no reload path refills them. Replacing any other mod does not: the store session holds the selected mod, and rebuilding the own mod's page while its session is open would pull its rows from under the mod page and the search. The table is set once at startup, before a mod is selected, which the setter's doc comment states, as it rebuilds the page too.
+- **Replacing a mod** is split by whose state it is. The panel's `replaceMod` returns at once for a folder the mod list does not list, so no session ends for a mod that is not put in. Otherwise it counts the selected mod's dropped changes, ends the store session, and calls `std::optional<std::vector<std::size_t>> replace(model::Mod, std::size_t dropped, std::string_view time)`. The mod list puts the mod in, sorts again, regroups, refills the Categories page if it is the own mod, records the "Reloaded at" read with the dropped count, and returns the new place of each old place, none for a folder it does not list. The panel remaps its selection, report, Back's report and pending leave from those places, and starts the session again.
+- **Live copy reads.** A live copy that is not read, a stale installed spec.json, and the last read of a folder go to the mod list directly: `modList().liveCopyNotRead`, `setLiveCopyStale` and `liveCopyRead`, with no pass-throughs on the panel. The menu, devbench and the tests call them there.
+- **The panel's interface.** `setMods` and `replaceMod` stay, as they do panel work too. The category setters leave the panel: callers set the table, the choices and the minimum on the mod list. `FullPanel::mods()` and `ConfigMenu::mods()` stay, as reads of the mod list, so devbench, the quick launch list, read again and the Developer options do not change. `ConfigMenu::setMods` keeps its table parameter and passes it on, so the mod does not change.
+- **Access to the mods.** The mod list gives `const std::vector<model::Mod>& mods() const` for reads. Only the panel, its friend, gets `model::Mod& mod(std::size_t place)` for the store session and the vector itself for the search, which reads the game's texts into the mods. Only `setMods` and `replace` add, remove or order mods, so the order and the groups cannot drift from the mods.
+- **Offered categories.** The mod list gives the options of a mod's category row, from the mods, the table, the choices and the pending choices of the own mod, read through a `model::StoreReader&` the caller passes: the menu passes its config spec store. The mod list knows no store. The menu registers them on its own native API client as today: the registration stays out of the mod list.
+- **Detecting a Save.** The menu keeps its own client's Save subscription. A client hears only the Saves of its own config spec, so any Save it hears sets the flag, and the frame update reads the choices again. A Save of another page of the own mod reads them too, which is one small file and a regroup. The file's path stays in the menu, as only the menu reads the file and the path is built on the mod's config folder. This wiring is in the menu until [04](04-menu-controller.md) moves it into the controller.
+- **No copies left.** The menu drops its category table and its choices, and keeps only the flag its Save subscription sets for the frame update. The panel drops its own category state and live copy reads.
 - **What stays.** The category functions in the model stay as they are, as the mod list's implementation. The tree's own open state of category rows stays in the tree. The native API, the config spec schema, `Categories.toml` and the devbench endpoints do not change.
 
 ## Testing Decisions
 
-- **Seam.** Tests go through the panel's interface and its `modList()`, with the existing test panel and store doubles, and the real config spec store over a per-test folder where pending choices need it.
+- **Seam.** Tests go through the panel's interface and its `modList()`, with the existing test panel and store doubles. Pending choices use a `StoreReader` double that answers `isDirty` and `value`: the store's own tests cover its pending changes.
 - **They cover:**
   - grouping from the minimum number of mods;
-  - the Categories page refilled after setting the mods, replacing one, and setting the table;
+  - the Categories page refilled after setting the mods, replacing the own mod, and setting the table, and not after replacing another mod;
   - a replaced mod keeping the selection, the report and a pending leave;
   - the live copy reads after a replace and a failed read;
   - pending choices offered on the Categories page.
 - **Not here.** "A Save of the own mod regroups the tree" needs the menu, which links the game: [04](04-menu-controller.md) tests it through the controller.
 - **Prior art:** the existing categories tests, the config spec store tests, and the panel's tests.
-- **Regression net.** The existing categories and panel tests pass unchanged, except the calls of the category setters, which move to the mod list.
+- **Regression net.** The existing categories and panel tests pass unchanged, except the calls that move to `modList()`: the category setters and the live copy reads.
 
 ## Out of Scope
 

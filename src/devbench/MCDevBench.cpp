@@ -1064,7 +1064,7 @@ namespace mods_config::devbench
                     errors += problem.severity == model::Severity::Error ? 1 : 0;
                     problems.push_back(problemToJson(problem));
                 }
-                const auto* read = mod.folder.empty() ? nullptr : panel.liveCopyRead(mod.folder);
+                const auto* read = mod.folder.empty() ? nullptr : panel.modList().liveCopyRead(mod.folder);
                 configSpecs.push_back({ { "name", mod.name },
                     { "displayName", mod.displayName },
                     { "folder", mod.folder },

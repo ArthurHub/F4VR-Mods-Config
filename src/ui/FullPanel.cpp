@@ -37,9 +37,6 @@ namespace
     // the width of a footer button, in the panel's pixels
     constexpr float BUTTON_WIDTH = 160.0f;
 
-    // how the error of a live copy that cannot be read starts, which tells it from the config spec's other problems
-    constexpr std::string_view LIVE_COPY_NOT_READ = "The live copy cannot be read";
-
     /**
      * Finds the sections an item is in, from the outermost, in a list of items and the sections in it.
      * Returns whether the item is there.
@@ -70,53 +67,10 @@ namespace mods_config::ui
      */
     void FullPanel::setMods(std::vector<model::Mod> mods)
     {
-        std::ranges::sort(mods, common::CaseInsensitiveComparator(), &model::Mod::displayName);
         // before the mods it is of are replaced
         _session.end();
-        _mods = std::move(mods);
-        groupMods();
+        _modList.setMods(std::move(mods));
         reset();
-    }
-
-    /**
-     * The shipped table of the categories, which gives a mod with no category of its own one.
-     */
-    void FullPanel::setCategoryTable(model::CategoryTable table)
-    {
-        _categoryTable = std::move(table);
-        groupMods();
-    }
-
-    /**
-     * The categories the player gave mods, as their file has them: at first, and after a Save wrote it.
-     */
-    void FullPanel::setCategoryChoices(model::CategoryChoices choices)
-    {
-        _categoryChoices = std::move(choices);
-        groupMods();
-    }
-
-    /**
-     * From how many mods the tree is grouped by category: 0 groups any list.
-     */
-    void FullPanel::setCategoriesMinMods(const int minMods)
-    {
-        if (_categoriesMinMods != minMods) {
-            _categoriesMinMods = minMods;
-            groupMods();
-        }
-    }
-
-    /**
-     * Groups the mods by their categories again, as the mods, the table, the player's choices or the number the tree
-     * is grouped from changes: none for a list too short to be grouped, whose tree is flat.
-     */
-    void FullPanel::groupMods()
-    {
-        _categories.clear();
-        if (_categoriesMinMods && !_mods.empty() && model::isGrouped(_mods.size(), *_categoriesMinMods)) {
-            _categories = model::groupByCategory(_mods, _categoryTable, _categoryChoices);
-        }
     }
 
     void FullPanel::setQuickLaunch(std::vector<QuickLaunchEntry> entries)
@@ -162,8 +116,8 @@ namespace mods_config::ui
 
     /**
      * What does what a press on a row of a config spec's live copy in its report asks, by the config spec's folder:
-     * the menu, which reads the config spec again with `replaceMod` and `liveCopyNotRead` after the panel is drawn. With
-     * none, as in a test, a press on them does nothing.
+     * the menu, which reads the config spec again with `replaceMod`, or tells the mod list `liveCopyNotRead`, after
+     * the panel is drawn. With none, as in a test, a press on them does nothing.
      */
     void FullPanel::setLiveCopyAction(std::function<void(const std::string& folder, LiveCopyAction action)> act)
     {
@@ -182,41 +136,25 @@ namespace mods_config::ui
      */
     std::size_t FullPanel::replaceMod(model::Mod mod, const std::string_view time)
     {
-        const auto found = std::ranges::find_if(_mods, [&mod](const model::Mod& each) {
-            return each.source == model::Source::ConfigSpec && each.folder == mod.folder;
-        });
-        if (mod.folder.empty() || found == _mods.end()) {
+        const auto place = _modList.placeOf(mod.folder);
+        if (!place) {
             return 0;
         }
-        const auto folder = mod.folder;
-        const bool selected = _selection.mod == static_cast<std::size_t>(found - _mods.begin());
+        const bool selected = _selection.mod == *place;
         std::size_t dropped = 0;
         if (selected) {
-            const auto* const store = storeOf(*found);
+            const auto* const store = storeOf(mods()[*place]);
             dropped = store ? store->dirtyCount() : 0;
             // the session ends before its mod is replaced, and starts again on the new one
             _session.end();
         }
-        *found = std::move(mod);
-
-        // the order of the display names again, as the mod's can be another now
-        std::vector<std::size_t> order(_mods.size());
-        std::iota(order.begin(), order.end(), std::size_t{ 0 });
-        std::ranges::stable_sort(order, common::CaseInsensitiveComparator(), [this](const std::size_t place) -> const std::string& {
-            return _mods[place].displayName;
-        });
-        std::vector<std::size_t> placeOf(_mods.size());
-        std::vector<model::Mod> sorted;
-        sorted.reserve(_mods.size());
-        for (std::size_t place = 0; place < order.size(); ++place) {
-            placeOf[order[place]] = place;
-            sorted.push_back(std::move(_mods[order[place]]));
+        const auto placeOf = _modList.replace(std::move(mod), dropped, time);
+        if (!placeOf) {
+            return 0;
         }
-        _mods = std::move(sorted);
-        groupMods();
-        const auto keep = [&placeOf](std::optional<std::size_t>& place) {
-            if (place) {
-                place = placeOf[*place];
+        const auto keep = [&placeOf](std::optional<std::size_t>& kept) {
+            if (kept) {
+                kept = (*placeOf)[*kept];
             }
         };
         keep(_selection.mod);
@@ -231,7 +169,7 @@ namespace mods_config::ui
             _leaving.reset();
             const auto before = _selection;
             const auto shown = existing(_selection);
-            _session.show(shown.mod ? storeOf(_mods[*shown.mod]) : nullptr, shown.mod ? &_mods[*shown.mod] : nullptr, [this, &shown] {
+            _session.show(shown.mod ? storeOf(mods()[*shown.mod]) : nullptr, shown.mod ? &_modList.mod(*shown.mod) : nullptr, [this, &shown] {
                 _selection = available(shown);
                 return selectedPage();
             });
@@ -243,51 +181,7 @@ namespace mods_config::ui
             _modTree.showSelection();
         }
         _search.modReplaced();
-        _liveCopyReads[folder] =
-            LiveCopyRead{ .result = dropped == 0 ? std::format("Reloaded at {}.", time)
-                                                 : std::format("Reloaded at {}: {} unsaved change{} dropped.", time, dropped, dropped == 1 ? " was" : "s were"),
-                .failed = false };
         return dropped;
-    }
-
-    /**
-     * Tells that the live copy of the config spec of a folder cannot be read, with the reason: its mod keeps what it
-     * read last, with its unsaved changes, and is read from the copy, where the report says it is. The reason is an
-     * error before its problems, in place of the one of a read before, and the last read of its live copy says that
-     * it failed, and when, as `10:42:05`.
-     */
-    void FullPanel::liveCopyNotRead(const std::string_view folder, const std::string_view liveCopy, const std::string_view time, const std::string_view reason)
-    {
-        const auto found = std::ranges::find_if(_mods, [folder](const model::Mod& each) {
-            return each.source == model::Source::ConfigSpec && each.folder == folder;
-        });
-        if (folder.empty() || found == _mods.end()) {
-            return;
-        }
-        found->liveCopy = liveCopy;
-        std::erase_if(found->problems, [](const model::Problem& problem) {
-            return problem.message.starts_with(LIVE_COPY_NOT_READ);
-        });
-        found->problems.insert(found->problems.begin(),
-            model::Problem{ .severity = model::Severity::Error,
-                .row = "spec.json",
-                .message = std::format("{}: {}. The menu shows the copy it read last.", LIVE_COPY_NOT_READ, reason),
-                .where = {},
-                .path = {},
-                .place = {} });
-        _liveCopyReads[std::string(folder)] =
-            LiveCopyRead{ .result = std::format("Read at {}: the live copy cannot be read. The menu shows the copy it read last.", time), .failed = true };
-    }
-
-    /**
-     * Tells whether the installed spec.json of the config spec of a folder is newer than its live copy, as the copy
-     * was just read, which the last read keeps until the next: Overwrite warns of it.
-     */
-    void FullPanel::setLiveCopyStale(const std::string_view folder, const bool stale)
-    {
-        if (const auto read = _liveCopyReads.find(folder); read != _liveCopyReads.end()) {
-            read->second.stale = stale;
-        }
     }
 
     /**
@@ -329,7 +223,7 @@ namespace mods_config::ui
      */
     model::Store* FullPanel::selectedStore() const
     {
-        return _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        return _selection.mod ? storeOf(mods()[*_selection.mod]) : nullptr;
     }
 
     /**
@@ -340,7 +234,7 @@ namespace mods_config::ui
      */
     FullPanel::SessionStatus FullPanel::sessionStatus() const
     {
-        auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        auto* const store = _selection.mod ? storeOf(mods()[*_selection.mod]) : nullptr;
         const bool made = store && store->writesChangesAtOnce();
         if (!store) {
             return {};
@@ -431,9 +325,9 @@ namespace mods_config::ui
     Selection FullPanel::existing(const Selection& selection) const
     {
         Selection shown;
-        if (selection.mod && *selection.mod < _mods.size() && _mods[*selection.mod].notAvailable.empty()) {
+        if (selection.mod && *selection.mod < mods().size() && mods()[*selection.mod].notAvailable.empty()) {
             shown.mod = selection.mod;
-            const auto* pages = &_mods[*selection.mod].pages;
+            const auto* pages = &mods()[*selection.mod].pages;
             for (const auto place : selection.page) {
                 if (place >= pages->size()) {
                     break;
@@ -455,8 +349,8 @@ namespace mods_config::ui
         if (!selection.mod) {
             return shown;
         }
-        auto* store = storeOf(_mods[*selection.mod]);
-        const auto* pages = &_mods[*selection.mod].pages;
+        auto* store = storeOf(mods()[*selection.mod]);
+        const auto* pages = &mods()[*selection.mod].pages;
         for (const auto place : selection.page) {
             if (place >= pages->size()) {
                 break;
@@ -482,7 +376,7 @@ namespace mods_config::ui
         _helpShown = false;
         _report.reset();
         _returnToReport.reset();
-        _session.show(shown.mod ? storeOf(_mods[*shown.mod]) : nullptr, shown.mod ? &_mods[*shown.mod] : nullptr, [this, &shown] {
+        _session.show(shown.mod ? storeOf(mods()[*shown.mod]) : nullptr, shown.mod ? &_modList.mod(*shown.mod) : nullptr, [this, &shown] {
             _selection = available(shown);
             return selectedPage();
         });
@@ -548,7 +442,7 @@ namespace mods_config::ui
         if (!_selection.mod) {
             return nullptr;
         }
-        const auto& mod = _mods[*_selection.mod];
+        const auto& mod = mods()[*_selection.mod];
         const auto* page = &mod.frontPage;
         const auto* pages = &mod.pages;
         for (const auto place : _selection.page) {
@@ -601,7 +495,7 @@ namespace mods_config::ui
      */
     bool FullPanel::openReport(const std::size_t mod)
     {
-        if (mod >= _mods.size()) {
+        if (mod >= mods().size()) {
             return false;
         }
         if (hasUnsavedChanges()) {
@@ -643,10 +537,10 @@ namespace mods_config::ui
      */
     bool FullPanel::showProblem(const std::size_t mod, const std::size_t problem)
     {
-        if (mod >= _mods.size() || problem >= _mods[mod].problems.size() || !_mods[mod].problems[problem].place) {
+        if (mod >= mods().size() || problem >= mods()[mod].problems.size() || !mods()[mod].problems[problem].place) {
             return false;
         }
-        const auto place = *_mods[mod].problems[problem].place;
+        const auto place = *mods()[mod].problems[problem].place;
         if (!select(Selection{ .mod = mod, .page = place.page }) || _selection.mod != mod) {
             return false;
         }
@@ -783,7 +677,7 @@ namespace mods_config::ui
         const auto storeOfMod = [this](const model::Mod& mod) {
             return storeOf(mod);
         };
-        if (!_search.update(_modTree.query(), _mods, _selection.mod, storeOfMod)) {
+        if (!_search.update(_modTree.query(), _modList.changeableMods(), _selection.mod, storeOfMod)) {
             return;
         }
         _modTree.showTop();
@@ -877,7 +771,7 @@ namespace mods_config::ui
             _helpShown = helpShown;
         }
         updateSearch();
-        auto titleBar = drawTitleBar(_mods, _selection, _helpShown, _highlightHelp, _report && !_helpShown ? &_mods[*_report] : nullptr, _selection.mod && isFiltered());
+        auto titleBar = drawTitleBar(mods(), _selection, _helpShown, _highlightHelp, _report && !_helpShown ? &mods()[*_report] : nullptr, _selection.mod && isFiltered());
         auto pressed = titleBar.pressed;
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
@@ -887,7 +781,8 @@ namespace mods_config::ui
         const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
 
         const TreeSearch search{ .query = &_search.query(), .found = &_search.found(), .matches = _search.matches() };
-        auto tree = _modTree.draw(_mods, _selection, bodyHeight, selectedStore(), _search.query().empty() ? nullptr : &search, _categories.empty() ? nullptr : &_categories);
+        auto tree =
+            _modTree.draw(mods(), _selection, bodyHeight, selectedStore(), _search.query().empty() ? nullptr : &search, _modList.groups().empty() ? nullptr : &_modList.groups());
         _onSearchField = tree.searchPointed;
         if (tree.pressed) {
             pressed = tree.pressed;
@@ -918,9 +813,8 @@ namespace mods_config::ui
             if (_helpShown) {
                 drawHelpPage(_controls);
             } else if (_report) {
-                const auto& mod = _mods[*_report];
-                const auto read = _liveCopyReads.find(mod.folder);
-                auto drawn = _configSpecReport.draw(mod, read != _liveCopyReads.end() ? &read->second : nullptr);
+                const auto& mod = mods()[*_report];
+                auto drawn = _configSpecReport.draw(mod, _modList.changeableRead(mod.folder));
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
                 if (drawn.pressed) {
@@ -937,9 +831,9 @@ namespace mods_config::ui
                 }
                 _reportScroll = ImGui::GetScrollY();
             } else if (_selection.mod && isFiltered() && !_search.showsRows(*_selection.mod, *selectedPage())) {
-                drawSearchText(_search.hiddenByConditions(*_selection.mod, _mods[*_selection.mod], *selectedPage()));
+                drawSearchText(_search.hiddenByConditions(*_selection.mod, mods()[*_selection.mod], *selectedPage()));
             } else if (_selection.mod) {
-                const auto& mod = _mods[*_selection.mod];
+                const auto& mod = mods()[*_selection.mod];
                 PageSearch pageSearch;
                 if (const auto* found = _search.foundIn(*_selection.mod)) {
                     pageSearch = { .query = &_search.query(), .found = &found->rows, .filtered = isFiltered() };
@@ -963,7 +857,7 @@ namespace mods_config::ui
                 pointed = std::move(drawn.pointed);
                 _pressActed = drawn.pressActed;
                 if (_developerView.enabled) {
-                    auto developer = _developer.draw(_mods, _developerView, _thumbstickSideValue, _scrollToDeveloper);
+                    auto developer = _developer.draw(mods(), _developerView, _thumbstickSideValue, _scrollToDeveloper);
                     _scrollToDeveloper = false;
                     report = developer.opened;
                     if (developer.pointed) {
@@ -1039,13 +933,13 @@ namespace mods_config::ui
      */
     std::vector<FrontPageMod> FullPanel::frontPageMods() const
     {
-        std::vector<FrontPageMod> mods;
-        mods.reserve(_mods.size());
-        for (const auto& mod : _mods) {
+        std::vector<FrontPageMod> frontPage;
+        frontPage.reserve(mods().size());
+        for (const auto& mod : mods()) {
             const auto* store = storeOf(mod);
-            mods.push_back({ .displayName = mod.displayName, .savedRestartCount = store ? store->savedRestartCount(mod) : 0, .notAvailable = mod.notAvailable });
+            frontPage.push_back({ .displayName = mod.displayName, .savedRestartCount = store ? store->savedRestartCount(mod) : 0, .notAvailable = mod.notAvailable });
         }
-        return mods;
+        return frontPage;
     }
 
     /**
@@ -1061,7 +955,7 @@ namespace mods_config::ui
         const float width = ImGui::GetContentRegionAvail().x;
         ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
 
-        auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
+        auto* const store = _selection.mod ? storeOf(mods()[*_selection.mod]) : nullptr;
         const bool made = store && store->writesChangesAtOnce();
         const float top = pos.y + (theme::FOOTER_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
         const auto save = controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
@@ -1100,12 +994,12 @@ namespace mods_config::ui
         }
         std::optional<UnsavedChanges> changes;
         if (_leaving) {
-            changes = UnsavedChanges{ .mod = _mods[*_selection.mod].displayName,
+            changes = UnsavedChanges{ .mod = mods()[*_selection.mod].displayName,
                 .count = store->dirtyCount(),
                 .invalid = store->invalidCount(),
                 .next = _leaving->closeMenu ? std::string("close the menu")
-                        : _leaving->report  ? std::format("open the report of {}", _mods[*_leaving->report].displayName)
-                        : _leaving->to.mod  ? std::format("open {}", _mods[*_leaving->to.mod].displayName)
+                        : _leaving->report  ? std::format("open the report of {}", mods()[*_leaving->report].displayName)
+                        : _leaving->to.mod  ? std::format("open {}", mods()[*_leaving->to.mod].displayName)
                                             : std::string("go to the menu's front page"),
                 .made = store->writesChangesAtOnce() };
         }

@@ -14,6 +14,7 @@
 #include "FrontPage.h"
 #include "HelpLine.h"
 #include "MenuControls.h"
+#include "ModList.h"
 #include "ModPage.h"
 #include "ModTree.h"
 #include "SearchSession.h"
@@ -69,15 +70,10 @@ namespace mods_config::ui
         void setHighlightHelp(bool highlight, std::function<void()> opened);
         void setLiveCopyAction(std::function<void(const std::string& folder, LiveCopyAction action)> act);
         std::size_t replaceMod(model::Mod mod, std::string_view time);
-        void liveCopyNotRead(std::string_view folder, std::string_view liveCopy, std::string_view time, std::string_view reason);
-        void setLiveCopyStale(std::string_view folder, bool stale);
         void setImageDrawer(ImageDrawer drawer);
         void setStore(model::Source source, model::Store* store);
         void setThumbstickSideValue(float value);
         void setTreeWidth(float width);
-        void setCategoryTable(model::CategoryTable table);
-        void setCategoriesMinMods(int minMods);
-        void setCategoryChoices(model::CategoryChoices choices);
         bool select(const Selection& selection);
         bool close();
         bool showHelp(bool shown);
@@ -93,7 +89,18 @@ namespace mods_config::ui
 
         const std::vector<model::Mod>& mods() const
         {
-            return _mods;
+            return _modList.mods();
+        }
+
+        // the mods with their categories and live copy reads, which the menu sets the categories and the reads of
+        ModList& modList()
+        {
+            return _modList;
+        }
+
+        const ModList& modList() const
+        {
+            return _modList;
         }
 
         const Selection& selection() const
@@ -146,13 +153,6 @@ namespace mods_config::ui
         bool openReport(std::size_t mod);
         bool showProblem(std::size_t mod, std::size_t problem);
         bool answerDialog(DialogAnswer answer);
-
-        // the last read of the live copy of the config spec of a folder, and none while it was not read
-        const LiveCopyRead* liveCopyRead(const std::string_view folder) const
-        {
-            const auto read = _liveCopyReads.find(folder);
-            return read != _liveCopyReads.end() ? &read->second : nullptr;
-        }
 
         // whether the Help page is shown, over the selection, which it keeps
         bool isHelpShown() const
@@ -218,8 +218,8 @@ namespace mods_config::ui
         void drawFooter(const ImVec2& pos);
         void drawDialog();
 
-        // the mods the menu lists, in order of their display names
-        std::vector<model::Mod> _mods;
+        // the mods the menu lists, in order of their display names, with their categories and live copy reads
+        ModList _modList;
 
         // the controls of the menu that the Help page tells, and what Minimize and Close do
         std::vector<ControlHelp> _controls;
@@ -258,19 +258,6 @@ namespace mods_config::ui
         model::Store* _mcmStore = nullptr;
         model::Store* _configSpecStore = nullptr;
 
-        void groupMods();
-
-        // the shipped table of the categories, and from how many mods the tree is grouped by category: none for a
-        // panel that is not told, whose tree is flat
-        model::CategoryTable _categoryTable;
-        std::optional<int> _categoriesMinMods;
-
-        // the category the player gave a mod, which is before the mod's own and the table's
-        model::CategoryChoices _categoryChoices;
-
-        // the mods by their categories, which the tree is grouped by: empty for a flat tree
-        std::vector<model::CategoryGroup> _categories;
-
         ModTree _modTree;
         ModPage _modPage;
         HelpLine _helpLine;
@@ -289,10 +276,8 @@ namespace mods_config::ui
         DeveloperSection _developer;
         std::function<void(const DeveloperView&)> _writeDeveloperView;
 
-        // what does what a press on a row of a report's live copy asks, which the menu does, and the last read of each
-        // config spec's live copy, by its folder
+        // what does what a press on a row of a report's live copy asks, which the menu does
         std::function<void(const std::string&, LiveCopyAction)> _liveCopyAction;
-        std::map<std::string, LiveCopyRead, std::less<>> _liveCopyReads;
 
         // the design system's sizes and colors are set on ImGui's style once
         bool _styleApplied = false;

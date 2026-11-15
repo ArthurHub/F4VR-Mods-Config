@@ -53,14 +53,6 @@ namespace
     // the file of the categories the player gave mods, beside the mod's config, as the mod's own config spec has it
     const auto CATEGORIES_PATH = mods_config::BASE_MOD_PATH + R"(\Categories.toml)";
 
-    /**
-     * Whether a mod is the menu's own, whose config spec has the Categories page the menu fills.
-     */
-    bool isOwnMod(const mods_config::model::Mod& mod)
-    {
-        return mod.source == mods_config::model::Source::ConfigSpec && _stricmp(mod.name.c_str(), Version::PROJECT.data()) == 0;
-    }
-
     // how often the frame update looks for a live copy that was saved
     constexpr auto LIVE_COPIES_CHECK = std::chrono::milliseconds(500);
 
@@ -136,6 +128,8 @@ namespace mods_config
             }
             return _configSpecStore.setPendingValue(modName, id, value);
         });
+        // the mod's own config spec has the Categories page, which the mod list fills with a row for each mod
+        _fullPanel.modList().setOwnMod(std::string(Version::PROJECT));
         _fullPanel.setLiveCopyAction([this](const std::string& folder, const ui::LiveCopyAction action) {
             _liveCopyRequest = LiveCopyRequest{ .folder = folder, .action = action };
         });
@@ -148,12 +142,10 @@ namespace mods_config
      */
     void ConfigMenu::registerOwnOptions()
     {
-        // a Save of the player's categories, which the tree is grouped by again from the frame update: the Save is
-        // told while the panel is drawn
-        api::ModsConfigFO4Client::get().subscribeToSaves([this](const api::Saved& saved) {
-            if (std::ranges::contains(saved.files, std::string_view(model::CATEGORIES_FILE), &api::SavedFile::name)) {
-                _categoriesSaved = true;
-            }
+        // a Save of the mod's own config spec can write the player's categories, which the tree is grouped by again
+        // from the frame update: the Save is told while the panel is drawn, and the client hears only its own
+        api::ModsConfigFO4Client::get().subscribeToSaves([this](const api::Saved&) {
+            _categoriesSaved = true;
         });
         api::ModsConfigFO4Client::get().addOptions(DEVELOPER_CONFIG_SPEC_ID, [this] {
             std::vector<api::Option> options{ { .value = std::string(), .text = "None" } };
@@ -262,22 +254,19 @@ namespace mods_config
     {
         // the textures are kept by the pixels of the mods that are replaced
         _imageTextures.clear();
-        _categoryTable = std::move(categories);
 
-        // the Categories page of the mod's own config spec has a row for each mod, whose options its own client gives
-        if (const auto own = std::ranges::find_if(mods, isOwnMod); own != mods.end()) {
-            model::addCategoryRows(*own, mods, _categoryTable);
-        }
+        // the rows of the Categories page of the mod's own config spec, which the mod list fills, take their options
+        // from its own client
         for (const auto& mod : mods) {
             api::ModsConfigFO4Client::get().addOptions(model::CATEGORY_SETTING_ID + mod.name, [this] {
                 std::vector<api::Option> options;
-                for (const auto& option : model::categoryOptions(this->mods(), _categoryTable, offeredCategoryChoices())) {
+                for (const auto& option : _fullPanel.modList().categoryOptions(_configSpecStore)) {
                     options.push_back({ .value = std::get<std::string>(option.value), .text = option.text });
                 }
                 return options;
             });
         }
-        _fullPanel.setCategoryTable(_categoryTable);
+        _fullPanel.modList().setCategoryTable(std::move(categories));
         _fullPanel.setMods(std::move(mods));
         readCategoryChoices();
         _translations = std::move(translations);
@@ -289,19 +278,7 @@ namespace mods_config
      */
     void ConfigMenu::readCategoryChoices()
     {
-        _categoryChoices = model::loadCategoryChoices(CATEGORIES_PATH);
-        _fullPanel.setCategoryChoices(_categoryChoices);
-    }
-
-    /**
-     * The player's choices the rows of the Categories page offer the names of: their file's, and the ones on the page that
-     * wait for a Save, so a name typed in a row is in the others' lists.
-     */
-    model::CategoryChoices ConfigMenu::offeredCategoryChoices()
-    {
-        const auto& mods = this->mods();
-        const auto own = std::ranges::find_if(mods, isOwnMod);
-        return own != mods.end() ? model::withPendingChoices(_categoryChoices, *own, _configSpecStore) : _categoryChoices;
+        _fullPanel.modList().setCategoryChoices(model::loadCategoryChoices(CATEGORIES_PATH));
     }
 
     const std::vector<model::Mod>& ConfigMenu::mods() const
@@ -680,7 +657,7 @@ namespace mods_config
         // the canvas follows the size at its next frame, with as many pixels per unit
         _panel->setSize(g_config.panelWidth, g_config.panelHeight);
         _fullPanel.setTreeWidth(g_config.treeWidth * imgui::CANVAS_PIXELS_PER_UNIT);
-        _fullPanel.setCategoriesMinMods(g_config.categoriesMinMods);
+        _fullPanel.modList().setCategoriesMinMods(g_config.categoriesMinMods);
         _panel->setScale(g_config.panelScale);
         _panel->setPosition(0, g_config.panelDistance, g_config.panelElevation);
         _panel->setRotation(common::MatrixUtils::getMatrixFromEulerAnglesDegrees(g_config.panelTilt, 0, 0));
@@ -879,12 +856,11 @@ namespace mods_config
         auto mod = spec::loadConfigSpecFile(_liveCopies.copyOf(folder), _translations, spec::gamePluginChecks(), spec::gameFileFolders());
         if (!mod) {
             logger::warn("Config spec '{}': its live copy cannot be read: {}", folder, mod.error());
-            _fullPanel.liveCopyNotRead(folder, shownLiveCopy(folder), timeOfDay(), mod.error());
+            _fullPanel.modList().liveCopyNotRead(folder, shownLiveCopy(folder), timeOfDay(), mod.error());
         } else {
             mod->folder = folder;
             mod->liveCopy = shownLiveCopy(folder);
             spec::logConfigSpec(*mod);
-            addOwnCategoryRows(*mod);
             const auto dropped = _fullPanel.replaceMod(std::move(*mod), timeOfDay());
             logger::info("Config spec '{}' is read from its live copy, which dropped {} unsaved changes", folder, dropped);
         }
@@ -892,7 +868,7 @@ namespace mods_config
         if (stale) {
             logger::warn("Config spec '{}': its installed spec.json is newer than its live copy", folder);
         }
-        _fullPanel.setLiveCopyStale(folder, stale);
+        _fullPanel.modList().setLiveCopyStale(folder, stale);
     }
 
     /**
@@ -908,19 +884,7 @@ namespace mods_config
         }
         mod->folder = folder;
         spec::logConfigSpec(*mod);
-        addOwnCategoryRows(*mod);
         _fullPanel.replaceMod(std::move(*mod), timeOfDay());
-    }
-
-    /**
-     * Fills the Categories page of the menu's own config spec as it is read again, with a row for each mod the menu
-     * lists. Nothing for any other mod.
-     */
-    void ConfigMenu::addOwnCategoryRows(model::Mod& mod) const
-    {
-        if (isOwnMod(mod)) {
-            model::addCategoryRows(mod, mods(), _categoryTable);
-        }
     }
 
     /**
