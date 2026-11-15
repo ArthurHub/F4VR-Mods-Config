@@ -70,14 +70,8 @@ namespace mods_config::ui
         void setImageDrawer(ImageDrawer drawer);
         void setLeftHanded(bool leftHanded);
         PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue, const PageSearch& search = {});
-        bool cancelDrag();
-        bool closeList();
-        bool cancelEdit();
-        bool cancelBindingEdit();
-        bool cancelColorEdit();
-        bool cancelTransformEdit();
+        bool back();
         void resumeTransformEdit();
-        bool cancelConfirmation();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);
         void reset();
 

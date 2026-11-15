@@ -15,7 +15,7 @@ The mod page owns its own Back step. One game-free row view is computed from the
 
 ## User Stories
 
-1. As the maintainer, I want the mod page to own its Back step (close a list, cancel a drag, cancel an editor, in its own order), so that the panel calls one Back and a new editor adds no term to the panel.
+1. As the maintainer, I want the mod page to own its Back step (cancel a confirmation, cancel a drag, close a list, cancel an editor, in its own order), so that the panel calls one Back and a new editor adds no term to the panel.
 2. As the maintainer, I want how a row looks (enabled, the warning hidden while invalid, the tag shown only while dirty) computed in one game-free row view, so that the panel and devbench cannot disagree.
 3. As an e2e test author, I want devbench to report the row view the panel draws, so that an e2e test that checks a row's state checks what the player sees.
 4. As an AI agent adding an editor, I want Back handled inside the mod page, so that I don't have to edit the panel.
@@ -23,7 +23,7 @@ The mod page owns its own Back step. One game-free row view is computed from the
 
 ## Implementation Decisions
 
-- **Back.** The mod page has one Back step: it closes an open list, cancels a drag or an editor, in its own order, and says whether it used Back. The panel calls it once. The seven cancel and close pass-throughs on the mod page go.
+- **Back.** The mod page has one Back step, which says whether it used Back. Its order is today's: a button's confirmation, a slider's drag, a dropdown's list, a text input's edit, then the binding, color and transform editors. The panel calls it once, between ending the search field's edit and leaving Help. The seven cancel and close pass-throughs on the mod page go.
 - **Row view.** How a setting row looks (enabled, value look, warning shown, tag shown, the reasons) is one game-free row view, computed from the setting and its store.
 - **Who uses the row view.** The setting row draws from it. devbench reports it, and its own copy of these rules goes.
 - **Unchanged.** The row's drawing and controls.

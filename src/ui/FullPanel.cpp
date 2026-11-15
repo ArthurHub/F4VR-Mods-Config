@@ -696,8 +696,7 @@ namespace mods_config::ui
             _leaving.reset();
             return true;
         }
-        if (_modTree.endSearchEdit() || _modPage.cancelConfirmation() || _modPage.cancelDrag() || _modPage.closeList() || _modPage.cancelEdit() || _modPage.cancelBindingEdit() ||
-            _modPage.cancelColorEdit() || _modPage.cancelTransformEdit() || showHelp(false)) {
+        if (_modTree.endSearchEdit() || _modPage.back() || showHelp(false)) {
             return true;
         }
         if (_onSearchField && !_modTree.query().empty()) {

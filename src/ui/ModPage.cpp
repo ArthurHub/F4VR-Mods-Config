@@ -481,55 +481,15 @@ namespace mods_config::ui
     }
 
     /**
-     * Ends the drag of a slider with nothing written, for Back.
-     * Returns false while no slider is dragged.
+     * Goes one step back in the page, for Back: closes a button's confirmation with nothing run, ends the drag of a
+     * slider with nothing written, closes the open list of a dropdown with no option picked, ends the edit of a text
+     * input with nothing written, closes the list of a binding's editor or gives the binding back, and gives a color or
+     * a transform back as its editor closes. Only one step is taken. Returns false while none of them is open.
      */
-    bool ModPage::cancelDrag()
+    bool ModPage::back()
     {
-        return _sliders.cancelDrag();
-    }
-
-    /**
-     * Closes the list of a dropdown that is open, with no option picked, for Back.
-     * Returns false while none is open.
-     */
-    bool ModPage::closeList()
-    {
-        return _choices.closeList();
-    }
-
-    /**
-     * Ends the edit of a text input with nothing written, for Back.
-     * Returns false while none is edited.
-     */
-    bool ModPage::cancelEdit()
-    {
-        return _textInputs.cancelEdit();
-    }
-
-    /**
-     * Closes the list that is open in the editor of a binding, or else gives back the binding and closes its editor,
-     * for Back. Returns false while no editor is open.
-     */
-    bool ModPage::cancelBindingEdit()
-    {
-        return _bindingEditor.cancel();
-    }
-
-    /**
-     * Gives back the color and closes its editor, for Back. Returns false while no editor is open.
-     */
-    bool ModPage::cancelColorEdit()
-    {
-        return _colorEditor.cancel();
-    }
-
-    /**
-     * Gives back the transform and closes its editor, for Back. Returns false while no editor is open.
-     */
-    bool ModPage::cancelTransformEdit()
-    {
-        return _transformEditor.cancel();
+        return _buttons.cancelConfirmation() || _sliders.cancelDrag() || _choices.closeList() || _textInputs.cancelEdit() || _bindingEditor.cancel() || _colorEditor.cancel() ||
+               _transformEditor.cancel();
     }
 
     /**
@@ -538,15 +498,6 @@ namespace mods_config::ui
     void ModPage::resumeTransformEdit()
     {
         _transformEditor.resume();
-    }
-
-    /**
-     * Closes the confirmation a button shows with nothing run, for Back.
-     * Returns false while none is shown.
-     */
-    bool ModPage::cancelConfirmation()
-    {
-        return _buttons.cancelConfirmation();
     }
 
     /**
