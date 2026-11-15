@@ -37,6 +37,6 @@ namespace mods_config::ui
     Row addFoldingRow(const char* id, bool& folded);
     void drawLabel(const ImVec2& pos, float right, std::string_view text, std::span<const model::TextRun> runs, const RowMarks& marks = {},
         const model::SearchQuery* query = nullptr);
-    std::string_view warningOf(const std::vector<model::Warning>& warnings, model::Store* store);
+    std::string_view warningOf(const std::vector<model::Warning>& warnings, model::StoreReader* store);
     std::string readOnlyHelp(std::string reason, const std::string& help);
 }

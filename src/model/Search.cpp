@@ -215,7 +215,7 @@ namespace
     class ModSearch
     {
     public:
-        ModSearch(const SearchQuery& query, Store* store)
+        ModSearch(const SearchQuery& query, StoreReader* store)
             : _query(query),
               _store(store)
         {}
@@ -341,7 +341,7 @@ namespace
         }
 
         const SearchQuery& _query;
-        Store* _store;
+        StoreReader* _store;
 
         // the names the item searched now is under: its mod's, its pages' and its sections'
         std::vector<Folded> _context;
@@ -406,7 +406,7 @@ namespace mods_config::model
      * available is found by its name alone. The items it shows are kept, so its page shows those alone. With no store, as for a mod that is not selected, a condition holds, so
      * a row it would hide is found. None for a mod in which nothing matches.
      */
-    std::optional<ModFound> searchMod(const Mod& mod, const SearchQuery& query, Store* store)
+    std::optional<ModFound> searchMod(const Mod& mod, const SearchQuery& query, StoreReader* store)
     {
         if (query.empty()) {
             return std::nullopt;

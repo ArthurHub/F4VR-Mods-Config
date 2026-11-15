@@ -14,7 +14,7 @@
 
 namespace mods_config::model
 {
-    class Store;
+    class StoreReader;
 
     // what the mods with no category are under, last
     constexpr auto NO_CATEGORY = "No category";
@@ -102,5 +102,5 @@ namespace mods_config::model
     std::vector<std::string> categoryNames(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
     std::vector<Option> categoryOptions(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
     bool addCategoryRows(Mod& own, const std::vector<Mod>& mods, const CategoryTable& table);
-    CategoryChoices withPendingChoices(CategoryChoices choices, const Mod& own, Store& store);
+    CategoryChoices withPendingChoices(CategoryChoices choices, const Mod& own, StoreReader& store);
 }

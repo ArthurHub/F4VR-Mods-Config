@@ -41,5 +41,5 @@ namespace mods_config::ui
         TextMark mark = TextMark::None;
     };
 
-    RowView rowViewOf(const model::Setting& setting, model::Store* store);
+    RowView rowViewOf(const model::Setting& setting, model::StoreReader* store);
 }

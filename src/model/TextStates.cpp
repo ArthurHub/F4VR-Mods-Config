@@ -27,7 +27,7 @@ namespace
      * they contain another placeholder. An unavailable value says so; an incomplete or empty placeholder stays as written.
      * A name ends at the first `}`, so a setting's name keeps its `:Section`.
      */
-    std::string insertStates(const std::string_view text, mods_config::model::Store* store)
+    std::string insertStates(const std::string_view text, mods_config::model::StoreReader* store)
     {
         std::string shown;
         std::size_t from = 0;
@@ -71,7 +71,7 @@ namespace mods_config::model
      * alignment of each line. Returns none for static text, which is drawn as loaded. Inserted strings are never parsed
      * as markup.
      */
-    std::optional<std::vector<TextLine>> resolveClientText(const std::span<const TextLine> lines, Store* store)
+    std::optional<std::vector<TextLine>> resolveClientText(const std::span<const TextLine> lines, StoreReader* store)
     {
         if (std::ranges::none_of(lines, [](const TextLine& line) {
                 return std::ranges::any_of(line.runs, [](const TextRun& run) {
@@ -109,7 +109,7 @@ namespace mods_config::model
      * Resolves both placeholders in a text on one line, as a row's label and its help show it: a line break in an
      * inserted text is a space. A text with no placeholder is as it is written.
      */
-    std::string resolveClientText(const std::string_view text, Store* store)
+    std::string resolveClientText(const std::string_view text, StoreReader* store)
     {
         if (!hasPlaceholder(text)) {
             return std::string(text);
@@ -123,7 +123,7 @@ namespace mods_config::model
     /**
      * Resolves both placeholders in the runs of a label, each keeping its look, on one line as the label's text.
      */
-    std::vector<TextRun> resolveClientRuns(const std::span<const TextRun> runs, Store* store)
+    std::vector<TextRun> resolveClientRuns(const std::span<const TextRun> runs, StoreReader* store)
     {
         std::vector<TextRun> resolved(runs.begin(), runs.end());
         for (auto& run : resolved) {

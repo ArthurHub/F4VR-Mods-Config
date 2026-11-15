@@ -48,10 +48,62 @@ namespace mods_config::model
     };
 
     /**
+     * The part of a store that only reads the selected mod's values, which the model's read-only helpers take:
+     * conditions, search, text states, unsaved pages and the row view. Reading can fill a store's caches, but never
+     * changes its session.
+     */
+    class StoreReader
+    {
+    public:
+        virtual ~StoreReader() = default;
+
+        /**
+         * The value of a setting of the mod whose session it is.
+         */
+        virtual StoredValue value(const Setting& setting) = 0;
+
+        /**
+         * The value of the setting of an id, of the mod whose session it is. It is not available for an id
+         * that no setting of the mod has.
+         */
+        virtual StoredValue valueById(std::string_view id) = 0;
+
+        /**
+         * Whether a setting is dirty: its value is not the one its session started with, or the last Save kept, and
+         * waits for a Save, or is written already, which a Save keeps and a Discard writes back.
+         */
+        virtual bool isDirty(const Setting& setting) const = 0;
+
+        /**
+         * When a change of a setting takes effect in its running mod, as its config spec says: unknown for an MCM
+         * mod's. None for one that is not set, as a read-only one.
+         */
+        virtual std::optional<Applies> applies(const Setting& setting) const = 0;
+
+        /**
+         * The value of a state of the selected mod's client, by its name, which a `clientState` condition asks: not
+         * available for a mod with no client, and while the client does not answer it.
+         */
+        virtual StoredValue clientState(std::string_view)
+        {
+            return {};
+        }
+
+        /**
+         * The value of a setting of the game's INI, by its name, which a `gameIniSetting` condition and placeholder ask:
+         * not available for a store whose mods cannot name one, and for a setting the game does not have.
+         */
+        virtual StoredValue gameIniSetting(std::string_view)
+        {
+            return {};
+        }
+    };
+
+    /**
      * The values of the mod that is selected. The UI reads the definition to know what to draw, and asks the
      * store for every value: it never reads or writes a global, a file or a script property itself.
      */
-    class Store
+    class Store : public StoreReader
     {
     public:
         virtual ~Store() = default;
@@ -79,14 +131,6 @@ namespace mods_config::model
         virtual void readTexts(Mod& /*mod*/)
         {}
 
-        virtual StoredValue value(const Setting& setting) = 0;
-
-        /**
-         * The value of the setting of an id, of the mod whose session it is. It is not available for an id
-         * that no setting of the mod has.
-         */
-        virtual StoredValue valueById(std::string_view id) = 0;
-
         /**
          * Sets the value of a setting. Returns whether it is set. A store that keeps a change for a Save sets a
          * value of the setting's type that is no value of it, as invalid.
@@ -104,12 +148,6 @@ namespace mods_config::model
          * reads them there. None while that list cannot be read: its value is not available then, with the reason.
          */
         virtual const std::vector<Option>& options(const Setting& setting) const = 0;
-
-        /**
-         * Whether a setting is dirty: its value is not the one its session started with, or the last Save kept, and
-         * waits for a Save, or is written already, which a Save keeps and a Discard writes back.
-         */
-        virtual bool isDirty(const Setting& setting) const = 0;
 
         /**
          * How many settings of the session are dirty.
@@ -130,12 +168,6 @@ namespace mods_config::model
          * nothing while there is one. An invalid value that was read, and not changed, is not counted.
          */
         virtual std::size_t invalidCount() const = 0;
-
-        /**
-         * When a change of a setting takes effect in its running mod, as its config spec says: unknown for an MCM
-         * mod's. None for one that is not set, as a read-only one.
-         */
-        virtual std::optional<Applies> applies(const Setting& setting) const = 0;
 
         /**
          * How many dirty settings take effect after the game is restarted.
@@ -190,24 +222,6 @@ namespace mods_config::model
          * available for a hotkey its source does not have.
          */
         virtual StoredValue hotkey(const Hotkey& hotkey) = 0;
-
-        /**
-         * The value of a state of the selected mod's client, by its name, which a `clientState` condition asks: not
-         * available for a mod with no client, and while the client does not answer it.
-         */
-        virtual StoredValue clientState(std::string_view)
-        {
-            return {};
-        }
-
-        /**
-         * The value of a setting of the game's INI, by its name, which a `gameIniSetting` condition and placeholder ask:
-         * not available for a store whose mods cannot name one, and for a setting the game does not have.
-         */
-        virtual StoredValue gameIniSetting(std::string_view)
-        {
-            return {};
-        }
 
         /**
          * The page of the selected mod that is shown, after its session starts and as another is shown, which a store

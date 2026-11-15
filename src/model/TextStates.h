@@ -10,9 +10,9 @@
 
 namespace mods_config::model
 {
-    class Store;
+    class StoreReader;
 
-    std::optional<std::vector<TextLine>> resolveClientText(std::span<const TextLine> lines, Store* store);
-    std::string resolveClientText(std::string_view text, Store* store);
-    std::vector<TextRun> resolveClientRuns(std::span<const TextRun> runs, Store* store);
+    std::optional<std::vector<TextLine>> resolveClientText(std::span<const TextLine> lines, StoreReader* store);
+    std::string resolveClientText(std::string_view text, StoreReader* store);
+    std::vector<TextRun> resolveClientRuns(std::span<const TextRun> runs, StoreReader* store);
 }

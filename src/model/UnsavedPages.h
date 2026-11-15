@@ -19,8 +19,8 @@ namespace mods_config::model
         bool operator==(const FoldedMarks&) const = default;
     };
 
-    std::size_t unsavedChanges(const std::vector<Item>& items, Store& store);
-    std::size_t unsavedChanges(const Page& page, Store& store, bool withPages);
-    std::size_t unsavedChanges(const Mod& mod, Store& store);
-    FoldedMarks foldedMarks(const std::vector<Item>& items, Store& store);
+    std::size_t unsavedChanges(const std::vector<Item>& items, StoreReader& store);
+    std::size_t unsavedChanges(const Page& page, StoreReader& store, bool withPages);
+    std::size_t unsavedChanges(const Mod& mod, StoreReader& store);
+    FoldedMarks foldedMarks(const std::vector<Item>& items, StoreReader& store);
 }

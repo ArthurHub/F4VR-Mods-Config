@@ -16,22 +16,13 @@ namespace
      * A store whose settings are dirty by their ids, with the values a condition asks by id. A setting is available
      * unless it is named as not, and invalid where it is named so.
      */
-    class DirtyStore final : public model::Store
+    class DirtyStore final : public model::StoreReader
     {
     public:
         std::set<std::string, std::less<>> dirty;
         std::set<std::string, std::less<>> notAvailable;
         std::set<std::string, std::less<>> invalid;
         std::map<std::string, model::Value, std::less<>> values;
-
-        void open(const model::Mod&) override
-        {}
-
-        void close() override
-        {}
-
-        void pageShown() override
-        {}
 
         model::StoredValue value(const model::Setting& setting) override
         {
@@ -44,85 +35,14 @@ namespace
             return found != values.end() ? model::StoredValue{ .value = found->second, .available = true, .reason = {} } : model::StoredValue{};
         }
 
-        bool set(const model::Setting&, const model::Value&) override
-        {
-            return false;
-        }
-
-        std::optional<model::Value> defaultValue(const model::Setting&) override
-        {
-            return std::nullopt;
-        }
-
-        const std::vector<model::Option>& options(const model::Setting& setting) const override
-        {
-            return setting.valueOptions.options;
-        }
-
         bool isDirty(const model::Setting& setting) const override
         {
             return dirty.contains(setting.id);
         }
 
-        std::size_t dirtyCount() const override
-        {
-            return dirty.size();
-        }
-
-        std::size_t invalidCount() const override
-        {
-            return 0;
-        }
-
         std::optional<model::Applies> applies(const model::Setting&) const override
         {
             return std::nullopt;
-        }
-
-        std::size_t dirtyRestartCount() const override
-        {
-            return 0;
-        }
-
-        std::optional<std::size_t> lastSave() const override
-        {
-            return std::nullopt;
-        }
-
-        std::size_t savedRestartCount(const model::Mod&) const override
-        {
-            return 0;
-        }
-
-        std::expected<void, std::string> save() override
-        {
-            return {};
-        }
-
-        std::string_view saveFailure() const override
-        {
-            return {};
-        }
-
-        void discard() override
-        {}
-
-        void discard(const model::Setting&) override
-        {}
-
-        std::optional<model::Value> savedValue(const model::Setting&) override
-        {
-            return std::nullopt;
-        }
-
-        model::StoredValue hotkey(const model::Hotkey&) override
-        {
-            return {};
-        }
-
-        model::ActionResult run(const model::Action&) override
-        {
-            return {};
         }
     };
 

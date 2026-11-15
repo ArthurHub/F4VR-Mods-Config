@@ -9,7 +9,7 @@ namespace mods_config::ui
      * How the row of a setting looks now, read from its store. With no store nothing is available, so the row
      * shows no value and cannot be edited.
      */
-    RowView rowViewOf(const model::Setting& setting, model::Store* store)
+    RowView rowViewOf(const model::Setting& setting, model::StoreReader* store)
     {
         RowView view;
         view.stored = store ? store->value(setting) : model::StoredValue{};

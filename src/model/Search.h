@@ -83,5 +83,5 @@ namespace mods_config::model
     };
 
     std::vector<TextRange> matchRanges(const SearchQuery& query, std::string_view name);
-    std::optional<ModFound> searchMod(const Mod& mod, const SearchQuery& query, Store* store);
+    std::optional<ModFound> searchMod(const Mod& mod, const SearchQuery& query, StoreReader* store);
 }

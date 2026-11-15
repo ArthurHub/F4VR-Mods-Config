@@ -23,7 +23,7 @@ namespace
      * Whether a setting's row is shown, as its condition holds. A count asks it after what is cheaper to ask of the
      * store, as a condition can read the game.
      */
-    bool isShown(const Setting& setting, Store& store)
+    bool isShown(const Setting& setting, StoreReader& store)
     {
         return !setting.visibleWhen || holds(*setting.visibleWhen, &store);
     }
@@ -36,7 +36,7 @@ namespace mods_config::model
      * with their condition holding and their value available. A change that is invalid counts, as it is unsaved too.
      * The condition and the value of a setting that is not dirty are not read, as the tree counts every frame.
      */
-    std::size_t unsavedChanges(const std::vector<Item>& items, Store& store)
+    std::size_t unsavedChanges(const std::vector<Item>& items, StoreReader& store)
     {
         std::size_t count = 0;
         for (const auto& item : items) {
@@ -56,7 +56,7 @@ namespace mods_config::model
      * What the rows of the settings of a folded section's items, and of the sections in them, would mark, where their
      * condition holds: each is counted by its row's mark, invalid, or else unsaved while dirty and available.
      */
-    FoldedMarks foldedMarks(const std::vector<Item>& items, Store& store)
+    FoldedMarks foldedMarks(const std::vector<Item>& items, StoreReader& store)
     {
         FoldedMarks marks;
         for (const auto& item : items) {
@@ -86,7 +86,7 @@ namespace mods_config::model
      * `visibleWhen` does not hold counts nothing, and a disabled one counts its rows. The page itself is counted
      * whether or not it is in the tree: its caller asks for one that is.
      */
-    std::size_t unsavedChanges(const Page& page, Store& store, const bool withPages)
+    std::size_t unsavedChanges(const Page& page, StoreReader& store, const bool withPages)
     {
         std::size_t count = unsavedChanges(page.items, store);
         if (!withPages) {
@@ -104,7 +104,7 @@ namespace mods_config::model
      * How many changes of a mod's pages wait for a Save, as the row of its closed category tells them: its front
      * page's and those of every page of it that is in the tree.
      */
-    std::size_t unsavedChanges(const Mod& mod, Store& store)
+    std::size_t unsavedChanges(const Mod& mod, StoreReader& store)
     {
         std::size_t count = unsavedChanges(mod.frontPage, store, false);
         for (const auto& page : mod.pages) {

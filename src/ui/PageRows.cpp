@@ -111,7 +111,7 @@ namespace mods_config::ui
      * The text of the first warning that holds on the values the store has now, and none where none does.
      * A warning that a value which is not available leaves open does not hold.
      */
-    std::string_view warningOf(const std::vector<model::Warning>& warnings, model::Store* store)
+    std::string_view warningOf(const std::vector<model::Warning>& warnings, model::StoreReader* store)
     {
         const auto warning = std::ranges::find_if(warnings, [store](const model::Warning& each) {
             return model::surelyHolds(each.when, store);

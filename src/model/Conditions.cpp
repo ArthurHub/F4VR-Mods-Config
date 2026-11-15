@@ -100,7 +100,7 @@ namespace
      * available, as MCM's menu reads a hidden switcher. A state of the mod's client and a setting of the game's INI are
      * asked of the store as a setting's value is. With no store no value is available.
      */
-    std::optional<bool> evaluate(const model::Condition& condition, model::Store* store)
+    std::optional<bool> evaluate(const model::Condition& condition, model::StoreReader* store)
     {
         using Kind = model::Condition::Kind;
         using Source = model::Condition::Source;
@@ -140,7 +140,7 @@ namespace mods_config::model
      * leaves open holds: its row is shown, so nothing is hidden for a reason the player cannot change.
      * With no store no value is available.
      */
-    bool holds(const Condition& condition, Store* store)
+    bool holds(const Condition& condition, StoreReader* store)
     {
         return evaluate(condition, store).value_or(true);
     }
@@ -149,7 +149,7 @@ namespace mods_config::model
      * Whether a condition holds on the values the store has now, and does not where a value that is not
      * available leaves it open: a warning is not told of a value the player cannot see.
      */
-    bool surelyHolds(const Condition& condition, Store* store)
+    bool surelyHolds(const Condition& condition, StoreReader* store)
     {
         return evaluate(condition, store).value_or(false);
     }

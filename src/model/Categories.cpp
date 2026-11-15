@@ -326,7 +326,7 @@ namespace mods_config::model
      * Save in its store, which the rows offer the names of at once: a name typed in one row is in the lists of the
      * others. A store that has another mod's session has none of them pending.
      */
-    CategoryChoices withPendingChoices(CategoryChoices choices, const Mod& own, Store& store)
+    CategoryChoices withPendingChoices(CategoryChoices choices, const Mod& own, StoreReader& store)
     {
         const auto page = std::ranges::find(own.pages, CATEGORIES_PAGE_ID, &Page::id);
         if (page == own.pages.end()) {
