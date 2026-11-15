@@ -1,3 +1,7 @@
+## v1.0.1
+
+- For mod authors: after a config spec is read again from its live copy, its mod's native client is told `PageShown` for the page still on screen, as after any other selection.
+
 ## v1.0.0
 
 The first release. From it, the config spec schema and the native API only grow: a config spec and a DLL built for 1.0 keep working on every later version.

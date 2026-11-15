@@ -82,6 +82,8 @@ namespace mods_config::ui
     void FullPanel::setMods(std::vector<model::Mod> mods)
     {
         std::ranges::sort(mods, common::CaseInsensitiveComparator(), &model::Mod::displayName);
+        // before the mods it is of are replaced
+        _session.end();
         _mods = std::move(mods);
         groupMods();
         reset();
@@ -199,11 +201,12 @@ namespace mods_config::ui
         }
         const auto folder = mod.folder;
         const bool selected = _selection.mod == static_cast<std::size_t>(found - _mods.begin());
-        auto* const store = storeOf(*found);
         std::size_t dropped = 0;
-        if (selected && store) {
-            dropped = store->dirtyCount();
-            store->close();
+        if (selected) {
+            const auto* const store = storeOf(*found);
+            dropped = store ? store->dirtyCount() : 0;
+            // the session ends before its mod is replaced, and starts again on the new one
+            _session.end();
         }
         *found = std::move(mod);
 
@@ -237,17 +240,16 @@ namespace mods_config::ui
 
         if (selected) {
             _leaving.reset();
+            const auto before = _selection;
             const auto shown = existing(_selection);
-            if (shown.mod && store) {
-                store->open(_mods[*shown.mod]);
-                store->readTexts(_mods[*shown.mod]);
-            }
+            _session.show(shown.mod ? storeOf(_mods[*shown.mod]) : nullptr, shown.mod ? &_mods[*shown.mod] : nullptr, [this, &shown] {
+                _selection = available(shown);
+                return selectedPage();
+            });
             // the page that stays keeps where it was scrolled to
-            _pageChanged = shown != _selection;
-            _selection = shown;
+            _pageChanged = _selection != before;
             _modPage.reset();
             _helpLine.clear();
-            _pointedItem = nullptr;
             updateStatus();
             _modTree.showSelection();
         }
@@ -481,10 +483,9 @@ namespace mods_config::ui
     }
 
     /**
-     * Shows a selection of what is there. Another mod than before starts its editing session in its store,
-     * which ends the session it had. A mod that is left for no mod, or for a mod of another store, ends its
-     * session in its store. Another page of the same mod is told to its store, which reads the values it keeps
-     * in files again. A report that was shown is left, and so is the report Back went to.
+     * Shows a selection of what is there, as the session tells the stores: another mod starts its editing session,
+     * and another page of the same mod is told to its store, before the page's conditions are asked of it. A report
+     * that was shown is left, and so is the report Back went to.
      * Returns true: it shows another page than before.
      */
     bool FullPanel::show(const Selection& shown)
@@ -492,25 +493,10 @@ namespace mods_config::ui
         _helpShown = false;
         _report.reset();
         _returnToReport.reset();
-        auto* const storeBefore = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr;
-        auto* const store = shown.mod ? storeOf(_mods[*shown.mod]) : nullptr;
-        if (shown.mod != _selection.mod) {
-            if (storeBefore && storeBefore != store) {
-                storeBefore->close();
-            }
-            if (store) {
-                store->open(_mods[*shown.mod]);
-            }
-        } else if (store) {
-            store->pageShown();
-        }
-        if (store) {
-            store->readTexts(_mods[*shown.mod]);
-        }
-        _selection = available(shown);
-        if (store) {
-            store->showPage(selectedPage());
-        }
+        _session.show(shown.mod ? storeOf(_mods[*shown.mod]) : nullptr, shown.mod ? &_mods[*shown.mod] : nullptr, [this, &shown] {
+            _selection = available(shown);
+            return selectedPage();
+        });
         pageShown();
         return true;
     }
@@ -760,13 +746,7 @@ namespace mods_config::ui
      */
     void FullPanel::point(const model::Item* item)
     {
-        if (item == _pointedItem) {
-            return;
-        }
-        _pointedItem = item;
-        if (auto* const store = selectedStore()) {
-            store->showPointed(item);
-        }
+        _session.point(item);
     }
 
     /**
@@ -783,9 +763,7 @@ namespace mods_config::ui
      */
     void FullPanel::reset()
     {
-        if (auto* const store = _selection.mod ? storeOf(_mods[*_selection.mod]) : nullptr) {
-            store->close();
-        }
+        _session.end();
         _selection = {};
         _helpShown = false;
         _report.reset();
@@ -801,7 +779,6 @@ namespace mods_config::ui
         _thumbstickSideValue = 0.0f;
         _modPage.reset();
         _helpLine.clear();
-        _pointedItem = nullptr;
         updateStatus();
         _modTree.showTop();
         _modTree.clearSearch();
@@ -944,10 +921,10 @@ namespace mods_config::ui
 
         _pressActed = false;
         _hapticPlayed.reset();
-        if (auto* const store = selectedStore()) {
+        {
             // the states of the mod's client are asked again in each frame
             F4CF_PERF_SCOPE("startFrame");
-            store->startFrame();
+            _session.startFrame();
         }
         const auto shown = available(_selection);
         if (shown != _selection) {
@@ -1029,7 +1006,7 @@ namespace mods_config::ui
                 }
                 pointed = std::move(drawn.pointed);
                 // the item stays in the gap between two rows, as the help line's row does
-                pointedItem = drawn.pointedItem ? drawn.pointedItem : onPage ? _pointedItem : nullptr;
+                pointedItem = drawn.pointedItem ? drawn.pointedItem : onPage ? _session.pointed() : nullptr;
                 _pressActed = drawn.pressActed;
                 _hapticPlayed = drawn.haptic;
                 if (drawn.adjust && _menuActions.adjustTransform) {

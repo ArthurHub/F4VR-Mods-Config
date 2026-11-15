@@ -46,6 +46,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/ui/FullPanelTests.cpp
   linked/ui/MenuControlsTests.cpp
   linked/ui/NumbersTests.cpp
+  linked/ui/StoreSessionTests.cpp
   # the helpers the tests share, beside the area folders
   linked/TestActions.cpp
   linked/TestActions.h
@@ -122,6 +123,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/ui/Sections.cpp
   ${SOURCE_DIR}/ui/SettingRow.cpp
   ${SOURCE_DIR}/ui/Sliders.cpp
+  ${SOURCE_DIR}/ui/StoreSession.cpp
   ${SOURCE_DIR}/ui/TextInputs.cpp
   ${SOURCE_DIR}/ui/TitleBar.cpp
   ${SOURCE_DIR}/ui/TransformEditor.cpp

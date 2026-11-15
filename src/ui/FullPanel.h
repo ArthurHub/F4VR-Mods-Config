@@ -17,6 +17,7 @@
 #include "ModPage.h"
 #include "ModTree.h"
 #include "Selection.h"
+#include "StoreSession.h"
 #include "TitleBar.h"
 #include "UnsavedDialog.h"
 #include "model/ConfigDefinition.h"
@@ -260,8 +261,8 @@ namespace mods_config::ui
         ModPage _modPage;
         HelpLine _helpLine;
 
-        // the item of the selected mod whose row the ray is on, which its store was told last: none for no row
-        const model::Item* _pointedItem = nullptr;
+        // the selected mod's editing session, as its store is told of it, with the row the ray is on
+        StoreSession _session;
 
         // the search field's query as it was last searched, its words, and what it found in each mod, by the mod's
         // place, with the mod that was selected then, whose conditions were asked of its store

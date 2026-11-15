@@ -11,7 +11,7 @@ In the suggested order. A change's row is marked done when its commit lands.
 | Order | Change | Seam | Blocked by | Status |
 | --- | --- | --- | --- | --- |
 | 1 | [01. Setting value rules in one module per setting type](01-setting-value-rules.md) | A | | done |
-| 2 | [02. A store session module that orders the store's lifecycle calls](02-store-session.md) | B | | todo |
+| 2 | [02. A store session module that orders the store's lifecycle calls](02-store-session.md) | B | | done |
 | 3 | [05. One walk for a page's pending marks](05-pending-marks.md) | A | | todo |
 | 4 | [06. A search session module behind the panel](06-search-session.md) | B | | todo |
 | 5 | [07. One row view for the panel and devbench, and Back owned by the mod page](07-row-view-and-back.md) | B | | todo |

@@ -92,6 +92,8 @@ namespace mods_config
         void readChangedLiveCopies();
         void doClientRequests();
         void readSelectedAgain();
+        void tellMenuEvent(model::ClientEvent event);
+        void updateStores();
         void doAdjust();
         void endAdjust();
 

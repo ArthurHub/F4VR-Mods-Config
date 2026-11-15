@@ -191,8 +191,7 @@ namespace mods_config
         _fullPanel.reset();
         createPanel();
         createWristButtons();
-        _store.menuOpened();
-        _configSpecStore.clientCalls().sendToAll(model::ClientEvent::MenuOpened);
+        tellMenuEvent(model::ClientEvent::MenuOpened);
     }
 
     void ConfigMenu::close()
@@ -216,8 +215,7 @@ namespace mods_config
         _configSpecTextures.clear();
         // the mod that is shown is left, which its scripts and its client are told before they are told of the menu
         _fullPanel.reset();
-        _store.menuClosed();
-        _configSpecStore.clientCalls().sendToAll(model::ClientEvent::MenuClosed);
+        tellMenuEvent(model::ClientEvent::MenuClosed);
     }
 
     /**
@@ -365,10 +363,7 @@ namespace mods_config
     void ConfigMenu::onFrameUpdate()
     {
         F4CF_PERF_FUNCTION();
-        // the pause menu's events of a Save wait for MCM's file, also after the menu is closed
-        _store.frameUpdate();
-        // the last value of a preview its mod's client was not told yet, as previews are told at most every 50 ms
-        _configSpecStore.frameUpdate();
+        updateStores();
         // every frame, so a change of the config shows while the menu is open
         imgui::pointer().setStyle(g_config.pointerStyle);
         if (_developerToSave) {
@@ -564,6 +559,31 @@ namespace mods_config
         if (auto* const store = _fullPanel.selectedStore()) {
             store->readAgain();
         }
+    }
+
+    /**
+     * Tells every store and every mod's client that the menu opened or closed: the MCM mods' scripts with MCM's own
+     * events, and the native clients with theirs. A menu that closes has left its mod before.
+     */
+    void ConfigMenu::tellMenuEvent(const model::ClientEvent event)
+    {
+        if (event == model::ClientEvent::MenuOpened) {
+            _store.menuOpened();
+        } else {
+            _store.menuClosed();
+        }
+        _configSpecStore.clientCalls().sendToAll(event);
+    }
+
+    /**
+     * The stores' work of each frame, open menu or closed.
+     */
+    void ConfigMenu::updateStores()
+    {
+        // the pause menu's events of a Save wait for MCM's file, also after the menu is closed
+        _store.frameUpdate();
+        // the last value of a preview its mod's client was not told yet, as previews are told at most every 50 ms
+        _configSpecStore.frameUpdate();
     }
 
     void ConfigMenu::createPanel()
