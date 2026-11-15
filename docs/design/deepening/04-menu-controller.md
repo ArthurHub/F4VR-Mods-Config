@@ -55,7 +55,7 @@ The menu splits into a game-free menu controller and the game side. The controll
 - **Two adapters.** The game adapter is in the mod. The recording adapter is in the tests.
 - **Adjust in world.** Its controller reading and wrist column stay on the game side. The controller only starts and cancels it through the port.
 - **Build.** The controller is added to the unit test build. The game adapter stays out, like the game access sources today.
-- **The mod list and categories** move into the controller in [03](03-mod-list.md), which is blocked by this one. Until then the controller carries the category wiring as it is.
+- **The mod list and categories** are the panel's, from [03](03-mod-list.md). The controller carries the menu's Save subscription for them: after a Save of its own mod it reads the player's choices again into the mod list, which regroups the tree.
 
 ## Testing Decisions
 
@@ -67,18 +67,19 @@ The menu splits into a game-free menu controller and the game side. The controll
   - a saved live copy being reloaded and replaced, with its unsaved changes dropped;
   - Overwrite, Open and Show on a live copy;
   - the quick launch list;
-  - the Developer and Help-opened writes.
+  - the Developer and Help-opened writes;
+  - a Save of the menu's own mod regrouping the tree.
 - **Prior art:** the config spec store tests (per-test folders and files), the native clients tests (recording callbacks), and the test file helpers.
 - **e2e.** The e2e tests through devbench are run by hand, and the menu is tried in the headset before this is called done.
 
 ## Out of Scope
 
-- The mod list and categories, which are [03](03-mod-list.md).
+- The mod list and categories themselves, which are [03](03-mod-list.md).
 - Changing the menu's behaviour, the native API or the wrist buttons.
 - Unit testing the game adapter.
 
 ## Further Notes
 
-- Seventh in the suggested order, and the largest change.
+- Last in the suggested order, and the largest change.
 - devbench reaches into the menu and the panel today. It moves to the controller's interface where that's a plain rename, and otherwise stays as it is.
 - The glossary may gain "menu controller".

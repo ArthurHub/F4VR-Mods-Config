@@ -16,8 +16,8 @@ In the suggested order. A change's row is marked done when its commit lands.
 | 4 | [06. A search session module behind the panel](06-search-session.md) | B | | todo |
 | 5 | [07. One row view for the panel and devbench, and Back owned by the mod page](07-row-view-and-back.md) | B | | todo |
 | 6 | [08. A read part of the Store interface](08-store-read-interface.md) | A | 02 | todo |
-| 7 | [04. A game-free menu controller behind a port](04-menu-controller.md) | C | | todo |
-| 8 | [03. A mod list module that owns the mods and their categories](03-mod-list.md) | C | 04 | todo |
+| 7 | [03. A mod list module that owns the mods and their categories](03-mod-list.md) | B | | todo |
+| 8 | [04. A game-free menu controller behind a port](04-menu-controller.md) | C | | todo |
 
 ## Problem Statement
 
@@ -40,8 +40,8 @@ Deepen the hot spots so that each rule lives in one module and is tested through
 Every change is tested at one of three seams. No other seams are added.
 
 - **A. The setting type modules in the model.** The existing color, transform, input binding and haptic modules, deepened, plus one entry point by setting type. Also the unsaved pages walk and the read part of the Store interface.
-- **B. The panel's existing interface.** Driven with the existing test panel and a store double that records each call it gets, in order. The store session, the search session, the mod page's Back and the row view are private modules behind the panel, tested through it.
-- **C. A new game-free menu controller.** Behind one port, with a game adapter in the mod and a recording adapter in the tests. The mod list and its categories live inside it. This is the only new seam.
+- **B. The panel's existing interface.** Driven with the existing test panel and a store double that records each call it gets, in order. The store session, the search session, the mod page's Back, the row view and the mod list are private modules behind the panel, tested through it.
+- **C. A new game-free menu controller.** Behind one port, with a game adapter in the mod and a recording adapter in the tests. This is the only new seam.
 
 ## Decisions for every change
 
