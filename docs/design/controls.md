@@ -192,11 +192,11 @@ A zone the hand reaches into and what a press there does: a whole TOML section. 
 - One group under a heading with the sphere's mark. First the most changed: primary binding (Activate), entry haptic, Show icon. Then three folding sections, folded each time the page shows: Position and size (zone and power-armor zone; scale is size), Activation (primary haptic, secondary binding and its haptic), Visuals (icon and sphere and how each shows).
 - The config spec names each row (else its default name) and can hide any but the primary binding: a hidden key has no row and keeps the file's value. A section with no rows is left out. See [CommonFramework values](schema.md#commonframework-values).
 - Each key is its own setting with its kind's control: dirty, previewed and saved alone.
-- A binding set to None hides its haptic; an icon or sphere set to Never disables its rows.
+- A binding set to None hides its haptic; an icon, a binding icon or a sphere set to Never disables its rows.
 - The power-armor zone has a row only while the file has its key or the config spec gives it a default (else the framework uses the zone and there's nothing to tune); with no default it has no Reset.
 - Its dropdowns read words as the framework does: `off` is Never, `Cyan_Subtle` is Cyan, subtle.
-- Icon and sphere mesh/texture paths are text inputs until the [choice of files](#choice-of-files) is a config spec control.
-- While the ray is on the group, its sphere is lit in the world and the heading's mark has a halo. This needs the client told which item the ray is on, beside the page events.
+- The icon, the sphere's mesh and its texture are [choices of files](#choice-of-files): the framework's in the mod's folder, a mesh's and a texture's first option the style's own.
+- While the ray is on the group, the framework lights its sphere in the world, by the section's name, so the player sees which one the rows are of. The heading's mark does not change.
 
 ## Help and validation feedback
 

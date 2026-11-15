@@ -21,7 +21,6 @@ Designs written and published to the design system that Arthur has not reviewed 
 
 - [List](controls.md#list): an `a` key; the row shows the entries and count, the editor a line per entry with Add, Remove, and Up/Down when ordered. Design system: [List](design-system/project/components/List/README.md).
 - [Hand pose](controls.md#hand-pose): an `h` key; a bar per finger in the row, an editor of each finger's joints and the palm, shown live on the hand through FRIK. Open: whether the menu's FRIK tag is over a mod's own, and the joint ranges. Design system: [HandPose](design-system/project/components/HandPose/README.md).
-- [Search](ui-and-vr-interaction.md#search): the tree's header is the field; a query filters the tree and the shown page, which Back shows whole. Design system: [Search](design-system/project/components/Search/README.md), [FullPanelSearch](design-system/project/components/FullPanelSearch/README.md).
 
 ## Not in the design system yet
 

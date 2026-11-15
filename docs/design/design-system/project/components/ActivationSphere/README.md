@@ -7,7 +7,7 @@ A CommonFramework activation sphere: a whole section of the mod's TOML, a zone t
 ## The group
 
 - A section ([SectionHeader](../SectionHeader/README.md)) whose heading has the sphere's mark before its name: a 20 px drawn sphere, a `green` ring over a `green` glow (`AddCircleFilled` with a radial fade, then `AddCircle`).
-- While the ray is on its heading or one of its rows, the mod's client draws that sphere lit in the world, and the mark has a halo, so the player sees which sphere the rows are of. The heading has no text for it: the player sees the sphere itself.
+- While the ray is on its heading or one of its rows, that sphere is lit in the world, so the player sees which sphere the rows are of. The heading does not change: the player sees the sphere itself.
 - First its main rows, then three sections that fold ([SectionHeader](../SectionHeader/README.md)), set in a level, each folded each time the page is shown. Folded, a section says how many of its rows are pending or invalid, as any section that folds.
 
 | Where | Key | Its row, as named by default | Control |
@@ -45,6 +45,7 @@ A CommonFramework activation sphere: a whole section of the mod's TOML, a zone t
 ## Live
 
 - The sphere's keys are `live`: a change shows on the sphere in the world as it is made, through the framework's preview of a key.
-- The page's spheres are drawn while the page is shown, by the page events (M113). Lighting the one the ray is on needs the client to know which group the ray is in: a group event, beside the page events. Open: this is framework work, and without it the spheres are drawn as the page events draw them, none lit, and the mark has no halo.
+- The page's spheres are drawn while the page is shown, by the page events (M113).
+- The client is told what the ray is on (`PointedAt`): the row's id, then each enclosing group's. The framework lights the sphere whose section it names by itself, so a CommonFramework mod's sphere needs no id of its own; see [the client's events](../../../../architecture.md#the-clients-events).
 
 The behavior is in [The settings model](../../../../model.md#an-activation-sphere) and [Controls](../../../../controls.md#activationsphere).

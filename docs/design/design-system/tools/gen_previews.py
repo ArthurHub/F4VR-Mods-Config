@@ -1851,12 +1851,11 @@ print('ok transform')
 # ---------------- ActivationSphere: a section of the TOML drawn as one group, its sphere lit in the world ----------------
 SPHERE = ('<svg class="sphere" viewBox="0 0 20 20"><defs><radialGradient id="sg"><stop offset="0" stop-color="#0afa78" stop-opacity=".9"/>'
           '<stop offset="1" stop-color="#0afa78" stop-opacity=".15"/></radialGradient></defs>'
-          '<circle class="halo" cx="10" cy="10" r="9.5" fill="none" stroke="#0afa78" stroke-opacity=".5" opacity="0"/>'
           '<circle cx="10" cy="10" r="7" fill="url(#sg)" stroke="#0afa78" stroke-width="1.5"/></svg>')
 
-def sphere_head(name, lit=False):
-    """A sphere's heading: its mark, with a halo while its sphere is lit in the world, and its name."""
-    return f'<div class="mc-section t-body is-sphere{" is-lit" if lit else ""}">{SPHERE}<span>{name}</span></div>'
+def sphere_head(name):
+    """A sphere's heading: its mark and its name. The sphere lit in the world is what shows which one the ray is on."""
+    return f'<div class="mc-section t-body is-sphere">{SPHERE}<span>{name}</span></div>'
 
 BODY_ZONE = {'pos': [3.91, 7.11, 0.67], 'scale': 20.0}
 BODY_PRIMARY = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress': True}
@@ -1865,15 +1864,16 @@ HEAD_PRIMARY = {'hand': 'offhand', 'type': 'tap', 'button': 'trigger', 'suppress
 OFF = {'type': 'none'}
 # a sphere's group: its main rows, then Position and size, Activation and Visuals, which fold, folded each time the page is shown.
 # Each row is named by the config spec or by its default; a key the config spec hides has no row
+BIND_ICON = {'pos': [1.0, -1.0, 0.0], 'scale': 0.6}
 as_rows = ''.join([
     pagehelp('Where your hand reaches to take the light, and what a press there does. A sphere is lit in the world while the ray is on its rows.'),
-    sphere_head('Body grab', lit=True),
+    sphere_head('Body grab'),
     row('Take the light', binding_ctl(BODY_PRIMARY), 'is-hover', mark=(560, 22)),
     row('Entry haptic', haptic('Tick')),
-    row('Show icon', combo('When inside')),
+    row('Icons', choice_stepper('Icon')),
     sub(collapse('Position and size')),
     sub(collapse('Activation')),
-    sub(collapse('Visuals', unsaved=1)),
+    sub(collapse('Visuals')),
     sphere_head('Head'),
     row('Activate', binding_ctl(HEAD_PRIMARY)),
     row('Entry haptic', haptic('Tick')),
@@ -1885,7 +1885,7 @@ open_rows = ''.join([
     sphere_head('Body grab'),
     row('Take the light', binding_ctl(BODY_PRIMARY)),
     row('Entry haptic', haptic('Tick')),
-    row('Show icon', combo('When inside')),
+    row('Icons', choice_stepper('Icon and binding', pending=True, show_reset=True), gutter=DOT),
     sub(collapse('Position and size', open_=True), ''.join([
         row('Zone', xform_ctl(BODY_ZONE)),
         row('Zone in power armor', xform_ctl({'pos': [4.01, 10.21, -4.6], 'scale': 24.0})),
@@ -1896,9 +1896,14 @@ open_rows = ''.join([
         row('Secondary haptic', haptic('DoubleClick')),
     ])),
     sub(collapse('Visuals', open_=True), ''.join([
+        row('Show icon', combo('When inside')),
         row('Icon', file_ctl('activation-icon-ring')),
         row('Icon color', color_ctl((255, 255, 255, 200))),
-        row(f'Icon size{DOT}', slider('2.5', 50, 'is-pending', 'is-pending', True)),
+        row('Icon size', slider('2.0', 40)),
+        row('Show binding icon', combo('When inside', pending=True, show_reset=True), gutter=DOT),
+        row('Binding icons', combo('Of the hand inside')),
+        row('Binding icon position and size', xform_ctl(BIND_ICON, 'is-pending', True, rot=False), gutter=DOT),
+        row('Binding icon color', color_ctl((255, 255, 255, 230))),
         row('Show sphere', combo('Never')),
         row('Sphere style', combo('Cyan, subtle'), 'is-disabled'),
     ])),
@@ -1914,22 +1919,30 @@ head_rows = ''.join([
 off_rows = ''.join([
     sub(collapse('Activation', open_=True), row('Primary haptic', haptic('DoubleClick')) + row('Secondary activate', binding_ctl(OFF))),
 ])
+picked_rows = ''.join([
+    row('Icons', choice_stepper('Icon and binding', pending=True, show_reset=True), gutter=DOT),
+    sub(collapse('Position and size')),
+    sub(collapse('Activation')),
+    sub(collapse('Visuals', unsaved=2)),
+])
 as_body = f"""<div class="mc-world" style="display:grid;grid-template-columns:772px 772px;gap:16px 24px;align-items:start">
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">As shipped: each sphere its main rows, then Position and size, Activation and Visuals folded. The ray on Body grab: its mark has a halo while its sphere is lit in the world</span>
+<span class="t-detail mc-caption">As shipped: the binding, the entry haptic and Icons, then Position and size, Activation and Visuals folded. The ray on Body grab's rows lights its sphere in the world</span>
 <div class="mc-sheet" style="width:772px">{as_rows}</div>
 <div class="mc-sheet" style="width:772px;padding:0"><div class="mc-footer">{helpline('Take the light', 'Tap the trigger on the off hand with it in the zone on your chest. Its sphere is lit in the world while the ray is here.')}</div></div>
-<span class="t-detail mc-caption">Keys the config spec hides have no row: Head has no icon, no power-armor zone and no secondary</span>
+<span class="t-detail mc-caption">Icons picked: it sets Show binding icon and the binding icon's position and size, which wait for Save as its own change does</span>
+<div class="mc-sheet" style="width:772px">{picked_rows}</div>
+<span class="t-detail mc-caption">Keys the config spec hides have no row: Head has no icon, no binding icon, no power-armor zone and no secondary, so no Icons either</span>
 <div class="mc-sheet" style="width:772px">{head_rows}</div>
 </div>
 <div class="mc-stack" style="gap:16px">
-<span class="t-detail mc-caption">Opened: names from the config spec (Take the light, Switch hands) or the defaults; a visual set to Never disables its rows</span>
+<span class="t-detail mc-caption">Opened after Icons is set to Icon and binding: names from the config spec (Take the light, Switch hands) or the defaults; a visual set to Never disables its rows</span>
 <div class="mc-sheet" style="width:772px">{open_rows}</div>
 <span class="t-detail mc-caption">A secondary set to None: its haptic has no row</span>
 <div class="mc-sheet" style="width:772px">{off_rows}</div>
 </div>
 </div>"""
-write('ActivationSphere', page('<!-- @dsCard group="Settings" height=1650 width=1620 subtitle="An activation sphere: its binding, entry haptic and icon, then Position and size, Activation and Visuals, folded; every row named and shown as the config spec says" -->', 'Activation sphere', as_body))
+write('ActivationSphere', page('<!-- @dsCard group="Settings" height=1910 width=1620 subtitle="An activation sphere: its binding, entry haptic and Icons, then Position and size, Activation and Visuals, folded; every row named and shown as the config spec says" -->', 'Activation sphere', as_body))
 print('ok sphere')
 
 def launch_row(name, button='Open', state='', mark=None, gutter=''):

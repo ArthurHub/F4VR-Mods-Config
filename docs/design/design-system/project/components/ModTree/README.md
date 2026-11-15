@@ -63,5 +63,6 @@ About nine rows fit in the Full panel's tree, so most lists scroll: a flat list 
 - Its room is always kept. The pane's right padding is 24 px: `space-1`, `scrollbar-size`, `space-1`. Rows are a fixed 304 px wide (`nav-width` minus both paddings), so nothing moves when the bar appears or goes.
 - In ImGui: the rows in a child window, each drawn at that fixed width rather than `GetContentRegionAvail().x`, which narrows by `ScrollbarSize` when the bar appears. Not `ImGuiWindowFlags_AlwaysVerticalScrollbar`: it draws a full-length grab when nothing scrolls.
 - A row selected from outside the tree (a breadcrumb, Back, the panel shown again) is scrolled into view: `SetScrollHereY()` on it when it is outside the visible rows. A category opened near the bottom scrolls to show its first mods, and the selected mod's category, opened again, to show the selection.
+- A mod pressed near the bottom of the tree scrolls just enough to show its first four pages under it, not all of them, so the scroll stays small for a mod with many.
 
 Don't group or color mods by where their menu comes from (MCM or a config spec): the `MCM` tag is the one mark, as an MCM change is made at once.
