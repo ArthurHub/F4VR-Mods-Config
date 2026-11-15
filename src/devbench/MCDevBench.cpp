@@ -4,6 +4,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <type_traits>
+#include <unordered_set>
 #include <variant>
 
 #include <nlohmann/json.hpp>
@@ -55,6 +56,12 @@ namespace mods_config::devbench
             bool hasSession = false;
             std::size_t dirtyCount = 0;
             std::size_t invalidCount = 0;
+
+            // the search field's query as the panel searched it, how many rows it shows, and whether the page has only
+            // its rows that match
+            std::string searchText;
+            std::size_t searchMatches = 0;
+            bool searchFiltered = false;
         };
 
         const char* stateDescription()
@@ -69,6 +76,9 @@ namespace mods_config::devbench
                    "or Cancel the unsaved changes before the mod is left or the menu is closed, with Keep and Revert for an MCM mod); "
                    "session: the selected mod's editing session, null on the menu's front page: dirty (the changes that wait for a Save), invalid (the changes that are not valid, "
                    "which block Save); "
+                   "search: text (the search field's query as the panel last searched it, empty for none), matches (the rows it shows, of every mod), "
+                   "filtered (while there is a query: a mod's page has only its rows that match, until Back shows it whole, and the menu's front page "
+                   "says how many match; not over the Help page or a report); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
         }
 
@@ -160,6 +170,11 @@ namespace mods_config::devbench
             state.hasSession = store != nullptr;
             state.dirtyCount = store ? store->dirtyCount() : 0;
             state.invalidCount = store ? store->invalidCount() : 0;
+
+            const auto& search = g_modsConfig.menu().fullPanel().search();
+            state.searchText = menu.isOpen() ? search.text() : std::string();
+            state.searchMatches = menu.isOpen() ? search.matches() : 0;
+            state.searchFiltered = menu.isOpen() && g_modsConfig.menu().fullPanel().isFiltered();
             publishChanges(state);
         }
 
@@ -185,6 +200,7 @@ namespace mods_config::devbench
                 { "mods", { { "count", state.modCount } } },
                 { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", state.selectedPage }, { "helpShown", state.helpShown }, { "asking", state.asking } } },
                 { "session", state.hasSession ? json{ { "dirty", state.dirtyCount }, { "invalid", state.invalidCount } } : json(nullptr) },
+                { "search", { { "text", state.searchText }, { "matches", state.searchMatches }, { "filtered", state.searchFiltered } } },
                 { "frik", { { "gestureTaken", state.frikGestureTaken } } },
             };
         }
@@ -398,7 +414,7 @@ namespace mods_config::devbench
          * The rows of items, in the order they are drawn, a section's after its heading with a depth one more.
          * A row whose condition does not hold is listed with `shown` false, where the panel gives it no room.
          */
-        void addRows(const std::vector<model::Item>& items, const int depth, model::Store& store, json& rows)
+        void addRows(const std::vector<model::Item>& items, const int depth, model::Store& store, const std::unordered_set<const model::Item*>* found, json& rows)
         {
             const auto shown = [&store](const std::optional<model::Condition>& condition) {
                 return !condition || model::holds(*condition, &store);
@@ -453,9 +469,10 @@ namespace mods_config::devbench
                         return shown(it.visibleWhen);
                     },
                     item);
+                row["found"] = found ? json(found->contains(&item)) : json(nullptr);
                 rows.push_back(std::move(row));
                 if (const auto* group = std::get_if<model::Group>(&item)) {
-                    addRows(group->items, depth + 1, store, rows);
+                    addRows(group->items, depth + 1, store, found, rows);
                 }
             }
         }
@@ -582,11 +599,21 @@ namespace mods_config::devbench
         {
             auto& store = selectedStore();
             const auto& panel = g_modsConfig.menu().fullPanel();
-            const auto& mod = panel.mods()[*panel.selection().mod];
+            const auto place = *panel.selection().mod;
+            const auto& mod = panel.mods()[place];
             const auto& page = *panel.selectedPage();
+            const auto& search = panel.search();
+            const auto* found = search.foundIn(place);
+            const std::unordered_set<const model::Item*> none;
             auto rows = json::array();
-            addRows(page.items, 0, store, rows);
-            return { { "mod", mod.name }, { "page", page.name }, { "helpShown", panel.isHelpShown() }, { "session", sessionToJson(store) }, { "rows", std::move(rows) } };
+            addRows(page.items, 0, store, search.query().empty() ? nullptr : found ? &found->rows : &none, rows);
+            return { { "mod", mod.name },
+                { "page", page.name },
+                { "helpShown", panel.isHelpShown() },
+                { "session", sessionToJson(store) },
+                { "filtered", panel.isFiltered() },
+                { "hiddenByConditions", search.hiddenByConditions(place, mod, page) },
+                { "rows", std::move(rows) } };
         }
 
         /**
@@ -908,6 +935,21 @@ namespace mods_config::devbench
          * One step back in the open menu, as the Back button does: the answer has what the panel shows then,
          * and whether the menu is still open.
          */
+        /**
+         * Gives the search field a query, as the keyboard types it, and an empty one clears it, as Clear does. The panel
+         * searches it as it draws next, so the state of a later frame has what it found.
+         */
+        json runSearch(const json& args)
+        {
+            auto& menu = g_modsConfig.menu();
+            if (!menu.isOpen()) {
+                throw std::runtime_error("the menu is not open");
+            }
+            auto query = args.value("query", std::string());
+            menu.fullPanel().setSearchQuery(query);
+            return { { "query", std::move(query) } };
+        }
+
         json runBack(const json&)
         {
             auto& menu = g_modsConfig.menu();
@@ -978,11 +1020,13 @@ namespace mods_config::devbench
             auto mods = json::array();
             for (std::size_t i = 0; i < listed.size(); ++i) {
                 const auto& mod = listed[i];
+                const auto* found = panel.search().foundIn(i);
                 mods.push_back({ { "name", mod.name },
                     { "displayName", mod.displayName },
                     { "pages", pagesToJson(mod.pages) },
                     { "notAvailable", mod.notAvailable.empty() ? json(nullptr) : json(mod.notAvailable) },
-                    { "restarts", noticed[i].savedRestartCount } });
+                    { "restarts", noticed[i].savedRestartCount },
+                    { "found", found ? json(found->total) : json(nullptr) } });
             }
             return { { "mods", std::move(mods) } };
         }
@@ -1124,6 +1168,14 @@ namespace mods_config::devbench
             .handler = &runBack,
         });
         f4cf::devbench::addAction({
+            .name = "search",
+            .description = "type a query in the search field of the open menu, as the keyboard does, or clear it with an empty one, as Clear does: the panel "
+                           "searches it as it draws next, so the state's search, the mods action's found and the page action's found and filtered have it a frame "
+                           "later",
+            .arguments = { { "query", { { "type", "string" }, { "description", "search: the query; empty or none clears it" } } } },
+            .handler = &runSearch,
+        });
+        f4cf::devbench::addAction({
             .name = "breadcrumb",
             .description = "press a breadcrumb of the title bar, as the pointer does: one before the last is a link, and the dialog asks first when it leaves a mod "
                            "with unsaved changes; over the Help page and a report only the menu's crumb is pressed",
@@ -1136,7 +1188,8 @@ namespace mods_config::devbench
             .name = "mods",
             .description = "the mods the menu lists, in its order: each with its name, its display name, its pages (a page with pages under it is an object "
                            "with its name and its pages), why it is not available (null for one that is), and restarts (its saved changes that take effect "
-                           "after a restart, which the menu's front page tells while there is one)",
+                           "after a restart, which the menu's front page tells while there is one), and found (how many of its rows the search shows, "
+                           "null while it found none of them or there is no query)",
             .handler = &runMods,
         });
         f4cf::devbench::addAction({
@@ -1163,8 +1216,10 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "page",
             .description = "the rows of the page that is shown, in their order, as they are drawn, with the session (dirty: the changes that wait for a Save, "
-                           "status: the help line's text and look while the ray is on no row): each with its kind and depth (a section's rows follow it, one "
-                           "deeper), shown (its condition holds), and its text and help with the states of its mod's client in them; for a section its role "
+                           "status: the help line's text and look while the ray is on no row), filtered (it has only its rows that match the search), and "
+                           "hiddenByConditions (rows of it match the search, though the values of other settings hide them all): each row with its kind and "
+                           "depth (a section's rows follow it, one deeper), shown (its condition holds), found (the search shows it, null with no query), and its text and help "
+                           "with the states of its mod's client in them; for a section its role "
                            "(activationSphere for an activation sphere's group, else null), collapsible (it folds), collapsed (it starts folded) and folded (it is "
                            "folded now), for a button its warning (null for none), buttonText, runnable and enabled, for a text its lines, and for a setting its id, "
                            "type, value, available, invalid, reason, warning (null for none), tag (the help line's tag of when its pending change takes effect, "

@@ -57,6 +57,7 @@ A search session module, `SearchSession` in `src/ui/`, private to the panel, own
   - game texts read once per reset, of every available mod's store;
   - Back showing the whole page with the query kept, until another page is shown or the query changes.
 - **Prior art:** the existing search and panel tests. The frame, press, point and search helpers move into `TestPanel.h`, and the store session tests' recording store into `TestStore.h`, so both test files share them.
+- **e2e.** The mod's devbench tool gains a `search` action, which types a query as the keyboard does, and reports the search in its state, the mods and the page. `tests/e2e/test_search.py` drives it on the showcases.
 - **Regression net.** The existing search and panel tests pass unchanged. "The page whole again has the focus ring on the last row the ray was on" covers the pointed row Back keeps.
 
 ## Out of Scope

@@ -33,6 +33,7 @@ namespace mods_config::ui
         SearchDrawn draw(const ImVec2& pos, float width, std::size_t mods, std::optional<std::size_t> matches);
         bool endEdit();
         void clear();
+        void setQuery(std::string query);
 
         // the query the tree is filtered by, as it is typed: empty for none
         const std::string& query() const

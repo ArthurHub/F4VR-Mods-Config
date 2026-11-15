@@ -187,8 +187,16 @@ namespace mods_config::ui
      */
     void SearchField::clear()
     {
-        _query.clear();
-        _text.clear();
+        setQuery({});
+    }
+
+    /**
+     * Gives the field a query, as the keyboard types it, and ends an edit: for devbench, which types no keys.
+     */
+    void SearchField::setQuery(std::string query)
+    {
+        _query = std::move(query);
+        _text = _query;
         _end = _edited;
     }
 }

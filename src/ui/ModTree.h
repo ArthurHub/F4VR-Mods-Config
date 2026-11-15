@@ -81,6 +81,12 @@ namespace mods_config::ui
             _search.clear();
         }
 
+        // gives the search field's query, as the keyboard types it
+        void setSearchQuery(std::string query)
+        {
+            _search.setQuery(std::move(query));
+        }
+
     private:
         void drawCategories(const std::vector<model::Mod>& mods, const std::vector<model::CategoryGroup>& categories, const Selection& selection, float rowWidth, TreeDrawn& drawn,
             model::Store* store);

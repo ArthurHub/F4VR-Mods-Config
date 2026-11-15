@@ -112,6 +112,14 @@ namespace mods_config::ui
             return _search;
         }
 
+        // gives the search field a query, as the keyboard types it, which the panel searches as it draws next
+        void setSearchQuery(std::string query)
+        {
+            _modTree.setSearchQuery(std::move(query));
+        }
+
+        bool isFiltered() const;
+
         // whether a section that folds, of the page that is shown, is folded now
         bool isFolded(const model::Group& group) const
         {
@@ -203,7 +211,6 @@ namespace mods_config::ui
         bool leaveReport(bool toDeveloper);
         void updateStatus();
         void updateSearch();
-        bool isFiltered() const;
         void showWhole();
         void drawSearchText(bool hiddenByConditions);
         void pageShown();
