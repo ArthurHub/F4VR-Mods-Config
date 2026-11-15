@@ -106,11 +106,7 @@ namespace mods_config
         const auto stored = store.value(setting);
         const auto* text = std::get_if<std::string>(&stored.value);
         _before = text ? *text : std::string();
-        auto table = model::parseTransformTable(_before, setting.tableForm);
-        if (!table && setting.defaultValue) {
-            table = model::parseTransformTable(std::get<std::string>(*setting.defaultValue), setting.tableForm);
-        }
-        _startTable = table ? *table : model::TransformTable{};
+        _startTable = model::transformOrDefault(setting, _before);
 
         _setting = &setting;
         _store = &store;

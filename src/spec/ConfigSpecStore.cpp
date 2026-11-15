@@ -24,6 +24,7 @@
 #include "model/InputBindings.h"
 #include "model/OptionSets.h"
 #include "model/SessionEvents.h"
+#include "model/SettingValues.h"
 #include "model/Transforms.h"
 #include "perf/Perf.h"
 
@@ -31,71 +32,6 @@ using namespace mods_config;
 
 namespace
 {
-    /**
-     * Whether a setting's value is the TOML text of an inline table of its file: a binding's, a color's and a transform's
-     * in a TOML file. In an INI file each is the text of its line, which is read and written as a text.
-     */
-    bool isTable(const model::Setting& setting)
-    {
-        const bool tableType = setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Color || setting.type == model::SettingType::Transform;
-        return tableType && setting.tableForm == model::TableForm::Toml;
-    }
-
-    /**
-     * Whether a setting is a text input that takes a number.
-     */
-    bool isNumberField(const model::Setting& setting)
-    {
-        return setting.type == model::SettingType::TextInput && setting.valueType != model::StoredType::String;
-    }
-
-    /**
-     * Whether a setting is a choice of its options: a stepper, a dropdown, and a haptic, whose options are the menu's.
-     */
-    bool isChoice(const model::Setting& setting)
-    {
-        return setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown || setting.type == model::SettingType::Haptic;
-    }
-
-    /**
-     * Whether a setting's number has limits: a slider and a text input that takes a number, whose most is
-     * above its least.
-     */
-    bool hasLimits(const model::Setting& setting)
-    {
-        return (setting.type == model::SettingType::Slider || isNumberField(setting)) && setting.valueOptions.max > setting.valueOptions.min;
-    }
-
-    /**
-     * Whether a number is inside the limits of its setting, its least and its most among them.
-     */
-    bool inLimits(const model::Setting& setting, const float number)
-    {
-        const auto& options = setting.valueOptions;
-        return !hasLimits(setting) || ((number > options.min || common::fEqual(number, options.min)) && (number < options.max || common::fEqual(number, options.max)));
-    }
-
-    /**
-     * Whether two values of a setting are the same one. Two numbers are, when they are as near as a number
-     * and the text of it in a file.
-     */
-    bool isSameValue(const model::Value& value, const model::Value& other)
-    {
-        const auto* number = std::get_if<float>(&value);
-        const auto* otherNumber = std::get_if<float>(&other);
-        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
-    }
-
-    /**
-     * Whether a value is the value of one of the options of a choice.
-     */
-    bool isOption(const std::vector<model::Option>& options, const model::Value& value)
-    {
-        return std::ranges::any_of(options, [&value](const model::Option& option) {
-            return isSameValue(option.value, value);
-        });
-    }
-
     /**
      * A value of a choice of files as its option has it, for a value that names one of its files in another way, as
      * with other separators, another case or no `data\`: the option's value is the default's form of it. Any other
@@ -208,25 +144,10 @@ namespace
             }
             return stored;
         case model::SettingType::InputBinding:
-            if (const auto* text = std::get_if<std::string>(&stored)) {
-                return model::canonicalBinding(*text, setting.tableForm);
-            }
-            break;
         case model::SettingType::Haptic:
-            if (const auto* text = std::get_if<std::string>(&stored)) {
-                return model::canonicalHaptic(*text);
-            }
-            break;
         case model::SettingType::Color:
-            if (const auto* text = std::get_if<std::string>(&stored)) {
-                return model::canonicalColor(*text, setting.tableForm);
-            }
-            break;
         case model::SettingType::Transform:
-            if (const auto* text = std::get_if<std::string>(&stored)) {
-                return model::canonicalTransform(*text, setting.tableForm);
-            }
-            break;
+            return model::canonicalValue(setting.type, setting.tableForm, stored);
         }
         return std::nullopt;
     }
@@ -273,34 +194,17 @@ namespace
         if (setting.type == model::SettingType::Slider) {
             return setting.valueOptions.min;
         }
-        if (isChoice(setting) && !options.empty()) {
+        if (model::isChoice(setting.type) && !options.empty()) {
             return options.front().value;
         }
         return controlValue(setting, zeroOf(setting.valueType)).value_or(zeroOf(setting.valueType));
     }
 
     /**
-     * The number a text is, all of it, as a text input that takes one keeps it: a whole number has nothing
-     * but its digits and a sign. None for a text that is no number of the field's type, and for an empty one.
-     */
-    std::optional<float> fieldNumber(const model::Setting& setting, const std::string& text)
-    {
-        const auto* end = text.data() + text.size();
-        if (setting.valueType == model::StoredType::Int) {
-            int whole = 0;
-            const auto [read, error] = std::from_chars(text.data(), end, whole);
-            return error == std::errc() && read == end ? std::optional(static_cast<float>(whole)) : std::nullopt;
-        }
-        float number = 0.0f;
-        const auto [read, error] = std::from_chars(text.data(), end, number);
-        return error == std::errc() && read == end && std::isfinite(number) ? std::optional(number) : std::nullopt;
-    }
-
-    /**
      * A value the player sets, as its control has it, if it is of the type its control shows: a bool of a
      * switcher, a number of a slider, a value of its type of a choice, and a text of a text input. A number of
      * a whole number setting is the nearest whole number, and the text of a number is written as short as it
-     * can be. None for a value of another type. It can still be no value of its setting (`problemOf`).
+     * can be. None for a value of another type. It can still be no value of its setting (`model::valueProblem`).
      */
     std::optional<model::Value> typedValue(const model::Setting& setting, const model::Value& value)
     {
@@ -322,8 +226,8 @@ namespace
             }
             break;
         case model::SettingType::TextInput:
-            if (const auto* text = std::get_if<std::string>(&value); text && isNumberField(setting)) {
-                if (const auto number = fieldNumber(setting, *text)) {
+            if (const auto* text = std::get_if<std::string>(&value); text && model::isNumberField(setting)) {
+                if (const auto number = model::fieldNumber(setting.valueType, *text)) {
                     return setting.valueType == model::StoredType::Int ? std::format("{}", static_cast<int>(*number)) : std::format("{}", *number);
                 }
                 return value;
@@ -332,91 +236,12 @@ namespace
             }
             break;
         case model::SettingType::InputBinding:
-            if (const auto* text = std::get_if<std::string>(&value)) {
-                return model::canonicalBinding(*text, setting.tableForm);
-            }
-            break;
         case model::SettingType::Haptic:
-            if (const auto* text = std::get_if<std::string>(&value)) {
-                return model::canonicalHaptic(*text);
-            }
-            break;
         case model::SettingType::Color:
-            if (const auto* text = std::get_if<std::string>(&value)) {
-                return model::canonicalColor(*text, setting.tableForm);
-            }
-            break;
         case model::SettingType::Transform:
-            if (const auto* text = std::get_if<std::string>(&value)) {
-                return model::canonicalTransform(*text, setting.tableForm);
-            }
-            break;
+            return model::canonicalValue(setting.type, setting.tableForm, value);
         }
         return std::nullopt;
-    }
-
-    /**
-     * What is wrong with a value of a setting, as its control has it, that is no value of it, as the end of a
-     * sentence of the value: `is not from 0.5 to 1.5`. A text of a number that is none, a number outside the
-     * limits, a text of a length its setting does not allow, and none of the options of a choice, which of a choice of
-     * files names its folder. A table that is
-     * no binding has the framework's reason, a sentence of its own, and so does a binding of a hand, a way or a
-     * button its setting does not take. A name of no haptic pattern is a sentence of its own too, and so is a table that
-     * is no color or no transform, with the framework's reason. Empty for a value that is one.
-     */
-    std::string problemOf(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
-    {
-        if (setting.type == model::SettingType::InputBinding) {
-            const auto binding = model::parseBinding(std::get<std::string>(value), setting.tableForm);
-            return binding ? model::untakenPart(*binding, setting.valueOptions) : binding.error();
-        }
-        if (setting.type == model::SettingType::Haptic) {
-            return model::findHaptic(value) ? std::string() : std::format("{} is not a haptic pattern, so none plays", std::get<std::string>(value));
-        }
-        if (setting.type == model::SettingType::Color) {
-            const auto color = model::parseColorTable(std::get<std::string>(value), setting.tableForm);
-            return color ? std::string() : color.error();
-        }
-        if (setting.type == model::SettingType::Transform) {
-            const auto transform = model::parseTransformTable(std::get<std::string>(value), setting.tableForm);
-            return transform ? std::string() : transform.error();
-        }
-        const auto& limits = setting.valueOptions;
-        std::optional<float> number;
-        if (setting.type == model::SettingType::Slider) {
-            number = std::get<float>(value);
-        } else if (isNumberField(setting)) {
-            number = fieldNumber(setting, std::get<std::string>(value));
-            if (!number) {
-                return setting.valueType == model::StoredType::Int ? "is not a whole number" : "is not a number";
-            }
-        }
-        if (number && !inLimits(setting, *number)) {
-            return std::format("is not from {} to {}", limits.min, limits.max);
-        }
-        if (isChoice(setting) && !isOption(options, value)) {
-            return setting.valueOptions.folderOptions ? std::format("is not in {}", model::folderText(*setting.valueOptions.folderOptions)) : "is none of its options";
-        }
-        if (setting.type == model::SettingType::TextInput && !isNumberField(setting)) {
-            const int length = model::textLength(std::get<std::string>(value));
-            if (length < limits.minLength) {
-                return std::format("has {} character{}, and needs at least {}", length, length == 1 ? "" : "s", limits.minLength);
-            }
-            if (limits.maxLength > 0 && length > limits.maxLength) {
-                return std::format("has {} characters, and can have at most {}", length, limits.maxLength);
-            }
-        }
-        return {};
-    }
-
-    /**
-     * Whether what is wrong with a value of a setting is a sentence of its own, which its reason says alone: a binding's,
-     * a color's and a transform's, which are the framework's, and a haptic's.
-     */
-    bool ownSentence(const model::Setting& setting)
-    {
-        return setting.type == model::SettingType::InputBinding || setting.type == model::SettingType::Haptic || setting.type == model::SettingType::Color ||
-               setting.type == model::SettingType::Transform;
     }
 
     /**
@@ -427,16 +252,16 @@ namespace
      */
     std::string typedReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value)
     {
-        const auto problem = problemOf(setting, options, value);
+        const auto problem = model::valueProblem(setting, options, value);
         if (problem.empty()) {
             return {};
         }
-        if (ownSentence(setting)) {
+        if (model::isFrameworkType(setting.type)) {
             return std::format("Invalid: {}.", problem);
         }
         const auto* text = std::get_if<std::string>(&value);
-        const bool isText = setting.type == model::SettingType::TextInput && !isNumberField(setting);
-        const auto shown = isText ? std::string("the text") : isNumberField(setting) && fieldNumber(setting, *text) ? *text : valueText(value);
+        const bool isText = setting.type == model::SettingType::TextInput && !model::isNumberField(setting);
+        const auto shown = isText ? std::string("the text") : model::isNumberField(setting) && model::fieldNumber(setting.valueType, *text) ? *text : valueText(value);
         return std::format("Invalid: {} {}.", shown, problem);
     }
 
@@ -450,7 +275,7 @@ namespace
         if (setting.type == model::SettingType::Slider && setting.valueType == model::StoredType::Int) {
             return static_cast<int>(std::round(std::get<float>(value)));
         }
-        if (!isNumberField(setting)) {
+        if (!model::isNumberField(setting)) {
             return value;
         }
         const auto& text = std::get<std::string>(value);
@@ -465,17 +290,17 @@ namespace
     }
 
     /**
-     * Why a value in a file, as its control has it, is not one of its setting, as `problemOf` says. Empty for
+     * Why a value in a file, as its control has it, is not one of its setting, as `model::valueProblem` says. Empty for
      * a value that is one. It names the value by its path and its file, as a reason of its file does, but for a
      * binding, which has the framework's reason alone, as its row shows its text, and a haptic, which names its text.
      */
     std::string invalidReason(const model::Setting& setting, const std::vector<model::Option>& options, const model::Value& value, const std::string& path, const std::string& file)
     {
-        const auto problem = problemOf(setting, options, value);
+        const auto problem = model::valueProblem(setting, options, value);
         if (problem.empty()) {
             return {};
         }
-        if (ownSentence(setting)) {
+        if (model::isFrameworkType(setting.type)) {
             return std::format("Invalid: {}.", problem);
         }
         return std::format("Invalid: {} is {} in {}, which {}.", path, valueText(value), file, problem);
@@ -887,7 +712,7 @@ namespace mods_config::spec
                 continue;
             }
             // a binding, a color and a transform in a TOML file are the text of their table, which their control reads
-            auto stored = !isTable(*setting) ? modFile->value(storage.path, setting->valueType) : modFile->tableText(storage.path).transform([](std::string text) {
+            auto stored = !model::keptAsTable(*setting) ? modFile->value(storage.path, setting->valueType) : modFile->tableText(storage.path).transform([](std::string text) {
                 return model::Value(std::move(text));
             });
             if (!stored) {
@@ -1072,7 +897,7 @@ namespace mods_config::spec
         typed = asFileOption(setting, _options.of(setting), std::move(*typed));
         _saveFailure.clear();
         _lastSave.reset();
-        if (entry.baseline && isSameValue(*typed, *entry.baseline)) {
+        if (entry.baseline && model::sameValue(*typed, *entry.baseline)) {
             entry.pending.reset();
             entry.pendingInvalid.clear();
         } else {
@@ -1214,10 +1039,11 @@ namespace mods_config::spec
                 // a value that is the default of a setting that keeps none of it is removed, also one that was there
                 // before the session, which is not a change the mod is told
                 const auto isDefault = [setting](const std::optional<model::Value>& value) {
-                    return setting->omitDefault && value && setting->defaultValue && isSameValue(*value, *setting->defaultValue);
+                    return setting->omitDefault && value && setting->defaultValue && model::sameValue(*value, *setting->defaultValue);
                 };
                 if (entry.pending) {
-                    changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.pending), .table = isTable(*setting), .remove = isDefault(entry.pending) });
+                    changes.push_back(
+                        { .path = storage->path, .value = storedValue(*setting, *entry.pending), .table = model::keptAsTable(*setting), .remove = isDefault(entry.pending) });
                     settings.push_back(setting);
                 } else if (isDefault(entry.baseline) && file->contains(storage->path)) {
                     changes.push_back({ .path = storage->path, .value = storedValue(*setting, *entry.baseline), .table = false, .remove = true });
@@ -1518,7 +1344,7 @@ namespace mods_config::spec
                 entry.baseline = found->second.baseline;
             }
             const auto& pending = found->second.pending;
-            if (pending && !(entry.baseline && isSameValue(*pending, *entry.baseline))) {
+            if (pending && !(entry.baseline && model::sameValue(*pending, *entry.baseline))) {
                 entry.pending = pending;
                 entry.pendingInvalid = found->second.pendingInvalid;
             }
@@ -1684,7 +1510,7 @@ namespace mods_config::spec
         auto value = storedValue(setting, *entry.pending);
         if (found != _clientPreviews.end()) {
             auto& preview = found->second;
-            if (isSameValue(preview.change.value, value)) {
+            if (model::sameValue(preview.change.value, value)) {
                 preview.held.reset();
                 return;
             }
@@ -1798,7 +1624,7 @@ namespace mods_config::spec
     {
         const auto& options = choice.valueOptions.options;
         const auto option = std::ranges::find_if(options, [&picked](const model::Option& candidate) {
-            return isSameValue(candidate.value, picked);
+            return model::sameValue(candidate.value, picked);
         });
         if (option == options.end()) {
             return false;

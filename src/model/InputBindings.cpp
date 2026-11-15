@@ -102,6 +102,20 @@ namespace mods_config::model
     }
 
     /**
+     * The binding of a text, or its setting's default for a text that is no binding, and the framework's default binding
+     * where neither is one: the binding an editor starts from.
+     */
+    vrcf::InputBinding bindingOrDefault(const Setting& setting, const std::string_view text)
+    {
+        auto binding = parseBinding(text, setting.tableForm);
+        const auto* fallback = setting.defaultValue ? std::get_if<std::string>(&*setting.defaultValue) : nullptr;
+        if (!binding && fallback) {
+            binding = parseBinding(*fallback, setting.tableForm);
+        }
+        return binding.value_or(vrcf::InputBinding{});
+    }
+
+    /**
      * Whether a binding setting takes a hand: one of its `hands`, or any where it names none.
      */
     bool takesHand(const ValueOptions& options, const vrcf::Hand hand)

@@ -59,3 +59,17 @@ TEST_CASE("InputBindings: a binding's table and its INI line are one binding")
     REQUIRE(back);
     CHECK(model::bindingText(*back, model::TableForm::Toml) == model::bindingText(*table, model::TableForm::Toml));
 }
+
+TEST_CASE("InputBindings: an editor starts from the value's binding, else its default's, else the framework's default")
+{
+    model::Setting setting{ .type = model::SettingType::InputBinding };
+    setting.tableForm = model::TableForm::IniLine;
+    setting.defaultValue = "offhand tap grip";
+    const auto text = [&setting](const std::string& value) {
+        return model::bindingText(model::bindingOrDefault(setting, value), model::TableForm::IniLine);
+    };
+    CHECK(text("primary press trigger") == "primary press trigger");
+    CHECK(text("primary press thumbstik") == "offhand tap grip");
+    setting.defaultValue.reset();
+    CHECK(text("primary press thumbstik") == model::bindingText(vrcf::InputBinding{}, model::TableForm::IniLine));
+}

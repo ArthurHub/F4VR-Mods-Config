@@ -161,6 +161,20 @@ namespace mods_config::model
     }
 
     /**
+     * The table of a transform's text, or of its setting's default for a text that is no transform, and an empty table
+     * where neither is one: the transform an editor starts from.
+     */
+    TransformTable transformOrDefault(const Setting& setting, const std::string_view text)
+    {
+        auto table = parseTransformTable(text, setting.tableForm);
+        const auto* fallback = setting.defaultValue ? std::get_if<std::string>(&*setting.defaultValue) : nullptr;
+        if (!table && fallback) {
+            table = parseTransformTable(*fallback, setting.tableForm);
+        }
+        return table.value_or(TransformTable{});
+    }
+
+    /**
      * The number of an axis of a transform, as the framework reads it: a key the table leaves out is no move, no rotation
      * and a scale of 1.
      */

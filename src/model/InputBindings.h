@@ -15,6 +15,7 @@ namespace mods_config::model
     std::expected<vrcf::InputBinding, std::string> parseBinding(std::string_view text, TableForm form);
     std::string bindingText(const vrcf::InputBinding& binding, TableForm form);
     std::string canonicalBinding(const std::string& text, TableForm form);
+    vrcf::InputBinding bindingOrDefault(const Setting& setting, std::string_view text);
 
     bool takesHand(const ValueOptions& options, vrcf::Hand hand);
     bool takesType(const ValueOptions& options, vrcf::ActivationType type);

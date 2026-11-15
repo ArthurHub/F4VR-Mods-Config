@@ -29,6 +29,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/model/OptionSetsTests.cpp
   linked/model/ParseCacheTests.cpp
   linked/model/SearchTests.cpp
+  linked/model/SettingValuesTests.cpp
   linked/model/TextMarkupTests.cpp
   linked/model/TextStatesTests.cpp
   linked/model/TransformTuningTests.cpp
@@ -82,6 +83,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/model/InputBindings.cpp
   ${SOURCE_DIR}/model/OptionSets.cpp
   ${SOURCE_DIR}/model/Search.cpp
+  ${SOURCE_DIR}/model/SettingValues.cpp
   ${SOURCE_DIR}/model/TextMarkup.cpp
   ${SOURCE_DIR}/model/TextStates.cpp
   ${SOURCE_DIR}/model/TransformTuning.cpp

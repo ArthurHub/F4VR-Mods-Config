@@ -48,3 +48,16 @@ TEST_CASE("Colors: a line with no alpha is read over its default's alpha")
     CHECK(color->bytes() == std::array{ 255, 0, 0, 200 });
     CHECK_FALSE(model::colorOf(setting, std::string("{ rgb = [255, 0, 0] }")));
 }
+
+TEST_CASE("Colors: an editor starts from the value's color, else its default's, else an empty table")
+{
+    model::Setting setting{ .type = model::SettingType::Color };
+    setting.tableForm = model::TableForm::IniLine;
+    setting.defaultValue = "1,2,3";
+    CHECK(model::colorOrDefault(setting, "4,5,6") == model::ColorTable{ .rgb = std::array{ 4, 5, 6 }, .alpha = {} });
+    CHECK(model::colorOrDefault(setting, "4,5") == model::ColorTable{ .rgb = std::array{ 1, 2, 3 }, .alpha = {} });
+    setting.defaultValue = "1,2";
+    CHECK(model::colorOrDefault(setting, "4,5") == model::ColorTable{});
+    setting.defaultValue.reset();
+    CHECK(model::colorOrDefault(setting, "4,5") == model::ColorTable{});
+}

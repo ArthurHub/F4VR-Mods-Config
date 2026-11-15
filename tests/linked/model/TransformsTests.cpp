@@ -108,3 +108,13 @@ TEST_CASE("Transforms: a change adds the key of its part, and is written with no
     model::setAxis(table, 0, -5.8600003f);
     CHECK(model::transformText(table, model::TableForm::Toml) == "{ pos = [-5.86, 1.0, 0.0], rot = [0.0, -5.0, 90.0], scale = 1.5 }");
 }
+
+TEST_CASE("Transforms: an editor starts from the value's transform, else its default's, else an empty table")
+{
+    model::Setting setting{ .type = model::SettingType::Transform };
+    setting.defaultValue = "{ scale = 2 }";
+    CHECK(model::transformOrDefault(setting, "{ scale = 3 }") == model::TransformTable{ .pos = {}, .rot = {}, .scale = 3.0f });
+    CHECK(model::transformOrDefault(setting, "5") == model::TransformTable{ .pos = {}, .rot = {}, .scale = 2.0f });
+    setting.defaultValue.reset();
+    CHECK(model::transformOrDefault(setting, "5") == model::TransformTable{});
+}

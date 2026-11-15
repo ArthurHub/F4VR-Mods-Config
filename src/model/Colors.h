@@ -29,6 +29,7 @@ namespace mods_config::model
     std::expected<ColorTable, std::string> parseColorTable(std::string_view text, TableForm form);
     std::string colorText(const ColorTable& table, TableForm form);
     std::string canonicalColor(const std::string& text, TableForm form);
+    ColorTable colorOrDefault(const Setting& setting, std::string_view text);
     render::Color tableColor(const ColorTable& table, const render::Color& base);
     render::Color colorBase(const Setting& setting);
     std::optional<render::Color> colorOf(const Setting& setting, const Value& value);

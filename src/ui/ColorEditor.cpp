@@ -426,11 +426,7 @@ namespace mods_config::ui
      */
     void ColorEditor::start(const model::Setting& setting, const std::string& text)
     {
-        auto table = model::parseColorTable(text, setting.tableForm);
-        if (!table && setting.defaultValue) {
-            table = model::parseColorTable(std::get<std::string>(*setting.defaultValue), setting.tableForm);
-        }
-        _table = table ? *table : model::ColorTable{};
+        _table = model::colorOrDefault(setting, text);
         _color = model::tableColor(_table, model::colorBase(setting));
     }
 

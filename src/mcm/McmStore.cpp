@@ -11,6 +11,7 @@
 
 #include "common/CommonUtils.h"
 #include "model/SessionEvents.h"
+#include "model/SettingValues.h"
 #include "perf/Perf.h"
 
 using namespace mods_config;
@@ -23,14 +24,6 @@ namespace
 
     // the decimals a number of a text input has at most, as MCM's menu shows it
     constexpr double NUMBER_DECIMALS = 1e6;
-
-    /**
-     * Whether a setting is a text input that takes a number: a `textinputInt` or a `textinputFloat`.
-     */
-    bool isNumberField(const model::Setting& setting)
-    {
-        return setting.type == model::SettingType::TextInput && setting.valueType != model::StoredType::String;
-    }
 
     /**
      * A number as the text of a text input that takes one, as MCM's menu shows it: a whole number is cut at
@@ -86,7 +79,7 @@ namespace
         case model::SettingType::TextInput:
             break;
         }
-        return isNumberField(setting) ? std::string("0") : std::string();
+        return model::isNumberField(setting) ? std::string("0") : std::string();
     }
 
     /**
@@ -97,7 +90,8 @@ namespace
     bool keepsText(const model::Setting& setting)
     {
         const auto& options = setting.valueOptions.options;
-        return (setting.type == model::SettingType::TextInput && !isNumberField(setting)) || (!options.empty() && std::holds_alternative<std::string>(options.front().value));
+        return (setting.type == model::SettingType::TextInput && !model::isNumberField(setting)) ||
+               (!options.empty() && std::holds_alternative<std::string>(options.front().value));
     }
 
     /**
@@ -116,7 +110,7 @@ namespace
         case model::SettingType::Dropdown:
             return static_cast<int>(std::lround(number));
         case model::SettingType::TextInput:
-            if (isNumberField(setting)) {
+            if (model::isNumberField(setting)) {
                 return numberText(setting, number);
             }
             break;
@@ -328,16 +322,6 @@ namespace
     }
 
     /**
-     * Whether two values of a setting are the same: two numbers that are as near as a number MCM writes.
-     */
-    bool isSameValue(const model::Value& value, const model::Value& other)
-    {
-        const auto* number = std::get_if<float>(&value);
-        const auto* otherNumber = std::get_if<float>(&other);
-        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
-    }
-
-    /**
      * Where a setting keeps its value, as the log names it for a change that is not written.
      */
     std::string storageName(const model::Setting& setting)
@@ -524,7 +508,7 @@ namespace mods_config::mcm
     bool McmStore::set(const model::Setting& setting, const model::Value& typed)
     {
         auto value = typed;
-        if (isNumberField(setting)) {
+        if (model::isNumberField(setting)) {
             auto text = typedNumberText(setting, typed);
             if (!text) {
                 logger::debug("A text that is no number is not set to '{}'", setting.text);
@@ -543,7 +527,7 @@ namespace mods_config::mcm
         if (!read) {
             return false;
         }
-        if (isSameValue(*read, current.value)) {
+        if (model::sameValue(*read, current.value)) {
             return true;
         }
         if (!change(setting, *read)) {
@@ -555,7 +539,7 @@ namespace mods_config::mcm
         if (before != _changes.end()) {
             _changes.erase(before);
         }
-        if (!isSameValue(*read, baseline)) {
+        if (!model::sameValue(*read, baseline)) {
             _changes.push_back({ .setting = &setting, .baseline = std::move(baseline) });
         }
         return true;
@@ -683,7 +667,7 @@ namespace mods_config::mcm
     {
         std::erase_if(_changes, [this](const Change& change) {
             const auto current = stored(*change.setting);
-            return current.available && isSameValue(current.value, change.baseline);
+            return current.available && model::sameValue(current.value, change.baseline);
         });
     }
 

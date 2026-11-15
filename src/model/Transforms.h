@@ -30,6 +30,7 @@ namespace mods_config::model
     std::expected<TransformTable, std::string> parseTransformTable(std::string_view text, TableForm form);
     std::string transformText(const TransformTable& table, TableForm form);
     std::string canonicalTransform(const std::string& text, TableForm form);
+    TransformTable transformOrDefault(const Setting& setting, std::string_view text);
     float axisValue(const TransformTable& table, std::size_t axis);
     void setAxis(TransformTable& table, std::size_t axis, float value);
 }

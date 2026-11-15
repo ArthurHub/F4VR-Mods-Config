@@ -29,6 +29,7 @@
 #include "model/Haptics.h"
 #include "model/InputBindings.h"
 #include "model/OptionSets.h"
+#include "model/SettingValues.h"
 #include "model/TextMarkup.h"
 #include "model/Transforms.h"
 #include "vrcf/InputBindingParser.h"
@@ -781,9 +782,10 @@ namespace
     };
 
     /**
-     * Whether a setting is a choice: a stepper or a dropdown.
+     * Whether a setting's author lists its options in its config spec: a stepper and a dropdown. A haptic is a choice
+     * too, whose options are the framework's patterns.
      */
-    bool isChoice(const model::SettingType type)
+    bool listsOptions(const model::SettingType type)
     {
         return type == model::SettingType::Stepper || type == model::SettingType::Dropdown;
     }
@@ -807,16 +809,11 @@ namespace
     model::StoredType loadValueType(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
     {
         const auto name = getText(row, "valueType");
-        if (type == model::SettingType::InputBinding || type == model::SettingType::Haptic || type == model::SettingType::Color || type == model::SettingType::Transform) {
+        if (model::isFrameworkType(type)) {
             if (row.contains("valueType") && name != "string") {
                 const Into into(reading, "valueType");
                 reading.report(model::Severity::Warning,
-                    std::format("Its valueType {} is not string, which a {} is: it is read as string.",
-                        row["valueType"].dump(),
-                        type == model::SettingType::Haptic      ? "haptic"
-                        : type == model::SettingType::Color     ? "color"
-                        : type == model::SettingType::Transform ? "transform"
-                                                                : "binding"));
+                    std::format("Its valueType {} is not string, which a {} is: it is read as string.", row["valueType"].dump(), model::valueKindName(type)));
             }
             return model::StoredType::String;
         }
@@ -827,7 +824,7 @@ namespace
         auto valueType = model::StoredType::String;
         if (type == model::SettingType::Switcher) {
             valueType = model::StoredType::Bool;
-        } else if (isChoice(type)) {
+        } else if (model::isChoice(type)) {
             valueType = model::StoredType::Int;
         } else if (type == model::SettingType::Slider) {
             valueType = model::StoredType::Float;
@@ -847,22 +844,7 @@ namespace
     std::optional<model::Value> getValue(const Json& value, const char* key, const model::StoredType type)
     {
         const auto found = value.find(key);
-        if (found == value.end()) {
-            return std::nullopt;
-        }
-        if (type == model::StoredType::Bool && found->is_boolean()) {
-            return found->get<bool>();
-        }
-        if (type == model::StoredType::Int && found->is_number_integer()) {
-            return found->get<int>();
-        }
-        if (type == model::StoredType::Float && found->is_number()) {
-            return found->get<float>();
-        }
-        if (type == model::StoredType::String && found->is_string()) {
-            return found->get<std::string>();
-        }
-        return std::nullopt;
+        return found != value.end() ? model::jsonValue(*found, type) : std::nullopt;
     }
 
     /**
@@ -922,30 +904,6 @@ namespace
     }
 
     /**
-     * A JSON value as the TOML text of the same value: an object is an inline table and an array an array, whose
-     * keys and texts JSON writes as TOML writes them, and a bool and a number are themselves. A null is none, which
-     * no TOML value reads.
-     */
-    std::string tomlText(const Json& value)
-    {
-        if (value.is_object()) {
-            std::string text;
-            for (const auto& [key, item] : value.items()) {
-                text += std::format("{}{} = {}", text.empty() ? "{ " : ", ", Json(key).dump(), tomlText(item));
-            }
-            return text.empty() ? "{}" : text + " }";
-        }
-        if (value.is_array()) {
-            std::string text;
-            for (const auto& item : value) {
-                text += std::format("{}{}", text.empty() ? "[" : ", ", tomlText(item));
-            }
-            return text.empty() ? "[]" : text + "]";
-        }
-        return value.is_null() ? std::string() : value.dump();
-    }
-
-    /**
      * The presets of a color, from its `valueOptions`: its own `presets`, or the list of the config spec's
      * `sharedPresetLists` its `sharedPresets` names, each a color's table with an optional `text`, as
      * `{ "rgb": [255, 180, 107], "text": "Warm white" }`. A preset that is no color, or has no `rgb`, is left out, and so
@@ -1002,7 +960,7 @@ namespace
                     table[key] = *channel;
                 }
             }
-            const auto color = model::parseColorTable(tomlText(table), model::TableForm::Toml);
+            const auto color = model::parseColorTable(model::tomlText(table), model::TableForm::Toml);
             if (!color || !color->rgb) {
                 reading.report(model::Severity::Error, std::format("{} is left out: {}.", which, color ? "it has no rgb"s : color.error()));
                 continue;
@@ -1269,7 +1227,7 @@ namespace
         if (type == model::SettingType::Transform) {
             valueOptions.transformAxes = loadTransformAxes(hasOptions ? &*found : nullptr, reading);
         }
-        if (!isChoice(type)) {
+        if (!listsOptions(type)) {
             return valueOptions;
         }
 
@@ -1301,142 +1259,6 @@ namespace
     }
 
     /**
-     * Whether two values of a setting are the same one: two numbers are when they are as near as a number and
-     * the text of it in a file.
-     */
-    bool isSameValue(const model::Value& value, const model::Value& other)
-    {
-        const auto* number = std::get_if<float>(&value);
-        const auto* otherNumber = std::get_if<float>(&other);
-        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
-    }
-
-    /**
-     * Whether a value of a setting's type is one of its values: an option of a choice, a number inside
-     * the limits of a setting that has them, its least and its most among them, and a text of the length its
-     * setting allows. Any value is one of a choice that reads its options in the game, from its mod's client or from a
-     * folder, which are not known until then.
-     */
-    bool isValueOf(const model::Value& value, const model::SettingType type, const model::ValueOptions& options)
-    {
-        if (isChoice(type)) {
-            return options.gameOptions || options.clientOptions || options.folderOptions || std::ranges::any_of(options.options, [&value](const model::Option& option) {
-                return isSameValue(option.value, value);
-            });
-        }
-        if (const auto* text = std::get_if<std::string>(&value)) {
-            const int length = model::textLength(*text);
-            return length >= options.minLength && (options.maxLength == 0 || length <= options.maxLength);
-        }
-        const auto* whole = std::get_if<int>(&value);
-        const auto* point = std::get_if<float>(&value);
-        if ((!whole && !point) || !(options.max > options.min)) {
-            return true;
-        }
-        const float number = whole ? static_cast<float>(*whole) : *point;
-        return (number > options.min || common::fEqual(number, options.min)) && (number < options.max || common::fEqual(number, options.max));
-    }
-
-    /**
-     * The `default` of a binding: the binding's table as a JSON object, as `{ "hand": "offhand", "type": "tap",
-     * "button": "trigger" }`, which the framework reads as it reads the table of its config. It is the text of its form:
-     * the TOML text of the table as the framework writes it, or an INI file's line. None for a default that is no
-     * object, or no binding, which is an error of the config spec that is reported with the framework's reason, and the
-     * setting then has no Reset. So is one of a hand, a way or a button the setting does not take, and one an INI line
-     * cannot have, which turns `accelerate` off.
-     */
-    std::optional<model::Value> loadBindingDefault(const Json& row, const model::TableForm form, const model::ValueOptions& options, ConfigSpecReading& reading)
-    {
-        const auto found = row.find("default");
-        if (found == row.end() || !found->is_object()) {
-            reading.report(model::Severity::Error, R"(It has no default binding, an object as { "hand": "offhand", "type": "tap", "button": "trigger" }: it has no Reset.)");
-            return std::nullopt;
-        }
-        const auto binding = model::parseBinding(tomlText(*found), model::TableForm::Toml);
-        if (!binding) {
-            const Into into(reading, "default");
-            reading.report(model::Severity::Error, std::format("Its default is not a binding: {}. It has no Reset.", binding.error()));
-            return std::nullopt;
-        }
-        if (const auto untaken = model::untakenPart(*binding, options); !untaken.empty()) {
-            const Into into(reading, "default");
-            reading.report(model::Severity::Error, std::format("Its default is not a binding it takes: {}. It has no Reset.", untaken));
-            return std::nullopt;
-        }
-        if (form == model::TableForm::IniLine && !binding->accelerate) {
-            const Into into(reading, "default");
-            reading.report(model::Severity::Error, "Its default turns accelerate off, which the line of an INI file cannot have. It has no Reset.");
-            return std::nullopt;
-        }
-        return model::bindingText(*binding, form);
-    }
-
-    /**
-     * The `default` of a color: the color's table as a JSON object, as `{ "rgb": [190, 255, 190], "alpha": 200 }`, which
-     * the framework reads as it reads the table of its config. It is the text of its form: the TOML text of the table,
-     * with the keys it has, or an INI file's line. None for a default that is no object, or no color, which is an error
-     * of the config spec that is reported with the framework's reason, and the setting then has no Reset.
-     */
-    std::optional<model::Value> loadColorDefault(const Json& row, const model::TableForm form, ConfigSpecReading& reading)
-    {
-        const auto found = row.find("default");
-        if (found == row.end() || !found->is_object()) {
-            reading.report(model::Severity::Error, R"(It has no default color, an object as { "rgb": [255, 255, 255], "alpha": 255 }: it has no Reset.)");
-            return std::nullopt;
-        }
-        const auto color = model::parseColorTable(tomlText(*found), model::TableForm::Toml);
-        if (!color) {
-            const Into into(reading, "default");
-            reading.report(model::Severity::Error, std::format("Its default is not a color: {}. It has no Reset.", color.error()));
-            return std::nullopt;
-        }
-        return model::colorText(*color, form);
-    }
-
-    /**
-     * The `default` of a transform: the transform's table as a JSON object, as `{ "pos": [0.0, 0.0, 12.0], "scale": 1.0 }`,
-     * which the framework reads as it reads the table of its config. It is the text of its form: the TOML text of the
-     * table, with the keys it has, or an INI file's line. None for a default that is no object, or no transform, which is
-     * an error of the config spec that is reported with the framework's reason, and the setting then has no Reset.
-     */
-    std::optional<model::Value> loadTransformDefault(const Json& row, const model::TableForm form, ConfigSpecReading& reading)
-    {
-        const auto found = row.find("default");
-        if (found == row.end() || !found->is_object()) {
-            reading.report(model::Severity::Error, R"(It has no default transform, an object as { "pos": [0, 0, 0], "rot": [0, 0, 0], "scale": 1 }: it has no Reset.)");
-            return std::nullopt;
-        }
-        const auto transform = model::parseTransformTable(tomlText(*found), model::TableForm::Toml);
-        if (!transform) {
-            const Into into(reading, "default");
-            reading.report(model::Severity::Error, std::format("Its default is not a transform: {}. It has no Reset.", transform.error()));
-            return std::nullopt;
-        }
-        return model::transformText(*transform, form);
-    }
-
-    /**
-     * The `default` of a haptic: the name of a pattern, as the framework reads it, so `"double click"` is DoubleClick,
-     * and `"none"` for no pattern. None for a default that is no text, or names no pattern, which is an error of the
-     * config spec that is reported, and the setting then has no Reset.
-     */
-    std::optional<model::Value> loadHapticDefault(const Json& row, ConfigSpecReading& reading)
-    {
-        const auto found = row.find("default");
-        if (found == row.end() || !found->is_string()) {
-            reading.report(model::Severity::Error, R"(It has no default haptic, a text as "Tick" or "none": it has no Reset.)");
-            return std::nullopt;
-        }
-        model::Value value = model::canonicalHaptic(found->get<std::string>());
-        if (!model::findHaptic(value)) {
-            const Into into(reading, "default");
-            reading.report(model::Severity::Error, std::format("Its default {} is not a haptic pattern of the framework: it has no Reset.", found->dump()));
-            return std::nullopt;
-        }
-        return value;
-    }
-
-    /**
      * Whether the `default` of a choice of files can be one: a path in its folder, or a bare name, which every pick is
      * written in the form of. One that is not is an error, which is reported. With the folders of the game, a default
      * whose file is not in the folder is a warning, as the player's files can differ from its author's.
@@ -1463,41 +1285,66 @@ namespace
     }
 
     /**
-     * The `default` of a setting, in its value's type, and a binding's, a color's and a transform's in its table's form.
-     * None for a setting with no default of its type, or with one that is not one of its values: outside its limits, of
-     * a length it does not allow, or none of its options. Both are errors of the config spec that are reported, and the
-     * setting then has no Reset.
+     * What a report says of a setting with no `default` of its type, with an example of one for a framework type.
+     */
+    std::string_view missingDefault(const model::SettingType type)
+    {
+        switch (type) {
+        case model::SettingType::InputBinding:
+            return R"(It has no default binding, an object as { "hand": "offhand", "type": "tap", "button": "trigger" }: it has no Reset.)";
+        case model::SettingType::Haptic:
+            return R"(It has no default haptic, a text as "Tick" or "none": it has no Reset.)";
+        case model::SettingType::Color:
+            return R"(It has no default color, an object as { "rgb": [255, 255, 255], "alpha": 255 }: it has no Reset.)";
+        case model::SettingType::Transform:
+            return R"(It has no default transform, an object as { "pos": [0, 0, 0], "rot": [0, 0, 0], "scale": 1 }: it has no Reset.)";
+        default:
+            return "It has no default of the type of its value: it has no Reset.";
+        }
+    }
+
+    /**
+     * The `default` of a setting, read as `model::readJsonValue` reads a value: in its value's type, and a binding's, a
+     * color's and a transform's in its table's form. None for a setting with no default of its type, or with one that
+     * is not one of its values, with the framework's reason for a table. Both are errors of the config spec that are
+     * reported, and the setting then has no Reset.
      */
     std::optional<model::Value> loadDefault(const Json& row, const model::SettingType type, const model::StoredType valueType, const model::TableForm tableForm,
         const model::ValueOptions& options, ConfigSpecReading& reading)
     {
-        if (type == model::SettingType::InputBinding) {
-            return loadBindingDefault(row, tableForm, options, reading);
+        using ReadKind = model::ValueReadError::Kind;
+        const auto found = row.find("default");
+        const auto written = found != row.end() ? *found : Json();
+        const auto read = model::readJsonValue(type, valueType, tableForm, options, written);
+        if (read) {
+            if (options.folderOptions && !isFolderDefault(std::get<std::string>(*read), *options.folderOptions, reading)) {
+                return std::nullopt;
+            }
+            return *read;
         }
-        if (type == model::SettingType::Haptic) {
-            return loadHapticDefault(row, reading);
+        const auto& error = read.error();
+        if (error.kind == ReadKind::NotOfType) {
+            reading.report(model::Severity::Error, std::string(missingDefault(type)));
+            return std::nullopt;
         }
-        if (type == model::SettingType::Color) {
-            return loadColorDefault(row, tableForm, reading);
-        }
-        if (type == model::SettingType::Transform) {
-            return loadTransformDefault(row, tableForm, reading);
-        }
-        auto value = getValue(row, "default", valueType);
-        if (!value) {
-            reading.report(model::Severity::Error, "It has no default of the type of its value: it has no Reset.");
-        } else if (isChoice(type) && options.options.empty() && !options.gameOptions && !options.clientOptions && !options.folderOptions) {
+        if (model::isChoice(type) && options.options.empty() && !options.gameOptions && !options.clientOptions && !options.folderOptions) {
             // a choice with no options is reported already, and no default is one of its values
-            value.reset();
-        } else if (options.folderOptions && !isFolderDefault(std::get<std::string>(*value), *options.folderOptions, reading)) {
-            value.reset();
-        } else if (!isValueOf(*value, type, options)) {
-            const Into into(reading, "default");
+            return std::nullopt;
+        }
+        const Into into(reading, "default");
+        if (error.kind == ReadKind::Untaken) {
+            reading.report(model::Severity::Error, std::format("Its default is not a binding it takes: {}. It has no Reset.", error.reason));
+        } else if (error.kind == ReadKind::IniAccelerate) {
+            reading.report(model::Severity::Error, "Its default turns accelerate off, which the line of an INI file cannot have. It has no Reset.");
+        } else if (model::isTableType(type)) {
+            reading.report(model::Severity::Error, std::format("Its default is not a {}: {}. It has no Reset.", model::valueKindName(type), error.reason));
+        } else if (type == model::SettingType::Haptic) {
+            reading.report(model::Severity::Error, std::format("Its default {} is not a haptic pattern of the framework: it has no Reset.", written.dump()));
+        } else {
             reading.report(model::Severity::Error,
                 "Its default is not one of its values: outside its limits, of a length it does not allow, or none of its options. It has no Reset.");
-            value.reset();
         }
-        return value;
+        return std::nullopt;
     }
 
     // the most decimals a number's display can have, as MCM's menu writes a number at the most
@@ -1866,11 +1713,10 @@ namespace
         }
         auto storage = sets ? model::Storage(model::SetsStorage{}) : loadStorage(row, own.defaultFile, valueType, reading);
         auto tableForm = model::TableForm::Toml;
-        const bool isTable = type == model::SettingType::InputBinding || type == model::SettingType::Color || type == model::SettingType::Transform;
-        if (isTable && !std::holds_alternative<model::UnknownStorage>(storage)) {
+        if (model::isTableType(type) && !std::holds_alternative<model::UnknownStorage>(storage)) {
             const auto* file = std::get_if<model::FileStorage>(&storage);
             if (!file) {
-                const auto* kind = type == model::SettingType::Color ? "color" : type == model::SettingType::Transform ? "transform" : "binding";
+                const std::string kind(model::valueKindName(type));
                 const Into into(reading, "storage");
                 reading.report(model::Severity::Error, std::format("A {} is kept in a value of a TOML or an INI file, and it is not: it is not available.", kind));
                 storage = model::UnknownStorage{ .type = kind };
@@ -2751,7 +2597,7 @@ namespace
         if (isOrder && !isNumber) {
             return std::unexpected(std::format("{} compares numbers, and '{}' is no number", op->first, setting.id));
         }
-        if (isList && setting.valueType != model::StoredType::String && !isChoice(setting.type)) {
+        if (isList && setting.valueType != model::StoredType::String && !model::isChoice(setting.type)) {
             return std::unexpected(std::format("{} is of a text or a choice, and '{}' is neither", op->first, setting.id));
         }
         const auto& operand = condition.at(op->first);
@@ -3011,55 +2857,41 @@ namespace
     };
 
     /**
-     * A value an option sets on a setting, checked as the setting's default is: a binding, a color and a transform are
-     * their table as a JSON object, a haptic the name of its pattern, and any other a value of the setting's type that is
-     * one of its values. A binding is the whole binding, in the setting's form; a color and a transform are the TOML
-     * text of the parts they name. None for a value that is not one, which is reported.
+     * A value an option sets on a setting, read as the setting's default is (`model::readJsonValue`): a binding, a color
+     * and a transform are their table as a JSON object, a haptic the name of its pattern, and any other a value of the
+     * setting's type that is one of its values. A binding is the whole binding, in the setting's form; a color and a
+     * transform are the TOML text of the parts they name, which the option merges into the setting's table. None for a
+     * value that is not one, which is reported.
      */
     std::optional<model::Value> loadSetValue(const Json& value, const SettingInfo& target, ConfigSpecReading& reading)
     {
+        using ReadKind = model::ValueReadError::Kind;
         const auto leftOut = [&reading](const std::string& why) {
             reading.report(model::Severity::Error, std::format("Its value {}: it is left out.", why));
             return std::nullopt;
         };
-        const bool isTable = target.type == model::SettingType::InputBinding || target.type == model::SettingType::Color || target.type == model::SettingType::Transform;
-        if (isTable && !value.is_object()) {
-            return leftOut(std::format("{} is not a table, an object as the setting's default is", value.dump()));
+        const auto form = target.type == model::SettingType::InputBinding ? target.tableForm : model::TableForm::Toml;
+        const auto read = model::readJsonValue(target.type, target.valueType, form, target.valueOptions, value);
+        if (read) {
+            return *read;
         }
-        if (target.type == model::SettingType::InputBinding) {
-            const auto binding = model::parseBinding(tomlText(value), model::TableForm::Toml);
-            if (!binding) {
-                return leftOut(std::format("is not a binding: {}", binding.error()));
-            }
-            if (const auto untaken = model::untakenPart(*binding, target.valueOptions); !untaken.empty()) {
-                return leftOut(std::format("is not a binding the setting takes: {}", untaken));
-            }
-            if (target.tableForm == model::TableForm::IniLine && !binding->accelerate) {
-                return leftOut("turns accelerate off, which the line of an INI file cannot have"s);
-            }
-            return model::bindingText(*binding, target.tableForm);
+        const auto& error = read.error();
+        if (error.kind == ReadKind::Untaken) {
+            return leftOut(std::format("is not a binding the setting takes: {}", error.reason));
         }
-        if (target.type == model::SettingType::Color) {
-            const auto color = model::parseColorTable(tomlText(value), model::TableForm::Toml);
-            return color ? std::optional<model::Value>(model::colorText(*color, model::TableForm::Toml)) : leftOut(std::format("is not a color: {}", color.error()));
-        }
-        if (target.type == model::SettingType::Transform) {
-            const auto transform = model::parseTransformTable(tomlText(value), model::TableForm::Toml);
-            return transform ? std::optional<model::Value>(model::transformText(*transform, model::TableForm::Toml))
-                             : leftOut(std::format("is not a transform: {}", transform.error()));
+        if (error.kind == ReadKind::IniAccelerate) {
+            return leftOut("turns accelerate off, which the line of an INI file cannot have"s);
         }
         if (target.type == model::SettingType::Haptic) {
-            const auto haptic = value.is_string() ? std::optional<model::Value>(model::canonicalHaptic(value.get<std::string>())) : std::nullopt;
-            return haptic && model::findHaptic(*haptic) ? haptic : leftOut(std::format("{} is not a haptic pattern of the framework", value.dump()));
+            return leftOut(std::format("{} is not a haptic pattern of the framework", value.dump()));
         }
-        const auto typed = getValue(Json{ { "value", value } }, "value", target.valueType);
-        if (!typed) {
-            return leftOut(std::format("{} is not of the setting's type", value.dump()));
+        if (model::isTableType(target.type)) {
+            return leftOut(error.kind == ReadKind::NotOfType ? std::format("{} is not a table, an object as the setting's default is", value.dump())
+                                                             : std::format("is not a {}: {}", model::valueKindName(target.type), error.reason));
         }
-        if (!isValueOf(*typed, target.type, target.valueOptions)) {
-            return leftOut(std::format("{} is not one of the setting's values: outside its limits, of a length it does not allow, or none of its options", value.dump()));
-        }
-        return typed;
+        return leftOut(error.kind == ReadKind::NotOfType
+                           ? std::format("{} is not of the setting's type", value.dump())
+                           : std::format("{} is not one of the setting's values: outside its limits, of a length it does not allow, or none of its options", value.dump()));
     }
 
     /**
@@ -3110,7 +2942,7 @@ namespace
             const auto value = written.is_object() ? getValue(written, "value", setting.valueType) : std::nullopt;
             const auto option = value ? std::ranges::find_if(setting.valueOptions.options,
                                             [&value](const model::Option& loaded) {
-                                                return isSameValue(loaded.value, *value);
+                                                return model::sameValue(loaded.value, *value);
                                             })
                                       : setting.valueOptions.options.end();
             if (option == setting.valueOptions.options.end()) {

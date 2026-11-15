@@ -114,6 +114,20 @@ namespace mods_config::model
     }
 
     /**
+     * The table of a color's text, or of its setting's default for a text that is no color, and an empty table where
+     * neither is one: the color an editor starts from.
+     */
+    ColorTable colorOrDefault(const Setting& setting, const std::string_view text)
+    {
+        auto table = parseColorTable(text, setting.tableForm);
+        const auto* fallback = setting.defaultValue ? std::get_if<std::string>(&*setting.defaultValue) : nullptr;
+        if (!table && fallback) {
+            table = parseColorTable(*fallback, setting.tableForm);
+        }
+        return table.value_or(ColorTable{});
+    }
+
+    /**
      * The color a color table gives, as the framework reads it: the keys it has, over the channels of a base.
      */
     render::Color tableColor(const ColorTable& table, const render::Color& base)

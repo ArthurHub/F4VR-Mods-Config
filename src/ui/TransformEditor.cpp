@@ -318,11 +318,7 @@ namespace mods_config::ui
      */
     void TransformEditor::start(const model::Setting& setting, const std::string& text)
     {
-        auto table = model::parseTransformTable(text, setting.tableForm);
-        if (!table && setting.defaultValue) {
-            table = model::parseTransformTable(std::get<std::string>(*setting.defaultValue), setting.tableForm);
-        }
-        _table = table ? *table : model::TransformTable{};
+        _table = model::transformOrDefault(setting, text);
         for (std::size_t axis = 0; axis < model::TRANSFORM_AXES; ++axis) {
             const auto& range = setting.valueOptions.transformAxes[axis];
             _axes[axis].valueOptions = model::ValueOptions{ .min = range.min, .max = range.max, .step = range.step };

@@ -25,22 +25,12 @@
 #include "model/Conditions.h"
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
+#include "model/SettingValues.h"
 #include "model/TextStates.h"
 
 namespace
 {
     using namespace mods_config;
-
-    /**
-     * Whether two values of a setting are the same one. Two numbers are, when they are as near as a number
-     * and the text of it in a file.
-     */
-    bool isSameValue(const model::Value& value, const model::Value& other)
-    {
-        const auto* number = std::get_if<float>(&value);
-        const auto* otherNumber = std::get_if<float>(&other);
-        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
-    }
 
     /**
      * Returns the store's default when the setting's control can display it.
@@ -52,26 +42,9 @@ namespace
         if (!value) {
             return std::nullopt;
         }
-        bool shown = false;
-        switch (setting.type) {
-        case model::SettingType::Switcher:
-            shown = std::holds_alternative<bool>(*value);
-            break;
-        case model::SettingType::Slider:
-            shown = std::holds_alternative<float>(*value) && setting.valueOptions.max > setting.valueOptions.min;
-            break;
-        case model::SettingType::Stepper:
-        case model::SettingType::Dropdown:
-        case model::SettingType::Haptic:
-            shown = ui::chosenOption(store.options(setting), { .value = *value, .available = true, .reason = {} }).has_value();
-            break;
-        case model::SettingType::TextInput:
-        case model::SettingType::InputBinding:
-        case model::SettingType::Color:
-        case model::SettingType::Transform:
-            shown = std::holds_alternative<std::string>(*value);
-            break;
-        }
+        const bool shown = model::isChoice(setting.type)
+                               ? ui::chosenOption(store.options(setting), { .value = *value, .available = true, .reason = {} }).has_value()
+                               : model::isControlValue(setting.type, *value) && (setting.type != model::SettingType::Slider || setting.valueOptions.max > setting.valueOptions.min);
         return shown ? value : std::nullopt;
     }
 
@@ -214,7 +187,7 @@ namespace
          */
         bool resetsNow() const
         {
-            return editable && !dirty && defaultValue && (stored.invalid || !isSameValue(stored.value, *defaultValue));
+            return editable && !dirty && defaultValue && (stored.invalid || !model::sameValue(stored.value, *defaultValue));
         }
 
         /**
@@ -319,15 +292,15 @@ namespace
         const auto& options = setting.valueOptions;
         const auto* on = std::get_if<bool>(&state.stored.value);
         const auto* number = std::get_if<float>(&state.stored.value);
-        const bool isSwitcher = state.editable && setting.type == model::SettingType::Switcher && on;
-        const bool isSlider = state.editable && setting.type == model::SettingType::Slider && number && options.max > options.min;
+        const bool shown = state.editable && model::isControlValue(setting.type, state.stored.value);
+        const bool isSwitcher = shown && setting.type == model::SettingType::Switcher;
+        const bool isSlider = shown && setting.type == model::SettingType::Slider && options.max > options.min;
         const bool isHaptic = state.editable && setting.type == model::SettingType::Haptic;
-        const bool isChoice =
-            state.editable && (setting.type == model::SettingType::Stepper || setting.type == model::SettingType::Dropdown || isHaptic) && !state.choiceOptions.empty();
-        const bool isText = state.editable && setting.type == model::SettingType::TextInput && std::holds_alternative<std::string>(state.stored.value);
-        const bool isBinding = state.editable && setting.type == model::SettingType::InputBinding && std::holds_alternative<std::string>(state.stored.value);
-        const bool isColor = state.editable && setting.type == model::SettingType::Color && std::holds_alternative<std::string>(state.stored.value);
-        const bool isTransform = state.editable && setting.type == model::SettingType::Transform && std::holds_alternative<std::string>(state.stored.value);
+        const bool isChoice = state.editable && model::isChoice(setting.type) && !state.choiceOptions.empty();
+        const bool isText = shown && setting.type == model::SettingType::TextInput;
+        const bool isBinding = shown && setting.type == model::SettingType::InputBinding;
+        const bool isColor = shown && setting.type == model::SettingType::Color;
+        const bool isTransform = shown && setting.type == model::SettingType::Transform;
         const bool rowPressed = state.row.pressed && !state.onSlot;
 
         ControlEdited edited{ .editable = isSwitcher || isSlider || isChoice || isText || isBinding || isColor || isTransform,
