@@ -49,6 +49,19 @@ def pytest_sessionstart(session):
     pytest.exit(f"put back the backup: {len(written)} files written, {len(deleted)} deleted", returncode=0)
 
 
+def pytest_collection_modifyitems(config, items):
+    """
+    Leave out the perf tests unless a run asks for them, by a `-m` that names perf or by naming test_perf.py: they hold
+    each state for seconds, and measure best right after the game starts.
+    """
+    if "perf" in (config.getoption("markexpr") or "") or any("test_perf" in arg for arg in config.args):
+        return
+    perf = [item for item in items if item.get_closest_marker("perf")]
+    if perf:
+        config.hook.pytest_deselected(items=perf)
+        items[:] = [item for item in items if not item.get_closest_marker("perf")]
+
+
 def pytest_runtest_logreport(report):
     REPORT.add_result(report)
 

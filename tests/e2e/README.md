@@ -11,8 +11,9 @@ pytest tests that drive the running game through devbench's REST port and check 
 ## Running
 
 ```powershell
-pytest tests/e2e                      # all
-pytest tests/e2e -m showcase          # one area: sweep, showcase, dialog, mcm, live, navigation, rows, session, perf
+pytest tests/e2e                      # all but perf
+pytest tests/e2e -m showcase          # one area: sweep, showcase, dialog, mcm, live, navigation, rows, session
+pytest tests/e2e -m perf              # perf, which runs only when asked for (or test_perf.py is named)
 pytest tests/e2e -m sweep -k FallUI   # one mod's sweep
 pytest tests/e2e -m sweep -rA         # with the skipped settings
 pytest tests/e2e --e2e-restore        # only restore a crashed run's backup
@@ -42,6 +43,6 @@ A setting whose failure is an open issue goes in `KNOWN` in `test_sweep.py` with
 | `test_navigation.py` | Back, breadcrumbs, Help, Minimize/Restore. |
 | `test_rows.py` | Reset, Run without saving / Save and run, confirmations, MCM buttons, client state in text, MCM game texts, images and plugin requirements, FallUI translations, the config spec report. |
 | `test_session.py` | A loading screen closing the menu and discarding pending changes and previews. |
-| `test_perf.py` | Per-frame cost of held states (10 s each, fails over budget at p95) and the worst frame of one-off actions (no check). Run `-m perf` right after game start to catch the session's first open. |
+| `test_perf.py` | Per-frame cost of held states (10 s each, fails over budget at p95) and the worst frame of one-off actions (no check). Only run when asked for: `-m perf`, right after game start to catch the session's first open. |
 
 Helpers: `devbench.py` (client), `menu.py`, `stored.py` (a value in its file and the game), `backup.py`, `report.py`.
