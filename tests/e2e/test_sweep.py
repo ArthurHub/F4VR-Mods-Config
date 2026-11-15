@@ -1,7 +1,8 @@
 """The sweep: each mod and page of the MCM test set, of the showcases and of the config specs is shown, and each setting
 the player can change is changed, saved, checked in its file, then set back, saved and checked again, one at a time.
 
-Each mod is a test of its own, which reports every setting that failed and the ones it skipped, with -rA.
+Each mod is a test of its own, which reports every setting that failed and the ones it skipped, with -rA. A run that
+asks for the sweep, by a -m that names it or by naming this file, sweeps every mod; any other run sweeps SUBSET.
 """
 
 import pytest
@@ -14,6 +15,13 @@ from stored import NotInFile, file_value, inline_table, stored_as, table
 pytestmark = pytest.mark.sweep
 
 SWEPT = [*TEST_SET, MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS]
+
+# the mods a run that does not ask for the sweep sweeps: the showcases and the config specs, and the MCM mods of the
+# test set the rest of it repeats: SS2's globals and properties, FallUI's ModSettings and text inputs, XDI's floats
+SUBSET = [MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS, "SS2", "FallUI", "XDI"]
+
+# what the id of a row of the Categories page starts with: the rows are one setting made for each mod, so one is swept
+CATEGORY_SETTING_ID = "category."
 
 # the patterns a haptic takes when its row lists none
 HAPTICS = ["Tick", "DoubleClick", "Heartbeat3"]
@@ -121,15 +129,22 @@ def why_skipped(row):
     return None
 
 
-def check_file(bench, mod, storage, value):
-    """Fail unless the setting's file has the value; a setting kept in no file is not checked."""
+def check_file(bench, mod, storage, value, omitted=False):
+    """
+    Fail unless the setting's file has the value, or has no value when it is omitted, as a Save leaves an omitDefault
+    setting's default out; a setting kept in no file is not checked.
+    """
+    expected = "no value" if omitted else repr(value)
     try:
         # MCM writes its file from Papyrus, on its own time, and its first write of a run is the slowest
-        wait_until(lambda: stored_as(file_value(bench, mod, storage), value), 10, what="the file's value")
+        if omitted:
+            wait_until(lambda: file_value(bench, mod, storage) is None, 10, what="the file without the value")
+        else:
+            wait_until(lambda: stored_as(file_value(bench, mod, storage), value), 10, what="the file's value")
     except NotInFile:
         return
     except TimeoutError:
-        raise AssertionError(f"its file has {file_value(bench, mod, storage)!r}, not {value!r}") from None
+        raise AssertionError(f"its file has {file_value(bench, mod, storage)!r}, not {expected}") from None
 
 
 def sweep_setting(menu, bench, mod, row):
@@ -160,14 +175,26 @@ def sweep_setting(menu, bench, mod, row):
 
     menu.set(setting_id, original)
     menu.save()
-    check_file(bench, mod, saved["storage"], original)
+    check_file(bench, mod, saved["storage"], original, omitted=row["omitDefault"] and same(original, row["default"]))
     return None
 
 
-@pytest.mark.parametrize("mod", SWEPT)
+def pytest_generate_tests(metafunc):
+    """
+    Each mod a test of its own: every mod when the run asks for the sweep, by a -m that names it or by naming this
+    file, and SUBSET otherwise.
+    """
+    if "mod" not in metafunc.fixturenames:
+        return
+    config = metafunc.config
+    asked = "sweep" in (config.getoption("markexpr") or "") or any("test_sweep" in arg for arg in config.args)
+    metafunc.parametrize("mod", SWEPT if asked else [mod for mod in SWEPT if mod in SUBSET])
+
+
 def test_sweep(menu, game, report, mod):
     listed = next(entry for entry in menu.mods() if entry["name"] == mod)
     problems, skipped, known, changed = [], [], [], 0
+    category_swept = None
     for path in [[], *page_paths(listed["pages"])]:
         where = " / ".join([mod, *path])
         try:
@@ -180,6 +207,11 @@ def test_sweep(menu, game, report, mod):
         for setting_id in [row["id"] for row in page_rows if row["kind"] == "setting"]:
             row = menu.setting(id=setting_id)
             name = f"{where}: {plain(row['text'])!r} ({setting_id})"
+            if setting_id.startswith(CATEGORY_SETTING_ID):
+                if category_swept:
+                    skipped.append(f"{name}: a Categories row as {category_swept}, which is swept")
+                    continue
+                category_swept = setting_id
             if reason := why_skipped(row):
                 skipped.append(f"{name}: {reason}")
                 continue

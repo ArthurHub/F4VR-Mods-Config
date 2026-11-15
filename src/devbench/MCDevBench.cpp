@@ -379,6 +379,8 @@ namespace mods_config::devbench
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);
             const auto saved = store.savedValue(setting);
             row["saved"] = saved ? valueToJson(*saved) : json(nullptr);
+            // a Save leaves its default out of the file
+            row["omitDefault"] = setting.omitDefault;
             row["applies"] = appliesName(setting.applies);
             if (setting.type == model::SettingType::Slider) {
                 row["range"] = { { "min", setting.valueOptions.min }, { "max", setting.valueOptions.max }, { "step", setting.valueOptions.step } };
