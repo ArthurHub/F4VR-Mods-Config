@@ -7,7 +7,7 @@ asks for the sweep, by a -m that names it or by naming this file, sweeps every m
 
 import pytest
 
-from conftest import CONFIG_SPEC_SHOWCASE, CONFIG_SPECS, MCM_SHOWCASE, TEST_SET
+from conftest import CONFIG_SPEC_SHOWCASE, CONFIG_SPECS, MCM_SHOWCASE, REQUIRED_MCM, TEST_SET
 from devbench import DevbenchError, wait_until
 from menu import page_paths, plain, same
 from stored import NotInFile, file_value, inline_table, stored_as, table
@@ -16,9 +16,9 @@ pytestmark = pytest.mark.sweep
 
 SWEPT = [*TEST_SET, MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS]
 
-# the mods a run that does not ask for the sweep sweeps: the showcases and the config specs, and the MCM mods of the
-# test set the rest of it repeats: SS2's globals and properties, FallUI's ModSettings and text inputs, XDI's floats
-SUBSET = [MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS, "SS2", "FallUI", "XDI"]
+# the mods a run that does not ask for the sweep sweeps: the showcases, the config specs, and the required MCM mods of
+# the test set, which cover what the rest of it repeats
+SUBSET = [MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS, *REQUIRED_MCM]
 
 # what the id of a row of the Categories page starts with: the rows are one setting made for each mod, so one is swept
 CATEGORY_SETTING_ID = "category."
@@ -191,7 +191,9 @@ def pytest_generate_tests(metafunc):
     metafunc.parametrize("mod", SWEPT if asked else [mod for mod in SWEPT if mod in SUBSET])
 
 
-def test_sweep(menu, game, report, mod):
+def test_sweep(menu, game, report, test_set, mod):
+    if mod in TEST_SET and mod not in test_set:
+        pytest.skip(f"{mod} is not installed or not available")
     listed = next(entry for entry in menu.mods() if entry["name"] == mod)
     problems, skipped, known, changed = [], [], [], 0
     category_swept = None

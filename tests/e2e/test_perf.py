@@ -12,7 +12,7 @@ import time
 
 import pytest
 
-from conftest import CONFIG_SPEC_SHOWCASE, CONFIG_SPECS, MCM_SHOWCASE, TEST_SET
+from conftest import CONFIG_SPEC_SHOWCASE, CONFIG_SPECS, MCM_SHOWCASE
 from devbench import wait_until
 from menu import Menu, page_paths
 from test_live_preview import CASES, setting_of
@@ -67,7 +67,7 @@ def worst_frame(menu, action):
     return menu.call("perf", format="flat", reset=True)["sites"]
 
 
-def test_one_off(game, report):
+def test_one_off(game, report, test_set):
     """The worst frame of each action that is done once rather than held: opening, minimizing, the Help page, every
     mod and page shown, a Save and an MCM change. A report and no check. First, so on a game that just started the
     first open and the first minimize of the session are the ones measured: run `pytest tests/e2e -m perf` then."""
@@ -87,7 +87,7 @@ def test_one_off(game, report):
     one("Help page", lambda: menu.call("help"))
     one("Help page left", lambda: menu.call("help", shown=False))
     mods = {mod["name"]: mod for mod in menu.mods()}
-    for name in [*TEST_SET, MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS]:
+    for name in [*test_set, MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS]:
         one(f"show {name}", lambda name=name: menu.call("select", mod=name))
         for path in page_paths(mods[name]["pages"]):
             one(f"show {name} / {' / '.join(path)}", lambda name=name, path=path: menu.call("select", mod=name, page=path))
@@ -124,14 +124,14 @@ def rows_of(menu, mod, page):
 
 
 @pytest.fixture(scope="module")
-def heaviest(game):
-    """The page with the most rows of the MCM test set, and of the config spec showcase."""
+def heaviest(game, test_set):
+    """The page with the most rows of the MCM test set this run has, and of the config spec showcase."""
     menu = Menu(game)
     menu.close_all()
     menu.open()
     mods = {mod["name"]: mod for mod in menu.mods()}
     found = {}
-    for key, names in (("mcm", TEST_SET), ("showcase", [CONFIG_SPEC_SHOWCASE])):
+    for key, names in (("mcm", test_set), ("showcase", [CONFIG_SPEC_SHOWCASE])):
         pages = [(name, path) for name in names for path in page_paths(mods[name]["pages"])]
         found[key] = max(pages, key=lambda page: rows_of(menu, *page))
     menu.close_all()

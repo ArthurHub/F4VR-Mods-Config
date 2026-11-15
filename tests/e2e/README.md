@@ -5,7 +5,7 @@ pytest tests that drive the running game through devbench's REST port and check 
 ## Requirements
 
 - The game running with [devbench](https://github.com/ArthurHub/devbench) (a build with its `files` tool), at the main menu or already in QASmoke. The tests `coc qasmoke` so nothing reaches a save; any other loaded game is refused.
-- Installed: the MCM test set (see [mod-plan.md](../../docs/design/mod-plan.md#the-mcm-test-set)), both showcases, FRIK, Immersive Flashlight. A run fails at start listing what's missing.
+- Installed: SS2, FallUI and XDI from the MCM test set (see [mod-plan.md](../../docs/design/mod-plan.md#the-mcm-test-set)), both showcases, FRIK, Immersive Flashlight. A run fails at start listing what's missing. The rest of the test set is swept and measured when installed, and skipped otherwise.
 - `pip install -r tests/e2e/requirements.txt`
 
 ## Running

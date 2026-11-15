@@ -16,13 +16,16 @@ TEST_SET = [
     "Chemfluence AI Combat Dynamics",
     "FallUI",
     "FallUIWorkbench",
-    "Kabuto",
     "NPCs Use Items",
     "SS2",
     "UnlimitedSurvivalMode",
     "WorkshopFramework",
     "XDI",
 ]
+# the mods of the test set a run needs, as the sweep of any run covers what the rest repeats: SS2's globals and
+# properties, FallUI's ModSettings, text inputs and translations, XDI's floats; the rest are swept and measured when
+# installed
+REQUIRED_MCM = ["SS2", "FallUI", "XDI"]
 MCM_SHOWCASE = "ModsConfigFO4_McmShowcase"
 CONFIG_SPEC_SHOWCASE = "ModsConfigFO4_Showcase"
 # the config specs of the mod, of FRIK and of Immersive Flashlight
@@ -160,12 +163,18 @@ def wait_for_game(bench):
     _settle(bench)
 
 
+def _listed(bench):
+    return {mod["name"]: mod for mod in bench.mod("mods")["mods"]}
+
+
 def _check_installed(bench):
-    listed = {mod["name"]: mod for mod in bench.mod("mods")["mods"]}
-    missing = [name for name in [*TEST_SET, MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS] if name not in listed]
+    """Stop the run when a mod the tests need is not listed, or is listed but not available: the required mods of the
+    test set, the showcases and the config specs."""
+    listed = _listed(bench)
+    missing = [name for name in [*REQUIRED_MCM, MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS] if name not in listed]
     if missing:
-        pytest.exit(f"the menu does not list {', '.join(missing)}: install the test set and the showcases", returncode=2)
-    unavailable = [f"{name} ({listed[name]['notAvailable']})" for name in listed if listed[name]["notAvailable"] and name in TEST_SET + CONFIG_SPECS]
+        pytest.exit(f"the menu does not list {', '.join(missing)}: install them", returncode=2)
+    unavailable = [f"{name} ({listed[name]['notAvailable']})" for name in REQUIRED_MCM + CONFIG_SPECS if listed[name]["notAvailable"]]
     if unavailable:
         pytest.exit(f"not available: {', '.join(unavailable)}", returncode=2)
 
@@ -182,6 +191,17 @@ def game(bench):
     Menu(bench).close_all()
     written, deleted = backup.restore(bench)
     REPORT.notes.append(f"Backed up {files} files, and put them back after: {len(written)} written again, {len(deleted)} the run made deleted.")
+
+
+@pytest.fixture(scope="session")
+def test_set(game):
+    """The mods of the MCM test set this run has: the required ones, and each other one the menu lists and can show.
+    The report notes the ones left out."""
+    listed = _listed(game)
+    absent = [name for name in TEST_SET if name not in listed or listed[name]["notAvailable"]]
+    if absent:
+        REPORT.notes.append(f"Not installed or not available, so neither swept nor measured: {', '.join(absent)}.")
+    return [name for name in TEST_SET if name not in absent]
 
 
 def _picture(game, menu, nodeid):
