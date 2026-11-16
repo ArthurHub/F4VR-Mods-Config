@@ -103,7 +103,7 @@ namespace
     {
         switch (setting.type) {
         case model::SettingType::Switcher:
-            return number == 1.0f;
+            return common::fEqual(number, 1.0f);
         case model::SettingType::Slider:
             return number;
         case model::SettingType::Stepper:
@@ -200,33 +200,17 @@ namespace
     }
 
     /**
-     * A value as the type its storage keeps it in, which MCM's function and a script's property take: a bool
-     * is on at any number but 0, and a whole number is the nearest one. A text is read as a number, as a text
-     * input that takes one gives it. None for a number as a text, and a text that is no number as a number.
+     * A value as the type its storage keeps it in, which MCM's function and a script's property take, as Papyrus
+     * casts it (`model::asStoredType`). A text is first read as a number, as a text input that takes one gives it.
+     * None for a number as a text, and a text that is no number as a number.
      */
     std::optional<model::Value> typedValue(const model::StoredType type, const model::Value& value)
     {
-        using Type = model::StoredType;
-        if (type == Type::String) {
-            return std::holds_alternative<std::string>(value) ? std::optional(value) : std::nullopt;
+        if (const auto* text = std::get_if<std::string>(&value); text && type != model::StoredType::String) {
+            const auto number = textNumber(*text);
+            return number ? model::asStoredType(static_cast<float>(*number), type) : std::nullopt;
         }
-        auto number = toNumber(value);
-        if (const auto* text = std::get_if<std::string>(&value); text && !number) {
-            if (const auto read = textNumber(*text)) {
-                number = static_cast<float>(*read);
-            }
-        }
-        if (!number) {
-            return std::nullopt;
-        }
-        switch (type) {
-        case Type::Bool:
-            return *number != 0.0f;
-        case Type::Int:
-            return static_cast<int>(std::lround(*number));
-        default:
-            return *number;
-        }
+        return model::asStoredType(value, type);
     }
 
     /**

@@ -11,7 +11,7 @@ In the suggested order. A change's row is marked done when its commit lands.
 | Order | Change | Seam | Blocked by | Status |
 | --- | --- | --- | --- | --- |
 | 1 | [01. Devbench reports and presses from the panel's views](01-devbench-views.md) | B | | done |
-| 2 | [03. A game number as a stored type in the setting value rules](03-game-number-type.md) | A | | |
+| 2 | [03. A game number as a stored type in the setting value rules](03-game-number-type.md) | A | | done |
 | 3 | [02. One walk of pages and rows in the config spec loader](02-loader-walk.md) | C | | |
 | 4 | [04. Option sets work out the choice that sets other settings](04-option-sets.md) | A | | |
 | 5 | [05. Binding wording and editing rules in the model](05-binding-rules.md) | A | | |

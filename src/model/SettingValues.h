@@ -13,8 +13,9 @@
 
 // The setting value rules: what a value of each setting type is, answered by setting type for any setting. Whether two
 // values are the same, a value's canonical text, why a value is no value of its setting, how a value is read from a
-// config spec's JSON, and whether a type is a choice or kept as a table. Each answer is one switch over the setting
-// types, which asks the type's own module (Colors, Transforms, InputBindings, Haptics) for the rules of its values.
+// config spec's JSON, a value of the game as a stored type, and whether a type is a choice or kept as a table. Each
+// answer is one switch over the setting types, which asks the type's own module (Colors, Transforms, InputBindings,
+// Haptics) for the rules of its values.
 namespace mods_config::model
 {
     /**
@@ -57,6 +58,7 @@ namespace mods_config::model
     std::string valueProblem(SettingType type, StoredType valueType, TableForm form, const ValueOptions& valueOptions, const std::vector<Option>& options, const Value& value);
     std::string valueProblem(const Setting& setting, const std::vector<Option>& options, const Value& value);
     std::optional<Value> jsonValue(const nlohmann::json& value, StoredType valueType);
+    std::optional<Value> asStoredType(const Value& value, StoredType type);
     std::string tomlText(const nlohmann::json& value);
     std::expected<Value, ValueReadError> readJsonValue(SettingType type, StoredType valueType, TableForm form, const ValueOptions& valueOptions, const nlohmann::json& value);
 }

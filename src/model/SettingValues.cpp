@@ -292,6 +292,30 @@ namespace mods_config::model
     }
 
     /**
+     * A value of the game in a stored type, as Papyrus casts it: a bool is on at any number but 0, a whole number is
+     * the nearest one, and a bool is 1 and 0 as a number. None for a text as a number and a number as a text: a store
+     * that reads a text as a number reads it first.
+     */
+    std::optional<Value> asStoredType(const Value& value, const StoredType type)
+    {
+        const bool isText = std::holds_alternative<std::string>(value);
+        if (type == StoredType::String || isText) {
+            return type == StoredType::String && isText ? std::optional(value) : std::nullopt;
+        }
+        const auto* on = std::get_if<bool>(&value);
+        const auto* whole = std::get_if<int>(&value);
+        const float number = on ? (*on ? 1.0f : 0.0f) : whole ? static_cast<float>(*whole) : std::get<float>(value);
+        switch (type) {
+        case StoredType::Bool:
+            return common::fNotEqual(number, 0.0f);
+        case StoredType::Int:
+            return static_cast<int>(std::lround(number));
+        default:
+            return number;
+        }
+    }
+
+    /**
      * A JSON value as the TOML text of the same value: an object is an inline table and an array an array, whose keys
      * and texts JSON writes as TOML writes them, and a bool and a number are themselves. A null is none, which no TOML
      * value reads.

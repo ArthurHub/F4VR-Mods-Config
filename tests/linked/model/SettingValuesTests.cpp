@@ -2,8 +2,10 @@
 
 #include <nlohmann/json.hpp>
 #include <string>
+#include <variant>
 #include <vector>
 
+#include "common/CommonUtils.h"
 #include "model/ConfigDefinition.h"
 #include "model/SettingValues.h"
 
@@ -33,6 +35,16 @@ namespace
     std::string problemOf(const model::Setting& setting, const model::Value& value)
     {
         return model::valueProblem(setting, setting.valueOptions.options, value);
+    }
+
+    /**
+     * A value of the game cast to a number, which it must be.
+     */
+    float numberOf(const model::Value& value)
+    {
+        const auto cast = model::asStoredType(value, StoredType::Float);
+        REQUIRE(cast);
+        return std::get<float>(*cast);
     }
 
     /**
@@ -280,4 +292,41 @@ TEST_CASE("SettingValues: a JSON value is the TOML text of the same value")
     CHECK(model::tomlText(Json::object()) == "{}");
     CHECK(model::tomlText(Json("a")) == R"("a")");
     CHECK(model::tomlText(Json()).empty());
+}
+
+TEST_CASE("SettingValues: a value of the game is cast to a stored type as Papyrus casts it")
+{
+    using model::Value;
+
+    // a bool is on at any number but 0, a number too near 0 to tell from it included
+    CHECK(model::asStoredType(Value(true), StoredType::Bool) == Value(true));
+    CHECK(model::asStoredType(Value(2), StoredType::Bool) == Value(true));
+    CHECK(model::asStoredType(Value(0), StoredType::Bool) == Value(false));
+    CHECK(model::asStoredType(Value(-0.5f), StoredType::Bool) == Value(true));
+    CHECK(model::asStoredType(Value(0.0f), StoredType::Bool) == Value(false));
+    CHECK(model::asStoredType(Value(0.000001f), StoredType::Bool) == Value(false));
+
+    // a whole number is the nearest one, half away from 0
+    CHECK(model::asStoredType(Value(true), StoredType::Int) == Value(1));
+    CHECK(model::asStoredType(Value(7), StoredType::Int) == Value(7));
+    CHECK(model::asStoredType(Value(2.5f), StoredType::Int) == Value(3));
+    CHECK(model::asStoredType(Value(-2.5f), StoredType::Int) == Value(-3));
+    CHECK(model::asStoredType(Value(2.4f), StoredType::Int) == Value(2));
+
+    // a bool is 1 and 0 as a number
+    CHECK(common::fEqual(numberOf(Value(true)), 1.0f));
+    CHECK(common::fEqual(numberOf(Value(false)), 0.0f));
+    CHECK(common::fEqual(numberOf(Value(3)), 3.0f));
+    CHECK(common::fEqual(numberOf(Value(1.5f)), 1.5f));
+
+    // a text is a text, and is no number even when it reads as one
+    CHECK(model::asStoredType(Value(std::string("a")), StoredType::String) == Value(std::string("a")));
+    CHECK_FALSE(model::asStoredType(Value(std::string("5")), StoredType::Int));
+    CHECK_FALSE(model::asStoredType(Value(std::string("1")), StoredType::Bool));
+    CHECK_FALSE(model::asStoredType(Value(std::string("1.5")), StoredType::Float));
+
+    // a number is no text
+    CHECK_FALSE(model::asStoredType(Value(true), StoredType::String));
+    CHECK_FALSE(model::asStoredType(Value(5), StoredType::String));
+    CHECK_FALSE(model::asStoredType(Value(1.5f), StoredType::String));
 }

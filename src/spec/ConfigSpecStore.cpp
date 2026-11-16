@@ -365,30 +365,6 @@ namespace
     }
 
     /**
-     * A value of the game in the type of a setting's value: a bool is on at any number but 0, as Papyrus casts
-     * a number to a bool, a whole number is the nearest one, and a bool is 1 and 0 as a number. None for a
-     * text as a number, and for a number as a text.
-     */
-    std::optional<model::Value> asType(const model::Value& value, const model::StoredType type)
-    {
-        const bool isText = std::holds_alternative<std::string>(value);
-        if (type == model::StoredType::String || isText) {
-            return type == model::StoredType::String && isText ? std::optional(value) : std::nullopt;
-        }
-        const auto* on = std::get_if<bool>(&value);
-        const auto* whole = std::get_if<int>(&value);
-        const float number = on ? (*on ? 1.0f : 0.0f) : whole ? static_cast<float>(*whole) : std::get<float>(value);
-        switch (type) {
-        case model::StoredType::Bool:
-            return common::fNotEqual(number, 0.0f);
-        case model::StoredType::Int:
-            return static_cast<int>(std::lround(number));
-        default:
-            return number;
-        }
-    }
-
-    /**
      * Whether a value is of the type a setting keeps, as a client gives it: no number is cast, so a whole number is no
      * value of a float.
      */
@@ -425,7 +401,7 @@ namespace
         if (!read) {
             return std::unexpected(std::format("{} is not in the game", gameName(setting.storage)));
         }
-        auto typed = asType(*read, setting.valueType);
+        auto typed = model::asStoredType(*read, setting.valueType);
         if (!typed) {
             return std::unexpected(std::format("{} is {}, which is no value of the setting's valueType", gameName(setting.storage), valueText(*read)));
         }
@@ -440,7 +416,7 @@ namespace
     bool writeGame(const model::Storage& storage, const model::Value& stored)
     {
         if (const auto* global = std::get_if<model::GlobalStorage>(&storage)) {
-            const auto number = asType(stored, model::StoredType::Float);
+            const auto number = model::asStoredType(stored, model::StoredType::Float);
             return number && setGlobal(*global, std::get<float>(*number));
         }
         return setProperty(std::get<model::PropertyStorage>(storage), stored);
@@ -743,7 +719,7 @@ namespace mods_config::spec
             entry.notAvailable = _clientCalls.notAnswered(_modName, _modDisplayName, state.name);
             return;
         }
-        const auto typed = asType(*answer, setting.valueType);
+        const auto typed = model::asStoredType(*answer, setting.valueType);
         if (!typed) {
             const auto reason = std::format("{} is {}, which is no value of the setting's valueType", gameName(setting.storage), valueText(*answer));
             if (setting.readOnly) {

@@ -15,7 +15,7 @@ The rest of the two stores' value helpers differ on purpose and stay: the value 
 
 ## Solution
 
-The setting value rules answer "this number (or value) as a stored type". Both stores ask it, and their copies go. `fromNumber`'s compare uses `common::fEqual`.
+The setting value rules answer "this value of the game as a stored type" (`asStoredType`). Both stores ask it, and their copies go. `fromNumber`'s compare uses `common::fEqual`.
 
 ## User Stories
 
@@ -24,15 +24,18 @@ The setting value rules answer "this number (or value) as a stored type". Both s
 
 ## Implementation Decisions
 
-- **Where.** A function in `model/SettingValues.h`, from a value and a `StoredType` to the value in that type, or none (a text as a number, a number as a text). Whether a text that is a number is read as one, as the MCM store does, is a parameter or a step the MCM store keeps: settled when written.
-- **Float compares** use `common::fEqual` / `fNotEqual`.
+- **Where.** `asStoredType(value, type)` in `model/SettingValues.h`, from a value and a `StoredType` to the value in that type, or none (a text as a number, a number as a text).
+- **A text is never read as a number** by `asStoredType`: the config spec store reports a text for a number setting as no value of its type. The MCM store keeps its own step before the cast: a text that `textNumber` reads becomes a float. Its `toNumber` stays too, which its other reads use.
+- **Float compares** use `common::fEqual` / `fNotEqual`. A bool is off at a number within `fNotEqual`'s epsilon of 0, where the MCM store's `!= 0.0f` had it on; no setting holds such a number.
+- **A whole number** is `std::lround` of the number, half away from 0, unclamped, as both copies did.
 
 ## Testing Decisions
 
-- **New tests** in the setting value rules tests: bool, int and float from each value kind, and the none cases.
+- **New tests** in the setting value rules tests: bool, int and float from each value kind, a bool near 0, rounding a half, and the none cases.
 - **Regression net.** Both stores' tests pass unchanged.
 
 ## Out of Scope
 
 - The value shown while there is none, and MCM's reading of a global's number.
 - Devbench's reading of a value from JSON.
+- `filledArgument`'s cast of a call argument, which cuts a whole number as MCM's menu does.
