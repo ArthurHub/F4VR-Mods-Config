@@ -70,18 +70,30 @@ namespace
     }
 
     /**
-     * A client of the native API that gives nothing and does nothing, which only registers.
+     * A client of the native API that gives nothing and does nothing but the one function it is given, which counts
+     * its runs.
      */
     struct NullClient final : api::IClient
     {
-        bool hasFunction(const char*) override
+        std::string function;
+        int runs = 0;
+
+        explicit NullClient(std::string name = {})
+            : function(std::move(name))
+        {}
+
+        bool hasFunction(const char* name) override
         {
-            return false;
+            return name == function;
         }
 
-        bool runFunction(const char*, api::IFunctionCall*) override
+        bool runFunction(const char* name, api::IFunctionCall*) override
         {
-            return false;
+            if (name != function) {
+                return false;
+            }
+            ++runs;
+            return true;
         }
 
         bool answerState(const char*, api::SettingValue*) override
@@ -609,4 +621,155 @@ TEST_CASE("MenuController: Open and Show give the live copy to the desktop's she
     menu.pressLiveCopy(ui::LiveCopyAction::Open);
     menu.pressLiveCopy(ui::LiveCopyAction::Show);
     CHECK(menu.port.take() == Calls{ "openFile " + menu.liveCopy().string(), "showInFolder " + menu.liveCopy().string() });
+}
+
+TEST_CASE("MenuController: the quick launch list has each client's entry with its texts translated, by name in any case, and a press runs its function")
+{
+    Menu menu;
+    model::Translations translations;
+    translations.add("$AlphaOpen", "alpha UI");
+    menu.controller.setMods({ configSpecOf(MY_MOD) }, std::move(translations), {});
+    NullClient zulu("openUi");
+    NullClient alpha("openUi");
+    REQUIRE(menu.controller.nativeClients().registerClient("Zulu", api::MODS_CONFIG_FO4_API_VERSION, &zulu));
+    REQUIRE(menu.controller.nativeClients().registerClient("Alpha", api::MODS_CONFIG_FO4_API_VERSION, &alpha));
+    REQUIRE(menu.controller.nativeClients().addQuickLaunch(&zulu, "Zulu UI", "Opens Zulu's UI.", "Open", "openUi"));
+    REQUIRE(menu.controller.nativeClients().addQuickLaunch(&alpha, "$AlphaOpen", "", "", "openUi"));
+    REQUIRE(menu.controller.nativeClients().addQuickLaunch(&alpha, "Broken", "", "", "missing"));
+    menu.controller.open();
+
+    const auto& entries = menu.controller.fullPanel().quickLaunch();
+    std::vector<std::string> names;
+    std::ranges::transform(entries, std::back_inserter(names), &ui::QuickLaunchEntry::name);
+    CHECK(names == std::vector<std::string>{ "alpha UI", "Broken", "Zulu UI" });
+    CHECK(entries[0].notAvailable.empty());
+    CHECK_FALSE(entries[1].notAvailable.empty());
+    CHECK(entries[2].help == "Opens Zulu's UI.");
+    CHECK(entries[2].buttonText == "Open");
+
+    CHECK_FALSE(entries[2].open().failed);
+    CHECK(zulu.runs == 1);
+    CHECK(alpha.runs == 0);
+}
+
+TEST_CASE("MenuController: the quick launch list has the menu's own entry for FRIK while FRIK is installed and its client added none")
+{
+    Menu menu;
+    const auto hasFrikEntry = [&menu] {
+        menu.controller.close();
+        menu.controller.open();
+        const auto& entries = menu.controller.fullPanel().quickLaunch();
+        return std::ranges::any_of(entries, [](const ui::QuickLaunchEntry& entry) {
+            return entry.name == "FRIK Configuration";
+        });
+    };
+    CHECK_FALSE(hasFrikEntry());
+
+    menu.port.frikInstalled = true;
+    CHECK(hasFrikEntry());
+
+    NullClient frik("openConfig");
+    REQUIRE(menu.controller.nativeClients().registerClient("frik", api::MODS_CONFIG_FO4_API_VERSION, &frik));
+    REQUIRE(menu.controller.nativeClients().addQuickLaunch(&frik, "FRIK", "", "", "openConfig"));
+    CHECK_FALSE(hasFrikEntry());
+}
+
+TEST_CASE("MenuController: the Help page shown for the first time while Help stands out is written to the config in the frame update")
+{
+    Menu menu;
+    g_config.highlightHelp = true;
+    menu.controller.open();
+    menu.port.take();
+    REQUIRE(menu.controller.fullPanel().showHelp(true));
+    CHECK(menu.port.take().empty());
+    menu.frame();
+    CHECK(menu.port.take() == Calls{ "saveHelpOpened" });
+
+    // once
+    menu.controller.fullPanel().showHelp(false);
+    menu.controller.fullPanel().showHelp(true);
+    menu.frame();
+    CHECK(menu.port.take().empty());
+    g_config.highlightHelp = false;
+}
+
+TEST_CASE("MenuController: a change of the Developer section's filter or fold is written to the config in the frame update")
+{
+    const auto before = g_config.developer;
+    g_config.developer = { .enabled = true };
+    Menu menu;
+    menu.controller.open();
+    menu.port.take();
+    REQUIRE(menu.controller.fullPanel().changeDeveloper({ .enabled = true, .folded = true }));
+    CHECK(menu.port.take().empty());
+    menu.frame();
+    CHECK(menu.port.take() == Calls{ "saveDeveloper folded" });
+    menu.frame();
+    CHECK(menu.port.take().empty());
+    g_config.developer = before;
+}
+
+namespace
+{
+    /**
+     * The menu whose own options and Save handler are on the mod's own client of the native API. The client is one for
+     * the whole run and keeps its handlers, so this menu lives as long, and its tests share it.
+     */
+    Menu& lastingMenu()
+    {
+        static Menu menu;
+        static const bool registered = [] {
+            menu.controller.registerOwnOptions();
+            return true;
+        }();
+        (void)registered;
+        menu.controller.close();
+        menu.controller.setMods({ configSpecOf(MY_MOD), configSpecOf(OTHER_MOD) }, {}, {});
+        std::filesystem::remove(menu.folder.path / "Categories.toml");
+        menu.controller.readCategoryChoices();
+        menu.port.take();
+        return menu;
+    }
+
+    /**
+     * The options a client gives, each as its value and its text.
+     */
+    struct RecordedOptions final : api::IOptions
+    {
+        std::vector<std::string> given;
+
+        void add(const api::SettingValue* value, const char* text) override
+        {
+            given.push_back(std::string(value->text ? value->text : "") + " " + (text ? text : ""));
+        }
+    };
+}
+
+TEST_CASE("MenuController: the Config spec setting of the menu's own config spec has none, then each config spec the menu lists")
+{
+    lastingMenu();
+    const api::SettingView setting{ .id = "developerConfigSpec", .valueType = api::ValueType::String };
+    RecordedOptions options;
+    REQUIRE(static_cast<api::IClient&>(api::ModsConfigFO4Client::get()).giveOptions(&setting, &options));
+    CHECK(options.given == std::vector<std::string>{ " None", "MyMod My Mod", "Other Other" });
+}
+
+TEST_CASE("MenuController: a Save of the menu's own config spec reads the player's categories again, which group the tree")
+{
+    auto& menu = lastingMenu();
+    menu.controller.open();
+    const auto hasGameplay = [&menu] {
+        return std::ranges::any_of(menu.controller.fullPanel().modList().groups(), [](const model::CategoryGroup& group) {
+            return group.name == "Gameplay";
+        });
+    };
+    menu.folder.write("Categories.toml", "MyMod = \"Gameplay\"\n");
+    menu.frame();
+    CHECK_FALSE(hasGameplay());
+
+    const api::SaveBatch batch{};
+    static_cast<api::IClient&>(api::ModsConfigFO4Client::get()).onSaved(&batch);
+    CHECK_FALSE(hasGameplay());
+    menu.frame();
+    CHECK(hasGameplay());
 }

@@ -13,3 +13,6 @@ What a value of a setting type is: whether two values are the same, its canonica
 
 **Mod list**:
 The mods the menu lists, in order of their display names, with their categories, the groups of the tree, and the last read of each config spec's live copy. Owned by the panel (`ui/ModList.h`), which also refills the Categories page of the menu's own config spec from it.
+
+**Menu controller**:
+The config menu's game-free decisions: what a press, a native client's request and a live copy's save do in the frame update, and in which order. It owns the stores and the panel, and asks the game side of everything else through its port, `MenuPort`, which `GameMenu` implements in the mod (`menu/MenuController.h`).

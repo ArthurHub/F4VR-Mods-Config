@@ -544,6 +544,22 @@ namespace mods_config::ui
     }
 
     /**
+     * Changes the Developer section's filter or fold, as a press on the menu's front page does, and hands the view to
+     * what writes it. Returns false while the section is not shown, and for a view that is the same.
+     */
+    bool FullPanel::changeDeveloper(const DeveloperView& view)
+    {
+        if (!_developerView.enabled || view == _developerView) {
+            return false;
+        }
+        _developerView = view;
+        if (_writeDeveloperView) {
+            _writeDeveloperView(_developerView);
+        }
+        return true;
+    }
+
+    /**
      * Shows the row of a problem of a config spec's report, as a press on the problem does: the mod at the row's
      * page, with the row scrolled into view in the focus ring, and the sections it is in opened. Back then
      * shows the report again. A row the page does not have is not focused. Returns whether it shows the page.

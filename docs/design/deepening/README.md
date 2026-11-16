@@ -17,7 +17,7 @@ In the suggested order. A change's row is marked done when its commit lands.
 | 5 | [07. One row view for the panel and devbench, and Back owned by the mod page](07-row-view-and-back.md) | B | | done |
 | 6 | [08. A read part of the Store interface](08-store-read-interface.md) | A | 02 | done |
 | 7 | [03. A mod list module that owns the mods and their categories](03-mod-list.md) | B | | done |
-| 8 | [04. A game-free menu controller behind a port](04-menu-controller.md) | C | | todo |
+| 8 | [04. A game-free menu controller behind a port](04-menu-controller.md) | C | | done |
 
 ## Problem Statement
 
