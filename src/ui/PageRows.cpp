@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#include <optional>
 #include <utility>
+#include <variant>
 
 #include <imgui.h>
 
@@ -105,6 +107,21 @@ namespace mods_config::ui
             markLeft += pendingWidth + theme::SPACE_2;
         }
         drawMark(marks.mark, ImVec2(markLeft + WARNING_MARK_WIDTH * 0.5f, middle));
+    }
+
+    /**
+     * Whether an item is shown, as the page gives it room and devbench lists it: one with a condition is, while it holds on the values of the store. With no
+     * store no value is available, so a condition on a value holds, and one that is settled without a value,
+     * as a config spec's condition on a plugin, is asked as any other.
+     */
+    bool isShown(const model::Item& item, model::StoreReader* store)
+    {
+        const auto& visibleWhen = std::visit(
+            [](const auto& row) -> const std::optional<model::Condition>& {
+                return row.visibleWhen;
+            },
+            item);
+        return !visibleWhen || model::holds(*visibleWhen, store);
     }
 
     /**

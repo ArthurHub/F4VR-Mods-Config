@@ -39,7 +39,15 @@ namespace mods_config::ui
 
         // the mark after its name: invalid, warning, or none
         TextMark mark = TextMark::None;
+
+        // what its Reset sets: its default, while its value is available and its control can show the default. None
+        // for a slider with no range and a default that is none of the options, so the row has no Reset
+        std::optional<model::Value> resetValue;
+
+        // its Reset sets the default now: it is editable, not dirty, as the slot is Discard then, and not at its
+        // default already, unless its value is invalid
+        bool resets = false;
     };
 
-    RowView rowViewOf(const model::Setting& setting, model::StoreReader* store);
+    RowView rowViewOf(const model::Setting& setting, model::Store* store);
 }

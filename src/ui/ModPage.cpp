@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -351,21 +350,6 @@ namespace
     };
 
     /**
-     * Whether an item is shown: one with a condition is, while it holds on the values of the store. With no
-     * store no value is available, so a condition on a value holds, and one that is settled without a value,
-     * as a config spec's condition on a plugin, is asked as any other.
-     */
-    bool isShown(const model::Item& item, model::Store* store)
-    {
-        const auto& visibleWhen = std::visit(
-            [](const auto& row) -> const std::optional<model::Condition>& {
-                return row.visibleWhen;
-            },
-            item);
-        return !visibleWhen || model::holds(*visibleWhen, store);
-    }
-
-    /**
      * Draws the items that are shown, each as its row, set in a level from the heading they are under. A row
      * under no heading is at the content's left, as a heading's row is, so its text lines up with a heading's.
      * An item that is not shown has no row and no room. A section that is not shown is
@@ -386,7 +370,7 @@ namespace
                 ImGui::Indent(theme::SPACE_3);
             }
             const auto top = ImGui::GetCursorScreenPos();
-            if (isShown(item, page.store)) {
+            if (ui::isShown(item, page.store)) {
                 std::visit(ItemDrawer{ .page = page, .item = item, .depth = depth }, item);
             } else if (std::holds_alternative<model::Group>(item)) {
                 drawGroup(item, page, depth, false);

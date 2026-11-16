@@ -4,6 +4,8 @@
 #include <set>
 #include <string>
 
+#include "TestStore.h"
+#include "model/SettingValues.h"
 #include "ui/RowView.h"
 
 using namespace mods_config;
@@ -15,20 +17,33 @@ namespace
 {
     /**
      * A store whose settings are available, invalid and dirty by their ids, with the values a condition asks by id.
-     * A setting is available unless it is named as not. A dirty change takes effect after a restart.
+     * A setting is available unless it is named as not, and its value is off unless the test sets another, as it
+     * sets its default. A dirty change takes effect after a restart.
      */
-    class RowStore final : public model::StoreReader
+    class RowStore final : public test_store::RecordingStore
     {
     public:
         std::set<std::string, std::less<>> notAvailable;
         std::set<std::string, std::less<>> invalid;
         std::set<std::string, std::less<>> dirty;
         std::map<std::string, model::Value, std::less<>> values;
+        std::map<std::string, model::Value, std::less<>> settings;
+        std::map<std::string, model::Value, std::less<>> defaults;
 
         model::StoredValue value(const model::Setting& setting) override
         {
             const bool isInvalid = invalid.contains(setting.id);
-            return { .value = false, .available = !notAvailable.contains(setting.id), .invalid = isInvalid, .reason = isInvalid ? "Not a value of it." : "" };
+            const auto found = settings.find(setting.id);
+            return { .value = found != settings.end() ? found->second : model::Value(false),
+                .available = !notAvailable.contains(setting.id),
+                .invalid = isInvalid,
+                .reason = isInvalid ? "Not a value of it." : "" };
+        }
+
+        std::optional<model::Value> defaultValue(const model::Setting& setting) override
+        {
+            const auto found = defaults.find(setting.id);
+            return found != defaults.end() ? std::optional(found->second) : std::nullopt;
         }
 
         model::StoredValue valueById(const std::string_view id) override
@@ -164,4 +179,68 @@ TEST_CASE("RowView: a row with no store has no value and cannot be edited")
     CHECK_FALSE(view.editable);
     CHECK_FALSE(view.dirty);
     CHECK(view.look == ValueLook::Saved);
+}
+
+TEST_CASE("RowView: a row with a default its control shows has it as its Reset value, which Reset sets while the value is clean, editable and not the default")
+{
+    RowStore store;
+    store.defaults["a"] = true;
+    auto row = setting("a");
+
+    auto view = ui::rowViewOf(row, &store);
+    REQUIRE(view.resetValue);
+    CHECK(model::sameValue(*view.resetValue, true));
+    CHECK(view.resets);
+
+    // a dirty row's slot is its Discard
+    store.dirty.insert("a");
+    view = ui::rowViewOf(row, &store);
+    CHECK(view.resetValue);
+    CHECK_FALSE(view.resets);
+    store.dirty.clear();
+
+    // the value is the default already, unless it is invalid
+    store.settings["a"] = true;
+    CHECK_FALSE(ui::rowViewOf(row, &store).resets);
+    store.invalid.insert("a");
+    CHECK(ui::rowViewOf(row, &store).resets);
+    store.invalid.clear();
+    store.settings.clear();
+
+    // it cannot be edited
+    row.readOnly = true;
+    view = ui::rowViewOf(row, &store);
+    CHECK(view.resetValue);
+    CHECK_FALSE(view.resets);
+}
+
+TEST_CASE("RowView: a row has no Reset with no default, a value that is not available, a slider with no range and a default that is none of the options")
+{
+    RowStore store;
+    CHECK_FALSE(ui::rowViewOf(setting("a"), &store).resetValue);
+
+    store.defaults["a"] = true;
+    store.notAvailable.insert("a");
+    CHECK_FALSE(ui::rowViewOf(setting("a"), &store).resetValue);
+
+    auto slider = setting("slider");
+    slider.type = model::SettingType::Slider;
+    slider.valueOptions.min = 0.0f;
+    slider.valueOptions.max = 10.0f;
+    store.settings["slider"] = 1.0f;
+    store.defaults["slider"] = 5.0f;
+    CHECK(ui::rowViewOf(slider, &store).resetValue);
+    slider.valueOptions.max = 0.0f;
+    const auto noRange = ui::rowViewOf(slider, &store);
+    CHECK_FALSE(noRange.resetValue);
+    CHECK_FALSE(noRange.resets);
+
+    auto stepper = setting("stepper");
+    stepper.type = model::SettingType::Stepper;
+    stepper.valueOptions.options = { { .value = 1, .text = "One" }, { .value = 2, .text = "Two" } };
+    store.settings["stepper"] = 1;
+    store.defaults["stepper"] = 2;
+    CHECK(ui::rowViewOf(stepper, &store).resetValue);
+    store.defaults["stepper"] = 3;
+    CHECK_FALSE(ui::rowViewOf(stepper, &store).resetValue);
 }

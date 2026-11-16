@@ -16,10 +16,19 @@ BUTTONS = ("Detailed Examples", "Buttons")
 def test_reset_sets_the_default(menu):
     menu.select(CONFIG_SPEC_SHOWCASE, ("Detailed Examples", "Sliders"))
     row = menu.setting("From -100 to 100 by 5")
+    assert same(row["reset"], row["default"]), "the slider shows its default, so its row has a Reset"
     menu.set(row["id"], row["default"] + 10)
-    answer = menu.call("reset", id=row["id"])
-    assert answer["set"] and same(answer["setting"]["value"], row["default"])
-    assert not answer["setting"]["dirty"], "the default is the saved value, so the change is gone"
+    with pytest.raises(DevbenchError):
+        menu.call("reset", id=row["id"])  # the slot of a row with a change is its Discard
+    menu.save()
+    try:
+        answer = menu.call("reset", id=row["id"])
+        assert answer["set"] and same(answer["setting"]["value"], row["default"])
+        assert answer["setting"]["dirty"], "the default is a change of the saved value"
+        assert not answer["setting"]["resets"]
+    finally:
+        menu.set(row["id"], row["value"])
+        menu.save()
 
 
 def test_run_without_saving_and_save_and_run(menu, game):

@@ -3,22 +3,20 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <span>
 #include <string>
 #include <string_view>
+#include <variant>
 
 #include <imgui.h>
 
 #include "Drawing.h"
 #include "Theme.h"
-#include "common/CommonUtils.h"
 #include "perf/Perf.h"
 
 namespace
 {
     using namespace mods_config;
-
-    // the menu's name: the first breadcrumb of the title bar, which stands for the menu's front page
-    constexpr auto TITLE = "MODS CONFIG FO4";
 
     // what stands between two breadcrumbs: U+00BB, as its bytes in UTF-8
     constexpr auto CRUMB_SEPARATOR = "\xC2\xBB";
@@ -27,17 +25,14 @@ namespace
     // as its bytes in UTF-8
     constexpr auto PAGES_ELIDED = "\xE2\x80\xA6";
 
-    // the breadcrumb of the Help page, after the menu's, which Help says too until the player first opens it
-    constexpr auto HELP_CRUMB = "Help";
+    // what Help says after its mark until the player first opens it
+    constexpr auto HELP_LABEL = "Help";
 
     // the title bar's Help
     constexpr auto HELP_MARK = "?";
 
     // what the last crumb has after its name while the page has only its rows that match
     constexpr auto FILTERED = " (filtered)";
-
-    // the breadcrumb of the front page's Developer section, before a config spec's report
-    constexpr auto DEVELOPER_CRUMB = "Developer";
 
     // what the help line says of the title bar's buttons
     constexpr auto HELP_HELP = "How the menu works, with the buttons your config has.";
@@ -47,18 +42,6 @@ namespace
     // the least the mod's breadcrumb is shortened to, beside the long name of a page:
     constexpr float MOD_CRUMB_MIN_WIDTH = theme::CONTROL_HEIGHT * 2.0f;
 
-    enum class CrumbLook : std::uint8_t
-    {
-        // a crumb before the last, which is pressed to go there
-        Link,
-        // the last crumb: where the player is
-        Current,
-        // the menu's crumb while the menu's front page is open: a solid fill, as a selected row has
-        Selected,
-        // the ellipsis that stands for the pages between the mod and the page, which is not pressed
-        Elided,
-    };
-
     float crumbWidth(const std::string_view text)
     {
         return ui::textWidth(text) + theme::SPACE_2 * 2.0f;
@@ -66,27 +49,24 @@ namespace
 
     /**
      * A breadcrumb of the title bar, in the width it is given: a text that does not fit ends in an ellipsis.
-     * Returns whether it was pressed, which only a link is. The crumb of the pages that do not fit is muted, as a
-     * link is while the ray is not on it. A suffix is after the text in the disabled color, dimmer than a link, and the
-     * text shortens before it does.
+     * Returns whether it was pressed, which only a link is. A suffix is after the text in the disabled color, dimmer
+     * than a link, and the text shortens before it does.
      */
-    bool crumb(const char* id, const std::string_view text, const ImVec2& min, const float width, const CrumbLook look, const std::string_view suffix = {})
+    bool crumb(const char* id, const std::string_view text, const ImVec2& min, const float width, const ui::CrumbLook look, const std::string_view suffix = {})
     {
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
         bool pressed = false;
         auto color = theme::color::GREEN;
-        if (look == CrumbLook::Selected) {
+        if (look == ui::CrumbLook::Selected) {
             ImGui::GetWindowDrawList()->AddRectFilled(min, max, theme::color::GREEN, theme::RADIUS_FRAME);
             color = theme::color::ON_GREEN;
-        } else if (look == CrumbLook::Link) {
+        } else if (look == ui::CrumbLook::Link) {
             ImGui::SetCursorScreenPos(min);
             pressed = ImGui::InvisibleButton(id, ImVec2(width, theme::CONTROL_HEIGHT));
             ui::drawRowState();
             if (!ImGui::IsItemHovered() && !ImGui::IsItemActive()) {
                 color = theme::color::GREEN_MUTED;
             }
-        } else if (look == CrumbLook::Elided) {
-            color = theme::color::GREEN_MUTED;
         }
         const float textLeft = min.x + theme::SPACE_2;
         const float suffixLeft = (std::min)(textLeft + ui::textWidth(text), max.x - theme::SPACE_2 - ui::textWidth(suffix));
@@ -98,11 +78,20 @@ namespace
     }
 
     /**
+     * The ellipsis that stands for the pages between the mod and the page when their crumbs do not fit: muted, as a
+     * link is while the ray is not on it, and not pressed.
+     */
+    void drawElided(const ImVec2& min)
+    {
+        ui::drawText(min.x + theme::SPACE_2, min.x + crumbWidth(PAGES_ELIDED) - theme::SPACE_1, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, PAGES_ELIDED);
+    }
+
+    /**
      * The width of Help until the player first opens it: `?` and `Help`, `space-2` apart, with `space-4` each side.
      */
     float highlightedHelpWidth()
     {
-        return std::ceil(ui::textWidth(HELP_MARK) + theme::SPACE_2 + ui::textWidth(HELP_CRUMB) + theme::SPACE_4 * 2.0f);
+        return std::ceil(ui::textWidth(HELP_MARK) + theme::SPACE_2 + ui::textWidth(HELP_LABEL) + theme::SPACE_4 * 2.0f);
     }
 
     /**
@@ -124,7 +113,7 @@ namespace
         }
         const float textLeft = box.Min.x + theme::SPACE_4;
         ui::drawText(textLeft, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_MARK);
-        ui::drawText(textLeft + ui::textWidth(HELP_MARK) + theme::SPACE_2, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_CRUMB);
+        ui::drawText(textLeft + ui::textWidth(HELP_MARK) + theme::SPACE_2, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_LABEL);
         return pressed;
     }
 
@@ -156,14 +145,13 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * Draws the breadcrumbs and Help, Minimize and Close buttons, with overflowing pages collapsed to an
-     * ellipsis and long names shortened. A config spec's report, shown over the menu's front page, has the crumbs
-     * of the menu, of the Developer section, and of the config spec's name. Help stands out while it is highlighted,
-     * and is wider, so the crumbs end sooner. While the page is filtered to its rows that match, its crumb says so
-     * after its name. Returns the pressed selection, Developer crumb or button and the hovered help.
+     * Draws the breadcrumbs and Help, Minimize and Close buttons. The crumbs after the menu's shorten to fit: a mod's
+     * pages between it and the last collapse to an ellipsis, then the mod's crumb shortens, down to a least width, and
+     * the last ends in an ellipsis. The Developer crumb before a report keeps its width. Help stands out while it is highlighted, and is wider, so the crumbs end sooner.
+     * The last crumb of a filtered page says so after its name. Returns the place of the pressed crumb in the list,
+     * the pressed button and the hovered help.
      */
-    TitleBarDrawn drawTitleBar(const std::vector<model::Mod>& mods, const Selection& selection, const bool helpShown, const bool highlightHelp, const model::Mod* report,
-        const bool filtered)
+    TitleBarDrawn drawTitleBar(const std::vector<Crumb>& crumbs, const bool highlightHelp)
     {
         F4CF_PERF_FUNCTION();
         const auto pos = ImGui::GetCursorScreenPos();
@@ -215,68 +203,55 @@ namespace mods_config::ui
             drawText(at.x, right, at.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, CRUMB_SEPARATOR);
             at.x += separatorWidth + gap;
         };
-        const auto* mod = selection.mod && !helpShown ? &mods[*selection.mod] : nullptr;
 
-        if (crumb("menu", TITLE, at, crumbWidth(TITLE), mod || helpShown || report ? CrumbLook::Link : CrumbLook::Selected)) {
-            bar.pressed = Selection{};
+        const auto& menu = crumbs.front();
+        if (crumb("menu", menu.text, at, crumbWidth(menu.text), menu.look)) {
+            bar.pressed = 0;
         }
-        at.x += crumbWidth(TITLE) + gap;
+        at.x += crumbWidth(menu.text) + gap;
 
-        if (helpShown) {
-            drawSeparator();
-            crumb("help", HELP_CRUMB, at, (std::min)(crumbWidth(HELP_CRUMB), right - at.x), CrumbLook::Current);
-        } else if (report) {
-            drawSeparator();
-            if (crumb("developer", DEVELOPER_CRUMB, at, crumbWidth(DEVELOPER_CRUMB), CrumbLook::Link)) {
-                bar.developerPressed = true;
-            }
-            at.x += crumbWidth(DEVELOPER_CRUMB) + gap;
-            drawSeparator();
-            crumb("report", report->displayName, at, (std::min)(crumbWidth(report->displayName), right - at.x), CrumbLook::Current);
-        } else if (mod) {
-            // the pages on the way to the selected page, by their names: MCM's own list sets a page in under
-            // another by spaces before its name, which are the tree's
-            std::vector<std::string> pageNames;
-            const auto* pages = &mod->pages;
-            for (const auto place : selection.page) {
-                pageNames.push_back(common::trim((*pages)[place].name));
-                pages = &(*pages)[place].pages;
-            }
+        if (crumbs.size() > 1) {
+            // the second crumb, as a mod's, and the crumbs after it, as its pages'
+            const auto& second = crumbs[1];
+            const std::span<const Crumb> pages(crumbs.begin() + 2, crumbs.end());
 
             // the room of a crumb after another: the gap after the one before, the separator, and a gap
             const float before = gap + separatorWidth + gap;
-            const std::string_view suffix = filtered ? FILTERED : "";
+            const std::string_view suffix = crumbs.back().filtered ? FILTERED : "";
             const float suffixWidth = suffix.empty() ? 0.0f : textWidth(suffix);
-            float pagesWidth = pageNames.empty() ? 0.0f : suffixWidth;
-            for (const auto& name : pageNames) {
-                pagesWidth += before + crumbWidth(name);
+            float pagesWidth = pages.empty() ? 0.0f : suffixWidth;
+            for (const auto& page : pages) {
+                pagesWidth += before + crumbWidth(page.text);
             }
-            const float modRoom = right - at.x - separatorWidth - gap;
-            const bool elided = pageNames.size() > 1 && crumbWidth(mod->displayName) + pagesWidth > modRoom;
+            const float secondRoom = right - at.x - separatorWidth - gap;
+            const bool elided = pages.size() > 1 && crumbWidth(second.text) + pagesWidth > secondRoom;
             if (elided) {
-                pagesWidth = before + crumbWidth(PAGES_ELIDED) + before + crumbWidth(pageNames.back()) + suffixWidth;
+                pagesWidth = before + crumbWidth(PAGES_ELIDED) + before + crumbWidth(pages.back().text) + suffixWidth;
             }
-            const float modFullWidth = crumbWidth(mod->displayName) + (pageNames.empty() ? suffixWidth : 0.0f);
-            const float modWidth = (std::min)(modFullWidth, (std::max)(modRoom - pagesWidth, MOD_CRUMB_MIN_WIDTH));
+            // a mod's crumb, and the last, shorten, down to a least width; the Developer crumb before a report does not
+            const bool shortens = pages.empty() || std::holds_alternative<Selection>(*second.target);
+            const float secondFullWidth = crumbWidth(second.text) + (pages.empty() ? suffixWidth : 0.0f);
+            const float secondWidth = shortens ? (std::min)(secondFullWidth, (std::max)(secondRoom - pagesWidth, MOD_CRUMB_MIN_WIDTH)) : secondFullWidth;
 
             drawSeparator();
-            if (crumb("mod", mod->displayName, at, modWidth, pageNames.empty() ? CrumbLook::Current : CrumbLook::Link, pageNames.empty() ? suffix : "")) {
-                bar.pressed = Selection{ .mod = selection.mod, .page = {} };
+            if (crumb("second", second.text, at, secondWidth, second.look, pages.empty() ? suffix : "")) {
+                bar.pressed = 1;
             }
-            at.x += modWidth + gap;
+            at.x += secondWidth + gap;
 
             if (elided) {
                 drawSeparator();
-                crumb("elided", PAGES_ELIDED, at, crumbWidth(PAGES_ELIDED), CrumbLook::Elided);
+                drawElided(at);
                 at.x += crumbWidth(PAGES_ELIDED) + gap;
             }
-            for (std::size_t level = elided ? pageNames.size() - 1 : 0; level < pageNames.size(); ++level) {
-                const bool last = level + 1 == pageNames.size();
-                const float pageWidth = last ? (std::min)(crumbWidth(pageNames[level]) + suffixWidth, right - at.x - separatorWidth - gap) : crumbWidth(pageNames[level]);
+            for (std::size_t level = elided ? pages.size() - 1 : 0; level < pages.size(); ++level) {
+                const auto& page = pages[level];
+                const bool last = level + 1 == pages.size();
+                const float pageWidth = last ? (std::min)(crumbWidth(page.text) + suffixWidth, right - at.x - separatorWidth - gap) : crumbWidth(page.text);
                 drawSeparator();
                 ImGui::PushID(static_cast<int>(level));
-                if (crumb("page", pageNames[level], at, pageWidth, last ? CrumbLook::Current : CrumbLook::Link, last ? suffix : "")) {
-                    bar.pressed = Selection{ .mod = selection.mod, .page = { selection.page.begin(), selection.page.begin() + static_cast<std::ptrdiff_t>(level + 1) } };
+                if (crumb("page", page.text, at, pageWidth, page.look, last ? suffix : "")) {
+                    bar.pressed = level + 2;
                 }
                 ImGui::PopID();
                 at.x += pageWidth + gap;

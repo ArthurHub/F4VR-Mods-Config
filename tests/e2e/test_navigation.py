@@ -72,10 +72,18 @@ def test_help(menu, events):
     events.wait("help.shown")
     assert menu.page()["helpShown"]
     with pytest.raises(DevbenchError):
-        menu.call("breadcrumb", level=1)  # over the Help page the menu's crumb is the only link
+        menu.call("breadcrumb", level=1)  # Help's crumb is where the panel is: the menu's is the only link
     assert not menu.call("help", shown=False)["helpShown"]
     events.wait("help.hidden")
     assert menu.page()["page"] == "Switchers", "the page Help was shown over is shown again"
+
+
+def test_the_developer_crumb_of_a_report(menu):
+    assert menu.call("openReport", mod=CONFIG_SPEC_SHOWCASE)["report"] is not None
+    with pytest.raises(DevbenchError):
+        menu.call("breadcrumb", level=2)  # the report's crumb is where the panel is
+    answer = menu.call("breadcrumb", level=1)
+    assert answer["report"] is None and answer["mod"] is None, "the Developer crumb goes to the menu's front page"
 
 
 def test_minimize_and_restore(menu, events):

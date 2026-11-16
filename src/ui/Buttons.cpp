@@ -6,16 +6,15 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <variant>
 
 #include <imgui.h>
 
 #include "ButtonIcons.h"
+#include "ButtonView.h"
 #include "ConfirmDialog.h"
 #include "Drawing.h"
 #include "PageRows.h"
 #include "Theme.h"
-#include "model/Conditions.h"
 #include "model/TextStates.h"
 
 namespace
@@ -30,25 +29,6 @@ namespace
 
     // what the help of a button that calls a script says while its mod has unsaved changes
     constexpr auto SAVE_FIRST_HELP = "A press asks to save the unsaved changes first.";
-
-    /**
-     * Whether a button's action reads the saved values of its mod, so a press asks to save its unsaved changes
-     * first: a script's function, which reads the globals, properties and ModSettings that Save writes. A console
-     * command, a link and a function of the mod's DLL, which has the `live` values as a preview, do not.
-     */
-    bool readsSavedValues(const model::Action& action)
-    {
-        return std::holds_alternative<model::CallFunction>(action);
-    }
-
-    /**
-     * Whether a press on a button asks to save its mod's unsaved changes first: its action reads the saved values, and
-     * its store keeps the changes for a Save. An MCM mod's store writes a change as it is made, so its script has it.
-     */
-    bool asksToSaveFirst(const model::Action& action, const model::Store& store)
-    {
-        return readsSavedValues(action) && !store.writesChangesAtOnce() && store.dirtyCount() > 0;
-    }
 
     /**
      * The color of a button's text and icon, and of the outline of one with a style.
@@ -102,18 +82,14 @@ namespace mods_config::ui
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
-        const bool enabled = !button.enabledWhen || model::holds(*button.enabledWhen, store);
-        const auto row = addRow(enabled);
-        if (!enabled && row.shown) {
+        auto view = buttonViewOf(button, store);
+        const auto row = addRow(view.enabled);
+        if (!view.enabled && row.shown) {
             drawRowState();
         }
 
-        const auto* unknown = std::get_if<model::UnknownAction>(&button.action);
-        auto reason = unknown ? unknown->reason : store ? store->notRunnable(button.action) : std::string();
-        const bool runs = store && enabled && !unknown && !std::holds_alternative<model::NoAction>(button.action) && reason.empty();
-        const bool saveFirst = runs && asksToSaveFirst(button.action, *store);
-        if (runs && row.pressed) {
-            if (button.confirmation || saveFirst) {
+        if (view.runs && row.pressed) {
+            if (button.confirmation || view.asksToSaveFirst) {
                 _confirming = &button;
                 pressActed = true;
             } else if (run(button, *store)) {
@@ -134,7 +110,7 @@ namespace mods_config::ui
         const auto warning = warningOf(button.warnings, store);
         const auto mark = result && result->failed ? TextMark::Invalid : result && result->unread ? TextMark::Info : !warning.empty() ? TextMark::Warning : TextMark::None;
 
-        ImGui::BeginDisabled(!runs);
+        ImGui::BeginDisabled(!view.runs);
         const auto box = controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
         const bool styled = button.style != model::ButtonStyle::None;
         const auto color = styleColor(button.style);
@@ -150,9 +126,9 @@ namespace mods_config::ui
         }
 
         PointedRow pointed{ .text = model::resolveClientText(button.text, store),
-            .help = reason.empty() ? model::resolveClientText(button.help, store) : std::move(reason),
+            .help = view.reason.empty() ? model::resolveClientText(button.help, store) : std::move(view.reason),
             .warning = warning };
-        if (saveFirst) {
+        if (view.asksToSaveFirst) {
             pointed.help += pointed.help.empty() ? SAVE_FIRST_HELP : std::string(" ") + SAVE_FIRST_HELP;
         }
         if (result && result->failed) {
@@ -175,7 +151,7 @@ namespace mods_config::ui
     bool Buttons::drawDialog(model::Store* store)
     {
         std::optional<SaveFirst> saveFirst;
-        if (store && _confirming && asksToSaveFirst(_confirming->action, *store)) {
+        if (store && _confirming && buttonViewOf(*_confirming, store).asksToSaveFirst) {
             saveFirst = SaveFirst{ .count = store->dirtyCount(), .invalid = store->invalidCount() };
         }
         if (!store || (_confirming && !_confirming->confirmation && !saveFirst)) {

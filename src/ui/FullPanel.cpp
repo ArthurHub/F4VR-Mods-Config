@@ -531,6 +531,27 @@ namespace mods_config::ui
     }
 
     /**
+     * The breadcrumbs of the title bar for what is shown now. The title bar draws them and devbench presses them.
+     */
+    std::vector<Crumb> FullPanel::breadcrumbs() const
+    {
+        return breadcrumbsOf(mods(), _selection, _helpShown, _report && !_helpShown ? &mods()[*_report] : nullptr, _selection.mod && isFiltered());
+    }
+
+    /**
+     * Goes where a press on a breadcrumb goes: a selection, as a press on a row of the tree does, and the dialog asks
+     * first before a mod with unsaved changes is left, or the Developer section from a config spec's report.
+     * Returns whether it did something.
+     */
+    bool FullPanel::pressCrumb(const CrumbTarget& target)
+    {
+        if (const auto* selection = std::get_if<Selection>(&target)) {
+            return select(*selection);
+        }
+        return leaveReport(true);
+    }
+
+    /**
      * Asks the menu what a press on a row of the live copy of the config spec whose report is shown asks, as the
      * report's row does. Returns false while no report is shown.
      */
@@ -800,8 +821,10 @@ namespace mods_config::ui
             _helpShown = helpShown;
         }
         updateSearch();
-        auto titleBar = drawTitleBar(mods(), _selection, _helpShown, _highlightHelp, _report && !_helpShown ? &mods()[*_report] : nullptr, _selection.mod && isFiltered());
-        auto pressed = titleBar.pressed;
+        const auto crumbs = breadcrumbs();
+        auto titleBar = drawTitleBar(crumbs, _highlightHelp);
+        const auto crumbPressed = titleBar.pressed ? crumbs[*titleBar.pressed].target : std::nullopt;
+        std::optional<Selection> pressed;
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
 
@@ -921,8 +944,8 @@ namespace mods_config::ui
         bool acted = false;
         if (pressed) {
             acted = select(*pressed);
-        } else if (titleBar.developerPressed) {
-            acted = leaveReport(true);
+        } else if (crumbPressed) {
+            acted = pressCrumb(*crumbPressed);
         } else if (problem) {
             acted = showProblem(problem->mod, problem->problem);
         } else if (report) {

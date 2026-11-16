@@ -34,22 +34,6 @@ namespace
     using namespace mods_config;
 
     /**
-     * Returns the store's default when the setting's control can display it.
-     * Unsupported values, unmatched choices and sliders without a range have no Reset.
-     */
-    std::optional<model::Value> defaultOf(const model::Setting& setting, model::Store& store)
-    {
-        auto value = store.defaultValue(setting);
-        if (!value) {
-            return std::nullopt;
-        }
-        const bool shown = model::isChoice(setting.type)
-                               ? ui::chosenOption(store.options(setting), { .value = *value, .available = true, .reason = {} }).has_value()
-                               : model::isControlValue(setting.type, *value) && (setting.type != model::SettingType::Slider || setting.valueOptions.max > setting.valueOptions.min);
-        return shown ? value : std::nullopt;
-    }
-
-    /**
      * A value of a setting as the help line names it, its default or its saved value: on and off for a switcher, the
      * number of a slider as its display writes it, with its unit, and the text of the option of a stepper and a
      * dropdown. The text of a text input is in quotes, so an empty one shows, and a number is as its field shows it.
@@ -163,28 +147,17 @@ namespace
             // there: a slider that is dragged and let go on it is not reset
             const auto& io = ImGui::GetIO();
             slotBox = ui::controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
-            defaultValue = view.stored.available ? defaultOf(setting, *context.store) : std::nullopt;
-            onSlot = (view.dirty || defaultValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
+            onSlot = (view.dirty || view.resetValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
             slotHeld = onSlot && io.MouseClickedPos[ImGuiMouseButton_Left].x >= slotBox.Min.x - theme::SPACE_1;
             onPlay = setting.type == model::SettingType::Haptic && row.pointed && !onSlot && ui::HapticBoxes(right, pos.y).onPlay(io.MousePos.x);
-            resets = resetsNow();
         }
 
         /**
-         * Reads the row view again after a change set in the store, and whether Reset can set the default.
+         * Reads the row view again after a change set in the store.
          */
         void refresh()
         {
             view = ui::rowViewOf(setting, context.store);
-            resets = resetsNow();
-        }
-
-        /**
-         * Whether Reset can set the default now: on a clean value that is not the default already.
-         */
-        bool resetsNow() const
-        {
-            return view.editable && !view.dirty && defaultValue && (view.stored.invalid || !model::sameValue(view.stored.value, *defaultValue));
         }
 
         /**
@@ -211,10 +184,8 @@ namespace
         // a read-only setting whose storage has no value shows none
         bool showsValue = false;
         ImRect slotBox;
-        std::optional<model::Value> defaultValue;
         bool onSlot = false;
         bool slotHeld = false;
-        bool resets = false;
 
         // the ray is on the Play button of a haptic
         bool onPlay = false;
@@ -262,14 +233,14 @@ namespace
      */
     bool pressSlot(SettingRowState& state)
     {
-        if (!state.slotHeld || !state.row.pressed || !(state.discards() || state.resets)) {
+        if (!state.slotHeld || !state.row.pressed || !(state.discards() || state.view.resets)) {
             return false;
         }
         bool acted = true;
         if (state.view.dirty) {
             state.context.store->discard(state.setting);
         } else {
-            acted = state.context.store->set(state.setting, *state.defaultValue);
+            acted = state.context.store->set(state.setting, *state.view.resetValue);
         }
         state.refresh();
         return acted;
@@ -422,27 +393,27 @@ namespace
             const auto savedName = saved ? nameOf(*saved) : std::string();
             const auto* discard = context.store->writesChangesAtOnce() ? "Revert" : "Discard";
             help = savedName.empty() ? std::format("{} the change.", discard) : std::format("{} the change, back to {}.", discard, savedName);
-        } else if (state.resets && state.onSlot) {
-            help = std::format("Reset to {}", nameOf(*state.defaultValue));
+        } else if (state.view.resets && state.onSlot) {
+            help = std::format("Reset to {}", nameOf(*state.view.resetValue));
         } else if (playing) {
             help = std::format("Plays {} on the hand that points.", nameOf(stored.value));
         } else if (!stored.reason.empty()) {
             help = std::move(stored.reason);
             invalid = stored.invalid;
             if (edited.binding && invalid) {
-                help += state.defaultValue ? std::format(" Change the binding, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Change the binding.");
+                help += state.view.resetValue ? std::format(" Change the binding, or Reset it to {}.", nameOf(*state.view.resetValue)) : std::string(" Change the binding.");
             }
             if (edited.haptic && invalid) {
-                help += state.defaultValue ? std::format(" Pick one, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Pick one.");
+                help += state.view.resetValue ? std::format(" Pick one, or Reset it to {}.", nameOf(*state.view.resetValue)) : std::string(" Pick one.");
             }
             if (edited.color && invalid) {
-                help += state.defaultValue ? std::format(" Pick a color, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Pick a color.");
+                help += state.view.resetValue ? std::format(" Pick a color, or Reset it to {}.", nameOf(*state.view.resetValue)) : std::string(" Pick a color.");
             }
             if (edited.transform && invalid) {
-                help += state.defaultValue ? std::format(" Change the transform, or Reset it to {}.", nameOf(*state.defaultValue)) : std::string(" Change the transform.");
+                help += state.view.resetValue ? std::format(" Change the transform, or Reset it to {}.", nameOf(*state.view.resetValue)) : std::string(" Change the transform.");
             }
         } else {
-            const auto defaultText = state.defaultValue ? std::format("(Default: {})", nameOf(*state.defaultValue)) : std::string();
+            const auto defaultText = state.view.resetValue ? std::format("(Default: {})", nameOf(*state.view.resetValue)) : std::string();
             const auto settingHelp = model::resolveClientText(setting.help, context.store);
             const auto ownHelp = setting.readOnly ? ui::readOnlyHelp({}, settingHelp) : settingHelp;
             // a binding is said in full first, as its row has no room for it
@@ -545,10 +516,10 @@ namespace
      */
     void drawSlot(const SettingRowState& state)
     {
-        if (!state.view.dirty && !state.defaultValue) {
+        if (!state.view.dirty && !state.view.resetValue) {
             return;
         }
-        const bool active = state.discards() || (!state.view.dirty && state.resets);
+        const bool active = state.discards() || (!state.view.dirty && state.view.resets);
         ImGui::BeginDisabled(!active);
         ui::drawButtonFrame(state.slotBox, active && state.onSlot, active && state.onSlot && state.slotHeld && state.row.held);
         if (state.view.dirty) {

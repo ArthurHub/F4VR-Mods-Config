@@ -18,14 +18,27 @@ namespace test_store
      * A store that records each lifecycle call it gets, with Save and Discard, in order: the mod, or the page's name
      * ("front" for a mod's front page, "none" for no page), or whether a row is pointed. Its changes are a count the
      * test sets, which Save and Discard clear. A setting's value by its id, which conditions ask, is the one the test
-     * sets, and none by default.
+     * sets, and none by default. It writes a change at once or keeps it for a Save, and says why an action does not
+     * run, as the test sets. A test's own store derives from it for the values of its settings.
      */
-    class RecordingStore final : public model::Store
+    class RecordingStore : public model::Store
     {
     public:
         Calls calls;
         std::size_t dirty = 0;
         model::StoredValue byId;
+        bool atOnce = false;
+        std::string notRunnableReason;
+
+        bool writesChangesAtOnce() const override
+        {
+            return atOnce;
+        }
+
+        std::string notRunnable(const model::Action&) const override
+        {
+            return notRunnableReason;
+        }
 
         void open(const model::Mod& mod) override
         {

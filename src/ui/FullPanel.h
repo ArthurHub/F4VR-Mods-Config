@@ -75,6 +75,8 @@ namespace mods_config::ui
         void setThumbstickSideValue(float value);
         void setTreeWidth(float width);
         bool select(const Selection& selection);
+        std::vector<Crumb> breadcrumbs() const;
+        bool pressCrumb(const CrumbTarget& target);
         bool close();
         bool showHelp(bool shown);
         bool back();

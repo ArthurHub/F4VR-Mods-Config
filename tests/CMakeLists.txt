@@ -43,6 +43,8 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/spec/LiveCopiesTests.cpp
   linked/spec/ModFileTests.cpp
   linked/spec/TomlFileTests.cpp
+  linked/ui/BreadcrumbsTests.cpp
+  linked/ui/ButtonViewTests.cpp
   linked/ui/FullPanelRenderTests.cpp
   linked/ui/FullPanelTests.cpp
   linked/ui/MenuControlsTests.cpp
@@ -108,8 +110,10 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/model/UnsavedPages.cpp
   ${SOURCE_DIR}/ui/BindingEditor.cpp
   ${SOURCE_DIR}/ui/Bindings.cpp
+  ${SOURCE_DIR}/ui/Breadcrumbs.cpp
   ${SOURCE_DIR}/ui/ButtonIcons.cpp
   ${SOURCE_DIR}/ui/Buttons.cpp
+  ${SOURCE_DIR}/ui/ButtonView.cpp
   ${SOURCE_DIR}/ui/Choices.cpp
   ${SOURCE_DIR}/ui/ColorEditor.cpp
   ${SOURCE_DIR}/ui/Colors.cpp

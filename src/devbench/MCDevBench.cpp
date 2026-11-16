@@ -13,8 +13,8 @@
 #include "api/ModsConfigFO4Api.h"
 #include "devbench/DevBench.h"
 #include "imgui/ImGuiPointer.h"
-#include "model/Conditions.h"
 #include "model/TextStates.h"
+#include "ui/ButtonView.h"
 #include "ui/PageRows.h"
 #include "ui/RowView.h"
 
@@ -392,6 +392,9 @@ namespace mods_config::devbench
                 { "storage", storageToJson(setting.storage) } };
             const auto defaultValue = store.defaultValue(setting);
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);
+            // what its row's Reset sets, null where the row has none, and whether its Reset is pressed now
+            row["reset"] = view.resetValue ? valueToJson(*view.resetValue) : json(nullptr);
+            row["resets"] = view.resets;
             const auto saved = store.savedValue(setting);
             row["saved"] = saved ? valueToJson(*saved) : json(nullptr);
             // a Save leaves its default out of the file
@@ -415,9 +418,6 @@ namespace mods_config::devbench
          */
         void addRows(const std::vector<model::Item>& items, const int depth, model::Store& store, const std::unordered_set<const model::Item*>* found, json& rows)
         {
-            const auto shown = [&store](const std::optional<model::Condition>& condition) {
-                return !condition || model::holds(*condition, &store);
-            };
             for (const auto& item : items) {
                 json row = std::visit(
                     [&]<typename T>(const T& it) -> json {
@@ -432,17 +432,17 @@ namespace mods_config::devbench
                                 { "collapsed", it.collapsed },
                                 { "folded", it.collapsible && g_modsConfig.menu().fullPanel().isFolded(it) } };
                         } else if constexpr (std::is_same_v<T, model::Button>) {
+                            const auto view = ui::buttonViewOf(it, &store);
                             return { { "kind", "button" },
                                 { "text", model::resolveClientText(it.text, &store) },
                                 { "help", model::resolveClientText(it.help, &store) },
                                 { "warning", textOrNull(ui::warningOf(it.warnings, &store)) },
                                 { "buttonText", it.buttonText },
-                                { "runnable",
-                                    !std::holds_alternative<model::NoAction>(it.action) && !std::holds_alternative<model::UnknownAction>(it.action) &&
-                                        store.notRunnable(it.action).empty() },
-                                { "notRunnable", store.notRunnable(it.action) },
+                                { "runnable", view.runs },
+                                { "notRunnable", view.reason },
+                                { "savesFirst", view.asksToSaveFirst },
                                 { "confirmation", it.confirmation.has_value() },
-                                { "enabled", shown(it.enabledWhen) } };
+                                { "enabled", view.enabled } };
                         } else if constexpr (std::is_same_v<T, model::Hotkey>) {
                             const auto key = store.hotkey(it);
                             return { { "kind", "hotkey" },
@@ -463,11 +463,7 @@ namespace mods_config::devbench
                     },
                     item);
                 row["depth"] = depth;
-                row["shown"] = std::visit(
-                    [&](const auto& it) {
-                        return shown(it.visibleWhen);
-                    },
-                    item);
+                row["shown"] = ui::isShown(item, &store);
                 row["found"] = found ? json(found->contains(&item)) : json(nullptr);
                 rows.push_back(std::move(row));
                 if (const auto* group = std::get_if<model::Group>(&item)) {
@@ -689,17 +685,23 @@ namespace mods_config::devbench
         }
 
         /**
-         * Sets a setting's default, as its Reset does.
+         * Sets a setting's default, as a press on its row's Reset does, which only a row whose Reset is pressed now
+         * has: one whose control shows its default, editable, with no change to discard, and not at its default.
          */
         json runReset(const json& args)
         {
             auto& store = selectedStore();
             const auto& setting = selectedSetting(args);
-            const auto defaultValue = store.defaultValue(setting);
-            if (!defaultValue) {
-                throw std::runtime_error("the setting has no default");
+            const auto view = ui::rowViewOf(setting, &store);
+            if (!view.resetValue) {
+                throw std::runtime_error("the row has no Reset: the setting has no default its control shows");
             }
-            const bool set = store.set(setting, *defaultValue);
+            if (!view.resets) {
+                throw std::runtime_error(view.dirty       ? "the row's Reset is its Discard while the setting has a change"
+                                         : !view.editable ? "the row's Reset is disabled: the setting cannot be edited"
+                                                          : "the row's Reset is disabled: the setting is at its default");
+            }
+            const bool set = store.set(setting, *view.resetValue);
             return { { "set", set }, { "setting", settingToJson(setting, store) }, { "session", sessionToJson(store) } };
         }
 
@@ -742,12 +744,7 @@ namespace mods_config::devbench
         const model::Button* findButton(const std::vector<model::Item>& items, const std::string_view text, model::Store& store)
         {
             for (const auto& item : items) {
-                const bool shown = std::visit(
-                    [&store](const auto& it) {
-                        return !it.visibleWhen || model::holds(*it.visibleWhen, &store);
-                    },
-                    item);
-                if (!shown) {
+                if (!ui::isShown(item, &store)) {
                     continue;
                 }
                 if (const auto* button = std::get_if<model::Button>(&item); button && isTextOf(button->text, text, store)) {
@@ -764,10 +761,10 @@ namespace mods_config::devbench
 
         /**
          * Runs the action of a button of the page that is shown, by its text, as a press on its row and then on the
-         * confirming button of its confirmation does: a script's function saves the unsaved changes first, as Save and
-         * run does, and an invalid one or a Save that fails runs nothing, unless it is run without saving. A button
-         * whose action the menu or its store does not run, or whose enabledWhen does not hold, is disabled, and is
-         * not run. The answer has what the run did.
+         * confirming button of its confirmation does: one that asks to save first saves the unsaved changes, as Save
+         * and run does, and an invalid one or a Save that fails runs nothing, unless it is run without saving. A
+         * button that is disabled, or whose action the menu or its store does not run, is not run. The answer has
+         * what the run did.
          */
         json runButton(const json& args)
         {
@@ -780,19 +777,17 @@ namespace mods_config::devbench
             if (!button) {
                 throw std::runtime_error("the page that is shown has no button '" + text + "'");
             }
-            if (const auto* unknown = std::get_if<model::UnknownAction>(&button->action)) {
-                throw std::runtime_error("the menu does not run its action: " + unknown->reason);
-            }
-            if (std::holds_alternative<model::NoAction>(button->action)) {
-                throw std::runtime_error("the button has no action");
-            }
-            if (button->enabledWhen && !model::holds(*button->enabledWhen, &store)) {
+            const auto view = ui::buttonViewOf(*button, &store);
+            if (!view.enabled) {
                 throw std::runtime_error("the button is disabled: its enabledWhen does not hold");
             }
-            if (const auto reason = store.notRunnable(button->action); !reason.empty()) {
-                throw std::runtime_error("the button is disabled: " + reason);
+            if (!view.reason.empty()) {
+                throw std::runtime_error("the button is disabled: " + view.reason);
             }
-            const bool saveFirst = std::holds_alternative<model::CallFunction>(button->action) && store.dirtyCount() > 0 && !args.value("withoutSaving", false);
+            if (!view.runs) {
+                throw std::runtime_error("the button has no action");
+            }
+            const bool saveFirst = view.asksToSaveFirst && !args.value("withoutSaving", false);
             if (saveFirst && store.invalidCount() > 0) {
                 throw std::runtime_error("the unsaved changes are saved first, and one of them is not valid");
             }
@@ -961,10 +956,10 @@ namespace mods_config::devbench
         }
 
         /**
-         * Presses a breadcrumb of the title bar, as the pointer does, by its place as the title bar draws it: 0 is the
-         * menu's, 1 the mod's, and 2 on the pages' on the way to the page that is shown. A crumb before the last is a
-         * link and the last is where the panel is; over the Help page and a report the menu's crumb is the only link
-         * here. The answer has what the panel shows then, and whether the dialog asks first.
+         * Presses a breadcrumb of the title bar, as the pointer does, by its place among the crumbs the title bar
+         * draws: 0 is the menu's, then the mod's and its pages' on the way to the page that is shown, Help's over the
+         * Help page, or Developer's and the config spec's over a report. A crumb the ellipsis stands for is pressed
+         * too. Only a link is pressed. The answer has what the panel shows then, and whether the dialog asks first.
          */
         json runBreadcrumb(const json& args)
         {
@@ -973,25 +968,22 @@ namespace mods_config::devbench
                 throw std::runtime_error("the menu is not open");
             }
             auto& panel = menu.fullPanel();
-            const auto& selection = panel.selection();
-            const bool overPage = panel.isHelpShown() || panel.report().has_value();
+            const auto crumbs = panel.breadcrumbs();
             const auto level = args.value("level", -1);
-            const std::size_t crumbs = overPage || !selection.mod ? 1 : 2 + selection.page.size();
-            if (level < 0 || static_cast<std::size_t>(level) >= crumbs) {
-                throw std::runtime_error(std::format("the title bar has no crumb {} that is pressed here", level));
+            if (level < 0 || static_cast<std::size_t>(level) >= crumbs.size()) {
+                throw std::runtime_error(std::format("the title bar has {} crumbs, and no crumb {}", crumbs.size(), level));
             }
-            const bool link = level == 0 ? selection.mod.has_value() || overPage : static_cast<std::size_t>(level) + 1 < crumbs;
-            if (!link) {
+            const auto& target = crumbs[static_cast<std::size_t>(level)].target;
+            if (!target) {
                 throw std::runtime_error("the crumb is where the panel is, which is no link");
             }
-            ui::Selection pressed;
-            if (level > 0) {
-                pressed.mod = selection.mod;
-                pressed.page.assign(selection.page.begin(), selection.page.begin() + (level - 1));
-            }
-            menu.select(pressed);
+            panel.pressCrumb(*target);
             const auto& shown = menu.selection();
-            return { { "mod", shown.mod ? json(*shown.mod) : json(nullptr) }, { "page", shown.page }, { "helpShown", panel.isHelpShown() }, { "asking", panel.isAsking() } };
+            return { { "mod", shown.mod ? json(*shown.mod) : json(nullptr) },
+                { "page", shown.page },
+                { "helpShown", panel.isHelpShown() },
+                { "report", panel.report() ? json(*panel.report()) : json(nullptr) },
+                { "asking", panel.isAsking() } };
         }
 
         /**
@@ -1081,6 +1073,29 @@ namespace mods_config::devbench
                 throw std::runtime_error("no config spec is named '" + modName + "'");
             }
             return { { "configSpecs", std::move(configSpecs) } };
+        }
+
+        /**
+         * Opens the report of a config spec by its name, as a press on its row of the Developer section does: the
+         * dialog asks first while the selected mod has unsaved changes.
+         */
+        json runOpenReport(const json& args)
+        {
+            auto& menu = g_modsConfig.menu();
+            if (!menu.isOpen()) {
+                throw std::runtime_error("the menu is not open");
+            }
+            auto& panel = menu.fullPanel();
+            const auto modName = args.value("mod", std::string());
+            const auto& mods = panel.mods();
+            const auto mod = std::ranges::find_if(mods, [&modName](const model::Mod& it) {
+                return it.source == model::Source::ConfigSpec && it.name == modName;
+            });
+            if (mod == mods.end()) {
+                throw std::runtime_error("no config spec is named '" + modName + "'");
+            }
+            panel.openReport(static_cast<std::size_t>(mod - mods.begin()));
+            return { { "report", panel.report() ? json(*panel.report()) : json(nullptr) }, { "asking", panel.isAsking() } };
         }
 
         /**
@@ -1177,11 +1192,21 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "breadcrumb",
             .description = "press a breadcrumb of the title bar, as the pointer does: one before the last is a link, and the dialog asks first when it leaves a mod "
-                           "with unsaved changes; over the Help page and a report only the menu's crumb is pressed",
+                           "with unsaved changes; over the Help page the menu's crumb is the link, and over a report the menu's and Developer's, which goes to the "
+                           "menu's front page at its Developer section. The answer has mod, page, helpShown, report and asking",
             .arguments = { { "level",
                 { { "type", "integer" },
-                    { "description", "breadcrumb: the crumb's place, 0 the menu's, 1 the mod's, 2 and on the pages' on the way to the page that is shown" } } } },
+                    { "description",
+                        "breadcrumb: the crumb's place, 0 the menu's, then 1 the mod's and 2 and on the pages' on the way to the page that is shown, also "
+                        "those the ellipsis stands for; 1 Help's over the Help page; 1 Developer's and 2 the config spec's over a report" } } } },
             .handler = &runBreadcrumb,
+        });
+        f4cf::devbench::addAction({
+            .name = "openReport",
+            .description = "open the report of a config spec, as a press on its row of the Developer section does: the dialog asks first while the selected "
+                           "mod has unsaved changes. The answer has report (the config spec's place among the mods, null while none is shown) and asking",
+            .arguments = { { "mod", { { "type", "string" }, { "description", "openReport: the config spec's name, as the report action has it" } } } },
+            .handler = &runOpenReport,
         });
         f4cf::devbench::addAction({
             .name = "mods",
@@ -1220,9 +1245,11 @@ namespace mods_config::devbench
                            "depth (a section's rows follow it, one deeper), shown (its condition holds), found (the search shows it, null with no query), and its text and help "
                            "with the states of its mod's client in them; for a section its role "
                            "(activationSphere for an activation sphere's group, else null), collapsible (it folds), collapsed (it starts folded) and folded (it is "
-                           "folded now), for a button its warning (null for none), buttonText, runnable and enabled, for a text its lines, and for a setting its id, "
+                           "folded now), for a button its warning (null for none), buttonText, runnable (a press runs it), notRunnable (why not, empty for none), "
+                           "savesFirst (a press asks to save the unsaved changes first) and enabled, for a text its lines, and for a setting its id, "
                            "type, value, available, invalid, reason, warning (null for none), tag (the help line's tag of when its pending change takes effect, "
                            "null while it is not dirty or that is not known), dirty, saved (the value its row's Discard gives a dirty one back), enabled, default, "
+                           "reset (what its row's Reset sets, null where the row has none), resets (its Reset is pressed now), "
                            "applies, storage (where its value is kept: kind file with its file, format, root, filePath and the path to the value in it, "
                            "modSetting with MCM's name, global or property with its plugin and formId, clientState, unknown or none), and its range or options",
             .handler = &runPage,
@@ -1247,7 +1274,7 @@ namespace mods_config::devbench
         });
         f4cf::devbench::addAction({
             .name = "reset",
-            .description = "set a setting of the selected mod to its default, as its Reset does",
+            .description = "set a setting of the selected mod to its default, as a press on its row's Reset does: only where the row's Reset is pressed now (its resets)",
             .handler = &runReset,
         });
         f4cf::devbench::addAction({
@@ -1263,7 +1290,7 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "run",
             .description = "run the action of a button of the page that is shown, by its text, as a press on its row does: a disabled button is not run, "
-                           "and a script's function saves the unsaved changes first, as Save and run does",
+                           "and one that asks to save first (its savesFirst) saves the unsaved changes, as Save and run does",
             .arguments = { { "text", { { "type", "string" }, { "description", "run, fold: the button's or the section's text, as the page action has it" } } },
                 { "withoutSaving", { { "type", "boolean" }, { "description", "run: run a script's function with the unsaved changes pending, as Run without saving does" } } } },
             .handler = &runButton,

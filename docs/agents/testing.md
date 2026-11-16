@@ -20,7 +20,7 @@
 | `TestActions.cpp` | `GameActions.cpp` | `TestActions`: function calls, console commands, Save messages |
 | `TestFiles.h` | — | a per-test folder for MCM's files; `ReadOnly` makes an unwritable file |
 | `TestSwf.h` | — | an in-memory SWF |
-| `TestStore.h` | a store | `RecordingStore`: the lifecycle calls the panel makes, in order; a dirty count and the value conditions read by id |
+| `TestStore.h` | a store | `RecordingStore`: the lifecycle calls the panel makes, in order; a dirty count, the value conditions read by id, whether it writes a change at once, and why an action does not run. A test's own store derives from it for its settings' values (`RowViewTests.cpp`) |
 
 All live in `tests/linked/`. MCM itself is never called in a test.
 

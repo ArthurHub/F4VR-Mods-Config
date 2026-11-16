@@ -1051,26 +1051,6 @@ TEST_CASE("FullPanel: Back goes from a page under a page to the page it is under
     CHECK(panel.selection() == Selection{});
 }
 
-TEST_CASE("FullPanel: a page under a page has a breadcrumb for each page on the way to it, which is pressed to go there")
-{
-    const test_panel::PanelContext context;
-    auto panel = nestedPages();
-    panel.select(pageOf({ 0, 0, 0 }));
-    drawFrames(panel, 2);
-    const std::vector<const char*> crumbs{ "MODS CONFIG FO4", "Alpha", "Body", "Hands", "Fingers" };
-
-    // the last is where the player is: it is not pressed
-    press(panel, crumbAt(crumbs, 4));
-    CHECK(panel.selection() == pageOf({ 0, 0, 0 }));
-
-    press(panel, crumbAt(crumbs, 3));
-    CHECK(panel.selection() == pageOf({ 0, 0 }));
-    press(panel, crumbAt(crumbs, 2));
-    CHECK(panel.selection() == pageOf({ 0 }));
-    press(panel, crumbAt(crumbs, 1));
-    CHECK(panel.selection() == selectionOf(0));
-}
-
 TEST_CASE("FullPanel: the pages between the mod and the page are one ellipsis while their crumbs do not fit, which is not pressed")
 {
     const test_panel::PanelContext context;
@@ -1550,22 +1530,6 @@ TEST_CASE("FullPanel: a press on the row of a button runs its action in its stor
     CHECK(actions.called.size() == 1);
 }
 
-TEST_CASE("FullPanel: the help line says why a button is not run")
-{
-    const test_panel::PanelContext context;
-    test_actions::TestActions actions;
-    mcm::McmStore store;
-    auto panel = modWithButtons(store);
-    drawFrames(panel, 2);
-
-    point(panel, pageRow(0));
-    CHECK(panel.helpLine().text() == "Reset everything: Puts every value back.");
-    point(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Nothing: Nothing runs.");
-    point(panel, pageRow(2));
-    CHECK(panel.helpLine().text() == "Notify: Not available: the menu has no Flash.");
-}
-
 TEST_CASE("FullPanel: a config spec's button runs its console command while its enabledWhen holds on the pending values")
 {
     const test_panel::PanelContext context;
@@ -1716,35 +1680,6 @@ TEST_CASE("FullPanel: a dangerous button with no confirmation asks first, and an
     CHECK(pressActs(panel, pageRow(1)));
     CHECK_FALSE(isDialogShown(CONFIRMATION));
     CHECK(actions.commands == std::vector{ model::ConsoleCommand{ "delete" }, model::ConsoleCommand{ "calibrate" } });
-}
-
-TEST_CASE("FullPanel: a script button of an MCM mod runs at once with its changes, as they are made already")
-{
-    const test_panel::PanelContext context;
-    auto globals = someGlobals();
-    test_actions::TestActions actions;
-    mcm::McmStore store;
-    auto mod = modOf("Alpha");
-    mod.frontPage.items.push_back(globalSetting(model::SettingType::Switcher, "Off", 0x800));
-    mod.frontPage.items.push_back(model::Button{ .text = "Apply",
-        .help = "Applies it.",
-        .action = model::CallFunction{ .plugin = PLUGIN, .formId = 0x800, .script = {}, .function = "Apply", .arguments = {} } });
-    FullPanel panel;
-    panel.setStore(model::Source::Mcm, &store);
-    panel.setMods({ std::move(mod) });
-    panel.select(selectionOf(0));
-    drawFrames(panel, 2);
-
-    CHECK(pressActs(panel, pageRow(0)));
-    CHECK(store.dirtyCount() == 1);
-    CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x800 }), 1.0f));
-    point(panel, pageRow(1));
-    CHECK(panel.helpLine().text() == "Apply: Applies it.");
-    CHECK(pressActs(panel, pageRow(1)));
-    drawFrames(panel, 2);
-    CHECK_FALSE(isDialogShown(CONFIRMATION));
-    CHECK(actions.called.size() == 1);
-    CHECK(store.dirtyCount() == 1);
 }
 
 TEST_CASE("FullPanel: a script button's own confirmation asks to save the unsaved changes too, and its Save and run is disabled while one is invalid")
@@ -4126,6 +4061,26 @@ TEST_CASE("FullPanel: a press on a config spec of the Developer section opens it
     CHECK(pressActs(panel, *rowWithHelp(panel, "My Mod:")));
     CHECK(panel.report() == 0u);
     CHECK(pressActs(panel, ImVec2(test_panel::CONTENT_START + 100.0f, test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT * 0.5f)));
+    CHECK_FALSE(panel.report());
+    CHECK_FALSE(panel.selection().mod);
+}
+
+TEST_CASE("FullPanel: the Developer crumb of a report goes to the menu's front page")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store({}, myGames.path);
+    auto panel = reportPanel(store);
+    drawFrames(panel, 2);
+    CHECK(panel.openReport(0));
+    drawFrames(panel, 2);
+
+    // the report's crumb is where the panel is
+    const std::vector<const char*> crumbs{ "MODS CONFIG FO4", "Developer", "My Mod" };
+    press(panel, crumbAt(crumbs, 2));
+    CHECK(panel.report() == 0u);
+
+    CHECK(pressActs(panel, crumbAt(crumbs, 1)));
     CHECK_FALSE(panel.report());
     CHECK_FALSE(panel.selection().mod);
 }
