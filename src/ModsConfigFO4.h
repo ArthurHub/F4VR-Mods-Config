@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Config.h"
-#include "ConfigMenu.h"
+#include "GameMenu.h"
 #include "ModBase.h"
 #include "f4vr/GameMenusHandler.h"
+#include "menu/MenuController.h"
 
 namespace mods_config
 {
@@ -20,7 +21,7 @@ namespace mods_config
 
         static bool isPlayerLoaded();
 
-        ConfigMenu& menu()
+        mods_config::menu::MenuController& menu()
         {
             return _menu;
         }
@@ -40,7 +41,11 @@ namespace mods_config
         void takeOpenGestureFromFRIK();
         void closeFavoritesOfOpenGesture(bool gestureFired);
 
-        ConfigMenu _menu;
+        // the game side of the menu, which its controller asks
+        GameMenu _gameSide;
+
+        // the config menu
+        mods_config::menu::MenuController _menu{ _gameSide, GameMenu::setup() };
 
         // the game's menus opening and closing, as the loading screen that closes the menu
         f4vr::GameMenusHandler _gameMenus;

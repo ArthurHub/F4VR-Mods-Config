@@ -29,7 +29,8 @@ build/tests/Release/ModsConfigFO4VR_linked_tests "<test name>"   # one test
 
 The entry point [src/ModsConfigFO4.cpp](src/ModsConfigFO4.cpp) is a `ModBase` subclass (global `g_modsConfig`) implementing the framework's lifecycle hooks: `onModLoaded`, `onGameLoaded`, `onGameSessionLoaded`, `onFrameUpdate`.
 
-- `src/ModsConfigFO4.*`, `src/ConfigMenu.*`, `src/Config.*`, `src/AdjustInWorld.*`: the mod, the menu in the world and its vrui buttons, its own config, tuning a transform in the world.
+- `src/ModsConfigFO4.*`, `src/GameMenu.*`, `src/Config.*`, `src/AdjustInWorld.*`: the mod, the game side of the menu (the panel in the world and its vrui buttons), its own config, tuning a transform in the world.
+- `src/menu/`: the menu controller, the menu's game-free decisions, and `MenuPort`, the game side it asks, which `GameMenu` implements and a test records.
 - `src/ui/`: the Full panel and its parts, drawn with ImGui. Nothing in it knows the game, so a test draws it.
 - `src/model/`: the settings model (`ConfigDefinition.h`, see [docs/design/model.md](docs/design/model.md)), the `Store` interface, the setting value rules by setting type (`SettingValues.h`: equality, canonical text, invalid reasons, reading from JSON; a new setting type adds its case there), and game-free helpers: conditions, choice options, choices whose options set other settings (`OptionSets.h`), files of a folder, the CommonFramework values, the search of the mods' names (`Search.h`), the mods' categories and the Categories page the menu fills (`Categories.h`), the unsaved changes of a page the tree marks and what a folded section's heading counts (`UnsavedPages.h`).
 - `src/spec/`: config specs: the loader, the store, TOML and INI files, live copies.

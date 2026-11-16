@@ -1,37 +1,32 @@
 #pragma once
 
 #include <chrono>
-#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
-#include "AdjustInWorld.h"
 #include "api/NativeClients.h"
-#include "common/CommonUtils.h"
-#include "imgui/UIImGuiPanel.h"
 #include "mcm/McmStore.h"
+#include "menu/MenuPort.h"
+#include "model/Categories.h"
 #include "model/ConfigDefinition.h"
 #include "model/Translations.h"
-#include "render/Texture.h"
 #include "spec/ConfigSpecStore.h"
 #include "spec/LiveCopies.h"
 #include "ui/FullPanel.h"
-#include "vrui/UIButtonPanel.h"
-#include "vrui/UIContainer.h"
 
-namespace mods_config
+namespace mods_config::menu
 {
     /**
-     * The config menu: one ImGui panel that is put in front of the player and stays in the world, where the
-     * player can move it, and a row of buttons on the offhand that shows while the panel is minimized.
+     * The config menu's decisions, with no game: what a press, a native client's request and a live copy's save do, in
+     * the frame update, and in which order. It owns the stores and the Full panel, and asks the game side of everything
+     * else through its port.
      */
-    class ConfigMenu
+    class MenuController
     {
     public:
-        ConfigMenu();
+        MenuController(MenuPort& port, MenuSetup setup);
 
         bool isOpen() const;
         bool isMinimized() const;
@@ -73,17 +68,12 @@ namespace mods_config
         }
 
     private:
-        void createPanel();
+        void drawPanel();
         void applyPanelConfig();
-        void createWristButtons();
-        static void pulse();
-        static vrcf::Hand pointingHand();
-        static float getThumbstickSideValue();
-        void drawImage(const model::Image& image, const ImVec2& min, const ImVec2& max);
-        std::optional<ImVec2> textureSize(const std::string& texture);
-        render::Texture& textureOf(const std::string& texture);
+        void pulse();
         std::vector<ui::FullPanel::QuickLaunchEntry> quickLaunchEntries();
         std::optional<ui::FullPanel::QuickLaunchEntry> frikFallbackEntry();
+        std::string timeOfDay();
         void doLiveCopy(const std::string& folder, ui::LiveCopyAction action);
         void readLiveCopy(const std::string& folder);
         void readInstalled(const std::string& folder);
@@ -95,8 +85,12 @@ namespace mods_config
         void doAdjust();
         void endAdjust();
 
-        std::shared_ptr<imgui::UIImGuiPanel> _panel;
-        std::shared_ptr<vrui::UIContainer> _wristButtons;
+        MenuPort& _port;
+        MenuSetup _setup;
+
+        bool _open = false;
+        bool _minimized = false;
+
         bool _minimizeRequested = false;
         bool _closeRequested = false;
         bool _askToCloseRequested = false;
@@ -137,21 +131,18 @@ namespace mods_config
 
         std::optional<AdjustRequest> _adjustRequest;
 
-        // the tuning of a transform in the world, with the panel minimized
-        AdjustInWorld _adjust;
-
         // the texts of the game's language, which a config spec is read again with
         model::Translations _translations;
 
         // the live copies of the config specs' spec.json, and when the frame update last looked for a copy that was saved
         spec::LiveCopies _liveCopies;
-        std::chrono::steady_clock::time_point _liveCopiesChecked;
+        std::chrono::system_clock::time_point _liveCopiesChecked;
 
         // the values of the selected mod, which the panel asks for and sets: an MCM mod's, in the game
-        mcm::McmStore _store{ R"(Data\MCM)" };
+        mcm::McmStore _store;
 
-        // and a config spec's mod's, in its files, from the game's Data folder and the game's folder of My Games
-        spec::ConfigSpecStore _configSpecStore{ "Data", common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
+        // and a config spec's mod's, in its files, from the Data folder and the folder of My Games
+        spec::ConfigSpecStore _configSpecStore;
 
         // the native clients, which the config spec store asks
         api::NativeClients _nativeClients{ _configSpecStore.clientCalls() };
@@ -161,13 +152,5 @@ namespace mods_config
 
         // a Save of the mod's own config spec, which can write the player's categories the frame update reads again
         bool _categoriesSaved = false;
-
-        // The textures of the images that were drawn, each by the pixels of the mod it is made from. They are
-        // on the GPU while the menu is open, and are made again from the pixels when it is opened again
-        std::unordered_map<const model::ImagePixels*, std::shared_ptr<render::Texture>> _imageTextures;
-
-        // the textures of config specs that were drawn, by their paths under `Data/Textures`, which the game loads
-        // as they are first drawn. They are given back to the game as the menu closes
-        std::unordered_map<std::string, std::shared_ptr<render::Texture>> _configSpecTextures;
     };
 }

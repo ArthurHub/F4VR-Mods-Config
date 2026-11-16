@@ -11,7 +11,7 @@ Mods Config FO4 VR is one settings panel for every Fallout 4 VR mod, drawn with 
 ## Scale
 
 - Lay out in ImGui pixels. A `UIImGuiPanel` gets 48 px per vrui unit, so the Full panel at 24 x 15 units is `panel-width` x `panel-height`: 1152 x 720 px.
-- At the defaults in `ConfigMenu.cpp` (scale 6, 120 game units in front of the HMD, curve radius 25), one layout pixel is about 0.06 degrees at the panel's middle, about 17 px a degree. A `t-body` line is about 1.2 degrees tall, and a 48 px target about 2.9 degrees.
+- At the defaults in `GameMenu.cpp` (scale 6, 120 game units in front of the HMD, curve radius 25), one layout pixel is about 0.06 degrees at the panel's middle, about 17 px a degree. A `t-body` line is about 1.2 degrees tall, and a 48 px target about 2.9 degrees.
 - Set `setFontSizePixels` to the `t-body` size, 21 (`theme::FONT_SIZE`), and keep `setSupersample` at 1.5. The panel texture is then 1728 x 1080, about 25 texels a degree. Raise the factor only if text looks soft in the headset: memory grows with its square.
 - Set `TouchExtraPadding` to `space-1` on each side. It widens every hit box into the 8 px gap between items without moving anything, which absorbs hand jitter.
 

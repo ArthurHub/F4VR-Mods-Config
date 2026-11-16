@@ -33,6 +33,7 @@ The menu splits into a game-free menu controller and the game side. The controll
 
 ## Implementation Decisions
 
+- **Shape.** `ModsConfigFO4` holds the controller, `menu::MenuController` in `src/menu/`, and the game adapter, `GameMenu` in `src/GameMenu.*`, which replaces `ConfigMenu`. `g_modsConfig.menu()` returns the controller, so the native API and devbench keep their calls.
 - **The controller holds:**
   - the request queue and its precedence;
   - the native API's requests (open, minimize, restore, read again);
@@ -41,34 +42,46 @@ The menu splits into a game-free menu controller and the game side. The controll
   - the Developer and Help-opened writes to the config;
   - the panel's and stores' wiring.
 
-  It owns the stores and the panel.
-- **The port** covers the game side:
-  - the panel in the world (open, close, minimize, restore);
-  - the wrist buttons;
-  - controller input and haptic pulses;
-  - textures for images;
-  - opening files and links in the shell;
-  - FRIK;
-  - the clock that times live copy checks.
-
-  It is kept as small as the controller's real needs.
-- **Two adapters.** The game adapter is in the mod. The recording adapter is in the tests.
-- **Adjust in world.** Its controller reading and wrist column stay on the game side. The controller only starts and cancels it through the port.
+  It owns the stores, the native clients and the panel.
+- **Setup.** The controller's constructor takes a `MenuSetup`: MCM's folder, the Data and My Games roots, the config specs' folder, the live copies' folder, the categories file and the plugin checks. `GameMenu::setup()` gives the game's, and a test gives its own folders.
+- **The port** is `menu::MenuPort`, an abstract class, kept as small as the controller's real needs. It covers:
+  - the panel in the world: open, close, shown or hidden, recentred, its look from the config;
+  - the wrist buttons, shown or hidden;
+  - Back on the pointing hand, the thumbstick's side push, handedness, whether a game menu takes input;
+  - a haptic pattern on the pointing hand, which is also the config's pulse;
+  - Adjust in world: start, active, a frame of it, cancel, stop;
+  - the panel's image drawer, and dropping the textures of replaced pixels;
+  - opening a file, and showing it in Explorer;
+  - FRIK: installed, its config open, opening it;
+  - the Developer and Help-opened writes of the config;
+  - the clock, one `now()` on the system clock, which times the live copy checks and gives a read's time of day.
+- **Callbacks.** The controller hands its draw, Restore and Exit handlers to the port as it opens the panel. The game side never holds the controller.
+- **Two adapters.** The game adapter is in the mod. The recording adapter, `RecordingMenuPort` in `tests/linked/TestMenuPort.h`, records each call as text, in order, and answers each question from a field the test sets.
+- **The config.** The controller reads `g_config` directly, and `Config.cpp` is in the unit test build. Its two writes go through the port, so no test writes the player's config file.
+- **Adjust in world.** `AdjustInWorld` stays on the game side, owned by the adapter. The controller keeps its rules: it starts only while the menu is open and no game menu takes input, a game menu cancels it, its end shows the panel again with the transform's editor, and no live copy is read while it lasts.
+- **Precedence as it is.** Opening FRIK's config goes before a close asked in the same frame, which is not dropped: the menu closes in the next frame. A close goes before a minimize. The tests pin this.
+- **What stays in the mod.** The opening gesture, the recenter binding and closing the menu as a loading screen or the main menu opens stay in `ModsConfigFO4`. They are game input that calls the controller.
 - **Build.** The controller is added to the unit test build. The game adapter stays out, like the game access sources today.
 - **The mod list and categories** are the panel's, from [03](03-mod-list.md). The controller carries the menu's Save subscription for them: after a Save of its own mod it reads the player's choices again into the mod list, which regroups the tree.
 
 ## Testing Decisions
 
-- **Seam.** Tests drive the controller with the recording adapter of the game port, the real config spec store over a per-test folder, and the existing doubles for the game's globals, properties, INI settings, events and actions.
+- **Seam.** Tests in `tests/linked/menu/` drive the controller with the recording adapter of the game port, the real stores over a per-test folder, and the existing doubles for the game's globals, properties, INI settings, events and actions.
 - **They cover:**
   - request precedence;
-  - an open or restore request cancelling Adjust in world;
+  - an open or restore request cancelling Adjust in world, and a game menu cancelling it;
   - read again only for the shown mod;
+  - a client's open request by name and page id in any case, and its refusal for a mod or page the menu does not have;
+  - minimize ignored while closed, and Restore only while minimized, reading the values again;
+  - Back stepping back with the pulse first, and closing from the front page;
+  - Exit with unsaved changes showing the minimized panel for the dialog, which refuses a client's pending value;
   - a saved live copy being reloaded and replaced, with its unsaved changes dropped;
   - Overwrite, Open and Show on a live copy;
   - the quick launch list;
   - the Developer and Help-opened writes;
+  - the Developer config spec options;
   - a Save of the menu's own mod regrouping the tree.
+- **No drawing.** The controller's tests don't draw the panel. The draw handler's feedback (the pattern a press played, or else the pulse) is covered by the panel's own tests of `hapticPlayed` and `pressActed`, devbench and the headset. A press on Adjust in world needs a drawn panel, so its start is covered the same way.
 - **Prior art:** the config spec store tests (per-test folders and files), the native clients tests (recording callbacks), and the test file helpers.
 - **e2e.** The e2e tests through devbench are run by hand, and the menu is tried in the headset before this is called done.
 
@@ -81,5 +94,5 @@ The menu splits into a game-free menu controller and the game side. The controll
 ## Further Notes
 
 - Last in the suggested order, and the largest change.
-- devbench reaches into the menu and the panel today. It moves to the controller's interface where that's a plain rename, and otherwise stays as it is.
+- devbench reaches the menu through `g_modsConfig.menu()`, which is the controller, with the same calls.
 - The glossary may gain "menu controller".

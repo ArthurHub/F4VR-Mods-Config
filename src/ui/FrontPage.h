@@ -58,6 +58,12 @@ namespace mods_config::ui
     {
     public:
         void setQuickLaunch(std::vector<QuickLaunchEntry> entries);
+
+        const std::vector<QuickLaunchEntry>& quickLaunch() const
+        {
+            return _quickLaunch;
+        }
+
         FrontPageDrawn draw(const std::vector<FrontPageMod>& mods);
         void reset();
 

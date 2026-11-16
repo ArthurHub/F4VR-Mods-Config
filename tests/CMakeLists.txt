@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/mcm/McmLoaderTests.cpp
   linked/mcm/McmStoreTests.cpp
   linked/mcm/SwfImagesTests.cpp
+  linked/menu/MenuControllerTests.cpp
   linked/model/CategoriesTests.cpp
   linked/model/ColorsTests.cpp
   linked/model/ConditionsTests.cpp
@@ -61,6 +62,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/TestGlobals.h
   linked/TestIniSettings.cpp
   linked/TestIniSettings.h
+  linked/TestMenuPort.h
   linked/TestPanel.h
   linked/TestProperties.cpp
   linked/TestProperties.h
@@ -69,6 +71,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   # the mod's sources under test. Not GameActions.cpp, GameGlobals.cpp, GameIniSettings.cpp, GameProperties.cpp and
   # mcm/McmEvents.cpp, which call the game: linked/TestActions.cpp, linked/TestEvents.cpp, linked/TestGlobals.cpp,
   # linked/TestIniSettings.cpp and linked/TestProperties.cpp have the tests' own functions in their place
+  ${SOURCE_DIR}/Config.cpp
   ${SOURCE_DIR}/api/NativeClients.cpp
   ${SOURCE_DIR}/mcm/FallUITranslations.cpp
   ${SOURCE_DIR}/mcm/McmConfigImages.cpp
@@ -78,6 +81,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/mcm/McmModSettings.cpp
   ${SOURCE_DIR}/mcm/McmStore.cpp
   ${SOURCE_DIR}/mcm/SwfImages.cpp
+  ${SOURCE_DIR}/menu/MenuController.cpp
   ${SOURCE_DIR}/model/Categories.cpp
   ${SOURCE_DIR}/model/ChoiceOptions.cpp
   ${SOURCE_DIR}/model/ClientCalls.cpp

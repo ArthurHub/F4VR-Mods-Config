@@ -46,7 +46,7 @@ namespace mods_config::theme
     constexpr float SPACE_12          = 48.0f;    // One vrui unit
 
     // Corner radii, in layout px.
-    constexpr float RADIUS_PANEL      = 24.0f;    // The Full panel's corner, cornerRadiusUnits 0.5 in ConfigMenu.cpp
+    constexpr float RADIUS_PANEL      = 24.0f;    // The Full panel's corner, cornerRadiusUnits 0.5 in GameMenu.cpp
     constexpr float RADIUS_WIDGET     = 9.6f;     // F4VR_BUTTON_STYLE cornerRadiusUnits 0.2: the vrui wrist buttons
     constexpr float RADIUS_POPUP      = 8.0f;     // PopupRounding, ChildRounding, WindowRounding of the dialog
     constexpr float RADIUS_FRAME      = 4.0f;     // FrameRounding and ScrollbarRounding: controls, buttons, rows
@@ -55,7 +55,7 @@ namespace mods_config::theme
     // Sizes, in layout px.
     constexpr float PANEL_WIDTH       = 1152.0f;  // Full panel canvas width: PANEL_WIDTH 24 units
     constexpr float PANEL_HEIGHT      = 720.0f;   // Full panel canvas height: PANEL_HEIGHT 15 units
-    constexpr float PANEL_PADDING     = 14.4f;    // UIPadding::all(0.3) in ConfigMenu.cpp: the canvas inset inside the Full panel's border
+    constexpr float PANEL_PADDING     = 14.4f;    // UIPadding::all(0.3) in GameMenu.cpp: the canvas inset inside the Full panel's border
     constexpr float CONTROL_HEIGHT    = 48.0f;    // Every pressable control and row, drawn at this height: not ImGui's frame height
     constexpr float ROW_PITCH         = 56.0f;    // Control height plus ItemSpacing.y: the distance from one setting row to the next
     constexpr float TITLEBAR_HEIGHT   = 64.0f;    // The Full panel's title bar
@@ -67,7 +67,7 @@ namespace mods_config::theme
     constexpr float SCROLLBAR_SIZE    = 16.0f;    // ScrollbarSize
 
     // Border widths, in layout px.
-    constexpr float BORDER_PANEL      = 3.84f;    // The Full panel's edge: borderThicknessUnits 0.08 in ConfigMenu.cpp, in green
+    constexpr float BORDER_PANEL      = 3.84f;    // The Full panel's edge: borderThicknessUnits 0.08 in GameMenu.cpp, in green
     constexpr float BORDER_FRAME      = 2.0f;     // FrameBorderSize, PopupBorderSize, SeparatorTextBorderSize, the hover outline and the focus ring
     constexpr float BORDER_WIDGET     = 2.4f;     // F4VR_BUTTON_STYLE borderThicknessUnits 0.05 on the wrist buttons
 

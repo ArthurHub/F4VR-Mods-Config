@@ -15,7 +15,7 @@ namespace test_panel
 {
     using namespace mods_config;
 
-    // the panel as ConfigMenu.cpp makes it, in the panel's pixels, and what the framework draws it with
+    // the panel as GameMenu.cpp makes it, in the panel's pixels, and what the framework draws it with
     constexpr float PANEL_WIDTH = theme::PANEL_WIDTH;
     constexpr float PANEL_HEIGHT = theme::PANEL_HEIGHT;
     constexpr float PANEL_BORDER = theme::BORDER_PANEL;

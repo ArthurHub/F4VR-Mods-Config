@@ -108,6 +108,12 @@ namespace mods_config::ui
             return _selection;
         }
 
+        // the entries of the quick launch section of the menu's front page, as the menu gave them
+        const std::vector<QuickLaunchEntry>& quickLaunch() const
+        {
+            return _frontPage.quickLaunch();
+        }
+
         const HelpLine& helpLine() const
         {
             return _helpLine;
