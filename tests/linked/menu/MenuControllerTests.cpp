@@ -15,6 +15,7 @@
 #include "Config.h"
 #include "TestFiles.h"
 #include "TestMenuPort.h"
+#include "common/CommonUtils.h"
 #include "menu/MenuController.h"
 #include "spec/ConfigSpecLoader.h"
 
@@ -319,14 +320,14 @@ TEST_CASE("MenuController: Restore shows a minimized menu again and reads the sh
 {
     Menu menu;
     menu.openAtMyMod();
-    CHECK(menu.scale() == 1.25f);
+    CHECK(common::fEqual(menu.scale(), 1.25f));
 
     // while it is shown
     menu.writeScale("0.75");
     menu.controller.requestRestore();
     menu.frame();
     CHECK(menu.port.take().empty());
-    CHECK(menu.scale() == 1.25f);
+    CHECK(common::fEqual(menu.scale(), 1.25f));
 
     // Restore on the wrist
     menu.minimized();
@@ -334,7 +335,7 @@ TEST_CASE("MenuController: Restore shows a minimized menu again and reads the sh
     menu.frame();
     CHECK_FALSE(menu.controller.isMinimized());
     CHECK(menu.port.take() == Calls{ "showPanel", "hideWristButtons" });
-    CHECK(menu.scale() == 0.75f);
+    CHECK(common::fEqual(menu.scale(), 0.75f));
 }
 
 TEST_CASE("MenuController: a client's request to read again reads the values of the mod that is shown, by its name in any case, and of no other")
@@ -345,11 +346,11 @@ TEST_CASE("MenuController: a client's request to read again reads the values of 
 
     menu.controller.requestReadAgain("Other");
     menu.frame();
-    CHECK(menu.scale() == 1.25f);
+    CHECK(common::fEqual(menu.scale(), 1.25f));
 
     menu.controller.requestReadAgain("MYMOD");
     menu.frame();
-    CHECK(menu.scale() == 0.75f);
+    CHECK(common::fEqual(menu.scale(), 0.75f));
 
     // nothing while the menu is closed
     menu.controller.close();
@@ -530,7 +531,7 @@ TEST_CASE("MenuController: a saved live copy is read again and replaces its mod 
     menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
     menu.controller.select({ .mod = menu.indexOf("MyMod") });
     menu.changeScale();
-    REQUIRE(menu.scale() == 0.5f);
+    REQUIRE(common::fEqual(menu.scale(), 0.5f));
 
     // the menu looks for saved copies every half second
     menu.writeLiveCopy(editedMyMod());
@@ -543,13 +544,13 @@ TEST_CASE("MenuController: a saved live copy is read again and replaces its mod 
     CHECK(menu.myMod().displayName == "My Mod Edited");
     CHECK_FALSE(menu.liveCopyRead().failed);
     CHECK(menu.controller.selection().mod == menu.indexOf("MyMod"));
-    CHECK(menu.scale() == 1.25f);
+    CHECK(common::fEqual(menu.scale(), 1.25f));
 
     // once: it is not read again until it is saved again
     menu.changeScale();
     menu.port.time += std::chrono::seconds(1);
     menu.frame();
-    CHECK(menu.scale() == 0.5f);
+    CHECK(common::fEqual(menu.scale(), 0.5f));
 }
 
 TEST_CASE("MenuController: a saved live copy is not read while Adjust in world tunes a transform, and is read after it")
@@ -727,6 +728,8 @@ namespace
         menu.controller.setMods({ configSpecOf(MY_MOD), configSpecOf(OTHER_MOD) }, {}, {});
         std::filesystem::remove(menu.folder.path / "Categories.toml");
         menu.controller.readCategoryChoices();
+        // a Save other tests told the client is still waiting for the frame update, which would read the file again
+        menu.frame();
         menu.port.take();
         return menu;
     }

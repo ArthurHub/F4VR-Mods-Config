@@ -931,10 +931,6 @@ namespace mods_config::devbench
         }
 
         /**
-         * One step back in the open menu, as the Back button does: the answer has what the panel shows then,
-         * and whether the menu is still open.
-         */
-        /**
          * Gives the search field a query, as the keyboard types it, and an empty one clears it, as Clear does. The panel
          * searches it as it draws next, so the state of a later frame has what it found.
          */
@@ -949,6 +945,10 @@ namespace mods_config::devbench
             return { { "query", std::move(query) } };
         }
 
+        /**
+         * One step back in the open menu, as the Back button does: the answer has what the panel shows then,
+         * and whether the menu is still open.
+         */
         json runBack(const json&)
         {
             auto& menu = g_modsConfig.menu();
