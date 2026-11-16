@@ -1,0 +1,50 @@
+# 01. Devbench reports and presses from the panel's views
+
+Part of [Deepen the hot spots](README.md), which holds the shared decisions, test seams and testing rules. Seam B.
+
+## Problem Statement
+
+Devbench is how the e2e tests see the menu, so what it reports should be what the player sees. The setting row's look already comes from one view (`rowViewOf`) that both draw from. Three other panel rules are still decided twice, once in the panel and once in devbench:
+
+- **A button's press.** The panel saves first only when the action reads saved values, the store keeps changes for a Save, and there are unsaved changes ([Buttons.cpp](../../../src/ui/Buttons.cpp) `asksToSaveFirst`). Devbench's `runButton` leaves out the store check. So for an MCM mod's script button with changes, devbench calls `McmStore::save()` (Keep, a Saved event, the pause-menu wait) and the panel runs the script at once, as the FullPanel test "a script button of an MCM mod runs at once" pins. Devbench's `runnable` and `enabled` of a button are also worked out apart from the panel's.
+- **A setting's Reset.** The setting row shows Reset only when its control can show the default: not for a slider with no range, nor a default that is none of the options ([SettingRow.cpp](../../../src/ui/SettingRow.cpp) `defaultOf`). Devbench's `runReset` and its `default` field use the store's default as it is.
+- **The breadcrumbs.** Devbench's `runBreadcrumb` works out the number of crumbs, which are links and where each goes. The title bar has its own version, with a Developer crumb over a report that devbench cannot press.
+
+Devbench has no unit tests, and 35 of its 47 commits also touched `src/ui/`.
+
+## Solution
+
+The panel's views cover these rules too, and devbench reports and presses from them:
+
+- a **button view**: whether the button runs, why not, whether it is enabled, and whether a press asks to save first;
+- the **row view** gains the Reset value: the default, when the control can show it;
+- a **breadcrumbs** list: each crumb's text, its look (link, current, elided) and where a press goes.
+
+The button row, the setting row and the title bar draw from them. Devbench is left with turning them into JSON and reading its arguments.
+
+## User Stories
+
+1. As the maintainer, I want devbench to run a button as the panel does, so that an e2e test of an MCM script button checks what the player gets.
+2. As the maintainer, I want one place that decides whether a button runs and saves first, so that a new action kind changes one function.
+3. As the maintainer, I want devbench's Reset to exist exactly where the row's does, so that an e2e test can't reset a value the player can't.
+4. As the maintainer, I want devbench to press every breadcrumb the title bar draws, the Developer crumb over a report too.
+5. As the maintainer, I want the button rules tested without pressing pixels.
+
+## Implementation Decisions
+
+- **Where the views live.** Beside the row view in `src/ui/`, game-free and pure: they take the item, its store (as `StoreReader` where they only read) and, for the crumbs, the selection and what is shown over the page.
+- **Button view.** Holds `runs`, the reason it doesn't (an unknown action's, the store's `notRunnable`), `enabled` (its enabledWhen), and `asksToSaveFirst`. Devbench's `runButton` then saves first exactly when the view says so; `withoutSaving` stays as Run without saving.
+- **Reset.** `defaultOf` moves into the row view as its Reset value. Devbench's `runReset` resets to it and reports it, and fails where the row has no Reset.
+- **Breadcrumbs.** The list says each crumb's text, look and target (a selection, or the Developer section). The title bar keeps the layout: widths, elision, separators. Devbench presses a crumb by its place in the list.
+- **Devbench's row walks.** `addRows` and `findButton` read `shown` from the same condition as the panel's rows; they keep their own walk.
+
+## Testing Decisions
+
+- **New tests at the views' interfaces:** a button view test file (runs, reasons, enabled, save first for each action kind and both stores), Reset cases in the row view tests, and a breadcrumbs test file (over a page, a nested page, Help and a report).
+- **Moved tests.** FullPanel tests that only check a button's or crumb's rule through pixels move to the view tests: "says why a button is not run", "a script button of an MCM mod runs at once", "Save and run disabled while invalid", the crumb-link tests. Tests of the press and its dialog stay in the panel.
+- **e2e.** The button and breadcrumb e2e tests are run by hand; one is added for the Developer crumb.
+
+## Out of Scope
+
+- Devbench's own reading of a value from JSON (`valueFromJson`), which takes a table as its TOML text or INI line, as the e2e tests send it.
+- The title bar's layout and look.

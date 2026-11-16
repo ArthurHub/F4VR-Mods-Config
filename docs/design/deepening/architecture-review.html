@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Architecture review for F4VR-Mods-Config</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+</script>
+<style>
+  .seam { border-style: dashed !important; }
+  .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: #e2e8f0; }
+  .lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; }
+  .leak { color: #dc2626; }
+  pre.mermaid { background: transparent; }
+</style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-12">
+
+<header class="space-y-3">
+  <h1 class="font-serif text-4xl">Architecture review: Mods Config FO4 VR</h1>
+  <p class="text-slate-500 text-sm">Branch <span class="font-mono">deepen-hot-spots</span> · 2026-11-16 · after deepening candidates 01–08 (all done)</p>
+  <div class="flex flex-wrap gap-4 text-xs text-slate-600 pt-2">
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border border-slate-400 bg-white"></span>module</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border-2 border-slate-500 seam"></span>seam</span>
+    <span class="flex items-center gap-2"><span class="leak font-bold">→</span>leak / drifted copy</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 deep rounded"></span>deep module</span>
+  </div>
+</header>
+
+<section id="candidates" class="space-y-10">
+
+<!-- 1 -->
+<article id="c1" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="font-mono text-slate-400">01</span>
+    <h2 class="font-serif text-2xl">Devbench as a thin adapter over the panel's views</h2>
+  </div>
+  <div class="flex flex-wrap gap-2 text-xs">
+    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">Strong</span>
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>src/devbench/MCDevBench.cpp (1298 lines)</li>
+    <li>src/ui/Buttons.cpp</li>
+    <li>src/ui/SettingRow.cpp</li>
+    <li>src/ui/TitleBar.cpp</li>
+    <li>src/ui/RowView.h</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-2">Before</div>
+      <pre class="mermaid">
+flowchart TB
+  B[Buttons.cpp<br/>asksToSaveFirst] --> S[(Store)]
+  D[MCDevBench<br/>runButton · runReset<br/>runBreadcrumb · addRows] --> S
+  T[TitleBar.cpp<br/>crumbs] --> SEL[selection]
+  D --> SEL
+  R[SettingRow<br/>defaultOf] --> S
+  D -. drifted .-> B
+  D -. own copy .-> T
+  D -. own copy .-> R
+  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class D leak
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-2">After</div>
+      <pre class="mermaid">
+flowchart TB
+  subgraph V[" views: game-free, tested at their interface "]
+    RV[row view<br/>+ Reset value]
+    BV[button view<br/>runs · reason · save first]
+    CV[crumbs<br/>text · link · target]
+  end
+  P[panel draws] --> V
+  D[devbench<br/>JSON + args only] --> V
+  V --> S[(Store)]
+  classDef deep fill:#0f172a,color:#e2e8f0,stroke:#0f172a;
+  class RV,BV,CV deep
+      </pre>
+    </div>
+  </div>
+  <dl class="grid gap-3 text-sm">
+    <div><dt class="font-semibold inline">Problem.</dt> <dd class="inline">Devbench keeps its own copy of the panel's button, Reset and breadcrumb rules, and one has drifted: on an MCM mod with changes, devbench's <span class="font-mono">runButton</span> saves before a script (<span class="font-mono">MCDevBench.cpp:795</span>), the panel doesn't (<span class="font-mono">Buttons.cpp:50</span> checks <span class="font-mono">writesChangesAtOnce</span>). So e2e tests check devbench's rules, not the player's.</dd></div>
+    <div><dt class="font-semibold inline">Solution.</dt> <dd class="inline">Finish what the row view started: a button view, a Reset value in the row view, and a crumbs list. The panel draws from them; devbench reports and presses from them, left with JSON and argument parsing.</dd></div>
+  </dl>
+  <ul class="text-sm grid sm:grid-cols-2 gap-1 list-disc pl-5">
+    <li>Locality: one place per button rule</li>
+    <li>Leverage: e2e checks what the player sees</li>
+    <li>Button-help panel tests lose pixel presses</li>
+    <li>Devbench's copies deleted, not moved</li>
+  </ul>
+  <p class="text-xs text-slate-500">Evidence: 35 of devbench's 47 commits also touched <span class="font-mono">src/ui/</span>. Devbench has no unit tests. Also unshared: Reset hidden when the control can't show the default (<span class="font-mono">SettingRow.cpp:40</span>), the Developer crumb over a report.</p>
+</article>
+
+<!-- 2 -->
+<article id="c2" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="font-mono text-slate-400">02</span>
+    <h2 class="font-serif text-2xl">One walk of pages and rows in the config spec loader</h2>
+  </div>
+  <div class="flex flex-wrap gap-2 text-xs">
+    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">Strong</span>
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600"><li>src/spec/ConfigSpecLoader.cpp (3575 lines; #1 changed src file)</li></ul>
+  <div class="amber rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">Reopens the earlier review's "ConfigSpecLoader: big, but schema reading" and the deepening README's out-of-scope "splitting the loader by schema area". This is not a split by schema area: it is one recursion the loader already writes three times.</div>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">Before: three walks, each repeats the same steps</div>
+      <div class="space-y-2 text-xs">
+        <div class="border-l-4 border-red-400 bg-red-50 px-3 py-2"><span class="font-mono">loadItems / loadPage</span><div class="text-slate-500">readRow · intoRow · at.row · places</div></div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-3 py-2"><span class="font-mono">loadConditions / loadPageConditions</span><div class="text-slate-500">readRow · intoRow · at.row · <b>+ option sets</b></div></div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-3 py-2"><span class="font-mono">loadItemIds / loadPageItemIds</span><div class="text-slate-500">readRow · intoRow · at.row · places</div></div>
+        <div class="border-l-4 border-slate-300 bg-slate-50 px-3 py-2"><span class="font-mono">loadConfigSpec</span><div class="text-slate-500">front page + pages loop, ×3 (3405–3440)</div></div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">After: one walk, passes ride it</div>
+      <div class="deep rounded-lg p-4 space-y-2 text-xs">
+        <div class="lbl text-slate-400">page &amp; row walk</div>
+        <div class="text-slate-300">recursion · made sphere sections · row place · JSON path</div>
+        <div class="grid grid-cols-3 gap-2 pt-2">
+          <div class="border border-slate-500 seam rounded px-2 py-1 text-center">items</div>
+          <div class="border border-slate-500 seam rounded px-2 py-1 text-center">ids</div>
+          <div class="border border-slate-500 seam rounded px-2 py-1 text-center">conditions</div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mt-3">Optional: turn <span class="font-mono">cf.activationSphere</span> into its made section in a pre-pass, so no pass calls <span class="font-mono">readRow</span>.</p>
+    </div>
+  </div>
+  <dl class="grid gap-3 text-sm">
+    <div><dt class="font-semibold inline">Problem.</dt> <dd class="inline">Three hand-written walks share an unstated rule ("items are the content's rows, one each, in order"); whole-spec work lands in whichever walk is handy (option sets live in <span class="font-mono">loadConditions</span>).</dd></div>
+    <div><dt class="font-semibold inline">Solution.</dt> <dd class="inline">One walk inside the loader owns recursion, sphere sections and row places; each pass is what it does at a row.</dd></div>
+  </dl>
+  <ul class="text-sm grid sm:grid-cols-2 gap-1 list-disc pl-5">
+    <li>Locality: row places right by construction</li>
+    <li>New whole-spec pass = one addition</li>
+    <li>91 loader tests stay as the net</li>
+    <li>Two walk copies deleted</li>
+  </ul>
+</article>
+
+<!-- 3 -->
+<article id="c3" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="font-mono text-slate-400">03</span>
+    <h2 class="font-serif text-2xl">A game number as a stored type in the setting value rules</h2>
+  </div>
+  <div class="flex flex-wrap gap-2 text-xs">
+    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">Strong</span>
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">in-process</span>
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">small</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>src/spec/ConfigSpecStore.cpp (asType)</li>
+    <li>src/mcm/McmStore.cpp (typedValue, fromNumber)</li>
+    <li>src/model/SettingValues.h</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">Before: one Papyrus cast, two copies</div>
+      <table class="w-full text-xs">
+        <thead class="text-slate-400"><tr><th class="text-left font-normal pb-1">rule</th><th class="text-left font-normal">ConfigSpecStore</th><th class="text-left font-normal">McmStore</th></tr></thead>
+        <tbody class="font-mono">
+          <tr class="border-t"><td class="py-1 font-sans">number → stored type</td><td>asType · fNotEqual</td><td class="leak">typedValue · != 0.0f</td></tr>
+          <tr class="border-t"><td class="py-1 font-sans">switcher from a global</td><td>—</td><td class="leak">fromNumber · == 1.0f</td></tr>
+        </tbody>
+      </table>
+      <p class="text-xs text-slate-500 mt-2">The value while there is none differs on purpose (default first vs control's least) and stays per store.</p>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">After</div>
+      <div class="flex flex-col items-center gap-2 text-xs">
+        <div class="flex gap-2">
+          <div class="border border-slate-300 rounded px-2 py-1">ConfigSpecStore</div>
+          <div class="border border-slate-300 rounded px-2 py-1">McmStore</div>
+        </div>
+        <div class="text-slate-400">↓ ↓</div>
+        <div class="deep rounded-lg px-4 py-3 w-full">
+          <div class="lbl text-slate-400">setting value rules (model)</div>
+          <div class="text-slate-300 pt-1">same · canonical · problem · <b class="text-white">value as a stored type</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <dl class="grid gap-3 text-sm">
+    <div><dt class="font-semibold inline">Problem.</dt> <dd class="inline">Both stores cast a game number to a stored type with their own copy, and the MCM store's compares floats with <span class="font-mono">==</span> (<span class="font-mono">McmStore.cpp:106, 224</span>).</dd></div>
+    <div><dt class="font-semibold inline">Solution.</dt> <dd class="inline">The setting value rules answer "this value as a stored type"; both stores ask it.</dd></div>
+  </dl>
+  <ul class="text-sm grid sm:grid-cols-2 gap-1 list-disc pl-5">
+    <li>One Papyrus-cast rule, float rule kept</li>
+    <li>Tested without files</li>
+  </ul>
+</article>
+
+<!-- 4 -->
+<article id="c4" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="font-mono text-slate-400">04</span>
+    <h2 class="font-serif text-2xl">Option sets derive the choice, not the store</h2>
+  </div>
+  <div class="flex flex-wrap gap-2 text-xs">
+    <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">Worth exploring</span>
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>src/spec/ConfigSpecStore.cpp (7 setsOthers branches; 1568–1645)</li>
+    <li>src/model/OptionSets.cpp</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">Before: one rule across seven methods</div>
+      <div class="grid grid-cols-2 gap-1 text-xs font-mono">
+        <div class="border-l-4 border-red-400 bg-red-50 px-2 py-1">value()</div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-2 py-1">defaultValue()</div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-2 py-1">isDirty()</div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-2 py-1">set()</div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-2 py-1">discard()</div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-2 py-1">saved value</div>
+        <div class="border-l-4 border-red-400 bg-red-50 px-2 py-1">counts</div>
+        <div class="border-l-4 border-slate-300 bg-slate-50 px-2 py-1 text-slate-500">OptionSets: match one value</div>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">each opens with <span class="font-mono">if (setsOthers(setting))</span></p>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">After</div>
+      <div class="space-y-2 text-xs">
+        <div class="border border-slate-300 rounded px-3 py-2">ConfigSpecStore: one delegation per method; keeps preview and Save</div>
+        <div class="border-2 border-slate-500 seam rounded px-3 py-1 text-center text-slate-500">target reader: value · default · saved</div>
+        <div class="deep rounded-lg px-3 py-3">
+          <div class="lbl text-slate-400">option sets</div>
+          <div class="text-slate-300 pt-1">choice value · default · saved · dirty · what Discard touches · what a pick writes (alsoSets)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <dl class="grid gap-3 text-sm">
+    <div><dt class="font-semibold inline">Problem.</dt> <dd class="inline">The derivation reads only three things of the targets, yet it can be tested only through the store with files.</dd></div>
+    <div><dt class="font-semibold inline">Solution.</dt> <dd class="inline">Option sets answer the derived choice from a small reader of the targets; the store passes itself.</dd></div>
+  </dl>
+  <ul class="text-sm grid sm:grid-cols-2 gap-1 list-disc pl-5">
+    <li>Locality: alsoSets rules in one module</li>
+    <li>Derivation tests use a 3-method fake</li>
+  </ul>
+</article>
+
+<!-- 5 -->
+<article id="c5" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="font-mono text-slate-400">05</span>
+    <h2 class="font-serif text-2xl">Binding wording and editing rules in the model</h2>
+  </div>
+  <div class="flex flex-wrap gap-2 text-xs">
+    <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">Worth exploring</span>
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>src/ui/BindingEditor.cpp (972 lines)</li>
+    <li>src/ui/MenuControls.cpp</li>
+    <li>src/model/InputBindings.cpp</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">Before: mass of the binding editor</div>
+      <div class="flex items-end gap-6 h-40">
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-16 bg-red-200 border border-red-400" style="height:110px"></div>
+          <div class="text-[10px] text-slate-500 text-center">private rules<br/>in edit()</div>
+        </div>
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-16 bg-slate-200 border border-slate-400" style="height:40px"></div>
+          <div class="text-[10px] text-slate-500 text-center">drawing</div>
+        </div>
+        <div class="text-xs space-y-1 pb-6">
+          <div><span class="font-mono">handWords</span> ×2: <span class="leak">"any hand" / "either hand"</span></div>
+          <div><span class="font-mono">buttonOf</span> = <span class="font-mono">boundButton</span></div>
+          <div>3 pixel-press tests reach the rules</div>
+        </div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-3">After (as TransformTuning came out of AdjustInWorld)</div>
+      <div class="flex items-end gap-6 h-40">
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-16 deep rounded" style="height:120px"></div>
+          <div class="text-[10px] text-slate-500 text-center">InputBindings<br/>wording + edits</div>
+        </div>
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-16 bg-slate-200 border border-slate-400" style="height:40px"></div>
+          <div class="text-[10px] text-slate-500 text-center">editor draws</div>
+        </div>
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-16 bg-slate-200 border border-slate-400" style="height:30px"></div>
+          <div class="text-[10px] text-slate-500 text-center">Help page</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <dl class="grid gap-3 text-sm">
+    <div><dt class="font-semibold inline">Problem.</dt> <dd class="inline">The Help page and the editor word bindings differently, and the editing rules (what a button change does to the way) sit private in a 450-line <span class="font-mono">edit()</span>.</dd></div>
+    <div><dt class="font-semibold inline">Solution.</dt> <dd class="inline">Wording and edits move into InputBindings; the editor and Help page read them.</dd></div>
+  </dl>
+  <ul class="text-sm grid sm:grid-cols-2 gap-1 list-disc pl-5">
+    <li>One wording, Help and editor</li>
+    <li>Edit rules unit tested</li>
+  </ul>
+</article>
+
+<!-- 6 -->
+<article id="c6" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="font-mono text-slate-400">06</span>
+    <h2 class="font-serif text-2xl">Where the panel is, and its Back order</h2>
+  </div>
+  <div class="flex flex-wrap gap-2 text-xs">
+    <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-semibold">Speculative</span>
+    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600"><li>src/ui/FullPanel.cpp:300–700</li></ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-2">Before</div>
+      <pre class="mermaid">
+flowchart LR
+  subgraph F[" five fields "]
+    s[_selection]:::f
+    h[_helpShown]:::f
+    r[_report]:::f
+    rr[_returnToReport]:::f
+    l[_leaving]:::f
+  end
+  select & back & showHelp & openReport & leaveReport & showProblem & leave & close --> F
+  classDef f fill:#fee2e2,stroke:#dc2626;
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="lbl text-slate-400 mb-2">After</div>
+      <pre class="mermaid">
+flowchart TB
+  P[FullPanel<br/>side effects: session, search, page] --> N[navigation<br/>where · Back order]
+  classDef deep fill:#0f172a,color:#e2e8f0,stroke:#0f172a;
+  class N deep
+      </pre>
+    </div>
+  </div>
+  <dl class="grid gap-3 text-sm">
+    <div><dt class="font-semibold inline">Problem.</dt> <dd class="inline">The busiest file (65 commits) keeps where the panel is in five fields moved by eight methods.</dd></div>
+    <div><dt class="font-semibold inline">Solution.</dt> <dd class="inline">A navigation module owns the state and Back order; the panel keeps the side effects.</dd></div>
+  </dl>
+  <ul class="text-sm list-disc pl-5"><li>Locality only: panel tests already skip pixels here</li><li>Deletion test unclear: side effects stay behind</li></ul>
+</article>
+
+</section>
+
+<section class="rounded-xl border border-slate-200 bg-white p-6 space-y-2">
+  <h3 class="font-serif text-lg">Checked and left alone</h3>
+  <ul class="text-sm text-slate-600 list-disc pl-5 space-y-1">
+    <li>The three <span class="font-mono">valueText</span> functions (stores, NativeClients): different formats on purpose.</li>
+    <li>Setting type name tables in the two loaders: MCM's names really differ.</li>
+    <li>Activation spheres: already local to the loader; 02's pre-pass covers them.</li>
+    <li>SettingRow's per-type switch: no registries, by decision.</li>
+    <li>Action running in the two stores: genuinely differs.</li>
+    <li>GameMenu: thin; no caller goes around StoreSession.</li>
+    <li>As before: ClientCalls / NativeClients, McmStore vs ConfigSpecStore, TomlFile / IniFile / ModFile / LiveCopies, ConfigDefinition.h, Drawing.h.</li>
+  </ul>
+</section>
+
+<section id="top-recommendation" class="deep rounded-xl p-8 space-y-3">
+  <div class="lbl text-emerald-300">Top recommendation</div>
+  <h2 class="font-serif text-3xl text-white"><a href="#c1" class="underline decoration-emerald-400">01: Devbench as a thin adapter over the panel's views</a></h2>
+  <p class="text-slate-300">It already hides a real drift (an MCM script button saves first in devbench, not in the panel), so the e2e tests can pass while the player sees something else. It extends the row view seam that 07 proved, and it takes button-help tests off pixels. 03 is the quick follow-up: small, and it carries a float-compare fix.</p>
+</section>
+
+</main>
+</body>
+</html>

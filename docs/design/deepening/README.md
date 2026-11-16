@@ -1,8 +1,8 @@
 # Deepen the hot spots
 
-Eight changes that deepen the parts of the code that change most often. Each is implemented and reviewed on its own, and has its own file here. This README holds what they share: the problem, the test seams, the decisions that apply to all of them, and the order. It is outside the milestones of the [mod plan](../mod-plan.md).
+Six changes that deepen the parts of the code that change most often. Each is implemented and reviewed on its own, and has its own file here. This README holds what they share: the problem, the test seams, the decisions that apply to all of them, and the order. It is outside the milestones of the [mod plan](../mod-plan.md).
 
-Source: the [architecture review](../architecture-review.html), whose candidates 01–08 match the files here.
+Source: the [architecture review](architecture-review.html), whose candidates 01–06 match the files here.
 
 ## The changes
 
@@ -10,42 +10,39 @@ In the suggested order. A change's row is marked done when its commit lands.
 
 | Order | Change | Seam | Blocked by | Status |
 | --- | --- | --- | --- | --- |
-| 1 | [01. Setting value rules in one module per setting type](01-setting-value-rules.md) | A | | done |
-| 2 | [02. A store session module that orders the store's lifecycle calls](02-store-session.md) | B | | done |
-| 3 | [05. One walk for a page's pending marks](05-pending-marks.md) | A | | done |
-| 4 | [06. A search session module behind the panel](06-search-session.md) | B | | done |
-| 5 | [07. One row view for the panel and devbench, and Back owned by the mod page](07-row-view-and-back.md) | B | | done |
-| 6 | [08. A read part of the Store interface](08-store-read-interface.md) | A | 02 | done |
-| 7 | [03. A mod list module that owns the mods and their categories](03-mod-list.md) | B | | done |
-| 8 | [04. A game-free menu controller behind a port](04-menu-controller.md) | C | | done |
+| 1 | [01. Devbench reports and presses from the panel's views](01-devbench-views.md) | B | | |
+| 2 | [03. A game number as a stored type in the setting value rules](03-game-number-type.md) | A | | |
+| 3 | [02. One walk of pages and rows in the config spec loader](02-loader-walk.md) | C | | |
+| 4 | [04. Option sets work out the choice that sets other settings](04-option-sets.md) | A | | |
+| 5 | [05. Binding wording and editing rules in the model](05-binding-rules.md) | A | | |
+| 6 | [06. Where the panel is, and its Back order](06-panel-navigation.md) | B | | |
 
 ## Problem Statement
 
-The parts of Mods Config FO4 VR that change most often are the hardest to change safely. These are the panel, the menu, the two stores, the config spec loader and the devbench tool. Since v0.9 almost every feature has touched them.
+The panel, devbench, the config spec loader and the config spec store still change with almost every feature. Some of their rules are written out twice, and two copies already disagree:
 
-Adding a setting type, or a store feature such as option sets, `alsoSets`, `typedOption` or categories, means editing a dozen to twenty files:
-
-- cf.transform touched 17 source files.
-- The Categories page touched 21.
-- Choices that set other settings touched 13.
-
-The same rule is written out in several places, so bugs sit where the copies drift apart. The menu's rules for requests and reloads link the game, so no unit test reaches them. Many panel tests can reach a rule only by pressing pixels.
+- Devbench decides on its own whether a button saves first, whether a setting has a Reset and which breadcrumbs are links. For an MCM mod's script button it saves first, and the panel doesn't. The e2e tests check devbench's answer, not the player's.
+- The loader walks the pages and rows of a config spec three times, each walk repeating the made sections of activation spheres and the row places of problems.
+- The two stores each turn a game number into a stored type, and the MCM store compares floats with `==`.
+- The config spec store works out a choice that sets other settings in seven methods; it can be tested only through the store, with files.
+- The binding editor and the Help page word a binding differently, and the editor's rules for changing a binding are private to its drawing.
+- Where the panel is lives in five fields, moved by eight methods.
 
 ## Solution
 
-Deepen the hot spots so that each rule lives in one module and is tested through one interface. Nothing the player, a mod author or a native API client sees changes. The one exception is the suspected missing PageShown after a reload, which [02](02-store-session.md) checks and fixes if it is confirmed.
+Deepen each so that its rule lives in one module and is tested through one interface. Nothing the player, a mod author or a native API client sees changes. The exceptions are the drifted copies: devbench follows the panel (01), and the binding wording picks one form (05).
 
 ## Test seams
 
 Every change is tested at one of three seams. No other seams are added.
 
-- **A. The setting type modules in the model.** The existing color, transform, input binding and haptic modules, deepened, plus one entry point by setting type. Also the unsaved pages walk and the read part of the Store interface.
-- **B. The panel's existing interface.** Driven with the existing test panel and a store double that records each call it gets, in order. The store session, the search session, the mod page's Back and the mod list are private modules behind the panel, tested through it. The row view is a pure function of a setting and its store, which both the panel and devbench read, so it is tested at its own interface.
-- **C. A new game-free menu controller.** Behind one port, with a game adapter in the mod and a recording adapter in the tests. This is the only new seam.
+- **A. The model's modules:** the setting value rules, option sets and input bindings, through their free functions.
+- **B. The panel's interface and its views:** the row view and the new button view and breadcrumbs, each a pure function tested at its own interface; the panel through its existing queries and the test panel.
+- **C. The config spec loader's interface:** a config spec's text in, the mod and its problems out, as its tests drive it today.
 
 ## Decisions for every change
 
-- The behaviour the player, a mod author and a native API client see does not change.
+- The behaviour the player, a mod author and a native API client see does not change, except where a change says so.
 - The config spec schema, the native API header (and its identical copy in the framework) and the MCM handling do not change.
 - The MCM store and the config spec store keep their own behaviour (write at once vs pending changes). They are not merged.
 - New modules are plain: no registries or general machinery beyond what this mod's real cases need.
@@ -53,22 +50,16 @@ Every change is tested at one of three seams. No other seams are added.
 
 ## Testing for every change
 
-- **What a good test is.** It drives a module through its interface and checks what a caller observes: return values, what a store was told and in what order, what the panel shows, what the game adapter was asked to do. It never checks private state or which helper ran.
-- **Replace, don't layer.** When a rule moves into a deepened module, its tests move to that module's interface. Tests of the shallow pieces it absorbed are deleted.
-- **Regression net.** The existing loader, store and panel tests must pass unchanged at each step, except tests that read a removed copy directly.
-- **New panel tests** prefer the panel's queries over pressing pixels, and copy no layout constants.
+- **What a good test is.** It drives a module through its interface and checks what a caller observes. It never checks private state or which helper ran.
+- **Replace, don't layer.** When a rule moves into a deepened module, its tests move to that module's interface. Tests that reached it only through pixels or files are deleted where the new tests cover them.
+- **Regression net.** The existing loader, store and panel tests pass unchanged at each step, except tests that read a removed copy directly.
 - **e2e.** The pytest e2e tests through devbench are run by hand before a change is called done.
 
 ## Out of Scope
 
 - Merging the MCM store and the config spec store.
-- Splitting the config spec loader by schema area, beyond what [01](01-setting-value-rules.md) routes through its module.
+- Splitting the config spec loader by schema area.
 - Reorganising the shared drawing primitives.
 - Changing the settings model's data types, the config spec schema, the native API or MCM support.
 - New player-facing features or look changes.
 - Moving the existing panel tests off pixels wholesale.
-
-## Further Notes
-
-- The work spans many commits: ask the maintainer whether to use a branch before starting.
-- When all eight are done, the rules they settled live in the code, the components doc and the glossary, and this folder can be condensed as the finished work plans were.
