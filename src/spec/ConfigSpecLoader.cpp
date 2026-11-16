@@ -176,7 +176,7 @@ namespace
         std::vector<model::Problem> problems;
         Location at;
 
-        // the section each `cf.activationSphere` row was made into, as both readings of the rows read it
+        // the section each `cf.activationSphere` row was made into, as every reading of the rows reads it
         std::map<const Json*, Json> spheres;
 
         // the ids of its sections, spheres and buttons so far, in lower case, apart from its settings': no condition
@@ -3405,13 +3405,19 @@ namespace mods_config::spec
         // a setting that nothing says it of takes effect at a time the menu does not know
         const auto root = inherit(configSpec, Inherited{}, reading);
         mod.frontPage.items = loadItems(configSpec, root, reading);
-        loadConditions(configSpec, mod.frontPage.items, {}, reading);
-        if (const auto pages = configSpec.find("pages"); pages != configSpec.end() && pages->is_array()) {
+        const auto pages = configSpec.find("pages");
+        const bool hasPages = pages != configSpec.end() && pages->is_array();
+        if (hasPages) {
             for (std::size_t place = 0; place < pages->size(); ++place) {
                 const Into into(reading, "pages", place);
                 reading.at.pagePlaces.push_back(place);
                 mod.pages.push_back(loadPage((*pages)[place], root, reading));
             }
+        }
+
+        // the conditions and the ids, once every setting is read: a row can name one on any page
+        loadConditions(configSpec, mod.frontPage.items, {}, reading);
+        if (hasPages) {
             for (std::size_t place = 0; place < pages->size(); ++place) {
                 const Into into(reading, "pages", place);
                 reading.at.pagePlaces.push_back(place);
@@ -3419,7 +3425,7 @@ namespace mods_config::spec
             }
         }
         loadItemIds(configSpec, mod.frontPage.items, reading);
-        if (const auto pages = configSpec.find("pages"); pages != configSpec.end() && pages->is_array()) {
+        if (hasPages) {
             for (std::size_t place = 0; place < pages->size() && place < mod.pages.size(); ++place) {
                 const Into into(reading, "pages", place);
                 reading.at.pagePlaces.push_back(place);

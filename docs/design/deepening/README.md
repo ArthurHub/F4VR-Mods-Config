@@ -12,7 +12,7 @@ In the suggested order. A change's row is marked done when its commit lands.
 | --- | --- | --- | --- | --- |
 | 1 | [01. Devbench reports and presses from the panel's views](01-devbench-views.md) | B | | done |
 | 2 | [03. A game number as a stored type in the setting value rules](03-game-number-type.md) | A | | done |
-| 3 | [02. One walk of pages and rows in the config spec loader](02-loader-walk.md) | C | | |
+| 3 | [02. The config spec loader reads every page before any condition](02-loader-walk.md) | C | | done |
 | 4 | [04. Option sets work out the choice that sets other settings](04-option-sets.md) | A | | |
 | 5 | [05. Binding wording and editing rules in the model](05-binding-rules.md) | A | | |
 | 6 | [06. Where the panel is, and its Back order](06-panel-navigation.md) | B | | |
@@ -22,7 +22,7 @@ In the suggested order. A change's row is marked done when its commit lands.
 The panel, devbench, the config spec loader and the config spec store still change with almost every feature. Some of their rules are written out twice, and two copies already disagree:
 
 - Devbench decides on its own whether a button saves first, whether a setting has a Reset and which breadcrumbs are links. For an MCM mod's script button it saves first, and the panel doesn't. The e2e tests check devbench's answer, not the player's.
-- The loader walks the pages and rows of a config spec three times, each walk repeating the made sections of activation spheres and the row places of problems.
+- The loader walks the pages and rows of a config spec three times, and reads the front page's conditions before the pages: a front-page condition that names a page's setting is left out. One shared walk is not worth it yet, so 02 fixes only the order.
 - The two stores each turn a game number into a stored type, and the MCM store compares floats with `==`.
 - The config spec store works out a choice that sets other settings in seven methods; it can be tested only through the store, with files.
 - The binding editor and the Help page word a binding differently, and the editor's rules for changing a binding are private to its drawing.
@@ -30,7 +30,7 @@ The panel, devbench, the config spec loader and the config spec store still chan
 
 ## Solution
 
-Deepen each so that its rule lives in one module and is tested through one interface. Nothing the player, a mod author or a native API client sees changes. The exceptions are the drifted copies: devbench follows the panel (01), and the binding wording picks one form (05).
+Deepen each so that its rule lives in one module and is tested through one interface. Nothing the player, a mod author or a native API client sees changes. The exceptions are the drifted copies, devbench follows the panel (01) and the binding wording picks one form (05), and the loader's order (02): a front-page condition can name a setting on a page.
 
 ## Test seams
 

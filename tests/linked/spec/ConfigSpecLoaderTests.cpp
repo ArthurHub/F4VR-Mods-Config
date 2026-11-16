@@ -3162,6 +3162,31 @@ TEST_CASE("ConfigSpecLoader: what an option sets that is not a setting's value i
     CHECK(std::holds_alternative<model::FileStorage>(settings[2].storage));
 }
 
+TEST_CASE("ConfigSpecLoader: a condition and an option's sets on the front page name a setting on a page")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "valueType": "float", "id": "fHeight", "text": "Height", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+              "storage": { "path": ["Main", "fHeight"] }, "visibleWhen": { "setting": "bHolsters", "equals": true } },
+            { "type": "stepper", "valueType": "string", "id": "quality", "text": "Quality", "valueOptions": { "options": [
+                { "value": "on", "text": "On", "sets": { "bHolsters": true } },
+                { "value": "off", "text": "Off", "sets": { "bHolsters": false } } ] } } ],
+        "pages": [ { "pageDisplayName": "Body", "content": [
+            { "type": "switcher", "id": "bHolsters", "text": "Holsters", "default": false, "storage": { "path": ["Main", "bHolsters"] } } ] } ]
+    })");
+    CHECK(mod.problems.empty());
+    const auto& height = std::get<model::Setting>(mod.frontPage.items[0]);
+    REQUIRE(height.visibleWhen);
+    CHECK(height.visibleWhen->setting == "bHolsters");
+    const auto& quality = std::get<model::Setting>(mod.frontPage.items[1]);
+    REQUIRE(quality.valueOptions.options.size() == 2);
+    CHECK(setOn(quality.valueOptions.options[0], "bHolsters") == model::Value(true));
+    CHECK(setOn(quality.valueOptions.options[1], "bHolsters") == model::Value(false));
+}
+
 TEST_CASE("ConfigSpecLoader: an option's alsoSets are read as its sets are, and an option with alsoSets alone is never the value")
 {
     const auto mod = loaded(configSpecOf(R"(

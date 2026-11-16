@@ -1,6 +1,7 @@
 ## v1.0.1
 
 - For mod authors: after a config spec is read again from its live copy, its mod's native client is told `PageShown` for the page still on screen, as after any other selection.
+- For mod authors: a condition or an option's `sets` on a config spec's front page can name a setting on any page. It was reported as naming no setting, and left out.
 
 ## v1.0.0
 
