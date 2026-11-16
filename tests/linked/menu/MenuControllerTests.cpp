@@ -754,6 +754,18 @@ TEST_CASE("MenuController: the Config spec setting of the menu's own config spec
     CHECK(options.given == std::vector<std::string>{ " None", "MyMod My Mod", "Other Other" });
 }
 
+TEST_CASE("MenuController: a Categories row of the menu's own config spec offers the categories the player gave mods")
+{
+    // the menus of the tests before set mods too, and only the lasting one, which owns the client, adds their options
+    auto& menu = lastingMenu();
+    menu.folder.write("Categories.toml", "MyMod = \"Gameplay\"\n");
+    menu.controller.readCategoryChoices();
+    const api::SettingView setting{ .id = "category.MyMod", .valueType = api::ValueType::String };
+    RecordedOptions options;
+    REQUIRE(static_cast<api::IClient&>(api::ModsConfigFO4Client::get()).giveOptions(&setting, &options));
+    CHECK(std::ranges::find(options.given, "Gameplay Gameplay") != options.given.end());
+}
+
 TEST_CASE("MenuController: a Save of the menu's own config spec reads the player's categories again, which group the tree")
 {
     auto& menu = lastingMenu();

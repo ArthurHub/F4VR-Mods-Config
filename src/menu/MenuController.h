@@ -152,5 +152,9 @@ namespace mods_config::menu
 
         // a Save of the mod's own config spec, which can write the player's categories the frame update reads again
         bool _categoriesSaved = false;
+
+        // this controller put its handlers on the mod's own client, which keeps them for the whole run: only it adds the
+        // options of the Categories rows there too, so a controller that lives shorter leaves nothing that points at it
+        bool _ownsClient = false;
     };
 }

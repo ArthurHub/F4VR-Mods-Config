@@ -80,10 +80,12 @@ namespace mods_config::menu
     /**
      * Adds the options of its own config spec's Config spec setting to the mod's client of the native API, as any
      * CommonFramework mod adds its own: none first, then each config spec the menu lists, by its modName and its name,
-     * in their order. The framework connects the client at kPostLoad.
+     * in their order. The framework connects the client at kPostLoad. The client keeps the handlers for the whole run,
+     * so only the controller that lives as long calls it, and only that one adds the Categories rows' options in setMods.
      */
     void MenuController::registerOwnOptions()
     {
+        _ownsClient = true;
         // a Save of the mod's own config spec can write the player's categories, which the tree is grouped by again
         // from the frame update: the Save is told while the panel is drawn, and the client hears only its own
         api::ModsConfigFO4Client::get().subscribeToSaves([this](const api::Saved&) {
@@ -227,15 +229,17 @@ namespace mods_config::menu
         _port.dropImageTextures();
 
         // the rows of the Categories page of the mod's own config spec, which the mod list fills, take their options
-        // from its own client
-        for (const auto& mod : mods) {
-            api::ModsConfigFO4Client::get().addOptions(model::CATEGORY_SETTING_ID + mod.name, [this] {
-                std::vector<api::Option> options;
-                for (const auto& option : _fullPanel.modList().categoryOptions(_configSpecStore)) {
-                    options.push_back({ .value = std::get<std::string>(option.value), .text = option.text });
-                }
-                return options;
-            });
+        // from its own client, which only the controller that owns the client adds them to
+        if (_ownsClient) {
+            for (const auto& mod : mods) {
+                api::ModsConfigFO4Client::get().addOptions(model::CATEGORY_SETTING_ID + mod.name, [this] {
+                    std::vector<api::Option> options;
+                    for (const auto& option : _fullPanel.modList().categoryOptions(_configSpecStore)) {
+                        options.push_back({ .value = std::get<std::string>(option.value), .text = option.text });
+                    }
+                    return options;
+                });
+            }
         }
         _fullPanel.modList().setCategoryTable(std::move(categories));
         _fullPanel.setMods(std::move(mods));
