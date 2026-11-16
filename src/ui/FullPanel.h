@@ -158,6 +158,7 @@ namespace mods_config::ui
 
         bool openReport(std::size_t mod);
         bool showProblem(std::size_t mod, std::size_t problem);
+        bool pressLiveCopy(LiveCopyAction action);
         bool answerDialog(DialogAnswer answer);
 
         // whether the Help page is shown, over the selection, which it keeps

@@ -1,8 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
+#include <format>
+#include <fstream>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <variant>
@@ -34,6 +38,27 @@ namespace
     constexpr auto OTHER_MOD = R"({ "minSchemaVersion": 1, "modName": "Other", "displayName": "Other", "content": [] })";
 
     constexpr auto MOD_TOML = R"(Mods_Config\MyMod\MyMod.toml)";
+
+    // the installed spec.json of My Mod, in its folder of the config specs' folder
+    constexpr auto MY_MOD_SPEC = R"(Data\ModsConfigFO4\Config\MyMod\spec.json)";
+
+    /**
+     * My Mod's config spec with another name shown, as its author edits it.
+     */
+    std::string editedMyMod()
+    {
+        std::string text = MY_MOD;
+        const std::string name = R"("displayName": "My Mod")";
+        text.replace(text.find(name), name.size(), R"("displayName": "My Mod Edited")");
+        return text;
+    }
+
+    std::string readFile(const std::filesystem::path& path)
+    {
+        std::ostringstream text;
+        text << std::ifstream(path, std::ios::binary).rdbuf();
+        return text.str();
+    }
 
     model::Mod configSpecOf(const char* json)
     {
@@ -100,7 +125,7 @@ namespace
 
     /**
      * The menu controller over the recording game side, with the folders of a test of its own: the TOML file of
-     * My Mod in My Games, whose Scale is 1.25, and the mods My Mod and Other.
+     * My Mod in My Games, whose Scale is 1.25, My Mod's installed spec.json, and the mods My Mod and Other.
      */
     struct Menu
     {
@@ -117,7 +142,10 @@ namespace
         Menu()
         {
             writeScale("1.25");
-            controller.setMods({ configSpecOf(MY_MOD), configSpecOf(OTHER_MOD) }, {}, {});
+            folder.write(MY_MOD_SPEC, MY_MOD);
+            auto myMod = configSpecOf(MY_MOD);
+            myMod.folder = "MyMod";
+            controller.setMods({ std::move(myMod), configSpecOf(OTHER_MOD) }, {}, {});
             port.take();
         }
 
@@ -181,6 +209,52 @@ namespace
         void frame()
         {
             controller.onFrameUpdate();
+        }
+
+        const model::Mod& myMod() const
+        {
+            return controller.mods()[indexOf("MyMod")];
+        }
+
+        std::filesystem::path liveCopy() const
+        {
+            return folder.path / "Dev" / "MyMod" / "spec.json";
+        }
+
+        /**
+         * Writes My Mod's live copy as its author saves it, a while ago: one that was written just now is not read
+         * yet.
+         */
+        void writeLiveCopy(const std::string& text) const
+        {
+            std::ofstream(liveCopy(), std::ios::binary | std::ios::trunc) << text;
+            std::filesystem::last_write_time(liveCopy(), std::filesystem::file_time_type::clock::now() - std::chrono::seconds(1));
+        }
+
+        /**
+         * Saves My Mod's live copy, with the menu's next look for saved copies due.
+         */
+        void saveLiveCopy(const std::string& text)
+        {
+            writeLiveCopy(text);
+            port.time += std::chrono::seconds(1);
+        }
+
+        /**
+         * A press on a row of My Mod's live copy in its report, done in the frame update.
+         */
+        void pressLiveCopy(const ui::LiveCopyAction action)
+        {
+            REQUIRE(controller.fullPanel().openReport(indexOf("MyMod")));
+            REQUIRE(controller.fullPanel().pressLiveCopy(action));
+            frame();
+        }
+
+        const ui::LiveCopyRead& liveCopyRead()
+        {
+            const auto* read = controller.fullPanel().modList().liveCopyRead("MyMod");
+            REQUIRE(read);
+            return *read;
         }
     };
 }
@@ -416,4 +490,123 @@ TEST_CASE("MenuController: Exit on the wrist with unsaved changes shows the mini
     CHECK(menu.controller.fullPanel().isAsking());
     CHECK(menu.port.take() == Calls{ "showPanel", "hideWristButtons" });
     CHECK_FALSE(menu.controller.nativeClients().setPendingValue(&client, "scale", &scale));
+}
+
+TEST_CASE("MenuController: a live copy turned on is made of the installed spec.json and read in place of the mod")
+{
+    Menu menu;
+    menu.controller.open();
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
+    CHECK(readFile(menu.liveCopy()) == MY_MOD);
+    CHECK(menu.myMod().liveCopy == std::format(R"(My Games\Fallout4VR\Mods_Config\{}\Dev\MyMod\spec.json)", Version::PROJECT));
+    CHECK_FALSE(menu.liveCopyRead().failed);
+    CHECK_FALSE(menu.liveCopyRead().stale);
+
+    // off reads the installed spec.json again
+    menu.saveLiveCopy(editedMyMod());
+    menu.frame();
+    REQUIRE(menu.myMod().displayName == "My Mod Edited");
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOff);
+    CHECK(menu.myMod().displayName == "My Mod");
+    CHECK(menu.myMod().liveCopy.empty());
+}
+
+TEST_CASE("MenuController: a saved live copy is read again and replaces its mod in the list, which drops its unsaved changes")
+{
+    Menu menu;
+    menu.controller.open();
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
+    menu.controller.select({ .mod = menu.indexOf("MyMod") });
+    menu.changeScale();
+    REQUIRE(menu.scale() == 0.5f);
+
+    // the menu looks for saved copies every half second
+    menu.writeLiveCopy(editedMyMod());
+    menu.port.time += std::chrono::milliseconds(400);
+    menu.frame();
+    CHECK(menu.myMod().displayName == "My Mod");
+
+    menu.port.time += std::chrono::milliseconds(100);
+    menu.frame();
+    CHECK(menu.myMod().displayName == "My Mod Edited");
+    CHECK_FALSE(menu.liveCopyRead().failed);
+    CHECK(menu.controller.selection().mod == menu.indexOf("MyMod"));
+    CHECK(menu.scale() == 1.25f);
+
+    // once: it is not read again until it is saved again
+    menu.changeScale();
+    menu.port.time += std::chrono::seconds(1);
+    menu.frame();
+    CHECK(menu.scale() == 0.5f);
+}
+
+TEST_CASE("MenuController: a saved live copy is not read while Adjust in world tunes a transform, and is read after it")
+{
+    Menu menu;
+    menu.controller.open();
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
+    menu.port.adjusting = true;
+    menu.saveLiveCopy(editedMyMod());
+    menu.frame();
+    CHECK(menu.myMod().displayName == "My Mod");
+
+    menu.port.adjusting = false;
+    menu.frame();
+    CHECK(menu.myMod().displayName == "My Mod Edited");
+}
+
+TEST_CASE("MenuController: a live copy that cannot be read leaves its mod as it was read last, with the reason in its report")
+{
+    Menu menu;
+    menu.controller.open();
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
+    menu.saveLiveCopy(editedMyMod());
+    menu.frame();
+    REQUIRE(menu.myMod().displayName == "My Mod Edited");
+
+    menu.saveLiveCopy("{ not json");
+    menu.frame();
+    CHECK(menu.liveCopyRead().failed);
+    CHECK(menu.myMod().displayName == "My Mod Edited");
+}
+
+TEST_CASE("MenuController: Overwrite copies the installed spec.json over the live copy and reads it, and does nothing while the copy is off")
+{
+    Menu menu;
+    menu.controller.open();
+    menu.pressLiveCopy(ui::LiveCopyAction::Overwrite);
+    CHECK_FALSE(std::filesystem::exists(menu.liveCopy()));
+
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
+    menu.saveLiveCopy(editedMyMod());
+    menu.frame();
+    REQUIRE(menu.myMod().displayName == "My Mod Edited");
+    menu.pressLiveCopy(ui::LiveCopyAction::Overwrite);
+    CHECK(readFile(menu.liveCopy()) == MY_MOD);
+    CHECK(menu.myMod().displayName == "My Mod");
+}
+
+TEST_CASE("MenuController: Reload reads the live copy again, and its report tells an installed spec.json that is newer and different")
+{
+    Menu menu;
+    menu.controller.open();
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
+    std::filesystem::last_write_time(menu.liveCopy(), std::filesystem::file_time_type::clock::now() - std::chrono::seconds(2));
+    menu.folder.write(MY_MOD_SPEC, editedMyMod());
+
+    menu.pressLiveCopy(ui::LiveCopyAction::Reload);
+    CHECK(menu.liveCopyRead().stale);
+    CHECK(menu.myMod().displayName == "My Mod");
+}
+
+TEST_CASE("MenuController: Open and Show give the live copy to the desktop's shell")
+{
+    Menu menu;
+    menu.controller.open();
+    menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
+    menu.port.take();
+
+    menu.pressLiveCopy(ui::LiveCopyAction::Open);
+    menu.pressLiveCopy(ui::LiveCopyAction::Show);
+    CHECK(menu.port.take() == Calls{ "openFile " + menu.liveCopy().string(), "showInFolder " + menu.liveCopy().string() });
 }

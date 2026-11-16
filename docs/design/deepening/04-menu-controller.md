@@ -81,7 +81,7 @@ The menu splits into a game-free menu controller and the game side. The controll
   - the Developer and Help-opened writes;
   - the Developer config spec options;
   - a Save of the menu's own mod regrouping the tree.
-- **No drawing.** The controller's tests don't draw the panel. The draw handler's feedback (the pattern a press played, or else the pulse) is covered by the panel's own tests of `hapticPlayed` and `pressActed`, devbench and the headset. A press on Adjust in world needs a drawn panel, so its start is covered the same way.
+- **No drawing.** The controller's tests don't draw the panel. The draw handler's feedback (the pattern a press played, or else the pulse) is covered by the panel's own tests of `hapticPlayed` and `pressActed`, devbench and the headset. A press on Adjust in world needs a drawn panel, so its start is covered the same way. A press on a live copy's row is driven through the panel's `pressLiveCopy`, as `openReport` drives its report.
 - **Prior art:** the config spec store tests (per-test folders and files), the native clients tests (recording callbacks), and the test file helpers.
 - **e2e.** The e2e tests through devbench are run by hand, and the menu is tried in the headset before this is called done.
 

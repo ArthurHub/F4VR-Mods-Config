@@ -531,6 +531,19 @@ namespace mods_config::ui
     }
 
     /**
+     * Asks the menu what a press on a row of the live copy of the config spec whose report is shown asks, as the
+     * report's row does. Returns false while no report is shown.
+     */
+    bool FullPanel::pressLiveCopy(const LiveCopyAction action)
+    {
+        if (!_report || action == LiveCopyAction::None || !_liveCopyAction) {
+            return false;
+        }
+        _liveCopyAction(mods()[*_report].folder, action);
+        return true;
+    }
+
+    /**
      * Shows the row of a problem of a config spec's report, as a press on the problem does: the mod at the row's
      * page, with the row scrolled into view in the focus ring, and the sections it is in opened. Back then
      * shows the report again. A row the page does not have is not focused. Returns whether it shows the page.
