@@ -7,6 +7,7 @@
 #include <format>
 
 #include "common/CommonUtils.h"
+#include "model/TextMarkup.h"
 
 namespace mods_config::spec
 {
@@ -60,6 +61,15 @@ namespace mods_config::spec
     {
         const auto found = value.find(key);
         return found != value.end() && found->is_string() ? found->get<std::string>() : std::string();
+    }
+
+    /**
+     * Whether a key is true. False for a value with no such key, or with one that holds something else than a bool.
+     */
+    bool getBool(const Json& value, const char* key)
+    {
+        const auto found = value.find(key);
+        return found != value.end() && found->is_boolean() && found->get<bool>();
     }
 
     /**
@@ -294,5 +304,22 @@ namespace mods_config::spec
             before += (i == 0 ? "" : ".") + file->path[i];
         }
         return before.empty() ? file->path.back() : std::format("{}:{}", file->path.back(), before);
+    }
+
+    /**
+     * A row's translated label, without tags where `html` is true, for search and the help line.
+     */
+    std::string getLabel(const Json& row, ConfigSpecReading& reading)
+    {
+        auto text = readShownText(row, "text", reading);
+        return getBool(row, "html") ? model::removeMarkup(text) : text;
+    }
+
+    /**
+     * A label's styled pieces on one line where `html` is true. Other labels are drawn plain.
+     */
+    std::vector<model::TextRun> getLabelRuns(const Json& row, const model::Translations& translations)
+    {
+        return getBool(row, "html") ? model::markupRuns(getShownText(row, "text", translations)) : std::vector<model::TextRun>{};
     }
 }
