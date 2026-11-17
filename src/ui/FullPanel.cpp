@@ -824,7 +824,6 @@ namespace mods_config::ui
         const auto crumbs = breadcrumbs();
         auto titleBar = drawTitleBar(crumbs, _highlightHelp);
         const auto crumbPressed = titleBar.pressed ? crumbs[*titleBar.pressed].target : std::nullopt;
-        std::optional<Selection> pressed;
         // the body stands a little further from the title bar than a row from a row
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
 
@@ -836,95 +835,12 @@ namespace mods_config::ui
         auto tree =
             _modTree.draw(mods(), _selection, bodyHeight, selectedStore(), _search.query().empty() ? nullptr : &search, _modList.groups().empty() ? nullptr : &_modList.groups());
         _onSearchField = tree.searchPointed;
-        if (tree.pressed) {
-            pressed = tree.pressed;
-        }
 
         ImGui::SameLine(0.0f, theme::SPACE_4);
-        if (_pageChanged) {
-            // the pages share the pane, which would keep the place the page before was scrolled to
-            ImGui::SetNextWindowScroll(ImVec2(0.0f, _scrollTo.value_or(0.0f)));
-            _pageChanged = false;
-        }
-        std::optional<PointedRow> pointed;
-        const model::Item* pointedItem = nullptr;
-        bool onPage = false;
+        auto content = drawContent(bodyHeight);
+        point(content.pointedItem);
 
-        // a problem of a report whose row a press asks to show, and a config spec whose report a press opens: after
-        // the panel is drawn, as a press on a row of the tree is
-        struct ReportProblem
-        {
-            std::size_t mod = 0;
-            std::size_t problem = 0;
-        };
-
-        std::optional<ReportProblem> problem;
-        std::optional<std::size_t> report;
-        if (ImGui::BeginChild("Content", ImVec2(0.0f, bodyHeight))) {
-            onPage = ImGui::IsWindowHovered();
-            if (_helpShown) {
-                drawHelpPage(_controls);
-            } else if (_report) {
-                const auto& mod = mods()[*_report];
-                auto drawn = _configSpecReport.draw(mod, _modList.changeableRead(mod.folder));
-                pointed = std::move(drawn.pointed);
-                _pressActed = drawn.pressActed;
-                if (drawn.pressed) {
-                    problem = ReportProblem{ .mod = *_report, .problem = *drawn.pressed };
-                }
-                if (drawn.liveCopy != LiveCopyAction::None && _liveCopyAction) {
-                    _liveCopyAction(mod.folder, drawn.liveCopy);
-                }
-                // a place the pane is scrolled to is set again once the report is laid out in it, as ImGui keeps it
-                // within the height of the page the pane had before
-                if (_scrollTo) {
-                    ImGui::SetScrollY(*_scrollTo);
-                    _scrollTo.reset();
-                }
-                _reportScroll = ImGui::GetScrollY();
-            } else if (_selection.mod && isFiltered() && !_search.showsRows(*_selection.mod, *selectedPage())) {
-                drawSearchText(_search.hiddenByConditions(*_selection.mod, mods()[*_selection.mod], *selectedPage()));
-            } else if (_selection.mod) {
-                const auto& mod = mods()[*_selection.mod];
-                PageSearch pageSearch;
-                if (const auto* found = _search.foundIn(*_selection.mod)) {
-                    pageSearch = { .query = &_search.query(), .found = &found->rows, .filtered = isFiltered() };
-                }
-                auto drawn = _modPage.draw(*selectedPage(), storeOf(mod), _thumbstickSideValue, pageSearch);
-                if (pageSearch.filtered) {
-                    _search.pointWhileFiltered(drawn.pointedItem);
-                }
-                pointed = std::move(drawn.pointed);
-                // the item stays in the gap between two rows, as the help line's row does
-                pointedItem = drawn.pointedItem ? drawn.pointedItem : onPage ? _session.pointed() : nullptr;
-                _pressActed = drawn.pressActed;
-                _hapticPlayed = drawn.haptic;
-                if (drawn.adjust && _menuActions.adjustTransform) {
-                    _menuActions.adjustTransform(*drawn.adjust, *storeOf(mod));
-                }
-            } else if (isFiltered()) {
-                drawSearchText(false);
-            } else {
-                auto drawn = _frontPage.draw(frontPageMods());
-                pointed = std::move(drawn.pointed);
-                _pressActed = drawn.pressActed;
-                if (_developerView.enabled) {
-                    auto developer = _developer.draw(mods(), _developerView, _thumbstickSideValue, _scrollToDeveloper);
-                    _scrollToDeveloper = false;
-                    report = developer.opened;
-                    if (developer.pointed) {
-                        pointed = std::move(developer.pointed);
-                    }
-                    if (developer.changed && _writeDeveloperView) {
-                        _writeDeveloperView(_developerView);
-                    }
-                    _pressActed = _pressActed || developer.pressActed;
-                }
-            }
-        }
-        ImGui::EndChild();
-        point(pointedItem);
-
+        auto pointed = std::move(content.pointed);
         if (!pointed) {
             pointed = std::move(tree.pointed);
         }
@@ -933,28 +849,147 @@ namespace mods_config::ui
         }
         if (pointed) {
             _helpLine.show(*pointed);
-        } else if (!onPage) {
+        } else if (!content.onPage) {
             _helpLine.clear();
         }
         updateStatus();
         drawFooter(ImVec2(bodyPos.x, bodyPos.y + bodyHeight + theme::SPACE_3));
 
-        // a press on the row or the breadcrumb of what is shown already changes nothing, and neither does Help
-        // on the Help page
-        bool acted = false;
-        if (pressed) {
-            acted = select(*pressed);
-        } else if (crumbPressed) {
-            acted = pressCrumb(*crumbPressed);
-        } else if (problem) {
-            acted = showProblem(problem->mod, problem->problem);
-        } else if (report) {
-            acted = openReport(*report);
-        } else {
-            acted = pressButton(titleBar.pressedButton);
-        }
+        const bool acted = actOnPress(tree, crumbPressed, titleBar.pressedButton, content);
         _pressActed = _pressActed || acted || tree.searchActed;
         drawDialog();
+    }
+
+    /**
+     * Draws the content's pane beside the tree, of the given height: the Help page, a config spec's report, the
+     * selected mod's page or what the search says in place of it, or the menu's front page.
+     */
+    FullPanel::ContentDrawn FullPanel::drawContent(const float height)
+    {
+        if (_pageChanged) {
+            // the pages share the pane, which would keep the place the page before was scrolled to
+            ImGui::SetNextWindowScroll(ImVec2(0.0f, _scrollTo.value_or(0.0f)));
+            _pageChanged = false;
+        }
+        ContentDrawn content;
+        if (ImGui::BeginChild("Content", ImVec2(0.0f, height))) {
+            const bool onPage = ImGui::IsWindowHovered();
+            if (_helpShown) {
+                drawHelpPage(_controls);
+            } else if (_report) {
+                content = drawReport();
+            } else if (_selection.mod && isFiltered() && !_search.showsRows(*_selection.mod, *selectedPage())) {
+                drawSearchText(_search.hiddenByConditions(*_selection.mod, mods()[*_selection.mod], *selectedPage()));
+            } else if (_selection.mod) {
+                content = drawSelectedPage(onPage);
+            } else if (isFiltered()) {
+                drawSearchText(false);
+            } else {
+                content = drawFrontPage();
+            }
+            content.onPage = onPage;
+        }
+        ImGui::EndChild();
+        return content;
+    }
+
+    /**
+     * Draws the report of the config spec that is shown and does what a press on its live copy asks. A press on a
+     * problem's row is shown after the panel is drawn.
+     */
+    FullPanel::ContentDrawn FullPanel::drawReport()
+    {
+        const auto& mod = mods()[*_report];
+        auto drawn = _configSpecReport.draw(mod, _modList.changeableRead(mod.folder));
+        ContentDrawn content{ .pointed = std::move(drawn.pointed) };
+        _pressActed = drawn.pressActed;
+        if (drawn.pressed) {
+            content.problem = ContentDrawn::ReportProblem{ .mod = *_report, .problem = *drawn.pressed };
+        }
+        if (drawn.liveCopy != LiveCopyAction::None && _liveCopyAction) {
+            _liveCopyAction(mod.folder, drawn.liveCopy);
+        }
+        // a place the pane is scrolled to is set again once the report is laid out in it, as ImGui keeps it
+        // within the height of the page the pane had before
+        if (_scrollTo) {
+            ImGui::SetScrollY(*_scrollTo);
+            _scrollTo.reset();
+        }
+        _reportScroll = ImGui::GetScrollY();
+        return content;
+    }
+
+    /**
+     * Draws the selected page of the selected mod, with what the search found on it, and does what a press on an
+     * Adjust button asks. The pointed item stays in the gap between two rows while the ray is on the pane, as the
+     * help line's row does.
+     */
+    FullPanel::ContentDrawn FullPanel::drawSelectedPage(const bool onPage)
+    {
+        const auto& mod = mods()[*_selection.mod];
+        PageSearch pageSearch;
+        if (const auto* found = _search.foundIn(*_selection.mod)) {
+            pageSearch = { .query = &_search.query(), .found = &found->rows, .filtered = isFiltered() };
+        }
+        auto drawn = _modPage.draw(*selectedPage(), storeOf(mod), _thumbstickSideValue, pageSearch);
+        if (pageSearch.filtered) {
+            _search.pointWhileFiltered(drawn.pointedItem);
+        }
+        ContentDrawn content{ .pointed = std::move(drawn.pointed) };
+        content.pointedItem = drawn.pointedItem ? drawn.pointedItem : onPage ? _session.pointed() : nullptr;
+        _pressActed = drawn.pressActed;
+        _hapticPlayed = drawn.haptic;
+        if (drawn.adjust && _menuActions.adjustTransform) {
+            _menuActions.adjustTransform(*drawn.adjust, *storeOf(mod));
+        }
+        return content;
+    }
+
+    /**
+     * Draws the menu's front page, and its Developer section while the developer view is on. A press that opens
+     * a config spec's report is done after the panel is drawn.
+     */
+    FullPanel::ContentDrawn FullPanel::drawFrontPage()
+    {
+        auto drawn = _frontPage.draw(frontPageMods());
+        ContentDrawn content{ .pointed = std::move(drawn.pointed) };
+        _pressActed = drawn.pressActed;
+        if (_developerView.enabled) {
+            auto developer = _developer.draw(mods(), _developerView, _thumbstickSideValue, _scrollToDeveloper);
+            _scrollToDeveloper = false;
+            content.report = developer.opened;
+            if (developer.pointed) {
+                content.pointed = std::move(developer.pointed);
+            }
+            if (developer.changed && _writeDeveloperView) {
+                _writeDeveloperView(_developerView);
+            }
+            _pressActed = _pressActed || developer.pressActed;
+        }
+        return content;
+    }
+
+    /**
+     * Does what the press of this frame asks, once all of the panel is drawn: a row of the tree, a breadcrumb, a
+     * problem of a report, a report to open, or a button of the title bar, the first that was pressed. A press on
+     * the row or the breadcrumb of what is shown already changes nothing, and neither does Help on the Help page.
+     * Returns whether it did something.
+     */
+    bool FullPanel::actOnPress(const TreeDrawn& tree, const std::optional<CrumbTarget>& crumbPressed, const TitleButton pressedButton, const ContentDrawn& content)
+    {
+        if (tree.pressed) {
+            return select(*tree.pressed);
+        }
+        if (crumbPressed) {
+            return pressCrumb(*crumbPressed);
+        }
+        if (content.problem) {
+            return showProblem(content.problem->mod, content.problem->problem);
+        }
+        if (content.report) {
+            return openReport(*content.report);
+        }
+        return pressButton(pressedButton);
     }
 
     /**

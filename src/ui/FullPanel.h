@@ -212,6 +212,33 @@ namespace mods_config::ui
             std::optional<std::size_t> report;
         };
 
+        /**
+         * What the drawing of the content tells, which the panel acts on once all of it is drawn, as it does a press
+         * on a row of the tree.
+         */
+        struct ContentDrawn
+        {
+            // the row the ray is on, for the help line, and the item of the mod's page it is on, which stays in the
+            // gap between two rows
+            std::optional<PointedRow> pointed;
+            const model::Item* pointedItem = nullptr;
+
+            // the ray is on the content's pane
+            bool onPage = false;
+
+            // a problem of a report whose row a press asks to show, by the mod's place and the problem's
+            struct ReportProblem
+            {
+                std::size_t mod = 0;
+                std::size_t problem = 0;
+            };
+
+            std::optional<ReportProblem> problem;
+
+            // the config spec whose report a press on the Developer section opens, by its place among the mods
+            std::optional<std::size_t> report;
+        };
+
         model::Store* storeOf(const model::Mod& mod) const;
         Selection existing(const Selection& selection) const;
         Selection available(const Selection& selection) const;
@@ -223,6 +250,11 @@ namespace mods_config::ui
         void updateSearch();
         void showWhole();
         void drawSearchText(bool hiddenByConditions);
+        ContentDrawn drawContent(float height);
+        ContentDrawn drawReport();
+        ContentDrawn drawSelectedPage(bool onPage);
+        ContentDrawn drawFrontPage();
+        bool actOnPress(const TreeDrawn& tree, const std::optional<CrumbTarget>& crumbPressed, TitleButton pressedButton, const ContentDrawn& content);
         void pageShown();
         bool pressButton(TitleButton button);
         void drawFooter(const ImVec2& pos);
