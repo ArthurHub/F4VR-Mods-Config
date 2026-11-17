@@ -385,6 +385,41 @@ namespace
     }
 
     /**
+     * Runs `read` on each page of a config spec's `pages`, with the page and its place among them, while the reading is
+     * at the page. Nothing for a config spec with no pages.
+     */
+    template <typename Read>
+    void forEachPage(const Json& configSpec, ConfigSpecReading& reading, Read read)
+    {
+        const auto pages = configSpec.find("pages");
+        if (pages == configSpec.end() || !pages->is_array()) {
+            return;
+        }
+        for (std::size_t place = 0; place < pages->size(); ++place) {
+            const Into into(reading, "pages", place);
+            reading.at.pagePlaces.push_back(place);
+            read((*pages)[place], place);
+        }
+    }
+
+    /**
+     * Reads what can name a setting of any page, once every setting of the config spec is read: the conditions and the
+     * warnings of the rows of the front page and of every page, and then the ids of their sections, spheres and buttons,
+     * which no setting's id can be.
+     */
+    void loadConditionsAndIds(const Json& configSpec, model::Mod& mod, ConfigSpecReading& reading)
+    {
+        loadConditions(configSpec, mod.frontPage.items, {}, reading);
+        forEachPage(configSpec, reading, [&](const Json& page, const std::size_t place) {
+            loadPageConditions(page, mod.pages[place], reading);
+        });
+        loadItemIds(configSpec, mod.frontPage.items, reading);
+        forEachPage(configSpec, reading, [&](const Json& page, const std::size_t place) {
+            loadPageItemIds(page, mod.pages[place], reading);
+        });
+    }
+
+    /**
      * A path as UTF-8 text for the log. A path's own string() throws on a name the system's code page lacks.
      */
     std::string toLogText(const std::filesystem::path& path)
@@ -547,33 +582,10 @@ namespace mods_config::spec
         // a setting that nothing says it of takes effect at a time the menu does not know
         const auto root = inherit(configSpec, Inherited{}, reading);
         mod.frontPage.items = loadItems(configSpec, root, reading);
-        const auto pages = configSpec.find("pages");
-        const bool hasPages = pages != configSpec.end() && pages->is_array();
-        if (hasPages) {
-            for (std::size_t place = 0; place < pages->size(); ++place) {
-                const Into into(reading, "pages", place);
-                reading.at.pagePlaces.push_back(place);
-                mod.pages.push_back(loadPage((*pages)[place], root, reading));
-            }
-        }
-
-        // the conditions and the ids, once every setting is read: a row can name one on any page
-        loadConditions(configSpec, mod.frontPage.items, {}, reading);
-        if (hasPages) {
-            for (std::size_t place = 0; place < pages->size(); ++place) {
-                const Into into(reading, "pages", place);
-                reading.at.pagePlaces.push_back(place);
-                loadPageConditions((*pages)[place], mod.pages[place], reading);
-            }
-        }
-        loadItemIds(configSpec, mod.frontPage.items, reading);
-        if (hasPages) {
-            for (std::size_t place = 0; place < pages->size() && place < mod.pages.size(); ++place) {
-                const Into into(reading, "pages", place);
-                reading.at.pagePlaces.push_back(place);
-                loadPageItemIds((*pages)[place], mod.pages[place], reading);
-            }
-        }
+        forEachPage(configSpec, reading, [&](const Json& page, std::size_t) {
+            mod.pages.push_back(loadPage(page, root, reading));
+        });
+        loadConditionsAndIds(configSpec, mod, reading);
         mod.files = std::move(reading.files);
         // the conditions are read after every row, and their problems are put in their places
         std::ranges::stable_sort(reading.problems, isBefore);
