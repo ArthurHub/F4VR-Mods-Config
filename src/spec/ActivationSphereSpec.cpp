@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <variant>
 
 #include "StorageSpec.h"
@@ -288,6 +289,27 @@ namespace mods_config::spec
         }
 
         /**
+         * Lays the object a sphere's `keys` gives a made row by its name over the row, where it gives one: each of its
+         * fields the row can have, of which `valueOptions` adds to the row's. A field it cannot have is reported and left out.
+         */
+        void applyOwnFields(Json& row, const Json& keys, const std::string_view name, const std::span<const std::string_view> fields, ConfigSpecReading& reading)
+        {
+            const auto own = keys.find(std::string(name));
+            if (own == keys.end() || !own->is_object()) {
+                return;
+            }
+            const Into into(reading, row[MADE_ROW_PATH].get_ref<const std::string&>());
+            checkFields(*own, fields, reading);
+            for (const auto& [field, value] : own->items()) {
+                if (field == "valueOptions") {
+                    row[field].merge_patch(value);
+                } else if (std::ranges::find(fields, field) != fields.end()) {
+                    row[field] = value;
+                }
+            }
+        }
+
+        /**
          * The row of a key of a sphere: the framework's, with what its object in `keys` gives over it, of which `valueOptions`
          * adds to the key's. A key with another that it depends on has that condition too. The framework's files of a key
          * that is a choice of them are in the folders of the config spec's mod, as the framework ships them.
@@ -308,17 +330,7 @@ namespace mods_config::spec
                 row["valueOptions"]["options"] = sphereStyleOptions();
             }
 
-            if (const auto own = keys.find(name); own != keys.end() && own->is_object()) {
-                const Into into(reading, row[MADE_ROW_PATH].get_ref<const std::string&>());
-                checkFields(*own, SPHERE_KEY_FIELDS, reading);
-                for (const auto& [field, value] : own->items()) {
-                    if (field == "valueOptions") {
-                        row[field].merge_patch(value);
-                    } else if (std::ranges::find(SPHERE_KEY_FIELDS, field) != SPHERE_KEY_FIELDS.end()) {
-                        row[field] = value;
-                    }
-                }
-            }
+            applyOwnFields(row, keys, name, SPHERE_KEY_FIELDS, reading);
             if (!key.control.empty() && !isHiddenKey(keys, key.control)) {
                 const auto id = sphereKeyId(section, key.control);
                 if (key.control.starts_with('k')) {
@@ -424,17 +436,7 @@ namespace mods_config::spec
                 option("binding", "Binding", std::format("The icons of its bindings show {}, in the icon's place.", bindingWhen), "never", bindingOn, 0.0, 1.25),
                 option("both", "Icon and binding", bothHelp, iconOn, bindingOn, 0.65, 1.0) });
 
-            if (const auto own = keys.find(SPHERE_ICONS); own != keys.end() && own->is_object()) {
-                const Into into(reading, row[MADE_ROW_PATH].get_ref<const std::string&>());
-                checkFields(*own, SPHERE_ICONS_FIELDS, reading);
-                for (const auto& [field, value] : own->items()) {
-                    if (field == "valueOptions") {
-                        row[field].merge_patch(value);
-                    } else if (std::ranges::find(SPHERE_ICONS_FIELDS, field) != SPHERE_ICONS_FIELDS.end()) {
-                        row[field] = value;
-                    }
-                }
-            }
+            applyOwnFields(row, keys, SPHERE_ICONS, SPHERE_ICONS_FIELDS, reading);
             return row;
         }
 
