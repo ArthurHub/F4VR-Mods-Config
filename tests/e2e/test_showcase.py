@@ -193,11 +193,12 @@ def test_when_a_change_takes_effect(show):
     after_save = menu.setting("After Save")
     assert menu.set(after_save["id"], not after_save["value"])["tag"], "a pending change tells when it takes effect"
     menu.discard()
-    restarts = next(mod for mod in menu.mods() if mod["name"] == CONFIG_SPEC_SHOWCASE)["restarts"]
     restart = menu.setting("After a restart")
     menu.set(restart["id"], not restart["value"])
-    menu.save()
-    assert next(mod for mod in menu.mods() if mod["name"] == CONFIG_SPEC_SHOWCASE)["restarts"] == restarts + 1
+    status = menu.save()["session"]["status"]
+    assert status["look"] == "restart" and "1 change takes effect" in status["text"], "the Save tells its change takes effect after a restart"
+    # the front page counts each setting saved since the game started once, so an earlier run's Save of it already counts
+    assert next(mod for mod in menu.mods() if mod["name"] == CONFIG_SPEC_SHOWCASE)["restarts"] >= 1, "the front page tells to restart"
 
 
 def test_conditions(show):
