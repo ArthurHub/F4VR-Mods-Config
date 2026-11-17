@@ -1,6 +1,6 @@
-"""The session the end-to-end tests run in. devbench's pytest plugin enters the game in QASmoke, checks the mod's build,
-FRIK and Immersive Flashlight, backs up the files a Save writes and writes the report; this conftest adds the mods the
-menu must list, the menu itself, and a picture of the panel at the end of each test."""
+"""The session the end-to-end tests run in. devbench's pytest plugin enters the game (a new one in CTest, or the one
+loaded), checks the mod's build, FRIK and Immersive Flashlight, backs up the files a Save writes and writes the report;
+this conftest adds the mods the menu must list, the menu itself, and a picture of the panel at the end of each test."""
 
 import re
 from pathlib import Path
@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from devbench import DevbenchError, ModTool, close_dialogs
+from devbench.games.fallout4 import ANY_CELL
 from devbench.testing import Area, Config, Dependency
 from menu import MOD_TOOL, Menu
 
@@ -56,6 +57,10 @@ DEVBENCH = Config(
         ("mygames", "FRIK_Config/*"),
     ],
     log="ModsConfigFO4VR.log",
+    # a game started from the main menu is in CTest, an empty test cell; a game already loaded runs where it is, as the
+    # tests need no cell of their own
+    cell="CTest",
+    cells=ANY_CELL,
     # the areas, by the file of their tests, in the order they run and the page shows them. Each file's tests carry its
     # marker (-m <marker>); perf runs only when asked for (pytest_collection_modifyitems)
     areas={
@@ -133,8 +138,8 @@ def _check_installed(bench):
 
 @pytest.fixture(scope="session")
 def game(game):
-    """The plugin's game (in QASmoke, the mod's build checked, the files backed up), with every mod the tests need
-    listed; the menu is closed, its changes discarded, before the plugin puts the files back."""
+    """The plugin's game (in CTest or the cell loaded, the mod's build checked, the files backed up), with every mod the
+    tests need listed; the menu is closed, its changes discarded, before the plugin puts the files back."""
     _check_installed(game)
     yield game
     Menu(game).close_all()

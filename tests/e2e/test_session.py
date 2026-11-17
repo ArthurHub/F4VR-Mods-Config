@@ -2,6 +2,7 @@
 left, and a config spec's pending changes are discarded with their previews (docs/design/architecture.md)."""
 
 from devbench import close_dialogs, console, open_menus, wait_until
+from conftest import DEVBENCH
 from devbench.games import fallout4
 from stored import file_value, stored_as
 from test_sweep import candidates
@@ -16,7 +17,7 @@ def wait_for_game(game, report):
         menus = open_menus(game)
         return "HUDMenu" in menus and "MainMenu" not in menus and "LoadingMenu" not in menus
 
-    wait_until(in_game, 300, interval=1, what="the game in QASmoke")
+    wait_until(in_game, 300, interval=1, what=f"the game in {DEVBENCH.cell}")
     report.dialogs.extend(fallout4.settle(game).dialogs)
 
 
@@ -27,7 +28,7 @@ def test_a_loading_screen_ends_the_session(menu, game, events, report):
     menu.set(row["id"], new)
     assert game.tool("frik", action="config", section="Fallout4VRBody", key="fPlayerBodyOffsetForwardStanding")["overridden"]
 
-    console(game, "coc qasmoke")
+    console(game, f"coc {DEVBENCH.cell}")
     events.wait("menu.closed", timeout=60)
     assert not any(event for event in events.all("dialog.asked")), "a loading screen closes the menu without asking"
     wait_for_game(game, report)
