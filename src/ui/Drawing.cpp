@@ -722,6 +722,43 @@ namespace mods_config::ui
     }
 
     /**
+     * The top of a popup of a height beside a box it is of, in a window: under the box, or over it where the window has
+     * no room under it, or else at the bottom of the window, never above its top. A popup in the page so never covers the
+     * title bar and the footer.
+     */
+    float popupTop(const ImRect& box, const float height, const ImRect& window)
+    {
+        if (box.Max.y + height <= window.Max.y) {
+            return box.Max.y;
+        }
+        if (box.Min.y - height >= window.Min.y) {
+            return box.Min.y - height;
+        }
+        return (std::max)(window.Min.y, window.Max.y - height);
+    }
+
+    /**
+     * Begins the popup of an editor of a row, as the binding, the color and the transform editors are: of a width and a
+     * height, centered on the row as far as the page lets it, under or over the row as `popupTop` places it, padded and
+     * outlined in `green`. Returns whether its content is drawn, which ends with `ImGui::EndPopup`.
+     */
+    bool beginRowEditor(const ImGuiID id, const ImRect& row, const float width, const float height)
+    {
+        const auto& page = ImGui::GetCurrentWindow()->InnerRect;
+        const float left = std::clamp(std::floor(row.GetCenter().x - width * 0.5f), page.Min.x, (std::max)(page.Min.x, page.Max.x - width));
+        ImGui::SetNextWindowPos(ImVec2(left, popupTop(row, height, page)));
+        ImGui::SetNextWindowSize(ImVec2(width, height));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_4, theme::SPACE_4));
+        ImGui::PushStyleColor(ImGuiCol_Border, theme::color::GREEN);
+        const bool shown = ImGui::BeginPopupEx(id,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar |
+                ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+        return shown;
+    }
+
+    /**
      * Begins a dialog, as the design system's ConfirmDialog has it: a modal popup of ImGui in the middle of the panel,
      * which dims the panel behind it and takes every press, with a border of its color. It is opened while it is
      * asked, and closed as it is not, as after Back: ImGui opens and closes a popup inside a frame. Returns whether

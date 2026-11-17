@@ -169,6 +169,8 @@ namespace mods_config::ui
     void drawButtonRing(const ImRect& box, ImU32 color);
     bool iconButton(const char* id, const ImRect& box, bool& pointed);
     bool button(const char* label, const ImRect& box, ButtonLook look);
+    float popupTop(const ImRect& box, float height, const ImRect& window);
+    bool beginRowEditor(ImGuiID id, const ImRect& row, float width, float height);
     bool beginDialog(const char* id, bool asked, ImU32 border);
     int dialogButtons(std::span<const DialogButton> buttons);
     void drawTextIn(const ImRect& box, std::string_view text, ImU32 color, float align, float padding = 0.0f);

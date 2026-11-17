@@ -157,12 +157,7 @@ namespace
         const float headerHeight = header ? LIST_HEADER_HEIGHT + theme::BORDER_FRAME + LIST_GAP : 0.0f;
         const float actionRoom = action ? ACTION_GAP : 0.0f;
         const float height = (std::min)(shown * (theme::CONTROL_HEIGHT + LIST_GAP) - LIST_GAP + LIST_PADDING * 2.0f + headerHeight + actionRoom, page.GetHeight());
-        float top = page.Max.y - height;
-        if (box.Max.y + height <= page.Max.y) {
-            top = box.Max.y;
-        } else if (box.Min.y - height >= page.Min.y) {
-            top = box.Min.y - height;
-        }
+        const float top = ui::popupTop(box, height, page);
         return { box.Min.x, top, box.Max.x, top + height };
     }
 

@@ -155,6 +155,15 @@ namespace
         ui::drawText(left, right, top, height, color, text);
         ImGui::PopFont();
     }
+
+    /**
+     * The box of a swatch at its place in a line of them, from the line's left.
+     */
+    ImRect swatchBox(const float left, const float top, const std::size_t place)
+    {
+        const float x = left + static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_2);
+        return ImRect(x, top, x + theme::CONTROL_HEIGHT, top + theme::CONTROL_HEIGHT);
+    }
 }
 
 namespace mods_config::ui
@@ -169,6 +178,39 @@ namespace mods_config::ui
             stepped.valueOptions = model::ValueOptions{ .min = 0.0f, .max = 255.0f, .step = 1.0f };
         }
     }
+
+    /**
+     * The editor of a color as one frame draws it: its setting and store, where its parts are, where the ray is, and what
+     * the frame tells.
+     */
+    struct ColorEditor::Frame
+    {
+        const model::Setting& setting;
+        model::Store& store;
+        ColorEdited& edited;
+
+        // the setting has an alpha, which has its channel's line and the alphas of its presets
+        const bool alpha;
+
+        // the content's left and right, the top of the header, of the picker and the channels under it, and of the footer
+        const float contentLeft;
+        const float contentRight;
+        const float headerTop;
+        const float bodyTop;
+        const float footerTop;
+
+        // the ray is on the editor, and where it is
+        const bool hovered;
+        const ImVec2 mouse;
+
+        /**
+         * Tells the help line of the part the ray is on: its name and its help.
+         */
+        void point(const std::string_view name, std::string help)
+        {
+            edited.pointed = PointedRow{ .text = std::string(name), .help = std::move(help) };
+        }
+    };
 
     /**
      * Opens the editor of a color with a press on its row, and draws it while it is open, with the color the row had:
@@ -206,27 +248,8 @@ namespace mods_config::ui
         }
         _openSeen = true;
 
-        const bool alpha = setting.valueOptions.alpha;
-        const auto& presets = setting.valueOptions.presets;
-        const float height = EDITOR_HEIGHT + (presets.empty() ? 0.0f : PRESETS_HEIGHT);
-        const auto& page = ImGui::GetCurrentWindow()->InnerRect;
-        const float left = std::clamp(std::floor(row.GetCenter().x - EDITOR_WIDTH * 0.5f), page.Min.x, (std::max)(page.Min.x, page.Max.x - EDITOR_WIDTH));
-        float top = (std::max)(page.Min.y, page.Max.y - height);
-        if (row.Max.y + height <= page.Max.y) {
-            top = row.Max.y;
-        } else if (row.Min.y - height >= page.Min.y) {
-            top = row.Min.y - height;
-        }
-        ImGui::SetNextWindowPos(ImVec2(left, top));
-        ImGui::SetNextWindowSize(ImVec2(EDITOR_WIDTH, height));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_4, theme::SPACE_4));
-        ImGui::PushStyleColor(ImGuiCol_Border, theme::color::GREEN);
-        const bool shown = ImGui::BeginPopupEx(id,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-        if (!shown) {
+        const float height = EDITOR_HEIGHT + (setting.valueOptions.presets.empty() ? 0.0f : PRESETS_HEIGHT);
+        if (!beginRowEditor(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
         if (_cancel) {
@@ -239,185 +262,240 @@ namespace mods_config::ui
         }
 
         const auto origin = ImGui::GetWindowPos();
-        const float contentLeft = origin.x + theme::SPACE_4;
-        const float contentRight = origin.x + EDITOR_WIDTH - theme::SPACE_4;
         const float headerTop = origin.y + theme::SPACE_4;
-        const float bodyTop = headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3;
-        const bool hovered = ImGui::IsWindowHovered();
-        const auto& mouse = ImGui::GetIO().MousePos;
-        const auto point = [&](const std::string_view name, std::string help) {
-            edited.pointed = PointedRow{ .text = std::string(name), .help = std::move(help) };
-        };
+        Frame frame{ .setting = setting,
+            .store = store,
+            .edited = edited,
+            .alpha = setting.valueOptions.alpha,
+            .contentLeft = origin.x + theme::SPACE_4,
+            .contentRight = origin.x + EDITOR_WIDTH - theme::SPACE_4,
+            .headerTop = headerTop,
+            .bodyTop = headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3,
+            .footerTop = origin.y + height - theme::SPACE_4 - theme::CONTROL_HEIGHT,
+            .hovered = ImGui::IsWindowHovered(),
+            .mouse = ImGui::GetIO().MousePos };
 
-        // the header: the setting's name, and the color as it was and as it is, a press on the first giving it back
-        const float nowLeft = contentRight - BIG_SWATCH_WIDTH;
-        const float swatchTop = headerTop + (theme::CONTROL_HEIGHT - BIG_SWATCH_HEIGHT) * 0.5f;
-        const ImRect now(nowLeft, swatchTop, contentRight, swatchTop + BIG_SWATCH_HEIGHT);
+        const auto now = editHeader(frame);
+        editPicker(frame);
+        editChannels(frame);
+        editPresets(frame);
+        editBasics(frame);
+        // Now, as the color is after the changes of this frame
+        drawSwatch(now, _color, frame.alpha);
+        drawFooter(frame);
+        ImGui::EndPopup();
+        return edited;
+    }
+
+    /**
+     * The header: the setting's name, and the color as it was and as it is, a press on Before giving the first back.
+     * Returns the box of Now, which is drawn once the color has the changes of the frame.
+     */
+    ImRect ColorEditor::editHeader(Frame& frame)
+    {
+        const float nowLeft = frame.contentRight - BIG_SWATCH_WIDTH;
+        const float swatchTop = frame.headerTop + (theme::CONTROL_HEIGHT - BIG_SWATCH_HEIGHT) * 0.5f;
+        const ImRect now(nowLeft, swatchTop, frame.contentRight, swatchTop + BIG_SWATCH_HEIGHT);
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
         const float nowLabelLeft = nowLeft - theme::SPACE_2 - textWidth("Now");
         const float beforeRight = nowLabelLeft - theme::SPACE_4;
         const float beforeLabelLeft = beforeRight - BIG_SWATCH_WIDTH - theme::SPACE_2 - textWidth("Before");
         ImGui::PopFont();
         const ImRect before(beforeRight - BIG_SWATCH_WIDTH, swatchTop, beforeRight, swatchTop + BIG_SWATCH_HEIGHT);
-        drawText(contentLeft, beforeLabelLeft - theme::SPACE_3, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
-        drawDetail("Before", beforeLabelLeft, before.Min.x, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
-        drawDetail("Now", nowLabelLeft, now.Min.x, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
-        const auto beforeColor = model::colorOf(setting, _before).value_or(model::colorBase(setting));
+        drawText(frame.contentLeft,
+            beforeLabelLeft - theme::SPACE_3,
+            frame.headerTop,
+            theme::CONTROL_HEIGHT,
+            theme::color::GREEN,
+            model::resolveClientText(frame.setting.text, &frame.store));
+        drawDetail("Before", beforeLabelLeft, before.Min.x, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
+        drawDetail("Now", nowLabelLeft, now.Min.x, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
+        const auto beforeColor = model::colorOf(frame.setting, _before).value_or(model::colorBase(frame.setting));
         ImGui::SetCursorScreenPos(before.Min);
         if (ImGui::InvisibleButton("before", before.GetSize())) {
-            store.set(setting, _before);
-            start(setting, _before);
-            edited.pulse = true;
+            frame.store.set(frame.setting, _before);
+            start(frame.setting, _before);
+            frame.edited.pulse = true;
         }
-        drawSwatch(before, beforeColor, alpha);
+        drawSwatch(before, beforeColor, frame.alpha);
         if (ImGui::IsItemHovered()) {
             drawOutline(before.Min, before.Max, theme::color::GREEN);
-            point("Before", "The color when the editor opened. Press it to go back to it.");
+            frame.point("Before", "The color when the editor opened. Press it to go back to it.");
         }
+        return now;
+    }
 
-        // the picker of the red, the green and the blue, which the trigger drags in its square and its hue bar
+    /**
+     * The picker of the red, the green and the blue, which the trigger drags in its square and its hue bar. Its color is
+     * set to the nearest bytes, which the file writes.
+     */
+    void ColorEditor::editPicker(Frame& frame)
+    {
         std::array color{ _color.r, _color.g, _color.b, 1.0f };
-        ImGui::SetCursorScreenPos(ImVec2(contentLeft, bodyTop));
+        ImGui::SetCursorScreenPos(ImVec2(frame.contentLeft, frame.bodyTop));
         ImGui::SetNextItemWidth(PICKER_WIDTH);
         const bool picked = ImGui::ColorPicker4("##picker",
             color.data(),
             ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_PickerHueBar | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_NoInputs |
                 ImGuiColorEditFlags_NoLabel);
         if (ImGui::IsItemActivated()) {
-            edited.pulse = true;
+            frame.edited.pulse = true;
         }
         if (picked) {
-            // the picker's color to the nearest bytes, which the file writes
             const auto bytes = render::Color{ color[0], color[1], color[2], 1.0f }.bytes();
             _color = render::Color::rgba(bytes[0], bytes[1], bytes[2], _color.bytes()[3]);
-            apply(setting, store, true, false);
+            apply(frame.setting, frame.store, true, false);
         }
-        if (hovered && ImRect(contentLeft, bodyTop, contentLeft + PICKER_WIDTH, bodyTop + PICKER_HEIGHT).Contains(mouse)) {
-            point("Color", "Drag in the square for how strong and how bright the color is, and in the bar for its hue.");
+        if (frame.hovered && ImRect(frame.contentLeft, frame.bodyTop, frame.contentLeft + PICKER_WIDTH, frame.bodyTop + PICKER_HEIGHT).Contains(frame.mouse)) {
+            frame.point("Color", "Drag in the square for how strong and how bright the color is, and in the bar for its hue.");
         }
+    }
 
-        // a line for each channel: its name, its track and its value, which the trigger drags and the thumbstick steps
-        const float channelsLeft = contentRight - CHANNELS_WIDTH;
-        const std::size_t count = alpha ? 4 : 3;
+    /**
+     * A line for each channel, beside the picker, the alpha's for a setting that has one.
+     */
+    void ColorEditor::editChannels(Frame& frame)
+    {
+        const std::size_t count = frame.alpha ? 4 : 3;
         _sliders.startFrame(_thumbstickSideValue);
-        for (std::size_t i = 0; i < count; ++i) {
-            const float lineTop = bodyTop + static_cast<float>(i) * theme::ROW_PITCH;
-            const ImRect line(channelsLeft, lineTop, contentRight, lineTop + theme::CONTROL_HEIGHT);
-            const auto valueBox = controlBox(contentRight - theme::VALUE_WIDTH, lineTop, theme::VALUE_WIDTH);
-            const float trackLeft = channelsLeft + CHANNEL_LABEL_WIDTH + theme::SPACE_2;
-            const ImRect track(trackLeft, lineTop, valueBox.Min.x - theme::SPACE_2, lineTop + theme::CONTROL_HEIGHT);
-            const int current = _color.bytes()[i];
-
-            ImGui::PushID(static_cast<int>(i));
-            ImGui::SetCursorScreenPos(track.Min);
-            ImGui::InvisibleButton("track", track.GetSize());
-            // the window is not hovered while the track is held, and the ray stays on its line then
-            const bool pointed = line.Contains(mouse) && (hovered || ImGui::IsItemActive());
-            if (ImGui::IsItemActivated()) {
-                _dragged = i;
-                edited.pulse = true;
-            }
-            if (_dragged == i && ImGui::IsItemActive()) {
-                if (const int value = valueAt(track, mouse.x); value != current) {
-                    _color = withChannel(_color, i, value);
-                    apply(setting, store, i < 3, i == 3);
-                }
-            } else if (_dragged == i) {
-                _dragged.reset();
-            }
-            // the thumbstick steps the channel the ray is on, as it steps a setting's slider
-            bool write = false;
-            bool pulse = false;
-            const float stepped = _sliders.edit(_stepped[i], track.Max.x, lineTop, SliderRow{ .pointed = pointed && !_dragged }, static_cast<float>(current), write, pulse);
-            if (write) {
-                _color = withChannel(_color, i, static_cast<int>(stepped));
-                apply(setting, store, i < 3, i == 3);
-                edited.pulse = true;
-            }
-            ImGui::PopID();
-
-            if (pointed) {
-                ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
-                drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
-                point(CHANNELS[i].name, std::string(CHANNELS[i].help));
-            }
-            drawDetail(CHANNELS[i].name, channelsLeft, trackLeft, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN);
-            const int byte = _color.bytes()[i];
-            drawTrack(track, _color, i, _dragged == i);
-            drawGrab(track, byte, _dragged == i);
-            drawFrame(valueBox);
-            drawTextIn(valueBox, std::format("{}", byte), theme::color::GREEN, 1.0f, theme::SPACE_3);
+        for (std::size_t channel = 0; channel < count; ++channel) {
+            editChannel(frame, channel);
         }
         _sliders.endFrame();
+    }
 
-        // a swatch a press on which sets its color: its red, green and blue, and its alpha where it has one and the
-        // setting has an alpha. One with no alpha keeps the color's, and is drawn opaque
-        const auto preset = [&](const int place, const ImRect& box, const std::array<int, 3>& rgb, const std::optional<int> presetAlpha, const std::string_view name) {
-            const bool hasAlpha = alpha && presetAlpha;
-            const auto color = render::Color::rgba(rgb[0], rgb[1], rgb[2], hasAlpha ? *presetAlpha : _color.bytes()[3]);
-            ImGui::PushID(place);
-            ImGui::SetCursorScreenPos(box.Min);
-            if (ImGui::InvisibleButton("preset", box.GetSize())) {
-                _color = color;
-                apply(setting, store, true, hasAlpha);
-                edited.pulse = true;
-            }
-            const bool over = ImGui::IsItemHovered();
-            ImGui::PopID();
-            drawSwatch(box, color, hasAlpha);
-            if (over) {
-                drawOutline(box.Min, box.Max, theme::color::GREEN);
-                point(name.empty() ? "Preset" : name, std::format("{}. Press it to set the color.", model::colorNumbers(color, hasAlpha)));
-            }
-        };
-        const auto swatchBox = [](const float left, const float top, const std::size_t place) {
-            const float x = left + static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_2);
-            return ImRect(x, top, x + theme::CONTROL_HEIGHT, top + theme::CONTROL_HEIGHT);
-        };
+    /**
+     * The line of a channel: its name, its track and its value, which the trigger drags and the thumbstick steps while the
+     * ray is on the line.
+     */
+    void ColorEditor::editChannel(Frame& frame, const std::size_t channel)
+    {
+        const float channelsLeft = frame.contentRight - CHANNELS_WIDTH;
+        const float lineTop = frame.bodyTop + static_cast<float>(channel) * theme::ROW_PITCH;
+        const ImRect line(channelsLeft, lineTop, frame.contentRight, lineTop + theme::CONTROL_HEIGHT);
+        const auto valueBox = controlBox(frame.contentRight - theme::VALUE_WIDTH, lineTop, theme::VALUE_WIDTH);
+        const float trackLeft = channelsLeft + CHANNEL_LABEL_WIDTH + theme::SPACE_2;
+        const ImRect track(trackLeft, lineTop, valueBox.Min.x - theme::SPACE_2, lineTop + theme::CONTROL_HEIGHT);
+        const int current = _color.bytes()[channel];
 
-        // the config spec's presets, in a line under the picker
-        const float presetsTop = bodyTop + PICKER_HEIGHT + theme::SPACE_3;
+        ImGui::PushID(static_cast<int>(channel));
+        ImGui::SetCursorScreenPos(track.Min);
+        ImGui::InvisibleButton("track", track.GetSize());
+        // the window is not hovered while the track is held, and the ray stays on its line then
+        const bool pointed = line.Contains(frame.mouse) && (frame.hovered || ImGui::IsItemActive());
+        if (ImGui::IsItemActivated()) {
+            _dragged = channel;
+            frame.edited.pulse = true;
+        }
+        if (_dragged == channel && ImGui::IsItemActive()) {
+            if (const int value = valueAt(track, frame.mouse.x); value != current) {
+                _color = withChannel(_color, channel, value);
+                apply(frame.setting, frame.store, channel < 3, channel == 3);
+            }
+        } else if (_dragged == channel) {
+            _dragged.reset();
+        }
+        // the thumbstick steps the channel the ray is on, as it steps a setting's slider
+        bool write = false;
+        bool pulse = false;
+        const float stepped = _sliders.edit(_stepped[channel], track.Max.x, lineTop, SliderRow{ .pointed = pointed && !_dragged }, static_cast<float>(current), write, pulse);
+        if (write) {
+            _color = withChannel(_color, channel, static_cast<int>(stepped));
+            apply(frame.setting, frame.store, channel < 3, channel == 3);
+            frame.edited.pulse = true;
+        }
+        ImGui::PopID();
+
+        if (pointed) {
+            ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
+            drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
+            frame.point(CHANNELS[channel].name, std::string(CHANNELS[channel].help));
+        }
+        drawDetail(CHANNELS[channel].name, channelsLeft, trackLeft, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN);
+        const int byte = _color.bytes()[channel];
+        drawTrack(track, _color, channel, _dragged == channel);
+        drawGrab(track, byte, _dragged == channel);
+        drawFrame(valueBox);
+        drawTextIn(valueBox, std::format("{}", byte), theme::color::GREEN, 1.0f, theme::SPACE_3);
+    }
+
+    /**
+     * The config spec's presets, in a line under the picker.
+     */
+    void ColorEditor::editPresets(Frame& frame)
+    {
+        const auto& presets = frame.setting.valueOptions.presets;
+        const float presetsTop = frame.bodyTop + PICKER_HEIGHT + theme::SPACE_3;
         ImGui::PushID("presets");
         for (std::size_t i = 0; i < presets.size(); ++i) {
-            preset(static_cast<int>(i), swatchBox(contentLeft, presetsTop, i), presets[i].rgb, presets[i].alpha, presets[i].text);
+            editSwatch(frame, static_cast<int>(i), swatchBox(frame.contentLeft, presetsTop, i), presets[i].rgb, presets[i].alpha, presets[i].text);
         }
         ImGui::PopID();
+    }
 
-        // the footer: the basics, and Cancel and Done, under a rule
-        const float footerTop = origin.y + height - theme::SPACE_4 - theme::CONTROL_HEIGHT;
-        const float ruleY = footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(contentLeft, ruleY), ImVec2(contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
+    /**
+     * The rule over the footer, and the basics at its left, which every color has.
+     */
+    void ColorEditor::editBasics(Frame& frame)
+    {
+        const float ruleY = frame.footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
         ImGui::PushID("basics");
         for (std::size_t i = 0; i < BASICS.size(); ++i) {
-            preset(static_cast<int>(i), swatchBox(contentLeft, footerTop, i), BASICS[i].rgb, std::nullopt, BASICS[i].name);
+            editSwatch(frame, static_cast<int>(i), swatchBox(frame.contentLeft, frame.footerTop, i), BASICS[i].rgb, std::nullopt, BASICS[i].name);
         }
         ImGui::PopID();
+    }
 
-        // Now, as the color is after the changes of this frame
-        drawSwatch(now, _color, alpha);
+    /**
+     * A swatch a press on which sets its color: its red, green and blue, and its alpha where it has one and the setting
+     * has an alpha. One with no alpha keeps the color's, and is drawn opaque.
+     */
+    void ColorEditor::editSwatch(Frame& frame, const int place, const ImRect& box, const std::array<int, 3>& rgb, const std::optional<int> presetAlpha, const std::string_view name)
+    {
+        const bool hasAlpha = frame.alpha && presetAlpha;
+        const auto color = render::Color::rgba(rgb[0], rgb[1], rgb[2], hasAlpha ? *presetAlpha : _color.bytes()[3]);
+        ImGui::PushID(place);
+        ImGui::SetCursorScreenPos(box.Min);
+        if (ImGui::InvisibleButton("preset", box.GetSize())) {
+            _color = color;
+            apply(frame.setting, frame.store, true, hasAlpha);
+            frame.edited.pulse = true;
+        }
+        const bool over = ImGui::IsItemHovered();
+        ImGui::PopID();
+        drawSwatch(box, color, hasAlpha);
+        if (over) {
+            drawOutline(box.Min, box.Max, theme::color::GREEN);
+            frame.point(name.empty() ? "Preset" : name, std::format("{}. Press it to set the color.", model::colorNumbers(color, hasAlpha)));
+        }
+    }
 
-        // Cancel and Done, at the right of the footer
-        const auto done = controlBox(contentRight - FOOTER_BUTTON_WIDTH, footerTop, FOOTER_BUTTON_WIDTH);
-        const auto cancelBox = controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, footerTop, FOOTER_BUTTON_WIDTH);
+    /**
+     * Cancel and Done, at the right of the footer: Cancel gives back the color the editor opened with, and Done keeps it.
+     * Both close the editor.
+     */
+    void ColorEditor::drawFooter(Frame& frame)
+    {
+        const auto done = controlBox(frame.contentRight - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
+        const auto cancelBox = controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
         if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
-            store.set(setting, _before);
+            frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
-            edited.pulse = true;
+            frame.edited.pulse = true;
         }
-        if (hovered && cancelBox.Contains(mouse)) {
-            point("Cancel", "Give back the color it had as the editor opened.");
+        if (frame.hovered && cancelBox.Contains(frame.mouse)) {
+            frame.point("Cancel", "Give back the color it had as the editor opened.");
         }
         if (button("Done", done, ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
-            edited.pulse = true;
+            frame.edited.pulse = true;
         }
-        if (hovered && done.Contains(mouse)) {
-            point("Done", "Keep the color.");
+        if (frame.hovered && done.Contains(frame.mouse)) {
+            frame.point("Done", "Keep the color.");
         }
-        ImGui::EndPopup();
-        return edited;
     }
 
     /**

@@ -3,6 +3,7 @@
 #include <array>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -47,8 +48,18 @@ namespace mods_config::ui
         void reset();
 
     private:
+        struct Frame;
+
         void start(const model::Setting& setting, const std::string& text);
         void apply(const model::Setting& setting, model::Store& store, bool rgb, bool alpha);
+        ImRect editHeader(Frame& frame);
+        void editPicker(Frame& frame);
+        void editChannels(Frame& frame);
+        void editChannel(Frame& frame, std::size_t channel);
+        void editPresets(Frame& frame);
+        void editBasics(Frame& frame);
+        void editSwatch(Frame& frame, int place, const ImRect& box, const std::array<int, 3>& rgb, std::optional<int> presetAlpha, std::string_view name);
+        void drawFooter(Frame& frame);
 
         // the color setting whose editor is open, and none
         const model::Setting* _open = nullptr;

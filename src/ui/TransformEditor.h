@@ -49,7 +49,11 @@ namespace mods_config::ui
         void reset();
 
     private:
+        struct Frame;
+
         void start(const model::Setting& setting, const std::string& text);
+        void editAxis(Frame& frame, std::size_t axis, float lineTop, const std::optional<model::TransformTable>& saved);
+        void drawFooter(Frame& frame);
 
         // the transform setting whose editor is open, and none
         const model::Setting* _open = nullptr;

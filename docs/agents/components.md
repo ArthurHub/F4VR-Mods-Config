@@ -48,7 +48,7 @@ Nothing in `src/ui/` touches the game, so the tests draw it. Looks follow the [d
 | **HelpLine** | [src/ui/HelpLine.h](../../src/ui/HelpLine.h) / [.cpp](../../src/ui/HelpLine.cpp) | The footer's help line: the pointed row's help with its tags, or the session status when no row is pointed. |
 | **UnsavedDialog** | [src/ui/UnsavedDialog.h](../../src/ui/UnsavedDialog.h) / [.cpp](../../src/ui/UnsavedDialog.cpp) | The unsaved-changes dialog (Cancel / Discard / Save, or Revert / Keep for MCM). |
 | **ConfirmDialog** | [src/ui/ConfirmDialog.h](../../src/ui/ConfirmDialog.h) / [.cpp](../../src/ui/ConfirmDialog.cpp) | A button's confirmation, including the Save-and-run variant. |
-| **Drawing** | [src/ui/Drawing.h](../../src/ui/Drawing.h) / [.cpp](../../src/ui/Drawing.cpp) | Shared drawing primitives: wrapped/marked text, marks and tags, dialogs (`beginDialog`, `dialogButtons`), folding headings, value looks (`ValueLook`). |
+| **Drawing** | [src/ui/Drawing.h](../../src/ui/Drawing.h) / [.cpp](../../src/ui/Drawing.cpp) | Shared drawing primitives: wrapped/marked text, marks and tags, dialogs (`beginDialog`, `dialogButtons`), the popup of a row's editor and where a popup goes beside its box (`beginRowEditor`, `popupTop`), folding headings, value looks (`ValueLook`). |
 
 ## Model (`src/model/`, game-free)
 

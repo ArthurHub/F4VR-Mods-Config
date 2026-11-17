@@ -36,6 +36,9 @@ namespace
     constexpr float CANCEL_WIDTH = 120.0f;
     constexpr float DONE_WIDTH = 160.0f;
 
+    // the line of a part: its label and its control
+    constexpr float PART_LINE_WIDTH = LABEL_WIDTH + theme::SPACE_2 + PART_WIDTH;
+
     // the fill and the grab of the slider, as a setting's slider has them
     constexpr float FILL_HEIGHT = 8.0f;
     constexpr float GRAB_HEIGHT = 40.0f;
@@ -361,6 +364,14 @@ namespace
     }
 
     /**
+     * The box of a part's control, of a width, after the label of the part at a place.
+     */
+    ImRect partControl(const ImVec2& at, const float width)
+    {
+        return ui::controlBox(at.x + LABEL_WIDTH + theme::SPACE_2, at.y, width);
+    }
+
+    /**
      * The control of a part that is a dropdown, in its box: the text of its choice and the down arrow, with the outline in
      * the full color while the ray is on it or its list is open. Returns whether it was pressed.
      */
@@ -442,6 +453,62 @@ namespace
 namespace mods_config::ui
 {
     /**
+     * The editor of a binding as one frame draws it: its setting and store, where its parts are, where the ray is, and
+     * what the frame tells. Whether the binding is off, a push, and a push of the thumbstick is as the frame starts.
+     */
+    struct BindingEditor::Frame
+    {
+        const model::Setting& setting;
+        model::Store& store;
+        const bool leftHanded;
+        const ImageDrawer& drawer;
+        BindingEdited& edited;
+
+        // the binding is off, is a push, and is a push of the thumbstick, which has the line of Direction
+        const bool off;
+        const bool push;
+        const bool sided;
+
+        // the content's left and right, the top of the header, the strip of the binding under it, and the parts under that
+        const float contentLeft;
+        const float contentRight;
+        const float headerTop;
+        const ImRect strip;
+        const float partsTop;
+
+        // the ray is on the editor, and not on a list over it, and where it is
+        const bool hovered;
+        const ImVec2 mouse;
+
+        // a part changed the binding, which is set in the store once every part is drawn
+        bool changed = false;
+
+        /**
+         * Tells the help line of the part or the option the ray is on: its name and its help.
+         */
+        void point(const std::string_view name, std::string help)
+        {
+            edited.pointed = PointedRow{ .text = std::string(name), .help = std::move(help) };
+        }
+
+        /**
+         * Where a part is: in the left or the right column, on a line of it.
+         */
+        ImVec2 partAt(const bool second, const int line) const
+        {
+            return ImVec2(second ? contentRight - PART_LINE_WIDTH : contentLeft, partsTop + static_cast<float>(line) * (theme::CONTROL_HEIGHT + theme::SPACE_2));
+        }
+
+        /**
+         * Whether the ray is on the line of a part, its label or its control.
+         */
+        bool pointedAt(const ImVec2& at) const
+        {
+            return hovered && ImRect(at, ImVec2(at.x + PART_LINE_WIDTH, at.y + theme::CONTROL_HEIGHT)).Contains(mouse);
+        }
+    };
+
+    /**
      * Opens the editor of a binding with a press on its row, and draws it while it is open, with the parts of the
      * binding the row had: one that is no binding starts from its default. The editor is a popup in the page, under the
      * row, or over it where the page has no room under it, or as near as it fits: never over the title bar and the
@@ -486,24 +553,7 @@ namespace mods_config::ui
         // change of the binding in this frame shows it in the next
         const bool sided = _binding.type == vrcf::ActivationType::AxisDirection && _binding.axis == vrcf::Axis::Thumbstick;
         const float height = sided ? EDITOR_HEIGHT : EDITOR_HEIGHT_NO_DIRECTION;
-        const auto& page = ImGui::GetCurrentWindow()->InnerRect;
-        const float left = std::clamp(std::floor(row.GetCenter().x - EDITOR_WIDTH * 0.5f), page.Min.x, (std::max)(page.Min.x, page.Max.x - EDITOR_WIDTH));
-        float top = (std::max)(page.Min.y, page.Max.y - height);
-        if (row.Max.y + height <= page.Max.y) {
-            top = row.Max.y;
-        } else if (row.Min.y - height >= page.Min.y) {
-            top = row.Min.y - height;
-        }
-        ImGui::SetNextWindowPos(ImVec2(left, top));
-        ImGui::SetNextWindowSize(ImVec2(EDITOR_WIDTH, height));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_4, theme::SPACE_4));
-        ImGui::PushStyleColor(ImGuiCol_Border, theme::color::GREEN);
-        const bool shown = ImGui::BeginPopupEx(id,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-        if (!shown) {
+        if (!beginRowEditor(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
         if (_cancel) {
@@ -522,385 +572,425 @@ namespace mods_config::ui
         }
 
         const auto origin = ImGui::GetWindowPos();
-        const float contentLeft = origin.x + theme::SPACE_4;
-        const float contentRight = origin.x + EDITOR_WIDTH - theme::SPACE_4;
         const float headerTop = origin.y + theme::SPACE_4;
-        const ImRect strip(contentLeft, headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3, contentRight, headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3 + STRIP_HEIGHT);
-        const float partsTop = strip.Max.y + theme::SPACE_3;
-        const float partWidth = LABEL_WIDTH + theme::SPACE_2 + PART_WIDTH;
-        const float rightColumn = contentRight - partWidth;
-        const auto partAt = [&](const bool second, const int line) {
-            return ImVec2(second ? rightColumn : contentLeft, partsTop + static_cast<float>(line) * (theme::CONTROL_HEIGHT + theme::SPACE_2));
-        };
-        const auto controlAt = [](const ImVec2& at, const float width) {
-            return controlBox(at.x + LABEL_WIDTH + theme::SPACE_2, at.y, width);
-        };
+        const float stripTop = headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3;
+        const ImRect strip(origin.x + theme::SPACE_4, stripTop, origin.x + EDITOR_WIDTH - theme::SPACE_4, stripTop + STRIP_HEIGHT);
+        Frame frame{ .setting = setting,
+            .store = store,
+            .leftHanded = leftHanded,
+            .drawer = drawer,
+            .edited = edited,
+            .off = !_binding.isEnabled(),
+            .push = _binding.type == vrcf::ActivationType::AxisDirection,
+            .sided = sided,
+            .contentLeft = strip.Min.x,
+            .contentRight = strip.Max.x,
+            .headerTop = headerTop,
+            .strip = strip,
+            .partsTop = strip.Max.y + theme::SPACE_3,
+            .hovered = ImGui::IsWindowHovered(),
+            .mouse = ImGui::GetIO().MousePos,
+            .changed = false };
 
-        // the ray is on the editor, and not on a list over it
-        const bool hovered = ImGui::IsWindowHovered();
-        const auto& mouse = ImGui::GetIO().MousePos;
-        const auto point = [&](const std::string_view name, std::string help) {
-            _pointedName = name;
-            edited.pointed = PointedRow{ .text = _pointedName, .help = std::move(help) };
-        };
-        const auto pointedAt = [&](const ImVec2& at) {
-            return hovered && ImRect(at, ImVec2(at.x + partWidth, at.y + theme::CONTROL_HEIGHT)).Contains(mouse);
-        };
-
-        bool changed = false;
-        const bool off = !_binding.isEnabled();
-        const bool push = _binding.type == vrcf::ActivationType::AxisDirection;
-
-        // a part that is a dropdown, with its label, and its list while it is open. Returns the option that was picked
-        const auto dropdown = [&](const Part part,
-                                  const std::string_view name,
-                                  const ImVec2 at,
-                                  const std::string_view text,
-                                  const bool enabled,
-                                  const std::vector<std::string>& texts,
-                                  const std::vector<std::string>& helps,
-                                  const std::optional<std::size_t>
-                                      chosen,
-                                  std::string help) -> std::optional<std::size_t> {
-            ImGui::PushID(static_cast<int>(part));
-            const auto box = controlAt(at, PART_WIDTH);
-            const auto listId = ImGui::GetID("list");
-            ImGui::BeginDisabled(!enabled);
-            drawLabel(name, at);
-            if (dropdownPart(box, text, _list == part)) {
-                ImGui::OpenPopupEx(listId);
-                _list = part;
-                edited.pulse = true;
-            }
-            ImGui::EndDisabled();
-            std::vector<std::string_view> views(texts.begin(), texts.end());
-            const auto drawn = drawList(listId, box, views, chosen);
-            if (_list == part && !ImGui::IsPopupOpen(listId, ImGuiPopupFlags_None)) {
-                _list = Part::None;
-            }
-            ImGui::PopID();
-            if (drawn.pointed) {
-                point(texts[*drawn.pointed], helps[*drawn.pointed]);
-            } else if (pointedAt(at)) {
-                point(name, std::move(help));
-            }
-            return drawn.picked;
-        };
-
-        // the parts of the binding its setting takes: the lists offer them alone, and a part the file has that the
-        // setting does not take is shown as it is, which makes the value invalid
-        const auto& taken = setting.valueOptions;
-
-        // the hand, or None, first, for a binding that is off: a hand turns it on again as it was worked before
-        {
-            std::vector<vrcf::Hand> hands;
-            std::vector<std::string> texts{ "None" };
-            std::vector<std::string> helps{ "The binding is off." };
-            std::optional<std::size_t> chosen = off ? std::optional<std::size_t>(0) : std::nullopt;
-            for (const auto& hand : HANDS) {
-                if (!model::takesHand(taken, hand.value)) {
-                    continue;
-                }
-                if (!off && hand.value == _binding.hand) {
-                    chosen = texts.size();
-                }
-                hands.push_back(hand.value);
-                texts.emplace_back(hand.text);
-                helps.emplace_back(hand.help);
-            }
-            const auto own = placeOf(HANDS, _binding.hand);
-            const auto text = chosen ? std::string_view(texts[*chosen]) : own ? HANDS[*own].text : std::string_view();
-            const auto help = std::string("The hand the binding is pressed on, or None for a binding that is off.");
-            if (const auto picked = dropdown(Part::Hand, "Hand", partAt(false, 0), text, true, texts, helps, chosen, help)) {
-                const auto bound = model::boundButton(_binding);
-                if (*picked == 0) {
-                    if (!off) {
-                        _typeOn = _binding.type;
-                    }
-                    _binding = withButton(_binding, bound, vrcf::ActivationType::Disabled);
-                } else {
-                    _binding.hand = hands[*picked - 1];
-                    if (off) {
-                        _binding = withButton(_binding, bound, fits(bound, _typeOn, taken) ? _typeOn : fittingType(bound, taken));
-                    }
-                }
-                changed = true;
-            }
-        }
-
-        // the button, which a push moves the axis of: one with no way the setting takes is not offered
-        const auto bound = push ? buttonOf(_binding.axis) : _binding.button;
-        {
-            std::vector<vr::EVRButtonId> buttons;
-            std::vector<std::string> texts;
-            std::vector<std::string> helps;
-            std::optional<std::size_t> chosen;
-            for (const auto& choice : BUTTONS) {
-                const bool worked = std::ranges::any_of(TYPES, [&](const auto& type) {
-                    return fits(choice.button, type.value, taken);
-                });
-                if (!model::takesButton(taken, choice.button) || !worked) {
-                    continue;
-                }
-                if (choice.button == bound) {
-                    chosen = buttons.size();
-                }
-                buttons.push_back(choice.button);
-                texts.emplace_back(buttonText(choice.button, _binding.hand, leftHanded));
-                helps.emplace_back(choice.help);
-            }
-            const auto help = off ? std::string("A binding that is off has no button.") : std::string("The button that is pressed, as the controller of its hand prints it.");
-            const auto text = chosen ? std::string_view(texts[*chosen]) : buttonText(bound, _binding.hand, leftHanded);
-            if (const auto picked = dropdown(Part::Button, "Button", partAt(false, 1), text, !off, texts, helps, chosen, help)) {
-                // a button the binding's way does not fit is worked in a way that does
-                const auto next = buttons[*picked];
-                _binding = withButton(_binding, next, fits(next, _binding.type, taken) || off ? _binding.type : fittingType(next, taken));
-                changed = true;
-            }
-        }
-
-        // how the button is worked: the ways it has that the setting takes, of which a push of the trigger or the grip is a pull
-        {
-            const bool pulled = axisOf(bound).value_or(vrcf::Axis::Thumbstick) != vrcf::Axis::Thumbstick;
-            std::vector<vrcf::ActivationType> types;
-            std::vector<std::string> texts;
-            std::vector<std::string> helps;
-            std::optional<std::size_t> chosen;
-            for (const auto& type : TYPES) {
-                if (!fits(bound, type.value, taken)) {
-                    continue;
-                }
-                if (type.value == _binding.type) {
-                    chosen = types.size();
-                }
-                types.push_back(type.value);
-                const bool pull = pulled && type.value == vrcf::ActivationType::AxisDirection;
-                texts.emplace_back(pull ? "Pull" : type.text);
-                helps.emplace_back(pull ? "Pull it past Threshold, as an axis, and not as a press of the button." : type.help);
-            }
-            const auto own = placeOf(TYPES, _binding.type);
-            const auto text = chosen ? std::string_view(texts[*chosen]) : own && !off ? TYPES[*own].text : std::string_view();
-            const auto help = off ? std::string("A binding that is off is not worked.") : std::string("How the button is worked: the ways it has.");
-            if (const auto picked = dropdown(Part::How, "How", partAt(false, 2), text, !off, texts, helps, chosen, help)) {
-                _binding = withButton(_binding, bound, types[*picked]);
-                changed = true;
-            }
-        }
-
-        // the side of a push of the thumbstick, which is there for it alone: a pull of the trigger or the grip has no side
+        editHand(frame);
+        // the button as the hand left it, which a push moves the axis of
+        const auto bound = frame.push ? buttonOf(_binding.axis) : _binding.button;
+        editButton(frame, bound);
+        editHow(frame, bound);
         if (sided) {
-            const auto at = partAt(false, 3);
-            const auto box = controlAt(at, PART_WIDTH);
-            const auto previous = controlBox(box.Min.x, at.y, theme::CONTROL_HEIGHT);
-            const auto next = controlBox(box.Max.x - theme::CONTROL_HEIGHT, at.y, theme::CONTROL_HEIGHT);
-            const ImRect side(previous.Max.x + theme::SPACE_2, at.y, next.Min.x - theme::SPACE_2, at.y + theme::CONTROL_HEIGHT);
-            // a stick moved has no side to step to, so its arrows are off
-            const auto place = placeOf(DIRECTIONS, _binding.direction);
-            const auto moved = placeOf(MOVED_DIRECTIONS, _binding.direction);
-            ImGui::PushID("direction");
-            drawLabel("Direction", at);
-            if (stepButton("previous", previous, ControlArrow::Left, place && *place > 0)) {
-                _binding.direction = DIRECTIONS[*place - 1].value;
-                changed = true;
-            }
-            drawFrame(side);
-            drawTextIn(side, moved ? MOVED_DIRECTIONS[*moved].text : DIRECTIONS[place.value_or(0)].text, theme::color::GREEN, 0.5f);
-            if (stepButton("next", next, ControlArrow::Right, place && *place + 1 < DIRECTIONS.size())) {
-                _binding.direction = DIRECTIONS[*place + 1].value;
-                changed = true;
-            }
-            ImGui::PopID();
-            if (pointedAt(at)) {
-                point("Direction", moved ? "The thumbstick is moved, not pushed to a side: the mod reads how far itself." : "The side the thumbstick is pushed to.");
-            }
+            editDirection(frame);
         }
-
-        // the time of a type that has one, or the threshold of a push: a slider whose value is set as it is let go
-        {
-            const auto at = partAt(true, 0);
-            const bool timed = hasDuration(_binding.type);
-            const bool enabled = timed || push;
-            const float typeValue = push ? vrcf::InputBinding{}.threshold : typeDuration(_binding.type);
-            const float least = push ? LEAST_THRESHOLD : typeValue > 0.0f ? SLIDER_STEP * 2.0f : 0.0f;
-            const float most = push ? MOST_THRESHOLD : MOST_DURATION;
-            const float current = push ? _binding.threshold : _binding.duration > 0.0f ? _binding.duration : typeValue;
-            const auto track = controlAt(at, SLIDER_TRACK_WIDTH);
-            const auto valueBox = controlBox(track.Max.x + theme::SPACE_2, at.y, PART_WIDTH - SLIDER_TRACK_WIDTH - theme::SPACE_2);
-            const float grabLeast = track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
-            const float grabMost = track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f;
-            const auto name = push ? std::string_view("Threshold") : std::string_view("Duration");
-
-            ImGui::PushID("slider");
-            ImGui::BeginDisabled(!enabled);
-            drawLabel(name, at);
-            ImGui::SetCursorScreenPos(track.Min);
-            ImGui::InvisibleButton("track", track.GetSize());
-            if (enabled && ImGui::IsItemActive()) {
-                const float fraction = std::clamp((mouse.x - grabLeast) / (grabMost - grabLeast), 0.0f, 1.0f);
-                _dragged = std::clamp(least + std::round((most - least) * fraction / SLIDER_STEP) * SLIDER_STEP, least, most);
-            }
-            const auto setValue = [&](const float value) {
-                if (push) {
-                    _binding.threshold = value;
-                } else {
-                    // the type's own time writes no key
-                    _binding.duration = common::fEqual(value, typeValue) ? 0.0f : value;
-                }
-                changed = true;
-                edited.pulse = true;
-            };
-            if (ImGui::IsItemDeactivated() && _dragged) {
-                setValue(*_dragged);
-                _dragged.reset();
-            }
-            // the thumbstick steps it while the ray is on its line, as it steps a setting's slider
-            _stepped.valueOptions = model::ValueOptions{ .min = least, .max = most, .step = SLIDER_STEP };
-            bool write = false;
-            bool pulse = false;
-            _sliders.startFrame(_thumbstickSideValue);
-            const float stepped = _sliders.edit(_stepped, track.Max.x, at.y, SliderRow{ .pointed = enabled && !_dragged && pointedAt(at) }, current, write, pulse);
-            _sliders.endFrame();
-            if (write) {
-                setValue(stepped);
-            }
-            const float shownValue = _dragged.value_or(write ? stepped : current);
-            drawFrame(track);
-            drawFrame(valueBox);
-            if (enabled) {
-                const float grab = std::lerp(grabLeast, grabMost, std::clamp((shownValue - least) / (most - least), 0.0f, 1.0f));
-                const float middle = track.GetCenter().y;
-                auto* drawList = ImGui::GetWindowDrawList();
-                const auto color = ImGui::GetColorU32(theme::color::GREEN);
-                if (grab > grabLeast) {
-                    drawList->AddRectFilled(ImVec2(grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, theme::RADIUS_GRAB);
-                }
-                drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
-                    ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
-                    _dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
-                    theme::RADIUS_GRAB);
-                const auto text = push                                                                   ? std::format("{:.2f}", shownValue)
-                                  : _binding.type == vrcf::ActivationType::Release && shownValue <= 0.0f ? std::string("Any")
-                                                                                                         : std::format("{:.2f} s", shownValue);
-                drawTextIn(valueBox, text, theme::color::GREEN, 1.0f, theme::SPACE_3);
-            }
-            ImGui::EndDisabled();
-            ImGui::PopID();
-            if (pointedAt(at)) {
-                std::string help = off    ? std::string("A binding that is off has no time.")
-                                   : push ? std::string("How far it is pushed or pulled before the binding fires, to 1.00 all the way.")
-                                          : std::string(durationHelp(_binding.type));
-                if (enabled && common::fEqual(shownValue, typeValue)) {
-                    help += " Default.";
-                }
-                point(name, std::move(help));
-            }
-        }
-
-        // the button held while the binding is pressed
-        {
-            const auto holdings = holdingsOf(_binding, leftHanded);
-            std::vector<std::string> texts;
-            std::vector<std::string> helps;
-            for (const auto& holding : holdings) {
-                texts.push_back(holding.text);
-                helps.push_back(holding.help);
-            }
-            const auto chosen = holdingOf(_binding, holdings);
-            std::string text;
-            if (chosen) {
-                text = texts[*chosen];
-            } else {
-                // a modifier of a hand that is neither of the list's
-                text = std::format("{}, {}", buttonText(_binding.modifier->button, *_binding.modifier->hand, leftHanded), handWords(*_binding.modifier->hand));
-            }
-            std::string help = "A binding that is off has no button to hold.";
-            if (!off) {
-                help = "A button held down while the binding is pressed, on the same hand or the other. Now ";
-                if (_binding.modifier) {
-                    const auto hand = _binding.modifier->hand.value_or(_binding.hand);
-                    help += std::format("{} of the {}.", buttonWords(_binding.modifier->button, hand, leftHanded), _binding.modifier->hand ? handWords(hand) : "same hand");
-                } else {
-                    help += "nothing.";
-                }
-            }
-            if (const auto picked = dropdown(Part::Holding, "While holding", partAt(true, 1), text, !off, texts, helps, chosen, std::move(help))) {
-                _binding.modifier = holdings[*picked].modifier;
-                changed = true;
-            }
-        }
-
-        // whether the button is hidden from the game, for a binding whose setting offers it
+        editTime(frame);
+        editHolding(frame);
         if (setting.valueOptions.suppress) {
-            const auto at = partAt(true, 2);
-            ImGui::PushID("suppress");
-            ImGui::BeginDisabled(off);
-            drawLabel("Suppress from the game", at);
-            const float toggleLeft = at.x + LABEL_WIDTH + theme::SPACE_2;
-            const float toggleRight = toggleLeft + TOGGLE_CELL_WIDTH * 2.0f;
-            drawSwitcher(toggleRight, at.y, _binding.suppress, ValueLook::Saved);
-            ImGui::SetCursorScreenPos(ImVec2(toggleLeft, at.y));
-            if (ImGui::InvisibleButton("toggle", ImVec2(toggleRight - toggleLeft, theme::CONTROL_HEIGHT))) {
-                const bool on = mouse.x >= (toggleLeft + toggleRight) * 0.5f;
-                if (on != _binding.suppress) {
-                    _binding.suppress = on;
-                    changed = true;
-                }
-                edited.pulse = true;
-            }
-            ImGui::EndDisabled();
-            ImGui::PopID();
-            if (pointedAt(at)) {
-                point("Suppress from the game",
-                    off ? "A binding that is off has nothing to hide." : "Hides the button from the game while the binding is in use, as in its activation sphere's zone.");
-            }
+            editSuppress(frame);
         }
-
-        if (changed) {
+        if (frame.changed) {
             apply(setting, store);
             edited.pulse = true;
         }
+        drawHeader(frame);
+        drawFooter(frame);
+        ImGui::EndPopup();
+        return edited;
+    }
 
-        // the binding as it is now, with its name above it
-        const auto stored = store.value(setting);
-        const auto color = valueColor(stored.invalid ? ValueLook::Invalid : store.isDirty(setting) ? ValueLook::Pending : ValueLook::Saved);
-        drawText(contentLeft, contentRight, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
+    /**
+     * A part that is a dropdown: its label and its control at a place, and its list over the editor while it is open, of
+     * options with their texts and helps. The help line has the option the ray is on, or else the part with its help.
+     * Returns the option that was picked.
+     */
+    std::optional<std::size_t> BindingEditor::dropdown(Frame& frame, const Part part, const std::string_view name, const ImVec2& at, const std::string_view text,
+        const bool enabled, const std::vector<std::string>& texts, const std::vector<std::string>& helps, const std::optional<std::size_t> chosen, std::string help)
+    {
+        ImGui::PushID(static_cast<int>(part));
+        const auto box = partControl(at, PART_WIDTH);
+        const auto listId = ImGui::GetID("list");
+        ImGui::BeginDisabled(!enabled);
+        drawLabel(name, at);
+        if (dropdownPart(box, text, _list == part)) {
+            ImGui::OpenPopupEx(listId);
+            _list = part;
+            frame.edited.pulse = true;
+        }
+        ImGui::EndDisabled();
+        std::vector<std::string_view> views(texts.begin(), texts.end());
+        const auto drawn = drawList(listId, box, views, chosen);
+        if (_list == part && !ImGui::IsPopupOpen(listId, ImGuiPopupFlags_None)) {
+            _list = Part::None;
+        }
+        ImGui::PopID();
+        if (drawn.pointed) {
+            frame.point(texts[*drawn.pointed], helps[*drawn.pointed]);
+        } else if (frame.pointedAt(at)) {
+            frame.point(name, std::move(help));
+        }
+        return drawn.picked;
+    }
+
+    /**
+     * The hand, or None for a binding that is off, which comes first: a hand picked after None turns the binding on again,
+     * worked as it was before where its button fits that, or else in a way that fits.
+     * The lists offer the parts of the binding its setting takes alone, and a part the file has that the setting does not
+     * take is shown as it is, which makes the value invalid.
+     */
+    void BindingEditor::editHand(Frame& frame)
+    {
+        const auto& taken = frame.setting.valueOptions;
+        std::vector<vrcf::Hand> hands;
+        std::vector<std::string> texts{ "None" };
+        std::vector<std::string> helps{ "The binding is off." };
+        std::optional<std::size_t> chosen = frame.off ? std::optional<std::size_t>(0) : std::nullopt;
+        for (const auto& hand : HANDS) {
+            if (!model::takesHand(taken, hand.value)) {
+                continue;
+            }
+            if (!frame.off && hand.value == _binding.hand) {
+                chosen = texts.size();
+            }
+            hands.push_back(hand.value);
+            texts.emplace_back(hand.text);
+            helps.emplace_back(hand.help);
+        }
+        const auto own = placeOf(HANDS, _binding.hand);
+        const auto text = chosen ? std::string_view(texts[*chosen]) : own ? HANDS[*own].text : std::string_view();
+        const auto help = std::string("The hand the binding is pressed on, or None for a binding that is off.");
+        if (const auto picked = dropdown(frame, Part::Hand, "Hand", frame.partAt(false, 0), text, true, texts, helps, chosen, help)) {
+            const auto bound = model::boundButton(_binding);
+            if (*picked == 0) {
+                if (!frame.off) {
+                    _typeOn = _binding.type;
+                }
+                _binding = withButton(_binding, bound, vrcf::ActivationType::Disabled);
+            } else {
+                _binding.hand = hands[*picked - 1];
+                if (frame.off) {
+                    _binding = withButton(_binding, bound, fits(bound, _typeOn, taken) ? _typeOn : fittingType(bound, taken));
+                }
+            }
+            frame.changed = true;
+        }
+    }
+
+    /**
+     * The button the binding has, which a push moves the axis of: one with no way the setting takes is not offered, and
+     * one the binding's way does not fit is worked in a way that does.
+     */
+    void BindingEditor::editButton(Frame& frame, const vr::EVRButtonId bound)
+    {
+        const auto& taken = frame.setting.valueOptions;
+        std::vector<vr::EVRButtonId> buttons;
+        std::vector<std::string> texts;
+        std::vector<std::string> helps;
+        std::optional<std::size_t> chosen;
+        for (const auto& choice : BUTTONS) {
+            const bool worked = std::ranges::any_of(TYPES, [&](const auto& type) {
+                return fits(choice.button, type.value, taken);
+            });
+            if (!model::takesButton(taken, choice.button) || !worked) {
+                continue;
+            }
+            if (choice.button == bound) {
+                chosen = buttons.size();
+            }
+            buttons.push_back(choice.button);
+            texts.emplace_back(buttonText(choice.button, _binding.hand, frame.leftHanded));
+            helps.emplace_back(choice.help);
+        }
+        const auto help = frame.off ? std::string("A binding that is off has no button.") : std::string("The button that is pressed, as the controller of its hand prints it.");
+        const auto text = chosen ? std::string_view(texts[*chosen]) : buttonText(bound, _binding.hand, frame.leftHanded);
+        if (const auto picked = dropdown(frame, Part::Button, "Button", frame.partAt(false, 1), text, !frame.off, texts, helps, chosen, help)) {
+            const auto next = buttons[*picked];
+            _binding = withButton(_binding, next, fits(next, _binding.type, taken) || frame.off ? _binding.type : fittingType(next, taken));
+            frame.changed = true;
+        }
+    }
+
+    /**
+     * How the button is worked: the ways it has that the setting takes, of which a push of the trigger or the grip is a
+     * pull.
+     */
+    void BindingEditor::editHow(Frame& frame, const vr::EVRButtonId bound)
+    {
+        const auto& taken = frame.setting.valueOptions;
+        const bool pulled = axisOf(bound).value_or(vrcf::Axis::Thumbstick) != vrcf::Axis::Thumbstick;
+        std::vector<vrcf::ActivationType> types;
+        std::vector<std::string> texts;
+        std::vector<std::string> helps;
+        std::optional<std::size_t> chosen;
+        for (const auto& type : TYPES) {
+            if (!fits(bound, type.value, taken)) {
+                continue;
+            }
+            if (type.value == _binding.type) {
+                chosen = types.size();
+            }
+            types.push_back(type.value);
+            const bool pull = pulled && type.value == vrcf::ActivationType::AxisDirection;
+            texts.emplace_back(pull ? "Pull" : type.text);
+            helps.emplace_back(pull ? "Pull it past Threshold, as an axis, and not as a press of the button." : type.help);
+        }
+        const auto own = placeOf(TYPES, _binding.type);
+        const auto text = chosen ? std::string_view(texts[*chosen]) : own && !frame.off ? TYPES[*own].text : std::string_view();
+        const auto help = frame.off ? std::string("A binding that is off is not worked.") : std::string("How the button is worked: the ways it has.");
+        if (const auto picked = dropdown(frame, Part::How, "How", frame.partAt(false, 2), text, !frame.off, texts, helps, chosen, help)) {
+            _binding = withButton(_binding, bound, types[*picked]);
+            frame.changed = true;
+        }
+    }
+
+    /**
+     * The side of a push of the thumbstick, a stepper of the four sides. A stick moved, rather than pushed to a side, is
+     * shown as it is, with no side to step to.
+     */
+    void BindingEditor::editDirection(Frame& frame)
+    {
+        const auto at = frame.partAt(false, 3);
+        const auto box = partControl(at, PART_WIDTH);
+        const auto previous = controlBox(box.Min.x, at.y, theme::CONTROL_HEIGHT);
+        const auto next = controlBox(box.Max.x - theme::CONTROL_HEIGHT, at.y, theme::CONTROL_HEIGHT);
+        const ImRect side(previous.Max.x + theme::SPACE_2, at.y, next.Min.x - theme::SPACE_2, at.y + theme::CONTROL_HEIGHT);
+        const auto place = placeOf(DIRECTIONS, _binding.direction);
+        const auto moved = placeOf(MOVED_DIRECTIONS, _binding.direction);
+        ImGui::PushID("direction");
+        drawLabel("Direction", at);
+        if (stepButton("previous", previous, ControlArrow::Left, place && *place > 0)) {
+            _binding.direction = DIRECTIONS[*place - 1].value;
+            frame.changed = true;
+        }
+        drawFrame(side);
+        drawTextIn(side, moved ? MOVED_DIRECTIONS[*moved].text : DIRECTIONS[place.value_or(0)].text, theme::color::GREEN, 0.5f);
+        if (stepButton("next", next, ControlArrow::Right, place && *place + 1 < DIRECTIONS.size())) {
+            _binding.direction = DIRECTIONS[*place + 1].value;
+            frame.changed = true;
+        }
+        ImGui::PopID();
+        if (frame.pointedAt(at)) {
+            frame.point("Direction", moved ? "The thumbstick is moved, not pushed to a side: the mod reads how far itself." : "The side the thumbstick is pushed to.");
+        }
+    }
+
+    /**
+     * The time of a type that has one, or the threshold of a push: a slider whose value is set as the trigger lets it go,
+     * and at each step of the thumbstick while the ray is on its line. The type's own time writes no key.
+     */
+    void BindingEditor::editTime(Frame& frame)
+    {
+        const auto at = frame.partAt(true, 0);
+        const bool push = frame.push;
+        const bool timed = hasDuration(_binding.type);
+        const bool enabled = timed || push;
+        const float typeValue = push ? vrcf::InputBinding{}.threshold : typeDuration(_binding.type);
+        const float least = push ? LEAST_THRESHOLD : typeValue > 0.0f ? SLIDER_STEP * 2.0f : 0.0f;
+        const float most = push ? MOST_THRESHOLD : MOST_DURATION;
+        const float current = push ? _binding.threshold : _binding.duration > 0.0f ? _binding.duration : typeValue;
+        const auto track = partControl(at, SLIDER_TRACK_WIDTH);
+        const auto valueBox = controlBox(track.Max.x + theme::SPACE_2, at.y, PART_WIDTH - SLIDER_TRACK_WIDTH - theme::SPACE_2);
+        const float grabLeast = track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
+        const float grabMost = track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f;
+        const auto name = push ? std::string_view("Threshold") : std::string_view("Duration");
+
+        ImGui::PushID("slider");
+        ImGui::BeginDisabled(!enabled);
+        drawLabel(name, at);
+        ImGui::SetCursorScreenPos(track.Min);
+        ImGui::InvisibleButton("track", track.GetSize());
+        if (enabled && ImGui::IsItemActive()) {
+            const float fraction = std::clamp((frame.mouse.x - grabLeast) / (grabMost - grabLeast), 0.0f, 1.0f);
+            _dragged = std::clamp(least + std::round((most - least) * fraction / SLIDER_STEP) * SLIDER_STEP, least, most);
+        }
+        const auto setValue = [&](const float value) {
+            if (push) {
+                _binding.threshold = value;
+            } else {
+                _binding.duration = common::fEqual(value, typeValue) ? 0.0f : value;
+            }
+            frame.changed = true;
+            frame.edited.pulse = true;
+        };
+        if (ImGui::IsItemDeactivated() && _dragged) {
+            setValue(*_dragged);
+            _dragged.reset();
+        }
+        // the thumbstick steps it while the ray is on its line, as it steps a setting's slider
+        _stepped.valueOptions = model::ValueOptions{ .min = least, .max = most, .step = SLIDER_STEP };
+        bool write = false;
+        bool pulse = false;
+        _sliders.startFrame(_thumbstickSideValue);
+        const float stepped = _sliders.edit(_stepped, track.Max.x, at.y, SliderRow{ .pointed = enabled && !_dragged && frame.pointedAt(at) }, current, write, pulse);
+        _sliders.endFrame();
+        if (write) {
+            setValue(stepped);
+        }
+        const float shownValue = _dragged.value_or(write ? stepped : current);
+        drawFrame(track);
+        drawFrame(valueBox);
+        if (enabled) {
+            const float grab = std::lerp(grabLeast, grabMost, std::clamp((shownValue - least) / (most - least), 0.0f, 1.0f));
+            const float middle = track.GetCenter().y;
+            auto* drawList = ImGui::GetWindowDrawList();
+            const auto color = ImGui::GetColorU32(theme::color::GREEN);
+            if (grab > grabLeast) {
+                drawList->AddRectFilled(ImVec2(grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, theme::RADIUS_GRAB);
+            }
+            drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
+                ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
+                _dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
+                theme::RADIUS_GRAB);
+            const auto text = push                                                                   ? std::format("{:.2f}", shownValue)
+                              : _binding.type == vrcf::ActivationType::Release && shownValue <= 0.0f ? std::string("Any")
+                                                                                                     : std::format("{:.2f} s", shownValue);
+            drawTextIn(valueBox, text, theme::color::GREEN, 1.0f, theme::SPACE_3);
+        }
+        ImGui::EndDisabled();
+        ImGui::PopID();
+        if (frame.pointedAt(at)) {
+            std::string help = frame.off ? std::string("A binding that is off has no time.")
+                               : push    ? std::string("How far it is pushed or pulled before the binding fires, to 1.00 all the way.")
+                                         : std::string(durationHelp(_binding.type));
+            if (enabled && common::fEqual(shownValue, typeValue)) {
+                help += " Default.";
+            }
+            frame.point(name, std::move(help));
+        }
+    }
+
+    /**
+     * The button held while the binding is pressed: nothing, or a button of the same hand or of the other. A modifier of
+     * a hand that is neither is shown as it is.
+     */
+    void BindingEditor::editHolding(Frame& frame)
+    {
+        const auto holdings = holdingsOf(_binding, frame.leftHanded);
+        std::vector<std::string> texts;
+        std::vector<std::string> helps;
+        for (const auto& holding : holdings) {
+            texts.push_back(holding.text);
+            helps.push_back(holding.help);
+        }
+        const auto chosen = holdingOf(_binding, holdings);
+        std::string text;
+        if (chosen) {
+            text = texts[*chosen];
+        } else {
+            text = std::format("{}, {}", buttonText(_binding.modifier->button, *_binding.modifier->hand, frame.leftHanded), handWords(*_binding.modifier->hand));
+        }
+        std::string help = "A binding that is off has no button to hold.";
+        if (!frame.off) {
+            help = "A button held down while the binding is pressed, on the same hand or the other. Now ";
+            if (_binding.modifier) {
+                const auto hand = _binding.modifier->hand.value_or(_binding.hand);
+                help += std::format("{} of the {}.", buttonWords(_binding.modifier->button, hand, frame.leftHanded), _binding.modifier->hand ? handWords(hand) : "same hand");
+            } else {
+                help += "nothing.";
+            }
+        }
+        if (const auto picked = dropdown(frame, Part::Holding, "While holding", frame.partAt(true, 1), text, !frame.off, texts, helps, chosen, std::move(help))) {
+            _binding.modifier = holdings[*picked].modifier;
+            frame.changed = true;
+        }
+    }
+
+    /**
+     * Whether the button is hidden from the game, a switch, for a binding whose setting offers it.
+     */
+    void BindingEditor::editSuppress(Frame& frame)
+    {
+        const auto at = frame.partAt(true, 2);
+        ImGui::PushID("suppress");
+        ImGui::BeginDisabled(frame.off);
+        drawLabel("Suppress from the game", at);
+        const float toggleLeft = at.x + LABEL_WIDTH + theme::SPACE_2;
+        const float toggleRight = toggleLeft + TOGGLE_CELL_WIDTH * 2.0f;
+        drawSwitcher(toggleRight, at.y, _binding.suppress, ValueLook::Saved);
+        ImGui::SetCursorScreenPos(ImVec2(toggleLeft, at.y));
+        if (ImGui::InvisibleButton("toggle", ImVec2(toggleRight - toggleLeft, theme::CONTROL_HEIGHT))) {
+            const bool on = frame.mouse.x >= (toggleLeft + toggleRight) * 0.5f;
+            if (on != _binding.suppress) {
+                _binding.suppress = on;
+                frame.changed = true;
+            }
+            frame.edited.pulse = true;
+        }
+        ImGui::EndDisabled();
+        ImGui::PopID();
+        if (frame.pointedAt(at)) {
+            frame.point("Suppress from the game",
+                frame.off ? "A binding that is off has nothing to hide." : "Hides the button from the game while the binding is in use, as in its activation sphere's zone.");
+        }
+    }
+
+    /**
+     * The header: the setting's name, and under it the strip of the binding as the parts left it in this frame, its icons
+     * and its sentence, in the color of its value's state.
+     */
+    void BindingEditor::drawHeader(const Frame& frame) const
+    {
+        const auto stored = frame.store.value(frame.setting);
+        const auto color = valueColor(stored.invalid ? ValueLook::Invalid : frame.store.isDirty(frame.setting) ? ValueLook::Pending : ValueLook::Saved);
+        drawText(frame.contentLeft, frame.contentRight, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(frame.setting.text, &frame.store));
+        const auto& strip = frame.strip;
         ImGui::GetWindowDrawList()->AddRectFilled(strip.Min, strip.Max, ImGui::GetColorU32(theme::color::PLATE), theme::RADIUS_FRAME);
         const float iconsLeft = strip.Min.x + theme::SPACE_3;
-        const float iconsRight = drawBindingIcons(_binding, iconsLeft, strip.GetCenter().y, STRIP_ICON_SCALE, ImGui::GetColorU32(color), leftHanded, drawer);
+        const float iconsRight = drawBindingIcons(_binding, iconsLeft, strip.GetCenter().y, STRIP_ICON_SCALE, ImGui::GetColorU32(color), frame.leftHanded, frame.drawer);
         const float sentenceLeft = iconsRight > iconsLeft ? iconsRight + theme::SPACE_3 : strip.Min.x + theme::SPACE_4;
-        const auto sentence = bindingSentence(_binding, leftHanded);
+        const auto sentence = bindingSentence(_binding, frame.leftHanded);
         const TextPiece piece{ .text = sentence, .color = ImGui::GetColorU32(color) };
         const float sentenceWidth = strip.Max.x - theme::SPACE_4 - sentenceLeft;
         const int lines = (std::min)(countTextLines(std::span(&piece, 1), sentenceWidth), 2);
         const float sentenceTop = strip.GetCenter().y - static_cast<float>(lines) * ImGui::GetFontSize() * 0.5f;
         drawTextPieces(std::span(&piece, 1), ImVec2(sentenceLeft, std::floor(sentenceTop)), sentenceWidth, 2);
+    }
 
-        // the footer: Cancel and Done
-        const float partLines = sided ? 4.0f : 3.0f;
-        const float ruleY = partsTop + partLines * theme::CONTROL_HEIGHT + (partLines - 1.0f) * theme::SPACE_2 + theme::SPACE_3;
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(contentLeft, ruleY), ImVec2(contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
+    /**
+     * The footer under a rule, after the parts' lines: Cancel, which gives back the binding the editor opened with, and
+     * Done, which keeps it. Both close the editor.
+     */
+    void BindingEditor::drawFooter(Frame& frame)
+    {
+        const float partLines = frame.sided ? 4.0f : 3.0f;
+        const float ruleY = frame.partsTop + partLines * theme::CONTROL_HEIGHT + (partLines - 1.0f) * theme::SPACE_2 + theme::SPACE_3;
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
         const float footerTop = ruleY + theme::BORDER_FRAME + theme::SPACE_3;
-        const auto done = controlBox(contentRight - DONE_WIDTH, footerTop, DONE_WIDTH);
+        const auto done = controlBox(frame.contentRight - DONE_WIDTH, footerTop, DONE_WIDTH);
         const auto cancelBox = controlBox(done.Min.x - theme::SPACE_3 - CANCEL_WIDTH, footerTop, CANCEL_WIDTH);
         if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
-            store.set(setting, _before);
+            frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
-            edited.pulse = true;
+            frame.edited.pulse = true;
         }
-        if (hovered && cancelBox.Contains(mouse)) {
-            point("Cancel", "Give back the binding it had as the editor opened.");
+        if (frame.hovered && cancelBox.Contains(frame.mouse)) {
+            frame.point("Cancel", "Give back the binding it had as the editor opened.");
         }
         if (button("Done", done, ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
-            edited.pulse = true;
+            frame.edited.pulse = true;
         }
-        if (hovered && done.Contains(mouse)) {
-            point("Done", "Keep the binding.");
+        if (frame.hovered && done.Contains(frame.mouse)) {
+            frame.point("Done", "Keep the binding.");
         }
-        ImGui::EndPopup();
-        return edited;
     }
 
     /**

@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -58,7 +60,20 @@ namespace mods_config::ui
         };
 
     private:
+        struct Frame;
+
         void apply(const model::Setting& setting, model::Store& store) const;
+        std::optional<std::size_t> dropdown(Frame& frame, Part part, std::string_view name, const ImVec2& at, std::string_view text, bool enabled,
+            const std::vector<std::string>& texts, const std::vector<std::string>& helps, std::optional<std::size_t> chosen, std::string help);
+        void editHand(Frame& frame);
+        void editButton(Frame& frame, vr::EVRButtonId bound);
+        void editHow(Frame& frame, vr::EVRButtonId bound);
+        void editDirection(Frame& frame);
+        void editTime(Frame& frame);
+        void editHolding(Frame& frame);
+        void editSuppress(Frame& frame);
+        void drawHeader(const Frame& frame) const;
+        void drawFooter(Frame& frame);
 
         // the binding setting whose editor is open, and none
         const model::Setting* _open = nullptr;
@@ -91,8 +106,5 @@ namespace mods_config::ui
         float _thumbstickSideValue = 0.0f;
         Sliders _sliders;
         model::Setting _stepped;
-
-        // the name the help line says of the part or the option the ray is on, which lives until the next frame
-        std::string _pointedName;
     };
 }

@@ -144,6 +144,35 @@ namespace
 namespace mods_config::ui
 {
     /**
+     * The editor of a transform as one frame draws it: its setting and store, where its parts are, where the ray is, and
+     * what the frame tells.
+     */
+    struct TransformEditor::Frame
+    {
+        const model::Setting& setting;
+        model::Store& store;
+        TransformEdited& edited;
+
+        // the content's left and right, the top of the header, and of the footer
+        const float contentLeft;
+        const float contentRight;
+        const float headerTop;
+        const float footerTop;
+
+        // the ray is on the editor, and where it is
+        const bool hovered;
+        const ImVec2 mouse;
+
+        /**
+         * Tells the help line of the part the ray is on: its name and its help.
+         */
+        void point(const std::string_view name, std::string help)
+        {
+            edited.pointed = PointedRow{ .text = std::string(name), .help = std::move(help) };
+        }
+    };
+
+    /**
      * Opens the editor of a transform with a press on its row, and draws it while it is open, with the transform the row
      * had: one that is no transform starts from its default. The editor is a popup in the page, under the row, or over it
      * where the page has no room under it, or as near as it fits: never over the title bar and the footer.
@@ -193,24 +222,7 @@ namespace mods_config::ui
             return axes[axis].on;
         });
         const float height = editorHeight(static_cast<std::size_t>(std::ranges::distance(lines)));
-        const auto& page = ImGui::GetCurrentWindow()->InnerRect;
-        const float left = std::clamp(std::floor(row.GetCenter().x - EDITOR_WIDTH * 0.5f), page.Min.x, (std::max)(page.Min.x, page.Max.x - EDITOR_WIDTH));
-        float top = (std::max)(page.Min.y, page.Max.y - height);
-        if (row.Max.y + height <= page.Max.y) {
-            top = row.Max.y;
-        } else if (row.Min.y - height >= page.Min.y) {
-            top = row.Min.y - height;
-        }
-        ImGui::SetNextWindowPos(ImVec2(left, top));
-        ImGui::SetNextWindowSize(ImVec2(EDITOR_WIDTH, height));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_4, theme::SPACE_4));
-        ImGui::PushStyleColor(ImGuiCol_Border, theme::color::GREEN);
-        const bool shown = ImGui::BeginPopupEx(id,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-        if (!shown) {
+        if (!beginRowEditor(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
         if (_cancel) {
@@ -223,93 +235,110 @@ namespace mods_config::ui
         }
 
         const auto origin = ImGui::GetWindowPos();
-        const float contentLeft = origin.x + theme::SPACE_4;
-        const float contentRight = origin.x + EDITOR_WIDTH - theme::SPACE_4;
-        const float headerTop = origin.y + theme::SPACE_4;
-        const bool hovered = ImGui::IsWindowHovered();
-        const auto& mouse = ImGui::GetIO().MousePos;
-        const auto point = [&](const std::string_view name, std::string help) {
-            edited.pointed = PointedRow{ .text = std::string(name), .help = std::move(help) };
-        };
+        Frame frame{ .setting = setting,
+            .store = store,
+            .edited = edited,
+            .contentLeft = origin.x + theme::SPACE_4,
+            .contentRight = origin.x + EDITOR_WIDTH - theme::SPACE_4,
+            .headerTop = origin.y + theme::SPACE_4,
+            .footerTop = origin.y + height - theme::SPACE_4 - theme::CONTROL_HEIGHT,
+            .hovered = ImGui::IsWindowHovered(),
+            .mouse = ImGui::GetIO().MousePos };
 
         // the header: the setting's name
-        drawText(contentLeft, contentRight, headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
+        drawText(frame.contentLeft, frame.contentRight, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
 
-        // a line for each axis of the parts that are on: its name and its slider
+        // a line for each axis of the parts that are on
         const auto saved = savedTable(setting, store);
-        float lineTop = headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3;
+        float lineTop = frame.headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3;
         _sliders.startFrame(_thumbstickSideValue);
         for (const std::size_t axis : lines) {
-            const ImRect line(contentLeft, lineTop, contentRight, lineTop + theme::CONTROL_HEIGHT);
-
-            ImGui::PushID(static_cast<int>(axis));
-            ImGui::SetCursorScreenPos(line.Min);
-            ImGui::InvisibleButton("line", line.GetSize());
-            // of the item, as a row's is: the window is not hovered while the line is held, and another line is not
-            const bool pointed = ImGui::IsItemHovered();
-            const SliderRow sliderRow{ .pointed = pointed, .started = ImGui::IsItemActivated(), .held = ImGui::IsItemActive() };
-            ImGui::PopID();
-
-            const float value = model::axisValue(_table, axis);
-            bool write = false;
-            const float right = contentRight - theme::SPACE_2;
-            const float changed = _sliders.edit(_axes[axis], right, lineTop, sliderRow, value, write, edited.pulse);
-            if (write || !common::fEqual(changed, value)) {
-                model::setAxis(_table, axis, changed);
-                store.set(setting, model::transformText(_table, setting.tableForm));
-            }
-
-            if (pointed) {
-                ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
-                drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
-                point(AXES[axis].name, axisHelp(setting, axis, store));
-            }
-            const float shownValue = model::axisValue(_table, axis);
-            const bool differs = store.isDirty(setting) && (!saved || common::fNotEqual(model::axisValue(*saved, axis), shownValue));
-            _axes[axis].display.decimals = (std::max)(stepDecimals(axes[axis].step), stepDecimals(shownValue));
-            const float labelLeft = contentLeft + theme::SPACE_2;
-            drawText(labelLeft, labelLeft + LABEL_WIDTH, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN, AXES[axis].name);
-            _sliders.draw(_axes[axis], right, lineTop, sliderRow, shownValue, differs ? ValueLook::Pending : ValueLook::Saved);
+            editAxis(frame, axis, lineTop, saved);
             lineTop += theme::CONTROL_HEIGHT + theme::SPACE_1;
         }
         _sliders.endFrame();
 
-        // the footer: Adjust in world, and Cancel and Done, under a rule
-        const float footerTop = origin.y + height - theme::SPACE_4 - theme::CONTROL_HEIGHT;
-        const float ruleY = footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(contentLeft, ruleY), ImVec2(contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
-        const auto notPreviewed = store.notPreviewed(setting);
-        const auto adjustBox = controlBox(contentLeft, footerTop, textWidth(ADJUST_TEXT) + BUTTON_ICON_SIZE + theme::SPACE_2 + theme::SPACE_4 * 2.0f);
-        if (drawAdjustButton(adjustBox, notPreviewed.empty())) {
-            edited.adjust = true;
-            edited.pulse = true;
+        drawFooter(frame);
+        ImGui::EndPopup();
+        return edited;
+    }
+
+    /**
+     * The line of an axis: its name and its slider, which sets the axis in the store at each change. Its value is
+     * pending while it differs from the saved transform's, which is none where the file has no transform.
+     */
+    void TransformEditor::editAxis(Frame& frame, const std::size_t axis, const float lineTop, const std::optional<model::TransformTable>& saved)
+    {
+        const ImRect line(frame.contentLeft, lineTop, frame.contentRight, lineTop + theme::CONTROL_HEIGHT);
+
+        ImGui::PushID(static_cast<int>(axis));
+        ImGui::SetCursorScreenPos(line.Min);
+        ImGui::InvisibleButton("line", line.GetSize());
+        // of the item, as a row's is: the window is not hovered while the line is held, and another line is not
+        const bool pointed = ImGui::IsItemHovered();
+        const SliderRow sliderRow{ .pointed = pointed, .started = ImGui::IsItemActivated(), .held = ImGui::IsItemActive() };
+        ImGui::PopID();
+
+        const float value = model::axisValue(_table, axis);
+        bool write = false;
+        const float right = frame.contentRight - theme::SPACE_2;
+        const float changed = _sliders.edit(_axes[axis], right, lineTop, sliderRow, value, write, frame.edited.pulse);
+        if (write || !common::fEqual(changed, value)) {
+            model::setAxis(_table, axis, changed);
+            frame.store.set(frame.setting, model::transformText(_table, frame.setting.tableForm));
         }
-        if (hovered && adjustBox.Contains(mouse)) {
-            point(ADJUST_TEXT, notPreviewed.empty() ? std::string(ADJUST_HELP) : notPreviewed);
+
+        if (pointed) {
+            ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
+            drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
+            frame.point(AXES[axis].name, axisHelp(frame.setting, axis, frame.store));
+        }
+        const float shownValue = model::axisValue(_table, axis);
+        const bool differs = frame.store.isDirty(frame.setting) && (!saved || common::fNotEqual(model::axisValue(*saved, axis), shownValue));
+        _axes[axis].display.decimals = (std::max)(stepDecimals(frame.setting.valueOptions.transformAxes[axis].step), stepDecimals(shownValue));
+        const float labelLeft = frame.contentLeft + theme::SPACE_2;
+        drawText(labelLeft, labelLeft + LABEL_WIDTH, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN, AXES[axis].name);
+        _sliders.draw(_axes[axis], right, lineTop, sliderRow, shownValue, differs ? ValueLook::Pending : ValueLook::Saved);
+    }
+
+    /**
+     * The footer under a rule: Adjust in world, which the menu does and a setting that cannot be previewed has disabled,
+     * and Cancel and Done. Cancel gives back the value the editor opened with, and Done keeps it: both close the editor.
+     */
+    void TransformEditor::drawFooter(Frame& frame)
+    {
+        const float ruleY = frame.footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
+        const auto notPreviewed = frame.store.notPreviewed(frame.setting);
+        const auto adjustBox = controlBox(frame.contentLeft, frame.footerTop, textWidth(ADJUST_TEXT) + BUTTON_ICON_SIZE + theme::SPACE_2 + theme::SPACE_4 * 2.0f);
+        if (drawAdjustButton(adjustBox, notPreviewed.empty())) {
+            frame.edited.adjust = true;
+            frame.edited.pulse = true;
+        }
+        if (frame.hovered && adjustBox.Contains(frame.mouse)) {
+            frame.point(ADJUST_TEXT, notPreviewed.empty() ? std::string(ADJUST_HELP) : notPreviewed);
         }
         const float doneWidth = textWidth("Done") + theme::SPACE_4 * 2.0f;
         const float cancelWidth = textWidth("Cancel") + theme::SPACE_4 * 2.0f;
-        const auto done = controlBox(contentRight - doneWidth, footerTop, doneWidth);
-        const auto cancelBox = controlBox(done.Min.x - theme::SPACE_2 - cancelWidth, footerTop, cancelWidth);
+        const auto done = controlBox(frame.contentRight - doneWidth, frame.footerTop, doneWidth);
+        const auto cancelBox = controlBox(done.Min.x - theme::SPACE_2 - cancelWidth, frame.footerTop, cancelWidth);
         if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
-            store.set(setting, _before);
+            frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
-            edited.pulse = true;
+            frame.edited.pulse = true;
         }
-        if (hovered && cancelBox.Contains(mouse)) {
-            point("Cancel", "Give back the value it had as the editor opened.");
+        if (frame.hovered && cancelBox.Contains(frame.mouse)) {
+            frame.point("Cancel", "Give back the value it had as the editor opened.");
         }
         if (button("Done", done, ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
-            edited.pulse = true;
+            frame.edited.pulse = true;
         }
-        if (hovered && done.Contains(mouse)) {
-            point("Done", "Keep the value.");
+        if (frame.hovered && done.Contains(frame.mouse)) {
+            frame.point("Done", "Keep the value.");
         }
-        ImGui::EndPopup();
-        return edited;
     }
 
     /**
