@@ -7,6 +7,7 @@
 
 #include <imgui_internal.h>
 
+#include "PanelTargets.h"
 #include "Theme.h"
 #include "imgui/ImGuiFonts.h"
 
@@ -700,6 +701,7 @@ namespace mods_config::ui
     {
         ImGui::SetCursorScreenPos(box.Min);
         const bool pressed = ImGui::InvisibleButton(label, box.GetSize());
+        panelTargets().add(TargetKind::Button, label, box);
         const bool pointed = ImGui::IsItemHovered();
         const bool held = ImGui::IsItemActive();
         auto* drawList = ImGui::GetWindowDrawList();

@@ -16,6 +16,7 @@
 #include "model/TextStates.h"
 #include "ui/ButtonView.h"
 #include "ui/PageRows.h"
+#include "ui/PanelTargets.h"
 #include "ui/RowView.h"
 
 namespace mods_config::devbench
@@ -585,6 +586,31 @@ namespace mods_config::devbench
                 throw std::runtime_error("the choice has no option of the value or the text " + value.dump());
             }
             throw std::runtime_error("the setting's type is not known");
+        }
+
+        /**
+         * Where the panel's targets were in its last frame, in the panel's pixels as the state's pointer has them. The
+         * first call starts keeping them, for the rest of the session, so it answers none; a frame later there are.
+         */
+        json runTargets(const json&)
+        {
+            auto& recorder = ui::panelTargets();
+            const bool recording = recorder.isRecording();
+            recorder.setRecording(true);
+            auto targets = json::array();
+            for (const auto& target : recording ? recorder.targets() : std::vector<ui::Target>()) {
+                json entry = { { "kind", ui::targetKindName(target.kind) },
+                    { "key", target.key },
+                    { "x", target.rect.Min.x },
+                    { "y", target.rect.Min.y },
+                    { "width", target.rect.GetWidth() },
+                    { "height", target.rect.GetHeight() } };
+                if (target.kind == ui::TargetKind::Tree) {
+                    entry["path"] = target.path;
+                }
+                targets.push_back(std::move(entry));
+            }
+            return { { "recording", recording }, { "targets", std::move(targets) } };
         }
 
         /**
@@ -1253,6 +1279,17 @@ namespace mods_config::devbench
                            "applies, storage (where its value is kept: kind file with its file, format, root, filePath and the path to the value in it, "
                            "modSetting with MCM's name, global or property with its plugin and formId, clientState, unknown or none), and its range or options",
             .handler = &runPage,
+        });
+        f4cf::devbench::addAction({
+            .name = "targets",
+            .description = "where the panel's targets were in its last frame, for a test that points the controllers at them: each with its kind and key "
+                           "(tree: a mod's row by its name, with path, the names of the pages on the way to a page's row; category: by its name; setting: a "
+                           "page's row by the setting's id; pageButton: a page's button row by its text; section: a heading by its text; titleButton: Help, "
+                           "Minimize, Close; crumb: by its text; button: a dialog's or an editor's button by its label; colorChannel: a track of the open "
+                           "color editor, Red, Green, Blue or Alpha), and x, y, width and height, the part of it that was shown, in the panel's pixels from "
+                           "its top left as the state's pointer has them. The first call starts keeping them and answers recording false with none; ask "
+                           "again after a frame",
+            .handler = &runTargets,
         });
         f4cf::devbench::addAction({
             .name = "setValue",

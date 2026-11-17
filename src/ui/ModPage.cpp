@@ -17,6 +17,7 @@
 #include "Choices.h"
 #include "Drawing.h"
 #include "PageRows.h"
+#include "PanelTargets.h"
 #include "Sections.h"
 #include "SettingRow.h"
 #include "Sliders.h"
@@ -174,6 +175,9 @@ namespace
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
         const auto row = ui::addRow(true);
+        if (ui::panelTargets().isRecording()) {
+            ui::panelTargets().add(ui::TargetKind::Section, model::resolveClientText(group.text, page.store), ImRect(pos, ImVec2(pos.x + width, pos.y + theme::CONTROL_HEIGHT)));
+        }
         std::string help;
         const bool folded =
             page.sections.drawHeading(group, page.store, pos, width, { .shown = row.shown, .pointed = row.pointed, .pressed = row.pressed }, help, underlinedBy(item, page));
@@ -221,6 +225,7 @@ namespace
             } else {
                 ui::sectionHeading(heading, right, found);
             }
+            ui::panelTargets().add(ui::TargetKind::Section, heading, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
             if (ImGui::IsItemHovered()) {
                 page.drawn.pointedItem = &item;
                 if (!group.help.empty()) {
@@ -350,6 +355,24 @@ namespace
     };
 
     /**
+     * Adds the row of a setting or a button, drawn from the top it was given, to the panel's targets: a setting by its
+     * id, and a button by its text. A row is a control high, also while an editor opens under it.
+     */
+    void addRowTarget(const model::Item& item, const ImVec2& top, model::Store* store)
+    {
+        auto& targets = ui::panelTargets();
+        if (!targets.isRecording()) {
+            return;
+        }
+        const ImRect row(top, ImVec2(top.x + ui::rowWidth(), top.y + theme::CONTROL_HEIGHT));
+        if (const auto* setting = std::get_if<model::Setting>(&item)) {
+            targets.add(ui::TargetKind::Setting, setting->id, row);
+        } else if (const auto* button = std::get_if<model::Button>(&item)) {
+            targets.add(ui::TargetKind::PageButton, model::resolveClientText(button->text, store), row);
+        }
+    }
+
+    /**
      * Draws the items that are shown, each as its row, set in a level from the heading they are under. A row
      * under no heading is at the content's left, as a heading's row is, so its text lines up with a heading's.
      * An item that is not shown has no row and no room. A section that is not shown is
@@ -372,6 +395,7 @@ namespace
             const auto top = ImGui::GetCursorScreenPos();
             if (ui::isShown(item, page.store)) {
                 std::visit(ItemDrawer{ .page = page, .item = item, .depth = depth }, item);
+                addRowTarget(item, top, page.store);
             } else if (std::holds_alternative<model::Group>(item)) {
                 drawGroup(item, page, depth, false);
             }

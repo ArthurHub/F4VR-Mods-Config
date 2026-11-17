@@ -11,6 +11,7 @@
 #include <imgui.h>
 
 #include "Drawing.h"
+#include "PanelTargets.h"
 #include "Theme.h"
 #include "perf/Perf.h"
 
@@ -55,6 +56,7 @@ namespace
     bool crumb(const char* id, const std::string_view text, const ImVec2& min, const float width, const ui::CrumbLook look, const std::string_view suffix = {})
     {
         const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
+        ui::panelTargets().add(ui::TargetKind::Crumb, text, ImRect(min, max));
         bool pressed = false;
         auto color = theme::color::GREEN;
         if (look == ui::CrumbLook::Selected) {
@@ -176,6 +178,7 @@ namespace mods_config::ui
             const float buttonWidth = highlighted ? highlightedHelpWidth() : theme::CONTROL_HEIGHT;
             buttonLeft -= buttonWidth;
             const auto box = controlBox(buttonLeft, buttonTop, buttonWidth);
+            panelTargets().add(TargetKind::TitleButton, button.name, box);
             bool pointed = false;
             if (highlighted ? highlightedHelp(button.name, box, pointed) : iconButton(button.name, box, pointed)) {
                 bar.pressedButton = button.button;

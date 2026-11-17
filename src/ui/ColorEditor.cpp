@@ -7,6 +7,7 @@
 
 #include "Colors.h"
 #include "Drawing.h"
+#include "PanelTargets.h"
 #include "Theme.h"
 #include "model/TextStates.h"
 
@@ -381,6 +382,7 @@ namespace mods_config::ui
         ImGui::PushID(static_cast<int>(channel));
         ImGui::SetCursorScreenPos(track.Min);
         ImGui::InvisibleButton("track", track.GetSize());
+        panelTargets().add(TargetKind::ColorChannel, CHANNELS[channel].name, track);
         // the window is not hovered while the track is held, and the ray stays on its line then
         const bool pointed = line.Contains(frame.mouse) && (frame.hovered || ImGui::IsItemActive());
         if (ImGui::IsItemActivated()) {

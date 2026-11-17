@@ -4,12 +4,15 @@
 #include <cmath>
 #include <cstdint>
 #include <format>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <imgui.h>
 
 #include "Drawing.h"
+#include "PanelTargets.h"
 #include "Theme.h"
 #include "model/Conditions.h"
 #include "model/UnsavedPages.h"
@@ -159,6 +162,25 @@ namespace
         const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
         drawNameWithDot(nameLeft, right, min.y, color, name, unsaved, onFill);
         ui::drawUnderlines(nameLeft, right, min.y, theme::CONTROL_HEIGHT, color, name, found.ranges);
+    }
+
+    /**
+     * Adds the row just drawn, of a mod or of a page of it, to the panel's targets: by the mod's name, and the names of
+     * the pages on the way to the page, by their places in `path`.
+     */
+    void addTreeTarget(const model::Mod& mod, const std::span<const std::size_t> path = {})
+    {
+        auto& targets = ui::panelTargets();
+        if (!targets.isRecording()) {
+            return;
+        }
+        std::vector<std::string> names;
+        const auto* pages = &mod.pages;
+        for (const auto place : path) {
+            names.push_back((*pages)[place].name);
+            pages = &(*pages)[place].pages;
+        }
+        targets.add(ui::TargetKind::Tree, mod.name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()), std::move(names));
     }
 
     /**
@@ -371,6 +393,7 @@ namespace mods_config::ui
             ImGui::PushID(key.c_str());
             bool pointed = false;
             const bool pressed = categoryRow(name, category.mods.size(), open, rowWidth, unsaved > 0, pointed);
+            panelTargets().add(TargetKind::Category, name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
             if (pointed && unsaved > 0) {
                 drawn.pointed = PointedRow{ .text = name, .help = withUnsaved({}, unsaved) };
             }
@@ -419,6 +442,7 @@ namespace mods_config::ui
             if (disabledRow(mod.displayName, tag, level, Arrow::Closed, rowWidth)) {
                 drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
             }
+            addTreeTarget(mod);
             ImGui::PopID();
             return ImGui::GetItemRectMax().y;
         }
@@ -431,13 +455,14 @@ namespace mods_config::ui
                 _openedMod = modIndex;
             }
         }
+        addTreeTarget(mod);
         const float rowBottom = ImGui::GetItemRectMax().y;
         if (pointed && (mcm || !mod.help.empty() || unsaved > 0)) {
             drawn.pointed = PointedRow{ .text = mod.displayName, .help = withUnsaved(mcm ? MCM_HELP : mod.help, unsaved) };
         }
         if (open) {
             std::vector<std::size_t> path;
-            drawPages(mod.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);
+            drawPages(mod, mod.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);
             if (_openedMod == modIndex) {
                 // the room of the first pages, under the mod's row, scrolled to where they are under the shown rows
                 const float shownCount = static_cast<float>((std::min)(mod.pages.size(), MOD_SHOWN_PAGES));
@@ -458,8 +483,8 @@ namespace mods_config::ui
      * selected, and its pages are the rows under it, a level further in. Tells a pressed row and a pointed one with
      * a help.
      */
-    void ModTree::drawPages(const std::vector<model::Page>& pages, const std::size_t modIndex, const int level, const Selection& selection, std::vector<std::size_t>& path,
-        const float rowWidth, TreeDrawn& drawn, model::Store* store) const
+    void ModTree::drawPages(const model::Mod& mod, const std::vector<model::Page>& pages, const std::size_t modIndex, const int level, const Selection& selection,
+        std::vector<std::size_t>& path, const float rowWidth, TreeDrawn& drawn, model::Store* store) const
     {
         for (std::size_t pageIndex = 0; pageIndex < pages.size(); ++pageIndex) {
             const auto& page = pages[pageIndex];
@@ -479,11 +504,12 @@ namespace mods_config::ui
             } else if (treeRow(page.name, {}, level, arrow, selection.page == path, _showSelection, rowWidth, pointed, {}, unsaved > 0)) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
+            addTreeTarget(mod, path);
             if (pointed && (!enabled || !page.help.empty() || unsaved > 0)) {
                 drawn.pointed = PointedRow{ .text = page.name, .help = withUnsaved(pageHelp(page, enabled), unsaved) };
             }
             if (open && enabled) {
-                drawPages(page.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);
+                drawPages(mod, page.pages, modIndex, level + 1, selection, path, rowWidth, drawn, store);
             }
             ImGui::PopID();
             path.pop_back();
@@ -517,6 +543,7 @@ namespace mods_config::ui
                 if (disabledRow(mod.displayName, tag, 0, Arrow::Closed, rowWidth, row)) {
                     drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
                 }
+                addTreeTarget(mod);
                 ImGui::PopID();
                 continue;
             }
@@ -524,12 +551,13 @@ namespace mods_config::ui
             if (treeRow(mod.displayName, tag, 0, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed, row)) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = {} };
             }
+            addTreeTarget(mod);
             if (pointed && (mcm || !mod.help.empty())) {
                 drawn.pointed = PointedRow{ .text = mod.displayName, .help = mcm ? MCM_HELP : mod.help };
             }
             if (open) {
                 std::vector<std::size_t> path;
-                drawFoundPages(mod.pages, found->pages, modIndex, selection, *search.query, path, rowWidth, drawn);
+                drawFoundPages(mod, mod.pages, found->pages, modIndex, selection, *search.query, path, rowWidth, drawn);
             }
             ImGui::PopID();
         }
@@ -546,8 +574,8 @@ namespace mods_config::ui
      * found under it. A page with pages and none found under it has a closed arrow. The pages of several mods are
      * shown, so a page is selected by its mod and its place.
      */
-    void ModTree::drawFoundPages(const std::vector<model::Page>& pages, const std::vector<model::PageFound>& found, const std::size_t modIndex, const Selection& selection,
-        const model::SearchQuery& query, std::vector<std::size_t>& path, const float rowWidth, TreeDrawn& drawn) const
+    void ModTree::drawFoundPages(const model::Mod& mod, const std::vector<model::Page>& pages, const std::vector<model::PageFound>& found, const std::size_t modIndex,
+        const Selection& selection, const model::SearchQuery& query, std::vector<std::size_t>& path, const float rowWidth, TreeDrawn& drawn) const
     {
         for (const auto& pageFound : found) {
             const auto& page = pages[pageFound.place];
@@ -561,10 +589,11 @@ namespace mods_config::ui
             } else if (treeRow(page.name, {}, static_cast<int>(path.size()), arrow, selection.mod == modIndex && selection.page == path, _showSelection, rowWidth, pointed, row)) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
+            addTreeTarget(mod, path);
             if (pointed && (!pageFound.enabled || !page.help.empty())) {
                 drawn.pointed = PointedRow{ .text = page.name, .help = pageHelp(page, pageFound.enabled) };
             }
-            drawFoundPages(page.pages, pageFound.pages, modIndex, selection, query, path, rowWidth, drawn);
+            drawFoundPages(mod, page.pages, pageFound.pages, modIndex, selection, query, path, rowWidth, drawn);
             ImGui::PopID();
             path.pop_back();
         }

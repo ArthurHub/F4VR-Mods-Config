@@ -91,11 +91,11 @@ namespace mods_config::ui
         void drawCategories(const std::vector<model::Mod>& mods, const std::vector<model::CategoryGroup>& categories, const Selection& selection, float rowWidth, TreeDrawn& drawn,
             model::Store* store);
         float drawMod(const std::vector<model::Mod>& mods, std::size_t modIndex, int level, const Selection& selection, float rowWidth, TreeDrawn& drawn, model::Store* store);
-        void drawPages(const std::vector<model::Page>& pages, std::size_t modIndex, int level, const Selection& selection, std::vector<std::size_t>& path, float rowWidth,
-            TreeDrawn& drawn, model::Store* store) const;
+        void drawPages(const model::Mod& mod, const std::vector<model::Page>& pages, std::size_t modIndex, int level, const Selection& selection, std::vector<std::size_t>& path,
+            float rowWidth, TreeDrawn& drawn, model::Store* store) const;
         void drawFound(const std::vector<model::Mod>& mods, const Selection& selection, const TreeSearch& search, float rowWidth, TreeDrawn& drawn) const;
-        void drawFoundPages(const std::vector<model::Page>& pages, const std::vector<model::PageFound>& found, std::size_t modIndex, const Selection& selection,
-            const model::SearchQuery& query, std::vector<std::size_t>& path, float rowWidth, TreeDrawn& drawn) const;
+        void drawFoundPages(const model::Mod& mod, const std::vector<model::Page>& pages, const std::vector<model::PageFound>& found, std::size_t modIndex,
+            const Selection& selection, const model::SearchQuery& query, std::vector<std::size_t>& path, float rowWidth, TreeDrawn& drawn) const;
 
         // the header: the search field
         SearchField _search;

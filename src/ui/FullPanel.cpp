@@ -1,5 +1,7 @@
 #include "FullPanel.h"
 
+#include "PanelTargets.h"
+
 #include <algorithm>
 #include <format>
 #include <numeric>
@@ -802,6 +804,7 @@ namespace mods_config::ui
     void FullPanel::draw()
     {
         F4CF_PERF_FUNCTION();
+        panelTargets().startFrame();
         if (!_styleApplied) {
             theme::applyStyle(ImGui::GetStyle());
             _styleApplied = true;
