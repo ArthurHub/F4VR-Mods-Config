@@ -38,6 +38,14 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/model/TranslationsTests.cpp
   linked/model/UnsavedPagesTests.cpp
   linked/spec/ConfigSpecLoaderTests.cpp
+  linked/spec/ActionSpecTests.cpp
+  linked/spec/ActivationSphereSpecTests.cpp
+  linked/spec/ChoiceOptionsSpecTests.cpp
+  linked/spec/ConditionSpecTests.cpp
+  linked/spec/FrameworkTypeSpecTests.cpp
+  linked/spec/RequirementSpecTests.cpp
+  linked/spec/SettingSpecTests.cpp
+  linked/spec/StorageSpecTests.cpp
   linked/spec/ConfigSpecStoreTests.cpp
   linked/spec/IniFileTests.cpp
   linked/spec/LiveCopiesTests.cpp
