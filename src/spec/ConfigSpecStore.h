@@ -180,7 +180,26 @@ namespace mods_config::spec
             std::optional<model::Value> held;
         };
 
+        /**
+         * A file of a config spec as the session read it. A file that is not there has neither its values nor a
+         * reason: its settings have their defaults.
+         */
+        struct FileOfSession
+        {
+            // the file, read. None for a file that is not there or is not available
+            const ModFile* file = nullptr;
+
+            // why its settings are not available, and empty for a file that is read or is not there
+            std::string notAvailable;
+        };
+
+        // the files of a config spec as the session read them, by their names in it
+        using FilesOfSession = std::map<std::string, FileOfSession, std::less<>>;
+
         void readValues(const model::Mod& mod);
+        FilesOfSession openFiles(const model::Mod& mod);
+        void readBaseline(const model::Setting& setting, Entry& entry, const FilesOfSession& files, const model::Mod& mod) const;
+        void readFileBaseline(const model::Setting& setting, Entry& entry, const FilesOfSession& files, const model::Mod& mod) const;
         void readClientState(const model::Setting& setting, const model::ClientStateStorage& state, Entry& entry) const;
         void preview(const model::Setting& setting, const Entry& entry);
         void previewToClient(const model::Setting& setting, const Entry& entry);

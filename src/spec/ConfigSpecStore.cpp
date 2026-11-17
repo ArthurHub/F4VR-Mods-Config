@@ -475,19 +475,6 @@ namespace
     }
 
     /**
-     * A file of a config spec as the session read it. A file that is not there has neither its values nor a
-     * reason: its settings have their defaults.
-     */
-    struct FileOfSession
-    {
-        // the file, read. None for a file that is not there or is not available
-        const spec::ModFile* file = nullptr;
-
-        // why its settings are not available, and empty for a file that is read or is not there
-        std::string notAvailable;
-    };
-
-    /**
      * Why a setting kept in a storage the store does not read is not available.
      */
     std::string unknownStorageReason(const model::UnknownStorage& storage)
@@ -612,7 +599,24 @@ namespace mods_config::spec
      */
     void ConfigSpecStore::readValues(const model::Mod& mod)
     {
-        std::map<std::string, FileOfSession, std::less<>> files;
+        const auto files = openFiles(mod);
+        _options.read(mod, &_clientCalls, { .data = _dataFolder, .myGames = _myGamesFolder });
+        addSettings(mod.frontPage.items, _settingList);
+        addSettings(mod.pages, _settingList);
+        for (const auto* setting : _settingList) {
+            _settings.try_emplace(setting->id, setting);
+            readBaseline(*setting, _entries[setting], files, mod);
+        }
+        logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
+    }
+
+    /**
+     * Opens each file of the mod where the session started, and reads the ones that are there. A file that cannot be
+     * read has the reason its settings are not available; one that is not there has its settings at their defaults.
+     */
+    ConfigSpecStore::FilesOfSession ConfigSpecStore::openFiles(const model::Mod& mod)
+    {
+        FilesOfSession files;
         for (const auto& [name, file] : mod.files) {
             auto& read = files[name];
             const auto path = _filePaths.insert_or_assign(name, pathOf(file)).first->second;
@@ -629,82 +633,93 @@ namespace mods_config::spec
             }
             read.file = modFile.get();
         }
+        return files;
+    }
 
-        _options.read(mod, &_clientCalls, { .data = _dataFolder, .myGames = _myGamesFolder });
-        addSettings(mod.frontPage.items, _settingList);
-        addSettings(mod.pages, _settingList);
-        for (const auto* setting : _settingList) {
-            _settings.try_emplace(setting->id, setting);
-            auto& entry = _entries[setting];
-            const auto& options = _options.of(*setting);
-            if (!controlValue(*setting, zeroOf(setting->valueType))) {
-                entry.notAvailable = "Not available: its control does not show a value of its valueType.";
-                continue;
-            }
-            if (const auto reason = _options.notAvailable(*setting); !reason.empty()) {
-                entry.notAvailable = reason;
-                continue;
-            }
-            if (const auto* unknown = std::get_if<model::UnknownStorage>(&setting->storage)) {
-                entry.notAvailable = unknownStorageReason(*unknown);
-                continue;
-            }
-            // its value is the settings' its options set, which are read as settings of their own
-            if (model::setsOthers(*setting)) {
-                continue;
-            }
-            if (isInGame(setting->storage)) {
-                auto stored = readGame(*setting);
-                if (!stored) {
-                    entry.notAvailable = std::format("Not available: {}.", stored.error());
-                    continue;
-                }
-                entry.baseline = controlValue(*setting, options, *stored);
-                if (!setting->readOnly) {
-                    entry.invalid = invalidReason(*setting, options, *entry.baseline, gameName(setting->storage), "the game");
-                }
-                continue;
-            }
-            if (const auto* state = std::get_if<model::ClientStateStorage>(&setting->storage)) {
-                readClientState(*setting, *state, entry);
-                continue;
-            }
-            const auto& storage = std::get<model::FileStorage>(setting->storage);
-            const auto file = files.find(storage.file);
-            if (file == files.end() || !file->second.notAvailable.empty()) {
-                entry.notAvailable = file != files.end() ? file->second.notAvailable : "Not available: the setting names no file of its config spec.";
-                continue;
-            }
-            const auto* modFile = file->second.file;
-            if (!modFile || !modFile->contains(storage.path)) {
-                if (setting->readOnly) {
-                    continue;
-                }
-                if (!setting->defaultValue) {
-                    entry.notAvailable = "Not available: the file has no value of the setting, and its config spec gives it no default.";
-                    continue;
-                }
-                entry.baseline = controlValue(*setting, options, *setting->defaultValue);
-                continue;
-            }
-            // a binding, a color and a transform in a TOML file are the text of their table, which their control reads
-            auto stored = !model::keptAsTable(*setting) ? modFile->value(storage.path, setting->valueType) : modFile->tableText(storage.path).transform([](std::string text) {
-                return model::Value(std::move(text));
-            });
-            if (!stored) {
-                if (setting->readOnly) {
-                    entry.notAvailable = std::format("Not available: {}.", stored.error());
-                } else {
-                    entry.invalid = std::format("Invalid: {}.", stored.error());
-                }
-                continue;
-            }
-            entry.baseline = controlValue(*setting, options, *stored);
-            if (!setting->readOnly) {
-                entry.invalid = invalidReason(*setting, options, *entry.baseline, modFile->pathName(storage.path), fileName(mod.files.at(storage.file)));
-            }
+    /**
+     * Reads the baseline of a setting, with why it is not available or is invalid, as `open` has it: of the game, of a
+     * state of the mod's client, or of a file. A choice whose options set other settings has none of its own: its value
+     * is that of the settings it sets, which are read as settings of their own.
+     */
+    void ConfigSpecStore::readBaseline(const model::Setting& setting, Entry& entry, const FilesOfSession& files, const model::Mod& mod) const
+    {
+        if (!controlValue(setting, zeroOf(setting.valueType))) {
+            entry.notAvailable = "Not available: its control does not show a value of its valueType.";
+            return;
         }
-        logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
+        if (const auto reason = _options.notAvailable(setting); !reason.empty()) {
+            entry.notAvailable = reason;
+            return;
+        }
+        if (const auto* unknown = std::get_if<model::UnknownStorage>(&setting.storage)) {
+            entry.notAvailable = unknownStorageReason(*unknown);
+            return;
+        }
+        if (model::setsOthers(setting)) {
+            return;
+        }
+        if (isInGame(setting.storage)) {
+            auto stored = readGame(setting);
+            if (!stored) {
+                entry.notAvailable = std::format("Not available: {}.", stored.error());
+                return;
+            }
+            const auto& options = _options.of(setting);
+            entry.baseline = controlValue(setting, options, *stored);
+            if (!setting.readOnly) {
+                entry.invalid = invalidReason(setting, options, *entry.baseline, gameName(setting.storage), "the game");
+            }
+            return;
+        }
+        if (const auto* state = std::get_if<model::ClientStateStorage>(&setting.storage)) {
+            readClientState(setting, *state, entry);
+            return;
+        }
+        readFileBaseline(setting, entry, files, mod);
+    }
+
+    /**
+     * Reads the baseline of a setting kept in a file: its value there, or its default where the file has none, as a
+     * file that is not there. A read-only setting has none then, and a value of the wrong type makes it not available,
+     * where any other setting's is invalid.
+     */
+    void ConfigSpecStore::readFileBaseline(const model::Setting& setting, Entry& entry, const FilesOfSession& files, const model::Mod& mod) const
+    {
+        const auto& storage = std::get<model::FileStorage>(setting.storage);
+        const auto file = files.find(storage.file);
+        if (file == files.end() || !file->second.notAvailable.empty()) {
+            entry.notAvailable = file != files.end() ? file->second.notAvailable : "Not available: the setting names no file of its config spec.";
+            return;
+        }
+        const auto& options = _options.of(setting);
+        const auto* modFile = file->second.file;
+        if (!modFile || !modFile->contains(storage.path)) {
+            if (setting.readOnly) {
+                return;
+            }
+            if (!setting.defaultValue) {
+                entry.notAvailable = "Not available: the file has no value of the setting, and its config spec gives it no default.";
+                return;
+            }
+            entry.baseline = controlValue(setting, options, *setting.defaultValue);
+            return;
+        }
+        // a binding, a color and a transform in a TOML file are the text of their table, which their control reads
+        auto stored = !model::keptAsTable(setting) ? modFile->value(storage.path, setting.valueType) : modFile->tableText(storage.path).transform([](std::string text) {
+            return model::Value(std::move(text));
+        });
+        if (!stored) {
+            if (setting.readOnly) {
+                entry.notAvailable = std::format("Not available: {}.", stored.error());
+            } else {
+                entry.invalid = std::format("Invalid: {}.", stored.error());
+            }
+            return;
+        }
+        entry.baseline = controlValue(setting, options, *stored);
+        if (!setting.readOnly) {
+            entry.invalid = invalidReason(setting, options, *entry.baseline, modFile->pathName(storage.path), fileName(mod.files.at(storage.file)));
+        }
     }
 
     /**
