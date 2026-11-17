@@ -2,7 +2,8 @@
 the player can change is changed, saved, checked in its file, then set back, saved and checked again, one at a time.
 
 Each mod is a test of its own, which reports every setting that failed and the ones it skipped, with -rA. A run that
-asks for the sweep, by a -m that names it or by naming this file, sweeps every mod; any other run sweeps SUBSET.
+asks for the sweep, by a -m that names it or full or by naming this file, sweeps every setting of every mod; any other
+run sweeps one setting of each kind (see kind) of each mod of SUBSET.
 """
 
 import html
@@ -10,7 +11,7 @@ import re
 
 import pytest
 
-from conftest import CONFIG_SPEC_SHOWCASE, CONFIG_SPECS, MCM_SHOWCASE, REQUIRED_MCM, TEST_SET
+from conftest import CONFIG_SPEC_SHOWCASE, asked_for, CONFIG_SPECS, MCM_SHOWCASE, REQUIRED_MCM, TEST_SET
 from devbench import DevbenchError, wait_until
 from menu import page_paths, plain, same
 from stored import NotInFile, file_value, inline_table, stored_as, table
@@ -111,6 +112,20 @@ def candidates(row):
                 yield inline_table({**transform, "scale": round(transform["scale"] + delta, 4)})
 
 
+def kind(row):
+    """
+    What a setting is to a sweep that changes one of each kind of a mod: its type, whether it has options, and where
+    its value is kept (the storage's kind, and a file's format and root).
+    """
+    storage = row["storage"]
+    return (row["type"], "options" in row, storage["kind"], storage.get("format"), storage.get("root"))
+
+
+def asked(config):
+    """Whether the run asks for the whole sweep: every setting of every mod."""
+    return asked_for(config, "sweep", "test_sweep")
+
+
 def why_skipped(row):
     """Why the sweep does not change a setting, or None when it does."""
     if not row["shown"]:
@@ -182,14 +197,12 @@ def sweep_setting(menu, bench, mod, row):
 
 def pytest_generate_tests(metafunc):
     """
-    Each mod a test of its own: every mod when the run asks for the sweep, by a -m that names it or by naming this
-    file, and SUBSET otherwise. The parameter is swept, as mod is devbench's fixture of the mod's tool.
+    Each mod a test of its own: every mod when the run asks for the whole sweep, and SUBSET otherwise. The parameter
+    is swept, as mod is devbench's fixture of the mod's tool.
     """
     if "swept" not in metafunc.fixturenames:
         return
-    config = metafunc.config
-    asked = "sweep" in (config.getoption("markexpr") or "") or any("test_sweep" in arg for arg in config.args)
-    metafunc.parametrize("swept", SWEPT if asked else [mod for mod in SWEPT if mod in SUBSET])
+    metafunc.parametrize("swept", SWEPT if asked(metafunc.config) else [mod for mod in SWEPT if mod in SUBSET])
 
 
 def _linked(text):
@@ -197,13 +210,17 @@ def _linked(text):
     return re.sub(r"https?://[^\s)<]+", lambda match: f"<a href='{match.group(0)}'>{match.group(0)}</a>", html.escape(text))
 
 
-def report_sweep(report, mod, changed, skipped, problems, known):
-    """Add a mod's sweep to the report: its counts in the Sweep table, and the settings it failed, knew or skipped."""
+def report_sweep(report, mod, changed, alike, skipped, problems, known):
+    """
+    Add a mod's sweep to the report: its counts in the Sweep table, and the settings it failed, knew or skipped. alike
+    counts the settings left out as one of their kind was swept.
+    """
     report.section(
         "Sweep by mod",
-        intro="Each setting changed, saved, checked in its file and set back; known failures are open issues.",
-        columns=["Mod", "Changed", "Skipped", "Failed", "Known"],
-        rows=[[mod, changed, len(skipped), len(problems), len(known)]],
+        intro="Each setting changed, saved, checked in its file and set back; known failures are open issues. Alike: "
+        "settings left out as one of their kind was swept, which -m sweep or -m full sweeps too.",
+        columns=["Mod", "Changed", "Alike", "Skipped", "Failed", "Known"],
+        rows=[[mod, changed, alike, len(skipped), len(problems), len(known)]],
     )
     lists = ""
     for kind, lines in (("failed", problems), ("known", known), ("skipped", skipped)):
@@ -214,12 +231,15 @@ def report_sweep(report, mod, changed, skipped, problems, known):
         report.section("Sweep settings", html=f"<h3>{html.escape(mod)}</h3>{lists}")
 
 
-def test_sweep(menu, game, report, test_set, swept):
+def test_sweep(menu, game, report, test_set, swept, request):
     mod = swept
     if mod in TEST_SET and mod not in test_set:
         pytest.skip(f"{mod} is not installed or not available")
     listed = next(entry for entry in menu.mods() if entry["name"] == mod)
-    problems, skipped, known, changed = [], [], [], 0
+    whole = asked(request.config)
+    problems, skipped, known, changed, alike = [], [], [], 0, 0
+    # the kinds of setting swept, when the run sweeps one of each
+    covered = set()
     category_swept = None
     for path in [[], *page_paths(listed["pages"])]:
         where = " / ".join([mod, *path])
@@ -241,23 +261,29 @@ def test_sweep(menu, game, report, test_set, swept):
             if reason := why_skipped(row):
                 skipped.append(f"{name}: {reason}")
                 continue
+            if not whole and kind(row) in covered:
+                alike += 1
+                continue
             try:
                 reason = sweep_setting(menu, game, mod, row)
             except (AssertionError, DevbenchError, TimeoutError) as error:
                 failure = f"{name}: {str(error).splitlines()[0]}"
+                # a known failure leaves its kind to the next setting of it
                 if issue := KNOWN.get((mod, setting_id)):
                     known.append(f"{failure} (known: {issue})")
                 else:
                     problems.append(failure)
+                    covered.add(kind(row))
                 menu.discard()
                 continue
             if reason:
                 skipped.append(f"{name}: {reason}")
             else:
                 changed += 1
+                covered.add(kind(row))
 
-    report_sweep(report, mod, changed, skipped, problems, known)
-    print(f"\n{mod}: {changed} settings changed and set back, {len(skipped)} skipped, {len(problems)} failed, {len(known)} known")
+    report_sweep(report, mod, changed, alike, skipped, problems, known)
+    print(f"\n{mod}: {changed} settings changed and set back, {alike} alike left out, {len(skipped)} skipped, {len(problems)} failed, {len(known)} known")
     for line in known:
         print(f"  known {line}")
     for line in skipped:

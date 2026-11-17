@@ -78,12 +78,35 @@ DEVBENCH = Config(
 )
 
 
+FULL = "full"
+
+
+def asked_for(config, marker, file):
+    """
+    Whether a run asks for an area that runs whole only when asked: a `-m` that names its marker or full, or the
+    run naming its test file.
+    """
+    expression = config.getoption("markexpr") or ""
+    return marker in expression or FULL in expression or any(file in arg for arg in config.args)
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", f"{FULL}: every test, perf and the whole sweep of every mod included")
+
+
+def pytest_itemcollected(item):
+    """
+    Mark every test full, so `-m full` selects them all.
+    """
+    item.add_marker(FULL)
+
+
 def pytest_collection_modifyitems(config, items):
     """
-    Leave out the perf tests unless a run asks for them, by a `-m` that names perf or by naming test_perf.py: they hold
-    each state for seconds, and measure best right after the game starts.
+    Leave out the perf tests unless a run asks for them, by a `-m` that names perf or full, or by naming test_perf.py:
+    they hold each state for seconds, and measure best right after the game starts.
     """
-    if "perf" in (config.getoption("markexpr") or "") or any("test_perf" in arg for arg in config.args):
+    if asked_for(config, "perf", "test_perf"):
         return
     perf = [item for item in items if item.get_closest_marker("perf")]
     if perf:
