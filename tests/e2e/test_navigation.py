@@ -6,8 +6,6 @@ import pytest
 from conftest import CONFIG_SPEC_SHOWCASE
 from devbench import DevbenchError
 
-pytestmark = pytest.mark.navigation
-
 # a page under a page under a page: its crumbs are the menu's, the mod's, and one for each page on the way
 DEEP = ("Detailed Examples", "Pages", "Under a page", "Two levels down")
 SWITCHERS = ("Detailed Examples", "Switchers")

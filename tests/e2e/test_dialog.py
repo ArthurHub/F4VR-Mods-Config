@@ -7,8 +7,6 @@ from conftest import CONFIG_SPEC_SHOWCASE, MCM_SHOWCASE
 from devbench import wait_until
 from stored import file_value, stored_as
 
-pytestmark = pytest.mark.dialog
-
 PAGE = ("Detailed Examples", "Switchers")
 SETTING = "No help"
 

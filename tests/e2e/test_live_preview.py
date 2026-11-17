@@ -4,12 +4,10 @@ Checked in the mod through its own devbench tool, in its file, and in the menu's
 
 import pytest
 
-from devbench import MOD_TOOL, wait_until
-from menu import same
+from devbench import wait_until
+from menu import MOD_TOOL, same
 from stored import file_value, stored_as
 from test_sweep import candidates
-
-pytestmark = pytest.mark.live
 
 # a live setting of each mod: its config spec, its devbench tool, its page, and its key in its TOML
 CASES = {

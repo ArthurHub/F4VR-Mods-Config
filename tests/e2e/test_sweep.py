@@ -5,14 +5,15 @@ Each mod is a test of its own, which reports every setting that failed and the o
 asks for the sweep, by a -m that names it or by naming this file, sweeps every mod; any other run sweeps SUBSET.
 """
 
+import html
+import re
+
 import pytest
 
 from conftest import CONFIG_SPEC_SHOWCASE, CONFIG_SPECS, MCM_SHOWCASE, REQUIRED_MCM, TEST_SET
 from devbench import DevbenchError, wait_until
 from menu import page_paths, plain, same
 from stored import NotInFile, file_value, inline_table, stored_as, table
-
-pytestmark = pytest.mark.sweep
 
 SWEPT = [*TEST_SET, MCM_SHOWCASE, CONFIG_SPEC_SHOWCASE, *CONFIG_SPECS]
 
@@ -182,16 +183,39 @@ def sweep_setting(menu, bench, mod, row):
 def pytest_generate_tests(metafunc):
     """
     Each mod a test of its own: every mod when the run asks for the sweep, by a -m that names it or by naming this
-    file, and SUBSET otherwise.
+    file, and SUBSET otherwise. The parameter is swept, as mod is devbench's fixture of the mod's tool.
     """
-    if "mod" not in metafunc.fixturenames:
+    if "swept" not in metafunc.fixturenames:
         return
     config = metafunc.config
     asked = "sweep" in (config.getoption("markexpr") or "") or any("test_sweep" in arg for arg in config.args)
-    metafunc.parametrize("mod", SWEPT if asked else [mod for mod in SWEPT if mod in SUBSET])
+    metafunc.parametrize("swept", SWEPT if asked else [mod for mod in SWEPT if mod in SUBSET])
 
 
-def test_sweep(menu, game, report, test_set, mod):
+def _linked(text):
+    """A line of text as HTML, with its web addresses as links, as a known failure names its issue."""
+    return re.sub(r"https?://[^\s)<]+", lambda match: f"<a href='{match.group(0)}'>{match.group(0)}</a>", html.escape(text))
+
+
+def report_sweep(report, mod, changed, skipped, problems, known):
+    """Add a mod's sweep to the report: its counts in the Sweep table, and the settings it failed, knew or skipped."""
+    report.section(
+        "Sweep by mod",
+        intro="Each setting changed, saved, checked in its file and set back; known failures are open issues.",
+        columns=["Mod", "Changed", "Skipped", "Failed", "Known"],
+        rows=[[mod, changed, len(skipped), len(problems), len(known)]],
+    )
+    lists = ""
+    for kind, lines in (("failed", problems), ("known", known), ("skipped", skipped)):
+        if lines:
+            items = "".join(f"<li>{_linked(line)}</li>" for line in lines)
+            lists += f"<details><summary>{len(lines)} {kind}</summary><ul class='list'>{items}</ul></details>"
+    if lists:
+        report.section("Sweep settings", html=f"<h3>{html.escape(mod)}</h3>{lists}")
+
+
+def test_sweep(menu, game, report, test_set, swept):
+    mod = swept
     if mod in TEST_SET and mod not in test_set:
         pytest.skip(f"{mod} is not installed or not available")
     listed = next(entry for entry in menu.mods() if entry["name"] == mod)
@@ -232,7 +256,7 @@ def test_sweep(menu, game, report, test_set, mod):
             else:
                 changed += 1
 
-    report.sweeps[mod] = {"changed": changed, "skipped": skipped, "failed": problems, "known": known}
+    report_sweep(report, mod, changed, skipped, problems, known)
     print(f"\n{mod}: {changed} settings changed and set back, {len(skipped)} skipped, {len(problems)} failed, {len(known)} known")
     for line in known:
         print(f"  known {line}")

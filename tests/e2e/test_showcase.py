@@ -4,10 +4,8 @@ the player, and checks what it says happens, in the menu, in the setting's file,
 import pytest
 
 from conftest import CONFIG_SPEC_SHOWCASE
-from devbench import DevbenchError, wait_until
-from stored import console_number, file_value, inline_table, stored_as, table
-
-pytestmark = pytest.mark.showcase
+from devbench import DevbenchError, console, console_number, wait_until
+from stored import file_value, inline_table, stored_as, table
 
 DETAILED = "Detailed Examples"
 
@@ -233,11 +231,11 @@ def test_conditions_game_ini_setting(show, game):
     try:
         # the console changes the setting as the game's settings do, and the page follows it with the menu open
         for value in (not was, was):
-            game.console(f'setini "{WAND_MOVEMENT}" {int(value)}')
+            console(game, f'setini "{WAND_MOVEMENT}" {int(value)}')
             assert wand_movement_text(menu) == str(value).lower()
             assert menu.setting("With movement by controller direction")["enabled"] is value
     finally:
-        game.console(f'setini "{WAND_MOVEMENT}" {int(was)}')
+        console(game, f'setini "{WAND_MOVEMENT}" {int(was)}')
 
 
 def test_warnings(show):
@@ -251,7 +249,7 @@ def test_translations(show):
     assert menu.setting("A token with a fallback"), "a token no file has shows its fallback"
 
 
-def test_mistakes(show, game):
+def test_mistakes(show, mod):
     show("Mistakes")
-    report = game.mod("report", mod=CONFIG_SPEC_SHOWCASE)["configSpecs"][0]
+    report = mod.call("report", mod=CONFIG_SPEC_SHOWCASE)["configSpecs"][0]
     assert report["errors"] > 0, "the Mistakes page has a row for each error"

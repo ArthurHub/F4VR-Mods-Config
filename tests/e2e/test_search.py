@@ -1,13 +1,9 @@
 """The search field of the tree: what a query finds in the mods and on the page, Back showing a filtered page whole, a
 row hidden by a condition, an MCM row found by its text from the game, and the query the menu opens with."""
 
-import pytest
-
 from conftest import CONFIG_SPEC_SHOWCASE, MCM_SHOWCASE
 from devbench import wait_until
 from menu import plain
-
-pytestmark = pytest.mark.search
 
 CONDITIONS = ("Detailed Examples", "Conditions")
 GAME_TEXTS = ("Text from the game",)

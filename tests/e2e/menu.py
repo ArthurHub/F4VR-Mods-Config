@@ -3,7 +3,10 @@
 import math
 import re
 
-from devbench import wait_until
+from devbench import ModTool, wait_until
+
+# the mod's devbench tool, and the prefix of its events
+MOD_TOOL = "modsconfigfo4vr"
 
 TAG = re.compile(r"<[^>]*>")
 
@@ -40,9 +43,10 @@ class Menu:
 
     def __init__(self, bench):
         self.bench = bench
+        self.tool = ModTool(bench, MOD_TOOL)
 
     def call(self, action, **args):
-        return self.bench.mod(action, **args)
+        return self.tool.call(action, **args)
 
     def state(self):
         """The mod's state as of a frame after this call: an action's change is in it."""

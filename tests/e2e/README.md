@@ -1,12 +1,13 @@
 # End-to-end tests
 
-pytest tests that drive the running game through devbench's REST port and check the result in the menu, the files, the game and the mods. Run by hand; CI has no game.
+pytest tests that drive the running game through devbench's REST port and check the result in the menu, the files, the game and the mods. Run by hand; CI has no game. They run on devbench's Python client and its pytest plugin ([devbench-client](https://github.com/ArthurHub/devbench/tree/main/clients/python)), configured by `DEVBENCH` in `conftest.py`: the plugin enters the game, checks the builds, backs up the files and writes the report; the conftest adds the mods the menu must list and the menu fixture.
 
 ## Requirements
 
-- The game running with [devbench](https://github.com/ArthurHub/devbench) (a build with its `files` tool), at the main menu or already in QASmoke. The tests `coc qasmoke` so nothing reaches a save; any other loaded game is refused.
+- The game running with [devbench](https://github.com/ArthurHub/devbench), at the main menu or already in QASmoke (or closed, with a launch command: see Running). The tests `coc qasmoke` so nothing reaches a save; any other loaded game is refused.
+- The mod deployed from this checkout: its version must be the one in `CMakeLists.txt`. FRIK and Immersive Flashlight need their devbench `config` action.
 - Installed: SS2, FallUI and XDI from the MCM test set (see [mod-plan.md](../../docs/design/mod-plan.md#the-mcm-test-set)), both showcases, FRIK, Immersive Flashlight. A run fails at start listing what's missing. The rest of the test set is swept and measured when installed, and skipped otherwise.
-- `pip install -r tests/e2e/requirements.txt`
+- `pip install -r tests/e2e/requirements.txt`, which pins devbench-client by commit. Working on devbench too: `pip install -e <devbench>/clients/python`.
 
 ## Running
 
@@ -19,15 +20,20 @@ pytest tests/e2e -m sweep -rA         # with the skipped settings
 pytest tests/e2e --e2e-restore        # only restore a crashed run's backup
 ```
 
-The devbench port comes from its `runtime.json`, or `--devbench-port`.
+The devbench port comes from its `runtime.json`, or `--devbench-port`. Unattended, from a closed game to a report: set the launch command (your MO2 setup, never in the conftest) and quit at the end:
+
+```powershell
+$env:DEVBENCH_LAUNCH = '"C:\Games\MO2\ModOrganizer.exe" -p Default run -e "Fallout 4 VR (F4SEVR)"'
+pytest tests/e2e --devbench-quit
+```
 
 ## Backup
 
-Before changing anything, a run backs up every file a Save can write (`Data\MCM\Settings`, `Data\ModsConfigFO4\Config`, `My Games\Fallout4VR\Mods_Config`, `FRIK_Config`), read through devbench so MO2's virtual files are included, into `tests/e2e/.backup/manifest.json`. After the run, changed files are restored and created ones deleted. A crashed run leaves the manifest, and the next run (or `--e2e-restore`) restores it first; the game must be running.
+Before changing anything, a run backs up every file a Save can write (`Data\MCM\Settings`, `Data\ModsConfigFO4\Config`, `My Games\Fallout4VR\Mods_Config`, `FRIK_Config`; `DEVBENCH.backup`), read through devbench so MO2's virtual files are included, into `tests/e2e/.backup/manifest.json`. After the run, changed files are restored and created ones deleted. A crashed run leaves the manifest, and the next run (or `--e2e-restore`) restores it first; the game must be running.
 
 ## Report
 
-`build/e2e/<date>-<time>/index.html`: totals, failures, per-test results and times, each mod's sweep (skipped, failed, known), dialogs the run closed, a panel snapshot per test, and the perf tables (`perf.json` alongside).
+`build/e2e/<date>-<time>/index.html`: totals, the builds checked, failures, per-test results and times by area, each mod's sweep (skipped, failed, known), the perf tables (`perf.json` alongside), dialogs the run closed, and a picture of the panel at the end of each test. A failed test also gets the open menus, the lines `ModsConfigFO4VR.log` gained during it, and a picture of the game's lit frame.
 
 A setting whose failure is an open issue goes in `KNOWN` in `test_sweep.py` with the issue link; remove it when the issue closes.
 
@@ -46,4 +52,4 @@ A setting whose failure is an open issue goes in `KNOWN` in `test_sweep.py` with
 | `test_search.py` | The search field: what a query finds in the mods and on the page, Back showing a filtered page whole, a row a condition hides, an MCM row found by its text from the game, the query emptied as the menu opens. |
 | `test_perf.py` | Per-frame cost of held states (10 s each, fails over budget at p95) and the worst frame of one-off actions (no check). Only run when asked for: `-m perf`, right after game start to catch the session's first open. |
 
-Helpers: `devbench.py` (client), `menu.py`, `stored.py` (a value in its file and the game), `backup.py`, `report.py`.
+Helpers: `menu.py` (the menu through the mod's devbench tool), `stored.py` (a value in its file). devbench-client gives the rest: the client, events, console, files, waits and the plugin's fixtures (`game`, `mod`, `events`, `report`).

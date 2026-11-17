@@ -1,12 +1,9 @@
-"""A setting's value where its mod keeps it: in its file, read through devbench as the game sees it, and in the game,
-read through the console."""
+"""A setting's value where its mod keeps it: in its file, read through devbench as the game sees it."""
 
-import re
 import tomllib
 
+from devbench import read_text
 from menu import same
-
-NUMBER = re.compile(r">>\s*(-?\d+(?:\.\d+)?)")
 
 
 class NotInFile(Exception):
@@ -42,11 +39,11 @@ def file_value(bench, mod, storage):
     or the key is not there."""
     if storage["kind"] == "modSetting":
         key, section = storage["name"].split(":", 1)
-        text = bench.read_text("data", f"MCM/Settings/{mod}.ini")
+        text = read_text(bench, "data", f"MCM/Settings/{mod}.ini")
         return text and _ini_value(text, section, key)
     if storage["kind"] != "file" or "root" not in storage:
         raise NotInFile(storage["kind"])
-    text = bench.read_text(storage["root"], storage["filePath"])
+    text = read_text(bench, storage["root"], storage["filePath"])
     if text is None:
         return None
     if storage["format"] == "ini":
@@ -101,11 +98,3 @@ def stored_as(found, value):
     if isinstance(found, bool) or isinstance(value, bool):
         return found is value
     return same(found, value)
-
-
-def console_number(bench, command):
-    """The number a console command prints after its '>>', as GetGlobalValue and GetInCell print it."""
-    for line in reversed(bench.console(command)):
-        if match := NUMBER.search(line):
-            return float(match.group(1))
-    raise AssertionError(f"'{command}' printed no number")

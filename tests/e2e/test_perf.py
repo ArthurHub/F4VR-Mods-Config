@@ -8,6 +8,8 @@ hitch there is a single frame, which no p95 shows.
 The ray on the panel, SteamVR's keyboard and an open editor are not held here, as devbench does not drive them.
 """
 
+import html
+import json
 import time
 
 import pytest
@@ -17,8 +19,6 @@ from devbench import wait_until
 from menu import Menu, page_paths
 from test_live_preview import CASES, setting_of
 from test_sweep import candidates
-
-pytestmark = pytest.mark.perf
 
 # how long each state is held, and how long it settles before, as a page draws its images on its first frames
 HOLD_SECONDS = 10
@@ -37,6 +37,21 @@ DRAGGED_MS = 0.45
 # the frames a one-off action is given to show its cost in: a page is drawn the frame after it is shown
 ONE_OFF_FRAMES = 30
 
+# what each scenario's perf sites recorded, written whole to perf.json beside the report after each one
+PERF = []
+
+
+def add_perf(report, scenario, text, sites):
+    """Keep what the mod's perf sites recorded while a scenario was held: its text table on the report's page, and
+    every site in perf.json."""
+    report.section(
+        "Cost per frame",
+        intro="Each state held, and the worst frame of each one-off action, as the mod's perf sites recorded them; every site is in perf.json.",
+        html=f"<details open><summary>{html.escape(scenario)}</summary><pre>{html.escape(text)}</pre></details>",
+    )
+    PERF.append({"scenario": scenario, "text": text, "perf": sites})
+    (report.folder / "perf.json").write_text(json.dumps(PERF, indent=2), encoding="utf-8")
+
 
 def measure(menu, report, scenario, budget, during=None):
     """Hold the state the menu is in: settle, reset the perf sites, then hold it HOLD_SECONDS, calling during each
@@ -52,7 +67,7 @@ def measure(menu, report, scenario, budget, during=None):
             time.sleep(0.1)
     text = menu.call("perf", format="text")
     sites = menu.call("perf", format="flat", reset=True)
-    report.add_perf(scenario, text["text"], sites)
+    add_perf(report, scenario, text["text"], sites)
     p95 = sites["sites"][FRAME_SITE]["p95Ms"]
     assert p95 <= budget, f"{scenario}: the frame's p95 is {p95:.3f} ms, over its budget of {budget} ms"
 
@@ -115,7 +130,7 @@ def test_one_off(game, report, test_set):
     text = "the mod's worst frame in ms, each action, slowest first, with its sites over 0.5 ms\n" + "\n".join(
         f"{frame:8.2f}  {name}{f'   ({slow})' if slow else ''}" for frame, name, slow in lines
     )
-    report.add_perf("One-off actions", text, {"actions": [{"name": name, "frameMaxMs": frame, "slow": slow} for frame, name, slow in lines]})
+    add_perf(report, "One-off actions", text, {"actions": [{"name": name, "frameMaxMs": frame, "slow": slow} for frame, name, slow in lines]})
 
 
 def rows_of(menu, mod, page):
@@ -191,4 +206,4 @@ def test_live_preview(menu, report):
     finally:
         menu.discard()
         wait_until(lambda: not menu.state()["session"]["dirty"], 3, what="the change discarded")
-        report.notes.append(f"FRIK's live preview: {changes} changes in {HOLD_SECONDS} s.")
+        report.note(f"FRIK's live preview: {changes} changes in {HOLD_SECONDS} s.")

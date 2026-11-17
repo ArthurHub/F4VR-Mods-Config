@@ -8,8 +8,6 @@ from devbench import DevbenchError, wait_until
 from menu import page_paths, same
 from stored import file_value, stored_as
 
-pytestmark = pytest.mark.rows
-
 BUTTONS = ("Detailed Examples", "Buttons")
 
 
@@ -102,8 +100,8 @@ def test_fallui_texts_are_translated(menu):
     assert not untranslated, "FallUI's $ tokens are read from its own translation files:\n" + "\n".join(untranslated[:20])
 
 
-def test_a_config_spec_report(game):
-    report = game.mod("report", mod=CONFIG_SPEC_SHOWCASE)["configSpecs"][0]
+def test_a_config_spec_report(mod):
+    report = mod.call("report", mod=CONFIG_SPEC_SHOWCASE)["configSpecs"][0]
     assert report["loaded"] and report["liveCopy"] is None
     assert report["errors"] + report["warnings"] == len(report["problems"])
     for problem in report["problems"]:
