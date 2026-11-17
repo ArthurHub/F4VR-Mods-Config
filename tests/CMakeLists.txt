@@ -105,6 +105,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/spec/ModFile.cpp
   ${SOURCE_DIR}/spec/ActionSpec.cpp
   ${SOURCE_DIR}/spec/ActivationSphereSpec.cpp
+  ${SOURCE_DIR}/spec/ChoiceOptionsSpec.cpp
   ${SOURCE_DIR}/spec/ConditionSpec.cpp
   ${SOURCE_DIR}/spec/ConfigSpecLoader.cpp
   ${SOURCE_DIR}/spec/ConfigSpecReading.cpp

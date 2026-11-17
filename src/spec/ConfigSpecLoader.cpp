@@ -17,6 +17,7 @@
 
 #include "ActionSpec.h"
 #include "ActivationSphereSpec.h"
+#include "ChoiceOptionsSpec.h"
 #include "ConditionSpec.h"
 #include "ConfigSpecReading.h"
 #include "FrameworkTypeSpec.h"
