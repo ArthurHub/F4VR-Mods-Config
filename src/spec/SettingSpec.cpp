@@ -364,6 +364,114 @@ namespace mods_config::spec
             }
             return loaded;
         }
+
+        /**
+         * Whether a setting's options set other settings, as their `sets` say: only a stepper's and a dropdown's with no
+         * storage do, and the sets of any other are ignored, which is reported. The default and the `applies` of one that
+         * does are left out, and reported too.
+         */
+        bool readsOptionSets(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
+        {
+            if (!hasOptionSets(row, reading)) {
+                return false;
+            }
+            if (type != model::SettingType::Stepper && type != model::SettingType::Dropdown) {
+                const Into into(reading, "valueOptions");
+                reading.report(model::Severity::Error, "Only a stepper and a dropdown have options that set other settings: its options' sets are ignored.");
+                return false;
+            }
+            if (row.contains("storage")) {
+                const Into into(reading, "storage");
+                reading.report(model::Severity::Error, "It has a storage, and options that set other settings: its options' sets are ignored.");
+                return false;
+            }
+            if (row.contains("default")) {
+                const Into into(reading, "default");
+                reading.report(model::Severity::Warning, "Its default is left out: it is the option whose sets are the defaults of their settings.");
+            }
+            if (findApplies(row)) {
+                const Into into(reading, "applies");
+                reading.report(model::Severity::Warning, "Its applies is left out: each setting its options set takes effect as its own says.");
+            }
+            return true;
+        }
+
+        /**
+         * How a setting of a table type keeps its value: as a TOML table, or as the line of an INI file. A table type kept
+         * in anything but a file's value is not available, which is reported, and its storage is then unknown.
+         */
+        model::TableForm loadTableForm(const model::SettingType type, model::Storage& storage, ConfigSpecReading& reading)
+        {
+            if (!model::isTableType(type) || std::holds_alternative<model::UnknownStorage>(storage)) {
+                return model::TableForm::Toml;
+            }
+            const auto* file = std::get_if<model::FileStorage>(&storage);
+            if (!file) {
+                const std::string kind(model::valueKindName(type));
+                const Into into(reading, "storage");
+                reading.report(model::Severity::Error, std::format("A {} is kept in a value of a TOML or an INI file, and it is not: it is not available.", kind));
+                storage = model::UnknownStorage{ .type = kind };
+                return model::TableForm::Toml;
+            }
+            return reading.files.at(file->file).format == model::FileFormat::Ini ? model::TableForm::IniLine : model::TableForm::Toml;
+        }
+
+        /**
+         * Reports a setting kept in a file that is there and has no value at its path: it shows its default, which a Save
+         * adds, or none where it is read-only. A row the loader made is not reported, as a sphere's file leaves out most keys.
+         */
+        void reportMissingValue(const model::Storage& storage, const bool readOnly, const bool made, ConfigSpecReading& reading)
+        {
+            const auto* file = std::get_if<model::FileStorage>(&storage);
+            if (!file || made) {
+                return;
+            }
+            if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
+                const Into into(reading, "storage");
+                reading.report(model::Severity::Warning,
+                    std::format("Its file \"{}\" has no value {}: {}.",
+                        file->file,
+                        values->second->pathName(file->path),
+                        readOnly ? "it shows none" : "it shows its default, and a Save adds it"));
+            }
+        }
+
+        /**
+         * The id of a setting, its own or the one its storage gives it, and what a condition knows of the setting, kept
+         * by the id. A second setting with an id is an error, which is reported: a condition names the first, so the
+         * second has no `SettingInfo`. An empty id, which no condition names, has none either.
+         */
+        std::pair<std::string, SettingInfo*> registerSetting(const Json& row, const model::Storage& storage, const model::SettingType type, const model::StoredType valueType,
+            ConfigSpecReading& reading)
+        {
+            auto id = getText(row, "id");
+            if (id.empty()) {
+                id = idOf(storage);
+            }
+            if (id.empty()) {
+                return { std::move(id), nullptr };
+            }
+            const auto [found, added] = reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType });
+            if (!added) {
+                reading.report(model::Severity::Error,
+                    std::format("A setting before it has the id \"{}\": a condition names that one. Give one of them an id of its own.", found->second.id));
+                return { std::move(id), nullptr };
+            }
+            return { std::move(id), &found->second };
+        }
+
+        /**
+         * Which of the framework's words a dropdown the loader made for a sphere has, by its `madeWords`.
+         */
+        model::SphereWords sphereWordsOf(const Json& row)
+        {
+            const auto words = getText(row, MADE_WORDS);
+            return words == "visibility"     ? model::SphereWords::Visibility
+                   : words == "orientation"  ? model::SphereWords::Orientation
+                   : words == "style"        ? model::SphereWords::Style
+                   : words == "bindingIcons" ? model::SphereWords::BindingIcons
+                                             : model::SphereWords::None;
+        }
     }
 
     /**
@@ -395,63 +503,13 @@ namespace mods_config::spec
         checkFields(row, SETTING_FIELDS, reading);
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type, reading);
-        bool sets = hasOptionSets(row, reading);
-        if (sets && type != model::SettingType::Stepper && type != model::SettingType::Dropdown) {
-            const Into into(reading, "valueOptions");
-            reading.report(model::Severity::Error, "Only a stepper and a dropdown have options that set other settings: its options' sets are ignored.");
-            sets = false;
-        } else if (sets && row.contains("storage")) {
-            const Into into(reading, "storage");
-            reading.report(model::Severity::Error, "It has a storage, and options that set other settings: its options' sets are ignored.");
-            sets = false;
-        }
-        if (sets && row.contains("default")) {
-            const Into into(reading, "default");
-            reading.report(model::Severity::Warning, "Its default is left out: it is the option whose sets are the defaults of their settings.");
-        }
-        if (sets && findApplies(row)) {
-            const Into into(reading, "applies");
-            reading.report(model::Severity::Warning, "Its applies is left out: each setting its options set takes effect as its own says.");
-        }
+        const bool sets = readsOptionSets(row, type, reading);
         auto storage = sets ? model::Storage(model::SetsStorage{}) : loadStorage(row, own.defaultFile, valueType, reading);
-        auto tableForm = model::TableForm::Toml;
-        if (model::isTableType(type) && !std::holds_alternative<model::UnknownStorage>(storage)) {
-            const auto* file = std::get_if<model::FileStorage>(&storage);
-            if (!file) {
-                const std::string kind(model::valueKindName(type));
-                const Into into(reading, "storage");
-                reading.report(model::Severity::Error, std::format("A {} is kept in a value of a TOML or an INI file, and it is not: it is not available.", kind));
-                storage = model::UnknownStorage{ .type = kind };
-            } else if (reading.files.at(file->file).format == model::FileFormat::Ini) {
-                tableForm = model::TableForm::IniLine;
-            }
-        }
+        const auto tableForm = loadTableForm(type, storage, reading);
         const bool readOnly = getBool(row, "readOnly");
         const bool made = row.contains(MADE_ROW_PATH);
-        if (const auto* file = std::get_if<model::FileStorage>(&storage); file && !made) {
-            if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
-                const Into into(reading, "storage");
-                reading.report(model::Severity::Warning,
-                    std::format("Its file \"{}\" has no value {}: {}.",
-                        file->file,
-                        values->second->pathName(file->path),
-                        readOnly ? "it shows none" : "it shows its default, and a Save adds it"));
-            }
-        }
-        auto id = getText(row, "id");
-        if (id.empty()) {
-            id = idOf(storage);
-        }
-        SettingInfo* info = nullptr;
-        if (!id.empty()) {
-            const auto [found, added] = reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType });
-            if (added) {
-                info = &found->second;
-            } else {
-                reading.report(model::Severity::Error,
-                    std::format("A setting before it has the id \"{}\": a condition names that one. Give one of them an id of its own.", found->second.id));
-            }
-        }
+        reportMissingValue(storage, readOnly, made, reading);
+        auto [id, info] = registerSetting(row, storage, type, valueType, reading);
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
         if (info) {
             info->tableForm = tableForm;
@@ -464,12 +522,7 @@ namespace mods_config::spec
             storage = model::UnknownStorage{ .type = "transform parts" };
         }
         if (made) {
-            const auto words = getText(row, MADE_WORDS);
-            valueOptions.sphereWords = words == "visibility"     ? model::SphereWords::Visibility
-                                       : words == "orientation"  ? model::SphereWords::Orientation
-                                       : words == "style"        ? model::SphereWords::Style
-                                       : words == "bindingIcons" ? model::SphereWords::BindingIcons
-                                                                 : model::SphereWords::None;
+            valueOptions.sphereWords = sphereWordsOf(row);
         }
         auto defaultValue = sets || readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
         auto text = getLabel(row, reading);
