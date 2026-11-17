@@ -131,7 +131,26 @@ namespace mods_config::spec
         model::ActionResult run(const model::Action& action) override;
 
     private:
+        /**
+         * A file with dirty settings that a Save writes: its name in the config spec, the file, which has its new text
+         * prepared, and its dirty settings, in the order of the config spec.
+         */
+        struct FileSave
+        {
+            std::string_view name;
+            ModFile* file;
+            std::vector<const model::Setting*> settings;
+        };
+
+        // each setting a Save wrote, with the value it had before, which its mod's client is told
+        using SettingsWritten = std::unordered_map<const model::Setting*, model::Value>;
+
         std::expected<void, std::string> saveChanges();
+        std::expected<std::vector<FileSave>, std::string> prepareFileSaves();
+        std::expected<void, std::string> checkStoresReady() const;
+        std::expected<void, std::string> commitFiles(const std::vector<FileSave>& saves) const;
+        std::expected<void, std::string> applySaved(const std::vector<FileSave>& saves, SettingsWritten& written);
+        void announceSave(const std::vector<FileSave>& saves, const SettingsWritten& written);
 
         /**
          * What the session has of a setting. A value is in the type of the setting's control, as the UI has it.

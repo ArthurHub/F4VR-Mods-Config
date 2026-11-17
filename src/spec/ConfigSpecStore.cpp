@@ -1009,14 +1009,32 @@ namespace mods_config::spec
             return std::unexpected(reason);
         };
 
-        // the files that have dirty settings, with their names in the config spec and the settings
-        struct FileSave
-        {
-            std::string_view name;
-            ModFile* file;
-            std::vector<const model::Setting*> settings;
-        };
+        auto saves = prepareFileSaves();
+        if (!saves) {
+            return failed(saves.error());
+        }
+        if (const auto ready = checkStoresReady(); !ready) {
+            return failed(ready.error());
+        }
+        if (const auto committed = commitFiles(*saves); !committed) {
+            return failed(committed.error());
+        }
+        SettingsWritten written;
+        const auto saved = applySaved(*saves, written);
+        announceSave(*saves, written);
+        if (!saved) {
+            return failed(saved.error());
+        }
+        return {};
+    }
 
+    /**
+     * Prepares the new text of each file that has dirty settings: their values, and the removal of a value that is the
+     * default of a setting that keeps none, which was there before the session too. The reason, which is in the log
+     * too, for a file that cannot have them; nothing is written yet.
+     */
+    std::expected<std::vector<ConfigSpecStore::FileSave>, std::string> ConfigSpecStore::prepareFileSaves()
+    {
         std::vector<FileSave> saves;
         for (const auto& [name, file] : _files) {
             std::vector<ModFile::Change> changes;
@@ -1045,10 +1063,19 @@ namespace mods_config::spec
             }
             if (const auto result = file->prepare(changes); !result) {
                 logger::warn("The changes of '{}' are not saved, as its file '{}' cannot have them: {}", _modName, name, result.error());
-                return failed(result.error());
+                return std::unexpected(result.error());
             }
             saves.push_back({ .name = name, .file = file.get(), .settings = std::move(settings) });
         }
+        return saves;
+    }
+
+    /**
+     * Whether every place a dirty setting outside a file is kept in is there to be written: its global or property is in
+     * the game, and the mod's client of its state is connected. The reason, which is in the log too, for one that is not.
+     */
+    std::expected<void, std::string> ConfigSpecStore::checkStoresReady() const
+    {
         for (const auto* setting : _settingList) {
             if (!_entries.at(setting).pending) {
                 continue;
@@ -1056,14 +1083,22 @@ namespace mods_config::spec
             if (isInGame(setting->storage)) {
                 if (const auto stored = readGame(*setting); !stored) {
                     logger::warn("The changes of '{}' are not saved, as a setting of the game is not available: {}", _modName, stored.error());
-                    return failed(stored.error());
+                    return std::unexpected(stored.error());
                 }
             } else if (std::holds_alternative<model::ClientStateStorage>(setting->storage) && !_clientCalls.isConnected(_modName)) {
                 logger::warn("The changes of '{}' are not saved, as its client, which keeps {}, is not there or is cut off", _modName, gameName(setting->storage));
-                return failed(std::format("{}'s DLL is not loaded, or its client is cut off", _modDisplayName));
+                return std::unexpected(std::format("{}'s DLL is not loaded, or its client is cut off", _modDisplayName));
             }
         }
+        return {};
+    }
 
+    /**
+     * Writes each prepared file, in the order of the config spec. Where one cannot be written, the files written before it
+     * are put back, in the reverse order, so a Save that fails changes no file. The reason, which is in the log too.
+     */
+    std::expected<void, std::string> ConfigSpecStore::commitFiles(const std::vector<FileSave>& saves) const
+    {
         for (std::size_t next = 0; next < saves.size(); ++next) {
             if (const auto result = saves[next].file->commit(); !result) {
                 logger::warn("The changes of '{}' are not saved, as its file '{}' cannot be written: {}", _modName, saves[next].name, result.error());
@@ -1072,13 +1107,21 @@ namespace mods_config::spec
                         logger::error("The file '{}' of '{}' is not put back as it was: {}", written.name, _modName, restored.error());
                     }
                 }
-                return failed(result.error());
+                return std::unexpected(result.error());
             }
         }
+        return {};
+    }
 
+    /**
+     * Makes the settings a Save wrote clean, their written value their baseline, once the files are written: the
+     * settings of the files, then those of the game, which are written now, and then those of the client's states,
+     * which the client applies as the batch tells it. Each is added to `written` with its value before. A value the game
+     * no longer has stays dirty, and the reason of the first is returned: the rest of the Save stands.
+     */
+    std::expected<void, std::string> ConfigSpecStore::applySaved(const std::vector<FileSave>& saves, SettingsWritten& written)
+    {
         std::expected<void, std::string> saved;
-        // each setting written, with the value it had before, which its mod's client is told
-        std::unordered_map<const model::Setting*, model::Value> written;
         const auto wrote = [this, &written](const model::Setting* setting) {
             auto& entry = _entries.at(setting);
             written.emplace(setting, clientBaseline(*setting, entry.baseline, storedValue(*setting, *entry.pending)));
@@ -1112,7 +1155,17 @@ namespace mods_config::spec
                 wrote(setting);
             }
         }
+        return saved;
+    }
 
+    /**
+     * What follows the settings a Save wrote, in the order of the config spec: each one's action runs with its value, and
+     * one that takes effect after a restart is kept for the mod and counted as the last Save. Then, where it wrote any,
+     * the mod's client is told once what it wrote, with the files, and each F4SE plugin of the config spec is sent the
+     * F4SE message of the Save.
+     */
+    void ConfigSpecStore::announceSave(const std::vector<FileSave>& saves, const SettingsWritten& written)
+    {
         std::size_t restarts = 0;
         model::SaveBatch batch;
         for (const auto* setting : _settingList) {
@@ -1138,10 +1191,6 @@ namespace mods_config::spec
             _clientCalls.sendSave(_modName, batch);
             sendSavedMessage(_modName, _mod->f4sePlugins);
         }
-        if (!saved) {
-            return failed(saved.error());
-        }
-        return {};
     }
 
     /**
