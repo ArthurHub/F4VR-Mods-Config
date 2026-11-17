@@ -174,6 +174,8 @@ namespace mods_config::spec
 
     std::string getText(const Json& value, const char* key);
     bool getBool(const Json& value, const char* key);
+    float getNumber(const Json& value, const char* key, float otherwise);
+    const Json* findSharedList(const Json* sharedLists, const std::string& name);
     std::string getLabel(const Json& row, ConfigSpecReading& reading);
     std::vector<model::TextRun> getLabelRuns(const Json& row, const model::Translations& translations);
     std::string getShownText(const Json& value, const char* key, const model::Translations& translations);

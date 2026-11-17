@@ -73,6 +73,33 @@ namespace mods_config::spec
     }
 
     /**
+     * A number of a key, or else the given one.
+     */
+    float getNumber(const Json& value, const char* key, const float otherwise)
+    {
+        const auto found = value.find(key);
+        return found != value.end() && found->is_number() ? found->get<float>() : otherwise;
+    }
+
+    /**
+     * The shared list of a config spec by its name, which a choice can name in another case. None for a name of
+     * no list.
+     */
+    const Json* findSharedList(const Json* sharedLists, const std::string& name)
+    {
+        if (!sharedLists) {
+            return nullptr;
+        }
+        const auto lower = common::str_tolower(name);
+        for (const auto& [listName, list] : sharedLists->items()) {
+            if (common::str_tolower(listName) == lower) {
+                return &list;
+            }
+        }
+        return nullptr;
+    }
+
+    /**
      * A text of a key that the player sees, in the game's language. It is plain text, a `$` token, or a token
      * with the text that is shown where the language has none, as `{ "token": "$MyMod_Height", "fallback":
      * "Height" }`. Empty for a key that is none of them.
