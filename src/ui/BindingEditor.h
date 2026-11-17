@@ -62,6 +62,11 @@ namespace mods_config::ui
     private:
         struct Frame;
 
+        void open(const model::Setting& setting, model::Store& store);
+        std::optional<float> stepTime(float least, float most, float current, const ImVec2& end, bool pointed);
+        bool backClosed(const model::Setting& setting, model::Store& store);
+        Frame frameOf(const model::Setting& setting, model::Store& store, bool leftHanded, const ImageDrawer& drawer, BindingEdited& edited, bool sided) const;
+        void editParts(Frame& frame);
         void apply(const model::Setting& setting, model::Store& store) const;
         std::optional<std::size_t> dropdown(Frame& frame, Part part, std::string_view name, const ImVec2& at, std::string_view text, bool enabled,
             const std::vector<std::string>& texts, const std::vector<std::string>& helps, std::optional<std::size_t> chosen, std::string help);

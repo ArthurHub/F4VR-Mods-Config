@@ -232,6 +232,80 @@ namespace
     }
 
     /**
+     * The slider of Duration, or of Threshold for a push: its range, the value of the binding's type, which a binding
+     * that sets none has, and the binding's value.
+     */
+    struct TimeSlider
+    {
+        float typeValue = 0.0f;
+        float least = 0.0f;
+        float most = 0.0f;
+        float current = 0.0f;
+    };
+
+    /**
+     * The slider of the time of a binding, or of its threshold for a push. A type whose own time is 0 slides from 0, as
+     * a release counts a hold of any time.
+     */
+    TimeSlider timeSliderOf(const vrcf::InputBinding& binding, const bool push)
+    {
+        const float typeValue = push ? vrcf::InputBinding{}.threshold : typeDuration(binding.type);
+        return TimeSlider{ .typeValue = typeValue,
+            .least = push               ? LEAST_THRESHOLD
+                     : typeValue > 0.0f ? SLIDER_STEP * 2.0f
+                                        : 0.0f,
+            .most = push ? MOST_THRESHOLD : MOST_DURATION,
+            .current = push                      ? binding.threshold
+                       : binding.duration > 0.0f ? binding.duration
+                                                 : typeValue };
+    }
+
+    /**
+     * The text of the slider's value: a threshold, or a time in seconds, which is `Any` for a release that counts a hold
+     * of any time.
+     */
+    std::string timeText(const vrcf::ActivationType type, const bool push, const float value)
+    {
+        if (push) {
+            return std::format("{:.2f}", value);
+        }
+        return type == vrcf::ActivationType::Release && value <= 0.0f ? std::string("Any") : std::format("{:.2f} s", value);
+    }
+
+    /**
+     * What the help line says of the line of the time or the threshold, which tells a value that is the type's own.
+     */
+    std::string timeHelp(const vrcf::ActivationType type, const bool off, const bool push, const bool isDefault)
+    {
+        std::string help = off    ? std::string("A binding that is off has no time.")
+                           : push ? std::string("How far it is pushed or pulled before the binding fires, to 1.00 all the way.")
+                                  : std::string(durationHelp(type));
+        if (isDefault) {
+            help += " Default.";
+        }
+        return help;
+    }
+
+    /**
+     * Draws the fill and the grab of the slider's track at a fraction of the way between the grab's least and most
+     * centres. A grab that is dragged glows.
+     */
+    void drawTimeGrab(const ImRect& track, const float grabLeast, const float grabMost, const float fraction, const bool dragged)
+    {
+        const float grab = std::lerp(grabLeast, grabMost, fraction);
+        const float middle = track.GetCenter().y;
+        auto* drawList = ImGui::GetWindowDrawList();
+        const auto color = ImGui::GetColorU32(theme::color::GREEN);
+        if (grab > grabLeast) {
+            drawList->AddRectFilled(ImVec2(grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, theme::RADIUS_GRAB);
+        }
+        drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
+            ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
+            dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
+            theme::RADIUS_GRAB);
+    }
+
+    /**
      * A hand as the config names it, in a sentence: `the off hand`.
      */
     std::string_view handWords(const vrcf::Hand hand)
@@ -526,16 +600,7 @@ namespace mods_config::ui
         BindingEdited edited;
         const auto id = ImGui::GetID("binding");
         if (pressed) {
-            const auto stored = store.value(setting);
-            const auto* text = std::get_if<std::string>(&stored.value);
-            _before = text ? *text : std::string();
-            _binding = model::bindingOrDefault(setting, _before);
-            _typeOn = _binding.isEnabled() ? _binding.type : vrcf::ActivationType::Tap;
-            _open = &setting;
-            _list = Part::None;
-            _closeList = false;
-            _cancel = false;
-            _dragged.reset();
+            open(setting, store);
             ImGui::OpenPopupEx(id);
             edited.pulse = true;
         }
@@ -556,13 +621,54 @@ namespace mods_config::ui
         if (!beginRowEditor(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
+        if (backClosed(setting, store)) {
+            return edited;
+        }
+
+        Frame frame = frameOf(setting, store, leftHanded, drawer, edited, sided);
+        editParts(frame);
+        if (frame.changed) {
+            apply(setting, store);
+            edited.pulse = true;
+        }
+        drawHeader(frame);
+        drawFooter(frame);
+        ImGui::EndPopup();
+        return edited;
+    }
+
+    /**
+     * Opens the editor of a binding with the parts its row has in the store, or its default for one that is no binding,
+     * and keeps the value to give back. The editor starts with no list open and no slider dragged.
+     */
+    void BindingEditor::open(const model::Setting& setting, model::Store& store)
+    {
+        const auto stored = store.value(setting);
+        const auto* text = std::get_if<std::string>(&stored.value);
+        _before = text ? *text : std::string();
+        _binding = model::bindingOrDefault(setting, _before);
+        _typeOn = _binding.isEnabled() ? _binding.type : vrcf::ActivationType::Tap;
+        _open = &setting;
+        _list = Part::None;
+        _closeList = false;
+        _cancel = false;
+        _dragged.reset();
+    }
+
+    /**
+     * Does what Back asked in the frame before, inside the editor's popup: gives back the binding the row had as the
+     * editor opened and closes the editor, or closes the list over it. Returns true when it closed the editor, and its
+     * popup is ended then.
+     */
+    bool BindingEditor::backClosed(const model::Setting& setting, model::Store& store)
+    {
         if (_cancel) {
             store.set(setting, _before);
             ImGui::CloseCurrentPopup();
             ImGui::EndPopup();
             _open = nullptr;
             _cancel = false;
-            return edited;
+            return true;
         }
         if (_closeList) {
             // the lists over the editor, and not the editor
@@ -570,12 +676,21 @@ namespace mods_config::ui
             _list = Part::None;
             _closeList = false;
         }
+        return false;
+    }
 
+    /**
+     * The frame of the editor whose popup is begun: where its header, strip and parts are in the popup, where the ray
+     * is, and the binding as the frame starts.
+     */
+    BindingEditor::Frame BindingEditor::frameOf(const model::Setting& setting, model::Store& store, const bool leftHanded, const ImageDrawer& drawer, BindingEdited& edited,
+        const bool sided) const
+    {
         const auto origin = ImGui::GetWindowPos();
         const float headerTop = origin.y + theme::SPACE_4;
         const float stripTop = headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3;
         const ImRect strip(origin.x + theme::SPACE_4, stripTop, origin.x + EDITOR_WIDTH - theme::SPACE_4, stripTop + STRIP_HEIGHT);
-        Frame frame{ .setting = setting,
+        return Frame{ .setting = setting,
             .store = store,
             .leftHanded = leftHanded,
             .drawer = drawer,
@@ -591,28 +706,28 @@ namespace mods_config::ui
             .hovered = ImGui::IsWindowHovered(),
             .mouse = ImGui::GetIO().MousePos,
             .changed = false };
+    }
 
+    /**
+     * Draws the parts of the binding, in the order a change of one sets the next: the hand, then the button, which a
+     * push moves the axis of, then how it is worked, and the parts a binding of that way has. Direction is there for a
+     * push of the thumbstick alone, and Suppress for a setting that offers it.
+     */
+    void BindingEditor::editParts(Frame& frame)
+    {
         editHand(frame);
         // the button as the hand left it, which a push moves the axis of
         const auto bound = frame.push ? buttonOf(_binding.axis) : _binding.button;
         editButton(frame, bound);
         editHow(frame, bound);
-        if (sided) {
+        if (frame.sided) {
             editDirection(frame);
         }
         editTime(frame);
         editHolding(frame);
-        if (setting.valueOptions.suppress) {
+        if (frame.setting.valueOptions.suppress) {
             editSuppress(frame);
         }
-        if (frame.changed) {
-            apply(setting, store);
-            edited.pulse = true;
-        }
-        drawHeader(frame);
-        drawFooter(frame);
-        ImGui::EndPopup();
-        return edited;
     }
 
     /**
@@ -798,12 +913,8 @@ namespace mods_config::ui
     {
         const auto at = frame.partAt(true, 0);
         const bool push = frame.push;
-        const bool timed = hasDuration(_binding.type);
-        const bool enabled = timed || push;
-        const float typeValue = push ? vrcf::InputBinding{}.threshold : typeDuration(_binding.type);
-        const float least = push ? LEAST_THRESHOLD : typeValue > 0.0f ? SLIDER_STEP * 2.0f : 0.0f;
-        const float most = push ? MOST_THRESHOLD : MOST_DURATION;
-        const float current = push ? _binding.threshold : _binding.duration > 0.0f ? _binding.duration : typeValue;
+        const bool enabled = hasDuration(_binding.type) || push;
+        const auto [typeValue, least, most, current] = timeSliderOf(_binding, push);
         const auto track = partControl(at, SLIDER_TRACK_WIDTH);
         const auto valueBox = controlBox(track.Max.x + theme::SPACE_2, at.y, PART_WIDTH - SLIDER_TRACK_WIDTH - theme::SPACE_2);
         const float grabLeast = track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
@@ -832,47 +943,37 @@ namespace mods_config::ui
             setValue(*_dragged);
             _dragged.reset();
         }
-        // the thumbstick steps it while the ray is on its line, as it steps a setting's slider
-        _stepped.valueOptions = model::ValueOptions{ .min = least, .max = most, .step = SLIDER_STEP };
-        bool write = false;
-        bool pulse = false;
-        _sliders.startFrame(_thumbstickSideValue);
-        const float stepped = _sliders.edit(_stepped, track.Max.x, at.y, SliderRow{ .pointed = enabled && !_dragged && frame.pointedAt(at) }, current, write, pulse);
-        _sliders.endFrame();
-        if (write) {
-            setValue(stepped);
+        const auto stepped = stepTime(least, most, current, ImVec2(track.Max.x, at.y), enabled && !_dragged && frame.pointedAt(at));
+        if (stepped) {
+            setValue(*stepped);
         }
-        const float shownValue = _dragged.value_or(write ? stepped : current);
+        const float shownValue = _dragged.value_or(stepped.value_or(current));
         drawFrame(track);
         drawFrame(valueBox);
         if (enabled) {
-            const float grab = std::lerp(grabLeast, grabMost, std::clamp((shownValue - least) / (most - least), 0.0f, 1.0f));
-            const float middle = track.GetCenter().y;
-            auto* drawList = ImGui::GetWindowDrawList();
-            const auto color = ImGui::GetColorU32(theme::color::GREEN);
-            if (grab > grabLeast) {
-                drawList->AddRectFilled(ImVec2(grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, theme::RADIUS_GRAB);
-            }
-            drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
-                ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
-                _dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
-                theme::RADIUS_GRAB);
-            const auto text = push                                                                   ? std::format("{:.2f}", shownValue)
-                              : _binding.type == vrcf::ActivationType::Release && shownValue <= 0.0f ? std::string("Any")
-                                                                                                     : std::format("{:.2f} s", shownValue);
-            drawTextIn(valueBox, text, theme::color::GREEN, 1.0f, theme::SPACE_3);
+            drawTimeGrab(track, grabLeast, grabMost, std::clamp((shownValue - least) / (most - least), 0.0f, 1.0f), _dragged.has_value());
+            drawTextIn(valueBox, timeText(_binding.type, push, shownValue), theme::color::GREEN, 1.0f, theme::SPACE_3);
         }
         ImGui::EndDisabled();
         ImGui::PopID();
         if (frame.pointedAt(at)) {
-            std::string help = frame.off ? std::string("A binding that is off has no time.")
-                               : push    ? std::string("How far it is pushed or pulled before the binding fires, to 1.00 all the way.")
-                                         : std::string(durationHelp(_binding.type));
-            if (enabled && common::fEqual(shownValue, typeValue)) {
-                help += " Default.";
-            }
-            frame.point(name, std::move(help));
+            frame.point(name, timeHelp(_binding.type, frame.off, push, enabled && common::fEqual(shownValue, typeValue)));
         }
+    }
+
+    /**
+     * The step of the thumbstick on the time's slider while the ray is on its line, as it steps a setting's slider of
+     * the same range, whose end is at a place. Returns the value it stepped to, and none while it steps nothing.
+     */
+    std::optional<float> BindingEditor::stepTime(const float least, const float most, const float current, const ImVec2& end, const bool pointed)
+    {
+        _stepped.valueOptions = model::ValueOptions{ .min = least, .max = most, .step = SLIDER_STEP };
+        bool write = false;
+        bool pulse = false;
+        _sliders.startFrame(_thumbstickSideValue);
+        const float stepped = _sliders.edit(_stepped, end.x, end.y, SliderRow{ .pointed = pointed }, current, write, pulse);
+        _sliders.endFrame();
+        return write ? std::optional(stepped) : std::nullopt;
     }
 
     /**
