@@ -173,6 +173,9 @@ namespace mods_config::spec
     };
 
     std::string getText(const Json& value, const char* key);
+    std::string getShownText(const Json& value, const char* key, const model::Translations& translations);
+    std::string readShownText(const Json& text, ConfigSpecReading& reading);
+    std::string readShownText(const Json& value, const char* key, ConfigSpecReading& reading);
     void checkFields(const Json& object, std::span<const std::string_view> known, ConfigSpecReading& reading);
     std::optional<model::Applies> findApplies(const Json& value);
     Inherited inherit(const Json& value, const Inherited& above, ConfigSpecReading& reading);

@@ -34,6 +34,9 @@ namespace mods_config::spec
             return row[to.size()];
         }
 
+        // a text the player sees, written as an object
+        constexpr std::array<std::string_view, 2> TEXT_FIELDS{ "token", "fallback" };
+
         constexpr std::array<std::string_view, 9> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName", "clientState" };
 
         /**
@@ -57,6 +60,54 @@ namespace mods_config::spec
     {
         const auto found = value.find(key);
         return found != value.end() && found->is_string() ? found->get<std::string>() : std::string();
+    }
+
+    /**
+     * A text of a key that the player sees, in the game's language. It is plain text, a `$` token, or a token
+     * with the text that is shown where the language has none, as `{ "token": "$MyMod_Height", "fallback":
+     * "Height" }`. Empty for a key that is none of them.
+     */
+    std::string getShownText(const Json& value, const char* key, const model::Translations& translations)
+    {
+        const auto found = value.find(key);
+        if (found == value.end()) {
+            return {};
+        }
+        if (found->is_string()) {
+            return translations.translate(found->get<std::string>());
+        }
+        return found->is_object() ? translations.translate(getText(*found, "token"), getText(*found, "fallback")) : std::string();
+    }
+
+    /**
+     * A text the player sees, where the reading is, as `getShownText` reads one. A token that the language has
+     * no text for, and that has no fallback, is shown as it is written, and is reported.
+     */
+    std::string readShownText(const Json& text, ConfigSpecReading& reading)
+    {
+        if (!text.is_string() && !text.is_object()) {
+            return {};
+        }
+        checkFields(text, TEXT_FIELDS, reading);
+        const auto token = text.is_string() ? text.get<std::string>() : getText(text, "token");
+        const auto fallback = text.is_object() ? getText(text, "fallback") : std::string();
+        if (token.starts_with('$') && fallback.empty() && !reading.translations.has(token)) {
+            reading.report(model::Severity::Warning, std::format("The token {} has no translation and no fallback: it is shown as it is written.", token));
+        }
+        return reading.translations.translate(token, fallback);
+    }
+
+    /**
+     * A text of a key that the player sees, which `readShownText` reads. Empty for a key that has none.
+     */
+    std::string readShownText(const Json& value, const char* key, ConfigSpecReading& reading)
+    {
+        const auto found = value.find(key);
+        if (found == value.end()) {
+            return {};
+        }
+        const Into into(reading, key);
+        return readShownText(*found, reading);
     }
 
     /**
