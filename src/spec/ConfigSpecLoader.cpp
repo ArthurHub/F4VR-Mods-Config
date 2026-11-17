@@ -10,7 +10,6 @@
 #include <optional>
 #include <set>
 #include <sstream>
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -21,9 +20,8 @@
 #include "ConditionSpec.h"
 #include "ConfigSpecReading.h"
 #include "FrameworkTypeSpec.h"
-#include "IniFile.h"
 #include "SettingSpec.h"
-#include "TomlFile.h"
+#include "StorageSpec.h"
 #include "common/CommonUtils.h"
 #include "model/Categories.h"
 #include "model/OptionSets.h"
@@ -59,8 +57,6 @@ namespace
         "sharedPresetLists",
         "content",
         "pages" };
-    // a file of its `files`:
-    constexpr std::array<std::string_view, 4> FILE_FIELDS{ "format", "root", "path", "pathFromClientState" };
     // a page:
     constexpr std::array<std::string_view, 9> PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
     // a row, by its type:
@@ -85,107 +81,6 @@ namespace
             text = common::trim(text.substr(0, MAX_ROW_NAME - 3)) + "...";
         }
         return text;
-    }
-
-    using FormatName = std::pair<std::string_view, model::FileFormat>;
-
-    // what a file of a config spec is written in, by its `format`, which is also its extension
-    constexpr std::array FILE_FORMATS{
-        FormatName{ "ini", model::FileFormat::Ini },
-        FormatName{ "toml", model::FileFormat::Toml },
-    };
-
-    /**
-     * A file of a config spec's `files`, or the reason it is not one: a `format` of `ini` or `toml`,
-     * which its extension is, a `root` of `data` or `myGames`, and a `path` from that root. The path is
-     * checked as it is written (`pathProblem`).
-     */
-    std::expected<model::File, std::string> loadFile(const Json& declared)
-    {
-        const auto formatText = getText(declared, "format");
-        const auto format = std::ranges::find(FILE_FORMATS, formatText, &FormatName::first);
-        if (format == FILE_FORMATS.end()) {
-            return std::unexpected(std::format("its format '{}' is not ini or toml", formatText));
-        }
-        const auto rootText = getText(declared, "root");
-        if (rootText != "data" && rootText != "myGames") {
-            return std::unexpected(std::format("its root '{}' is not data or myGames", rootText));
-        }
-        auto path = getText(declared, "path");
-        if (auto problem = pathProblem(path); !problem.empty()) {
-            return std::unexpected(std::move(problem));
-        }
-        const std::filesystem::path checked(std::u8string(path.begin(), path.end()));
-        const auto extension = checked.extension().u8string();
-        if (common::str_tolower(std::string(extension.begin(), extension.end())) != "." + formatText) {
-            return std::unexpected(std::format("its path '{}' does not end in .{}", path, formatText));
-        }
-        return model::File{ .format = format->second, .root = rootText == "data" ? model::FileRoot::Data : model::FileRoot::MyGames, .path = std::move(path) };
-    }
-
-    /**
-     * The files of a config spec, by the names its `files` gives them. A file that is not written as one is
-     * left out, and is reported, so its settings are not available.
-     */
-    std::map<std::string, model::File> loadFiles(const Json& configSpec, ConfigSpecReading& reading)
-    {
-        std::map<std::string, model::File> files;
-        const auto found = configSpec.find("files");
-        if (found == configSpec.end() || !found->is_object()) {
-            return files;
-        }
-        const Into into(reading, "files");
-        for (const auto& [name, declared] : found->items()) {
-            const Into intoFile(reading, name);
-            checkFields(declared, FILE_FIELDS, reading);
-            auto file = declared.is_object() ? loadFile(declared) : std::unexpected("it is not an object"s);
-            if (file) {
-                // the state of the mod's client that gives its path, which its root and its path stand for while it is not
-                // answered
-                if (const auto state = declared.find("pathFromClientState"); state != declared.end()) {
-                    if (state->is_string() && !state->get_ref<const std::string&>().empty()) {
-                        file->pathFromClientState = state->get<std::string>();
-                    } else {
-                        const Into intoState(reading, "pathFromClientState");
-                        reading.report(model::Severity::Warning, "Its pathFromClientState is not the name of a state: the file is read from its root and its path.");
-                    }
-                }
-                files.emplace(name, std::move(*file));
-            } else {
-                reading.report(model::Severity::Error, std::format("The file \"{}\" is left out: {}. Its settings are not available.", name, file.error()));
-            }
-        }
-        return files;
-    }
-
-    /**
-     * The values of a config spec's TOML and INI files that are there, read from the folders of their roots, by
-     * their names, which tell a setting whose path its file does not have. A file that cannot be read is left out,
-     * as its settings are not available then. With no folders, as for a config spec read alone, none is read.
-     */
-    std::map<std::string, std::unique_ptr<spec::ModFile>> readFiles(const std::map<std::string, model::File>& files, const spec::FileFolders& folders)
-    {
-        std::map<std::string, std::unique_ptr<spec::ModFile>> read;
-        if (folders.data.empty() && folders.myGames.empty()) {
-            return read;
-        }
-        for (const auto& [name, file] : files) {
-            const auto path = (file.root == model::FileRoot::Data ? folders.data : folders.myGames) / std::u8string(file.path.begin(), file.path.end());
-            std::error_code error;
-            if (!std::filesystem::is_regular_file(path, error)) {
-                continue;
-            }
-            std::unique_ptr<spec::ModFile> values;
-            if (file.format == model::FileFormat::Toml) {
-                values = std::make_unique<spec::TomlFile>(path);
-            } else {
-                values = std::make_unique<spec::IniFile>(path);
-            }
-            if (values->read()) {
-                read.emplace(name, std::move(values));
-            }
-        }
-        return read;
     }
 
     /**

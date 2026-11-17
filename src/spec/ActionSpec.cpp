@@ -6,6 +6,8 @@
 #include <utility>
 #include <variant>
 
+#include "StorageSpec.h"
+
 using namespace std::string_literals;
 
 namespace mods_config::spec

@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <charconv>
-#include <filesystem>
 #include <format>
 
 #include "common/CommonUtils.h"
@@ -38,21 +36,6 @@ namespace mods_config::spec
 
         // a text the player sees, written as an object
         constexpr std::array<std::string_view, 2> TEXT_FIELDS{ "token", "fallback" };
-
-        constexpr std::array<std::string_view, 9> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName", "clientState" };
-
-        /**
-         * The name a config spec gives one of its files, as the config spec declares it: a storage can name it in
-         * another case. None for a name of no file.
-         */
-        std::optional<std::string> findFile(const std::map<std::string, model::File>& files, const std::string& name)
-        {
-            const auto lower = common::str_tolower(name);
-            const auto found = std::ranges::find_if(files, [&lower](const auto& file) {
-                return common::str_tolower(file.first) == lower;
-            });
-            return found != files.end() ? std::optional(found->first) : std::nullopt;
-        }
     }
 
     /**
@@ -211,145 +194,6 @@ namespace mods_config::spec
             reading.report(model::Severity::Error, std::format("Its applies {} is not unknown, live, save or restart: it has the one above it.", value["applies"].dump()));
         }
         return own;
-    }
-
-    /**
-     * What is wrong with a path from a root of a config spec, as the end of a sentence of it: one that is absolute, or
-     * goes up with `..`, could be any file of the system. Empty for one that is a path from its root.
-     */
-    std::string pathProblem(const std::string& path)
-    {
-        const std::filesystem::path checked(std::u8string(path.begin(), path.end()));
-        if (path.empty() || checked.has_root_name() || checked.has_root_directory()) {
-            return std::format("its path '{}' is not one from its root", path);
-        }
-        if (std::ranges::any_of(checked, [](const std::filesystem::path& part) {
-                return part == "..";
-            })) {
-            return std::format("its path '{}' goes up out of its folder", path);
-        }
-        return {};
-    }
-
-    /**
-     * A form of a game plugin, written as its plugin and its id in hex, as `MyMod.esp|800`, which can start
-     * with `0x`. None for a text that is not written so.
-     */
-    std::optional<std::pair<std::string, std::uint32_t>> parseForm(const std::string& text)
-    {
-        const auto separator = text.find('|');
-        auto plugin = common::trim(text.substr(0, separator));
-        auto id = separator == std::string::npos ? std::string() : common::trim(text.substr(separator + 1));
-        if (id.starts_with("0x") || id.starts_with("0X")) {
-            id.erase(0, 2);
-        }
-        std::uint32_t formId = 0;
-        const auto [end, error] = std::from_chars(id.data(), id.data() + id.size(), formId, 16);
-        if (plugin.empty() || id.empty() || error != std::errc() || end != id.data() + id.size()) {
-            return std::nullopt;
-        }
-        return std::pair(std::move(plugin), formId);
-    }
-
-    /**
-     * Where a setting keeps its value: a global, as `{ "global": "MyMod.esp|1234" }`, a property of a script,
-     * by its `form`, its `propertyName` and its `scriptName`, which is optional, in the setting's `valueType`,
-     * a state of the mod's client, by its `clientState`, or a value of the file its `storage` names, or else of the
-     * nearest `defaultFile` above it. The value of a file is named by its `path`, or by its `section` and its `key`,
-     * as an INI key is. A storage that is not written as one, as a form that is not a plugin and an id in hex, a
-     * property or a state with no name, or no file of the config spec or no value of it, as a path of more than two
-     * in an INI file, is one the menu does not read, and is reported.
-     */
-    model::Storage loadStorage(const Json& row, const std::string& defaultFile, const model::StoredType valueType, ConfigSpecReading& reading)
-    {
-        const auto storage = row.find("storage");
-        if (storage == row.end() || !storage->is_object()) {
-            reading.report(model::Severity::Error, "It has no storage: it is not available.");
-            return model::UnknownStorage{};
-        }
-        const Into into(reading, "storage");
-        checkFields(*storage, STORAGE_FIELDS, reading);
-        if (storage->contains("global")) {
-            const auto global = getText(*storage, "global");
-            if (auto form = parseForm(global)) {
-                return model::GlobalStorage{ .plugin = std::move(form->first), .formId = form->second };
-            }
-            reading.report(model::Severity::Error, std::format("Its global \"{}\" is not a plugin and an id in hex, as MyMod.esp|800: it is not available.", global));
-            return model::UnknownStorage{ .type = "global" };
-        }
-        if (storage->contains("form")) {
-            const auto formText = getText(*storage, "form");
-            auto form = parseForm(formText);
-            auto name = getText(*storage, "propertyName");
-            if (form && !name.empty()) {
-                return model::PropertyStorage{ .plugin = std::move(form->first),
-                    .formId = form->second,
-                    .script = getText(*storage, "scriptName"),
-                    .name = std::move(name),
-                    .type = valueType };
-            }
-            reading.report(model::Severity::Error,
-                std::format("Its property \"{}\" of the form \"{}\" is not a name, and a plugin and an id in hex, as MyMod.esp|800: it is not available.", name, formText));
-            return model::UnknownStorage{ .type = "property" };
-        }
-        if (storage->contains("clientState")) {
-            if (auto name = getText(*storage, "clientState"); !name.empty()) {
-                return model::ClientStateStorage{ .name = std::move(name) };
-            }
-            reading.report(model::Severity::Error, "Its clientState names no state of its mod's client: it is not available.");
-            return model::UnknownStorage{ .type = "clientState" };
-        }
-
-        std::vector<std::string> path;
-        if (const auto names = storage->find("path"); names != storage->end() && names->is_array()) {
-            for (const auto& name : *names) {
-                if (!name.is_string() || name.get_ref<const std::string&>().empty()) {
-                    path.clear();
-                    break;
-                }
-                path.push_back(name.get<std::string>());
-            }
-        } else if (auto key = getText(*storage, "key"); !key.empty()) {
-            auto section = getText(*storage, "section");
-            path = section.empty() ? std::vector{ std::move(key) } : std::vector{ std::move(section), std::move(key) };
-        }
-
-        auto fileName = getText(*storage, "file");
-        const auto file = findFile(reading.files, fileName.empty() ? defaultFile : fileName);
-        if (!file || path.empty() || (reading.files.at(*file).format == model::FileFormat::Ini && path.size() > 2)) {
-            reading.report(model::Severity::Error, "It names no file of its config spec, or no value of it: it is not available.");
-            return model::UnknownStorage{ .type = "file" };
-        }
-        return model::FileStorage{ .file = *file, .path = std::move(path) };
-    }
-
-    /**
-     * The id a setting gets from where its value is kept: the last name of its path, and the names before it
-     * joined by dots, as `fScale:Panel` for `Panel`, `fScale`. A path of two is named as MCM names a key of an
-     * INI file, so a mod that moves from INI to TOML keeps its ids. A path of one is its name alone. A global is
-     * its form, as `MyMod.esp|1234`, a property of a script its name and its form, as `fStrength:MyMod.esp|800`, and a
-     * state of the mod's client its name. Empty for a storage the menu does not read.
-     */
-    std::string idOf(const model::Storage& storage)
-    {
-        if (const auto* state = std::get_if<model::ClientStateStorage>(&storage)) {
-            return state->name;
-        }
-        if (const auto* global = std::get_if<model::GlobalStorage>(&storage)) {
-            return std::format("{}|{:X}", global->plugin, global->formId);
-        }
-        if (const auto* property = std::get_if<model::PropertyStorage>(&storage)) {
-            return std::format("{}:{}|{:X}", property->name, property->plugin, property->formId);
-        }
-        const auto* file = std::get_if<model::FileStorage>(&storage);
-        if (!file || file->path.empty()) {
-            return {};
-        }
-        std::string before;
-        for (std::size_t i = 0; i + 1 < file->path.size(); ++i) {
-            before += (i == 0 ? "" : ".") + file->path[i];
-        }
-        return before.empty() ? file->path.back() : std::format("{}:{}", file->path.back(), before);
     }
 
     /**

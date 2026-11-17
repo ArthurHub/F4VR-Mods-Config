@@ -184,8 +184,4 @@ namespace mods_config::spec
     void checkFields(const Json& object, std::span<const std::string_view> known, ConfigSpecReading& reading);
     std::optional<model::Applies> findApplies(const Json& value);
     Inherited inherit(const Json& value, const Inherited& above, ConfigSpecReading& reading);
-    std::string pathProblem(const std::string& path);
-    std::optional<std::pair<std::string, std::uint32_t>> parseForm(const std::string& text);
-    model::Storage loadStorage(const Json& row, const std::string& defaultFile, model::StoredType valueType, ConfigSpecReading& reading);
-    std::string idOf(const model::Storage& storage);
 }

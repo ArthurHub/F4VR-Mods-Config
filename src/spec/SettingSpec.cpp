@@ -9,6 +9,7 @@
 
 #include "ActionSpec.h"
 #include "FrameworkTypeSpec.h"
+#include "StorageSpec.h"
 #include "common/CommonUtils.h"
 #include "model/FileChoices.h"
 #include "model/OptionSets.h"

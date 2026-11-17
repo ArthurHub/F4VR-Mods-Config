@@ -7,6 +7,7 @@
 #include <optional>
 #include <variant>
 
+#include "StorageSpec.h"
 #include "model/ActivationSpheres.h"
 #include "model/InputBindings.h"
 
