@@ -64,6 +64,20 @@ namespace mods_config::devbench
             std::string searchText;
             std::size_t searchMatches = 0;
             bool searchFiltered = false;
+
+            // SteamVR's keyboard is open on the search field
+            bool searchEdited = false;
+
+            // the help line as it is shown: a row's help, or with no row the session's status, in the look of the status
+            std::string helpText;
+            bool helpOnRow = false;
+            std::string helpTag;
+            bool helpInvalid = false;
+            ui::StatusLook statusLook = ui::StatusLook::Plain;
+
+            // what is open over a setting's row, by its kind's name, and the setting's id: empty for none
+            std::string editorKind;
+            std::string editorSetting;
         };
 
         const char* stateDescription()
@@ -80,7 +94,12 @@ namespace mods_config::devbench
                    "which block Save); "
                    "search: text (the search field's query as the panel last searched it, empty for none), matches (the rows it shows, of every mod), "
                    "filtered (while there is a query: a mod's page has only its rows that match, until Back shows it whole, and the menu's front page "
-                   "says how many match; not over the Help page or a report); "
+                   "says how many match; not over the Help page or a report), edited (SteamVR's keyboard is open on the search field); "
+                   "helpLine: text (what the footer's help line shows: the help of the row the ray is on, else the session's status), onRow (it is a row's "
+                   "help), tag (when the row's pending change takes effect, null for none), invalid (the row's value is invalid), look (the status's look "
+                   "while it is not a row's: plain, pending, invalid, restart); "
+                   "editor: what is open over a setting's row, null for none: kind (color, transform, binding, list for a dropdown's or a haptic's "
+                   "list, keyboard for a text input's) and setting (its id, as the page action has it); "
                    "frik: gestureTaken (FRIK's open-config binding is turned off)";
         }
 
@@ -91,6 +110,23 @@ namespace mods_config::devbench
          * What a state shows, by names: the mod's name, null for the menu's front page, and the names of the pages on
          * the way to its page, empty for the mod's front page.
          */
+        const char* editorKindName(const ui::ModPage::EditorKind kind)
+        {
+            switch (kind) {
+            case ui::ModPage::EditorKind::Color:
+                return "color";
+            case ui::ModPage::EditorKind::Transform:
+                return "transform";
+            case ui::ModPage::EditorKind::Binding:
+                return "binding";
+            case ui::ModPage::EditorKind::List:
+                return "list";
+            case ui::ModPage::EditorKind::Keyboard:
+                return "keyboard";
+            }
+            return "unknown";
+        }
+
         json shownToJson(const MCDevState& state)
         {
             const auto& mods = g_modsConfig.menu().mods();
@@ -177,7 +213,40 @@ namespace mods_config::devbench
             state.searchText = menu.isOpen() ? search.text() : std::string();
             state.searchMatches = menu.isOpen() ? search.matches() : 0;
             state.searchFiltered = menu.isOpen() && g_modsConfig.menu().fullPanel().isFiltered();
+            state.searchEdited = menu.isOpen() && g_modsConfig.menu().fullPanel().isSearchEdited();
+
+            if (menu.isOpen()) {
+                const auto& panel = g_modsConfig.menu().fullPanel();
+                const auto& helpLine = panel.helpLine();
+                state.helpText = helpLine.text();
+                state.helpOnRow = !state.helpText.empty();
+                if (!state.helpOnRow) {
+                    state.helpText = helpLine.status();
+                }
+                state.helpTag = helpLine.tag();
+                state.helpInvalid = helpLine.isInvalid();
+                state.statusLook = helpLine.statusLook();
+                if (const auto editor = panel.openEditor()) {
+                    state.editorKind = editorKindName(editor->kind);
+                    state.editorSetting = editor->setting->id;
+                }
+            }
             publishChanges(state);
+        }
+
+        const char* statusLookName(const ui::StatusLook look)
+        {
+            switch (look) {
+            case ui::StatusLook::Plain:
+                return "plain";
+            case ui::StatusLook::Pending:
+                return "pending";
+            case ui::StatusLook::Invalid:
+                return "invalid";
+            case ui::StatusLook::Restart:
+                return "restart";
+            }
+            return "plain";
         }
 
         /**
@@ -202,7 +271,14 @@ namespace mods_config::devbench
                 { "mods", { { "count", state.modCount } } },
                 { "selection", { { "mod", placeToJson(state.selectedMod) }, { "page", state.selectedPage }, { "helpShown", state.helpShown }, { "asking", state.asking } } },
                 { "session", state.hasSession ? json{ { "dirty", state.dirtyCount }, { "invalid", state.invalidCount } } : json(nullptr) },
-                { "search", { { "text", state.searchText }, { "matches", state.searchMatches }, { "filtered", state.searchFiltered } } },
+                { "search", { { "text", state.searchText }, { "matches", state.searchMatches }, { "filtered", state.searchFiltered }, { "edited", state.searchEdited } } },
+                { "helpLine",
+                    { { "text", state.helpText },
+                        { "onRow", state.helpOnRow },
+                        { "tag", state.helpTag.empty() ? json(nullptr) : json(state.helpTag) },
+                        { "invalid", state.helpInvalid },
+                        { "look", statusLookName(state.statusLook) } } },
+                { "editor", state.editorKind.empty() ? json(nullptr) : json{ { "kind", state.editorKind }, { "setting", state.editorSetting } } },
                 { "frik", { { "gestureTaken", state.frikGestureTaken } } },
             };
         }
@@ -269,21 +345,6 @@ namespace mods_config::devbench
                 throw std::runtime_error("no mod is selected");
             }
             return *store;
-        }
-
-        const char* statusLookName(const ui::StatusLook look)
-        {
-            switch (look) {
-            case ui::StatusLook::Plain:
-                return "plain";
-            case ui::StatusLook::Pending:
-                return "pending";
-            case ui::StatusLook::Invalid:
-                return "invalid";
-            case ui::StatusLook::Restart:
-                return "restart";
-            }
-            return "plain";
         }
 
         /**
@@ -589,8 +650,9 @@ namespace mods_config::devbench
         }
 
         /**
-         * Where the panel's targets were in its last frame, in the panel's pixels as the state's pointer has them. The
-         * first call starts keeping them, for the rest of the session, so it answers none; a frame later there are.
+         * Where the panel's targets were in its last frame, in the panel's pixels as the state's pointer has them, and
+         * how far its lists were scrolled. The first call starts keeping them, for the rest of the session, so it
+         * answers none; a frame later there are.
          */
         json runTargets(const json&)
         {
@@ -610,7 +672,11 @@ namespace mods_config::devbench
                 }
                 targets.push_back(std::move(entry));
             }
-            return { { "recording", recording }, { "targets", std::move(targets) } };
+            auto scrolls = json::array();
+            for (const auto& scroll : recording ? recorder.scrolls() : std::vector<ui::Scroll>()) {
+                scrolls.push_back({ { "area", ui::scrollAreaName(scroll.area) }, { "y", scroll.y }, { "max", scroll.max } });
+            }
+            return { { "recording", recording }, { "targets", std::move(targets) }, { "scrolls", std::move(scrolls) } };
         }
 
         /**
@@ -1286,8 +1352,10 @@ namespace mods_config::devbench
                            "(tree: a mod's row by its name, with path, the names of the pages on the way to a page's row; category: by its name; setting: a "
                            "page's row by the setting's id; pageButton: a page's button row by its text; section: a heading by its text; titleButton: Help, "
                            "Minimize, Close; crumb: by its text; button: a dialog's or an editor's button by its label; colorChannel: a track of the open "
-                           "color editor, Red, Green, Blue or Alpha), and x, y, width and height, the part of it that was shown, in the panel's pixels from "
-                           "its top left as the state's pointer has them. The first call starts keeping them and answers recording false with none; ask "
+                           "color editor, Red, Green, Blue or Alpha; option: an option of the open dropdown list by its text, and the action under them), and "
+                           "x, y, width and height, the part of it that was shown, in the panel's pixels from its top left as the state's pointer has "
+                           "them; and scrolls, each list that was drawn with its area (tree, page, list for an open dropdown's), y (how far it is "
+                           "scrolled) and max (how far it can be). The first call starts keeping them and answers recording false with none; ask "
                            "again after a frame",
             .handler = &runTargets,
         });

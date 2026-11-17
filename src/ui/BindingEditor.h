@@ -43,6 +43,12 @@ namespace mods_config::ui
         void startFrame(float thumbstickSideValue);
         BindingEdited edit(const model::Setting& setting, model::Store& store, const ImRect& row, bool pressed, bool leftHanded, const ImageDrawer& drawer);
         bool isOpen(const model::Setting& setting) const;
+
+        const model::Setting* openSetting() const
+        {
+            return _open;
+        }
+
         void endFrame();
         bool cancel();
         void reset();

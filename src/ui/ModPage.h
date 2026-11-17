@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <unordered_set>
 #include <vector>
@@ -67,9 +68,28 @@ namespace mods_config::ui
     class ModPage
     {
     public:
+        /**
+         * What is open over a setting's row: an editor, a dropdown's list, or the keyboard of a text input.
+         */
+        enum class EditorKind : std::uint8_t
+        {
+            Color,
+            Transform,
+            Binding,
+            List,
+            Keyboard,
+        };
+
+        struct OpenEditor
+        {
+            EditorKind kind = EditorKind::Color;
+            const model::Setting* setting = nullptr;
+        };
+
         void setImageDrawer(ImageDrawer drawer);
         void setLeftHanded(bool leftHanded);
         PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue, const PageSearch& search = {});
+        std::optional<OpenEditor> openEditor() const;
         bool back();
         void resumeTransformEdit();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);

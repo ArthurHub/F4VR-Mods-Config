@@ -21,6 +21,12 @@ namespace mods_config::ui
         std::optional<std::string> edit(const model::Setting& setting, float right, float top, bool pressed, const std::string& text, bool& pulse);
         float draw(const model::Setting& setting, float right, float top, const std::string& text, ValueLook look) const;
         bool isEdited(const model::Setting& setting) const;
+
+        const model::Setting* editedSetting() const
+        {
+            return _edited;
+        }
+
         bool cancelEdit();
         void reset();
 

@@ -135,6 +135,16 @@ namespace mods_config::ui
 
         bool isFiltered() const;
 
+        std::optional<ModPage::OpenEditor> openEditor() const
+        {
+            return _modPage.openEditor();
+        }
+
+        bool isSearchEdited() const
+        {
+            return _modTree.isSearchEdited();
+        }
+
         // whether a section that folds, of the page that is shown, is folded now
         bool isFolded(const model::Group& group) const
         {

@@ -70,6 +70,11 @@ namespace mods_config::ui
         }
 
         // ends the edit of the search field, for Back, with the query kept: false while it is not edited
+        bool isSearchEdited() const
+        {
+            return _search.isEdited();
+        }
+
         bool endSearchEdit()
         {
             return _search.endEdit();

@@ -12,6 +12,7 @@
 
 #include "Drawing.h"
 #include "Haptics.h"
+#include "PanelTargets.h"
 #include "Theme.h"
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
@@ -354,6 +355,7 @@ namespace mods_config::ui
                 drawn.picked = i;
                 ImGui::CloseCurrentPopup();
             }
+            panelTargets().add(TargetKind::Option, texts[i], ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
             if (decorate) {
                 decorate(i, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()), chosen == i);
             }
@@ -374,10 +376,13 @@ namespace mods_config::ui
                 drawn.picked = texts.size();
                 ImGui::CloseCurrentPopup();
             }
+            panelTargets().add(TargetKind::Option, extras.action, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
             if (ImGui::IsItemHovered()) {
                 drawn.pointed = texts.size();
             }
         }
+        // the options scroll in their child under a header, and in the popup with none
+        panelTargets().addScroll(ScrollArea::List);
         if (header) {
             ImGui::EndChild();
         }

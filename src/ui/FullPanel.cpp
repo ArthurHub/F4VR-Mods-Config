@@ -891,6 +891,7 @@ namespace mods_config::ui
                 content = drawFrontPage();
             }
             content.onPage = onPage;
+            panelTargets().addScroll(ScrollArea::Page);
         }
         ImGui::EndChild();
         return content;

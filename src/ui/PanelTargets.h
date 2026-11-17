@@ -33,6 +33,31 @@ namespace mods_config::ui
         Button,
         // the track of a channel of the color editor that is open, by the channel's name
         ColorChannel,
+        // an option of the dropdown list that is open, by its text, and the action under them, by its text
+        Option,
+    };
+
+    /**
+     * A list of the panel that scrolls: the tree's rows, the page's rows, and the options of a dropdown list long
+     * enough to scroll.
+     */
+    enum class ScrollArea : std::uint8_t
+    {
+        Tree,
+        Page,
+        List,
+    };
+
+    std::string_view scrollAreaName(ScrollArea area);
+
+    /**
+     * How far a list was scrolled in the last frame, and how far it can be, in the panel's pixels.
+     */
+    struct Scroll
+    {
+        ScrollArea area = ScrollArea::Page;
+        float y = 0.0f;
+        float max = 0.0f;
     };
 
     std::string_view targetKindName(TargetKind kind);
@@ -50,8 +75,9 @@ namespace mods_config::ui
     };
 
     /**
-     * The targets of the panel's last frame, which the mod's devbench tool tells so a test with the controllers knows
-     * where to point. Nothing is kept until recording is turned on, so a game with no test pays one check a target.
+     * The targets of the panel's last frame and how far its lists were scrolled, which the mod's devbench tool tells so a
+     * test with the controllers knows where to point. Nothing is kept until recording is turned on, so a game with no
+     * test pays one check a target.
      */
     class PanelTargets
     {
@@ -73,9 +99,15 @@ namespace mods_config::ui
             return _targets;
         }
 
+        const std::vector<Scroll>& scrolls() const
+        {
+            return _scrolls;
+        }
+
         // Internal: the panel and the parts it draws
         void startFrame();
         void add(TargetKind kind, std::string_view key, const ImRect& rect, std::vector<std::string> path = {});
+        void addScroll(ScrollArea area);
 
     private:
         PanelTargets() = default;
@@ -86,6 +118,7 @@ namespace mods_config::ui
         ImVec2 _origin;
 
         std::vector<Target> _targets;
+        std::vector<Scroll> _scrolls;
     };
 
     inline PanelTargets& panelTargets()

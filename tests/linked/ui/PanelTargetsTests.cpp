@@ -62,7 +62,7 @@ namespace
     }
 
     /**
-     * My Mod: a section with a switcher and a color under it, and a page under its front page.
+     * My Mod: a section with a switcher, a color and a dropdown under it, and a page under its front page.
      */
     model::Mod myMod()
     {
@@ -74,7 +74,9 @@ namespace
                 { "type": "section", "text": "Look", "content": [
                     { "type": "switcher", "id": "enabled", "text": "Enabled", "default": false, "storage": { "path": ["Main", "bEnabled"] } },
                     { "type": "cf.color", "id": "ray", "text": "Ray", "default": { "rgb": [190, 255, 190] }, "valueOptions": { "alpha": false },
-                      "storage": { "path": ["Main", "cRay"] } }
+                      "storage": { "path": ["Main", "cRay"] } },
+                    { "type": "dropdown", "id": "hand", "valueType": "string", "text": "Hand", "default": "offhand", "storage": { "path": ["Main", "sHand"] },
+                      "valueOptions": { "options": [ { "value": "primary", "text": "Primary" }, { "value": "offhand", "text": "Offhand" } ] } }
                 ] }
             ],
             "pages": [ { "pageDisplayName": "Second", "content": [] } ]
@@ -93,7 +95,7 @@ TEST_CASE("PanelTargets: a frame keeps nothing until recording is on")
     CHECK(ui::panelTargets().targets().empty());
 }
 
-TEST_CASE("PanelTargets: the rows of the tree and the page, the title bar and the color editor are where a press on them acts")
+TEST_CASE("PanelTargets: the rows of the tree and the page, the title bar, the color editor and a dropdown's options are where a press on them acts")
 {
     const test_panel::PanelContext context;
     const Recording recording;
@@ -105,6 +107,13 @@ TEST_CASE("PanelTargets: the rows of the tree and the page, the title bar and th
     panel.setMods({ myMod() });
     drawFrames(panel, 2);
 
+    const auto scrolled = [](const ui::ScrollArea area) {
+        return std::ranges::any_of(ui::panelTargets().scrolls(), [area](const ui::Scroll& scroll) {
+            return scroll.area == area;
+        });
+    };
+    CHECK(scrolled(ui::ScrollArea::Tree));
+    CHECK(scrolled(ui::ScrollArea::Page));
     CHECK(findTarget(TargetKind::TitleButton, "Help"));
     CHECK(findTarget(TargetKind::TitleButton, "Close"));
     CHECK(findTarget(TargetKind::Crumb, "MODS CONFIG FO4"));
@@ -131,6 +140,10 @@ TEST_CASE("PanelTargets: the rows of the tree and the page, the title bar and th
     drawFrames(panel, 2);
     const auto* red = findTarget(TargetKind::ColorChannel, "Red");
     REQUIRE(red);
+    const auto editor = panel.openEditor();
+    REQUIRE(editor);
+    CHECK(editor->kind == ui::ModPage::EditorKind::Color);
+    CHECK(editor->setting->id == "ray");
     CHECK_FALSE(findTarget(TargetKind::ColorChannel, "Alpha"));
     CHECK(pressActs(panel, ImVec2(red->rect.Min.x + 1.0f, red->rect.GetCenter().y)));
     const auto& ray = std::get<model::Setting>(std::get<model::Group>(panel.mods()[0].frontPage.items[0]).items[1]);
@@ -138,4 +151,17 @@ TEST_CASE("PanelTargets: the rows of the tree and the page, the title bar and th
     CHECK(pressActs(panel, middleOf(TargetKind::Button, "Cancel")));
     drawFrames(panel, 2);
     CHECK_FALSE(findTarget(TargetKind::ColorChannel, "Red"));
+    CHECK_FALSE(panel.openEditor());
+
+    // the dropdown's list has its options, and one picked is its value
+    CHECK(pressActs(panel, middleOf(TargetKind::Setting, "hand")));
+    drawFrames(panel, 2);
+    REQUIRE(panel.openEditor());
+    CHECK(panel.openEditor()->kind == ui::ModPage::EditorKind::List);
+    CHECK(scrolled(ui::ScrollArea::List));
+    CHECK(pressActs(panel, middleOf(TargetKind::Option, "Primary")));
+    const auto& hand = std::get<model::Setting>(std::get<model::Group>(panel.mods()[0].frontPage.items[0]).items[2]);
+    CHECK(std::get<std::string>(store.value(hand).value) == "primary");
+    drawFrames(panel, 2);
+    CHECK_FALSE(panel.openEditor());
 }

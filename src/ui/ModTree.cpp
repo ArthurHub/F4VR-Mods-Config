@@ -361,6 +361,7 @@ namespace mods_config::ui
                     }
                 }
                 _showSelection = false;
+                panelTargets().addScroll(ScrollArea::Tree);
             }
             ImGui::EndChild();
         }

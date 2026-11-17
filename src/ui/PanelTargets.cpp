@@ -28,6 +28,24 @@ namespace mods_config::ui
             return "button";
         case TargetKind::ColorChannel:
             return "colorChannel";
+        case TargetKind::Option:
+            return "option";
+        }
+        return "unknown";
+    }
+
+    /**
+     * The name of a list that scrolls, as the mod's devbench tool tells it.
+     */
+    std::string_view scrollAreaName(const ScrollArea area)
+    {
+        switch (area) {
+        case ScrollArea::Tree:
+            return "tree";
+        case ScrollArea::Page:
+            return "page";
+        case ScrollArea::List:
+            return "list";
         }
         return "unknown";
     }
@@ -45,6 +63,7 @@ namespace mods_config::ui
     void PanelTargets::startFrame()
     {
         _targets.clear();
+        _scrolls.clear();
         if (!_recording) {
             return;
         }
@@ -71,5 +90,16 @@ namespace mods_config::ui
         }
         shown.Translate(ImVec2(-_origin.x, -_origin.y));
         _targets.push_back({ .kind = kind, .key = std::string(key), .path = std::move(path), .rect = shown });
+    }
+
+    /**
+     * Adds how far the window that is drawn is scrolled, and how far it can be: the list of an area.
+     */
+    void PanelTargets::addScroll(const ScrollArea area)
+    {
+        if (!_recording) {
+            return;
+        }
+        _scrolls.push_back({ .area = area, .y = ImGui::GetScrollY(), .max = ImGui::GetScrollMaxY() });
     }
 }

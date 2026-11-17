@@ -83,6 +83,11 @@ namespace mods_config::ui
         void endFrame();
         bool isListOpen(const model::Setting& setting) const;
 
+        const model::Setting* listSetting() const
+        {
+            return _open;
+        }
+
         // the option of the open list the ray is on, and none
         std::optional<std::size_t> pointedOption() const
         {

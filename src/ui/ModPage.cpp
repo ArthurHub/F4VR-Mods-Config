@@ -513,6 +513,30 @@ namespace mods_config::ui
      * starts as its `collapsed` says each time its page is shown, the results of its buttons, and the row that has
      * the focus ring.
      */
+    /**
+     * The editor, the dropdown's list or the text input's keyboard that is open over a setting's row of the page, with
+     * its setting; none while the page has none open. A page has one open at a time.
+     */
+    std::optional<ModPage::OpenEditor> ModPage::openEditor() const
+    {
+        if (const auto* setting = _colorEditor.openSetting()) {
+            return OpenEditor{ .kind = EditorKind::Color, .setting = setting };
+        }
+        if (const auto* setting = _transformEditor.openSetting()) {
+            return OpenEditor{ .kind = EditorKind::Transform, .setting = setting };
+        }
+        if (const auto* setting = _bindingEditor.openSetting()) {
+            return OpenEditor{ .kind = EditorKind::Binding, .setting = setting };
+        }
+        if (const auto* setting = _choices.listSetting()) {
+            return OpenEditor{ .kind = EditorKind::List, .setting = setting };
+        }
+        if (const auto* setting = _textInputs.editedSetting()) {
+            return OpenEditor{ .kind = EditorKind::Keyboard, .setting = setting };
+        }
+        return std::nullopt;
+    }
+
     void ModPage::reset()
     {
         _sliders.reset();
