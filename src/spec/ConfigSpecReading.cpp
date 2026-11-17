@@ -4,6 +4,7 @@
 #include <array>
 #include <cctype>
 #include <charconv>
+#include <filesystem>
 #include <format>
 
 #include "common/CommonUtils.h"
@@ -210,6 +211,24 @@ namespace mods_config::spec
             reading.report(model::Severity::Error, std::format("Its applies {} is not unknown, live, save or restart: it has the one above it.", value["applies"].dump()));
         }
         return own;
+    }
+
+    /**
+     * What is wrong with a path from a root of a config spec, as the end of a sentence of it: one that is absolute, or
+     * goes up with `..`, could be any file of the system. Empty for one that is a path from its root.
+     */
+    std::string pathProblem(const std::string& path)
+    {
+        const std::filesystem::path checked(std::u8string(path.begin(), path.end()));
+        if (path.empty() || checked.has_root_name() || checked.has_root_directory()) {
+            return std::format("its path '{}' is not one from its root", path);
+        }
+        if (std::ranges::any_of(checked, [](const std::filesystem::path& part) {
+                return part == "..";
+            })) {
+            return std::format("its path '{}' goes up out of its folder", path);
+        }
+        return {};
     }
 
     /**
