@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <optional>
 #include <utility>
+#include <vector>
 
 #include "common/CommonUtils.h"
 #include "model/Conditions.h"
@@ -69,6 +71,55 @@ namespace mods_config::spec
         }
 
         /**
+         * The operator a condition compares by: its key, its kind, and whether it compares with a list (`oneOf`,
+         * `notOneOf`) or orders numbers.
+         */
+        struct Operator
+        {
+            std::string_view name;
+            Kind kind = Kind::Equals;
+            bool isList = false;
+            bool isOrder = false;
+        };
+
+        /**
+         * The operator of a condition, the first of `OPERATORS` it has a key of. None for a condition with none.
+         */
+        std::optional<Operator> findOperator(const Json& condition)
+        {
+            const auto op = std::ranges::find_if(OPERATORS, [&condition](const OperatorName& name) {
+                return condition.contains(name.first);
+            });
+            if (op == OPERATORS.end()) {
+                return std::nullopt;
+            }
+            const bool isList = op->second == Kind::OneOf || op->second == Kind::NotOneOf;
+            return Operator{ .name = op->first, .kind = op->second, .isList = isList, .isOrder = !isList && op->second != Kind::Equals && op->second != Kind::NotEquals };
+        }
+
+        /**
+         * The values a condition compares with by its operator: each of a list's, or its one value, in its own type
+         * (`conditionValue`). `problem` gives the reason a value is not compared, and empty for one that is. Or the reason
+         * of the first value that is not, or that the operand of a list is not a list.
+         */
+        template <typename Problem>
+        std::expected<std::vector<model::Value>, std::string> readOperands(const Json& condition, const Operator& op, Problem problem)
+        {
+            const auto& operand = condition.at(std::string(op.name));
+            if (op.isList && !operand.is_array()) {
+                return std::unexpected(std::format("its {} is not a list", op.name));
+            }
+            std::vector<model::Value> values;
+            for (const auto& value : op.isList ? operand : Json::array({ operand })) {
+                if (auto reason = problem(value); !reason.empty()) {
+                    return std::unexpected(std::move(reason));
+                }
+                values.push_back(conditionValue(value));
+            }
+            return values;
+        }
+
+        /**
          * A condition on the value of a setting: its `setting` and one operator, as `{ "setting": "iMode",
          * "oneOf": [1, 2] }`. It names the setting by its id in any case, and has the id as the config spec gives it.
          * Or the reason it is not one: a setting the config spec does not have, a value of another type than the
@@ -83,36 +134,24 @@ namespace mods_config::spec
                 return std::unexpected(std::format("it names no setting '{}'", named));
             }
             const auto& setting = found->second;
-            const auto op = std::ranges::find_if(OPERATORS, [&condition](const OperatorName& name) {
-                return condition.contains(name.first);
-            });
-            if (op == OPERATORS.end()) {
+            const auto op = findOperator(condition);
+            if (!op) {
                 return std::unexpected(std::format("it has no operator for the setting '{}'", setting.id));
             }
-
-            const auto kind = op->second;
-            const bool isList = kind == Kind::OneOf || kind == Kind::NotOneOf;
-            const bool isOrder = kind != Kind::Equals && kind != Kind::NotEquals && !isList;
             const bool isNumber = setting.valueType == model::StoredType::Int || setting.valueType == model::StoredType::Float;
-            if (isOrder && !isNumber) {
-                return std::unexpected(std::format("{} compares numbers, and '{}' is no number", op->first, setting.id));
+            if (op->isOrder && !isNumber) {
+                return std::unexpected(std::format("{} compares numbers, and '{}' is no number", op->name, setting.id));
             }
-            if (isList && setting.valueType != model::StoredType::String && !model::isChoice(setting.type)) {
-                return std::unexpected(std::format("{} is of a text or a choice, and '{}' is neither", op->first, setting.id));
+            if (op->isList && setting.valueType != model::StoredType::String && !model::isChoice(setting.type)) {
+                return std::unexpected(std::format("{} is of a text or a choice, and '{}' is neither", op->name, setting.id));
             }
-            const auto& operand = condition.at(op->first);
-            if (isList && !operand.is_array()) {
-                return std::unexpected(std::format("its {} is not a list", op->first));
+            auto values = readOperands(condition, *op, [&](const Json& value) {
+                return isComparable(value, setting.valueType) ? std::string() : std::format("its {} has a value that is not of the type of '{}'", op->name, setting.id);
+            });
+            if (!values) {
+                return std::unexpected(std::move(values.error()));
             }
-
-            model::Condition comparison{ .kind = kind, .setting = setting.id, .conditions = {}, .offWhenNotAvailable = false, .values = {} };
-            for (const auto& value : isList ? operand : Json::array({ operand })) {
-                if (!isComparable(value, setting.valueType)) {
-                    return std::unexpected(std::format("its {} has a value that is not of the type of '{}'", op->first, setting.id));
-                }
-                comparison.values.push_back(conditionValue(value));
-            }
-            return comparison;
+            return model::Condition{ .kind = op->kind, .setting = setting.id, .conditions = {}, .offWhenNotAvailable = false, .values = std::move(*values) };
         }
 
         /**
@@ -136,28 +175,21 @@ namespace mods_config::spec
             if (condition.size() == 1) {
                 return state;
             }
-            const auto op = std::ranges::find_if(OPERATORS, [&condition](const OperatorName& name) {
-                return condition.contains(name.first);
-            });
-            if (op == OPERATORS.end()) {
+            const auto op = findOperator(condition);
+            if (!op) {
                 return std::unexpected(std::format("it has no operator for the state '{}'", state.setting));
             }
-            state.kind = op->second;
-            const bool isList = state.kind == Kind::OneOf || state.kind == Kind::NotOneOf;
-            const bool isOrder = state.kind != Kind::Equals && state.kind != Kind::NotEquals && !isList;
-            const auto& operand = condition.at(op->first);
-            if (isList && !operand.is_array()) {
-                return std::unexpected(std::format("its {} is not a list", op->first));
-            }
-            for (const auto& value : isList ? operand : Json::array({ operand })) {
+            auto values = readOperands(condition, *op, [&op](const Json& value) {
                 if (!value.is_boolean() && !value.is_number() && !value.is_string()) {
-                    return std::unexpected(std::format("its {} has a value that is not a bool, a number or a text", op->first));
+                    return std::format("its {} has a value that is not a bool, a number or a text", op->name);
                 }
-                if (isOrder && !value.is_number()) {
-                    return std::unexpected(std::format("{} compares numbers, and its value is no number", op->first));
-                }
-                state.values.push_back(conditionValue(value));
+                return op->isOrder && !value.is_number() ? std::format("{} compares numbers, and its value is no number", op->name) : std::string();
+            });
+            if (!values) {
+                return std::unexpected(std::move(values.error()));
             }
+            state.kind = op->kind;
+            state.values = std::move(*values);
             return state;
         }
 
@@ -188,31 +220,24 @@ namespace mods_config::spec
             if (condition.size() == 1) {
                 return setting;
             }
-            const auto op = std::ranges::find_if(OPERATORS, [&condition](const OperatorName& operatorName) {
-                return condition.contains(operatorName.first);
-            });
-            if (op == OPERATORS.end()) {
+            const auto op = findOperator(condition);
+            if (!op) {
                 return std::unexpected(std::format("it has no operator for the game's INI setting '{}'", name));
             }
-            setting.kind = op->second;
-            const bool isList = setting.kind == Kind::OneOf || setting.kind == Kind::NotOneOf;
-            const bool isOrder = setting.kind != Kind::Equals && setting.kind != Kind::NotEquals && !isList;
-            if (isOrder && *type != model::StoredType::Int && *type != model::StoredType::Float) {
-                return std::unexpected(std::format("{} compares numbers, and '{}' is no number", op->first, name));
+            if (op->isOrder && *type != model::StoredType::Int && *type != model::StoredType::Float) {
+                return std::unexpected(std::format("{} compares numbers, and '{}' is no number", op->name, name));
             }
-            if (isList && *type != model::StoredType::String && *type != model::StoredType::Int) {
-                return std::unexpected(std::format("{} is of a text or a whole number, and '{}' is neither", op->first, name));
+            if (op->isList && *type != model::StoredType::String && *type != model::StoredType::Int) {
+                return std::unexpected(std::format("{} is of a text or a whole number, and '{}' is neither", op->name, name));
             }
-            const auto& operand = condition.at(op->first);
-            if (isList && !operand.is_array()) {
-                return std::unexpected(std::format("its {} is not a list", op->first));
+            auto values = readOperands(condition, *op, [&](const Json& value) {
+                return isComparable(value, *type) ? std::string() : std::format("its {} has a value that is not of the type of '{}'", op->name, name);
+            });
+            if (!values) {
+                return std::unexpected(std::move(values.error()));
             }
-            for (const auto& value : isList ? operand : Json::array({ operand })) {
-                if (!isComparable(value, *type)) {
-                    return std::unexpected(std::format("its {} has a value that is not of the type of '{}'", op->first, name));
-                }
-                setting.values.push_back(conditionValue(value));
-            }
+            setting.kind = op->kind;
+            setting.values = std::move(*values);
             return setting;
         }
 
