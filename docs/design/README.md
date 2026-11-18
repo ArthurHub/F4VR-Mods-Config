@@ -14,7 +14,6 @@ The current product and architecture decisions. Build order and release contents
 - [CommonFramework work required](framework-requirements.md) and [Framework work plan](framework-plan.md): what the framework gained for this mod, done.
 - [Mod work plan](mod-plan.md): the milestones, with each phase's commits in [phase 1](mod-plan-phase-1.md) (MCM support, done), [phase 2](mod-plan-phase-2.md) (first release, done) and [phase 3](mod-plan-phase-3.md) (after the first release).
 - [Open questions](open-questions.md): deferred design topics, not assigned to a release.
-- [Deepen the hot spots](deepening/README.md): six refactors from the [architecture review](deepening/architecture-review.html), outside the milestones.
 
 ## In review
 
