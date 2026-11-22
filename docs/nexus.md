@@ -6,6 +6,9 @@ A VR-first configuration menu for Fallout 4 VR mods. Access your existing MCM me
 
 [center][img width=732]https://raw.githubusercontent.com/ArthurHub/F4VR-Mods-Config/main/docs/assets/mods-config-front-page.jpg[/img][/center]
 
+[center][size=4][b]Showcase Video[/b][/size][/center]
+[center][youtube]pi8yKMwHIiI[/youtube][/center]
+
 [size=4][b]Getting Started[/b][/size]
 [list=1]
 [*][size=3]Install the mod and its requirements.[/size][/*]

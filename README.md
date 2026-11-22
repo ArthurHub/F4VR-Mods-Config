@@ -9,6 +9,10 @@ The menu stands in the world and never pauses the game, so you see and feel your
 
 ![The menu in the game, on its own mod's page](docs/assets/mods-config-front-page.jpg)
 
+[![Watch the showcase video on YouTube](docs/assets/showcase-video.jpg)](https://youtu.be/pi8yKMwHIiI)
+
+[Watch the showcase video on YouTube](https://youtu.be/pi8yKMwHIiI) (3 minutes)
+
 ## Table of Contents
 
 - [Features](#features)

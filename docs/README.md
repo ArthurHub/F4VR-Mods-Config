@@ -2,7 +2,7 @@
 
 A VR-first settings menu for Fallout 4 VR mods: every mod's settings in one place, changed in the headset. It shows the MCM menus you already have, and edits the config files of mods that ship a config spec for it.
 
-### [Install](../README.md) · [FAQ](faq.md) · [Changelog](changelog.md) · [For Mod Authors](for-mod-authors/README.md)
+### [Install](../README.md) · [FAQ](faq.md) · [Changelog](changelog.md) · [For Mod Authors](for-mod-authors/README.md) · [Showcase Video](https://youtu.be/pi8yKMwHIiI)
 
 ### Contents
 
