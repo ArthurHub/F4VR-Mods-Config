@@ -430,7 +430,8 @@ namespace mods_config::devbench
         /**
          * A setting as its row shows it: its text and help with the states of its mod's client in them, its row view
          * as the panel draws it (its value in the store, whether that is available, invalid or dirty and why, the
-         * warning it tells, the tag of when its pending change takes effect, whether its row is enabled), whether it
+         * warning it tells, the tag of when its pending change takes effect, whether its row is enabled, and why its
+         * section's `maxOn` holds it off), whether it
          * is read-only, what overrides it, and what the player can set it to.
          */
         json settingToJson(const model::Setting& setting, model::Store& store)
@@ -451,6 +452,7 @@ namespace mods_config::devbench
                 { "dirty", view.dirty },
                 { "readOnly", setting.readOnly },
                 { "enabled", view.enabled },
+                { "limit", textOrNull(view.limit) },
                 { "storage", storageToJson(setting.storage) } };
             const auto defaultValue = store.defaultValue(setting);
             row["default"] = defaultValue ? valueToJson(*defaultValue) : json(nullptr);

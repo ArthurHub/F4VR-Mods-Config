@@ -415,6 +415,8 @@ namespace
         const auto playing = edited.haptic && state.onPlay ? hapticPattern(stored.value) : std::nullopt;
         if (!stored.available && !stored.reason.empty()) {
             help = std::move(stored.reason);
+        } else if (!state.view.limit.empty()) {
+            help = state.view.limit;
         } else if (state.discards() && state.onSlot) {
             const auto saved = context.store->savedValue(setting);
             const auto savedName = saved ? nameOf(*saved) : std::string();

@@ -563,10 +563,12 @@ A section can limit how many of its switchers are on, for a choice of up to N th
 ```
 
 - `maxOn` counts the switchers inside it that are on, in nested sections too, by their pending values. Each counts one; `countsAs` on a switcher makes it count more (a thing that takes two places).
-- Hidden and disabled switchers count by their value, as their value is still saved.
-- At the limit, every switcher that is off and would go over it is disabled, and the help line says why: "At most 8 can be on here. Turn one off first."
-- Only values read from storage can be over the limit. Then every switcher on in it is invalid with the reason, and Save stays disabled until enough are off, as for any invalid value.
-- A `maxOn` on a section with no switchers is an error.
+- Every switcher counts by its value: hidden, disabled and storage-less ones too, as their value is still kept.
+- At the limit, every switcher that is off and would go over it is disabled, and the help line says why in place of its help: "At most 8 can be on here. Turn one off first." Its mod's client can't turn it on either.
+- A switcher in two sections with a `maxOn` follows both; the help line names the innermost one it would go over.
+- A section can still be over its limit: read so from storage, or after a choice whose options set its switchers. Then every switcher on in it is invalid: "At most 8 can be on here, and 10 are. Turn 2 off." (the fewest to turn off, the ones with the largest `countsAs` first).
+- Over its limit as read, it doesn't block a Save of other changes, as an invalid value that was read doesn't. Once one of its switchers is changed, Save stays disabled until enough are off; the section counts as one invalid change.
+- Errors: a `maxOn` or `countsAs` that isn't a whole number of 1 or more (left out), a `maxOn` on a section with no switchers, and a `maxOn` its switchers' defaults already go over (Reset couldn't fit). A `countsAs` on a row that isn't a switcher, or on a switcher with no `maxOn` above it, is ignored with a warning.
 
 An MCM section is a heading row owning the rows up to the next section, unnested; the MCM loader reads it as MCM does.
 

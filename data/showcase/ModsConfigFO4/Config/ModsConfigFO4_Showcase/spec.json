@@ -2552,6 +2552,90 @@
           ]
         },
         {
+          "pageDisplayName": "Limits",
+          "help": "Sections that limit how many of their switchers are on.",
+          "content": [
+            {
+              "type": "section",
+              "text": "Wheel",
+              "help": "At most 3 places are on: at the limit, the switchers that are off are disabled, and the help line says why.",
+              "maxOn": 3,
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Aid",
+                  "help": "Takes one place.",
+                  "default": true,
+                  "storage": { "path": ["Limits", "bAid"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Ammo",
+                  "help": "Takes one place.",
+                  "default": true,
+                  "storage": { "path": ["Limits", "bAmmo"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Junk",
+                  "help": "Takes one place.",
+                  "default": false,
+                  "storage": { "path": ["Limits", "bJunk"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Gestures",
+                  "help": "Takes two places, a sector for each hand.",
+                  "default": false,
+                  "countsAs": 2,
+                  "storage": { "path": ["Limits", "bGestures"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "Over its limit",
+              "help": "Its file has 4 on of 2: each is invalid. Turn one off, and Save waits until enough are off.",
+              "maxOn": 2,
+              "defaultFile": "invalid",
+              "content": [
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Strong",
+                  "default": false,
+                  "storage": { "path": ["Limits", "bStrong"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Quick",
+                  "default": false,
+                  "storage": { "path": ["Limits", "bQuick"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Lucky",
+                  "default": false,
+                  "storage": { "path": ["Limits", "bLucky"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Smart",
+                  "default": false,
+                  "storage": { "path": ["Limits", "bSmart"] }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "pageDisplayName": "Pages",
           "help": "Nested pages, and a page that can be hidden or disabled with its children.",
           "content": [
@@ -4018,6 +4102,26 @@
                       "text": "It says it starts folded, and it has no isCollapsible, so it could not be opened: it is open."
                     }
                   ]
+                },
+                {
+                  "type": "section",
+                  "text": "A limit with nothing to limit",
+                  "maxOn": 2,
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Its maxOn limits its switchers that are on, and it has none."
+                    }
+                  ]
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Counts with no limit",
+                  "help": "Its countsAs is 2, and no section above it has a maxOn, so it is ignored.",
+                  "default": false,
+                  "countsAs": 2,
+                  "storage": { "path": ["Mistakes", "bCountsAs"] }
                 }
               ]
             },

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <format>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <optional>
 #include <set>
@@ -64,8 +65,8 @@ namespace
     constexpr std::array<std::string_view, 10>
         PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
     // a row, by its type:
-    constexpr std::array<std::string_view, 12>
-        SECTION_FIELDS{ "type", "id", "text", "help", "content", "isCollapsible", "collapsed", "defaultFile", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 13>
+        SECTION_FIELDS{ "type", "id", "text", "help", "content", "isCollapsible", "collapsed", "maxOn", "defaultFile", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
     constexpr std::array<std::string_view, 4> TEXT_ROW_FIELDS{ "type", "text", "html", "visibleWhen" };
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };
@@ -146,9 +147,47 @@ namespace
     std::vector<model::Item> loadItems(const Json& container, const Inherited& above, ConfigSpecReading& reading);
 
     /**
+     * A section's `maxOn`: a whole number of 1 or more, and 0 for none. Any other is an error, and the section has
+     * no limit.
+     */
+    int loadMaxOn(const Json& row, ConfigSpecReading& reading)
+    {
+        const auto found = row.find("maxOn");
+        if (found == row.end()) {
+            return 0;
+        }
+        if (found->is_number_integer() && found->get<std::int64_t>() >= 1) {
+            return static_cast<int>((std::min)(found->get<std::int64_t>(), static_cast<std::int64_t>((std::numeric_limits<int>::max)())));
+        }
+        const Into into(reading, "maxOn");
+        reading.report(model::Severity::Error, std::format("Its maxOn {} is not a whole number of 1 or more: it has no limit.", found->dump()));
+        return 0;
+    }
+
+    /**
+     * How many switchers a section's items have, in its nested sections too, and how many places their defaults take
+     * on: each by its `countsAs`.
+     */
+    void countSwitchers(const std::vector<model::Item>& items, int& switchers, int& defaultsOn)
+    {
+        for (const auto& item : items) {
+            if (const auto* group = std::get_if<model::Group>(&item)) {
+                countSwitchers(group->items, switchers, defaultsOn);
+            } else if (const auto* setting = std::get_if<model::Setting>(&item); setting && setting->type == model::SettingType::Switcher) {
+                ++switchers;
+                if (const auto* on = setting->defaultValue ? std::get_if<bool>(&*setting->defaultValue) : nullptr; on && *on) {
+                    defaultsOn += setting->countsAs;
+                }
+            }
+        }
+    }
+
+    /**
      * A section: a group of the items of its own `content`, to which it passes its `defaultFile` and its `applies`.
      * It folds with `isCollapsible`, and starts folded with `collapsed`: one that does not fold could not be
      * opened, so its `collapsed` is left out, and it is reported.
+     * A `maxOn` limits the places its switchers take while they are on. One with no switchers has nothing to limit,
+     * and one whose defaults take more places than it has could never be Reset to them: both are errors.
      */
     model::Group loadSection(const Json& row, const Inherited& above, ConfigSpecReading& reading)
     {
@@ -159,12 +198,28 @@ namespace
         }
         auto text = readShownText(row, "text", reading);
         auto help = readShownText(row, "help", reading);
-        return model::Group{ .text = std::move(text),
+        const auto maxOn = loadMaxOn(row, reading);
+        auto own = inherit(row, above, reading);
+        own.underLimit = own.underLimit || maxOn > 0;
+        model::Group group{ .text = std::move(text),
             .help = std::move(help),
-            .items = loadItems(row, inherit(row, above, reading), reading),
+            .items = loadItems(row, own, reading),
             .visibleWhen = {},
             .collapsible = collapsible,
-            .collapsed = collapsible && getBool(row, "collapsed") };
+            .collapsed = collapsible && getBool(row, "collapsed"),
+            .maxOn = maxOn };
+        if (maxOn > 0) {
+            int switchers = 0;
+            int defaultsOn = 0;
+            countSwitchers(group.items, switchers, defaultsOn);
+            const Into into(reading, "maxOn");
+            if (switchers == 0) {
+                reading.report(model::Severity::Error, "It has a maxOn and no switchers: it has nothing to limit.");
+            } else if (defaultsOn > maxOn) {
+                reading.report(model::Severity::Error, std::format("Its switchers' defaults take {} places of its maxOn {}: Reset leaves it over its limit.", defaultsOn, maxOn));
+            }
+        }
+        return group;
     }
 
     /**

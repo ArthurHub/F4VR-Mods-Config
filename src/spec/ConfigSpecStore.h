@@ -56,6 +56,8 @@ namespace mods_config::spec
      * A choice whose options set other settings is kept in them: its value is the first option whose values they have,
      * and none while no option's are; a pick sets them, each a pending value of its own. It is dirty while one of them is,
      * a Discard of it takes them back, and its default and its saved value are the option of their defaults and baselines.
+     * A section's `maxOn` limits the places its switchers that are on take: one that would go over it is held off
+     * (`limitReason`), and each one on in a section over it is invalid, which blocks Save while the section has a change.
      */
     class ConfigSpecStore : public model::Store
     {
@@ -84,6 +86,7 @@ namespace mods_config::spec
         bool isDirty(const model::Setting& setting) const override;
         std::size_t dirtyCount() const override;
         std::size_t invalidCount() const override;
+        std::string limitReason(const model::Setting& setting) override;
         std::optional<model::Applies> applies(const model::Setting& setting) const override;
         std::size_t dirtyRestartCount() const override;
 
@@ -247,6 +250,23 @@ namespace mods_config::spec
         std::optional<std::size_t> setOption(const model::Setting& choice, Reading reading);
         bool pickSets(const model::Setting& choice, const model::Value& picked);
 
+        /**
+         * A section with a `maxOn`: the places its switchers can take while they are on, and its switchers, in its
+         * nested sections too.
+         */
+        struct Limit
+        {
+            int maxOn = 0;
+            std::vector<const model::Setting*> switchers;
+        };
+
+        model::StoredValue ownValue(const model::Setting& setting);
+        void addLimits(const std::vector<model::Item>& items);
+        void addLimits(const std::vector<model::Page>& pages);
+        bool isOn(const model::Setting& setting) const;
+        int placesOn(const Limit& limit) const;
+        std::string overLimitReason(const Limit& limit) const;
+
         // the folders a path of a config spec's file is from: the game's Data folder, and
         // `Documents\My Games\Fallout4VR`
         std::filesystem::path _dataFolder;
@@ -288,6 +308,11 @@ namespace mods_config::spec
 
         // what the session has of each setting of the mod that is selected
         std::unordered_map<const model::Setting*, Entry> _entries;
+
+        // the sections of the mod that is selected that have a `maxOn`, and the ones each switcher is in, innermost
+        // first, by their places in the list
+        std::vector<Limit> _limits;
+        std::unordered_map<const model::Setting*, std::vector<std::size_t>> _limitsOf;
 
         // the settings of the game that are previewed, by the setting, which is not read through it
         std::unordered_map<const model::Setting*, Preview> _previews;

@@ -1700,6 +1700,19 @@ TEST_CASE("FullPanel render: the config spec showcase's warnings, as shipped and
     }
 }
 
+TEST_CASE("FullPanel render: the config spec showcase's limits, with the ray on Gestures, which its section's maxOn holds off", "[.render]")
+{
+    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPEC_SHOWCASE_DIR);
+    REQUIRE(mods.size() == 1);
+    const test_files::TempFolder myGames;
+    spec::ConfigSpecStore store(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR).parent_path().parent_path(), myGames.path);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods(mods);
+    select(panel, "Mods Config FO4: Showcase", { "Detailed Examples", "Limits" });
+    WARN("Saved " << renderToFile(panel, "config-spec-showcase-limits-held", pageRow(4)));
+}
+
 TEST_CASE("FullPanel render: a config spec's section in a section, with rows before and after it", "[.render]")
 {
     auto mod = spec::loadConfigSpec(R"({

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 #include <string_view>
 
 #include "Drawing.h"
@@ -18,8 +19,12 @@ namespace mods_config::ui
         // its value in the store, with whether it is available or invalid, and why
         model::StoredValue stored;
 
-        // its enabledWhen holds
+        // its enabledWhen holds, and its section's `maxOn` does not hold it off
         bool enabled = false;
+
+        // why a switcher that is off cannot be turned on, as its section's `maxOn` is reached, which the help line says
+        // in place of its help. Empty for none
+        std::string limit;
 
         // the player can change it: it is available, enabled and not read-only
         bool editable = false;

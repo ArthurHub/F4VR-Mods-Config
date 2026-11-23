@@ -30,6 +30,12 @@ namespace
         std::map<std::string, model::Value, std::less<>> settings;
         std::map<std::string, model::Value, std::less<>> defaults;
         std::set<std::string, std::less<>> overridden;
+        std::set<std::string, std::less<>> held;
+
+        std::string limitReason(const model::Setting& setting) override
+        {
+            return held.contains(setting.id) ? "At most 2 can be on here. Turn one off first." : "";
+        }
 
         model::StoredValue value(const model::Setting& setting) override
         {
@@ -191,6 +197,27 @@ TEST_CASE("RowView: a row whose enabledWhen does not hold is disabled, and a rea
     view = ui::rowViewOf(readOnly, &store);
     CHECK(view.enabled);
     CHECK_FALSE(view.editable);
+}
+
+TEST_CASE("RowView: a switcher its section's maxOn holds off is disabled with the reason, and has no Reset")
+{
+    RowStore store;
+    const auto row = setting("a");
+    store.defaults["a"] = true;
+    store.held.insert("a");
+
+    auto view = ui::rowViewOf(row, &store);
+    CHECK_FALSE(view.enabled);
+    CHECK_FALSE(view.editable);
+    CHECK_FALSE(view.resets);
+    CHECK(view.limit == "At most 2 can be on here. Turn one off first.");
+
+    store.held.clear();
+    view = ui::rowViewOf(row, &store);
+    CHECK(view.enabled);
+    CHECK(view.editable);
+    CHECK(view.resets);
+    CHECK(view.limit.empty());
 }
 
 TEST_CASE("RowView: a row with no store has no value and cannot be edited")

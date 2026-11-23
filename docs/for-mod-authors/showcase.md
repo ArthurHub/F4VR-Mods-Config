@@ -11,7 +11,7 @@ The pictures are drawn by the menu's own code outside the game, so they show the
 - **[The front page and General](#the-front-page-and-general)**
 - **Controls:** [Switchers](#switchers), [Sliders](#sliders), [Choices](#choices), [Text inputs](#text-inputs), [Buttons](#buttons)
 - **CommonFramework values:** [Bindings](#bindings), [Haptics](#haptics), [Colors](#colors), [Transforms](#transforms), [Activation spheres](#activation-spheres)
-- **The look of a page:** [Text](#text), [Images](#images), [Numbers](#numbers), [Sections](#sections), [Pages](#pages)
+- **The look of a page:** [Text](#text), [Images](#images), [Numbers](#numbers), [Sections](#sections), [Limits](#limits), [Pages](#pages)
 - **How settings behave:** [Read-only](#read-only), [Files](#files), [In the game](#in-the-game), [When a change takes effect](#when-a-change-takes-effect), [Conditions](#conditions), [Warnings](#warnings), [Translations](#translations)
 - **[Mistakes](#mistakes)**
 
@@ -360,6 +360,26 @@ A section has a heading and rows of its own, and sections inside it. `isCollapsi
 ![Sections](../assets/showcase/sections.png)
 
 The Holsters section has an `id`, `holsters`. A mod with a DLL is told it while the ray is on the section's heading or any row in it, so it can show the holsters in the world: see [What the Ray Is On](native-api.md#what-the-ray-is-on). A button can have one too, as Noon on the Buttons page has.
+
+### Limits
+
+A section's `maxOn` limits how many of its switchers are on, in its nested sections too, for a choice of up to N things. `countsAs` makes a switcher take more than one place. At the limit, each switcher that is off and would go over it is disabled, and the help line says why. See [A limit on switchers](../design/schema.md#a-limit-on-switchers).
+
+```json
+{
+  "type": "section",
+  "text": "Wheel",
+  "maxOn": 3,
+  "content": [
+    { "type": "switcher", "valueType": "bool", "text": "Aid", "default": true, "storage": { "path": ["Limits", "bAid"] } },
+    { "type": "switcher", "valueType": "bool", "text": "Gestures", "default": false, "countsAs": 2, "storage": { "path": ["Limits", "bGestures"] } }
+  ]
+}
+```
+
+Aid and Ammo are on, so Gestures, which takes two places, is held off until one of them is. The file of **Over its limit** has four of its two on: each is invalid, and once you change one of them Save waits until enough are off.
+
+![Limits](../assets/showcase/limits.png)
 
 ### Pages
 

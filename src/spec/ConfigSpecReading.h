@@ -173,6 +173,9 @@ namespace mods_config::spec
 
         // none where nothing above says: a setting then takes its file's
         std::optional<bool> omitDefault;
+
+        // a section above has a `maxOn`, so a switcher's `countsAs` counts
+        bool underLimit = false;
     };
 
     std::string getText(const Json& value, const char* key);

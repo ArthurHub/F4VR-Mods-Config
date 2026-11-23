@@ -140,6 +140,30 @@ def test_sections(show):
     assert menu.call("fold", text="Advanced", folded=False)["folded"] is False
 
 
+def test_limits(show):
+    menu = show("Limits")
+    held = "At most 3 can be on here. Turn one off first."
+    # Aid and Ammo take two places of three: Junk fits, and Gestures, which takes two, is held off
+    gestures = menu.setting("Gestures")
+    assert not gestures["enabled"] and gestures["limit"] == held
+    assert menu.setting("Junk")["enabled"] and menu.setting("Junk")["limit"] is None
+    menu.set(menu.setting("Ammo")["id"], False)
+    assert menu.setting("Gestures")["limit"] is None
+    assert menu.setting("Junk")["enabled"]
+    menu.discard()
+
+    # four on of two as its file has them: each is invalid, and Save waits once one is changed until enough are off
+    strong = menu.setting("Strong")
+    assert strong["invalid"] and strong["reason"] == "At most 2 can be on here, and 4 are. Turn 2 off."
+    assert menu.state()["session"]["invalid"] == 0
+    menu.set(strong["id"], False)
+    assert menu.state()["session"]["invalid"] == 1
+    menu.set(menu.setting("Quick")["id"], False)
+    assert menu.state()["session"]["invalid"] == 0
+    assert not menu.setting("Lucky")["invalid"]
+    menu.discard()
+
+
 def test_pages(show, game):
     menu = show("Pages", "Under a page", "Two levels down")
     save_and_check(menu, game, "Two levels down", True)

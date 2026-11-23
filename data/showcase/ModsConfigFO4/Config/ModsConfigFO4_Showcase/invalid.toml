@@ -15,6 +15,13 @@ bInvalid = "yes"
 [Folded]
 fPastMost = 2.0
 
+# a section with more switchers on than its maxOn: each one on is invalid
+[Limits]
+bStrong = true
+bQuick = true
+bLucky = true
+bSmart = true
+
 # a binding whose table the framework cannot read, and one of a way its setting does not take
 [Bindings]
 kTypo = { hand = "offhand", type = "tap", button = "thumbstik" }

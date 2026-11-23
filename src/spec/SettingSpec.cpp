@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <format>
+#include <limits>
 #include <optional>
 #include <variant>
 
@@ -21,7 +23,7 @@ namespace mods_config::spec
     namespace
     {
         // the fields of a setting row and of its parts, as the schema has them (docs/design/schema.md)
-        constexpr std::array<std::string_view, 17> SETTING_FIELDS{ "type",
+        constexpr std::array<std::string_view, 18> SETTING_FIELDS{ "type",
             "id",
             "text",
             "help",
@@ -37,7 +39,8 @@ namespace mods_config::spec
             "action",
             "applies",
             "visibleWhen",
-            "enabledWhen" };
+            "enabledWhen",
+            "countsAs" };
         // a setting's parts:
         constexpr std::array<std::string_view, 22> VALUE_OPTIONS_FIELDS{ "min",
             "max",
@@ -246,6 +249,31 @@ namespace mods_config::spec
 
         // the most decimals a number's display can have, as MCM's menu writes a number at the most
         constexpr int MAX_DECIMALS = 6;
+
+        /**
+         * The places a switcher takes of its sections' limits while it is on: its `countsAs`, a whole number of 1 or
+         * more, and 1 without it. Any other is an error and counts 1. Only a switcher in a section with a `maxOn` is
+         * counted, so on any other row it is ignored, and reported.
+         */
+        int loadCountsAs(const Json& row, const model::SettingType type, const Inherited& own, ConfigSpecReading& reading)
+        {
+            const auto found = row.find("countsAs");
+            if (found == row.end()) {
+                return 1;
+            }
+            const Into into(reading, "countsAs");
+            if (type != model::SettingType::Switcher || !own.underLimit) {
+                reading.report(model::Severity::Warning,
+                    type != model::SettingType::Switcher ? "It has a countsAs and is no switcher: it is ignored."
+                                                         : "It has a countsAs and no section above it has a maxOn: it is ignored.");
+                return 1;
+            }
+            if (found->is_number_integer() && found->get<std::int64_t>() >= 1) {
+                return static_cast<int>((std::min)(found->get<std::int64_t>(), static_cast<std::int64_t>((std::numeric_limits<int>::max)())));
+            }
+            reading.report(model::Severity::Error, std::format("Its countsAs {} is not a whole number of 1 or more: it counts 1.", found->dump()));
+            return 1;
+        }
 
         /**
          * The `display` of a setting: its decimals, its unit, which is a text the player sees, and whether it is a
@@ -513,8 +541,8 @@ namespace mods_config::spec
     /**
      * A setting of a config spec, or a row made for a key of an activation sphere, which has no warning of a key its file
      * does not have, as a sphere leaves out most: its author's `id`, or one it gets from where its value is kept, its own
-     * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, and
-     * its action, which Save runs.
+     * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, its action,
+     * which Save runs, and the places a switcher takes of its sections' limits.
      * A read-only setting has no default, as it has no Reset. One kept in a file can omit its default, by the nearest
      * `omitDefault` or its file's (`loadOmitDefault`), and then its file missing its value is no warning.
      * Two settings with one id are an error of the config spec, which is reported: a condition names the first, and an
@@ -559,6 +587,7 @@ namespace mods_config::spec
         auto help = readShownText(row, "help", reading);
         auto display = loadDisplay(row, reading);
         auto action = loadSettingAction(row, storage, valueType, reading);
+        const auto countsAs = loadCountsAs(row, type, own, reading);
         return model::Setting{ .id = std::move(id),
             .sourceId = {},
             .type = type,
@@ -577,7 +606,9 @@ namespace mods_config::spec
             .display = std::move(display),
             .readOnly = readOnly,
             .warnings = {},
-            .omitDefault = omitDefault };
+            .omitDefault = omitDefault,
+            .notSearched = false,
+            .countsAs = countsAs };
     }
 
     /**

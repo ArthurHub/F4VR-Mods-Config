@@ -2770,3 +2770,157 @@ TEST_CASE("ConfigSpecStore: a choice that sets other settings has the owners of 
     CHECK_FALSE(quality.overrides[0].value);
     CHECK(quality.overrides[0].text.empty());
 }
+
+namespace
+{
+    // a section of three places: three switchers, and Gestures, which takes two. A slider is outside it
+    constexpr auto WHEEL = R"(
+        { "type": "section", "text": "Wheel", "maxOn": 3, "content": [
+            { "type": "switcher", "valueType": "bool", "id": "aid", "text": "Aid", "default": false, "storage": { "path": ["Wheel", "bAid"] } },
+            { "type": "switcher", "valueType": "bool", "id": "ammo", "text": "Ammo", "default": false, "storage": { "path": ["Wheel", "bAmmo"] } },
+            { "type": "switcher", "valueType": "bool", "id": "junk", "text": "Junk", "default": false, "storage": { "path": ["Wheel", "bJunk"] } },
+            { "type": "switcher", "valueType": "bool", "id": "gestures", "text": "Gestures", "countsAs": 2, "default": false,
+              "storage": { "path": ["Wheel", "bGestures"] } } ] },
+        { "type": "slider", "valueType": "float", "id": "fScale", "text": "Scale", "default": 1.0, "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.05 },
+          "storage": { "path": ["Main", "fScale"] } })";
+
+    /**
+     * A row of the section that is the first row of a session's front page, by its place in it.
+     */
+    const model::Setting& wheelRow(const Session& session, const std::size_t place)
+    {
+        return std::get<model::Setting>(std::get<model::Group>(session.mod.frontPage.items.at(0)).items.at(place));
+    }
+}
+
+TEST_CASE("ConfigSpecStore: a switcher that would take its section over its maxOn is held off, by the pending values and each one's countsAs")
+{
+    Session session(WHEEL);
+    session.open(
+        "[Wheel]\r\n"
+        "bAid = true\r\n"
+        "bAmmo = true\r\n");
+    const auto& aid = wheelRow(session, 0);
+    const auto& ammo = wheelRow(session, 1);
+    const auto& junk = wheelRow(session, 2);
+    const auto& gestures = wheelRow(session, 3);
+    const auto held = "At most 3 can be on here. Turn one off first."s;
+
+    // two places are taken: one more fits, and Gestures takes two
+    CHECK(session.store.limitReason(junk).empty());
+    CHECK(session.store.limitReason(gestures) == held);
+    // one that is on is never held
+    CHECK(session.store.limitReason(aid).empty());
+
+    CHECK(session.store.set(junk, true));
+    CHECK(session.store.limitReason(gestures) == held);
+    CHECK_FALSE(session.store.value(junk).invalid);
+    CHECK(session.store.invalidCount() == 0);
+
+    // its mod's client cannot turn on one that is held, as the player cannot
+    CHECK(session.store.setPendingValue("MyMod", "gestures", true).error() == held);
+    CHECK(session.store.setPendingValue("MyMod", "gestures", false));
+
+    // two turned off leave room for Gestures
+    CHECK(session.store.set(ammo, false));
+    CHECK(session.store.limitReason(gestures) == held);
+    CHECK(session.store.set(aid, false));
+    CHECK(session.store.limitReason(gestures).empty());
+    CHECK(session.store.setPendingValue("MyMod", "gestures", true));
+    CHECK(session.store.limitReason(aid) == held);
+    REQUIRE(session.store.save());
+}
+
+TEST_CASE("ConfigSpecStore: a section over its maxOn as read has each switcher on invalid, and blocks Save only while one of its switchers is changed")
+{
+    Session session(WHEEL);
+    session.open(
+        "[Wheel]\r\n"
+        "bAid = true\r\n"
+        "bAmmo = true\r\n"
+        "bJunk = true\r\n"
+        "bGestures = true\r\n");
+    const auto& aid = wheelRow(session, 0);
+    const auto& ammo = wheelRow(session, 1);
+
+    // five places of three: Gestures alone, which takes two, brings it back
+    for (std::size_t place = 0; place < 4; ++place) {
+        const auto stored = session.store.value(wheelRow(session, place));
+        CHECK(stored.invalid);
+        CHECK(stored.reason == "At most 3 can be on here, and 5 are. Turn 1 off.");
+    }
+    CHECK(session.store.invalidCount() == 0);
+
+    // a change outside it is saved, and leaves it as it was read
+    CHECK(session.store.set(session.setting(1), 1.25f));
+    REQUIRE(session.store.save());
+
+    // a change in it blocks Save, counted once, until enough are off
+    CHECK(session.store.set(aid, false));
+    CHECK_FALSE(session.store.value(aid).invalid);
+    CHECK(session.store.value(ammo).reason == "At most 3 can be on here, and 4 are. Turn 1 off.");
+    CHECK(session.store.invalidCount() == 1);
+    CHECK_FALSE(session.store.save());
+    CHECK(session.store.set(ammo, false));
+    CHECK_FALSE(session.store.value(wheelRow(session, 3)).invalid);
+    CHECK(session.store.invalidCount() == 0);
+    REQUIRE(session.store.save());
+}
+
+TEST_CASE("ConfigSpecStore: a switcher in two sections with a maxOn follows both, held by the innermost that it would take over")
+{
+    Session session(R"(
+        { "type": "section", "text": "Outer", "maxOn": 2, "content": [
+            { "type": "switcher", "valueType": "bool", "id": "v", "text": "V", "default": false, "storage": { "path": ["S", "bV"] } },
+            { "type": "switcher", "valueType": "bool", "id": "w", "text": "W", "default": false, "storage": { "path": ["S", "bW"] } },
+            { "type": "section", "text": "Inner", "maxOn": 1, "content": [
+                { "type": "switcher", "valueType": "bool", "id": "y", "text": "Y", "default": false, "storage": { "path": ["S", "bY"] } },
+                { "type": "switcher", "valueType": "bool", "id": "z", "text": "Z", "default": false, "storage": { "path": ["S", "bZ"] } } ] } ] })");
+    session.open("[S]\r\n");
+    const auto& outer = std::get<model::Group>(session.mod.frontPage.items.at(0));
+    const auto& v = std::get<model::Setting>(outer.items.at(0));
+    const auto& w = std::get<model::Setting>(outer.items.at(1));
+    const auto& inner = std::get<model::Group>(outer.items.at(2));
+    const auto& y = std::get<model::Setting>(inner.items.at(0));
+    const auto& z = std::get<model::Setting>(inner.items.at(1));
+    const auto innerHeld = "At most 1 can be on here. Turn one off first."s;
+    const auto outerHeld = "At most 2 can be on here. Turn one off first."s;
+
+    CHECK(session.store.set(y, true));
+    CHECK(session.store.limitReason(z) == innerHeld);
+    CHECK(session.store.limitReason(v).empty());
+
+    // both are full: the inner one says why
+    CHECK(session.store.set(v, true));
+    CHECK(session.store.limitReason(w) == outerHeld);
+    CHECK(session.store.limitReason(z) == innerHeld);
+
+    // the inner one has room, and the outer one is full
+    CHECK(session.store.set(y, false));
+    CHECK(session.store.limitReason(z).empty());
+    CHECK(session.store.set(w, true));
+    CHECK(session.store.limitReason(z) == outerHeld);
+}
+
+TEST_CASE("ConfigSpecStore: a choice that turns switchers on can take their section over its maxOn, which blocks Save")
+{
+    Session session(R"(
+        { "type": "stepper", "valueType": "string", "id": "preset", "text": "Preset", "valueOptions": { "options": [
+            { "value": "none", "text": "None", "sets": { "aid": false, "ammo": false } },
+            { "value": "both", "text": "Both", "sets": { "aid": true, "ammo": true } } ] } },
+        { "type": "section", "text": "Wheel", "maxOn": 1, "content": [
+            { "type": "switcher", "valueType": "bool", "id": "aid", "text": "Aid", "default": false, "storage": { "path": ["Wheel", "bAid"] } },
+            { "type": "switcher", "valueType": "bool", "id": "ammo", "text": "Ammo", "default": false, "storage": { "path": ["Wheel", "bAmmo"] } } ] })");
+    session.open("[Wheel]\r\n");
+    const auto& wheel = std::get<model::Group>(session.mod.frontPage.items.at(1));
+    const auto& aid = std::get<model::Setting>(wheel.items.at(0));
+
+    CHECK(session.store.set(session.setting(0), "both"s));
+    CHECK(session.store.value(aid).invalid);
+    CHECK(session.store.value(aid).reason == "At most 1 can be on here, and 2 are. Turn 1 off.");
+    CHECK(session.store.invalidCount() == 1);
+    CHECK_FALSE(session.store.save());
+
+    CHECK(session.store.set(aid, false));
+    CHECK(session.store.invalidCount() == 0);
+}

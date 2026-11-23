@@ -737,6 +737,10 @@ namespace mods_config::model
 
         // a search does not find the row by its text: only a setting the menu makes has it
         bool notSearched = false;
+
+        // how many places of its sections' limits a switcher takes while it is on (`countsAs`): one, or more for a
+        // thing that takes two places
+        int countsAs = 1;
     };
 
     /**
@@ -973,6 +977,10 @@ namespace mods_config::model
         // what its mod's client is told it by while the ray is on its heading or a row in it: a config spec's section
         // can have it, and an activation sphere has its section's with none of its own. Empty for none
         std::string id;
+
+        // how many places its switchers, in its nested sections too, can take while they are on (`maxOn`): 0 for
+        // no limit, as an MCM section has
+        int maxOn = 0;
     };
 
     struct Page

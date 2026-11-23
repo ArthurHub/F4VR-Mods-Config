@@ -36,7 +36,8 @@ namespace mods_config::ui
     {
         RowView view;
         view.stored = store ? store->value(setting) : model::StoredValue{};
-        view.enabled = !setting.enabledWhen || model::holds(*setting.enabledWhen, store);
+        view.limit = store ? store->limitReason(setting) : std::string();
+        view.enabled = (!setting.enabledWhen || model::holds(*setting.enabledWhen, store)) && view.limit.empty();
         view.editable = view.stored.available && view.enabled && !setting.readOnly;
         view.dirty = view.stored.available && store->isDirty(setting);
         view.look = view.stored.invalid ? ValueLook::Invalid : view.dirty ? ValueLook::Pending : ValueLook::Saved;

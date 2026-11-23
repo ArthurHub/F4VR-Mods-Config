@@ -208,6 +208,54 @@ TEST_CASE("ConfigSpecLoader: a section folds with isCollapsible, starts folded w
     CHECK(folds == std::vector<Fold>{ {}, { .help = "Opens and closes.", .collapsible = true }, { .collapsible = true, .collapsed = true }, {}, {} });
 }
 
+TEST_CASE("ConfigSpecLoader: a section's maxOn limits its switchers, in its nested sections too, and a switcher under one counts by its countsAs")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "section", "text": "Wheel", "maxOn": 3, "content": [
+            { "type": "switcher", "text": "Aid", "default": true, "storage": { "path": ["Wheel", "bAid"] } },
+            { "type": "section", "text": "Hands", "content": [
+                { "type": "switcher", "text": "Gestures", "countsAs": 2, "default": false, "storage": { "path": ["Wheel", "bGestures"] } } ] } ] }
+    )"));
+    CHECK(problemLines(mod).empty());
+    const auto& wheel = std::get<model::Group>(mod.frontPage.items.at(0));
+    CHECK(wheel.maxOn == 3);
+    CHECK(std::get<model::Setting>(wheel.items.at(0)).countsAs == 1);
+    const auto& hands = std::get<model::Group>(wheel.items.at(1));
+    CHECK(hands.maxOn == 0);
+    CHECK(std::get<model::Setting>(hands.items.at(0)).countsAs == 2);
+}
+
+TEST_CASE(
+    "ConfigSpecLoader: a maxOn that is no whole number of 1 or more, with no switchers, or under its switchers' defaults is an error, and a countsAs with no maxOn is ignored")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "section", "text": "Zero", "maxOn": 0, "content": [ { "type": "switcher", "text": "A", "default": false, "storage": { "path": ["S", "bA"] } } ] },
+        { "type": "section", "text": "Half", "maxOn": 1.5, "content": [ { "type": "switcher", "text": "B", "default": false, "storage": { "path": ["S", "bB"] } } ] },
+        { "type": "section", "text": "Sliders", "maxOn": 2, "content": [ { "type": "slider", "text": "C", "default": 1.0, "storage": { "path": ["S", "fC"] } } ] },
+        { "type": "section", "text": "Defaults", "maxOn": 2, "content": [
+            { "type": "switcher", "text": "D", "default": true, "storage": { "path": ["S", "bD"] } },
+            { "type": "switcher", "text": "E", "default": true, "countsAs": 2, "storage": { "path": ["S", "bE"] } } ] },
+        { "type": "section", "text": "Counts", "maxOn": 4, "content": [
+            { "type": "switcher", "text": "F", "default": false, "countsAs": 0, "storage": { "path": ["S", "bF"] } },
+            { "type": "slider", "text": "G", "default": 1.0, "countsAs": 2, "storage": { "path": ["S", "fG"] } } ] },
+        { "type": "switcher", "text": "H", "default": false, "countsAs": 2, "storage": { "path": ["S", "bH"] } }
+    )"));
+    CHECK(problemLines(mod) == Lines{
+                                   "E Zero: Its maxOn 0 is not a whole number of 1 or more: it has no limit. [Zero] content[0].maxOn",
+                                   "E Half: Its maxOn 1.5 is not a whole number of 1 or more: it has no limit. [Half] content[1].maxOn",
+                                   "E Sliders: It has a maxOn and no switchers: it has nothing to limit. [Sliders] content[2].maxOn",
+                                   "E Defaults: Its switchers' defaults take 3 places of its maxOn 2: Reset leaves it over its limit. [Defaults] content[3].maxOn",
+                                   "E F: Its countsAs 0 is not a whole number of 1 or more: it counts 1. [F] content[4].content[0].countsAs",
+                                   "W G: It has a countsAs and is no switcher: it is ignored. [G] content[4].content[1].countsAs",
+                                   "W H: It has a countsAs and no section above it has a maxOn: it is ignored. [H] content[5].countsAs",
+                               });
+    CHECK(std::get<model::Group>(mod.frontPage.items.at(0)).maxOn == 0);
+    CHECK(std::get<model::Group>(mod.frontPage.items.at(1)).maxOn == 0);
+    // one with nothing to limit, or under its defaults, still limits
+    CHECK(std::get<model::Group>(mod.frontPage.items.at(3)).maxOn == 2);
+    CHECK(std::get<model::Setting>(mod.frontPage.items.at(5)).countsAs == 1);
+}
+
 TEST_CASE("ConfigSpecLoader: a switcher, a slider, a choice and a text input are settings, and any other row is a placeholder with its type")
 {
     const auto mod = loaded(configSpecOf(R"(
@@ -531,7 +579,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(mod.pages[0].name == "General");
     const auto& examples = mod.pages[1];
     CHECK(examples.name == "Detailed Examples");
-    CHECK(examples.pages.size() == 26);
+    CHECK(examples.pages.size() == 27);
 
     // the file whose path goes up out of its root is left out
     Lines files;
@@ -716,7 +764,7 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has no problems, and the 
         (problem.severity == model::Severity::Error ? errors : warnings) += 1;
     }
     // its file that goes up out of its folder, and its text of a token with no fallback, which the Texts page shows
-    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[24].content[0].content[2].text" });
+    CHECK(elsewhere == Lines{ "files.outside", "pages[1].pages[25].content[0].content[2].text" });
     CHECK(errors >= 20);
     CHECK(warnings >= 10);
 }

@@ -603,6 +603,8 @@ namespace mods_config::spec
         _options.read(mod, &_clientCalls, { .data = _dataFolder, .myGames = _myGamesFolder });
         addSettings(mod.frontPage.items, _settingList);
         addSettings(mod.pages, _settingList);
+        addLimits(mod.frontPage.items);
+        addLimits(mod.pages);
         for (const auto* setting : _settingList) {
             _settings.try_emplace(setting->id, setting);
             auto& entry = _entries[setting];
@@ -862,6 +864,8 @@ namespace mods_config::spec
         _settingList.clear();
         _settings.clear();
         _entries.clear();
+        _limits.clear();
+        _limitsOf.clear();
         _saveFailure.clear();
         _lastSave.reset();
     }
@@ -874,12 +878,33 @@ namespace mods_config::spec
     {}
 
     /**
-     * The value of a setting: its pending value, or else its baseline. One that is not available has the
+     * The value of a setting, as `ownValue` has it, and a switcher that is on in a section over its `maxOn` is
+     * invalid, with the reason of the innermost such section, however it got there: read so, or by a choice that set it.
+     */
+    model::StoredValue ConfigSpecStore::value(const model::Setting& setting)
+    {
+        auto stored = ownValue(setting);
+        const auto limits = _limitsOf.find(&setting);
+        if (limits == _limitsOf.end() || !stored.available || stored.invalid || !isOn(setting)) {
+            return stored;
+        }
+        for (const auto place : limits->second) {
+            if (const auto& limit = _limits[place]; placesOn(limit) > limit.maxOn) {
+                stored.invalid = true;
+                stored.reason = overLimitReason(limit);
+                break;
+            }
+        }
+        return stored;
+    }
+
+    /**
+     * The value of a setting by itself: its pending value, or else its baseline. One that is not available has the
      * reason, and so has one that is invalid: a pending value the player set so, or the file's value, which is
      * the setting's default where it is not of its type. A read-only setting whose file has no value of it is
      * not available, with no reason: it has no value to show.
      */
-    model::StoredValue ConfigSpecStore::value(const model::Setting& setting)
+    model::StoredValue ConfigSpecStore::ownValue(const model::Setting& setting)
     {
         if (model::setsOthers(setting)) {
             if (const auto option = setOption(setting, Reading::Current)) {
@@ -1004,11 +1029,136 @@ namespace mods_config::spec
         }));
     }
 
+    /**
+     * The dirty settings that are invalid, and each section over its `maxOn` with a dirty switcher in it, which counts
+     * once: the player is turning its switchers off, and Save waits until they fit. One over its limit as it was read,
+     * and not changed, is not counted, as an invalid value that was read is not.
+     */
     std::size_t ConfigSpecStore::invalidCount() const
     {
-        return static_cast<std::size_t>(std::ranges::count_if(_entries, [](const auto& entry) {
+        const auto settings = std::ranges::count_if(_entries, [](const auto& entry) {
             return entry.second.pending && !entry.second.pendingInvalid.empty();
-        }));
+        });
+        const auto limits = std::ranges::count_if(_limits, [this](const Limit& limit) {
+            return placesOn(limit) > limit.maxOn && std::ranges::any_of(limit.switchers, [this](const model::Setting* switcher) {
+                return isDirty(*switcher);
+            });
+        });
+        return static_cast<std::size_t>(settings + limits);
+    }
+
+    /**
+     * Why a switcher that is off cannot be turned on: its places would take one of its sections over its `maxOn`, the
+     * innermost such. Empty for one that is on or not available, and for any other setting.
+     */
+    std::string ConfigSpecStore::limitReason(const model::Setting& setting)
+    {
+        const auto limits = _limitsOf.find(&setting);
+        if (limits == _limitsOf.end() || !ownValue(setting).available || isOn(setting)) {
+            return {};
+        }
+        for (const auto place : limits->second) {
+            if (const auto& limit = _limits[place]; placesOn(limit) + setting.countsAs > limit.maxOn) {
+                return std::format("At most {} can be on here. Turn one off first.", limit.maxOn);
+            }
+        }
+        return {};
+    }
+
+    /**
+     * Adds the sections with a `maxOn` among the items, in their nested sections too, with their switchers, and each
+     * switcher's sections innermost first: a nested section is added after the one it is in.
+     */
+    void ConfigSpecStore::addLimits(const std::vector<model::Item>& items)
+    {
+        for (const auto& item : items) {
+            const auto* group = std::get_if<model::Group>(&item);
+            if (!group) {
+                continue;
+            }
+            if (group->maxOn > 0) {
+                std::vector<const model::Setting*> settings;
+                addSettings(group->items, settings);
+                Limit limit{ .maxOn = group->maxOn, .switchers = {} };
+                for (const auto* setting : settings) {
+                    if (setting->type == model::SettingType::Switcher) {
+                        limit.switchers.push_back(setting);
+                        auto& places = _limitsOf[setting];
+                        places.insert(places.begin(), _limits.size());
+                    }
+                }
+                _limits.push_back(std::move(limit));
+            }
+            addLimits(group->items);
+        }
+    }
+
+    /**
+     * Adds the sections with a `maxOn` of pages, and of the pages under them.
+     */
+    void ConfigSpecStore::addLimits(const std::vector<model::Page>& pages)
+    {
+        for (const auto& page : pages) {
+            addLimits(page.items);
+            addLimits(page.pages);
+        }
+    }
+
+    /**
+     * Whether a switcher is on: its pending value, or else its baseline, or else its default, as a value read that is
+     * not of its type has. Hidden and disabled ones count too, as their value is kept. One that is not available, and
+     * a read-only one whose file has no value of it, are off.
+     */
+    bool ConfigSpecStore::isOn(const model::Setting& setting) const
+    {
+        const auto found = _entries.find(&setting);
+        if (found == _entries.end() || !found->second.notAvailable.empty()) {
+            return false;
+        }
+        const auto& entry = found->second;
+        const auto* value = entry.pending ? &*entry.pending : entry.baseline ? &*entry.baseline : !setting.readOnly && setting.defaultValue ? &*setting.defaultValue : nullptr;
+        const auto* on = value ? std::get_if<bool>(value) : nullptr;
+        return on && *on;
+    }
+
+    /**
+     * The places a section's switchers that are on take: each its `countsAs`.
+     */
+    int ConfigSpecStore::placesOn(const Limit& limit) const
+    {
+        int places = 0;
+        for (const auto* switcher : limit.switchers) {
+            if (isOn(*switcher)) {
+                places += switcher->countsAs;
+            }
+        }
+        return places;
+    }
+
+    /**
+     * Why the switchers that are on in a section over its `maxOn` are invalid, with how many to turn off: the fewest,
+     * the ones that take the most places first.
+     */
+    std::string ConfigSpecStore::overLimitReason(const Limit& limit) const
+    {
+        const auto places = placesOn(limit);
+        std::vector<int> counts;
+        for (const auto* switcher : limit.switchers) {
+            if (isOn(*switcher)) {
+                counts.push_back(switcher->countsAs);
+            }
+        }
+        std::ranges::sort(counts, std::greater{});
+        int freed = 0;
+        int off = 0;
+        for (const auto count : counts) {
+            if (places - freed <= limit.maxOn) {
+                break;
+            }
+            freed += count;
+            ++off;
+        }
+        return std::format("At most {} can be on here, and {} are. Turn {} off.", limit.maxOn, places, off);
     }
 
     /**
@@ -1431,6 +1581,8 @@ namespace mods_config::spec
         _filePaths.clear();
         _settingList.clear();
         _settings.clear();
+        _limits.clear();
+        _limitsOf.clear();
         _options.clear();
         readValues(*_mod);
         for (auto& [setting, entry] : _entries) {
@@ -1468,7 +1620,8 @@ namespace mods_config::spec
      * Sets a pending value the mod's client hands the menu, of a setting by its id, in its valueType, as the player's
      * edit is set: a `live` one is previewed and told to the client. Unlike the player's, a value that is no value of its
      * setting is not set. The result says why one is not: its mod is not the session's, the id is no setting's, the
-     * setting is read-only or not available, or the value is of another type or no value of the setting.
+     * setting is read-only or not available, the value is of another type or no value of the setting, or it turns on a
+     * switcher that its section's `maxOn` holds off.
      */
     std::expected<void, std::string> ConfigSpecStore::setPendingValue(const std::string_view modName, const std::string_view id, const model::Value& value)
     {
@@ -1499,6 +1652,11 @@ namespace mods_config::spec
         typed = asFileOption(setting, options, std::move(*typed));
         if (auto reason = typedReason(setting, options, *typed); !reason.empty()) {
             return std::unexpected(std::move(reason));
+        }
+        if (const auto* on = std::get_if<bool>(&*typed); on && *on) {
+            if (auto reason = limitReason(setting); !reason.empty()) {
+                return std::unexpected(std::move(reason));
+            }
         }
         set(setting, *typed);
         return {};

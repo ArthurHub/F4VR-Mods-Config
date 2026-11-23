@@ -113,6 +113,15 @@ namespace mods_config::model
         {
             return {};
         }
+
+        /**
+         * Why a switcher that is off cannot be turned on: it would take more places than a section's `maxOn` has,
+         * as `At most 8 can be on here. Turn one off first.` Empty for one that can, and for a store with no limits.
+         */
+        virtual std::string limitReason(const Setting&)
+        {
+            return {};
+        }
     };
 
     /**
