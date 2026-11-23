@@ -546,6 +546,28 @@ A heading with rows in its own `content`; sections nest.
 - `defaultFile`, `applies`, `omitDefault` and conditions are inherited by its rows and nested sections.
 - `text`, optional `help`, and optional `id` (told to the client, [Pointed items](#pointed-items)).
 
+### A limit on switchers
+
+A section can limit how many of its switchers are on, for a choice of up to N things (eight items for a wheel, three perks):
+
+```json
+{
+  "type": "section",
+  "text": "Aid",
+  "maxOn": 8,
+  "content": [
+    { "id": "stimpak", "type": "switcher", "valueType": "bool", "text": "Stimpak", "default": false, "storage": { "clientState": "item.stimpak" } },
+    { "id": "gestures", "type": "switcher", "valueType": "bool", "text": "Gestures", "countsAs": 2, "default": false, "storage": { "clientState": "gestures" } }
+  ]
+}
+```
+
+- `maxOn` counts the switchers inside it that are on, in nested sections too, by their pending values. Each counts one; `countsAs` on a switcher makes it count more (a thing that takes two places).
+- Hidden and disabled switchers count by their value, as their value is still saved.
+- At the limit, every switcher that is off and would go over it is disabled, and the help line says why: "At most 8 can be on here. Turn one off first."
+- Only values read from storage can be over the limit. Then every switcher on in it is invalid with the reason, and Save stays disabled until enough are off, as for any invalid value.
+- A `maxOn` on a section with no switchers is an error.
+
 An MCM section is a heading row owning the rows up to the next section, unnested; the MCM loader reads it as MCM does.
 
 ## Pointed items
@@ -878,7 +900,7 @@ A warning to the player is a `text` row, as in MCM; the only one the host draws 
 
 ## Validation
 
-`valueOptions` limits are the whole validation; the mod isn't asked and cross-setting expressions aren't planned.
+`valueOptions` limits and a section's [limit on switchers](#a-limit-on-switchers) are the whole validation; the mod isn't asked and no other limit across settings is planned.
 
 ```json
 { "valueOptions": { "min": 0.5, "max": 1.5, "step": 0.01 } }

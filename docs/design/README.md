@@ -9,6 +9,7 @@ The current product and architecture decisions. Build order and release contents
 - [Declarative schema](schema.md): the config spec format.
 - [MCM support](mcm.md): every MCM and MCM VR feature and how the menu handles it.
 - [Controls](controls.md): the controls, their value semantics, the CommonFramework controls.
+- [Dynamic pages](dynamic-pages.md): a page whose rows the mod's DLL gives as it is selected, with RobCo PALM's wheel as the example. Not reviewed yet.
 - [UI and VR interaction](ui-and-vr-interaction.md): opening, the Full and Minimized states, placement, pointing, navigation, search, categories.
 - [Design system](design-system/README.md): the look (colors, type, sizes, the ImGui style) and mocks of every component and panel; the source of the Design System artifact.
 - [CommonFramework work required](framework-requirements.md) and [Framework work plan](framework-plan.md): what the framework gained for this mod, done.

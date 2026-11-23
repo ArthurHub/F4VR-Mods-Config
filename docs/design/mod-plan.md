@@ -46,7 +46,7 @@ Global Stash and JOURNEY, from the author's other lists, cover some of these and
 
 - [Phase 1: MCM support](mod-plan-phase-1.md), milestones 1 to 4.
 - [Phase 2: First release](mod-plan-phase-2.md), milestones 5 to 10: config specs and the native API.
-- [Phase 3: After the first release](mod-plan-phase-3.md), milestones 11 to 16.
+- [Phase 3: After the first release](mod-plan-phase-3.md), milestones 11 to 17.
 
 | #   | Milestone                | Done when                                                                                                     | Status |
 | --- | ------------------------ | ------------------------------------------------------------------------------------------------------------- | ------ |
@@ -66,3 +66,4 @@ Global Stash and JOURNEY, from the author's other lists, cover some of these and
 | 14  | Localization             | A mod with no game plugin is shown in another language                                                        | todo   |
 | 15  | Advanced features        | A list and a hand pose of Immersive Flashlight VR are edited, and a transform is grabbed with the hand        | todo   |
 | 16  | Papyrus API              | A script-only mod reads its saved settings and is told of a Save                                              | todo   |
+| 17  | Dynamic pages            | A page's rows come from a mod's DLL as it is selected, and a section with `maxOn` stops at its limit          | todo   |

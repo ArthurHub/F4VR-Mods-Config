@@ -1,6 +1,6 @@
 # Mod work plan, phase 3: After the first release
 
-The commits of milestones 11 to 16 of the [Mod work plan](mod-plan.md), which has how the work is done and each milestone's "done when". Milestones 11 to 13 are done: the rules they settled are in the design docs, and the per-commit notes of 11 and 12 are at `git show f75c5f4:docs/design/mod-plan-phase-3.md`.
+The commits of milestones 11 to 17 of the [Mod work plan](mod-plan.md), which has how the work is done and each milestone's "done when". Milestones 11 to 13 are done: the rules they settled are in the design docs, and the per-commit notes of 11 and 12 are at `git show f75c5f4:docs/design/mod-plan-phase-3.md`.
 
 ## 11. Ironing out
 
@@ -72,3 +72,20 @@ Design: [Mod categories](ui-and-vr-interaction.md#mod-categories), [Category](sc
 | M92 | mod  | The Papyrus getters, with config specs loaded when the game's data is ready | todo   |
 | M93 | mod  | The Papyrus event after a Save                                          | todo   |
 | M94 | mod  | docs: the script author's guide                                         | todo   |
+
+## 17. Dynamic pages
+
+Design: [Dynamic pages](dynamic-pages.md), [A limit on switchers](schema.md#a-limit-on-switchers).
+
+| #    | Repo      | Commit                                                                                   | Status |
+| ---- | --------- | ---------------------------------------------------------------------------------------- | ------ |
+| M175 | mod       | A section's limit on switchers (`maxOn`, `countsAs`)                                     | todo   |
+| M176 | mod       | The loader reads a page's content on its own, against the loaded config spec             | todo   |
+| M177 | mod       | API version 3: `giveContent`, and the C++ client's `addPageContent`                      | todo   |
+| F97  | framework | The client header's copy at API version 3                                                | todo   |
+| M178 | mod       | A dynamic page: asked as it is selected and again after Save, Discard and `reloadValues` | todo   |
+| M179 | mod       | docs: dynamic pages and `maxOn` in the author's guide and the native API guide           | todo   |
+
+- **M175** is static, so it adds a `maxOn` section to the config spec showcase, with a `countsAs` switcher, and its page to the walkthrough.
+- **M176** splits the reading of a page's `content` out of `ConfigSpecLoader`, with the ids, files and defaults the page inherits; no behavior change.
+- **M178** adds the page that is not available to the showcase, and the unit and render tests of [Showcase and tests](dynamic-pages.md#showcase-and-tests); the render test draws a PALM-like page from a test client.
