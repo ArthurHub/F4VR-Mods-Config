@@ -62,7 +62,7 @@ An AI agent can write it for you, from your mod's files: [the prompt](ai-agent.m
    "defaultFile": "config",
    ```
 
-   `root` is `myGames`, the game's `Documents\My Games\Fallout4VR`, or `data`, its `Data` folder. `pathFromClientState` makes the menu edit the file your mod loaded, wherever that is.
+   `root` is `myGames`, the game's `Documents\My Games\Fallout4VR`, or `data`, its `Data` folder. `pathFromClientState` makes the menu edit the file your mod loaded, wherever that is. A file that keeps only the values a player changed, as a developer file, takes `"omitDefault": true`: a missing key is its default, and Reset takes the key out ([Omitting defaults](../design/schema.md#omitting-defaults)).
 5. Set `applies`, when a change takes effect in your mod: `live` for a CommonFramework mod, which previews it, `save` for a mod that reads its file again as it changes, `restart` for one that reads it only as the game starts.
 6. Make the front page yours: the banner's `texture`, a path under `Data\Textures`, the **About** text, and the URL of the **Help** button.
 7. Make the General page yours: each row's `text`, `help` and `default`, and its `storage`, the section and key of your file:

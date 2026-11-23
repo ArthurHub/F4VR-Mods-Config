@@ -46,6 +46,7 @@ The folder name is organizational; `modName` is the identity. One `spec.json` pe
 | `pages` | Optional. The other pages, in order, each a tree row under the mod; they nest ([Pages](#pages)) |
 | `help` | Optional. Shown while the ray is on the mod's tree row |
 | `applies` | Optional ([When a change takes effect](#when-a-change-takes-effect)) |
+| `omitDefault` | Optional ([Omitting defaults](#omitting-defaults)) |
 | `sharedLists`, `sharedPresetLists` | Optional ([Shared lists](#shared-lists), [CommonFramework values](#commonframework-values)) |
 | `specVersion` | Optional. For diagnostics, not the mod's release version |
 
@@ -117,6 +118,7 @@ A script-only mod lists its plugin and no F4SE plugin. A part that needs another
   "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/FRIK/FRIK.toml", "pathFromClientState": "configFile" }
   ```
 
+- `omitDefault: true` (optional) makes the file keep only values that differ from their defaults ([Omitting defaults](#omitting-defaults)).
 - A config spec with only text and buttons, or only globals and properties, needs no files.
 
 ## Pages
@@ -141,7 +143,7 @@ A page is a tree row under the mod or another page, so the tree has as many leve
 - `id` (optional, unique among pages) is told to the client as the page is shown and left ([The client's events](architecture.md#the-clients-events)).
 - Sub-pages show in the tree while the page or one of them is selected; breadcrumbs name every level (`MODS CONFIG FO4 » My Mod » Body » Hands`, [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior)).
 - `visibleWhen` hides the row and its children; `enabledWhen` disables it (with an explanation in the help line) and blocks opening it or its children. Page conditions also join every row's own.
-- `defaultFile`, `applies`, `visibleWhen` and `enabledWhen` are inherited by sub-pages.
+- `defaultFile`, `applies`, `omitDefault`, `visibleWhen` and `enabledWhen` are inherited by sub-pages.
 - A selected page that becomes hidden or disabled goes to its nearest visible, enabled ancestor, or the front page; pending changes stay. Direct page requests (including a client's) follow the same rule.
 - MCM has one level of pages.
 
@@ -314,7 +316,7 @@ A range with `min` ≥ `max` or `step` ≤ 0 is an error and uses the part's ran
 }
 ```
 
-**`cf.activationSphere`**: a TOML section the framework reads as an activation sphere (`loadWandActivationConfig`), drawn as one group. `text` and `help` are the heading's, `storage.path` is the section, and `id` is what the client is told while the ray is on its rows (its section without one; [Pointed items](#pointed-items)). Storage that isn't a TOML section is an error (no rows). A missing section is a warning: keys show defaults and a Save adds them. Each key is an ordinary setting of its kind with the section's `applies` (`live` if none above).
+**`cf.activationSphere`**: a TOML section the framework reads as an activation sphere (`loadWandActivationConfig`), drawn as one group. `text` and `help` are the heading's, `storage.path` is the section, and `id` is what the client is told while the ray is on its rows (its section without one; [Pointed items](#pointed-items)). Storage that isn't a TOML section is an error (no rows). A missing section is a warning, unless its keys [omit their defaults](#omitting-defaults): keys show defaults and a Save writes the ones changed. Each key is an ordinary setting of its kind with the section's `applies` (`live` if none above) and `omitDefault`, which the sphere can give as a section does.
 
 `keys` sets, per key name, how it shows:
 
@@ -388,6 +390,31 @@ Spaces around numbers are read; none are written. Anything else, or an empty col
 ### Read-only
 
 `"readOnly": true` shows a value the mod writes for the player (a measured height): disabled, the help line says read-only first, no Reset, so no `default`. With no stored value it shows none.
+
+### Omitting defaults
+
+Some mods keep a file of only the values the player changed: a missing key means the mod's default, and the mod removes a key set back to it. `"omitDefault": true` makes a setting work that way:
+
+- A missing key shows the default and is no warning in the Developer report. Other problems of the setting still are.
+- Save writes the key only while the value differs from `default`. A value equal to it, by Reset or by hand, has its key removed, so the mod's own default applies after it changes its default. A key that already holds the default goes at the next Save of its file.
+- A section left with no keys loses its header; a file left with no values is deleted.
+
+A setting takes the first of: its own, the nearest section's, the nearest page's then its ancestors', the config spec's, then its file's `omitDefault`, else `false`. `false` overrides a level above, for a setting the file keeps at its default.
+
+```json
+{
+  "files": {
+    "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" },
+    "developer": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod_Developer.toml", "omitDefault": true }
+  },
+  "content": [
+    { "type": "section", "text": "Optional", "omitDefault": true, "content": [] },
+    { "type": "slider", "text": "Pinned", "default": 3, "omitDefault": false, "storage": { "file": "developer", "path": ["iPinned"] } }
+  ]
+}
+```
+
+It needs a file and a `default` to compare: a setting kept elsewhere, a read-only one, one with no `default` and a choice whose options set other settings never omit theirs. Their own `omitDefault: true` is a warning and ignored; one from above or from the file is ignored silently. An `omitDefault` that isn't `true` or `false` is a warning and left out.
 
 ### Display
 
@@ -516,7 +543,7 @@ A heading with rows in its own `content`; sections nest.
 - It starts as `collapsed` says each time its page is shown; the player's fold isn't remembered.
 - Folded, its heading counts invalid and unsaved settings inside whose rows would show, including nested sections.
 - Detailed settings are a folded section right after what they belong to; there's no separate flag.
-- `defaultFile`, `applies` and conditions are inherited by its rows and nested sections.
+- `defaultFile`, `applies`, `omitDefault` and conditions are inherited by its rows and nested sections.
 - `text`, optional `help`, and optional `id` (told to the client, [Pointed items](#pointed-items)).
 
 An MCM section is a heading row owning the rows up to the next section, unnested; the MCM loader reads it as MCM does.

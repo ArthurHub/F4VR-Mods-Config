@@ -42,7 +42,7 @@ Every row item has a `text` (what the row says) and an optional `help` (shown in
 | default | What Reset gives (config spec only; for MCM the store answers) |
 | applies | `unknown`, `live`, `save`, `restart` |
 | action | Runs after Save writes the value |
-| omitDefault | Save removes the key of a value equal to the default (the menu's own Categories rows only) |
+| omitDefault | Save removes the key of a value equal to the default, and a missing key is no warning (config spec file settings, and the menu's own Categories rows) |
 | notSearched | Search doesn't find the row by its text (the menu's own Categories rows only) |
 
 Shaped by MCM:

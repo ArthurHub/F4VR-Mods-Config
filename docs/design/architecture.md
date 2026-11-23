@@ -38,7 +38,7 @@ The host cannot tell when a change takes effect, so the config spec says it with
 
 The host writes each mod's declared files directly; it keeps no mirror of settings. Formats: INI and TOML.
 
-- **TOML** is edited with the framework's `TomlEditor`: values replaced in place, a new key added after its table's last value; comments, blank lines, order and other values' formatting kept.
+- **TOML** is edited with the framework's `TomlEditor`: values replaced in place, a new key added after its table's last value; comments, blank lines, order and other values' formatting kept. A table the file has as a `[header]` section or as dotted keys, as a hand-written color, is set key by key in that form.
 - **INI** is read as SimpleIni / CommonFramework read it and edited line by line: a value's text replaced in place, a new key added after its section's last value or in a new section at the end; every other line kept.
   - `;` or `#` starts a comment at line start, or after a value with a space or tab before it (`8.5  # target`), which SimpleIni would read as part of the value. A value is the text after `=` up to that comment, trimmed, so `#FF0000` and `a;b` stay whole. A write keeps the trailing comment.
   - Section and key names are case-insensitive. A key before any section is named by the key alone.
@@ -52,6 +52,8 @@ The host writes each mod's declared files directly; it keeps no mirror of settin
 **Writes are in place:** the new content is serialized and verified in memory, then written over the file in one write. No temporary files, renames or backups: a replaced file looks like a rename to file watchers and can break mod-manager links.
 
 **A missing file** is created, with its folders, on the first Save that changes one of its settings, holding only those settings (a mod reads its defaults for the rest). A config spec cannot forbid this.
+
+**A removed key**, for a setting that [omits its default](schema.md#omitting-defaults), takes the key's lines out, and the `[header]` of a section it leaves empty. A Save that removes keys and leaves the file with no values, only comments and empty headings, deletes the file; a failed Save writes it back.
 
 Files are read at session start and written on Save, on the game thread.
 

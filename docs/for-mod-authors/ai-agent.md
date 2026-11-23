@@ -45,6 +45,7 @@ Start from the Showcase's front page and General page, as the author guide's "Yo
 - `modName`: for a mod built on the F4VR Common Framework, the name the framework registers the mod under; for a mod with an MCM config, its MCM `modName`; otherwise a stable name of your choice. `f4sePluginRequirements` names an F4SE plugin as it registers, not by its DLL's file name.
 - `applies`: `live` for a Common Framework mod, `save` for a mod that reads its file again as it changes, `restart` for one that reads it only as the game starts. Leave it out when the code doesn't tell you.
 - Every row has `text`; give every setting a `help` in the player's terms: what it changes in the game, not the key's name. Every writable setting has a `default`.
+- A file the mod keeps only changed values in, removing a key set back to its default, takes `"omitDefault": true` in `files`.
 - Give the mod a `category`, one of the twelve shipped names where one fits.
 - Use only fields the schema has: the menu ignores an unknown field, with a warning.
 - Ids compare case-insensitively and are unique. A condition names a setting by its `id`, so give an `id` to each setting a condition asks.

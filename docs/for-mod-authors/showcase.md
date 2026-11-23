@@ -426,6 +426,19 @@ A binding, a color and a transform in an INI file are their lines, for a mod tha
 
 A file that is not there yet is created by the first Save that changes one of its settings. A Save writes a file in place, keeping its comments, its blank lines and the order of its keys. See [Files](../design/schema.md#files) and [Storage](../design/schema.md#storage).
 
+Some mods keep a file of only the values a player changed, and read their own defaults for the rest. `"omitDefault": true` on the file, or on a section, a page or a setting, the nearest first, makes the menu keep it so: a missing key shows the default with no warning, a Save writes a value only while it differs from its default, and Reset takes the key out. A Save that leaves the file with no values deletes it. `false` keeps one setting written at its default:
+
+```json
+"developer": {
+  "format": "toml",
+  "root": "data",
+  "path": "ModsConfigFO4/Config/ModsConfigFO4_Showcase/developer.toml",
+  "omitDefault": true
+}
+```
+
+See [Omitting defaults](../design/schema.md#omitting-defaults).
+
 ![Files](../assets/showcase/files.png)
 
 ### In the game
