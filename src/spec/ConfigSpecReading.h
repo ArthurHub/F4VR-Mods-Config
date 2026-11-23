@@ -190,4 +190,5 @@ namespace mods_config::spec
     void checkFields(const Json& object, std::span<const std::string_view> known, ConfigSpecReading& reading);
     std::optional<model::Applies> findApplies(const Json& value);
     Inherited inherit(const Json& value, const Inherited& above, ConfigSpecReading& reading);
+    bool isBefore(const model::Problem& problem, const model::Problem& other);
 }

@@ -17,6 +17,11 @@
 // The definition of the settings model: what a mod's menu holds, whatever it comes from. A loader fills it once,
 // and the UI draws it. See docs/design/model.md.
 
+namespace mods_config::spec
+{
+    class PageContentReader;
+}
+
 namespace mods_config::model
 {
     /**
@@ -1134,5 +1139,9 @@ namespace mods_config::model
         // the live copy a config spec's spec.json is read from, as its author's report says where it is. Empty
         // while it is read from its folder in `Data\ModsConfigFO4\Config`
         std::string liveCopy;
+
+        // what the content a mod's client gives a page of an available config spec is read against
+        // (`spec::readPageContent`), shared by the copies of the mod. None for an MCM mod and a mod that is not available
+        std::shared_ptr<spec::PageContentReader> pageContent;
     };
 }

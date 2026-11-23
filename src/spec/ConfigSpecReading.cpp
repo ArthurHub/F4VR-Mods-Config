@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <format>
+#include <variant>
 
 #include "common/CommonUtils.h"
 #include "model/TextMarkup.h"
@@ -212,6 +214,37 @@ namespace mods_config::spec
     {
         auto text = readShownText(row, "text", reading);
         return getBool(row, "html") ? model::removeMarkup(text) : text;
+    }
+
+    /**
+     * Whether a problem is before another in spec.json, by their paths: a place in a list is compared as a
+     * number, so `content[2]` is before `content[10]`, and a path is before the paths in it. The keys of an
+     * object have no order in the file the reader keeps, so they are in the order of their names.
+     */
+    bool isBefore(const model::Problem& problem, const model::Problem& other)
+    {
+        // the parts of a path: the names, and the places, which are numbers
+        const auto parts = [](const std::string& path) {
+            std::vector<std::variant<std::size_t, std::string>> parts;
+            std::size_t at = 0;
+            while (at < path.size()) {
+                if (path[at] == '.') {
+                    ++at;
+                } else if (path[at] == '[') {
+                    const auto end = path.find(']', at);
+                    std::size_t place = 0;
+                    std::from_chars(path.data() + at + 1, path.data() + end, place);
+                    parts.emplace_back(place);
+                    at = end + 1;
+                } else {
+                    const auto end = path.find_first_of(".[", at);
+                    parts.emplace_back(path.substr(at, end - at));
+                    at = end == std::string::npos ? path.size() : end;
+                }
+            }
+            return parts;
+        };
+        return parts(problem.path) < parts(other.path);
     }
 
     /**

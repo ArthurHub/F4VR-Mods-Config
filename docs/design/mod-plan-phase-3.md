@@ -80,7 +80,7 @@ Design: [Dynamic pages](dynamic-pages.md), [A limit on switchers](schema.md#a-li
 | #    | Repo      | Commit                                                                                   | Status |
 | ---- | --------- | ---------------------------------------------------------------------------------------- | ------ |
 | M175 | mod       | A section's limit on switchers (`maxOn`, `countsAs`)                                     | done   |
-| M176 | mod       | The loader reads a page's content on its own, against the loaded config spec             | todo   |
+| M176 | mod       | The loader reads a page's content on its own, against the loaded config spec             | done   |
 | M177 | mod       | API version 3: `giveContent`, and the C++ client's `addPageContent`                      | todo   |
 | F97  | framework | The client header's copy at API version 3                                                | todo   |
 | M178 | mod       | A dynamic page: asked as it is selected and again after Save, Discard and `reloadValues` | todo   |

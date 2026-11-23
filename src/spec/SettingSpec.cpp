@@ -494,7 +494,8 @@ namespace mods_config::spec
         /**
          * The id of a setting, its own or the one its storage gives it, and what a condition knows of the setting, kept
          * by the id. A second setting with an id is an error, which is reported: a condition names the first, so the
-         * second has no `SettingInfo`. An empty id, which no condition names, has none either.
+         * second has no `SettingInfo`, and so is one with the id of a section or a button. An empty id, which no condition
+         * names, has none either.
          */
         std::pair<std::string, SettingInfo*> registerSetting(const Json& row, const model::Storage& storage, const model::SettingType type, const model::StoredType valueType,
             ConfigSpecReading& reading)
@@ -504,6 +505,12 @@ namespace mods_config::spec
                 id = idOf(storage);
             }
             if (id.empty()) {
+                return { std::move(id), nullptr };
+            }
+            // the ids of sections and buttons are read after every setting of a config spec, so only as the content a mod's
+            // client gives a page is read are there any here
+            if (reading.itemIds.contains(common::str_tolower(id))) {
+                reading.report(model::Severity::Error, std::format("A section or a button has the id \"{}\": no condition names this setting. Give it an id of its own.", id));
                 return { std::move(id), nullptr };
             }
             const auto [found, added] = reading.settings.emplace(common::str_tolower(id), SettingInfo{ .id = id, .type = type, .valueType = valueType });

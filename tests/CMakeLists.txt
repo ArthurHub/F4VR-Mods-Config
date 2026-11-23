@@ -38,6 +38,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/model/TranslationsTests.cpp
   linked/model/UnsavedPagesTests.cpp
   linked/spec/ConfigSpecLoaderTests.cpp
+  linked/spec/ContentSpecTests.cpp
   linked/spec/ActionSpecTests.cpp
   linked/spec/ActivationSphereSpecTests.cpp
   linked/spec/ChoiceOptionsSpecTests.cpp
@@ -112,6 +113,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/spec/IniFile.cpp
   ${SOURCE_DIR}/spec/LiveCopies.cpp
   ${SOURCE_DIR}/spec/ModFile.cpp
+  ${SOURCE_DIR}/spec/PageContentReader.cpp
   ${SOURCE_DIR}/spec/ActionSpec.cpp
   ${SOURCE_DIR}/spec/ActivationSphereSpec.cpp
   ${SOURCE_DIR}/spec/ChoiceOptionsSpec.cpp
@@ -119,6 +121,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/spec/ConfigSpecLoader.cpp
   ${SOURCE_DIR}/spec/ConfigSpecReading.cpp
   ${SOURCE_DIR}/spec/ConfigSpecStore.cpp
+  ${SOURCE_DIR}/spec/ContentSpec.cpp
   ${SOURCE_DIR}/spec/FrameworkTypeSpec.cpp
   ${SOURCE_DIR}/spec/RequirementSpec.cpp
   ${SOURCE_DIR}/spec/SettingSpec.cpp
