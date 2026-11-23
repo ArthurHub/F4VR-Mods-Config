@@ -230,13 +230,14 @@ The left of the footer; Save and Discard stay fixed to its right, and only its t
 Priority:
 
 1. An active validation error.
-2. The help of the row, option or control the ray is on, as `Name: help` (the name not repeated on its own line). A row whose [warning](schema.md#warnings) holds puts the warning first.
+2. The help of the row, option or control the ray is on, as `Name: help` (the name not repeated on its own line). A row whose [warning](schema.md#warnings) holds puts the warning first, and an [overridden](model.md#the-store) setting puts who overrides it before that.
 3. With the ray on no row, the session's status: the unsaved changes or the last Save.
 
 - The help holds while the ray crosses gaps between rows; the status returns when the ray leaves the rows or the open popup. Otherwise it would flicker during a sweep.
 - Two lines of room; help needing a third is drawn smaller, longer help ends in an ellipsis.
 - One size and color. Tags of a [text row](schema.md#text-spacers-and-images) in an MCM help are stripped, with or without `html`, and line breaks become spaces.
 - **When it takes effect:** while a change waits for Save, the help line adds an amber mark of its `applies` (as made, after Save, after restart), appearing as the setting is changed, so browsing shows help alone. `unknown` (every MCM setting) has none. The row's pending mark is that same amber mark, or the plain pending mark for `unknown`; counts of pending changes (a folded heading, the status, the unsaved-changes dialog) use the plain mark. See [When a change takes effect](schema.md#when-a-change-takes-effect), [TakesEffect](design-system/project/components/TakesEffect/README.md).
+- **Overridden:** a setting another mod sets in place of its own value for the session has the warning mark, and the help line starts `Overridden by ROCK, in effect: <the value as the control names it>. A change is saved, and applies once ROCK stops setting it.`, with `Also set by X.` for the overrides under it and `once none of them sets it` then. The row stays editable, its change is never previewed, and it has no `applies` mark: the override decides when it takes effect. Nothing counts overridden rows. See [Overrides](architecture.md#overrides).
 - A script button of a mod with unsaved changes says in its help that a press asks to save first ([Buttons](schema.md#buttons)).
 - A config spec's mod and pages can have help, shown while the ray is on their tree row; MCM mods and pages have none. A [not available](#notices) mod shows its reason there. A page that explains itself at length uses a text item at the top of its content, scrolling with the rows, as MCM pages do.
 

@@ -81,6 +81,14 @@ Each setting says when it takes effect. One that needs a restart is listed on th
 </details>
 
 <details>
+  <summary>A change has no effect, and the row has a warning mark</summary>
+&#10240;
+
+Another mod overrides the setting: it sets its own value in place of yours for as long as it runs, as ROCK sets FRIK's Pip-Boy button. Point at the row: the help line names the mod and the value in effect. Your change is still saved, and applies once that mod stops setting it, so change it in that mod's settings instead. It isn't previewed live meanwhile.
+
+</details>
+
+<details>
   <summary>What is "live"?</summary>
 &#10240;
 

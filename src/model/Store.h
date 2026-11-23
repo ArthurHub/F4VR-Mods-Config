@@ -15,6 +15,19 @@
 namespace mods_config::model
 {
     /**
+     * A value set in place of a setting's own for the game session, as by another mod, so a change of the setting is
+     * saved but does nothing while it is there: who set it, by the name they gave, and its value as the setting's
+     * control shows it, with its text for a value that is not of the setting. A choice that sets other settings has
+     * their owners alone.
+     */
+    struct Override
+    {
+        std::string owner;
+        std::optional<Value> value;
+        std::string text;
+    };
+
+    /**
      * The value of a setting as its store has it now.
      */
     struct StoredValue
@@ -34,6 +47,9 @@ namespace mods_config::model
 
         // why it is not available or is invalid, for the player. Empty for a storage the menu does not read yet
         std::string reason;
+
+        // the overrides of an available value, the one in effect first: none for one that is not overridden
+        std::vector<Override> overrides = {};
     };
 
     /**

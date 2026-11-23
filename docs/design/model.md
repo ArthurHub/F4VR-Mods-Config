@@ -79,6 +79,8 @@ Value states:
 - **Not available**, with the reason: can't be read or written (global's form not found, ModSetting text not a number, property on no script of its form). The row is disabled.
 - **Invalid:** the file's text or the player's input isn't a value of the setting. Shown as is; a player-made invalid value blocks Save.
 
+Beside its state, an available value can be **overridden**: another mod sets a value in place of it for the session, so a change is saved but does nothing while the override lasts. The store keeps each override, the one in effect first: its owner, by the name it gave, and its value as the control shows it, or its text where it is not a value of the setting. The config spec store asks the mod's client as it reads values ([Overrides](architecture.md#overrides)); MCM has none. A choice that sets other settings has their owners alone. An overridden setting isn't previewed, and its row has the warning mark ([Help line](ui-and-vr-interaction.md#help-line)).
+
 ## Conditions
 
 A condition compares one setting's value (by id) or joins conditions with all / any / not, evaluated on the store's values (for a config spec, the pending ones, so rows react while editing).

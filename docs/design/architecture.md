@@ -137,7 +137,7 @@ A mod's DLL talks to the host through [`ModsConfigFO4Api.h`](../../src/api/ModsC
 ### Versions
 
 - The API only grows: methods and struct fields are added only at the end, nothing changes or is removed, and `getVersion` counts additions. A client uses later additions after checking `apiVersion()`; one that needs a newer menu asks `connect` for that version.
-- A client registers with its header's version, so the host calls only the `IClient` methods it has.
+- A client registers with its header's version, so the host calls only the `IClient` methods it has. Version 2 adds `closeMenu` and `giveOverrides`.
 
 ### The client
 
@@ -211,6 +211,18 @@ Without a client, live preview covers only globals and script properties. A clie
 
 A choice with `listFromClientCallback` ([schema](schema.md#options-from-the-mods-client)) gets options from `giveOptions(settingView, IOptions)` on selection, inside the failure guard; false means none. `IOptions::add` takes a value in the setting's valueType and an optional text. The menu itself is a client (connected by the framework), giving the options of its own spec's config spec setting.
 
+### Overrides
+
+Another mod can set a value in place of a setting's own for the game session, as ROCK sets FRIK's Pip-Boy binding through FRIK's API. Then a change of the setting is saved but does nothing until the override ends, so the menu asks and shows it.
+
+- As the store reads values (selection, `reloadValues`), the host asks a client of version 2 `giveOverrides(settingView, IOverrides)` for each setting of a file, the game or a state, inside the failure guard. `IOverrides::add(owner, value)` gives each override: who set it, by the name they gave, and its value in the setting's valueType (a String of its text when it is not one), the one in effect first.
+- A client gives every override it knows, the menu's own previews too: the host drops those whose owner is its own name, `MODS_CONFIG_FO4_F4SE_NAME`. So a client never needs to know which overrides are previews.
+- An overridden setting is never previewed: a preview would show a change that its Save then takes back, as the override applies again. `notPreviewed` gives the reason, so Adjust in world is off. Save, Reset and Discard work as for any setting.
+- A choice that sets other settings is overridden while one of them is, with their owners alone.
+- The C++ client answers from each source added with `addOverrides`, in the order added. The [adapter](#commonframework-adapter) adds one for the mod's config file.
+- An MCM mod and a mod with its own config code have no such source. A config spec author who knows of a conflict states it with a [warning](schema.md#warnings) on a plugin condition.
+- The menu's own override of FRIK's open gesture is under the owner `Mods Config FO4 VR`, so FRIK's row shows it: under the menu's name it would be dropped as a preview, and a preview of the key would replace it (one override per owner and key).
+
 ### A client that fails
 
 Every call to a client is guarded against C++ exceptions and SEH faults. A failing client is cut off until restart and treated as absent: no `live` previews, native buttons and quick launch entries disabled with the reason, states not available. The rest of its config spec and all other mods keep working. The log names the client and the call.
@@ -221,6 +233,7 @@ A CommonFramework mod needs no client code. The framework registers, for every m
 
 1. Preview sets the override; Discard clears it.
 2. After Save it clears the overrides of the batch's settings; the file has the values, so the mod reloads them.
+3. It answers [overrides](#overrides) with every owner's session override of a setting of the file (`ConfigBase::getConfigOverrides(section, key)`), its own previews too, which the host drops.
 
 - It acts only on settings of the mod's own config file, matched by absolute path. Its client answers `configFile` (`ConfigBase::getConfigFilePath()`) and `modVersion`. A mod that loads another file at runtime (FRIK's `FRIK_FOLVR.toml` under Fallout London VR) sets its file's `pathFromClientState` to `configFile`, so the menu edits the loaded file and the paths match.
 - A preview does exactly what a config reload does. A mod needing more subscribes to the config's change of that key (previews, discards and Saves tell it). A value read only at startup is `restart`.

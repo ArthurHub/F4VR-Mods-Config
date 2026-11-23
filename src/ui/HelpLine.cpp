@@ -37,18 +37,23 @@ namespace mods_config::ui
     }
 
     /**
-     * Shows a row's text, its warning, the result of its action and its help, whether the help is why its value
-     * is invalid, and when the change of its setting takes effect. A row with none of them is its text alone, which a row that
+     * Shows a row's text, who overrides its setting, its warning, the result of its action and its help, whether the
+     * help is why its value is invalid, and when the change of its setting takes effect. A row with none of them is its text alone, which a row that
      * ends in an ellipsis has in full here. A mod sets a row in by spaces before its text: they are the page's.
      */
     void HelpLine::show(const PointedRow& row)
     {
         auto name = common::trim(std::string(row.text));
-        if (!name.empty() && (!row.help.empty() || !row.warning.empty() || !row.result.empty())) {
+        if (!name.empty() && (!row.help.empty() || !row.warning.empty() || !row.result.empty() || !row.overridden.empty())) {
             name += ": ";
         }
         _name = std::move(name);
-        _warning = row.warning;
+        // the override says why a change does nothing, which comes before what a warning says of a value
+        _warning = row.overridden;
+        if (!_warning.empty() && !row.warning.empty()) {
+            _warning += ' ';
+        }
+        _warning += row.warning;
         if (!_warning.empty() && !row.help.empty()) {
             _warning += ' ';
         }

@@ -77,6 +77,16 @@ namespace mods_config::model
     };
 
     /**
+     * An override of a setting, as its mod's client gives it: who set it, by the name they gave, and its value, in the
+     * setting's type, or the text of one that is not of it.
+     */
+    struct ClientOverride
+    {
+        std::string owner;
+        Value value;
+    };
+
+    /**
      * A change of a `live` setting of a mod, which its client is told while the change waits for a Save: the value the
      * client was told last and the new one, in the setting's type.
      */
@@ -126,7 +136,7 @@ namespace mods_config::model
     /**
      * The mods' DLLs that registered a client with the native API, which the menu asks by name: the functions a
      * `CallNativeFunction` runs, the states a `clientState` condition asks, and the options of a choice with
-     * `listFromClientCallback`, and tells the menu's events, the changes of `live` settings and what a Save wrote. It knows those whose client is cut off, which are asked
+     * `listFromClientCallback`, and the overrides of a setting, and tells the menu's events, the changes of `live` settings and what a Save wrote. It knows those whose client is cut off, which are asked
      * nothing more, and the clients' quick launch entries.
      */
     class ClientCalls
@@ -157,6 +167,10 @@ namespace mods_config::model
 
             // what a Save wrote
             std::function<void(const SaveBatch& batch)> onSaved;
+
+            // the overrides of a setting, the one in effect first
+            using Overrides = std::function<std::vector<ClientOverride>(const ClientSetting& setting)>;
+            Overrides overrides;
         };
 
         bool addClient(std::string_view modName, Client client);
@@ -172,6 +186,7 @@ namespace mods_config::model
         void sendPointed(std::string_view modName, const std::vector<std::string>& ids) const;
         void sendChange(std::string_view modName, const SettingChange& change) const;
         void sendSave(std::string_view modName, const SaveBatch& batch) const;
+        std::vector<ClientOverride> overrides(std::string_view modName, const ClientSetting& setting) const;
         bool addQuickLaunch(ClientQuickLaunch entry);
 
         // the quick launch entries of the clients, in the order they were added

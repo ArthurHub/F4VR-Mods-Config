@@ -172,6 +172,9 @@ namespace mods_config::spec
 
             // why the player's value is invalid, and empty for a valid one: it blocks Save
             std::string pendingInvalid;
+
+            // what the mod's client says is set in place of the value for the session, the one in effect first
+            std::vector<model::Override> overrides;
         };
 
         /**
@@ -220,6 +223,8 @@ namespace mods_config::spec
         void readBaseline(const model::Setting& setting, Entry& entry, const FilesOfSession& files, const model::Mod& mod) const;
         void readFileBaseline(const model::Setting& setting, Entry& entry, const FilesOfSession& files, const model::Mod& mod) const;
         void readClientState(const model::Setting& setting, const model::ClientStateStorage& state, Entry& entry) const;
+        std::vector<model::Override> readOverrides(const model::Setting& setting) const;
+        std::vector<model::Override> setOverrides(const model::Setting& choice) const;
         void preview(const model::Setting& setting, const Entry& entry);
         void previewToClient(const model::Setting& setting, const Entry& entry);
         void discardOnClient(ClientPreview& preview) const;

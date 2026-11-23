@@ -431,7 +431,7 @@ namespace mods_config::devbench
          * A setting as its row shows it: its text and help with the states of its mod's client in them, its row view
          * as the panel draws it (its value in the store, whether that is available, invalid or dirty and why, the
          * warning it tells, the tag of when its pending change takes effect, whether its row is enabled), whether it
-         * is read-only, and what the player can set it to.
+         * is read-only, what overrides it, and what the player can set it to.
          */
         json settingToJson(const model::Setting& setting, model::Store& store)
         {
@@ -457,6 +457,13 @@ namespace mods_config::devbench
             // what its row's Reset sets, null where the row has none, and whether its Reset is pressed now
             row["reset"] = view.resetValue ? valueToJson(*view.resetValue) : json(nullptr);
             row["resets"] = view.resets;
+            // what is set in place of its value for the session, the one in effect first: its owner, and its value as
+            // the control shows it, or the client's text where it is not of the setting
+            auto overrides = json::array();
+            for (const auto& found : stored.overrides) {
+                overrides.push_back({ { "owner", found.owner }, { "value", found.value ? valueToJson(*found.value) : json(found.text) } });
+            }
+            row["overrides"] = std::move(overrides);
             const auto saved = store.savedValue(setting);
             row["saved"] = saved ? valueToJson(*saved) : json(nullptr);
             // a Save leaves its default out of the file

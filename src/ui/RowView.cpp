@@ -41,8 +41,9 @@ namespace mods_config::ui
         view.dirty = view.stored.available && store->isDirty(setting);
         view.look = view.stored.invalid ? ValueLook::Invalid : view.dirty ? ValueLook::Pending : ValueLook::Saved;
         view.warning = view.stored.invalid ? std::string_view() : warningOf(setting.warnings, store);
-        view.applies = view.dirty ? store->applies(setting) : std::nullopt;
-        view.mark = view.stored.invalid ? TextMark::Invalid : !view.warning.empty() ? TextMark::Warning : TextMark::None;
+        // an overridden setting's change takes effect when the override ends, which the help line says instead
+        view.applies = view.dirty && view.stored.overrides.empty() ? store->applies(setting) : std::nullopt;
+        view.mark = view.stored.invalid ? TextMark::Invalid : !view.warning.empty() || !view.stored.overrides.empty() ? TextMark::Warning : TextMark::None;
         view.resetValue = view.stored.available ? shownDefault(setting, *store) : std::nullopt;
         view.resets = view.editable && !view.dirty && view.resetValue && (view.stored.invalid || !model::sameValue(view.stored.value, *view.resetValue));
         return view;

@@ -34,10 +34,11 @@ namespace mods_config::ui
         // the setting's own text, so the view lives no longer than the setting
         std::string_view warning;
 
-        // when its change takes effect, only while it is dirty, and none where its store does not know
+        // when its change takes effect, only while it is dirty, and none where its store does not know or the setting
+        // is overridden
         std::optional<model::Applies> applies;
 
-        // the mark after its name: invalid, warning, or none
+        // the mark after its name: invalid, warning, which an overridden setting has too, or none
         TextMark mark = TextMark::None;
 
         // what its Reset sets: its default, while its value is available and its control can show the default. None

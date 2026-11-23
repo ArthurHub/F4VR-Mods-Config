@@ -2706,3 +2706,67 @@ TEST_CASE("ConfigSpecStore: a mod's client hands back a pick of a choice that se
     CHECK(session.value(2).value == model::Value("chest"s));
     CHECK(session.value(0).value == model::Value("high"s));
 }
+
+TEST_CASE("ConfigSpecStore: a setting its mod's client says is overridden has the overrides, its value in its control's type, and is saved but not previewed")
+{
+    Session session;
+    std::vector<std::string> told;
+    session.store.clientCalls().addClient("MyMod",
+        { .onChange =
+                [&told](const model::SettingChange& change) {
+                    told.push_back(change.setting.id);
+                },
+            .overrides =
+                [](const model::ClientSetting& setting) {
+                    if (setting.id == "fScale:Main") {
+                        return std::vector<model::ClientOverride>{ { .owner = "ROCK", .value = 2.0f }, { .owner = "Other", .value = 1.5f } };
+                    }
+                    if (setting.id == "iOpacity:Main") {
+                        return std::vector<model::ClientOverride>{ { .owner = "ROCK", .value = "wide"s } };
+                    }
+                    return std::vector<model::ClientOverride>{};
+                } });
+    session.open(MOD_TOML);
+
+    const auto scale = session.value(1);
+    REQUIRE(scale.overrides.size() == 2);
+    CHECK(scale.overrides[0].owner == "ROCK");
+    CHECK(f4cf::common::fEqual(std::get<float>(*scale.overrides[0].value), 2.0f));
+    CHECK(scale.overrides[0].text == "2");
+    CHECK(scale.overrides[1].owner == "Other");
+    // a value that is not of the setting has its text alone
+    const auto opacity = session.value(2);
+    REQUIRE(opacity.overrides.size() == 1);
+    CHECK_FALSE(opacity.overrides[0].value);
+    CHECK(opacity.overrides[0].text == "wide");
+    CHECK(session.value(0).overrides.empty());
+
+    // a change waits for its Save as any, and is not previewed, unlike one of a setting that is not overridden
+    CHECK(session.store.set(session.setting(1), 1.4f));
+    CHECK(session.store.isDirty(session.setting(1)));
+    CHECK(session.value(1).overrides.size() == 2);
+    CHECK(session.store.set(session.setting(0), true));
+    CHECK(told == std::vector<std::string>{ "bEnable:Main" });
+    CHECK(session.store.notPreviewed(session.setting(1)) == "Not available: ROCK sets it in place of its own value, so nothing would move in the world.");
+
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE).contains("fScale = 1.4"));
+}
+
+TEST_CASE("ConfigSpecStore: a choice that sets other settings has the owners of their overrides, each once")
+{
+    Session session(QUALITY);
+    session.store.clientCalls().addClient("MyMod", { .overrides = [](const model::ClientSetting& setting) {
+        if (setting.id == "fScale" || setting.id == "sPlace") {
+            return std::vector<model::ClientOverride>{ { .owner = "ROCK", .value = setting.id == "fScale" ? model::Value(1.5f) : model::Value("chest"s) } };
+        }
+        return std::vector<model::ClientOverride>{};
+    } });
+    session.open("[Main]\r\n");
+
+    const auto quality = session.value(0);
+    REQUIRE(quality.overrides.size() == 1);
+    CHECK(quality.overrides[0].owner == "ROCK");
+    CHECK_FALSE(quality.overrides[0].value);
+    CHECK(quality.overrides[0].text.empty());
+}

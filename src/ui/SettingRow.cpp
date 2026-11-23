@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <format>
+#include <functional>
 #include <initializer_list>
 #include <optional>
 #include <string>
@@ -32,6 +33,32 @@
 namespace
 {
     using namespace mods_config;
+
+    /**
+     * What the help line says of an overridden setting, before its warning: who overrides it, the value in effect as
+     * `nameOf` names it, or as the mod's client gave it where it has no name, the others under it, and that a change
+     * applies once they end. Empty for a setting with no override.
+     */
+    std::string overriddenText(const std::vector<model::Override>& overrides, const std::function<std::string(const model::Value&)>& nameOf)
+    {
+        if (overrides.empty()) {
+            return {};
+        }
+        const auto& first = overrides.front();
+        auto name = first.value ? nameOf(*first.value) : std::string();
+        if (name.empty()) {
+            name = first.text;
+        }
+        auto text = std::format("Overridden by {}{}.", first.owner, name.empty() ? std::string() : ", in effect: " + name);
+        if (overrides.size() == 1) {
+            return text + std::format(" A change is saved, and applies once {} stops setting it.", first.owner);
+        }
+        text += " Also set by ";
+        for (std::size_t i = 1; i < overrides.size(); ++i) {
+            text += (i > 1 ? ", " : "") + overrides[i].owner;
+        }
+        return text + ". A change is saved, and applies once none of them sets it.";
+    }
 
     /**
      * A value of a setting as the help line names it, its default or its saved value: on and off for a switcher, the
@@ -348,7 +375,7 @@ namespace
     /**
      * What the help line says of a setting row the ray is on, on its value as it is after a press in this frame: why
      * the value is not available, what the slot does while the ray is on it, why the value is invalid, or the row's
-     * help, with its number and its default. On a haptic's Play button it is
+     * help, with its number and its default, after who overrides it. On a haptic's Play button it is
      * what Play plays, and while its list is open it is the help of the option the ray is on: a haptic's and a
      * file's always, and any other's where the option has a help of its own.
      */
@@ -425,7 +452,8 @@ namespace
             .help = std::move(help),
             .warning = state.view.warning,
             .invalid = invalid,
-            .applies = state.view.applies };
+            .applies = state.view.applies,
+            .overridden = overriddenText(stored.overrides, nameOf) };
     }
 
     /**

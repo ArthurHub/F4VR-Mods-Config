@@ -115,6 +115,9 @@ namespace
 
         void onSaved(const api::SaveBatch*) override
         {}
+
+        void giveOverrides(const api::SettingView*, api::IOverrides*) override
+        {}
     };
 
     /**

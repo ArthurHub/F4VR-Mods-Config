@@ -784,6 +784,44 @@ TEST_CASE("FullPanel render: the mark of when a pending change takes effect on e
     WARN("Saved " << renderToFile(panel, "discard-hover", ImVec2(slot, pageRow(0).y)));
 }
 
+TEST_CASE("FullPanel render: settings another mod overrides, a binding with the ray on it and a pending switcher, beside one that is not", "[.render]")
+{
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\FRIK\FRIK.toml)", "[Fallout4VRBody]\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    store.clientCalls().addClient("FRIK", { .overrides = [](const model::ClientSetting& setting) {
+        if (setting.id == "pipboy") {
+            return std::vector<model::ClientOverride>{ { .owner = "ROCK", .value = "{ hand = \"left\", type = \"release\", button = \"menu\", duration = 0.5 }"s } };
+        }
+        if (setting.id == "openConfig") {
+            return std::vector<model::ClientOverride>{ { .owner = "Mods Config FO4 VR", .value = "{ type = \"none\" }"s } };
+        }
+        return std::vector<model::ClientOverride>{};
+    } });
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "FRIK", "displayName": "FRIK", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/FRIK/FRIK.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "id": "pipboy", "type": "cf.inputBinding", "text": "Open Pip-Boy", "help": "Opens the Pip-Boy on your wrist.", "default": { "hand": "offhand", "type": "tap", "button": "trigger" },
+              "storage": { "path": ["Fallout4VRBody", "kPipboyOpenButton"] } },
+            { "id": "openConfig", "type": "cf.inputBinding", "text": "Open config", "default": { "hand": "primary", "type": "longpress", "button": "thumbstick", "duration": 1.5 },
+              "storage": { "path": ["Fallout4VRBody", "kOpenConfigButton"] } },
+            { "id": "dampen", "type": "switcher", "text": "Dampen hands", "help": "Smooths the hands' motion.", "default": false,
+              "storage": { "path": ["Fallout4VRBody", "bDampenHands"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select({ .mod = 0, .page = {} });
+    store.set(std::get<model::Setting>(panel.mods()[0].frontPage.items[1]), "{ type = \"none\" }"s);
+
+    WARN("Saved " << renderToFile(panel, "overridden-binding", pageRow(0)));
+    WARN("Saved " << renderToFile(panel, "overridden-pending", pageRow(1)));
+}
+
 TEST_CASE("FullPanel render: the pending dot on the tree's pages with unsaved changes: a closed page with the ray on it, a disabled one and the selected one", "[.render]")
 {
     const test_files::TempFolder myGames;

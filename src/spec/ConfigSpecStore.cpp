@@ -605,7 +605,11 @@ namespace mods_config::spec
         addSettings(mod.pages, _settingList);
         for (const auto* setting : _settingList) {
             _settings.try_emplace(setting->id, setting);
-            readBaseline(*setting, _entries[setting], files, mod);
+            auto& entry = _entries[setting];
+            readBaseline(*setting, entry, files, mod);
+            if (entry.notAvailable.empty()) {
+                entry.overrides = readOverrides(*setting);
+            }
         }
         logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
     }
@@ -751,6 +755,56 @@ namespace mods_config::spec
     }
 
     /**
+     * Asks the mod's client what is set in place of a setting's value for the session, as by another mod: each override
+     * with its value as the setting's control shows it, and its text where it is not of the setting. None for a setting
+     * of no file, the game or a state of the client, and for a choice that sets other settings, which has theirs.
+     */
+    std::vector<model::Override> ConfigSpecStore::readOverrides(const model::Setting& setting) const
+    {
+        const bool told =
+            std::holds_alternative<model::FileStorage>(setting.storage) || isInGame(setting.storage) || std::holds_alternative<model::ClientStateStorage>(setting.storage);
+        if (!told || model::setsOthers(setting)) {
+            return {};
+        }
+        std::vector<model::Override> overrides;
+        for (auto& given : _clientCalls.overrides(_modName, clientSetting(setting))) {
+            auto shown = model::asStoredType(given.value, setting.valueType).and_then([&](const model::Value& typed) {
+                return controlValue(setting, _options.of(setting), typed);
+            });
+            // a text as the client gave it, unquoted: the help line shows it where the control has no name for it
+            const auto* text = std::get_if<std::string>(&given.value);
+            overrides.push_back({ .owner = std::move(given.owner), .value = std::move(shown), .text = text ? *text : valueText(given.value) });
+        }
+        if (!overrides.empty()) {
+            logger::debug("'{}' of '{}' is overridden by '{}' with {}", setting.id, _modName, overrides.front().owner, overrides.front().text);
+        }
+        return overrides;
+    }
+
+    /**
+     * The owners of the overrides of the settings a choice that sets other settings sets, each once, in the order of
+     * its settings: a pick of it does nothing while one of them is overridden.
+     */
+    std::vector<model::Override> ConfigSpecStore::setOverrides(const model::Setting& choice) const
+    {
+        std::vector<model::Override> owners;
+        for (const auto* target : setTargets(choice)) {
+            const auto entry = _entries.find(target);
+            if (entry == _entries.end()) {
+                continue;
+            }
+            for (const auto& found : entry->second.overrides) {
+                if (std::ranges::none_of(owners, [&found](const model::Override& owner) {
+                        return owner.owner == found.owner;
+                    })) {
+                    owners.push_back({ .owner = found.owner, .value = std::nullopt, .text = {} });
+                }
+            }
+        }
+        return owners;
+    }
+
+    /**
      * Where a file of the mod is: the path the mod's client answers for its `pathFromClientState`, as a mod that loads
      * another file at runtime has it, while that is a file of its format under the game's Data folder or `My Games`. Its
      * root and its path otherwise: with no state, no client, a client that does not answer it, and another path, which
@@ -829,9 +883,13 @@ namespace mods_config::spec
     {
         if (model::setsOthers(setting)) {
             if (const auto option = setOption(setting, Reading::Current)) {
-                return { .value = setting.valueOptions.options[*option].value, .available = true, .invalid = false, .reason = {} };
+                return { .value = setting.valueOptions.options[*option].value, .available = true, .invalid = false, .reason = {}, .overrides = setOverrides(setting) };
             }
-            return { .value = model::blankChoiceValue(setting), .available = true, .invalid = false, .reason = "None of its options: their settings are set otherwise." };
+            return { .value = model::blankChoiceValue(setting),
+                .available = true,
+                .invalid = false,
+                .reason = "None of its options: their settings are set otherwise.",
+                .overrides = setOverrides(setting) };
         }
         const auto none = noneValue(setting, _options.of(setting));
         const auto found = _entries.find(&setting);
@@ -843,12 +901,12 @@ namespace mods_config::spec
             return { .value = none, .available = false, .invalid = false, .reason = entry.notAvailable };
         }
         if (entry.pending) {
-            return { .value = *entry.pending, .available = true, .invalid = !entry.pendingInvalid.empty(), .reason = entry.pendingInvalid };
+            return { .value = *entry.pending, .available = true, .invalid = !entry.pendingInvalid.empty(), .reason = entry.pendingInvalid, .overrides = entry.overrides };
         }
         if (setting.readOnly && !entry.baseline) {
             return { .value = none, .available = false, .invalid = false, .reason = {} };
         }
-        return { .value = entry.baseline.value_or(none), .available = true, .invalid = !entry.invalid.empty(), .reason = entry.invalid };
+        return { .value = entry.baseline.value_or(none), .available = true, .invalid = !entry.invalid.empty(), .reason = entry.invalid, .overrides = entry.overrides };
     }
 
     /**
@@ -1465,7 +1523,8 @@ namespace mods_config::spec
     }
 
     /**
-     * Why a setting is not previewed by its mod's client: it is not `live`, or the client is not loaded or is cut off.
+     * Why a setting is not previewed by its mod's client: it is not `live`, the client is not loaded or is cut off, or
+     * the setting is overridden.
      * Nothing would move in the world as it is tuned then. Empty for one that is.
      */
     std::string ConfigSpecStore::notPreviewed(const model::Setting& setting) const
@@ -1475,6 +1534,9 @@ namespace mods_config::spec
         }
         if (!_clientCalls.isConnected(_modName)) {
             return std::format("Not available: it needs {}'s DLL to show its change, and that is not loaded.", _modDisplayName);
+        }
+        if (const auto entry = _entries.find(&setting); entry != _entries.end() && !entry->second.overrides.empty()) {
+            return std::format("Not available: {} sets it in place of its own value, so nothing would move in the world.", entry->second.overrides.front().owner);
         }
         return {};
     }
@@ -1505,10 +1567,14 @@ namespace mods_config::spec
     /**
      * Writes the value a `live` setting of the game has now into the game: its pending value, as a preview,
      * or its baseline, as it is set back. The baseline of one that is previewed is kept, which a Discard
-     * writes back, and so does the end of the session.
+     * writes back, and so does the end of the session. A pending value of an overridden setting is not written.
      */
     void ConfigSpecStore::preview(const model::Setting& setting, const Entry& entry)
     {
+        // an overridden setting shows no change before its Save, as none shows after it
+        if (entry.pending && !entry.overrides.empty()) {
+            return;
+        }
         const auto& shown = entry.pending ? *entry.pending : *entry.baseline;
         if (!writeGame(setting.storage, storedValue(setting, shown))) {
             logger::warn("The change of '{}' to {} is not previewed: it is not in the game", _modName, gameName(setting.storage));
@@ -1527,7 +1593,7 @@ namespace mods_config::spec
      * within `_previewInterval` of the one before is held, and told by `frameUpdate` once it is past. A setting of
      * the game is in it already, as the store previews it first, and the client can do what more it needs. One of a
      * state of the client is applied by the client as it is told it. An invalid pending value leaves the client with the
-     * preview before it. Nothing for a setting that is not `live`.
+     * preview before it. Nothing for a setting that is not `live`, and no Preview for one that is overridden.
      */
     void ConfigSpecStore::previewToClient(const model::Setting& setting, const Entry& entry)
     {
@@ -1544,7 +1610,9 @@ namespace mods_config::spec
             }
             return;
         }
-        if (!entry.pendingInvalid.empty()) {
+        // an overridden setting is not previewed: the preview would show a change its Save then takes back, as the
+        // override applies again
+        if (!entry.pendingInvalid.empty() || !entry.overrides.empty()) {
             return;
         }
         auto value = storedValue(setting, *entry.pending);

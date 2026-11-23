@@ -53,6 +53,11 @@ namespace
     constexpr auto FRIK_INI_SECTION = "Fallout4VRBody";
     constexpr auto FRIK_OPEN_CONFIG_KEY = "sOpenConfigButton";
 
+    // The owner of the menu's override of FRIK's gesture, which FRIK's row in the menu names. It is not the menu's
+    // F4SE name, which owns its previews: the menu leaves those out of a setting's overrides, and a preview of the key
+    // would replace this override, one per owner and key, and its Discard would clear it.
+    constexpr auto FRIK_GESTURE_OWNER = "Mods Config FO4 VR";
+
     // the game's main menu, which CommonLibF4 has no class of
     constexpr std::string_view MAIN_MENU = "MainMenu";
 }
@@ -176,7 +181,7 @@ namespace mods_config
             logger::warn("FRIK API v{} has no config overrides: FRIK's config opens with the same gesture as this menu", FRIKApi::inst->getVersion());
             return;
         }
-        _frikGestureTaken = FRIKApi::inst->setConfigValueOverride(Version::PROJECT.data(), FRIK_INI_SECTION, FRIK_OPEN_CONFIG_KEY, "none");
+        _frikGestureTaken = FRIKApi::inst->setConfigValueOverride(FRIK_GESTURE_OWNER, FRIK_INI_SECTION, FRIK_OPEN_CONFIG_KEY, "none");
         logger::info("Take the open config gesture from FRIK: {}", _frikGestureTaken ? "done" : "failed");
     }
 }

@@ -16,7 +16,7 @@ namespace mods_config::ui
      * value is not available has the reason as its help, and one whose value is invalid has why as its help,
      * which is an error. A row that warns has the text of its warning, the model's own too. A row whose action
      * gave a result has it, which is told before its help. A setting whose change waits for a Save has when it
-     * takes effect.
+     * takes effect. An overridden setting has who overrides it and with what, told before its warning.
      */
     struct PointedRow
     {
@@ -26,6 +26,7 @@ namespace mods_config::ui
         bool invalid = false;
         std::string_view result = {};
         std::optional<model::Applies> applies = {};
+        std::string overridden = {};
     };
 
     /**

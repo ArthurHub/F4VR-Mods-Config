@@ -1,5 +1,8 @@
 ## v1.1.0
 
+- A setting another mod overrides, as ROCK sets FRIK's Pip-Boy button, has the warning mark, and the help line names the mod and the value in effect. A change of it is still saved, and applies once the override ends; it isn't previewed meanwhile.
+- For mod authors: a native client tells the menu a setting's overrides with `addOverrides`, API version 2. A CommonFramework mod's config file needs no code, once the mod is built with the framework that answers them.
+
 - For mod authors: `"omitDefault": true`, on a file, a page, a section or a setting, is for a file that keeps only the values a player changed: a missing key is its default and no warning, a Save writes a value only while it differs from its default, and Reset takes its key out, from a TOML or an INI file. A Save that leaves the file with no values deletes it.
 - A Save writes a color, a transform or a binding that a mod's TOML file has as a `[section]` of its own. It failed before.
 - For mod authors: the native API's `closeMenu` closes the menu as the player's Exit does, asking first while there are unsaved changes, or dropping them with `closeMenu(true)`. It is API version 2.

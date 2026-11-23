@@ -14,6 +14,7 @@ Where to start: [For Mod Authors](README.md). The API in full: [Native API](../d
 - [Options of a Choice](#options-of-a-choice)
 - [Quick Launch](#quick-launch)
 - [Live Preview and Saves](#live-preview-and-saves)
+- [Overrides](#overrides)
 - [The Menu's Events](#the-menus-events)
 - [What the Ray Is On](#what-the-ray-is-on)
 - [Your Own UI](#your-own-ui)
@@ -29,6 +30,7 @@ Where to start: [For Mod Authors](README.md). The API in full: [Native API](../d
 | Options | A choice lists what only your code knows, as your presets |
 | Quick launch entries | The menu's front page opens your own UI |
 | Handlers of changes and Saves | A `live` setting shows in the game as the player changes it, and your mod applies what a Save wrote |
+| Overrides | A setting something else sets in place of its value says so, so the player knows why a change does nothing |
 | Handlers of the menu's events | Your mod shows in the world what a page sets while the player is on it |
 | What the ray is on | Your mod shows in the world what a section or a row sets while the player points at it |
 | Calls of the menu | Your own UI moves the menu aside and back, hands its edits to the menu, and opens it at a page |
@@ -40,6 +42,7 @@ The menu matches your DLL to the config spec whose `modName` is the name it conn
 A mod built on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework) is connected by the framework, under its `Settings::name`, with nothing to write. It has, with no code of its own:
 
 - **Live preview** of every `live` setting of its own config file: the framework applies the menu's changes as overrides of the file and reloads the config, as it does for a change of the file.
+- **Overrides shown:** a setting of its config file that another mod overrides through the mod's API is marked in the menu, with who sets it and to what ([Overrides](#overrides)).
 - **`configFile`,** a state with the path of the config file the mod loaded, for the file's `pathFromClientState`.
 - **`modVersion`,** a state with the mod's version, for a text as `Version {clientState:modVersion}`.
 - **Lit activation spheres:** a sphere the framework read from a section lights while the ray is on its rows, at its zone's true size. A zone's row lights it only while that zone is in use, in power armor or not. Give the sphere no `id` of its own, so it's named by its section.
@@ -140,6 +143,24 @@ modsConfig.subscribeToSaves([](const Saved& saved) {
 The file or the game has a saved value by the time you're told, so a preview ends with the Save. A CommonFramework mod's own config file is previewed by the framework: these handlers are for a setting of another file or of the game.
 
 A plugin named in the config spec's `f4sePluginRequirements` also gets an F4SE message after each Save that wrote something, `MODS_CONFIG_FO4_SAVED_MESSAGE`, from the sender `ModsConfigFO4VR`, with the `modName` as its data. It doesn't say what changed: `subscribeToSaves` does.
+
+## Overrides
+
+When something sets a value in place of a setting's own for the session, as another mod through your mod's API, the player's change of it is saved but does nothing. Tell the menu, and the row gets the warning mark, with who sets it and the value in effect in the help line, and is not previewed. The menu asks as it reads the mod's values:
+
+```cpp
+modsConfig.addOverrides([](const Setting& setting) {
+    // setting.id, setting.valueType, and where it is kept, as a Change has it
+    if (setting.id == "fScale:Main" && g_photoMode.locksScale()) {
+        return std::vector<Override>{ { .owner = "Photo mode", .value = 1.0f } };
+    }
+    return std::vector<Override>{};
+});
+```
+
+- Give the value in the setting's valueType: a color, a transform and a binding as their TOML table text. One of another type is shown as its text.
+- Give every override, the one in effect first: the menu leaves out its own previews, those whose owner is `MODS_CONFIG_FO4_F4SE_NAME`.
+- A CommonFramework mod's own config file is answered by the framework, from its session overrides. It needs a menu of API version 2; an older one doesn't ask.
 
 ## The Menu's Events
 

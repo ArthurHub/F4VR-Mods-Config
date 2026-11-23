@@ -173,6 +173,16 @@ namespace mods_config::model
     }
 
     /**
+     * Asks a mod's client the overrides of a setting, the one in effect first. None for a mod with no client, whose
+     * client is cut off, or does not give overrides, as one of an older API.
+     */
+    std::vector<ClientOverride> ClientCalls::overrides(const std::string_view modName, const ClientSetting& setting) const
+    {
+        const auto* client = find(modName);
+        return client && client->overrides ? client->overrides(setting) : std::vector<ClientOverride>{};
+    }
+
+    /**
      * Adds an entry of a mod to the quick launch section, by the function a press runs: a mod can have an entry for
      * each of its functions. False for a function of the mod that has one already, which keeps the first.
      */

@@ -29,6 +29,7 @@ namespace
         std::map<std::string, model::Value, std::less<>> values;
         std::map<std::string, model::Value, std::less<>> settings;
         std::map<std::string, model::Value, std::less<>> defaults;
+        std::set<std::string, std::less<>> overridden;
 
         model::StoredValue value(const model::Setting& setting) override
         {
@@ -37,7 +38,9 @@ namespace
             return { .value = found != settings.end() ? found->second : model::Value(false),
                 .available = !notAvailable.contains(setting.id),
                 .invalid = isInvalid,
-                .reason = isInvalid ? "Not a value of it." : "" };
+                .reason = isInvalid ? "Not a value of it." : "",
+                .overrides = overridden.contains(setting.id) ? std::vector<model::Override>{ { .owner = "ROCK", .value = model::Value(true), .text = "true" } }
+                                                             : std::vector<model::Override>{} };
         }
 
         std::optional<model::Value> defaultValue(const model::Setting& setting) override
@@ -132,6 +135,25 @@ TEST_CASE("RowView: an invalid row is in the invalid look with its mark and reas
     CHECK(view.mark == TextMark::Invalid);
     CHECK(view.warning.empty());
     CHECK(view.stored.reason == "Not a value of it.");
+}
+
+TEST_CASE("RowView: an overridden row has the warning mark and stays editable, and its change tells no time it takes effect")
+{
+    RowStore store;
+    store.overridden.insert("a");
+    store.dirty.insert("a");
+    const auto row = setting("a");
+
+    const auto view = ui::rowViewOf(row, &store);
+    CHECK(view.editable);
+    CHECK(view.look == ValueLook::Pending);
+    CHECK(view.mark == TextMark::Warning);
+    CHECK(view.warning.empty());
+    CHECK_FALSE(view.applies);
+
+    // an invalid value's mark comes first
+    store.invalid.insert("a");
+    CHECK(ui::rowViewOf(row, &store).mark == TextMark::Invalid);
 }
 
 TEST_CASE("RowView: a row whose value is not available cannot be edited and is never dirty")

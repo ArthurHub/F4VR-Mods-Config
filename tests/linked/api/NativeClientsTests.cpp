@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "api/NativeClients.h"
+#include "common/CommonUtils.h"
 
 using namespace mods_config;
 using namespace std::string_literals;
@@ -41,6 +42,8 @@ namespace
         std::function<void(const api::SettingChange*)> change = [](const api::SettingChange*) {
         };
         std::function<void(const api::SaveBatch*)> saved = [](const api::SaveBatch*) {
+        };
+        std::function<void(const api::SettingView*, api::IOverrides*)> overrides = [](const api::SettingView*, api::IOverrides*) {
         };
 
         bool hasFunction(const char* name) override
@@ -76,6 +79,11 @@ namespace
         void onSaved(const api::SaveBatch* batch) override
         {
             saved(batch);
+        }
+
+        void giveOverrides(const api::SettingView* setting, api::IOverrides* given) override
+        {
+            overrides(setting, given);
         }
     };
 
@@ -684,6 +692,89 @@ TEST_CASE("ModsConfigFO4Api: the C++ client applies a change of a setting kept i
     const api::SaveBatch batch{ .settings = &saved, .settingCount = 1, .revision = 1 };
     static_cast<api::IClient&>(client).onSaved(&batch);
     CHECK(*told == std::vector<std::string>{ "set 1" });
+}
+
+TEST_CASE("NativeClients: a client of version 2 gives a setting's overrides, the one in effect first, without the menu's own previews")
+{
+    Clients clients;
+    FakeClient client;
+    std::string askedPath;
+    client.overrides = [&askedPath](const api::SettingView* setting, api::IOverrides* given) {
+        askedPath = std::format("{} {}", setting->storage.path[0], setting->storage.path[1]);
+        const api::SettingValue rock{ .type = api::ValueType::Float, .floatValue = 2.0f };
+        const api::SettingValue preview{ .type = api::ValueType::Float, .floatValue = 1.5f };
+        const api::SettingValue text{ .type = api::ValueType::String, .text = "wide" };
+        given->add("ROCK", &rock);
+        given->add(api::MODS_CONFIG_FO4_F4SE_NAME, &preview);
+        given->add("Other", &text);
+        // no owner, and no value
+        given->add(nullptr, &rock);
+        given->add("Empty", nullptr);
+    };
+    REQUIRE(clients.add("MyMod", client));
+
+    const auto overrides = clients.calls.overrides("mymod", scaleSetting());
+    CHECK(askedPath == "Main fScale");
+    REQUIRE(overrides.size() == 2);
+    CHECK(overrides[0].owner == "ROCK");
+    CHECK(f4cf::common::fEqual(std::get<float>(overrides[0].value), 2.0f));
+    CHECK(overrides[1].owner == "Other");
+    CHECK(overrides[1].value == model::Value("wide"s));
+
+    SECTION("a client of version 1 has no giveOverrides, and is not asked")
+    {
+        Clients older;
+        FakeClient old;
+        old.overrides = [](const api::SettingView*, api::IOverrides*) {
+            FAIL("a client of version 1 is asked its overrides");
+        };
+        REQUIRE(older.clients.registerClient("Old", 1, &old));
+        CHECK(older.calls.overrides("Old", scaleSetting()).empty());
+    }
+
+    SECTION("a client that throws is cut off")
+    {
+        client.overrides = [](const api::SettingView*, api::IOverrides*) {
+            throw std::runtime_error("broken");
+        };
+        CHECK(clients.calls.overrides("MyMod", scaleSetting()).empty());
+        CHECK_FALSE(clients.calls.isConnected("MyMod"));
+    }
+}
+
+TEST_CASE("ModsConfigFO4Api: the C++ client gives the overrides of each source, in the order added, in its own types")
+{
+    // the client is one for the whole run, and keeps its sources: they hold what they share with the test
+    auto& client = api::ModsConfigFO4Client::get();
+    const auto asked = std::make_shared<std::string>();
+    client.addOverrides([asked](const api::Setting& setting) {
+        *asked = std::format("{} {} {}", setting.id, setting.path.size(), setting.valueType == api::ValueType::Int ? "int" : "other");
+        return std::vector<api::Override>{ { .owner = "First", .value = 3 } };
+    });
+    client.addOverrides([](const api::Setting&) {
+        return std::vector<api::Override>{ { .owner = "Second", .value = "text"s } };
+    });
+
+    /**
+     * Copies what the client gives, as the menu does.
+     */
+    struct Given final : api::IOverrides
+    {
+        std::vector<std::string> told;
+
+        void add(const char* owner, const api::SettingValue* value) override
+        {
+            told.push_back(std::format("{} {}", owner, value->type == api::ValueType::Int ? std::to_string(value->intValue) : std::string(value->text)));
+        }
+    } given;
+
+    const char* const path[] = { "Main", "iMode" };
+    const api::SettingView mode{ .id = "iMode:Main", .valueType = api::ValueType::Int, .storage = { .path = path, .pathCount = 2 } };
+    static_cast<api::IClient&>(client).giveOverrides(&mode, &given);
+    CHECK(*asked == "iMode:Main 2 int");
+    // a source another test added comes before these
+    REQUIRE(given.told.size() >= 2);
+    CHECK(std::vector(given.told.end() - 2, given.told.end()) == std::vector<std::string>{ "First 3", "Second text" });
 }
 
 TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions")

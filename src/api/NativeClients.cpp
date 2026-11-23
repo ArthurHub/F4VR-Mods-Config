@@ -220,6 +220,25 @@ namespace
     };
 
     /**
+     * The overrides of a setting that a client gives, which the host passes it, in the order given. The menu's own
+     * previews, under its name, are left out, as is one with no owner or no value.
+     */
+    class HostOverrides final : public api::IOverrides
+    {
+    public:
+        void add(const char* owner, const api::SettingValue* value) override
+        {
+            const auto converted = value ? toValue(*value) : std::nullopt;
+            if (!owner || !*owner || !converted || std::string_view(owner) == api::MODS_CONFIG_FO4_F4SE_NAME) {
+                return;
+            }
+            overrides.push_back({ .owner = owner, .value = *converted });
+        }
+
+        std::vector<model::ClientOverride> overrides;
+    };
+
+    /**
      * The call of a function that the host passes a client: its arguments, with their texts, and the message of its
      * result, translated.
      */
@@ -315,7 +334,12 @@ namespace mods_config::api
                 .onSaved =
                     [this, kept](const model::SaveBatch& batch) {
                         tellSave(*kept, batch);
-                    } });
+                    },
+                // a client of an older header has no giveOverrides
+                .overrides = version >= 2 ? model::ClientCalls::Client::Overrides([this, kept](const model::ClientSetting& setting) {
+                    return giveOverrides(*kept, setting);
+                })
+                                          : model::ClientCalls::Client::Overrides() });
         if (!added) {
             logger::warn("Native API: '{}' has a client already, so another is not registered", name);
             return false;
@@ -467,6 +491,23 @@ namespace mods_config::api
             logger::warn("Native API: client '{}' gave {} options of '{}' that are not of its type, which are left out", registered.name, options.leftOut, setting.id);
         }
         return std::move(options.options);
+    }
+
+    /**
+     * Asks a client the overrides of a setting, inside the guard, which copies their texts: the one in effect first,
+     * without the menu's own previews. None for a client that is cut off.
+     */
+    std::vector<model::ClientOverride> NativeClients::giveOverrides(Registered& registered, const model::ClientSetting& setting) const
+    {
+        const HostSettingView view(setting);
+        HostOverrides overrides;
+        auto ask = [&registered, &view, &overrides] {
+            registered.client->giveOverrides(view.get(), &overrides);
+        };
+        if (!call(registered, std::format("the overrides of '{}'", setting.id), ask)) {
+            return {};
+        }
+        return std::move(overrides.overrides);
     }
 
     /**

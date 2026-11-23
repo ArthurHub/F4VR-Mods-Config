@@ -3440,6 +3440,48 @@ TEST_CASE("FullPanel: a config spec's setting and button tell the first warning 
     CHECK(panel.helpLine().text() == "Shadows: Draws shadows. (Default: off)");
 }
 
+TEST_CASE("FullPanel: an overridden setting tells who overrides it and the value in effect before its warning and help")
+{
+    const test_panel::PanelContext context;
+    const test_files::TempFolder myGames;
+    myGames.write(R"(Mods_Config\MyMod\MyMod.toml)", "[Main]\r\nbShadows = false\r\nbBeam = false\r\n");
+    spec::ConfigSpecStore store({}, myGames.path);
+    store.clientCalls().addClient("MyMod", { .overrides = [](const model::ClientSetting& setting) {
+        if (setting.id == "shadows") {
+            return std::vector<model::ClientOverride>{ { .owner = "ROCK", .value = true } };
+        }
+        return std::vector<model::ClientOverride>{ { .owner = "ROCK", .value = false }, { .owner = "Other", .value = true } };
+    } });
+    auto mod = spec::loadConfigSpec(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [
+            { "id": "shadows", "type": "switcher", "text": "Shadows", "help": "Draws shadows.", "default": false, "storage": { "path": ["Main", "bShadows"] },
+              "warnings": [ { "when": { "setting": "shadows", "equals": true }, "text": "Costly." } ] },
+            { "id": "beam", "type": "switcher", "text": "Beam", "default": false, "storage": { "path": ["Main", "bBeam"] } }
+        ]
+    })");
+    REQUIRE(mod);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(*mod) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    point(panel, pageRow(0));
+    CHECK(panel.helpLine().text() == "Shadows: Overridden by ROCK, in effect: on. A change is saved, and applies once ROCK stops setting it. Draws shadows. (Default: off)");
+    point(panel, pageRow(1));
+    CHECK(panel.helpLine().text() == "Beam: Overridden by ROCK, in effect: off. Also set by Other. A change is saved, and applies once none of them sets it. (Default: off)");
+
+    // a change is made as any, and the warning it brings comes after the override
+    CHECK(pressActs(panel, pageRow(0)));
+    point(panel, pageRow(0));
+    CHECK(
+        panel.helpLine().text() == "Shadows: Overridden by ROCK, in effect: on. A change is saved, and applies once ROCK stops setting it. Costly. Draws shadows. (Default: off)");
+    CHECK(store.dirtyCount() == 1);
+}
+
 TEST_CASE("FullPanel: the help line writes a number as its display does, with a percentage's number, and a unit its box has no room for")
 {
     const test_panel::PanelContext context;
