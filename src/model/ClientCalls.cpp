@@ -183,6 +183,22 @@ namespace mods_config::model
     }
 
     /**
+     * Asks a mod's client the content of a page by its `id`: the JSON text of its rows, or why there is none, which the
+     * page says: its mod has no client, as its DLL is not loaded, its client is cut off, or gives none.
+     */
+    std::expected<std::string, std::string> ClientCalls::content(const std::string_view modName, const std::string_view displayName, const std::string_view pageId) const
+    {
+        if (!_clients.contains(common::str_tolower(std::string(modName)))) {
+            return std::unexpected(std::format("Not available: needs {}'s DLL, which is not loaded.", displayName));
+        }
+        const auto* client = find(modName);
+        if (!client) {
+            return std::unexpected(CUT_OFF);
+        }
+        return client->content ? client->content(pageId) : std::unexpected(std::format("Not available: {}'s DLL gives no content for it.", displayName));
+    }
+
+    /**
      * Adds an entry of a mod to the quick launch section, by the function a press runs: a mod can have an entry for
      * each of its functions. False for a function of the mod that has one already, which keeps the first.
      */

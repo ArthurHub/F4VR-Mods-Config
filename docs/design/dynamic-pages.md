@@ -24,7 +24,7 @@ The worked example is [RobCo PALM's wheel](#example-robco-palms-wheel).
 
 ## Native API
 
-`IClient` gains one method, in API version 3:
+`IClient` gains one method, in API version 2:
 
 ```cpp
 class IContent
@@ -39,7 +39,7 @@ virtual bool giveContent(const char* pageId, IContent* content) = 0;
 - `json` is the page's `content` array as text, in the config spec's format. The host copies it in `set`, and reads it after the call returns.
 - false, or no `set`, means the client has no content for the page. The page then shows as not available.
 - The call is inside the [failure guard](architecture.md#a-client-that-fails), as every client call is.
-- The host asks only clients registered at version 3 or later. An older client's dynamic page shows as not available, with the reason.
+- The host asks only clients registered at version 2 or later. An older client's dynamic page shows as not available, with the reason.
 - The C++ layer adds `addPageContent(pageId, handler)`, where the handler returns the JSON text. It works like `addFunction` and answers by page id.
 
 ## What the client gives

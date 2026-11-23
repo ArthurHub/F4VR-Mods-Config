@@ -118,6 +118,11 @@ namespace
 
         void giveOverrides(const api::SettingView*, api::IOverrides*) override
         {}
+
+        bool giveContent(const char*, api::IContent*) override
+        {
+            return false;
+        }
     };
 
     /**

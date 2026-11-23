@@ -239,6 +239,21 @@ namespace
     };
 
     /**
+     * The content of a page that a client gives, which the host passes it: the text it set last, copied, and none
+     * while it set none, or a null text.
+     */
+    class HostContent final : public api::IContent
+    {
+    public:
+        void set(const char* json) override
+        {
+            text = json ? std::optional<std::string>(json) : std::nullopt;
+        }
+
+        std::optional<std::string> text;
+    };
+
+    /**
      * The call of a function that the host passes a client: its arguments, with their texts, and the message of its
      * result, translated.
      */
@@ -335,11 +350,15 @@ namespace mods_config::api
                     [this, kept](const model::SaveBatch& batch) {
                         tellSave(*kept, batch);
                     },
-                // a client of an older header has no giveOverrides
+                // a client of an older header has no giveOverrides and no giveContent
                 .overrides = version >= 2 ? model::ClientCalls::Client::Overrides([this, kept](const model::ClientSetting& setting) {
                     return giveOverrides(*kept, setting);
                 })
-                                          : model::ClientCalls::Client::Overrides() });
+                                          : model::ClientCalls::Client::Overrides(),
+                .content =
+                    [this, kept](const std::string_view pageId) {
+                        return giveContent(*kept, pageId);
+                    } });
         if (!added) {
             logger::warn("Native API: '{}' has a client already, so another is not registered", name);
             return false;
@@ -508,6 +527,33 @@ namespace mods_config::api
             return {};
         }
         return std::move(overrides.overrides);
+    }
+
+    /**
+     * Asks a client the content of a page by its `id`, inside the guard, which copies its text: the JSON text of the
+     * page's rows, or why there is none. A client of version 1 has no giveContent, and is not asked.
+     */
+    std::expected<std::string, std::string> NativeClients::giveContent(Registered& registered, const std::string_view pageId) const
+    {
+        const std::string page(pageId);
+        if (registered.version < 2) {
+            logger::debug("Native API: client '{}' is of version {}, so it is not asked the content of the page '{}'", registered.name, registered.version, page);
+            return std::unexpected(std::format("Not available: its mod's client is built with API version {}, and a page of its content needs version 2.", registered.version));
+        }
+        HostContent content;
+        bool given = false;
+        auto ask = [&registered, &page, &content, &given] {
+            given = registered.client->giveContent(page.c_str(), &content);
+        };
+        if (!call(registered, std::format("the content of the page '{}'", page), ask)) {
+            return std::unexpected(CUT_OFF_REASON);
+        }
+        if (!given || !content.text) {
+            logger::debug("Native API: client '{}' gives no content for the page '{}'", registered.name, page);
+            return std::unexpected("Not available: its mod's client gives no content for it."s);
+        }
+        logger::debug("Native API: client '{}' gives the content of the page '{}', {} characters", registered.name, page, content.text->size());
+        return std::move(*content.text);
     }
 
     /**

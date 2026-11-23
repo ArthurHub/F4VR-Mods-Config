@@ -45,6 +45,9 @@ namespace
         };
         std::function<void(const api::SettingView*, api::IOverrides*)> overrides = [](const api::SettingView*, api::IOverrides*) {
         };
+        std::function<bool(const char*, api::IContent*)> content = [](const char*, api::IContent*) {
+            return false;
+        };
 
         bool hasFunction(const char* name) override
         {
@@ -84,6 +87,11 @@ namespace
         void giveOverrides(const api::SettingView* setting, api::IOverrides* given) override
         {
             overrides(setting, given);
+        }
+
+        bool giveContent(const char* pageId, api::IContent* given) override
+        {
+            return content(pageId, given);
         }
     };
 
@@ -775,6 +783,112 @@ TEST_CASE("ModsConfigFO4Api: the C++ client gives the overrides of each source, 
     // a source another test added comes before these
     REQUIRE(given.told.size() >= 2);
     CHECK(std::vector(given.told.end() - 2, given.told.end()) == std::vector<std::string>{ "First 3", "Second text" });
+}
+
+TEST_CASE("NativeClients: a client of version 2 gives the content of a page by its id, the text it set last")
+{
+    Clients clients;
+    FakeClient client;
+    std::string asked;
+    client.content = [&asked](const char* pageId, api::IContent* given) {
+        asked = pageId;
+        const std::string page(pageId);
+        if (page == "wheelItems") {
+            given->set(R"([{ "id": "old" }])");
+            given->set(R"([{ "id": "apple", "valueType": "bool" }])");
+            return true;
+        }
+        if (page == "empty") {
+            given->set("[]");
+            return true;
+        }
+        if (page == "unset") {
+            return true;
+        }
+        if (page == "cleared") {
+            given->set("[]");
+            given->set(nullptr);
+            return true;
+        }
+        given->set("[]");
+        return false;
+    };
+    REQUIRE(clients.add("MyMod", client));
+
+    const auto items = clients.calls.content("mymod", "My Mod", "wheelItems");
+    CHECK(asked == "wheelItems");
+    REQUIRE(items);
+    CHECK(*items == R"([{ "id": "apple", "valueType": "bool" }])");
+
+    // an empty array is an empty page
+    CHECK(clients.calls.content("MyMod", "My Mod", "empty") == "[]");
+
+    // false, true with no content set, and a null text, give none
+    constexpr auto NO_CONTENT = "Not available: its mod's client gives no content for it.";
+    CHECK(clients.calls.content("MyMod", "My Mod", "other").error() == NO_CONTENT);
+    CHECK(clients.calls.content("MyMod", "My Mod", "unset").error() == NO_CONTENT);
+    CHECK(clients.calls.content("MyMod", "My Mod", "cleared").error() == NO_CONTENT);
+
+    // a mod with no client
+    CHECK(clients.calls.content("OtherMod", "Other Mod", "wheelItems").error() == "Not available: needs Other Mod's DLL, which is not loaded.");
+
+    SECTION("a client of version 1 has no giveContent, and is not asked")
+    {
+        Clients older;
+        FakeClient old;
+        old.content = [](const char*, api::IContent*) {
+            FAIL("a client of version 1 is asked the content of a page");
+            return false;
+        };
+        REQUIRE(older.clients.registerClient("Old", 1, &old));
+        CHECK(older.calls.content("Old", "Old", "wheelItems").error() == "Not available: its mod's client is built with API version 1, and a page of its content needs version 2.");
+    }
+
+    SECTION("a client that throws is cut off")
+    {
+        client.content = [](const char*, api::IContent*) -> bool {
+            throw std::runtime_error("broken");
+        };
+        CHECK(clients.calls.content("MyMod", "My Mod", "wheelItems").error() == CUT_OFF);
+        CHECK_FALSE(clients.calls.isConnected("MyMod"));
+        CHECK(clients.calls.content("MyMod", "My Mod", "wheelItems").error() == CUT_OFF);
+    }
+}
+
+TEST_CASE("ModsConfigFO4Api: the C++ client gives the content of a page by its id, and none for a page it has none of")
+{
+    // the client is one for the whole run, and keeps its pages: they hold what they share with the test
+    auto& client = api::ModsConfigFO4Client::get();
+    const auto carried = std::make_shared<bool>(true);
+    CHECK(client.addPageContent("testItems", [carried] {
+        return *carried ? std::optional<std::string>(R"([{ "id": "apple" }])") : std::nullopt;
+    }));
+    CHECK_FALSE(client.addPageContent("testItems", [] {
+        return std::optional<std::string>("[]");
+    }));
+
+    /**
+     * Copies what the client gives, as the menu does.
+     */
+    struct Given final : api::IContent
+    {
+        std::vector<std::string> told;
+
+        void set(const char* json) override
+        {
+            told.emplace_back(json);
+        }
+    } given;
+
+    auto& asClient = static_cast<api::IClient&>(client);
+    CHECK(asClient.giveContent("testItems", &given));
+    CHECK(given.told == std::vector<std::string>{ R"([{ "id": "apple" }])" });
+
+    // none now, and a page it has none of
+    *carried = false;
+    CHECK_FALSE(asClient.giveContent("testItems", &given));
+    CHECK_FALSE(asClient.giveContent("otherPage", &given));
+    CHECK(given.told.size() == 1);
 }
 
 TEST_CASE("NativeClients: a client adds a quick launch entry for each of its functions")

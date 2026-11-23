@@ -137,7 +137,7 @@ A mod's DLL talks to the host through [`ModsConfigFO4Api.h`](../../src/api/ModsC
 ### Versions
 
 - The API only grows: methods and struct fields are added only at the end, nothing changes or is removed, and `getVersion` counts additions. A client uses later additions after checking `apiVersion()`; one that needs a newer menu asks `connect` for that version.
-- A client registers with its header's version, so the host calls only the `IClient` methods it has. Version 2 adds `closeMenu` and `giveOverrides`.
+- A client registers with its header's version, so the host calls only the `IClient` methods it has. Version 2 adds `closeMenu`, `giveOverrides` and `giveContent`.
 
 ### The client
 
