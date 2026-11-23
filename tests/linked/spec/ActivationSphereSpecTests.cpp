@@ -180,6 +180,41 @@ TEST_CASE("ConfigSpecLoader: a sphere's power-armor zone has a row while its fil
     CHECK(problemLines(*mod) == Lines{ "W Head: Its file \"main\" has no tZonePA and it gives it no default: it has no row. [Head] content[1].keys.tZonePA" });
 }
 
+TEST_CASE("ConfigSpecLoader: a sphere whose file has no section of it is a warning, unless the file omits its defaults, which its keys then do")
+{
+    const test_files::TempFolder myGames;
+    myGames.write("MyMod.toml", "[Other]\r\nx = 1\r\n");
+    const auto sphere = R"({ "type": "cf.activationSphere", "text": "Body", "storage": { "path": ["Body"] } })";
+    const auto plain = spec::loadConfigSpec(sphereSpec(sphere), {}, {}, { .data = {}, .myGames = myGames.path });
+    REQUIRE(plain);
+    CHECK(problemLines(*plain) ==
+          Lines{ "W Body: Its file \"main\" has no section Body: each key shows its default, and a Save writes a key once it is changed. [Body] content[0].storage" });
+
+    auto omitting = sphereSpec(sphere);
+    const std::string file = R"("path": "MyMod.toml" })";
+    omitting.replace(omitting.find(file), file.size(), R"("path": "MyMod.toml", "omitDefault": true })");
+    const auto omitted = spec::loadConfigSpec(omitting, {}, {}, { .data = {}, .myGames = myGames.path });
+    REQUIRE(omitted);
+    CHECK(omitted->problems.empty());
+    // each key with a default omits it; the zone, which has none, keeps its value
+    for (const auto& setting : settingsOf(*omitted)) {
+        INFO(setting.id);
+        CHECK(setting.omitDefault == (setting.defaultValue.has_value() && !model::setsOthers(setting)));
+    }
+
+    // a sphere's own omitDefault, in a file that keeps its defaults, is its keys'
+    const auto own = spec::loadConfigSpec(sphereSpec(R"({ "type": "cf.activationSphere", "text": "Body", "omitDefault": true, "storage": { "path": ["Body"] } })"),
+        {},
+        {},
+        { .data = {}, .myGames = myGames.path });
+    REQUIRE(own);
+    CHECK(own->problems.empty());
+    for (const auto& setting : settingsOf(*own)) {
+        INFO(setting.id);
+        CHECK(setting.omitDefault == (setting.defaultValue.has_value() && !model::setsOthers(setting)));
+    }
+}
+
 TEST_CASE("ConfigSpecLoader: a sphere's keys name a row, hide it or show one that has none, and each is a setting of the fields it gives")
 {
     const auto mod =

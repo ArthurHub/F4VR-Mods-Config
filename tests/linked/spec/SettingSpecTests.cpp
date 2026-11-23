@@ -289,14 +289,125 @@ TEST_CASE("ConfigSpecLoader: with the folders of its files, a setting whose path
     })";
     const auto mod = spec::loadConfigSpec(text, {}, {}, { .data = folder.path / "Data", .myGames = folder.path / "MyGames" });
     REQUIRE(mod);
-    CHECK(problemLines(*mod) == Lines{ "W Typo: Its file \"main\" has no value Mian.fScale: it shows its default, and a Save adds it. [Typo] content[1].storage",
-                                    "W Shown: Its file \"main\" has no value Main.fShown: it shows none. [Shown] content[2].storage",
-                                    "W Off: Its file \"ini\" has no value bOff of [Main]: it shows its default, and a Save adds it. [Off] content[4].storage" });
+    CHECK(
+        problemLines(*mod) == Lines{ "W Typo: Its file \"main\" has no value Mian.fScale: it shows its default, which a Save writes once it is changed. [Typo] content[1].storage",
+                                  "W Shown: Its file \"main\" has no value Main.fShown: it shows none. [Shown] content[2].storage",
+                                  "W Off: Its file \"ini\" has no value bOff of [Main]: it shows its default, which a Save writes once it is changed. [Off] content[4].storage" });
 
     // with no folders, the files are not read
     const auto alone = spec::loadConfigSpec(text);
     REQUIRE(alone);
     CHECK(alone->problems.empty());
+}
+
+TEST_CASE("ConfigSpecLoader: a setting omits its default by its own omitDefault or its file's, and its file missing its value is then no warning")
+{
+    const test_files::TempFolder folder;
+    folder.write("MyGames/MyMod.toml", "[Main]\nfScale = 1.0\n");
+    folder.write("MyGames/MyMod_Developer.toml", "");
+    const auto text = R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" },
+            "dev": { "format": "toml", "root": "myGames", "path": "MyMod_Developer.toml", "omitDefault": true }
+        },
+        "defaultFile": "main",
+        "content": [
+            { "type": "slider", "text": "Own", "default": 1.0, "omitDefault": true, "storage": { "path": ["Main", "fMissing"] } },
+            { "type": "slider", "text": "Dev", "default": 1.0, "storage": { "file": "dev", "path": ["fA"] } },
+            { "type": "slider", "text": "Kept", "default": 1.0, "omitDefault": false, "storage": { "file": "dev", "path": ["fB"] } },
+            { "type": "slider", "text": "Plain", "default": 1.0, "storage": { "path": ["Main", "fScale"] } },
+            { "type": "slider", "text": "Shown", "readOnly": true, "storage": { "file": "dev", "path": ["fShown"] } },
+            { "type": "slider", "text": "Global", "default": 1.0, "storage": { "global": "MyMod.esp|800" } }
+        ]
+    })";
+    const auto mod = spec::loadConfigSpec(text, {}, {}, { .data = folder.path / "Data", .myGames = folder.path / "MyGames" });
+    REQUIRE(mod);
+    CHECK(mod->files.at("dev").omitDefault);
+    CHECK_FALSE(mod->files.at("main").omitDefault);
+
+    // a read-only setting and one kept elsewhere never omit a default: the file's is ignored for them
+    const auto settings = settingsOf(*mod);
+    REQUIRE(settings.size() == 6);
+    CHECK(settings[0].omitDefault);
+    CHECK(settings[1].omitDefault);
+    CHECK_FALSE(settings[2].omitDefault);
+    CHECK_FALSE(settings[3].omitDefault);
+    CHECK_FALSE(settings[4].omitDefault);
+    CHECK_FALSE(settings[5].omitDefault);
+    CHECK(problemLines(*mod) == Lines{ "W Kept: Its file \"dev\" has no value fB: it shows its default, which a Save writes once it is changed. [Kept] content[2].storage",
+                                    "W Shown: Its file \"dev\" has no value fShown: it shows none. [Shown] content[4].storage" });
+}
+
+TEST_CASE("ConfigSpecLoader: an omitDefault of a setting that cannot omit its default, or that is not true or false, is reported and left out")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "slider", "text": "Global", "default": 1.0, "omitDefault": true, "storage": { "global": "MyMod.esp|800" } },
+        { "type": "slider", "text": "Shown", "readOnly": true, "omitDefault": true, "storage": { "path": ["Main", "fShown"] } },
+        { "type": "switcher", "text": "No default", "omitDefault": true, "storage": { "path": ["Main", "bNo"] } },
+        { "type": "slider", "text": "Word", "default": 1.0, "omitDefault": "yes", "storage": { "path": ["Main", "fWord"] } }
+    )"));
+    for (const auto& setting : settingsOf(mod)) {
+        CHECK_FALSE(setting.omitDefault);
+    }
+    CHECK(problemLines(mod) == Lines{ "W Global: Its omitDefault is ignored: it is not kept in a file. [Global] content[0].omitDefault",
+                                   "W Shown: Its omitDefault is ignored: it is read-only. [Shown] content[1].omitDefault",
+                                   "E No default: It has no default of the type of its value: it has no Reset. [No default] content[2]",
+                                   "W No default: Its omitDefault is ignored: it has no default. [No default] content[2].omitDefault",
+                                   "W Word: Its omitDefault is not true or false: it is left out. [Word] content[3].omitDefault" });
+
+    // a choice whose options set other settings: they omit their own defaults or not
+    auto quality = std::string(QUALITY);
+    const std::string text = R"("text": "Quality",)";
+    quality.replace(quality.find(text), text.size(), R"("text": "Quality", "omitDefault": true,)");
+    const auto sets = loaded(configSpecOf(quality));
+    CHECK(problemLines(sets) ==
+          Lines{ "W Quality: Its omitDefault is ignored: its options set other settings, which omit their own defaults or not. [Quality] content[0].omitDefault" });
+}
+
+TEST_CASE("ConfigSpecLoader: the root, a page and a section pass omitDefault down, the nearest first, over the file's")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live", "omitDefault": true,
+        "files": {
+            "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" },
+            "dev": { "format": "toml", "root": "myGames", "path": "Dev.toml", "omitDefault": true }
+        },
+        "defaultFile": "main",
+        "content": [ { "type": "switcher", "text": "Root", "default": true, "storage": { "path": ["a"] } } ],
+        "pages": [ {
+            "pageDisplayName": "Page", "omitDefault": false,
+            "content": [
+                { "type": "switcher", "text": "Page", "default": true, "storage": { "path": ["b"] } },
+                { "type": "section", "text": "Section", "omitDefault": true, "content": [
+                    { "type": "switcher", "text": "Section", "default": true, "storage": { "path": ["c"] } },
+                    { "type": "switcher", "text": "Own", "default": true, "omitDefault": false, "storage": { "path": ["d"] } },
+                    { "type": "switcher", "text": "Read-only", "readOnly": true, "storage": { "path": ["e"] } }
+                ] },
+                { "type": "switcher", "text": "Dev file", "default": true, "storage": { "file": "dev", "path": ["f"] } }
+            ]
+        } ]
+    })");
+    // one from above is ignored where the setting cannot omit its default, with no warning
+    CHECK(mod.problems.empty());
+    Lines omitting;
+    for (const auto& setting : settingsOf(mod)) {
+        if (setting.omitDefault) {
+            omitting.push_back(setting.text);
+        }
+    }
+    CHECK(omitting == Lines{ "Root", "Section" });
+}
+
+TEST_CASE("ConfigSpecLoader: a file's omitDefault that is not true or false is reported and left out")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml", "omitDefault": 1 } },
+        "content": [ { "type": "spacer" } ]
+    })");
+    CHECK_FALSE(mod.files.at("main").omitDefault);
+    CHECK(problemLines(mod) == Lines{ "W spec.json: Its omitDefault is not true or false: it is left out. [] files.main.omitDefault" });
 }
 
 TEST_CASE("ConfigSpecLoader: a stepper whose options set other settings is kept in them, with no default or applies of its own")

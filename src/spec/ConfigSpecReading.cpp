@@ -178,8 +178,9 @@ namespace mods_config::spec
     }
 
     /**
-     * What a page, a section or a setting has for what is under it: its own `defaultFile` and `applies`, or
-     * else what it gets from above. An `applies` that is not one is passed over, and is reported.
+     * What a page, a section or a setting has for what is under it: its own `defaultFile`, `applies` and
+     * `omitDefault`, or else what it gets from above. An `applies` or an `omitDefault` that is not one is passed
+     * over, and is reported.
      */
     Inherited inherit(const Json& value, const Inherited& above, ConfigSpecReading& reading)
     {
@@ -192,6 +193,14 @@ namespace mods_config::spec
         } else if (value.contains("applies")) {
             const Into into(reading, "applies");
             reading.report(model::Severity::Error, std::format("Its applies {} is not unknown, live, save or restart: it has the one above it.", value["applies"].dump()));
+        }
+        if (const auto omit = value.find("omitDefault"); omit != value.end()) {
+            if (omit->is_boolean()) {
+                own.omitDefault = omit->get<bool>();
+            } else {
+                const Into into(reading, "omitDefault");
+                reading.report(model::Severity::Warning, "Its omitDefault is not true or false: it is left out.");
+            }
         }
         return own;
     }

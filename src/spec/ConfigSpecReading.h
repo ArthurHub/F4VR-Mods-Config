@@ -164,12 +164,15 @@ namespace mods_config::spec
 
     /**
      * What the items of a page or a section get from above them: the file a setting is kept in where its
-     * storage names none, and when its change takes effect.
+     * storage names none, when its change takes effect, and whether it omits its default.
      */
     struct Inherited
     {
         std::string defaultFile;
         model::Applies applies = model::Applies::Unknown;
+
+        // none where nothing above says: a setting then takes its file's
+        std::optional<bool> omitDefault;
     };
 
     std::string getText(const Json& value, const char* key);

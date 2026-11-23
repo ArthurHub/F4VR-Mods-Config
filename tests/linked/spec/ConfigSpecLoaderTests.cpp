@@ -538,7 +538,8 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     for (const auto& [name, file] : mod.files) {
         files.push_back(name);
     }
-    CHECK(files == Lines{ "ini", "invalid", "player", "showcase" });
+    CHECK(files == Lines{ "developer", "ini", "invalid", "player", "showcase" });
+    CHECK(mod.files.at("developer").omitDefault);
 
     // a page has pages under it, two levels deep
     const auto pages = std::ranges::find(examples.pages, "Pages", &model::Page::name);
@@ -548,15 +549,21 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,
     // and a read-only setting needs none. The default of an activation sphere's key is the framework's, and a sphere
-    // leaves out most of its keys, as a mod's does. A choice that sets other settings has no value of its own
+    // leaves out most of its keys, as a mod's does. A choice that sets other settings has no value of its own, and one
+    // that omits its default is not in its file at its default
     const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR) / "ModsConfigFO4_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
     std::size_t readOnly = 0;
+    Lines omitted;
     std::unordered_set<std::string> sphereKeys;
     addSphereKeys(mod.pages, sphereKeys);
     for (const auto& setting : settingsOf(mod)) {
         if (sphereKeys.contains(setting.id) || model::setsOthers(setting)) {
+            continue;
+        }
+        if (setting.omitDefault) {
+            omitted.push_back(setting.text);
             continue;
         }
         if (setting.readOnly) {
@@ -586,6 +593,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
                                "A default that is no option" });
     CHECK(checked >= 30);
     CHECK(readOnly == 10);
+    CHECK(omitted == Lines{ "Kept only while changed", "Optional number", "Changed number", "Default switcher", "Changed color" });
 }
 
 TEST_CASE("ConfigSpecLoader: a problem names its row, the pages and the row it is on, and its path in spec.json")

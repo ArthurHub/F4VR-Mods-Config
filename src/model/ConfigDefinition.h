@@ -730,7 +730,9 @@ namespace mods_config::model
         std::vector<Warning> warnings;
 
         // a Save keeps no value that is its default: its key is removed from its file, so the setting follows its
-        // default as that changes. Only a setting the menu makes has it, in a TOML file
+        // default as that changes, and its file missing the value is no problem. A config spec's setting kept in a
+        // file has it by the nearest `omitDefault` (its own, its section's, its page's, the root's) or else its file's,
+        // and so do the menu's Categories rows
         bool omitDefault = false;
 
         // a search does not find the row by its text: only a setting the menu makes has it
@@ -1023,6 +1025,10 @@ namespace mods_config::model
         // the state of the mod's client whose text is the file's absolute path, in place of its root and its path while
         // the client answers it: empty for none
         std::string pathFromClientState;
+
+        // the file keeps only the values that differ from their defaults: its settings omit their defaults, unless an
+        // `omitDefault` of the setting or above it says otherwise (`Setting::omitDefault`)
+        bool omitDefault = false;
 
         bool operator==(const File&) const = default;
     };

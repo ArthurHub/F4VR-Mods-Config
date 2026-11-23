@@ -1,0 +1,9 @@
+# The values of the showcase's file that omits its defaults: only the ones that differ from their settings' defaults,
+# and one setting that keeps its value at its default. A key it does not have is its setting's default.
+
+[Physics]
+fGrabStrength = 1.5
+iIterations = 3
+
+[Debug]
+cContactColor = { rgb = [255, 107, 107], alpha = 255 }

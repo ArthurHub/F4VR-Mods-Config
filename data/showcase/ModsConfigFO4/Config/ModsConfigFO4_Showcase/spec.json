@@ -28,6 +28,12 @@
       "root": "data",
       "path": "ModsConfigFO4/Config/ModsConfigFO4_Showcase/invalid.toml"
     },
+    "developer": {
+      "format": "toml",
+      "root": "data",
+      "path": "ModsConfigFO4/Config/ModsConfigFO4_Showcase/developer.toml",
+      "omitDefault": true
+    },
     "outside": { "format": "toml", "root": "data", "path": "../showcase.toml" }
   },
   "defaultFile": "showcase",
@@ -2739,7 +2745,7 @@
         },
         {
           "pageDisplayName": "Files",
-          "help": "Settings of three files: the config spec's default, the page's, and a section's.",
+          "help": "Settings of several files: the config spec's default, the page's, a section's, and one that keeps only changed values.",
           "defaultFile": "player",
           "content": [
             {
@@ -2849,6 +2855,74 @@
                     "file": "showcase",
                     "path": ["Files", "Tables", "bDeep"]
                   }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Kept only while changed",
+                  "help": "It omits its default: the file has no key for it, which is no warning, and a Save writes it only while it is on. Reset takes its key out.",
+                  "default": false,
+                  "omitDefault": true,
+                  "storage": { "file": "showcase", "path": ["Files", "bOmitted"] }
+                },
+                {
+                  "type": "section",
+                  "text": "Optional keys of an ordinary file",
+                  "help": "The section's omitDefault is its settings', as its applies would be: the file keeps their keys only while they differ from their defaults.",
+                  "omitDefault": true,
+                  "content": [
+                    {
+                      "type": "slider",
+                      "valueType": "int",
+                      "text": "Optional number",
+                      "help": "The file has no key for it until it is changed from 5.",
+                      "default": 5,
+                      "valueOptions": { "min": 0, "max": 10, "step": 1 },
+                      "storage": { "file": "showcase", "path": ["Files", "iOptional"] }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "text": "A file that keeps only changed values",
+              "defaultFile": "developer",
+              "help": "Its file omits its settings' defaults: a missing key is the setting's default, Reset takes a key out, and a Save that leaves the file with no values deletes it.",
+              "content": [
+                {
+                  "type": "slider",
+                  "valueType": "float",
+                  "text": "Changed number",
+                  "help": "The file has 1.5, which is not its default. Reset takes its key out.",
+                  "default": 1.0,
+                  "valueOptions": { "min": 0, "max": 2, "step": 0.1 },
+                  "storage": { "path": ["Physics", "fGrabStrength"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Default switcher",
+                  "help": "The file has no key for it, so it is its default. A Save writes it only while it is on.",
+                  "default": false,
+                  "storage": { "path": ["Debug", "bDrawContacts"] }
+                },
+                {
+                  "type": "cf.color",
+                  "text": "Changed color",
+                  "help": "The file has it as a table, which is not its default. Reset takes its key out, table and all.",
+                  "default": { "rgb": [255, 255, 255], "alpha": 255 },
+                  "storage": { "path": ["Debug", "cContactColor"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "text": "Always written",
+                  "help": "Its own omitDefault is false, so the file keeps it even at its default, 3.",
+                  "default": 3,
+                  "omitDefault": false,
+                  "valueOptions": { "min": 1, "max": 10, "step": 1 },
+                  "storage": { "path": ["Physics", "iIterations"] }
                 }
               ]
             },

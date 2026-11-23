@@ -17,7 +17,7 @@ namespace mods_config::spec
     namespace
     {
         // the fields of a `cf.activationSphere` row, as the schema has them (docs/design/schema.md)
-        constexpr std::array<std::string_view, 9> SPHERE_FIELDS{ "type", "id", "text", "help", "storage", "keys", "applies", "visibleWhen", "enabledWhen" };
+        constexpr std::array<std::string_view, 10> SPHERE_FIELDS{ "type", "id", "text", "help", "storage", "keys", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
         // a key of a sphere's `keys`, written as an object:
         constexpr std::array<std::string_view, 8> SPHERE_KEY_FIELDS{ "text", "help", "default", "valueOptions", "applies", "visibleWhen", "enabledWhen", "warnings" };
         constexpr std::array<std::string_view, 5> SPHERE_ICONS_FIELDS{ "text", "help", "valueOptions", "visibleWhen", "enabledWhen" };
@@ -521,6 +521,10 @@ namespace mods_config::spec
                 section[field] = row[field];
             }
         }
+        // its own, read once: one that is not true or false is reported here and left out
+        if (row.contains("omitDefault") && own.omitDefault) {
+            section["omitDefault"] = *own.omitDefault;
+        }
         if (findApplies(row)) {
             section["applies"] = row["applies"];
         } else if (own.applies == model::Applies::Unknown) {
@@ -545,10 +549,14 @@ namespace mods_config::spec
             }
             section["id"] = id;
         }
-        if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
+        // a sphere whose keys omit their defaults has no section in its file while they are all their defaults
+        const bool omitsDefaults = own.omitDefault.value_or(reading.files.at(file->file).omitDefault);
+        if (const auto values = reading.fileValues.find(file->file); !omitsDefaults && values != reading.fileValues.end() && !values->second->contains(file->path)) {
             const Into into(reading, "storage");
             reading.report(model::Severity::Warning,
-                std::format("Its file \"{}\" has no section {}: each key shows its default, and a Save adds it.", file->file, values->second->pathName(file->path)));
+                std::format("Its file \"{}\" has no section {}: each key shows its default, and a Save writes a key once it is changed.",
+                    file->file,
+                    values->second->pathName(file->path)));
         }
 
         const auto keys = sphereKeys(row, reading);

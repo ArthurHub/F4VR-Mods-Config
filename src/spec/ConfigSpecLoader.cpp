@@ -44,7 +44,7 @@ namespace
     // The fields each object of a config spec can have, as the schema has them (docs/design/schema.md). Any other is
     // reported as one the menu does not know. A field the schema has and the menu does not read yet is known.
     // the config spec's root:
-    constexpr std::array<std::string_view, 15> ROOT_FIELDS{ "minSchemaVersion",
+    constexpr std::array<std::string_view, 16> ROOT_FIELDS{ "minSchemaVersion",
         "modName",
         "displayName",
         "help",
@@ -55,15 +55,17 @@ namespace
         "files",
         "defaultFile",
         "applies",
+        "omitDefault",
         "sharedLists",
         "sharedPresetLists",
         "content",
         "pages" };
     // a page:
-    constexpr std::array<std::string_view, 9> PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 10>
+        PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
     // a row, by its type:
-    constexpr std::array<std::string_view, 11>
-        SECTION_FIELDS{ "type", "id", "text", "help", "content", "isCollapsible", "collapsed", "defaultFile", "applies", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 12>
+        SECTION_FIELDS{ "type", "id", "text", "help", "content", "isCollapsible", "collapsed", "defaultFile", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
     constexpr std::array<std::string_view, 4> TEXT_ROW_FIELDS{ "type", "text", "html", "visibleWhen" };
     constexpr std::array<std::string_view, 3> SPACER_FIELDS{ "type", "numLines", "visibleWhen" };
     constexpr std::array<std::string_view, 5> IMAGE_FIELDS{ "type", "texture", "width", "height", "visibleWhen" };

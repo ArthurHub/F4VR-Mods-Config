@@ -21,7 +21,7 @@ namespace mods_config::spec
     namespace
     {
         // the fields of a setting row and of its parts, as the schema has them (docs/design/schema.md)
-        constexpr std::array<std::string_view, 16> SETTING_FIELDS{ "type",
+        constexpr std::array<std::string_view, 17> SETTING_FIELDS{ "type",
             "id",
             "text",
             "help",
@@ -32,6 +32,7 @@ namespace mods_config::spec
             "display",
             "storage",
             "readOnly",
+            "omitDefault",
             "warnings",
             "action",
             "applies",
@@ -417,13 +418,39 @@ namespace mods_config::spec
         }
 
         /**
-         * Reports a setting kept in a file that is there and has no value at its path: it shows its default, which a Save
-         * adds, or none where it is read-only. A row the loader made is not reported, as a sphere's file leaves out most keys.
+         * Whether a Save keeps no value of the setting that is its default, and takes its key out of its file: the nearest
+         * `omitDefault`, its own, its section's, its page's or the root's (`inherited`), or else its file's. It needs a
+         * value in a file and a default to compare, so a setting kept elsewhere, a read-only one and one with no default
+         * never has it: its own `true` is reported, one from above or from its file ignored.
          */
-        void reportMissingValue(const model::Storage& storage, const bool readOnly, const bool made, ConfigSpecReading& reading)
+        bool loadOmitDefault(const Json& row, const Inherited& inherited, const model::Storage& storage, const bool readOnly, const bool hasDefault, ConfigSpecReading& reading)
         {
             const auto* file = std::get_if<model::FileStorage>(&storage);
-            if (!file || made) {
+            const bool canOmit = file && !readOnly && hasDefault;
+            if (const auto own = row.find("omitDefault"); !canOmit && own != row.end() && own->is_boolean() && own->get<bool>()) {
+                const auto* reason = std::holds_alternative<model::SetsStorage>(storage) ? "its options set other settings, which omit their own defaults or not"
+                                     : !file                                             ? "it is not kept in a file"
+                                     : readOnly                                          ? "it is read-only"
+                                                                                         : "it has no default";
+                if (!std::holds_alternative<model::UnknownStorage>(storage)) {
+                    const Into into(reading, "omitDefault");
+                    reading.report(model::Severity::Warning, std::format("Its omitDefault is ignored: {}.", reason));
+                }
+                return false;
+            }
+            return canOmit && inherited.omitDefault.value_or(reading.files.at(file->file).omitDefault);
+        }
+
+        /**
+         * Reports a setting kept in a file that is there and has no value at its path: it shows its default, which a Save
+         * writes once the setting is changed, or none where it is read-only. A setting that omits its default is not
+         * reported, as its file leaves its value out while it is the default, and neither is a row the loader made, as a
+         * sphere's file leaves out most keys.
+         */
+        void reportMissingValue(const model::Storage& storage, const bool readOnly, const bool omitDefault, const bool made, ConfigSpecReading& reading)
+        {
+            const auto* file = std::get_if<model::FileStorage>(&storage);
+            if (!file || omitDefault || made) {
                 return;
             }
             if (const auto values = reading.fileValues.find(file->file); values != reading.fileValues.end() && !values->second->contains(file->path)) {
@@ -432,7 +459,7 @@ namespace mods_config::spec
                     std::format("Its file \"{}\" has no value {}: {}.",
                         file->file,
                         values->second->pathName(file->path),
-                        readOnly ? "it shows none" : "it shows its default, and a Save adds it"));
+                        readOnly ? "it shows none" : "it shows its default, which a Save writes once it is changed"));
             }
         }
 
@@ -488,9 +515,11 @@ namespace mods_config::spec
      * does not have, as a sphere leaves out most: its author's `id`, or one it gets from where its value is kept, its own
      * `applies` or the nearest above it, its `default`, how its number is shown, the options of a choice, and
      * its action, which Save runs.
-     * A read-only setting has no default, as it has no Reset. Two settings with one id are an error of the
-     * config spec, which is reported: a condition names the first, and an author gives one of them an id of its
-     * own. Its conditions and its warnings are read once every setting of the config spec is (`loadConditions`).
+     * A read-only setting has no default, as it has no Reset. One kept in a file can omit its default, by the nearest
+     * `omitDefault` or its file's (`loadOmitDefault`), and then its file missing its value is no warning.
+     * Two settings with one id are an error of the config spec, which is reported: a condition names the first, and an
+     * author gives one of them an id of its own. Its conditions and its warnings are read once every setting of the
+     * config spec is (`loadConditions`).
      * A binding, a color and a transform are kept in a value of a file: in a TOML file as the table the framework keeps,
      * and in an INI file as its line, which is the setting's `tableForm`. In any other storage they are not available,
      * which is reported, and so is a transform with no part on.
@@ -508,7 +537,6 @@ namespace mods_config::spec
         const auto tableForm = loadTableForm(type, storage, reading);
         const bool readOnly = getBool(row, "readOnly");
         const bool made = row.contains(MADE_ROW_PATH);
-        reportMissingValue(storage, readOnly, made, reading);
         auto [id, info] = registerSetting(row, storage, type, valueType, reading);
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
         if (info) {
@@ -525,6 +553,8 @@ namespace mods_config::spec
             valueOptions.sphereWords = sphereWordsOf(row);
         }
         auto defaultValue = sets || readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
+        const bool omitDefault = loadOmitDefault(row, own, storage, readOnly, defaultValue.has_value(), reading);
+        reportMissingValue(storage, readOnly, omitDefault, made, reading);
         auto text = getLabel(row, reading);
         auto help = readShownText(row, "help", reading);
         auto display = loadDisplay(row, reading);
@@ -546,7 +576,8 @@ namespace mods_config::spec
             .defaultValue = std::move(defaultValue),
             .display = std::move(display),
             .readOnly = readOnly,
-            .warnings = {} };
+            .warnings = {},
+            .omitDefault = omitDefault };
     }
 
     /**

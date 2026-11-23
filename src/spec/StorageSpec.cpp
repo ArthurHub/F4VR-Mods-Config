@@ -17,7 +17,7 @@ namespace mods_config::spec
     namespace
     {
         // the fields of a file of a config spec's `files`, and of a storage, as the schema has them (docs/design/schema.md)
-        constexpr std::array<std::string_view, 4> FILE_FIELDS{ "format", "root", "path", "pathFromClientState" };
+        constexpr std::array<std::string_view, 5> FILE_FIELDS{ "format", "root", "path", "pathFromClientState", "omitDefault" };
         constexpr std::array<std::string_view, 9> STORAGE_FIELDS{ "file", "section", "key", "path", "global", "form", "scriptName", "propertyName", "clientState" };
 
         using FormatName = std::pair<std::string_view, model::FileFormat>;
@@ -72,7 +72,8 @@ namespace mods_config::spec
 
     /**
      * The files of a config spec, by the names its `files` gives them. A file that is not written as one is
-     * left out, and is reported, so its settings are not available.
+     * left out, and is reported, so its settings are not available. A file's `omitDefault` is its settings' unless
+     * an `omitDefault` of the config spec says otherwise for them.
      */
     std::map<std::string, model::File> loadFiles(const Json& configSpec, ConfigSpecReading& reading)
     {
@@ -95,6 +96,15 @@ namespace mods_config::spec
                     } else {
                         const Into intoState(reading, "pathFromClientState");
                         reading.report(model::Severity::Warning, "Its pathFromClientState is not the name of a state: the file is read from its root and its path.");
+                    }
+                }
+                // a file that keeps only the values that differ from their defaults
+                if (const auto omit = declared.find("omitDefault"); omit != declared.end()) {
+                    if (omit->is_boolean()) {
+                        file->omitDefault = omit->get<bool>();
+                    } else {
+                        const Into intoOmit(reading, "omitDefault");
+                        reading.report(model::Severity::Warning, "Its omitDefault is not true or false: it is left out.");
                     }
                 }
                 files.emplace(name, std::move(*file));

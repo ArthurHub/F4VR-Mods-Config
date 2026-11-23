@@ -2371,16 +2371,24 @@ namespace
           "valueOptions": { "options": [ { "value": "a", "text": "A" }, { "value": "b", "text": "B" } ] }, "storage": { "path": ["second"] } }
     )";
 
+    // the two choices, each with `omitDefault`
+    constexpr auto OMIT_CHOICES = R"(
+        { "type": "dropdown", "valueType": "string", "text": "First", "default": "a", "omitDefault": true,
+          "valueOptions": { "options": [ { "value": "a", "text": "A" }, { "value": "b", "text": "B" } ] }, "storage": { "path": ["first"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Second", "default": "a", "omitDefault": true,
+          "valueOptions": { "options": [ { "value": "a", "text": "A" }, { "value": "b", "text": "B" } ] }, "storage": { "path": ["second"] } }
+    )";
+
     /**
-     * A session of two choices that keep no value that is their default.
+     * A session of two choices that keep no value that is their default, as their config spec says.
      */
     struct OmitSession : Session
     {
         OmitSession()
-            : Session(CHOICES)
+            : Session(OMIT_CHOICES)
         {
-            for (auto& item : mod.frontPage.items) {
-                std::get<model::Setting>(item).omitDefault = true;
+            for (const auto& item : mod.frontPage.items) {
+                REQUIRE(std::get<model::Setting>(item).omitDefault);
             }
         }
     };
