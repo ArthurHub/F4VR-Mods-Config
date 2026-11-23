@@ -1,3 +1,7 @@
+## v1.1.0
+
+- For mod authors: the native API's `closeMenu` closes the menu as the player's Exit does, asking first while there are unsaved changes, or dropping them with `closeMenu(true)`. It is API version 2.
+
 ## v1.0.1
 
 - For mod authors: after a config spec is read again from its live copy, its mod's native client is told `PageShown` for the page still on screen, as after any other selection.

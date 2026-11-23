@@ -316,6 +316,51 @@ TEST_CASE("MenuController: a client's request to minimize hides the panel for th
     CHECK(menu.port.take() == Calls{ "hidePanel", "showWristButtons" });
 }
 
+TEST_CASE("MenuController: a client's request to close closes the menu with nothing unsaved, and is ignored while the menu is closed")
+{
+    Menu menu;
+    menu.controller.requestClose(false);
+    menu.controller.open();
+    menu.port.take();
+    menu.frame();
+    CHECK(menu.controller.isOpen());
+    CHECK(menu.port.take().empty());
+
+    menu.controller.requestClose(false);
+    menu.frame();
+    CHECK_FALSE(menu.controller.isOpen());
+    CHECK(menu.port.take() == Calls{ "closePanel" });
+}
+
+TEST_CASE("MenuController: a client's request to close with unsaved changes asks first, shown again for it, or drops them with discardChanges")
+{
+    Menu menu;
+    menu.openAtMyMod();
+    menu.changeScale();
+
+    SECTION("asks, with the minimized panel shown again")
+    {
+        menu.minimized();
+        menu.controller.requestClose(false);
+        menu.frame();
+        CHECK(menu.controller.isOpen());
+        CHECK(menu.controller.fullPanel().isAsking());
+        CHECK(menu.port.take() == Calls{ "showPanel", "hideWristButtons" });
+    }
+
+    SECTION("discards, and the mod opened again has its saved value")
+    {
+        menu.minimized();
+        menu.controller.requestClose(true);
+        menu.frame();
+        CHECK_FALSE(menu.controller.isOpen());
+        CHECK(menu.port.take() == Calls{ "closePanel" });
+
+        menu.openAtMyMod();
+        CHECK(common::fEqual(menu.scale(), 1.25f));
+    }
+}
+
 TEST_CASE("MenuController: Restore shows a minimized menu again and reads the shown mod's values again, and does nothing while it is shown")
 {
     Menu menu;

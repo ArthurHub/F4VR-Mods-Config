@@ -186,6 +186,7 @@ A mod's own UI opens from a client function (button or quick launch), which move
 - `minimizeMenu` as the UI opens; the session and its pending changes stay. A function whose UI doesn't open doesn't minimize, and says why in its message.
 - `restoreMenu` as it closes: shows the menu where it was, only while minimized (a player who pressed Restore or closed the menu isn't shown it again). It rereads the shown mod's values (clean settings take the new value, pending stay). `reloadValues` does the same at other times, e.g. after a hotkey.
 - `openMenu(mod, pageId)` opens at a mod's page, the mod's front page with no page, or the menu's front page with no mod (wrist buttons, holotapes). With unsaved changes on the shown mod, the unsaved-changes dialog asks first. A missing mod or page returns false.
+- `closeMenu(discardChanges)` closes the menu as the player's Exit does: with unsaved changes the dialog asks, the minimized panel shown again for it, unless `discardChanges` drops them (a `live` setting's Discard is told). Added in API version 2.
 - A UI that edits config spec settings hands each edit back with `setPendingValue` and doesn't save. The menu owns the whole edit (pending markers, Save, Discard, Reset, one Save batch); two savers would overwrite each other. FRIK's calibration, which saves itself, uses `restoreMenu`'s reread instead.
 
 `setPendingValue(settingId, value)` sets one value, in its valueType (color, transform, binding: their TOML table text or INI line), as a player edit:

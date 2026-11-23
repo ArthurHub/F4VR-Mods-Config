@@ -65,6 +65,11 @@ namespace
         {
             return g_modsConfig.menu().nativeClients().setPendingValue(client, settingId, value);
         }
+
+        void closeMenu(const bool discardChanges) const override
+        {
+            g_modsConfig.menu().requestClose(discardChanges);
+        }
     };
 
     // the API, which is the same for the whole run of the game

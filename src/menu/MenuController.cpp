@@ -419,6 +419,22 @@ namespace mods_config::menu
     }
 
     /**
+     * Asks the menu to close, for a mod's client: as the player's Exit does, which asks first while the mod that is
+     * shown has unsaved changes, or at once with discardChanges, which drops them. Nothing while it is closed.
+     */
+    void MenuController::requestClose(const bool discardChanges)
+    {
+        if (!isOpen()) {
+            return;
+        }
+        if (discardChanges) {
+            _closeRequested = true;
+        } else {
+            _askToCloseRequested = true;
+        }
+    }
+
+    /**
      * Asks the menu to read the values of a mod again while it is shown, for its client, which changed them.
      */
     void MenuController::requestReadAgain(const std::string_view modName)

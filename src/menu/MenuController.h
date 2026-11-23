@@ -46,6 +46,7 @@ namespace mods_config::menu
         bool requestOpen(std::string_view modName, std::string_view pageId);
         void requestMinimize();
         void requestRestore();
+        void requestClose(bool discardChanges);
         void requestReadAgain(std::string_view modName);
 
         void setMods(std::vector<model::Mod> mods, model::Translations translations, model::CategoryTable categories);
