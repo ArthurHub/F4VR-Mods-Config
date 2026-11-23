@@ -303,6 +303,16 @@ namespace mods_config::spec
     }
 
     /**
+     * Whether a text has any value: a line of a key and its `=`. Comments, headings and blank lines are none.
+     */
+    bool IniFile::hasValues(const std::string& text) const
+    {
+        return std::ranges::any_of(parse(text), [](const Line& line) {
+            return line.kind == Line::Kind::Value;
+        });
+    }
+
+    /**
      * A path as a reason names it, as a key of its section: `fScale of [Main]`, and a key before the first
      * section by its name alone.
      */

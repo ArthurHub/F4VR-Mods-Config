@@ -107,6 +107,48 @@ TEST_CASE("ModFile: restore puts back the text commit replaced, and removes a fi
     CHECK_FALSE(created.contains(Path{ "Main", "bEnabled" }));
 }
 
+TEST_CASE("ModFile: a Save that removes keys and leaves the file with no values deletes it, and restore writes it back")
+{
+    TestFile mod("# My Mod\r\n[Main]\r\niCount = 3\r\n[Empty]\r\n");
+    const std::vector<ModFile::Change> removed{ { .path = { "Main", "iCount" }, .value = 3, .table = false, .remove = true } };
+    REQUIRE(mod.file.prepare(removed));
+    CHECK(std::filesystem::exists(mod.path));
+    REQUIRE(mod.file.commit());
+    CHECK_FALSE(std::filesystem::exists(mod.path));
+    CHECK_FALSE(mod.file.contains(Path{ "Main", "iCount" }));
+
+    // a Save that fails after it puts the file back
+    REQUIRE(mod.file.restore());
+    CHECK(readFile(mod.path) == "# My Mod\r\n[Main]\r\niCount = 3\r\n[Empty]\r\n");
+    CHECK(mod.file.value(Path{ "Main", "iCount" }, StoredType::Int) == model::Value(3));
+
+    // an INI file the same
+    const test_files::TempFolder folder;
+    folder.write("MyMod.ini", "; My Mod\r\n[Main]\r\niCount=3\r\n");
+    IniFile ini(folder.path / "MyMod.ini");
+    REQUIRE(ini.read());
+    REQUIRE(ini.prepare(removed));
+    REQUIRE(ini.commit());
+    CHECK_FALSE(std::filesystem::exists(folder.path / "MyMod.ini"));
+}
+
+TEST_CASE("ModFile: a file is kept while it has a value, or when the Save removes nothing from it")
+{
+    // a value stays
+    TestFile kept("[Main]\r\niCount = 3\r\nbOn = true\r\n");
+    const std::vector<ModFile::Change> removed{ { .path = { "Main", "iCount" }, .value = 3, .table = false, .remove = true } };
+    REQUIRE(kept.file.prepare(removed));
+    REQUIRE(kept.file.commit());
+    CHECK(readFile(kept.path) == "[Main]\r\nbOn = true\r\n");
+
+    // a file of comments alone, from which the Save removes no key it has
+    TestFile comments("# nothing yet\r\n");
+    const std::vector<ModFile::Change> missing{ { .path = { "Main", "iCount" }, .value = 3, .table = false, .remove = true } };
+    REQUIRE(comments.file.prepare(missing));
+    REQUIRE(comments.file.commit());
+    CHECK(readFile(comments.path) == "# nothing yet\r\n");
+}
+
 TEST_CASE("ModFile: a file that cannot have the values fails prepare, and one that cannot be written fails commit, as it was")
 {
     TestFile mod;

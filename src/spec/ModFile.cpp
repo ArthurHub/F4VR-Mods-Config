@@ -1,5 +1,6 @@
 #include "ModFile.h"
 
+#include <algorithm>
 #include <format>
 #include <tuple>
 
@@ -24,13 +25,15 @@ namespace mods_config::spec
     /**
      * The first steps of a Save: reads the file again, so a value someone else changed since it was read stays
      * but for one that is written here, sets the values in its text and checks that they read back. A file
-     * that is not there is an empty one. Nothing is written, and the file's values stay as they are.
-     * Returns the reason for a file that cannot be read, is not written right or cannot have a value.
+     * that is not there is an empty one. A file whose keys the Save removes, leaving it with no values, is to be
+     * deleted, as a mod that keeps only changed values deletes it. Nothing is written, and the file's values stay
+     * as they are. Returns the reason for a file that cannot be read, is not written right or cannot have a value.
      */
     std::expected<void, std::string> ModFile::prepare(const std::span<const Change> changes)
     {
         _before.reset();
         _after.clear();
+        _emptied = false;
         _written = false;
         if (std::filesystem::exists(_path)) {
             _before = f4cf::config::ConfigFile::readFile(_path.string());
@@ -43,13 +46,16 @@ namespace mods_config::spec
             return std::unexpected(std::move(edited.error()));
         }
         _after = std::move(*edited);
+        const bool removes = std::ranges::any_of(changes, &Change::remove);
+        _emptied = removes && _before && _after != *_before && !hasValues(_after);
         return {};
     }
 
     /**
      * Writes the text `prepare` made over the file in one write, and creates a file that is not there, with the
-     * folders on the way to it. A file that has the text already is not written. The file's values are then
-     * the ones written. Returns the reason for a file that cannot be written.
+     * folders on the way to it. A file that has the text already is not written, and one the Save leaves with no
+     * values is deleted. The file's values are then the ones written. Returns the reason for a file that cannot be
+     * written or deleted.
      */
     std::expected<void, std::string> ModFile::commit()
     {
@@ -57,6 +63,13 @@ namespace mods_config::spec
             return load(_after);
         }
         std::error_code error;
+        if (_emptied) {
+            if (!std::filesystem::remove(_path, error) && error) {
+                return std::unexpected(std::format("{} cannot be deleted: {}", name(), error.message()));
+            }
+            _written = true;
+            return load({});
+        }
         std::filesystem::create_directories(_path.parent_path(), error);
         if (!f4cf::config::ConfigFile::writeFile(_path.string(), _after)) {
             return std::unexpected(std::format("{} cannot be written", name()));
@@ -66,8 +79,8 @@ namespace mods_config::spec
     }
 
     /**
-     * Puts back the file that `commit` wrote, for a Save that fails after it: the text `prepare` read, or no
-     * file for one that was not there. The folders the write created stay. The file's values are then the
+     * Puts back the file that `commit` wrote or deleted, for a Save that fails after it: the text `prepare` read, or
+     * no file for one that was not there. The folders the write created stay. The file's values are then the
      * ones put back. Returns the reason for a file that cannot be put back.
      */
     std::expected<void, std::string> ModFile::restore()

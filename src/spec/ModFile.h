@@ -86,6 +86,12 @@ namespace mods_config::spec
          */
         virtual std::expected<std::string, std::string> edit(const std::string& text, std::span<const Change> changes) const = 0;
 
+        /**
+         * Whether a text has any value, as a text of comments and headings alone has none. A text that is not
+         * written right has.
+         */
+        virtual bool hasValues(const std::string& text) const = 0;
+
         std::string name() const;
 
     private:
@@ -96,6 +102,9 @@ namespace mods_config::spec
         // text it made
         std::optional<std::string> _before;
         std::string _after;
+
+        // whether the Save removes keys and leaves the file with no values, so `commit` deletes it
+        bool _emptied = false;
 
         // whether `commit` wrote the file, so `restore` puts it back
         bool _written = false;

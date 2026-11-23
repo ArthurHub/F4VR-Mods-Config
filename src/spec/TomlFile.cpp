@@ -1,5 +1,6 @@
 #include "TomlFile.h"
 
+#include <algorithm>
 #include <format>
 #include <limits>
 #include <optional>
@@ -100,6 +101,25 @@ namespace mods_config::spec
         }
         _table = std::move(*table);
         return {};
+    }
+
+    /**
+     * Whether a text has any value: a key that is not a table, in any table. A text of comments and of tables with no
+     * values has none, and a text that is no TOML has.
+     */
+    bool TomlFile::hasValues(const std::string& text) const
+    {
+        const auto table = common::parseToml(text, name());
+        if (!table) {
+            return true;
+        }
+        const auto holdsValue = [](this const auto& self, const toml::table& tables) -> bool {
+            return std::ranges::any_of(tables, [&self](const auto& entry) {
+                const auto* child = entry.second.as_table();
+                return !child || self(*child);
+            });
+        };
+        return holdsValue(*table);
     }
 
     /**

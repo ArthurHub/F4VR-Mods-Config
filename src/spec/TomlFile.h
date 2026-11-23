@@ -28,6 +28,7 @@ namespace mods_config::spec
     protected:
         std::expected<void, std::string> load(const std::string& text) override;
         std::expected<std::string, std::string> edit(const std::string& text, std::span<const Change> changes) const override;
+        bool hasValues(const std::string& text) const override;
 
     private:
         toml::node_view<const toml::node> find(std::span<const std::string> path) const;
