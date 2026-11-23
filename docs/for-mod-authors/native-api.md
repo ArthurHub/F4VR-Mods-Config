@@ -14,6 +14,8 @@ Where to start: [For Mod Authors](README.md). The API in full: [Native API](../d
 - [Options of a Choice](#options-of-a-choice)
 - [Quick Launch](#quick-launch)
 - [Live Preview and Saves](#live-preview-and-saves)
+  - [Previewing in Your Mod](#previewing-in-your-mod)
+  - [Live or Save](#live-or-save)
 - [Overrides](#overrides)
 - [The Menu's Events](#the-menus-events)
 - [What the Ray Is On](#what-the-ray-is-on)
@@ -101,6 +103,8 @@ modsConfig.addState("pipboyType", [] { return std::optional<Value>(pipboyType())
     [](const Value& value) { setPipboyType(std::get<int>(value)); });
 ```
 
+The front page's version line, `Version {clientState:modVersion}`, is a state too: `addState("modVersion", ...)` with your version as text.
+
 A state answers at once and changes nothing, and an empty answer is "not available". A setter applies a value, and doesn't keep it: a mod that keeps the value after a restart writes it from its handler of the Saves. A state with no setter is a `readOnly` setting's.
 
 ## Options of a Choice
@@ -142,7 +146,55 @@ modsConfig.subscribeToSaves([](const Saved& saved) {
 
 The file or the game has a saved value by the time you're told, so a preview ends with the Save. A CommonFramework mod's own config file is previewed by the framework: these handlers are for a setting of another file or of the game.
 
-A plugin named in the config spec's `f4sePluginRequirements` also gets an F4SE message after each Save that wrote something, `MODS_CONFIG_FO4_SAVED_MESSAGE`, from the sender `ModsConfigFO4VR`, with the `modName` as its data. It doesn't say what changed: `subscribeToSaves` does.
+A plugin named in the config spec's `f4sePluginRequirements` also gets an F4SE message after each Save that wrote something, `MODS_CONFIG_FO4_SAVED_MESSAGE`, from the sender `ModsConfigFO4VR`, with the `modName` as its data. It doesn't say what changed: `subscribeToSaves` does. A plugin with no listener for it needs none.
+
+### Previewing in Your Mod
+
+A preview is a value over the file's, for the session: the file stays as it is until the Save.
+
+- **The handler records:** keep each change by its setting, or drop it on a Discard, and raise a flag. Don't apply it in the handler.
+- **The mod applies them together,** on its own frame or update, as a reload of its settings with the recorded values over the file's. A dragged slider sends a change every 50 ms, so each is a reload: reconfigure a subsystem that holds state, as held buttons, only when one of its own settings changed.
+- **A Discard** removes the value, and the file's shows through again. Every way the menu closes with changes pending, a loading screen too, tells each one's Discard.
+- **A Save** clears the recorded values and reloads the file at once, without waiting for a file watcher.
+
+```cpp
+std::map<std::string, Value> g_previews;
+bool g_previewsChanged = false;
+
+modsConfig.subscribeToChanges([](const Change& change) {
+    if (change.handedOver) {
+        return; // your own UI applied it already
+    }
+    if (change.discard) {
+        g_previews.erase(std::string(change.id));
+    } else {
+        g_previews[std::string(change.id)] = change.value;
+    }
+    g_previewsChanged = true;
+});
+
+modsConfig.subscribeToSaves([](const Saved&) {
+    g_previews.clear();
+    reloadMyConfig();
+});
+
+// each frame
+if (std::exchange(g_previewsChanged, false)) {
+    reloadMyConfig(g_previews);
+}
+```
+
+A `live` transform has **Adjust in world** too, which tunes it with the hand, once your DLL is connected: nothing to write. A position the mod keeps as an `[x, y, z]` array has no control, so moving it to a transform gives it both.
+
+### Live or Save
+
+`live` is for a setting the player sees change as they drag it. Keep `save` for:
+
+- a value read in the middle of a press, as a button layout or a binding;
+- a setting that installs a hook or does something that can't be undone;
+- a setting that needs a button released before it changes.
+
+A `live` setting that shows only on the next action, as the next grab or equip, says so in its `help`: "Regrab to apply."
 
 ## Overrides
 

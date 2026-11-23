@@ -4,6 +4,7 @@ How to give your mod a page in Mods Config FO4 VR: why a config spec, your first
 
 - [Why a Config Spec](#why-a-config-spec)
 - [Your First Config Spec](#your-first-config-spec)
+- [A Layout That Works](#a-layout-that-works)
 - [Testing It in the Game](#testing-it-in-the-game)
 - [Shipping It](#shipping-it)
 - More
@@ -82,6 +83,18 @@ An AI agent can write it for you, from your mod's files: [the prompt](ai-agent.m
 
 Every field is in the [config spec schema](../design/schema.md).
 
+## A Layout That Works
+
+A suggestion, not a rule: FRIK's and Immersive Flashlight VR's pages are laid out this way, and players find their way around them. Their config specs are worked examples: [FRIK](https://github.com/rollingrock/Fallout-4-VR-Body/blob/main/data/mod/ModsConfigFO4/Config/FRIK/spec.json), [Immersive Flashlight VR](https://github.com/ArthurHub/F4VR-ImmersiveFlashlight/blob/main/data/mod/ModsConfigFO4/Config/ImmersiveFlashlightVR/spec.json).
+
+- **The front page:** the banner, then an **About** section with what the mod is in a few lines, then a **Help** section: an `OpenURL` button to your wiki, and a text row per how-to, its topic in green, as `<font color='#10FA78'>Belt flashlight:</font> Reach for the flashlight on your belt…` with `"html": true`. Last, a **Developer** section folded shut (`isCollapsible`, `collapsed`), with the log level as a stepper and your debug switches.
+- **One page per area** of the mod, each with a `help`, and sections inside.
+- **Choices in the object form,** with a `help` for each option, so the help line says what the option does as the player points at it.
+- **Short `id`s** for the settings a condition asks, as `shadows`.
+- **Units:** `display.unit` for a short symbol, as `°` or `ms`; others in the `help`.
+
+Both mods also use what only a DLL connected to the menu gives: a version line with `{clientState:modVersion}`, and `CallNativeFunction` buttons ([Native API](native-api.md)). Leave those out without one.
+
 ## Testing It in the Game
 
 Turn on **Developer tools**: in the menu, pick **Mods Config FO4 VR**, then the **Developer** page.
@@ -110,4 +123,5 @@ Data\
 - Mods Config FO4 VR is not a requirement of your mod: without it, `spec.json` is a file nobody reads.
 - `minSchemaVersion` is `1`. From version 1.0 of Mods Config FO4 VR the schema only grows, so a config spec keeps working on every later version.
 - Your settings file doesn't have to exist: the menu creates it on the first Save that changes one of its settings.
+- Your mod can write the file too, as a setup wizard or a rewrite at startup does: a Save writes only the settings the player changed, and keeps what changed in the file since the mod was picked in the menu. The player's change wins only for the same setting.
 - Give your mod a `category`, as `"category": "Gameplay"`, so a long list shows it under that name. Use one of the twelve shipped names where one fits: [Category](../design/schema.md#category). An MCM config can have the same root field.

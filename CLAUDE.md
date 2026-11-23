@@ -4,7 +4,7 @@ Mods Config FO4 VR (`ModsConfigFO4VR`) is a C++23 F4SE plugin for Fallout 4 VR, 
 
 - Design: [docs/design/](docs/design/README.md). Milestones: [mod-plan.md](docs/design/mod-plan.md), with each phase's commits in `docs/design/mod-plan-phase-<n>.md`. Framework work: [framework-requirements.md](docs/design/framework-requirements.md), [framework-plan.md](docs/design/framework-plan.md).
 - Components and their traps: [docs/agents/components.md](docs/agents/components.md). Read a component's row before changing it.
-- Player and author docs: [docs/README.md](docs/README.md) with `faq.md` and `changelog.md` beside it, [docs/for-mod-authors/](docs/for-mod-authors/README.md) (the guide, the showcase walkthrough, MCM compatibility, the native API), and `docs/nexus.md`, the Nexus page in BBCode. A change a player or an author sees updates them.
+- Player and author docs: [docs/README.md](docs/README.md) with `faq.md` and `changelog.md` beside it, [docs/for-mod-authors/](docs/for-mod-authors/README.md) (the guide, the showcase walkthrough, MCM compatibility, the native API, the AI agent prompts that write a config spec and connect a DLL), and `docs/nexus.md`, the Nexus page in BBCode. A change a player or an author sees updates them.
 
 ## Build and test
 

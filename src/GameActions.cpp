@@ -187,7 +187,8 @@ namespace mods_config
     /**
      * Sends the F4SE message of a Save, `MODS_CONFIG_FO4_SAVED_MESSAGE` of the client header, to each plugin, with the
      * mod's name as its data, text that ends with a zero. F4SE calls the plugin's listener of the menu's messages at
-     * once, and a plugin with none gets nothing: the log says what F4SE answered.
+     * once, and a plugin with none gets nothing: the log says what F4SE answered, at debug, since most plugins have no
+     * listener. It calls F4SE's own interface, as CommonLibF4's Dispatch warns of each message nobody takes.
      */
     void sendSavedMessage(const std::string& modName, const std::vector<std::string>& plugins)
     {
@@ -195,9 +196,13 @@ namespace mods_config
         if (!messaging) {
             return;
         }
+        const auto& f4se = reinterpret_cast<const F4SE::detail::F4SEMessagingInterface&>(*messaging);
         for (const auto& plugin : plugins) {
-            const bool sent =
-                messaging->Dispatch(api::MODS_CONFIG_FO4_SAVED_MESSAGE, const_cast<char*>(modName.c_str()), static_cast<std::uint32_t>(modName.size() + 1), plugin.c_str());
+            const bool sent = f4se.Dispatch(F4SE::GetPluginHandle(),
+                api::MODS_CONFIG_FO4_SAVED_MESSAGE,
+                const_cast<char*>(modName.c_str()),
+                static_cast<std::uint32_t>(modName.size() + 1),
+                plugin.c_str());
             logger::debug("The F4SE message of the Save of '{}' {} sent to '{}'", modName, sent ? "is" : "is not", plugin);
         }
     }
