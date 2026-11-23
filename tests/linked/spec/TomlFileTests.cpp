@@ -268,6 +268,18 @@ TEST_CASE("TomlFile: a change that removes its key takes its line out, and keeps
     CHECK(mod.file.value(Path{ "SS2" }, StoredType::String) == model::Value(std::string("Settlements")));
 }
 
+TEST_CASE("TomlFile: a table the file has as a section of its own is written in it, and removed with its header")
+{
+    ModFile mod("[Main]\r\nfScale = 1.5\r\n\r\n[Main.cColor]  # the tint\r\nrgb = [255, 107, 107]\r\nalpha = 255\r\n");
+    const std::vector<TomlFile::Change> set{ { .path = { "Main", "cColor" }, .value = std::string("{ rgb = [1, 2, 3], alpha = 200 }"), .table = true } };
+    REQUIRE(writeChanges(mod.file, set));
+    CHECK(readFile(mod.path) == "[Main]\r\nfScale = 1.5\r\n\r\n[Main.cColor]  # the tint\r\nrgb = [1, 2, 3]\r\nalpha = 200\r\n");
+
+    const std::vector<TomlFile::Change> removed{ { .path = { "Main", "cColor" }, .value = std::string(), .table = false, .remove = true } };
+    REQUIRE(writeChanges(mod.file, removed));
+    CHECK(readFile(mod.path) == "[Main]\r\nfScale = 1.5\r\n\r\n");
+}
+
 TEST_CASE("TomlFile: a key that is not alone on its lines is not removed, and nothing is written")
 {
     const std::string text = "hand = { x = 1, y = 2 }\r\n";
