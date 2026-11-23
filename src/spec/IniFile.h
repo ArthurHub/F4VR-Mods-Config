@@ -19,7 +19,8 @@ namespace mods_config::spec
      * `;` or `#` after a value with a space before it, as `8.5  # target`, which SimpleIni reads as part of the
      * value. A key the file has more than once has the value of its last, and a write sets each of them. A write
      * changes the text of the values alone: the comments, trailing ones too, the blank lines, the order of the
-     * keys and every other line stay as they are.
+     * keys and every other line stay as they are. A removed key takes each of its lines out, and a section it
+     * leaves with no values its headings.
      */
     class IniFile : public ModFile
     {
@@ -63,6 +64,9 @@ namespace mods_config::spec
             std::size_t valueBegin = 0;
             std::size_t valueEnd = 0;
 
+            // where the line starts in the text, after the mark of UTF-8 on the first line
+            std::size_t begin = 0;
+
             // where the next line starts in the text, or its end
             std::size_t next = 0;
 
@@ -73,6 +77,7 @@ namespace mods_config::spec
         static std::vector<Line> parse(std::string_view text);
         static const Line* find(const std::vector<Line>& lines, std::span<const std::string> path);
         static void set(std::string& text, std::span<const std::string> path, const model::Value& value);
+        static void remove(std::string& text, std::span<const std::string> path);
         std::expected<model::Value, std::string> valueIn(std::string_view text, const std::vector<Line>& lines, std::span<const std::string> path, model::StoredType type) const;
 
         // the text of the file as it was last read or written, and its lines. Empty before a read, and after

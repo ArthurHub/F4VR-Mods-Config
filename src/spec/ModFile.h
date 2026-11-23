@@ -34,7 +34,7 @@ namespace mods_config::spec
             bool table = false;
 
             // the key is removed from the file, with its value, and one the file does not have stays so: the value is
-            // not written. Only a TOML file removes a key
+            // not written. A section or table it leaves with no keys goes too
             bool remove = false;
         };
 

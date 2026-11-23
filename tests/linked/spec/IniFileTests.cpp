@@ -297,6 +297,49 @@ TEST_CASE("IniFile: a write sets each line of a key the file has more than once"
     CHECK(mod.write({ { { "main", "ICOUNT" }, 5 } }) == "[Main]\r\niCount=5\r\n[Main]\r\niCount = 5\r\n");
 }
 
+TEST_CASE("IniFile: a removed key takes each of its lines out, and keeps the comments and the rest")
+{
+    ModFile mod("iTop=1\r\n[Main]\r\niCount = 3 ; three\r\nbOn=1\r\n[Main]\r\nICOUNT=4\r\n");
+    const std::vector<IniFile::Change> changes{
+        { .path = { "main", "icount" }, .value = 0, .table = false, .remove = true },
+        { .path = { "iTop" }, .value = 0, .table = false, .remove = true },
+        { .path = { "Main", "fMissing" }, .value = 0.0f, .table = false, .remove = true },
+    };
+    CHECK(mod.write(changes) == "[Main]\r\nbOn=1\r\n[Main]\r\n");
+    CHECK_FALSE(mod.file.contains(Path{ "Main", "iCount" }));
+    CHECK(mod.file.value(Path{ "Main", "bOn" }, StoredType::Bool) == model::Value(true));
+}
+
+TEST_CASE("IniFile: a removed key takes the headings of a section it leaves with no values")
+{
+    SECTION("each heading of the section, and not its comments or blank lines")
+    {
+        ModFile mod("[Main]\r\n; about\r\niCount=3\r\n\r\n[Body]\r\nfX=1.0\r\n[Main]\r\nbOn=1\r\n");
+        const std::vector<IniFile::Change> changes{
+            { .path = { "Main", "iCount" }, .value = 0, .table = false, .remove = true },
+            { .path = { "Main", "bOn" }, .value = false, .table = false, .remove = true },
+        };
+        CHECK(mod.write(changes) == "; about\r\n\r\n[Body]\r\nfX=1.0\r\n");
+    }
+
+    SECTION("the last line, with no line break, and a file left with nothing")
+    {
+        ModFile mod("[Main]\r\niCount=3");
+        const std::vector<IniFile::Change> changes{ { .path = { "Main", "iCount" }, .value = 0, .table = false, .remove = true } };
+        CHECK(mod.write(changes).empty());
+    }
+
+    SECTION("a set and a remove of one Save")
+    {
+        ModFile mod("[Main]\r\niCount=3\r\n[Body]\r\nfX=1.0\r\n");
+        const std::vector<IniFile::Change> changes{
+            { .path = { "Main", "iCount" }, .value = 0, .table = false, .remove = true },
+            { .path = { "Body", "fX" }, .value = 2.0f, .table = false, .remove = false },
+        };
+        CHECK(mod.write(changes) == "[Body]\r\nfX=2.0\r\n");
+    }
+}
+
 TEST_CASE("IniFile: a write reads the file again, and keeps a change someone else made since it was read")
 {
     ModFile mod;

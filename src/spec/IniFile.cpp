@@ -6,6 +6,7 @@
 #include <charconv>
 #include <cmath>
 #include <format>
+#include <functional>
 #include <optional>
 #include <ranges>
 #include <utility>
@@ -271,23 +272,28 @@ namespace mods_config::spec
 
     /**
      * A text with values set in it: each replaces the text of each line of its key, and a key the text does not
-     * have is added after the last value of its section, or in a new section at the text's end. The text is
-     * checked to read back as the values. Returns the reason for a value that cannot be set.
+     * have is added after the last value of its section, or in a new section at the text's end. A change that
+     * removes its key takes the key's lines out. The text is checked to read back as the values. Returns the reason
+     * for a value that cannot be set.
      */
     std::expected<std::string, std::string> IniFile::edit(const std::string& text, const std::span<const Change> changes) const
     {
         auto edited = text;
         for (const auto& change : changes) {
-            if (change.remove) {
-                return std::unexpected(std::format("{} cannot be removed from {}: only a TOML file removes a key", pathName(change.path), name()));
-            }
             if (!keyOf(change.path)) {
                 return std::unexpected(std::format("{} is no key of {}, which has a section and a key", pathName(change.path), name()));
             }
-            set(edited, change.path, change.value);
+            if (change.remove) {
+                remove(edited, change.path);
+            } else {
+                set(edited, change.path, change.value);
+            }
         }
         const auto lines = parse(edited);
         for (const auto& change : changes) {
+            if (change.remove) {
+                continue;
+            }
             const auto written = valueIn(edited, lines, change.path, typeOf(change.value));
             if (!written || !isWritten(*written, change.value)) {
                 return std::unexpected(std::format("{} cannot be written as \"{}\" in {}", pathName(change.path), valueText(change.value, {}), name()));
@@ -321,6 +327,7 @@ namespace mods_config::spec
         std::size_t begin = text.starts_with(BOM) ? BOM.size() : 0;
         while (begin < text.size()) {
             Line line;
+            line.begin = begin;
             const auto lineBreak = text.find('\n', begin);
             line.hasBreak = lineBreak != std::string_view::npos;
             line.next = line.hasBreak ? lineBreak + 1 : text.size();
@@ -415,6 +422,44 @@ namespace mods_config::spec
         } else {
             const auto start = text.empty() || text == BOM ? std::string() : text.ends_with('\n') ? std::string(lineBreak) : std::format("{}{}", lineBreak, lineBreak);
             text += std::format("{}[{}]{}{}{}", start, section, lineBreak, newLine, lineBreak);
+        }
+    }
+
+    /**
+     * Takes each line of a key out of a text, by its section and its key. A section the removal leaves with no values
+     * goes too, each of its headings with it, while its comments and blank lines stay. A key before the first section
+     * has no heading. A key the text does not have changes nothing.
+     */
+    void IniFile::remove(std::string& text, const std::span<const std::string> path)
+    {
+        const auto [section, key] = *keyOf(path);
+        const auto lines = parse(text);
+        std::vector<const Line*> removed;
+        bool sectionKept = section.empty();
+        for (const auto& line : lines) {
+            if (line.kind != Line::Kind::Value || !sameName(line.section, section)) {
+                continue;
+            }
+            if (sameName(line.key, key)) {
+                removed.push_back(&line);
+            } else {
+                sectionKept = true;
+            }
+        }
+        if (removed.empty()) {
+            return;
+        }
+        if (!sectionKept) {
+            for (const auto& line : lines) {
+                if (line.kind == Line::Kind::Section && sameName(line.section, section)) {
+                    removed.push_back(&line);
+                }
+            }
+        }
+        // from the last line up, so each line is still where the parse put it
+        std::ranges::sort(removed, std::greater{}, &Line::begin);
+        for (const auto* line : removed) {
+            text.erase(line->begin, line->next - line->begin);
         }
     }
 
