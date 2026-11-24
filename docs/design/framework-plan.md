@@ -1,6 +1,6 @@
 # Framework work plan
 
-The framework commits (F) that delivered [CommonFramework work required](framework-requirements.md), with the mod commits (M) that used them as the test bed. All done. Per-commit notes are in each framework subsystem's README and the framework's `0.5.0` changelog; the narrative this plan had is at `git show 6a0be38:docs/design/framework-plan.md`.
+The framework commits (F) that delivered [CommonFramework work required](framework-requirements.md), with the mod commits (M) that used them as the test bed. All done, but the [VR keyboard](#vr-keyboard), work added after them. Per-commit notes are in each framework subsystem's README and the framework's `0.5.0` changelog; the narrative this plan had is at `git show 6a0be38:docs/design/framework-plan.md`.
 
 ## Commits
 
@@ -93,6 +93,19 @@ These do not need the panel, so they can be moved earlier.
 | F13 | framework | config: subscribers are notified after an override reload                   | done      |
 | F14 | framework | config: each override has an owner                                          | done      |
 | F21 | framework | config: the INI value and the set of several overrides are unit tested      | done      |
+
+### VR keyboard
+
+Not an item of the requirements. SteamVR's keyboard opens where the dashboard was last opened, its text reaches the field only by comparing whole texts, and OpenComposite and xrizer have none. The framework draws its own keyboard, typed with the rays, on every runtime, in place of SteamVR's. The design is in the framework's [`vr-keyboard.md`](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md) once F24 is in. Framework version `0.6.0`.
+
+| #   | Repo      | Commit                                                                                                          | Status |
+| --- | --------- | --------------------------------------------------------------------------------------------------------------- | ------ |
+| F22 | framework | imgui: a canvas of the framework's own ImGui context, sharing the font atlas, drawn beside a dedicated canvas   | todo   |
+| F23 | framework | imgui: the keyboard's logic: layouts, the key a point hits, Shift, Caps and pages, repeat, each key's events    | todo   |
+| F24 | framework | imgui: the VR keyboard replaces SteamVR's, typed with both rays, moved with the grip, closed by the mod's Back  | todo   |
+| F25 | framework | devbench: a `keyboard` action, its state and a key press                                                        | todo   |
+| M11 | mod       | The keyboard in the panel's theme, Back closes it and steps no page while it is open                            | todo   |
+| M12 | mod       | e2e: typing into a text setting and the search field                                                            | todo   |
 
 ## Decisions that differ from the requirements
 
