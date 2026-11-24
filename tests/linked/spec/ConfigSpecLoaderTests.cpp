@@ -208,6 +208,23 @@ TEST_CASE("ConfigSpecLoader: a section folds with isCollapsible, starts folded w
     CHECK(folds == std::vector<Fold>{ {}, { .help = "Opens and closes.", .collapsible = true }, { .collapsible = true, .collapsed = true }, {}, {} });
 }
 
+TEST_CASE("ConfigSpecLoader: a setting with searchable false is not found by its text, and one that is not true or false is a warning")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "switcher", "text": "Hidden", "default": false, "searchable": false, "storage": { "path": ["a"] } },
+        { "type": "switcher", "text": "Found", "default": false, "searchable": true, "storage": { "path": ["b"] } },
+        { "type": "switcher", "text": "Plain", "default": false, "storage": { "path": ["c"] } },
+        { "type": "switcher", "text": "Not a bool", "default": false, "searchable": "no", "storage": { "path": ["d"] } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 4);
+    CHECK(settings[0].notSearched);
+    CHECK_FALSE(settings[1].notSearched);
+    CHECK_FALSE(settings[2].notSearched);
+    CHECK_FALSE(settings[3].notSearched);
+    CHECK(problemLines(mod) == Lines{ "W Not a bool: Its searchable is not true or false: it is left out, and search finds the row. [Not a bool] content[3].searchable" });
+}
+
 TEST_CASE("ConfigSpecLoader: a section's maxOn limits its switchers, in its nested sections too, and a switcher under one counts by its countsAs")
 {
     const auto mod = loaded(configSpecOf(R"(

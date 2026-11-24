@@ -59,6 +59,16 @@ def test_back_shows_the_page_whole_and_keeps_the_query(menu):
     assert state["search"]["filtered"], "another page shown while searching is filtered"
 
 
+def test_a_row_that_is_not_searchable_is_not_found_by_its_name(menu):
+    menu.select(CONFIG_SPEC_SHOWCASE, ("Detailed Examples", "Switchers"))
+    search(menu, "not searchable")
+    assert not menu.setting("Not searchable")["found"]
+
+    # its page found by its name shows it with the page's other rows
+    search(menu, "switchers")
+    assert menu.setting("Not searchable")["found"]
+
+
 def test_a_row_a_condition_hides_is_not_found(menu):
     menu.select(CONFIG_SPEC_SHOWCASE, CONDITIONS)
     search(menu, "in the section")

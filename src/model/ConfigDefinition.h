@@ -742,7 +742,8 @@ namespace mods_config::model
         // and so do the menu's Categories rows
         bool omitDefault = false;
 
-        // a search does not find the row by its text: only a setting the menu makes has it
+        // a search does not find the row by its text (`"searchable": false`), as the menu's Categories rows, named
+        // after the mods a search finds already. It is still shown with a section or a page that matches
         bool notSearched = false;
 
         // how many places of its sections' limits a switcher takes while it is on (`countsAs`): one, or more for a

@@ -32,6 +32,7 @@ bOff = false
 bNoValueType = true
 bNoHelp = false
 bLongName = false
+bNotSearchable = false
 
 [Sliders]
 fFraction = 0.5

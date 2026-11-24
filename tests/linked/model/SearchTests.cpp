@@ -241,12 +241,12 @@ TEST_CASE("Search: the items it shows are its rows and the sections they are in,
     CHECK(found->rows == std::unordered_set<const model::Item*>{ &rows[0], &rows[1] });
 }
 
-TEST_CASE("Search: a row the menu makes is not found by its text, and is shown with its page that is found by its name")
+TEST_CASE("Search: a row that is not searchable is not found by its text, and is shown with its page that is found by its name")
 {
     model::Mod mod{ .name = "Menu", .displayName = "Menu", .frontPage = {}, .pages = {} };
-    auto made = std::get<model::Setting>(setting("Flashlight"));
-    made.notSearched = true;
-    mod.pages.push_back(page("Categories", { made, setting("Flashlight width") }));
+    auto hidden = std::get<model::Setting>(setting("Flashlight"));
+    hidden.notSearched = true;
+    mod.pages.push_back(page("Categories", { hidden, setting("Flashlight width") }));
 
     // by the row's text, only the row that is searched is found
     auto found = model::searchMod(mod, SearchQuery("flashlight"), nullptr);

@@ -23,7 +23,7 @@ namespace mods_config::spec
     namespace
     {
         // the fields of a setting row and of its parts, as the schema has them (docs/design/schema.md)
-        constexpr std::array<std::string_view, 18> SETTING_FIELDS{ "type",
+        constexpr std::array<std::string_view, 19> SETTING_FIELDS{ "type",
             "id",
             "text",
             "help",
@@ -40,7 +40,8 @@ namespace mods_config::spec
             "applies",
             "visibleWhen",
             "enabledWhen",
-            "countsAs" };
+            "countsAs",
+            "searchable" };
         // a setting's parts:
         constexpr std::array<std::string_view, 23> VALUE_OPTIONS_FIELDS{ "min",
             "max",
@@ -247,6 +248,24 @@ namespace mods_config::spec
                     "Its default is not one of its values: outside its limits, of a length it does not allow, or none of its options. It has no Reset.");
             }
             return std::nullopt;
+        }
+
+        /**
+         * Whether a search finds the row by its text: unless its `searchable` is false. One that is not true or false
+         * is left out, which is reported.
+         */
+        bool loadSearchable(const Json& row, ConfigSpecReading& reading)
+        {
+            const auto found = row.find("searchable");
+            if (found == row.end()) {
+                return true;
+            }
+            if (!found->is_boolean()) {
+                const Into into(reading, "searchable");
+                reading.report(model::Severity::Warning, "Its searchable is not true or false: it is left out, and search finds the row.");
+                return true;
+            }
+            return found->get<bool>();
         }
 
         // the most decimals a number's display can have, as MCM's menu writes a number at the most
@@ -624,7 +643,7 @@ namespace mods_config::spec
             .readOnly = readOnly,
             .warnings = {},
             .omitDefault = omitDefault,
-            .notSearched = false,
+            .notSearched = !loadSearchable(row, reading),
             .countsAs = countsAs };
     }
 

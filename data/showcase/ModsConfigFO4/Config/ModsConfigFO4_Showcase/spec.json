@@ -460,6 +460,15 @@
                   "help": "Its name ends in an ellipsis, and the help line has all of it.",
                   "default": false,
                   "storage": { "path": ["Switchers", "bLongName"] }
+                },
+                {
+                  "type": "switcher",
+                  "valueType": "bool",
+                  "text": "Not searchable",
+                  "help": "A switcher with searchable false: search doesn't find it by its name, only with its section, page or mod.",
+                  "default": false,
+                  "searchable": false,
+                  "storage": { "path": ["Switchers", "bNotSearchable"] }
                 }
               ]
             }

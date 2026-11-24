@@ -43,6 +43,8 @@ On or off, a `bool`, written to a TOML file as `true` or `false` and to an INI f
 
 ![Switchers](../assets/showcase/switchers.png)
 
+Any setting can have `"searchable": false`, as **Not searchable** has: search doesn't find it by its name, only with its section, page or mod. It is for rows named after something search finds already, as the menu's Categories rows, one per mod. See [Settings](../design/schema.md#settings).
+
 ### Sliders
 
 A number in a range. `valueOptions` has its `min`, `max` and `step`, and the arrows at its ends step it.

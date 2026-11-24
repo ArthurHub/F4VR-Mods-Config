@@ -241,6 +241,7 @@ Sections and pages both nest.
 
 - Every row (setting, section, button, choice option) has `text` (what it says) and optional `help` (help line), MCM's names.
 - `"html": true` styles a setting's or button's `text` with the [text tags](#text-spacers-and-images), kept to one line: breaks become spaces, alignment is ignored, font sizes cap at the row size. Search and the help line use the untagged label. Only the boolean `true` enables it. `help`, `buttonText`, section headings and options stay plain.
+- `"searchable": false` keeps a setting out of [search](ui-and-vr-interaction.md#search) by its text: it is shown only with a section, page or mod that matches. It is for rows named after something search finds already, as the menu's Categories rows, one per mod. A value that isn't true or false is a warning, and the row is searchable.
 - Every writable setting has a required inline `default`, validated like a player value. It is what Reset sets, so it must match the mod's own default.
 - A `textinput` with `valueType` `int`/`float` takes a number (MCM's `textinputInt`/`textinputFloat`), limited by `min`/`max`.
 

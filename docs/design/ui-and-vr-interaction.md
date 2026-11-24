@@ -258,6 +258,7 @@ The tree's header is a search field that finds a setting by name across all mods
 - Idle, it says what it searches: "Search 11 mods". A press shows the keyboard as a text input does, filtering per key. Done and the keyboard's close keep the query; closing the menu empties it.
 - It matches the names the player sees: mod display name, page, section heading, and the text of a setting, button or hotkey, config spec and MCM alike (an MCM row's text from the game too); not help or text rows. Each query word must start a word of the name, any order, ignoring case and accents: "hol siz" finds "Holster size". A Chinese, Japanese or Korean word matches anywhere.
 - A word can match the row's mod, page or section name, as long as one word matches the row's own: "frik height" finds FRIK's Height.
+- A setting with [`"searchable": false`](schema.md#settings) isn't found by its own text, only with its section, page or mod.
 - The most specific match wins: a matching section, page or mod shows everything under it only when nothing under it matches.
 - In the selected mod, a setting hidden by a condition isn't found. Other mods' values aren't read, so their conditions hold and their hidden settings are found.
 - With a query, the tree is flat: only mods with a match, each expanded to its matching pages, with counts on the right (a mod's row counts its front page). A mod found only by name is closed, with its total, until selected. Matches are underlined.
