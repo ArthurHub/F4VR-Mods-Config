@@ -13,6 +13,7 @@
 #include "api/ModsConfigFO4Api.h"
 #include "devbench/DevBench.h"
 #include "imgui/ImGuiPointer.h"
+#include "model/ChoiceOptions.h"
 #include "model/TextStates.h"
 #include "ui/ButtonView.h"
 #include "ui/PageRows.h"
@@ -609,7 +610,8 @@ namespace mods_config::devbench
         /**
          * A value of the request in the type of a setting: a bool for a switcher, a number for a slider, a text
          * for a text input, the TOML text of a binding's, a color's and a transform's table or its INI line, the name of a haptic's pattern, and for
-         * a choice the value of one of the options its store has, or its text.
+         * a choice the value of one of the options its store has, or its text. A choice that takes a typed value also
+         * takes any other text, as the keyboard's entry types it.
          */
         model::Value valueFromJson(const model::Setting& setting, const model::Store& store, const json& given)
         {
@@ -651,6 +653,12 @@ namespace mods_config::devbench
                 for (const auto& option : store.options(setting)) {
                     if (valueToJson(option.value) == value || valueToJson(option.value) == given || (given.is_string() && option.text == given.get<std::string>())) {
                         return option.value;
+                    }
+                }
+                // a choice that takes a typed value takes the text as the player types it
+                if (setting.valueOptions.typedOption && given.is_string()) {
+                    if (auto typed = model::typedOptionValue(given.get<std::string>(), store.options(setting))) {
+                        return std::move(*typed);
                     }
                 }
                 throw std::runtime_error("the choice has no option of the value or the text " + value.dump());
