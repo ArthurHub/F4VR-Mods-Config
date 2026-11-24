@@ -42,7 +42,7 @@ namespace mods_config::spec
             "enabledWhen",
             "countsAs" };
         // a setting's parts:
-        constexpr std::array<std::string_view, 22> VALUE_OPTIONS_FIELDS{ "min",
+        constexpr std::array<std::string_view, 23> VALUE_OPTIONS_FIELDS{ "min",
             "max",
             "step",
             "options",
@@ -51,6 +51,7 @@ namespace mods_config::spec
             "listFromProperty",
             "listFromFolder",
             "listFromClientCallback",
+            "allowTyped",
             "allowEmpty",
             "minLength",
             "maxLength",
@@ -148,7 +149,7 @@ namespace mods_config::spec
 
         /**
          * The `valueOptions` of a setting: the least, the most and the step of a number, the fewest and the most
-         * characters of a text input of a text, the hands, the ways and the buttons a binding takes, and the options of a
+         * characters of a text input of a text and of a typed value of a choice (`allowTyped`), the hands, the ways and the buttons a binding takes, and the options of a
          * choice: its own `options`, the shared list
          * its `sharedOptions` names, where it reads them in the game, the folder whose files they are, or that its mod's
          * client gives them, with a `listFromClientCallback` that is true. An `allowEmpty` of false is a least of one character. A length that
@@ -169,17 +170,18 @@ namespace mods_config::spec
                 valueOptions.max = getNumber(*found, "max", valueOptions.max);
                 valueOptions.step = getNumber(*found, "step", valueOptions.step);
             }
-            if (hasOptions && type == model::SettingType::TextInput && valueType == model::StoredType::String) {
+            loadFrameworkValueOptions(type, hasOptions ? &*found : nullptr, valueOptions, reading);
+            if (listsOptions(type)) {
+                loadChoiceOptions(type, valueType, hasOptions ? &*found : nullptr, valueOptions, reading);
+            }
+            const bool isText = type == model::SettingType::TextInput && valueType == model::StoredType::String;
+            if (hasOptions && (isText || valueOptions.typedOption)) {
                 valueOptions.minLength = getLength(*found, "minLength");
                 valueOptions.maxLength = getLength(*found, "maxLength");
                 const auto allowEmpty = found->find("allowEmpty");
                 if (allowEmpty != found->end() && allowEmpty->is_boolean() && !allowEmpty->get<bool>()) {
                     valueOptions.minLength = (std::max)(valueOptions.minLength, 1);
                 }
-            }
-            loadFrameworkValueOptions(type, hasOptions ? &*found : nullptr, valueOptions, reading);
-            if (listsOptions(type)) {
-                loadChoiceOptions(type, valueType, hasOptions ? &*found : nullptr, valueOptions, reading);
             }
             return valueOptions;
         }
@@ -574,6 +576,14 @@ namespace mods_config::spec
         const bool made = row.contains(MADE_ROW_PATH);
         auto [id, info] = registerSetting(row, storage, type, valueType, reading);
         auto valueOptions = loadValueOptions(row, type, valueType, reading);
+        if (sets && valueOptions.typedOption) {
+            const Into into(reading, "valueOptions");
+            const Into intoTyped(reading, "allowTyped");
+            reading.report(model::Severity::Warning, "A choice whose options set other settings takes no allowTyped, as a typed text sets none: it is ignored.");
+            valueOptions.typedOption = false;
+            valueOptions.minLength = 0;
+            valueOptions.maxLength = 0;
+        }
         if (info) {
             info->tableForm = tableForm;
             info->valueOptions = valueOptions;

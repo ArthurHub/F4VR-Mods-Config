@@ -149,6 +149,61 @@ TEST_CASE("ConfigSpecLoader: a choice with listFromClientCallback takes its opti
     CHECK(problemLines(mod) == Lines{ "E Not true: It has no list of options, or names no shared list of its config spec: it has no options. [Not true] content[1].valueOptions" });
 }
 
+TEST_CASE("ConfigSpecLoader: a dropdown of a string with allowTyped takes a typed value, of its lengths, with a default that is none of its options")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "dropdown", "valueType": "string", "text": "Tag", "default": "Mine",
+          "valueOptions": { "options": [{ "value": "Gameplay", "text": "Gameplay" }, { "value": "Combat", "text": "Combat" }], "allowTyped": true, "minLength": 2, "maxLength": 12 }, "storage": { "path": ["a"] } },
+        { "type": "dropdown", "valueType": "string", "text": "From the client", "default": "",
+          "valueOptions": { "listFromClientCallback": true, "allowTyped": true, "allowEmpty": false }, "storage": { "path": ["b"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Too long", "default": "Much too long a tag",
+          "valueOptions": { "options": [{ "value": "Gameplay", "text": "Gameplay" }], "allowTyped": true, "maxLength": 8 }, "storage": { "path": ["c"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Lengths only", "default": "Gameplay",
+          "valueOptions": { "options": [{ "value": "Gameplay", "text": "Gameplay" }], "maxLength": 4 }, "storage": { "path": ["d"] } }
+    )"));
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 4);
+    CHECK(settings[0].valueOptions.typedOption);
+    CHECK(settings[0].valueOptions.minLength == 2);
+    CHECK(settings[0].valueOptions.maxLength == 12);
+    CHECK(settings[0].defaultValue == model::Value("Mine"s));
+    CHECK(settings[1].valueOptions.typedOption);
+    CHECK(settings[1].valueOptions.minLength == 1);
+    CHECK_FALSE(settings[2].defaultValue);
+    // a choice that takes no typed value has no lengths: its options are its values
+    CHECK_FALSE(settings[3].valueOptions.typedOption);
+    CHECK(settings[3].valueOptions.maxLength == 0);
+    CHECK(settings[3].defaultValue == model::Value("Gameplay"s));
+    CHECK(problemLines(mod) == Lines{ "E Too long: Its default is not one of its values: outside its limits, of a length it does not allow, or none of its options. It has no "
+                                      "Reset. [Too long] content[2].default" });
+}
+
+TEST_CASE("ConfigSpecLoader: allowTyped on a stepper, a choice of another type, of files or of presets is a warning, and ignored")
+{
+    const test_files::TempFolder folder;
+    folder.write("Data/Textures/MyMod/1_Solid.dds", "");
+    const auto text = configSpecOf(R"(
+        { "type": "stepper", "valueType": "string", "text": "Stepper", "default": "a", "valueOptions": { "options": [{ "value": "a", "text": "A" }], "allowTyped": true },
+          "storage": { "path": ["a"] } },
+        { "type": "dropdown", "valueType": "int", "text": "Places", "default": 0, "valueOptions": { "options": ["A"], "allowTyped": true }, "storage": { "path": ["b"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Files", "default": "1_Solid.dds",
+          "valueOptions": { "listFromFolder": { "path": "Textures/MyMod" }, "allowTyped": true }, "storage": { "path": ["c"] } },
+        { "type": "dropdown", "valueType": "string", "id": "quality", "text": "Quality",
+          "valueOptions": { "options": [{ "value": "low", "text": "Low", "sets": { "detail": 1 } }], "allowTyped": true } },
+        { "type": "slider", "valueType": "int", "id": "detail", "text": "Detail", "default": 1, "valueOptions": { "min": 0, "max": 2 }, "storage": { "path": ["d"] } }
+    )");
+    const auto mod = spec::loadConfigSpec(text, {}, {}, { .data = folder.path / "Data", .myGames = folder.path / "MyGames" });
+    REQUIRE(mod);
+    for (const auto& setting : settingsOf(*mod)) {
+        CHECK_FALSE(setting.valueOptions.typedOption);
+    }
+    CHECK(problemLines(*mod) ==
+          Lines{ "W Stepper: Only a dropdown whose valueType is string takes allowTyped: it is ignored. [Stepper] content[0].valueOptions.allowTyped",
+              "W Places: Only a dropdown whose valueType is string takes allowTyped: it is ignored. [Places] content[1].valueOptions.allowTyped",
+              "W Files: A choice of files takes no allowTyped, as a typed text names no file: it is ignored. [Files] content[2].valueOptions.allowTyped",
+              "W Quality: A choice whose options set other settings takes no allowTyped, as a typed text sets none: it is ignored. [Quality] content[3].valueOptions.allowTyped" });
+}
+
 TEST_CASE("ConfigSpecLoader: a dropdown of a string lists the files of a folder, whose default is in it, and a folder with no files is a warning")
 {
     const test_files::TempFolder folder;

@@ -236,7 +236,8 @@ namespace mods_config::model
         float max = 0.0f;
         float step = 1.0f;
 
-        // the fewest and the most characters of a text input of a text, and 0 for no limit. A config spec's
+        // the fewest and the most characters of a text input of a text, and of a typed value of a dropdown
+        // (`typedOption`), and 0 for no limit. A config spec's
         // `allowEmpty` of false is a least of 1
         int minLength = 0;
         int maxLength = 0;
@@ -253,8 +254,9 @@ namespace mods_config::model
         bool clientOptions = false;
 
         // a dropdown of texts whose list ends with an entry that types a value that is not in it, on the keyboard, of
-        // at most `maxLength` characters. Only a setting the menu makes has it: its store reads its options again as it
-        // is set, so its client can offer the pending values
+        // `minLength` to `maxLength` characters (`allowTyped`). A value that is none of its options is valid, and its
+        // store offers the setting's own value as an option. The store reads its options again as it is set, so a
+        // client can offer the pending values of its other rows
         bool typedOption = false;
 
         // the folder a dropdown's options are the files of. A config spec's has none in `options` until its store lists it

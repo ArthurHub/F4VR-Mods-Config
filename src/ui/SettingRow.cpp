@@ -321,7 +321,7 @@ namespace
         if (isChoice) {
             bool pulse = false;
             const auto picked = context.choices.edit(setting, state.choiceOptions, state.right, state.pos.y, edited.choiceRow, edited.chosen, pulse);
-            // the place after the options is Type a new name, which starts the edit of a text in the dropdown's box
+            // the place after the options is Type your own, which starts the edit of a text in the dropdown's box
             const bool typesNew = picked == state.choiceOptions.size();
             if (picked && !typesNew && picked != edited.chosen && context.store->set(setting, state.choiceOptions[*picked].value)) {
                 edited.chosen = picked;

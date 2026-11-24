@@ -666,6 +666,23 @@
                     ]
                   },
                   "storage": { "path": ["Choices", "iLong"] }
+                },
+                {
+                  "type": "dropdown",
+                  "valueType": "string",
+                  "text": "Your own",
+                  "help": "An allowTyped: Type your own, last in the list, types a value that is none of its options, of at most 16 characters, which the list then shows after its options.",
+                  "default": "Gameplay",
+                  "valueOptions": {
+                    "options": [
+                      { "value": "Gameplay", "text": "Gameplay" },
+                      { "value": "Combat", "text": "Combat" },
+                      { "value": "Interface", "text": "Interface" }
+                    ],
+                    "allowTyped": true,
+                    "maxLength": 16
+                  },
+                  "storage": { "path": ["Choices", "sTag"] }
                 }
               ]
             },

@@ -54,6 +54,8 @@ def test_choices(show, game):
     save_and_check(menu, game, "Values", "fast")
     assert len(menu.setting("Settlements")["options"]) > 1, "the settlements of the game's FormList"
     assert menu.setting("Texture")["options"], "the files of the showcase's texture folder"
+    row = save_and_check(menu, game, "Your own", "Mine")
+    assert row["options"][-1]["text"] == "Mine", "a typed value that is none of the options is offered after them"
 
 
 def test_choices_that_set_other_settings(show):

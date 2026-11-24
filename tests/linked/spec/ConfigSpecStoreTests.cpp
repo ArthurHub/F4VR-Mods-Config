@@ -2502,14 +2502,11 @@ TEST_CASE("ConfigSpecStore: a row of the Categories page of the mod's own config
 TEST_CASE("ConfigSpecStore: a choice with a typed entry has its options read again as it is set, discarded and read again, so its client can offer a pending value")
 {
     Session session(R"(
-        { "type": "dropdown", "valueType": "string", "id": "first", "text": "First", "default": "", "valueOptions": { "listFromClientCallback": true },
+        { "type": "dropdown", "valueType": "string", "id": "first", "text": "First", "default": "", "valueOptions": { "listFromClientCallback": true, "allowTyped": true },
           "storage": { "path": ["Main", "sFirst"] } },
-        { "type": "dropdown", "valueType": "string", "id": "second", "text": "Second", "default": "", "valueOptions": { "listFromClientCallback": true },
+        { "type": "dropdown", "valueType": "string", "id": "second", "text": "Second", "default": "", "valueOptions": { "listFromClientCallback": true, "allowTyped": true },
           "storage": { "path": ["Main", "sSecond"] } }
     )");
-    for (auto& item : session.mod.frontPage.items) {
-        std::get<model::Setting>(item).valueOptions.typedOption = true;
-    }
     auto& store = session.store;
     // the client offers its names and the values of both choices, as the menu offers the pending categories
     const auto names = [&session](const model::Setting&) {
@@ -2548,6 +2545,47 @@ TEST_CASE("ConfigSpecStore: a choice with a typed entry has its options read aga
     CHECK(store.options(session.setting(0)).size() == 2);
 }
 
+TEST_CASE("ConfigSpecStore: a choice with allowTyped takes a value that is none of its options, of its lengths, and offers it last")
+{
+    Session session(R"(
+        { "type": "dropdown", "valueType": "string", "id": "tag", "text": "Tag", "default": "Combat",
+          "valueOptions": { "options": [{ "value": "Gameplay", "text": "Gameplay" }, { "value": "Combat", "text": "Combat" }], "allowTyped": true, "maxLength": 8 }, "storage": { "path": ["Main", "sTag"] } }
+    )");
+    auto& store = session.store;
+    const auto& tag = session.setting(0);
+    const auto texts = [&store, &tag] {
+        std::vector<std::string> texts;
+        for (const auto& option : store.options(tag)) {
+            texts.push_back(option.text);
+        }
+        return texts;
+    };
+    using Texts = std::vector<std::string>;
+
+    // a value in the file that is none of the options is valid, and offered after them
+    session.open("[Main]\r\nsTag = \"Mine\"\r\n");
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(texts() == Texts{ "Gameplay", "Combat", "Mine" });
+
+    // a typed value takes its place while it waits for Save, and an option is offered alone
+    REQUIRE(store.set(tag, "Stealth"s));
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(texts() == Texts{ "Gameplay", "Combat", "Stealth" });
+    REQUIRE(store.set(tag, "Combat"s));
+    CHECK(texts() == Texts{ "Gameplay", "Combat" });
+
+    // one longer than its maxLength is invalid, and an empty one is not offered
+    REQUIRE(store.set(tag, "Much too long"s));
+    CHECK(session.value(0).invalid);
+    REQUIRE(store.set(tag, ""s));
+    CHECK_FALSE(session.value(0).invalid);
+    CHECK(texts() == Texts{ "Gameplay", "Combat" });
+
+    // a Discard offers the value in the file again
+    store.discard(tag);
+    CHECK(texts() == Texts{ "Gameplay", "Combat", "Mine" });
+}
+
 TEST_CASE("ConfigSpecStore: a name typed in a row of the Categories page is offered by the others at once, as the menu's own client gives them")
 {
     auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
@@ -2578,7 +2616,8 @@ TEST_CASE("ConfigSpecStore: a name typed in a row of the Categories page is offe
     CHECK(model::withPendingChoices({ { "ss2", "Gameplay" } }, own, store) == model::CategoryChoices{ { "ss2", "Mods I Like" } });
     CHECK_FALSE(store.value(second).invalid);
     const auto texts = store.options(first) | std::views::transform(&model::Option::text) | std::ranges::to<std::vector>();
-    CHECK(texts == std::vector<std::string>{ "Gameplay", "Mods I Like", "Settlements", "No category" });
+    // the menu's own category, Interface, is none of the listed mods', so the store offers it as the first row's value
+    CHECK(texts == std::vector<std::string>{ "Gameplay", "Mods I Like", "Settlements", "No category", "Interface" });
 }
 
 namespace

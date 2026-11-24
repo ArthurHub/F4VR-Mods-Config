@@ -194,7 +194,7 @@ Back is a tap of the grip while pointing at the menu. It closes the current popu
   <summary>How do I move a mod to another category?</summary>
 &#10240;
 
-Pick **Mods Config FO4 VR** in the list, then the **Categories** page, and pick the mod's category in its dropdown. **Type a new name** makes one of your own, and **No category** puts the mod last. Save keeps it, and Reset gives the mod its own category back. The list is grouped from 20 mods: **Min mods to group by category** on the **Panel** page changes that.
+Pick **Mods Config FO4 VR** in the list, then the **Categories** page, and pick the mod's category in its dropdown. **Type your own** makes one of your own, and **No category** puts the mod last. Save keeps it, and Reset gives the mod its own category back. The list is grouped from 20 mods: **Min mods to group by category** on the **Panel** page changes that.
 
 </details>
 

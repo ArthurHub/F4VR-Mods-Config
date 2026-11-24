@@ -14,8 +14,8 @@
 namespace mods_config::ui
 {
     // the entry that a dropdown with a typed entry ends with, and what the help line says of it
-    constexpr auto TYPED_OPTION_TEXT = "Type a new name";
-    constexpr auto TYPED_OPTION_HELP = "Opens the keyboard to type a name that is not in the list.";
+    constexpr auto TYPED_OPTION_TEXT = "Type your own";
+    constexpr auto TYPED_OPTION_HELP = "Opens the keyboard to type a value that is not in the list.";
 
     /**
      * What the row of a stepper or a dropdown tells of the pointer in the frame that is drawn.

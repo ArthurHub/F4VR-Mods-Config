@@ -244,8 +244,8 @@ namespace mods_config::ui
      * options scrolls, from the chosen option as it opens. A press on an option picks it and closes the
      * list, and a press beside the list closes it and does nothing else: ImGui gives the page under an open
      * list no press. The list of a haptic has each pattern's shape after its option's text, and the list of a dropdown
-     * with a typed entry ends with Type a new name.
-     * Returns the option that was picked, the place after the options for Type a new name, and none.
+     * with a typed entry ends with Type your own.
+     * Returns the option that was picked, the place after the options for Type your own, and none.
      */
     std::optional<std::size_t> Choices::editList(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
         const std::optional<std::size_t> chosen, bool& pulse)

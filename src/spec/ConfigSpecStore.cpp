@@ -1554,6 +1554,31 @@ namespace mods_config::spec
     }
 
     /**
+     * The options of a choice: those it has or reads, and for one that takes a typed value, its value last while that
+     * is none of them, so its list shows it and has it chosen. The value is the pending one, or else the baseline; an
+     * empty text is not offered.
+     */
+    const std::vector<model::Option>& ConfigSpecStore::options(const model::Setting& setting) const
+    {
+        const auto& options = _options.of(setting);
+        const auto found = setting.valueOptions.typedOption ? _entries.find(&setting) : _entries.end();
+        if (found == _entries.end()) {
+            return options;
+        }
+        const auto& entry = found->second;
+        const auto& value = entry.pending ? entry.pending : entry.baseline;
+        const auto* text = value ? std::get_if<std::string>(&*value) : nullptr;
+        if (!text || text->empty() || std::ranges::any_of(options, [&value](const model::Option& option) {
+                return model::sameValue(option.value, *value);
+            })) {
+            return options;
+        }
+        entry.typedOptions = options;
+        entry.typedOptions.push_back({ .value = *value, .text = *text });
+        return entry.typedOptions;
+    }
+
+    /**
      * Whether a choice with a typed entry has a pending value, which its client offers among its options.
      */
     bool ConfigSpecStore::hasPendingTyped() const

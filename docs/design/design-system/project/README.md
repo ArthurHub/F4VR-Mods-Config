@@ -149,7 +149,7 @@ There is no icon font, and Roboto has no arrows or check marks, so every icon is
 - The commit is **Save**, never Apply. Its partners are **Discard** and **Cancel**. Per row it is **Reset**, and **Discard** while the row's change is pending.
 - Name what happened and what to do: "Must be 0.50 to 1.50", "Enter a value from 0.50 to 1.50, or Reset it to 1.00."
 - Every mod has the Save bar, an MCM mod's too: a config spec's change waits for Save, and an MCM change is made as it is made, as in MCM's menu, so its bar and its dialog say Keep and Revert, in place of Save and Discard, which would claim a write that does not happen. Say when a change takes effect only where the mod's config spec says it: the menu does not know it otherwise. An MCM mod has the `MCM` tag in the tree, as its change is made at once: do not group MCM mods apart or mark them anywhere else.
-- An entry that opens the keyboard says so in words: "Type a new name". Do not end a label with an ellipsis: `…` is outside the font's range, and three dots read as a typo in this voice.
+- An entry that opens the keyboard says so in words: "Type your own". Do not end a label with an ellipsis: `…` is outside the font's range, and three dots read as a typo in this voice.
 - Help reads "Name: help": the setting's name in `green`, a colon, the help in `green-muted`. Do not repeat the name on a line of its own or write "help".
 - Counts use the number and the noun: "1 unsaved change", "3 pages".
 

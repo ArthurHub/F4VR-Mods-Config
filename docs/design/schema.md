@@ -749,6 +749,30 @@ A `string` `dropdown` can list a folder's files, like MCM's `dropdownFiles`, for
 
 The client answers through the [native API](architecture.md#options-from-a-client) on selection, in either option form with values in the setting's `valueType`. Without an answer the choice has no options, disabled, with the reason. A file value not among them is invalid; `default` is any value of the type. The menu's own config spec uses it for its Config spec setting (the config specs it found).
 
+### Typed values
+
+A `string` `dropdown` with `allowTyped` also takes a value the player types, for names a list can't hold, as a tag or a group of their own.
+
+```json
+{
+  "type": "dropdown",
+  "valueType": "string",
+  "text": "Group",
+  "default": "Main",
+  "valueOptions": {
+    "options": [{ "value": "Main", "text": "Main" }, { "value": "Spare", "text": "Spare" }],
+    "allowTyped": true,
+    "maxLength": 24
+  },
+  "storage": { "path": ["Main", "sGroup"] }
+}
+```
+
+- The list ends with `Type your own`, which opens the keyboard in the dropdown's box. A typed text is trimmed, and an empty one sets nothing. A text that is an option's, in any case, picks that option.
+- A value that is none of the options is valid, typed or in the file, while its length passes `minLength`, `maxLength` and `allowEmpty` ([Validation](#validation)). The list shows it after the options, chosen. `default` is any text of those lengths.
+- The options come from anywhere a choice's do, but a folder. With `listFromClientCallback`, the client is asked again after each change of the row and each Discard, so it can offer what was typed in another row.
+- On a `stepper`, a choice of another type, a choice of files or one whose options have `sets`, `allowTyped` is a warning, and ignored.
+
 ### Options that set other settings
 
 A `stepper` or `dropdown` whose written options (its own or a shared list) have `sets` or `alsoSets` is a choice of presets: picking an option sets other settings, and the choice keeps no value of its own.
@@ -912,8 +936,8 @@ A warning to the player is a `text` row, as in MCM; the only one the host draws 
 { "valueOptions": { "allowEmpty": false, "minLength": 1, "maxLength": 64 } }
 ```
 
-- `allowEmpty: false` equals `minLength: 1`. Lengths count characters, not bytes; typing stops at `maxLength`.
-- Choice values must be among their options.
+- `allowEmpty: false` equals `minLength: 1`. Lengths count characters, not bytes; typing stops at `maxLength`. They limit a text input's text, and a [typed value](#typed-values) of a dropdown.
+- Choice values must be among their options, but for a dropdown that takes a typed value.
 - Config spec errors disable only the affected content where safe and go to the log and [Developer tools](ui-and-vr-interaction.md#developer-tools); an unreadable config spec is [not available](ui-and-vr-interaction.md#notices). Invalid player input disables Save until fixed.
 
 ## Localization

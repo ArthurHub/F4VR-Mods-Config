@@ -51,6 +51,7 @@ sPlace = "hip"
 iOtherHand = 1
 iMany = 0
 iLong = 1
+sTag = "Gameplay"
 sSettlement = "Abernathy Farm"
 iCompanion = 0
 sTexture = 'data\Textures\ModsConfigFO4_Showcase\banner.dds'

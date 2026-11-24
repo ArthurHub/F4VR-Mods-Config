@@ -226,7 +226,8 @@ namespace mods_config::model
     /**
      * What is wrong with a value of a setting, as the end of a sentence of the value: `is not from 0.5 to 1.5`. A text
      * of a number that is none, a number outside the limits, a text of a length its setting does not allow, and none of
-     * the options of a choice, which of a choice of files names its folder. A framework type's is a sentence of its own
+     * the options of a choice, which of a choice of files names its folder. A choice that takes a typed value
+     * (`typedOption`) takes one that is none of its options, of a length it allows. A framework type's is a sentence of its own
      * (`isFrameworkType`): the framework's reason for a table, a binding's untaken part, and a name of no haptic pattern.
      * A number field's value is its number or its text. A check a value of another alternative has no part in passes.
      * Empty for a value that is one.
@@ -249,11 +250,12 @@ namespace mods_config::model
                 return std::format("is not from {} to {}", valueOptions.min, valueOptions.max);
             }
         }
-        if (isChoice(type) && !isOption(options, value)) {
+        const bool typed = isChoice(type) && !isOption(options, value);
+        if (typed && !valueOptions.typedOption) {
             return valueOptions.folderOptions ? std::format("is not in {}", folderText(*valueOptions.folderOptions)) : "is none of its options";
         }
         const auto* text = std::get_if<std::string>(&value);
-        if (type == SettingType::TextInput && !numberField && text) {
+        if (((type == SettingType::TextInput && !numberField) || typed) && text) {
             const int length = textLength(*text);
             if (length < valueOptions.minLength) {
                 return std::format("has {} character{}, and needs at least {}", length, length == 1 ? "" : "s", valueOptions.minLength);

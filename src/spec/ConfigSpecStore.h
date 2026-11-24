@@ -89,10 +89,7 @@ namespace mods_config::spec
         bool set(const model::Setting& setting, const model::Value& value) override;
         std::optional<model::Value> defaultValue(const model::Setting& setting) override;
 
-        const std::vector<model::Option>& options(const model::Setting& setting) const override
-        {
-            return _options.of(setting);
-        }
+        const std::vector<model::Option>& options(const model::Setting& setting) const override;
 
         bool isDirty(const model::Setting& setting) const override;
         std::size_t dirtyCount() const override;
@@ -189,6 +186,10 @@ namespace mods_config::spec
 
             // what the mod's client says is set in place of the value for the session, the one in effect first
             std::vector<model::Override> overrides;
+
+            // the options of a choice that takes a typed value, with its value that is none of them last, as `options`
+            // gives them
+            mutable std::vector<model::Option> typedOptions;
         };
 
         /**

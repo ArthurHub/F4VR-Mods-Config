@@ -50,7 +50,7 @@ The list's header is a search field: type a name and the list shows the mods and
 
 With 20 mods or more, the list is grouped by category: Gameplay, Interface, Settlements and so on, with **No category** last. A press on a category opens or closes it. A mod is in the category its author gave it, or the one the menu knows for it.
 
-To move a mod, pick **Mods Config FO4 VR**, then the **Categories** page: each mod has a dropdown of the categories. **Type a new name**, last in the list, makes a category of your own. Save keeps your choices, and **Reset** puts a mod back in its own category. Change from how many mods the list is grouped with **Min mods to group by category** on the **Panel** page: 0 always groups it.
+To move a mod, pick **Mods Config FO4 VR**, then the **Categories** page: each mod has a dropdown of the categories. **Type your own**, last in the list, makes a category of your own. Save keeps your choices, and **Reset** puts a mod back in its own category. Change from how many mods the list is grouped with **Min mods to group by category** on the **Panel** page: 0 always groups it.
 
 ![The Categories page](assets/categories-page.jpg)
 

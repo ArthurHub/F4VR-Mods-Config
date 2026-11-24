@@ -6003,7 +6003,7 @@ namespace
     }
 
     /**
-     * Where Type a new name is in the open list of the dropdown of a row, after its options: further from them than
+     * Where Type your own is in the open list of the dropdown of a row, after its options: further from them than
      * they are from each other.
      */
     ImVec2 typedEntry(const int place, const int options)
@@ -6013,7 +6013,7 @@ namespace
     }
 }
 
-TEST_CASE("FullPanel: Type a new name, last in the list of a dropdown, types its value on the keyboard, which the other dropdowns offer at once")
+TEST_CASE("FullPanel: Type your own, last in the list of a dropdown, types its value on the keyboard, which the other dropdowns offer at once")
 {
     const test_panel::PanelContext context;
     const test_files::TempFolder myGames;
@@ -6024,7 +6024,7 @@ TEST_CASE("FullPanel: Type a new name, last in the list of a dropdown, types its
     press(panel, pageRow(0));
     point(panel, typedEntry(0, 3));
     REQUIRE(isListOpen());
-    CHECK(panel.helpLine().text() == "Type a new name: Opens the keyboard to type a name that is not in the list.");
+    CHECK(panel.helpLine().text() == "Type your own: Opens the keyboard to type a value that is not in the list.");
 
     // a press on it closes the list and edits an empty text in the dropdown's box, which is written trimmed
     CHECK(pressActs(panel, typedEntry(0, 3)));

@@ -2778,7 +2778,7 @@ TEST_CASE("FullPanel render: the Categories page of the mod's own config spec, w
     WARN("Saved " << renderToFile(panel, "categories-page", test_panel::POINTER_AWAY));
 }
 
-TEST_CASE("FullPanel render: Type a new name in the list of a row of the Categories page, the name typed, and offered in another row", "[.render]")
+TEST_CASE("FullPanel render: Type your own in the list of a row of the Categories page, the name typed, and offered in another row", "[.render]")
 {
     auto own = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
     REQUIRE(own.size() == 1);
@@ -2818,7 +2818,7 @@ TEST_CASE("FullPanel render: Type a new name in the list of a row of the Categor
         const auto page = static_cast<std::size_t>(std::ranges::find(ownMod.pages, model::CATEGORIES_PAGE_ID, &model::Page::id) - ownMod.pages.begin());
         panel.select({ .mod = ownPlace, .page = { page } });
 
-        // the dropdown of the first row, A mod of no table, and Type a new name after its four options
+        // the dropdown of the first row, A mod of no table, and Type your own after its four options
         const ImVec2 firstRow(855.0f, 212.0f);
         const ImVec2 entry(855.0f, 480.0f);
         const auto press = [&panel](const ImVec2 at) {

@@ -145,6 +145,24 @@ namespace mods_config::spec
             }
             return folder;
         }
+
+        /**
+         * Whether an `allowTyped` of true is taken: only by a dropdown of texts that is no choice of files. A stepper,
+         * and a choice of another type or of files, ignores it, which is reported. A choice of presets ignores it too,
+         * which its setting checks, as its options' sets are read later.
+         */
+        bool loadAllowTyped(const model::SettingType type, const model::StoredType valueType, const model::ValueOptions& valueOptions, ConfigSpecReading& reading)
+        {
+            const Into into(reading, "allowTyped");
+            if (type != model::SettingType::Dropdown || valueType != model::StoredType::String) {
+                reading.report(model::Severity::Warning, "Only a dropdown whose valueType is string takes allowTyped: it is ignored.");
+            } else if (valueOptions.folderOptions) {
+                reading.report(model::Severity::Warning, "A choice of files takes no allowTyped, as a typed text names no file: it is ignored.");
+            } else {
+                return true;
+            }
+            return false;
+        }
     }
 
     /**
@@ -162,7 +180,7 @@ namespace mods_config::spec
      * `options`, the shared list its `sharedOptions` names, where it reads them in the game (`listFromForm`,
      * `listFromProperty`), the folder whose files they are (`listFromFolder`), or that its mod's client gives them, with a
      * `listFromClientCallback` that is true. A choice with none of them has no options, and is reported, so it is
-     * disabled.
+     * disabled. An `allowTyped` of true lets the player type a value that is none of them (`loadAllowTyped`).
      */
     void loadChoiceOptions(const model::SettingType type, const model::StoredType valueType, const Json* options, model::ValueOptions& valueOptions, ConfigSpecReading& reading)
     {
@@ -179,9 +197,7 @@ namespace mods_config::spec
         }
         if (list && list->is_array()) {
             valueOptions.options = loadOptions(*list, sharedName, valueType, reading);
-            return;
-        }
-        if (options && (options->contains("listFromForm") || options->contains("listFromProperty"))) {
+        } else if (options && (options->contains("listFromForm") || options->contains("listFromProperty"))) {
             valueOptions.gameOptions = loadGameOptions(*options, valueType, reading);
         } else if (options && options->contains("listFromFolder")) {
             valueOptions.folderOptions = loadFolderOptions(*options, type, valueType, reading);
@@ -189,6 +205,9 @@ namespace mods_config::spec
             valueOptions.clientOptions = true;
         } else {
             reading.report(model::Severity::Error, "It has no list of options, or names no shared list of its config spec: it has no options.");
+        }
+        if (options && getBool(*options, "allowTyped")) {
+            valueOptions.typedOption = loadAllowTyped(type, valueType, valueOptions, reading);
         }
     }
 

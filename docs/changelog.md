@@ -10,6 +10,8 @@
 - For mod authors: the native API's `closeMenu` closes the menu as the player's Exit does, asking first while there are unsaved changes, or dropping them with `closeMenu(true)`. It is API version 2.
 - For mod authors: a section's `maxOn` limits how many of its switchers are on, for a choice of up to a number of things; `countsAs` makes a switcher take more than one place. At the limit, the switchers that are off are disabled, with the reason.
 - For mod authors: a page with `contentFromClientCallback` gets its rows from the mod's DLL as it is shown, for rows that depend on the game right now, as the items the player carries. The native client gives them with `addPageContent`, API version 2.
+- For mod authors: a `string` dropdown with `allowTyped` also takes a value the player types, of the lengths its `minLength` and `maxLength` allow. Its list shows a value that is none of its options after them.
+- The entry that types a name of your own, last in a dropdown's list, is now **Type your own**.
 
 ## v1.0.1
 

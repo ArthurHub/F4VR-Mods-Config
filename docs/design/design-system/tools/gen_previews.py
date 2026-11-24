@@ -579,7 +579,7 @@ NEW_OPTS = (f'<div class="mc-popup has-scroll t-body" style="position:absolute;r
             f'<div class="mc-option"><span class="check"></span><span>VR</span></div>'
             f'<div class="mc-option"><span class="check"></span><span>Weapons and Armor</span></div>'
             f'<div class="mc-option"><span class="check"></span><span>No category</span></div>'
-            f'<div class="mc-option is-new is-hover"><span class="check"></span><span>Type a new name</span><span class="mc-mark" style="position:relative;margin-left:60px"></span></div>'
+            f'<div class="mc-option is-new is-hover"><span class="check"></span><span>Type your own</span><span class="mc-mark" style="position:relative;margin-left:60px"></span></div>'
             f'<div class="mc-scrollbar"><i style="bottom:0;height:42%"></i></div></div>')
 open_row = row('Baka Fullscreen Pip-Boy', combo('Interface', open_=True), 'is-active')
 open_row = open_row[:-len('</div>')] + NEW_OPTS + '</div>'
@@ -603,7 +603,7 @@ fpc_body = f'''<div class="mc-world">
 <div class="mc-scroll"><div class="rows">{cat_rows}</div><div class="mc-scrollbar"><i style="top:0;height:18%"></i></div></div>
 </div>
 </div>
-<div class="mc-footer">{helpline('Type a new name', 'Opens the keyboard to name a category that is not in the list.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
+<div class="mc-footer">{helpline('Type your own', 'Opens the keyboard to type a value that is not in the list.')}<span class="mc-btn t-body">Discard</span><span class="mc-btn t-body is-primary">Save</span></div>
 </div>
 </div>'''
 write('FullPanelCategories', page('<!-- @dsCard group="Panels" height=768 width=1200 subtitle="The Categories page, with the tree grouped and a category list open" -->', 'Full panel, categories', fpc_body))
