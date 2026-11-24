@@ -165,13 +165,17 @@ namespace mods_config::model
     }
 
     /**
-     * Whether two values of a setting are the same one. Two numbers are when they are as near as a number and the text
-     * of it in a file, an int and a float too: an int slider's default is read as an int, and its value is a float. Any
-     * other two are when they are equal. A table's text is compared as it is, so a caller compares canonical values
-     * (`canonicalValue`).
+     * Whether two values of a setting are the same one. Two ints are when they are equal: a float holds a whole number
+     * exactly only up to 2^24, short of a form id or a packed color. Two other numbers are when they are as near as a
+     * number and the text of it in a file, an int and a float too: an int slider's default is read as an int, and its
+     * value is a float. Any other two are when they are equal. A table's text is compared as it is, so a caller compares
+     * canonical values (`canonicalValue`).
      */
     bool sameValue(const Value& value, const Value& other)
     {
+        if (std::holds_alternative<int>(value) && std::holds_alternative<int>(other)) {
+            return value == other;
+        }
         const auto number = [](const Value& given) -> std::optional<float> {
             if (const auto* whole = std::get_if<int>(&given)) {
                 return static_cast<float>(*whole);

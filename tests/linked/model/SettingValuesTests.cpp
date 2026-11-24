@@ -101,6 +101,9 @@ TEST_CASE("SettingValues: two numbers are the same value when they are as near a
     CHECK(model::sameValue(0.1f + 0.2f, 0.3f));
     CHECK_FALSE(model::sameValue(1.0f, 1.5f));
     CHECK(model::sameValue(3, 3));
+    // two ints are compared as they are: a float would make these two the same
+    CHECK_FALSE(model::sameValue(16777216, 16777217));
+    CHECK(model::sameValue(0x7F123456, 0x7F123456));
     // an int and a float are numbers too, as an int slider's default and its value
     CHECK(model::sameValue(3, 3.0f));
     CHECK(model::sameValue(3.0f, 3));
