@@ -7,7 +7,7 @@
 
 #include <SimpleIni.h>
 
-#include "f4sevr/PapyrusUtils.h"
+#include "f4vr/F4VRUtils.h"
 
 using namespace mods_config;
 
@@ -68,39 +68,19 @@ namespace
         if (REL::NO_GAME) {
             return;
         }
-        const auto* gameVM = F4SEVR::getGameVM();
-        if (!gameVM || !gameVM->m_virtualMachine) {
-            logger::warn("The ModSetting {} of '{}' is not set in MCM: Papyrus is not running", name, modName);
-            return;
-        }
-        auto* vm = gameVM->m_virtualMachine;
-
-        F4SEVR::VMArray<F4SEVR::VMVariable> arguments;
-        F4SEVR::addArgument(arguments, F4SEVR::BSFixedString(modName.c_str()));
-        F4SEVR::addArgument(arguments, F4SEVR::BSFixedString(name.c_str()));
-        const char* function = std::visit(
-            [&arguments]<typename T>(const T& typed) {
+        std::visit(
+            [&]<typename T>(const T& typed) {
+                const char* function = "SetModSettingString";
                 if constexpr (std::is_same_v<T, bool>) {
-                    F4SEVR::addArgument(arguments, typed);
-                    return "SetModSettingBool";
+                    function = "SetModSettingBool";
                 } else if constexpr (std::is_same_v<T, int>) {
-                    F4SEVR::addArgument(arguments, static_cast<F4SEVR::SInt32>(typed));
-                    return "SetModSettingInt";
+                    function = "SetModSettingInt";
                 } else if constexpr (std::is_same_v<T, float>) {
-                    F4SEVR::addArgument(arguments, typed);
-                    return "SetModSettingFloat";
-                } else {
-                    F4SEVR::addArgument(arguments, F4SEVR::BSFixedString(typed.c_str()));
-                    return "SetModSettingString";
+                    function = "SetModSettingFloat";
                 }
+                f4vr::callPapyrusGlobalFunction("MCM", function, modName, name, typed);
             },
             value);
-
-        F4SEVR::VMValue packed;
-        F4SEVR::PackValue(&packed, &arguments, vm);
-        const F4SEVR::BSFixedString className("MCM");
-        const F4SEVR::BSFixedString functionName(function);
-        F4SEVR::CallGlobalFunctionNoWait_Internal(vm, 0, 0, &className, &functionName, &packed);
     }
 }
 

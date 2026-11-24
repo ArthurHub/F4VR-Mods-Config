@@ -5,8 +5,6 @@
 #include <type_traits>
 #include <variant>
 
-#include "f4sevr/PapyrusUtils.h"
-
 using namespace mods_config;
 
 namespace
@@ -22,8 +20,8 @@ namespace
 
         // the type of the script the place was looked up in, and the place of the property in it: -1 for a
         // script that has no property of that name
-        const F4SEVR::VMObjectTypeInfo* type = nullptr;
-        F4SEVR::SInt32 index = -1;
+        const RE::BSScript::ObjectTypeInfo* type = nullptr;
+        std::int32_t index = -1;
 
         // why it is not in the game, as the log has it last
         std::string warned;
@@ -74,13 +72,6 @@ namespace
             }
         }
 
-        ~ScriptProperty()
-        {
-            if (_script && !_script->DecrementLock()) {
-                _script->Destroy();
-            }
-        }
-
         ScriptProperty(const ScriptProperty&) = delete;
         ScriptProperty& operator=(const ScriptProperty&) = delete;
 
@@ -92,18 +83,17 @@ namespace
         /**
          * The value the script has for the property now.
          */
-        void get(F4SEVR::VMValue& value)
+        void get(RE::BSScript::Variable& value) const
         {
-            _vm->GetPropertyValueByIndex(&_script, _index, &value);
+            _vm->GetVariableValue(_script, static_cast<std::uint32_t>(_index), value);
         }
 
         /**
          * Sets the property in the script, by its name. A property with a function of its own runs it.
          */
-        void set(const char* name, F4SEVR::VMValue& value)
+        void set(const char* name, const RE::BSScript::Variable& value) const
         {
-            F4SEVR::UInt64 unknown = 0;
-            _vm->SetPropertyValue(&_script, name, &value, &unknown);
+            _vm->SetPropertyValue(_script, name, value, nullptr);
         }
 
     private:
@@ -113,34 +103,45 @@ namespace
          */
         const char* find(const model::PropertyStorage& property, LookedProperty& looked)
         {
-            const auto* gameVM = F4SEVR::getGameVM();
-            _vm = gameVM ? gameVM->m_virtualMachine : nullptr;
+            const auto gameVM = RE::GameVM::GetSingleton();
+            _vm = gameVM ? gameVM->GetVM() : nullptr;
             if (!_vm) {
                 return "Papyrus is not running";
             }
             if (!looked.form) {
                 return "its form is not in the game";
             }
-            const auto handle = _vm->GetHandlePolicy()->Create(static_cast<F4SEVR::UInt32>(looked.form->GetFormType()), looked.form);
-            _vm->GetObjectIdentifier(handle, property.script.empty() ? "ScriptObject" : property.script.c_str(), 1, &_script, 0);
+            const auto handle = _vm->GetObjectHandlePolicy().GetHandleForObject(static_cast<std::uint32_t>(looked.form->GetFormType()), looked.form);
+            _vm->FindBoundObject(handle, property.script.empty() ? "ScriptObject" : property.script.c_str(), true, _script, false);
             if (!_script) {
                 return "its form has no such script attached";
             }
-            if (looked.type != _script->m_typeInfo) {
-                F4SEVR::VMPropertyInfo info{};
-                info.index = -1;
-                F4SEVR::BSFixedString name(property.name.c_str());
-                F4SEVR::GetVMPropertyInfo(_script->m_typeInfo, &info, &name, true);
-                looked.type = _script->m_typeInfo;
-                looked.index = info.index;
+            if (looked.type != _script->GetTypeInfo()) {
+                looked.type = _script->GetTypeInfo();
+                looked.index = findPropertyIndex(*looked.type, property.name);
             }
             _index = looked.index;
             return _index < 0 ? "its script has no property of that name" : nullptr;
         }
 
-        F4SEVR::VirtualMachine* _vm = nullptr;
-        F4SEVR::VMIdentifier* _script = nullptr;
-        F4SEVR::SInt32 _index = -1;
+        /**
+         * The place of the property's value in a script of this type: the variable that backs it, in the script's own
+         * properties or those of the scripts it extends. -1 for a script that has no property of that name.
+         */
+        static std::int32_t findPropertyIndex(const RE::BSScript::ObjectTypeInfo& type, const std::string& name)
+        {
+            const RE::BSFixedString propertyName(name.c_str());
+            for (const auto* script = std::addressof(type); script; script = script->GetParent()) {
+                if (const auto index = script->GetPropertyIndex(propertyName); index != static_cast<std::uint32_t>(-1)) {
+                    return static_cast<std::int32_t>(index);
+                }
+            }
+            return -1;
+        }
+
+        RE::BSTSmartPointer<RE::BSScript::IVirtualMachine> _vm;
+        RE::BSTSmartPointer<RE::BSScript::Object> _script;
+        std::int32_t _index = -1;
     };
 }
 
@@ -156,23 +157,22 @@ namespace mods_config
         if (!found) {
             return std::nullopt;
         }
-        F4SEVR::VMValue value;
+        RE::BSScript::Variable value;
         found.get(value);
-        switch (value.GetTypeEnum()) {
-        case F4SEVR::VMValue::kType_Bool:
-            return value.data.b;
-        case F4SEVR::VMValue::kType_Int:
-            return static_cast<int>(value.data.i);
-        case F4SEVR::VMValue::kType_Float:
-            return value.data.f;
-        case F4SEVR::VMValue::kType_String: {
-            const auto* text = value.data.GetStr()->c_str();
-            return std::string(text ? text : "");
+        if (value.is<bool>()) {
+            return RE::BSScript::get<bool>(value);
         }
-        default:
-            warnOnce(property, lookedProperty(property), "its value is no bool, number or text");
-            return std::nullopt;
+        if (value.is<std::int32_t>()) {
+            return static_cast<int>(RE::BSScript::get<std::int32_t>(value));
         }
+        if (value.is<float>()) {
+            return RE::BSScript::get<float>(value);
+        }
+        if (value.is<RE::BSFixedString>()) {
+            return std::string(RE::BSScript::get<RE::BSFixedString>(value).c_str());
+        }
+        warnOnce(property, lookedProperty(property), "its value is no bool, number or text");
+        return std::nullopt;
     }
 
     /**
@@ -185,18 +185,10 @@ namespace mods_config
         if (!found) {
             return false;
         }
-        F4SEVR::VMValue newValue;
+        RE::BSScript::Variable newValue;
         std::visit(
-            [&newValue]<typename T>(const T& typed) {
-                if constexpr (std::is_same_v<T, bool>) {
-                    newValue.SetBool(typed);
-                } else if constexpr (std::is_same_v<T, int>) {
-                    newValue.SetInt(typed);
-                } else if constexpr (std::is_same_v<T, float>) {
-                    newValue.SetFloat(typed);
-                } else {
-                    newValue.SetString(typed.c_str());
-                }
+            [&newValue](const auto& typed) {
+                RE::BSScript::PackVariable(newValue, typed);
             },
             value);
         found.set(property.name.c_str(), newValue);
@@ -237,17 +229,16 @@ namespace mods_config
         if (!found) {
             return std::nullopt;
         }
-        F4SEVR::VMValue value;
+        RE::BSScript::Variable value;
         found.get(value);
-        if (value.GetTypeEnum() != F4SEVR::VMValue::kType_StringArray) {
+        if (value.GetType().GetRawType() != RE::BSScript::TypeInfo::RawType::kArrayString) {
             warnOnce(property, lookedProperty(property), "its value is no array of texts");
             return std::nullopt;
         }
         std::vector<std::string> texts;
-        if (const auto* array = value.data.arr) {
-            for (F4SEVR::UInt32 i = 0; i < array->arr.count; ++i) {
-                const auto* text = array->arr.entries[i].data.GetStr()->c_str();
-                texts.emplace_back(text ? text : "");
+        if (const auto array = RE::BSScript::get<RE::BSScript::Array>(value)) {
+            for (const auto& element : *array) {
+                texts.emplace_back(element.is<RE::BSFixedString>() ? RE::BSScript::get<RE::BSFixedString>(element).c_str() : "");
             }
         }
         return texts;

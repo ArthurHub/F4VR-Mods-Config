@@ -6,7 +6,6 @@
 #include "Theme.h"
 #include "api/FRIKApi.h"
 #include "common/MatrixUtils.h"
-#include "f4sevr/PapyrusUtils.h"
 #include "f4vr/F4VRUtils.h"
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiPointer.h"
@@ -251,19 +250,12 @@ namespace mods_config
 
     /**
      * Open FRIK's main config through the Papyrus function its holotape calls: FRIK's API has no call
-     * for it. The function takes no arguments, which is an empty array.
+     * for it. The function takes no arguments.
      */
     void GameMenu::openFrikConfig()
     {
         logger::info("Open FRIK main config");
-        const auto vm = F4SEVR::getGameVM()->m_virtualMachine;
-        F4SEVR::VMArray<F4SEVR::VMVariable> arguments;
-        F4SEVR::VMValue packedArguments;
-        F4SEVR::PackValue(&packedArguments, &arguments, vm);
-
-        const F4SEVR::BSFixedString script("FRIK:FRIK");
-        const F4SEVR::BSFixedString function("OpenMainConfigurationMode");
-        F4SEVR::CallGlobalFunctionNoWait_Internal(vm, 0, 0, &script, &function, &packedArguments);
+        f4vr::callPapyrusGlobalFunction("FRIK:FRIK", "OpenMainConfigurationMode");
     }
 
     void GameMenu::saveDeveloper(const ui::DeveloperView& view)

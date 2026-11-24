@@ -1,7 +1,6 @@
 #include "McmStore.h"
 
 #include "devbench/DevBench.h"
-#include "f4sevr/PapyrusUtils.h"
 
 using namespace mods_config;
 
@@ -12,7 +11,7 @@ namespace
      */
     struct SentEvent
     {
-        F4SEVR::VirtualMachine* vm;
+        RE::BSScript::IVirtualMachine* vm;
         const std::vector<std::string>& arguments;
         int scripts = 0;
     };
@@ -25,21 +24,14 @@ namespace
     {
         auto& sent = *static_cast<SentEvent*>(data);
 
-        F4SEVR::VMValue receiver;
-        const F4SEVR::BSFixedString script(scriptName);
-        if (!F4SEVR::GetIdentifier(&receiver, handle, &script, sent.vm) || !receiver.IsIdentifier() || !receiver.data.id) {
-            return;
+        RE::BSScrapArray<RE::BSScript::Variable> arguments{ static_cast<std::uint32_t>(sent.arguments.size()) };
+        for (std::uint32_t i = 0; i < arguments.size(); ++i) {
+            RE::BSScript::PackVariable(arguments[i], sent.arguments[i]);
         }
-
-        F4SEVR::VMArray<F4SEVR::VMVariable> arguments;
-        for (const auto& argument : sent.arguments) {
-            F4SEVR::addArgument(arguments, F4SEVR::BSFixedString(argument.c_str()));
+        // a script that is gone has no object bound to the handle, which the VM does not call
+        if (sent.vm->DispatchMethodCallPacked(handle, scriptName, callbackName, nullptr, std::move(arguments))) {
+            ++sent.scripts;
         }
-        F4SEVR::VMValue packed;
-        F4SEVR::PackValue(&packed, &arguments, sent.vm);
-        const F4SEVR::BSFixedString callback(callbackName);
-        F4SEVR::CallFunctionNoWait_Internal(sent.vm, 0, receiver.data.id, &callback, &packed);
-        ++sent.scripts;
     }
 }
 
@@ -53,12 +45,13 @@ namespace mods_config::mcm
     void sendEvent(const std::string& event, const std::vector<std::string>& arguments)
     {
         const auto* papyrus = F4SE::GetPapyrusInterface();
-        const auto* gameVM = F4SEVR::getGameVM();
-        if (!papyrus || !gameVM || !gameVM->m_virtualMachine) {
+        const auto gameVM = RE::GameVM::GetSingleton();
+        const auto vm = gameVM ? gameVM->GetVM() : nullptr;
+        if (!papyrus || !vm) {
             logger::warn("The event {} is not sent: Papyrus is not running", event);
             return;
         }
-        SentEvent sent{ .vm = gameVM->m_virtualMachine, .arguments = arguments };
+        SentEvent sent{ .vm = vm.get(), .arguments = arguments };
         papyrus->GetExternalEventRegistrations(event, &sent, callScript);
         logger::debug("Sent the event {} to {} scripts", event, sent.scripts);
         f4cf::devbench::emit("mcm.event", [&] {

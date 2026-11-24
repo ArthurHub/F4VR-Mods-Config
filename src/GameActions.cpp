@@ -7,7 +7,6 @@
 #include <shellapi.h>
 
 #include "api/ModsConfigFO4Api.h"
-#include "f4sevr/PapyrusUtils.h"
 
 using namespace mods_config;
 
@@ -20,48 +19,20 @@ namespace
     class FormScript
     {
     public:
-        FormScript(F4SEVR::VirtualMachine& vm, RE::TESForm& form, const std::string& script)
+        FormScript(RE::BSScript::IVirtualMachine& vm, RE::TESForm& form, const std::string& script)
         {
-            const auto handle = vm.GetHandlePolicy()->Create(static_cast<F4SEVR::UInt32>(form.GetFormType()), &form);
-            vm.GetObjectIdentifier(handle, script.empty() ? "ScriptObject" : script.c_str(), 1, &_script, 0);
+            const auto handle = vm.GetObjectHandlePolicy().GetHandleForObject(static_cast<std::uint32_t>(form.GetFormType()), &form);
+            vm.FindBoundObject(handle, script.empty() ? "ScriptObject" : script.c_str(), true, _script, false);
         }
 
-        ~FormScript()
-        {
-            if (_script && !_script->DecrementLock()) {
-                _script->Destroy();
-            }
-        }
-
-        FormScript(const FormScript&) = delete;
-        FormScript& operator=(const FormScript&) = delete;
-
-        F4SEVR::VMIdentifier* get() const
+        const RE::BSTSmartPointer<RE::BSScript::Object>& get() const
         {
             return _script;
         }
 
     private:
-        F4SEVR::VMIdentifier* _script = nullptr;
+        RE::BSTSmartPointer<RE::BSScript::Object> _script;
     };
-
-    /**
-     * Adds an argument of a call, in the type Papyrus gets it in: a bool, a whole number, a number or a text.
-     */
-    void addArgument(F4SEVR::VMArray<F4SEVR::VMVariable>& arguments, const model::Value& value)
-    {
-        std::visit(
-            [&arguments]<typename T>(const T& typed) {
-                if constexpr (std::is_same_v<T, int>) {
-                    F4SEVR::addArgument(arguments, static_cast<F4SEVR::SInt32>(typed));
-                } else if constexpr (std::is_same_v<T, std::string>) {
-                    F4SEVR::addArgument(arguments, F4SEVR::BSFixedString(typed.c_str()));
-                } else {
-                    F4SEVR::addArgument(arguments, typed);
-                }
-            },
-            value);
-    }
 
     /**
      * The arguments of a call for the log, each so that its type shows: `true`, `4`, `4.0` and `"a text"`.
@@ -87,25 +58,20 @@ namespace
     }
 
     /**
-     * The arguments of a call, packed as Papyrus takes them. It holds them while it lives, which the call is
-     * made in.
+     * The arguments of a call, packed as Papyrus takes them: a bool, a whole number, a number or a text.
      */
-    class PackedArguments
+    RE::BSScrapArray<RE::BSScript::Variable> packArguments(const std::vector<model::Value>& values)
     {
-    public:
-        PackedArguments(F4SEVR::VirtualMachine& vm, const std::vector<model::Value>& values)
-        {
-            for (const auto& value : values) {
-                addArgument(_arguments, value);
-            }
-            F4SEVR::PackValue(&packed, &_arguments, &vm);
+        RE::BSScrapArray<RE::BSScript::Variable> packed{ static_cast<std::uint32_t>(values.size()) };
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            std::visit(
+                [&packed, i](const auto& typed) {
+                    RE::BSScript::PackVariable(packed[static_cast<std::uint32_t>(i)], typed);
+                },
+                values[i]);
         }
-
-        F4SEVR::VMValue packed;
-
-    private:
-        F4SEVR::VMArray<F4SEVR::VMVariable> _arguments;
-    };
+        return packed;
+    }
 }
 
 namespace mods_config
@@ -120,17 +86,17 @@ namespace mods_config
      */
     bool callFunction(const model::CallFunction& call)
     {
-        const auto* gameVM = F4SEVR::getGameVM();
-        auto* vm = gameVM ? gameVM->m_virtualMachine : nullptr;
+        const auto gameVM = RE::GameVM::GetSingleton();
+        const auto vm = gameVM ? gameVM->GetVM() : nullptr;
         if (!vm) {
             logger::warn("The function {} is not called: Papyrus is not running", call.function);
             return false;
         }
-        const F4SEVR::BSFixedString function(call.function.c_str());
         if (call.plugin.empty()) {
-            PackedArguments arguments(*vm, call.arguments);
-            const F4SEVR::BSFixedString script(call.script.c_str());
-            F4SEVR::CallGlobalFunctionNoWait_Internal(vm, 0, 0, &script, &function, &arguments.packed);
+            if (!vm->DispatchStaticCallPacked(call.script.c_str(), call.function.c_str(), nullptr, packArguments(call.arguments))) {
+                logger::warn("The global function {}.{} is not called: Papyrus did not take the call", call.script, call.function);
+                return false;
+            }
             logger::debug("Called the global function {}.{}({})", call.script, call.function, describeArguments(call.arguments));
             return true;
         }
@@ -146,8 +112,10 @@ namespace mods_config
             logger::warn("The function {} is not called: the form {:X} of '{}' has no script '{}' attached", call.function, call.formId, call.plugin, call.script);
             return false;
         }
-        PackedArguments arguments(*vm, call.arguments);
-        F4SEVR::CallFunctionNoWait_Internal(vm, 0, script.get(), &function, &arguments.packed);
+        if (!vm->DispatchMethodCallPacked(script.get(), call.function.c_str(), nullptr, packArguments(call.arguments))) {
+            logger::warn("The function {} is not called: Papyrus did not take the call on the form {:X} of '{}'", call.function, call.formId, call.plugin);
+            return false;
+        }
         logger::debug("Called the function {}({}) of the form {:X} of '{}'", call.function, describeArguments(call.arguments), call.formId, call.plugin);
         return true;
     }
