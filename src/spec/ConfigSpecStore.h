@@ -271,6 +271,10 @@ namespace mods_config::spec
         {
             int maxOn = 0;
             std::vector<const model::Setting*> switchers;
+
+            // the places its switchers that are on take, as `placesOn` counted them last: none until counted again, after
+            // any switcher's value changed (`forgetPlaces`). Every row of a large section asks for it in every frame
+            mutable std::optional<int> places;
         };
 
         model::StoredValue ownValue(const model::Setting& setting);
@@ -278,6 +282,7 @@ namespace mods_config::spec
         void addLimits(const std::vector<model::Page>& pages);
         bool isOn(const model::Setting& setting) const;
         int placesOn(const Limit& limit) const;
+        void forgetPlaces();
         std::string overLimitReason(const Limit& limit) const;
 
         // the folders a path of a config spec's file is from: the game's Data folder, and

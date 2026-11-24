@@ -640,6 +640,7 @@ namespace mods_config::spec
                 }
             }
         }
+        forgetPlaces();
         logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
     }
 
@@ -1109,6 +1110,7 @@ namespace mods_config::spec
         } else {
             entry.pending = std::move(*typed);
         }
+        forgetPlaces();
         // the client offers the pending values of a choice with a typed entry: a typed value is one of its options then
         if (setting.valueOptions.typedOption) {
             _options.readAgain();
@@ -1289,17 +1291,32 @@ namespace mods_config::spec
     }
 
     /**
-     * The places a section's switchers that are on take: each its `countsAs`.
+     * The places a section's switchers that are on take: each its `countsAs`. Counted once until a value changes, as each
+     * row of the section asks in every frame, and a count of each would grow with the square of the section's size.
      */
     int ConfigSpecStore::placesOn(const Limit& limit) const
     {
-        int places = 0;
-        for (const auto* switcher : limit.switchers) {
-            if (isOn(*switcher)) {
-                places += switcher->countsAs;
+        if (!limit.places) {
+            int places = 0;
+            for (const auto* switcher : limit.switchers) {
+                if (isOn(*switcher)) {
+                    places += switcher->countsAs;
+                }
             }
+            limit.places = places;
         }
-        return places;
+        return *limit.places;
+    }
+
+    /**
+     * Forgets the places each section's switchers take, so the next `placesOn` counts them again. Called wherever a
+     * setting's pending value, baseline or availability changes, which `isOn` reads.
+     */
+    void ConfigSpecStore::forgetPlaces()
+    {
+        for (const auto& limit : _limits) {
+            limit.places.reset();
+        }
     }
 
     /**
@@ -1505,6 +1522,7 @@ namespace mods_config::spec
             entry.baseline = std::move(entry.pending);
             entry.pending.reset();
             entry.invalid.clear();
+            forgetPlaces();
             // the file has the value the client shows now, which the batch tells it
             _clientPreviews.erase(setting);
         };
@@ -1595,6 +1613,7 @@ namespace mods_config::spec
             entry.pending.reset();
             entry.pendingInvalid.clear();
         }
+        forgetPlaces();
         if (typed) {
             _options.readAgain();
         }
@@ -1631,6 +1650,7 @@ namespace mods_config::spec
         _lastSave.reset();
         entry.pending.reset();
         entry.pendingInvalid.clear();
+        forgetPlaces();
         if (setting.valueOptions.typedOption) {
             _options.readAgain();
         }
@@ -1815,6 +1835,7 @@ namespace mods_config::spec
                 entry.pendingInvalid = found->second.pendingInvalid;
             }
         }
+        forgetPlaces();
         // the options were read with nothing pending
         if (hasPendingTyped()) {
             _options.readAgain();

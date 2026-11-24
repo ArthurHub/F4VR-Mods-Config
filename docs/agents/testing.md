@@ -28,6 +28,7 @@ All live in `tests/linked/`. MCM itself is never called in a test.
 
 - `ui/FullPanelTests.cpp` drives the panel in ImGui frames with no game or renderer (`TestPanel.h` sets it up as the framework's canvas does, with the shared frame, press, point and search helpers) and checks selection and presses. `ui/StoreSessionTests.cpp` and `ui/SearchSessionTests.cpp` drive the panel's private sessions through it.
 - `ui/FullPanelRenderTests.cpp` saves the panel as `.bmp` files in `build/tests/render/` for a visual check before trying a change in the headset. They check nothing and `ctest` skips them: run `ModsConfigFO4VR_linked_tests "[render]"`. Add a case for a new view or state. They draw every page of both showcases and open pages by position, so moving a page moves its render.
+- `ui/LargePageTests.cpp` keeps a page of 500 switchers in a `maxOn` section about as fast as one with none, a ratio of frame times. Its `[.bench]` case reports a frame's time at 20 to 500 switchers: run `ModsConfigFO4VR_linked_tests "[.bench]"` on a Release build.
 - `tools/gen_docs_renders.py` (needs Pillow) turns the walkthrough renders into `docs/assets/showcase/` PNGs: rerun both when the panel's look or a showcase page changes.
 
 ## End-to-end tests

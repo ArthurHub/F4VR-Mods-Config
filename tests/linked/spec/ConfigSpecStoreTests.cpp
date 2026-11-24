@@ -2994,6 +2994,40 @@ TEST_CASE("ConfigSpecStore: a switcher in two sections with a maxOn follows both
     CHECK(session.store.limitReason(z) == outerHeld);
 }
 
+TEST_CASE("ConfigSpecStore: a section's places on follow a Discard of one, a Discard of all, a Save and the file read again")
+{
+    Session session(WHEEL);
+    session.open(
+        "[Wheel]\r\n"
+        "bAid = true\r\n"
+        "bAmmo = true\r\n");
+    const auto& aid = wheelRow(session, 0);
+    const auto& junk = wheelRow(session, 2);
+    const auto& gestures = wheelRow(session, 3);
+    const auto held = "At most 3 can be on here. Turn one off first."s;
+
+    // each is asked first, as a row asks in every frame, so the count is known before each change
+    CHECK(session.store.set(aid, false));
+    CHECK(session.store.limitReason(gestures).empty());
+    session.store.discard(aid);
+    CHECK(session.store.limitReason(gestures) == held);
+
+    CHECK(session.store.set(aid, false));
+    CHECK(session.store.limitReason(gestures).empty());
+    session.store.discard();
+    CHECK(session.store.limitReason(gestures) == held);
+
+    CHECK(session.store.set(junk, true));
+    CHECK(session.store.limitReason(gestures) == held);
+    REQUIRE(session.store.save());
+    CHECK(session.store.limitReason(gestures) == held);
+
+    // the file turns two off
+    session.myGames.write(MOD_FILE, "[Wheel]\r\nbAid = true\r\n");
+    session.store.readAgain();
+    CHECK(session.store.limitReason(gestures).empty());
+}
+
 TEST_CASE("ConfigSpecStore: a choice that turns switchers on can take their section over its maxOn, which blocks Save")
 {
     Session session(R"(

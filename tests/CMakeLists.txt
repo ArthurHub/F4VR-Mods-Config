@@ -56,6 +56,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/ui/ButtonViewTests.cpp
   linked/ui/FullPanelRenderTests.cpp
   linked/ui/FullPanelTests.cpp
+  linked/ui/LargePageTests.cpp
   linked/ui/MenuControlsTests.cpp
   linked/ui/ModListTests.cpp
   linked/ui/PanelTargetsTests.cpp
