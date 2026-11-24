@@ -723,6 +723,16 @@ namespace mods_config::devbench
         }
 
         /**
+         * A setting of the selected mod by its id, on any of its pages, as the page action has its row: hidden rows and
+         * the rows of other pages too, as the sliders a color is kept in.
+         */
+        json runSetting(const json& args)
+        {
+            auto& store = selectedStore();
+            return { { "setting", settingToJson(selectedSetting(args), store) } };
+        }
+
+        /**
          * Sets a setting's value in the store, as its control does: the answer has the setting as its row shows it then.
          */
         json runSetValue(const json& args)
@@ -1362,8 +1372,15 @@ namespace mods_config::devbench
                            "null while it is not dirty or that is not known), dirty, saved (the value its row's Discard gives a dirty one back), enabled, default, "
                            "reset (what its row's Reset sets, null where the row has none), resets (its Reset is pressed now), "
                            "applies, storage (where its value is kept: kind file with its file, format, root, filePath and the path to the value in it, "
-                           "modSetting with MCM's name, global or property with its plugin and formId, clientState, unknown or none), and its range or options",
+                           "modSetting with MCM's name, global or property with its plugin and formId, clientState, colorParts with the ids of the "
+                           "sliders a color is kept in, unknown or none), and its range or options",
             .handler = &runPage,
+        });
+        f4cf::devbench::addAction({
+            .name = "setting",
+            .description = "a setting of the selected mod by its id, on any of its pages, as the page action has its row, without changing it: a hidden "
+                           "one too, as the sliders a color is kept in",
+            .handler = &runSetting,
         });
         f4cf::devbench::addAction({
             .name = "targets",
@@ -1381,7 +1398,7 @@ namespace mods_config::devbench
         f4cf::devbench::addAction({
             .name = "setValue",
             .description = "set a setting of the selected mod in its store, as its control does: the change waits for a Save",
-            .arguments = { { "id", { { "type", "string" }, { "description", "setValue, clientSetValue, reset, discard: the setting's id, as the page action has it" } } },
+            .arguments = { { "id", { { "type", "string" }, { "description", "setting, setValue, clientSetValue, reset, discard: the setting's id, as the page action has it" } } },
                 { "value",
                     { { "description",
                         "setValue: true or false for a switcher, a number for a slider, a text for a text input, an option's value or text for a choice; "

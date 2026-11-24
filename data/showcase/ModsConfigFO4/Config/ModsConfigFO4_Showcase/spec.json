@@ -1639,6 +1639,7 @@
               "content": [
                 {
                   "type": "cf.color",
+                  "id": "glow",
                   "text": "Glow",
                   "help": "Its red, green and blue are whole numbers from 0 to 255, and its alpha a number from 0 to 1. A change sets each slider whose channel changes.",
                   "parts": { "r": "glowRed", "g": "glowGreen", "b": "glowBlue", "a": "glowAlpha" }

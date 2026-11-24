@@ -50,8 +50,9 @@ def shows(shown, value):
 
 
 def line_candidates(kind, value):
-    """The values other than its own to try of a binding, a color or a transform kept in an INI file, which is its line:
-    a binding on the other hand, a color with another red, and a transform with another first number."""
+    """The values other than its own to try of a binding, a color or a transform kept in an INI file, or a color kept in
+    sliders, which is its line: a binding on the other hand, a color with another red, and a transform with another
+    first number."""
     if kind == "cf.inputBinding":
         hand, _, rest = value.partition(" ")
         if hand in ("primary", "offhand"):
@@ -92,7 +93,8 @@ def candidates(row):
             for moved in (number + 1, number - 1):
                 moved = int(moved) if moved.is_integer() and "." not in str(value) else moved
                 yield str(moved) if isinstance(value, str) else moved
-    elif kind in ("cf.inputBinding", "cf.color", "cf.transform") and row["storage"].get("format") == "ini":
+    elif kind in ("cf.inputBinding", "cf.color", "cf.transform") and (row["storage"].get("format") == "ini" or row["storage"]["kind"] == "colorParts"):
+        # a color kept in sliders is its r,g,b,a line too
         yield from line_candidates(kind, value)
     elif kind == "cf.inputBinding":
         binding = table(value)
@@ -163,10 +165,38 @@ def check_file(bench, mod, storage, value, omitted=False):
         raise AssertionError(f"its file has {file_value(bench, mod, storage)!r}, not {expected}") from None
 
 
+def part_values(menu, row):
+    """
+    The values of the sliders a color is kept in, by their ids, and none for another setting. A slider may be on
+    another page, which the setting action finds it on.
+    """
+    if row["storage"]["kind"] != "colorParts":
+        return {}
+    return {part_id: menu.call("setting", id=part_id)["setting"]["value"] for part_id in row["storage"]["parts"]}
+
+
+def check_saved(menu, bench, mod, saved, value, omitted=False, parts=()):
+    """
+    Fail unless a saved setting's file has its value, as check_file does. A color kept in sliders is checked in the
+    files of the given sliders instead, the ones its change set, at each slider's own value: a slider it did not set may
+    be in no file, as MCM writes a ModSetting only once it is changed.
+    """
+    if saved["storage"]["kind"] != "colorParts":
+        check_file(bench, mod, saved["storage"], value, omitted)
+        return
+    for part_id in parts:
+        part = menu.call("setting", id=part_id)["setting"]
+        try:
+            check_file(bench, mod, part["storage"], part["value"], omitted=part["omitDefault"] and same(part["value"], part["default"]))
+        except AssertionError as error:
+            raise AssertionError(f"its slider {part_id}: {error}") from None
+
+
 def sweep_setting(menu, bench, mod, row):
     """Change a setting, save it and check it in its file, then set it back the same way. Returns a reason it was not
     changed, or None."""
     setting_id, original = row["id"], row["value"]
+    parts_before = part_values(menu, row)
     for candidate in candidates(row):
         answer = menu.call("setValue", id=setting_id, value=candidate)
         changed = answer["setting"]
@@ -187,11 +217,14 @@ def sweep_setting(menu, bench, mod, row):
     menu.save()
     saved = menu.setting(id=setting_id)
     assert not saved["dirty"], "it is dirty after a Save"
-    check_file(bench, mod, saved["storage"], changed["value"])
+    # the sliders of a color the change set, which its set back sets again
+    parts = [part_id for part_id, value in part_values(menu, row).items() if not same(value, parts_before[part_id])]
+    assert parts or not parts_before, "its change set none of its sliders"
+    check_saved(menu, bench, mod, saved, changed["value"], parts=parts)
 
     menu.set(setting_id, original)
     menu.save()
-    check_file(bench, mod, saved["storage"], original, omitted=row["omitDefault"] and same(original, row["default"]))
+    check_saved(menu, bench, mod, saved, original, omitted=row["omitDefault"] and same(original, row["default"]), parts=parts)
     return None
 
 
