@@ -8,6 +8,7 @@
 - An MCM color set with three sliders, red, green and blue from 0 to 255, as FallUI's custom color, is one color row with the color picker. A fourth slider is its alpha.
 - For mod authors: a `cf.color` with `parts` is kept in sliders, one per channel, for a mod whose file keeps a value per channel: `{ "r": "glowR", "g": "glowG", "b": "glowB", "a": "glowA" }` names them by id. Their rows are hidden, the color's row edits them, and each slider's range is 0 to 255 of its channel, so a slider from 0 to 1 works too.
 - An MCM mod that FallUI translates reads a language file saved as UTF-16, as some translations ship, so its pages are in the game's language. Its texts were left untranslated before.
+- An MCM mod that applies its values as MCM's menu closes, as Game Configuration Menu does, applies them at Keep. Before, they applied only once this menu closed, and opening MCM first set them back.
 - A Save no longer logs a warning for each F4SE plugin of the config spec that has no listener of its message.
 - For mod authors: the AI agent prompt asks its open decisions as numbered questions before it writes, points to FRIK's and Immersive Flashlight VR's config specs, and has a second prompt that connects a DLL to the menu. The guide suggests a page layout, and the native API's docs walk through live preview in a mod and choosing `live` or `save`.
 - For mod authors: the native API's `closeMenu` closes the menu as the player's Exit does, asking first while there are unsaved changes, or dropping them with `closeMenu(true)`. It is API version 2.

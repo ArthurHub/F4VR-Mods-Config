@@ -97,7 +97,7 @@ What a row has beside its type:
 | Feature | How the menu handles it | |
 | --- | --- | --- |
 | A change is saved as it is made | As in MCM, and it is a change of the session until Keep accepts it or Revert sets it back, which runs its row's action and sends its event again. Its `applies` is `unknown`: see [MCM compatibility](architecture.md#mcm-compatibility) | M25, M138 |
-| `OnMCMOpen`, `OnMCMClose` | As in MCM | M31 |
+| `OnMCMOpen`, `OnMCMClose` | As in MCM, and Keep sends `OnMCMClose` then `OnMCMOpen`, so a script that applies its properties as MCM's menu closes, as GCM does, applies the kept values | M31 |
 | `OnMCMMenuOpen`, `OnMCMMenuOpen\|<mod>`, `OnMCMMenuClose\|<mod>` | Sent as a mod is selected and left, also as the menu closes, where MCM's menu sends none | M31 |
 | `OnMCMSettingChange`, `OnMCMSettingChange\|<mod>` | As in MCM, after the action, as a change is made, and as Revert sets it back | M31, M34, M138 |
 | MCM's Papyrus functions: `GetModSetting*`, `SetModSetting*`, `RefreshMenu`, `IsInstalled`, `GetVersionCode` | MCM's own, which keep working. `RefreshMenu` refreshes MCM's menu alone, and this menu reads every value again by itself | M42 |

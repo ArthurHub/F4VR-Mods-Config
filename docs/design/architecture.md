@@ -314,7 +314,7 @@ The host bridges to MCM rather than replacing it: MCM stays installed and owns i
 - The host and config specs don't require MCM. MCM mods appear only with MCM installed; without it the log says why.
 - A mod with both a config spec and an MCM menu is listed by its config spec alone ([Required metadata](schema.md#required-metadata)).
 - The bridge reads each `config.json` and its default settings; writes ModSettings only through `MCM.SetModSetting*` (never MCM's files), so MCM's memory and file agree; reads and writes GlobalValue and PropertyValue sources directly as MCM does.
-- It sends `OnMCMSettingChange|ModName` on each change and on Revert, plus MCM's menu open/close events when the menu opens/closes and when an MCM mod is shown/left.
+- It sends `OnMCMSettingChange|ModName` on each change and on Revert, plus MCM's menu open/close events when the menu opens/closes and when an MCM mod is shown/left. Keep sends `OnMCMClose` then `OnMCMOpen`, for a script that applies its values as MCM's menu closes.
 - It runs the supported button actions. Changes are already made, so a script button doesn't ask to save first ([Buttons](schema.md#buttons)).
 - Hotkeys are read-only; MCM dispatches them.
 - `MCM.RefreshMenu()` can't be observed, so the bridge rereads MCM's settings file whenever another page of the mod is shown.

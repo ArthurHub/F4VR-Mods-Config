@@ -254,10 +254,10 @@ TEST_CASE("McmStore: a change runs the action of its row and sends its event as 
     CHECK(actions.called[0].function == "First");
     CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x801 }), 1.0f));
 
-    // a Save writes nothing, runs nothing and sends nothing
+    // a Save writes nothing and runs nothing: it tells the scripts that the menu closed and opened again
     events.sent.clear();
     CHECK(store.save().has_value());
-    CHECK(events.sent.empty());
+    CHECK(events.sent == Events{ "OnMCMClose", "OnMCMOpen" });
     CHECK(actions.called.size() == 1);
     CHECK(store.dirtyCount() == 0);
 
@@ -1095,13 +1095,14 @@ TEST_CASE("McmStore: a Save of a session that wrote a ModSetting tells that the 
     CHECK(store.set(missing, true));
     events.sent.clear();
     CHECK(store.save().has_value());
-    CHECK(events.sent.empty());
+    CHECK(events.sent == Events{ "OnMCMClose", "OnMCMOpen" });
 
     // they wait for MCM to write the player's file, which it does as Papyrus runs its call, also after the mod is left
     const auto on = modSetting(SettingType::Switcher, "bOn:Main", Type::Bool);
     CHECK(store.set(on, true));
     CHECK(store.save().has_value());
     store.frameUpdate();
+    events.sent.clear();
     store.close();
     store.menuClosed();
     CHECK(events.sent == Events{ "OnMCMMenuClose|MyMod", "OnMCMClose" });

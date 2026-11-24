@@ -616,16 +616,19 @@ namespace mods_config::mcm
     }
 
     /**
-     * Keeps the changes, which are written already: their values are the settings' baselines now. Then, where the
-     * session wrote a ModSetting since its last Save, a DLL that reads its MCM file as the pause menu closes is told
-     * that it did, as it is when MCM's menu, which is in the pause menu, is left: once MCM wrote the file, which it
-     * does on Papyrus's time, see frameUpdate. The DLL is told at a Save alone, as the events go to every listener
-     * of the game's menus.
+     * Keeps the changes, which are written already: their values are the settings' baselines now. The scripts are
+     * told that the menu closed and opened again, as a script applies what its properties hold as MCM's menu closes.
+     * Then, where the session wrote a ModSetting since its last Save, a DLL that reads its MCM file as the pause menu
+     * closes is told that it did, as it is when MCM's menu, which is in the pause menu, is left: once MCM wrote the
+     * file, which it does on Papyrus's time, see frameUpdate. The DLL is told at a Save alone, as the events go to
+     * every listener of the game's menus.
      */
     std::expected<void, std::string> McmStore::save()
     {
         logger::info("Saved {} changes of '{}'", _changes.size(), _modName);
         _changes.clear();
+        sendEvent("OnMCMClose");
+        sendEvent("OnMCMOpen");
         waitForPauseMenu();
         _lastSave = 0;
         model::publishSaved(_modName, {});

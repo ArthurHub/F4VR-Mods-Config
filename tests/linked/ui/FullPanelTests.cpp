@@ -1848,11 +1848,13 @@ TEST_CASE("FullPanel: a press on the row of a text input edits it, and Enter wri
     CHECK(ImGui::GetActiveID() == 0);
     CHECK(textOf(store, panel, 0) == model::Value("Diamond City East"s));
 
-    // MCM's two events of the setting. A Save sends none: the pause menu's wait for MCM to write its file, which it
-    // does not in a test
+    // MCM's two events of the setting. A Save sends the menu's close and open, and not the pause menu's yet: they wait
+    // for MCM to write its file, which it does not in a test
     CHECK(events.sent.size() == 2);
     CHECK(store.save().has_value());
-    CHECK(events.sent.size() == 2);
+    CHECK(events.sent.size() == 4);
+    CHECK(events.sent[2] == "OnMCMClose");
+    CHECK(events.sent[3] == "OnMCMOpen");
 }
 
 TEST_CASE("FullPanel: a text input that is left by the keyboard's Done writes its text, and one that is cancelled writes nothing")

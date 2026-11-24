@@ -49,7 +49,9 @@ namespace mods_config::mcm
      * A global is read and written with `getGlobal` and `setGlobal`, and a property of a script with
      * `getProperty` and `setProperty`.
      * It sends the events MCM's menu sends, so a script acts on this menu as on MCM's: the menu opened and
-     * closed, a mod shown and left, and a setting changed. They are sent with `sendEvent`. After a Save of a
+     * closed, a mod shown and left, and a setting changed. A Save tells them that the menu closed and opened
+     * again, so a script that applies its values as MCM's menu closes applies the saved ones. They are sent with
+     * `sendEvent`. After a Save of a
      * session that wrote a ModSetting, the pause menu is told as opened and closed, with `sendPauseMenuEvents`,
      * once MCM's file has what it wrote: `frameUpdate` waits for it.
      * The `CallFunction` and the `CallGlobalFunction` of a button are run with `callFunction`, and so are
