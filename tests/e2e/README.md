@@ -42,7 +42,7 @@ A setting whose failure is an open issue goes in `KNOWN` in `test_sweep.py` with
 
 | File | Covers |
 | --- | --- |
-| `test_sweep.py` | Every changeable setting of the test set, showcases and config specs: change, save, check the file, set back. `-m sweep`, `-m full` or naming the file sweeps every setting of every mod; any other run sweeps one setting of each kind (type, options, where it is kept) of each mod of `SUBSET`, the showcases, config specs, SS2, FallUI and XDI. One row of the Categories page is swept, as its rows are one setting made per mod. |
+| `test_sweep.py` | Every changeable setting of the test set, showcases and config specs: change, save, check the file, set back. `-m sweep`, `-m full` or naming the file sweeps every setting of every mod; any other run sweeps one setting of each kind (type, options, where it is kept, whether its file leaves its default out) of each mod of `SUBSET`, the showcases, config specs, SS2, FallUI and XDI. One row of the Categories page is swept, as its rows are one setting made per mod. |
 | `test_showcase.py` | Each section of the [showcase walkthrough](../../docs/for-mod-authors/showcase.md). |
 | `test_dialog.py` | The unsaved-changes dialog on leaving a mod and closing the menu. |
 | `test_mcm_keep_revert.py` | MCM's immediate writes, Keep and Revert. |

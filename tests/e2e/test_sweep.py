@@ -116,11 +116,12 @@ def candidates(row):
 
 def kind(row):
     """
-    What a setting is to a sweep that changes one of each kind of a mod: its type, whether it has options, and where
-    its value is kept (the storage's kind, and a file's format and root).
+    What a setting is to a sweep that changes one of each kind of a mod: its type, whether it has options, where its
+    value is kept (the storage's kind, and a file's format and root), and whether its file leaves its default out, as
+    a set back of one removes its key.
     """
     storage = row["storage"]
-    return (row["type"], "options" in row, storage["kind"], storage.get("format"), storage.get("root"))
+    return (row["type"], "options" in row, storage["kind"], storage.get("format"), storage.get("root"), row["omitDefault"])
 
 
 def asked(config):
