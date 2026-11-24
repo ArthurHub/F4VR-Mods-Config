@@ -2449,21 +2449,25 @@ TEST_CASE("ConfigSpecStore: a row of the Categories page of the mod's own config
     const auto table = model::readCategoryTable(R"({ "categories": ["Gameplay", "Settlements"], "mods": { "SS2": "Settlements" } })");
     REQUIRE(table);
     const std::vector<model::Mod> listed{ model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .frontPage = {}, .pages = {} } };
-    REQUIRE(model::addCategoryRows(own, listed, *table));
 
     const test_files::TempFolder data;
     const test_files::TempFolder myGames;
     const auto file = myGames.path / "Mods_Config" / "ModsConfigFO4VR" / "Categories.toml";
     ConfigSpecStore store{ data.path, myGames.path };
-    // the menu's own client gives the names, as the menu does
+    // the menu's own client gives the page's rows and the names, as the menu does
     const auto names = [&](const model::Setting&) {
         return model::categoryOptions(listed, *table, model::loadCategoryChoices(file));
     };
-    store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = { { "category.SS2", names }, { "category.ModsConfigFO4VR", names } } }.calls());
+    const auto content = [&] {
+        return model::categoryPageContent(listed, *table);
+    };
+    store.clientCalls().addClient("ModsConfigFO4VR",
+        test_clients::TestClient{ .options = { { "category.SS2", names } }, .pages = { { model::CATEGORIES_PAGE_ID, content } } }.calls());
     store.open(own);
 
     const auto page = std::ranges::find(own.pages, model::CATEGORIES_PAGE_ID, &model::Page::id);
     REQUIRE(page != own.pages.end());
+    REQUIRE(store.readPageContent(own, *page));
     const auto& rows = std::get<model::Group>(page->items.back()).items;
     const auto row = std::ranges::find_if(rows, [](const model::Item& item) {
         return std::get<model::Setting>(item).id == "category.SS2";
@@ -2594,7 +2598,9 @@ TEST_CASE("ConfigSpecStore: a name typed in a row of the Categories page is offe
     const auto table = model::readCategoryTable(R"({ "categories": ["Gameplay", "Settlements"], "mods": { "SS2": "Settlements" } })");
     REQUIRE(table);
     const std::vector<model::Mod> listed{ model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .frontPage = {}, .pages = {} } };
-    REQUIRE(model::addCategoryRows(own, listed, *table));
+    // the page has a row for the menu's own mod too, which the menu lists
+    std::vector<model::Mod> withOwn{ own };
+    withOwn.push_back(listed[0]);
 
     const test_files::TempFolder data;
     const test_files::TempFolder myGames;
@@ -2602,10 +2608,16 @@ TEST_CASE("ConfigSpecStore: a name typed in a row of the Categories page is offe
     const auto names = [&](const model::Setting&) {
         return model::categoryOptions(listed, *table, model::withPendingChoices({}, own, store));
     };
-    store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = { { "category.SS2", names }, { "category.ModsConfigFO4VR", names } } }.calls());
+    const auto content = [&] {
+        return model::categoryPageContent(withOwn, *table);
+    };
+    store.clientCalls().addClient("ModsConfigFO4VR",
+        test_clients::TestClient{ .options = { { "category.SS2", names }, { "category.ModsConfigFO4VR", names } }, .pages = { { model::CATEGORIES_PAGE_ID, content } } }.calls());
     store.open(own);
 
-    const auto& rows = std::get<model::Group>(std::ranges::find(own.pages, model::CATEGORIES_PAGE_ID, &model::Page::id)->items.back()).items;
+    auto& page = *std::ranges::find(own.pages, model::CATEGORIES_PAGE_ID, &model::Page::id);
+    REQUIRE(store.readPageContent(own, page));
+    const auto& rows = std::get<model::Group>(page.items.back()).items;
     const auto& first = std::get<model::Setting>(rows.at(0));
     const auto& second = std::get<model::Setting>(rows.at(1));
     REQUIRE(first.id == "category.ModsConfigFO4VR");

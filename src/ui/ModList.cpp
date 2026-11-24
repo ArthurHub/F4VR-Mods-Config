@@ -16,23 +16,20 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * The `modName` of the menu's own config spec, matched in any case, whose Categories page gets a row for each mod
-     * as the mods, the table or the own mod is set. Told once, before the mods.
+     * The `modName` of the menu's own config spec, matched in any case, whose Categories page has the rows whose
+     * pending names the rows' options offer. Told once, before the mods.
      */
     void ModList::setOwnMod(std::string modName)
     {
         _ownMod = std::move(modName);
-        refillCategoryRows();
     }
 
     /**
-     * The shipped table of the categories, which gives a mod with no category of its own one. Set once at startup,
-     * before a mod is selected: it rebuilds the own mod's Categories page, whose rows a session that is open would lose.
+     * The shipped table of the categories, which gives a mod with no category of its own one. Set once at startup.
      */
     void ModList::setCategoryTable(model::CategoryTable table)
     {
         _categoryTable = std::move(table);
-        refillCategoryRows();
         group();
     }
 
@@ -65,6 +62,15 @@ namespace mods_config::ui
         const auto own = std::ranges::find_if(_mods, std::bind_front(&ModList::isOwnMod, this));
         const auto choices = own != _mods.end() ? model::withPendingChoices(_categoryChoices, *own, store) : _categoryChoices;
         return model::categoryOptions(_mods, _categoryTable, choices);
+    }
+
+    /**
+     * The rows of the Categories page of the own mod, which its client gives as the page is shown: one for each mod
+     * the menu lists.
+     */
+    std::string ModList::categoryPageContent() const
+    {
+        return model::categoryPageContent(_mods, _categoryTable);
     }
 
     /**
@@ -127,14 +133,12 @@ namespace mods_config::ui
     {
         std::ranges::sort(mods, common::CaseInsensitiveComparator(), &model::Mod::displayName);
         _mods = std::move(mods);
-        refillCategoryRows();
         group();
     }
 
     /**
      * Puts a config spec's mod that was read again in place of the one of its folder, sorts the mods again, as its
-     * display name can be another now, and groups them again. The own mod's Categories page is refilled only when it
-     * is the mod replaced: the panel's session can be open on it. The last read of its live copy says when it was
+     * display name can be another now, and groups them again. The last read of its live copy says when it was
      * read, as `10:42:05`, and how many unsaved changes it dropped. Returns the new place of each old place, and none
      * for a mod of no folder or one that is not listed, which is not put in.
      */
@@ -161,9 +165,6 @@ namespace mods_config::ui
         }
         _mods = std::move(sorted);
 
-        if (isOwnMod(_mods[placeOfOld[*found]])) {
-            refillCategoryRows();
-        }
         group();
         _liveCopyReads[folder] =
             LiveCopyRead{ .result = dropped == 0 ? std::format("Reloaded at {}.", time)
@@ -175,16 +176,6 @@ namespace mods_config::ui
     bool ModList::isOwnMod(const model::Mod& mod) const
     {
         return !_ownMod.empty() && mod.source == model::Source::ConfigSpec && model::categoryKey(mod.name) == model::categoryKey(_ownMod);
-    }
-
-    /**
-     * Fills the Categories page of the own mod with a row for each mod: nothing while the own mod is not listed.
-     */
-    void ModList::refillCategoryRows()
-    {
-        if (const auto own = std::ranges::find_if(_mods, std::bind_front(&ModList::isOwnMod, this)); own != _mods.end()) {
-            model::addCategoryRows(*own, _mods, _categoryTable);
-        }
     }
 
     /**

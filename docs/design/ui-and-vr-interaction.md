@@ -296,7 +296,7 @@ A long list of mods is grouped by category.
 
 ### Changing a mod's category
 
-The mod's own entry has a `Categories` page that the menu fills: a row per mod with a dropdown of category names. It is there while the list is flat too.
+The mod's own entry has a `Categories` page, a [dynamic page](dynamic-pages.md) the menu's own client fills as it is shown: a row per mod with a dropdown of category names. It is there while the list is flat too.
 
 - The dropdown has every name, the shipped ones and those in use, alphabetical, then `No category` (removes the author's category); its last entry, `Type your own`, opens the keyboard in the dropdown's box.
 - A typed name is trimmed and at most 24 characters, so it fits a tree row; an empty one sets nothing. A name in the list, in any case, is that one: its spelling is kept, and `No category` gives no category. A typed name is in every row's list at once, while it waits for Save.

@@ -267,58 +267,44 @@ namespace mods_config::model
     }
 
     /**
-     * Fills the Categories page of the mod's own config spec, the page of the id `categories`, with a section of a row
-     * for each mod, the mod itself too, in the order of their display names: a dropdown of the names, kept in the
-     * config spec's file `categories` under the mod's `modName`, whose list ends with an entry that types a new name.
-     * Its default is the category the mod has without the
-     * player's choice, which its help names, so Reset gives it, and a Save keeps no value that is it. Its options are
-     * its mod's client's, by its id, as the names in use change. A search does not find a row by the mod's name.
-     * The rows it made before are replaced. False for a config spec with no such page, which is left as it is.
+     * The content of the Categories page of the mod's own config spec, which its client gives as the page is shown:
+     * a line of what the page does, then a section of a row for each mod, in the order of their display names. A row
+     * is a dropdown of the names, kept in the page's file under the mod's `modName`, which takes a typed name. Its
+     * default is the category the mod has without the player's choice, which its help names, so Reset gives it, and a
+     * Save keeps no value that is it. Its options are the client's, by its id, as the names in use change. A search
+     * does not find a row by the mod's name, which finds the mod.
      */
-    bool addCategoryRows(Mod& own, const std::vector<Mod>& mods, const CategoryTable& table)
+    std::string categoryPageContent(const std::vector<Mod>& mods, const CategoryTable& table)
     {
-        const auto page = std::ranges::find(own.pages, CATEGORIES_PAGE_ID, &Page::id);
-        if (page == own.pages.end()) {
-            return false;
-        }
-        std::erase_if(page->items, [](const Item& item) {
-            const auto* group = std::get_if<Group>(&item);
-            return group && group->id == CATEGORY_ROWS_ID;
-        });
-
-        std::vector<const Mod*> listed{ &own };
+        std::vector<const Mod*> listed;
         for (const auto& mod : mods) {
-            if (categoryKey(mod.name) != categoryKey(own.name)) {
-                listed.push_back(&mod);
-            }
+            listed.push_back(&mod);
         }
-        std::ranges::sort(listed, common::CaseInsensitiveComparator(), &Mod::displayName);
+        std::ranges::stable_sort(listed, common::CaseInsensitiveComparator(), &Mod::displayName);
 
-        Group section;
-        section.text = "Mods";
-        section.id = CATEGORY_ROWS_ID;
+        auto rows = Json::array();
         for (const auto* mod : listed) {
             const auto [name, source] = ownCategory(*mod, table);
-            Setting row;
-            row.id = CATEGORY_SETTING_ID + mod->name;
-            row.type = SettingType::Dropdown;
-            row.text = mod->displayName;
-            row.help = source == CategorySource::Mod     ? std::format("Reset gives {}, the mod's own category.", name)
-                       : source == CategorySource::Table ? std::format("Reset gives {}, from the table of known mods.", name)
-                                                         : std::format("Reset gives {}: the mod has no category of its own.", NO_CATEGORY);
-            row.valueOptions.clientOptions = true;
-            row.valueOptions.typedOption = true;
-            row.valueOptions.maxLength = CATEGORY_NAME_MAX_LENGTH;
-            row.storage = FileStorage{ .file = CATEGORIES_FILE, .path = { mod->name } };
-            row.valueType = StoredType::String;
-            row.applies = Applies::Save;
-            row.defaultValue = name;
-            row.omitDefault = true;
-            row.notSearched = true;
-            section.items.emplace_back(std::move(row));
+            const auto help = source == CategorySource::Mod     ? std::format("Reset gives {}, the mod's own category.", name)
+                              : source == CategorySource::Table ? std::format("Reset gives {}, from the table of known mods.", name)
+                                                                : std::format("Reset gives {}: the mod has no category of its own.", NO_CATEGORY);
+            rows.push_back({ { "type", "dropdown" },
+                { "valueType", "string" },
+                { "id", CATEGORY_SETTING_ID + mod->name },
+                { "text", mod->displayName },
+                { "help", help },
+                { "default", name },
+                { "valueOptions", { { "listFromClientCallback", true }, { "allowTyped", true }, { "maxLength", CATEGORY_NAME_MAX_LENGTH } } },
+                { "storage", { { "path", Json::array({ mod->name }) } } },
+                { "omitDefault", true },
+                { "searchable", false } });
         }
-        page->items.emplace_back(std::move(section));
-        return true;
+        const auto content = Json::array({
+            { { "type", "text" },
+                { "text", "Give a mod another category. The mod list is grouped by category when it is long: see Min mods to group by category on the Panel page." } },
+            { { "type", "section" }, { "id", CATEGORY_ROWS_ID }, { "text", "Mods" }, { "content", std::move(rows) } },
+        });
+        return content.dump();
     }
 
     /**

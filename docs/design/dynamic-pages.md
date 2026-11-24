@@ -4,7 +4,7 @@ A page whose rows the mod's DLL gives when the page is selected. Some settings d
 
 Only a page's content is dynamic. The page itself, with its name, its place in the tree, its sub-pages and its conditions, is in the config spec as usual, so the tree, the crumbs and `openMenu` work as they do for any page.
 
-The worked example is [RobCo PALM's wheel](#example-robco-palms-wheel).
+The worked example is [RobCo PALM's wheel](#example-robco-palms-wheel). The menu's own [Categories page](ui-and-vr-interaction.md#changing-a-mods-category) is one too: its client gives a row for each mod the menu lists.
 
 ## In the config spec
 

@@ -2747,7 +2747,6 @@ TEST_CASE("FullPanel render: the Categories page of the mod's own config spec, w
         in("XDI", "XDI"),
         in("MyMod", "A mod of no table", "My Own"),
         in("Plain", "Plain mod") };
-    REQUIRE(model::addCategoryRows(own[0], mods, table));
     mods.push_back(std::move(own[0]));
 
     spec::ConfigSpecStore store({}, {});
@@ -2757,7 +2756,11 @@ TEST_CASE("FullPanel render: the Categories page of the mod's own config spec, w
             return model::categoryOptions(mods, table, {});
         };
     }
-    store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = options }.calls());
+    // the menu's own client gives the page's rows as it is shown
+    const auto content = [&] {
+        return model::categoryPageContent(mods, table);
+    };
+    store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = options, .pages = { { model::CATEGORIES_PAGE_ID, content } } }.calls());
 
     FullPanel panel;
     panel.setStore(model::Source::ConfigSpec, &store);
@@ -2791,7 +2794,6 @@ TEST_CASE("FullPanel render: Type your own in the list of a row of the Categorie
         return mod;
     };
     std::vector<model::Mod> mods{ in("MyMod", "A mod of no table", "My Own"), in("FallUI", "FallUI - Inventory"), in("Plain", "Plain mod"), in("XDI", "XDI") };
-    REQUIRE(model::addCategoryRows(own[0], mods, *table));
     mods.push_back(std::move(own[0]));
 
     // the rows offer the names in use, and the ones pending on the page, as the menu's own client does
@@ -2809,7 +2811,10 @@ TEST_CASE("FullPanel render: Type your own in the list of a row of the Categorie
         for (const auto& mod : mods) {
             callbacks[model::CATEGORY_SETTING_ID + mod.name] = options;
         }
-        store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = callbacks }.calls());
+        const auto rows = [&] {
+            return model::categoryPageContent(panel.mods(), *table);
+        };
+        store.clientCalls().addClient("ModsConfigFO4VR", test_clients::TestClient{ .options = callbacks, .pages = { { model::CATEGORIES_PAGE_ID, rows } } }.calls());
         panel.setStore(model::Source::ConfigSpec, &store);
         panel.modList().setCategoriesMinMods(0);
         panel.setMods(mods);

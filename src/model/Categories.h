@@ -19,8 +19,9 @@ namespace mods_config::model
     // what the mods with no category are under, last
     constexpr auto NO_CATEGORY = "No category";
 
-    // the page of the mod's own config spec that the menu fills with a row for each mod, the file of the config spec
-    // the player's choices are kept in, and what the id of a mod's row starts with, before its `modName`
+    // the dynamic page of the mod's own config spec whose client gives a row for each mod (`categoryPageContent`), the
+    // file of the config spec the page keeps the player's choices in, and what the id of a mod's row starts with,
+    // before its `modName`
     constexpr auto CATEGORIES_PAGE_ID = "categories";
     constexpr auto CATEGORIES_FILE = "categories";
     constexpr auto CATEGORY_SETTING_ID = "category.";
@@ -101,6 +102,6 @@ namespace mods_config::model
     std::vector<CategoryGroup> groupByCategory(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices = {});
     std::vector<std::string> categoryNames(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
     std::vector<Option> categoryOptions(const std::vector<Mod>& mods, const CategoryTable& table, const CategoryChoices& choices);
-    bool addCategoryRows(Mod& own, const std::vector<Mod>& mods, const CategoryTable& table);
+    std::string categoryPageContent(const std::vector<Mod>& mods, const CategoryTable& table);
     CategoryChoices withPendingChoices(CategoryChoices choices, const Mod& own, StoreReader& store);
 }

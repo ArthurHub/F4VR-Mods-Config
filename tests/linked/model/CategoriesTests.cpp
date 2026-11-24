@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "model/Categories.h"
 #include "model/ChoiceOptions.h"
 
@@ -212,60 +214,45 @@ TEST_CASE("Categories: the names a mod can be given are the shipped ones and the
     CHECK(options[4].text == "No category");
 }
 
-TEST_CASE("Categories: the Categories page is filled with a row for each mod, in the order of their names, kept under its modName")
+TEST_CASE("Categories: the Categories page's content is a line and a row for each mod, in the order of their names, kept under its modName")
 {
     const auto known = table(R"({ "categories": ["Interface", "Settlements"], "mods": { "SS2": "Settlements" } })");
     auto own = mod("ModsConfigFO4VR", "interface");
     own.displayName = "Mods Config FO4 VR";
-    own.pages.push_back({ .name = "Panel", .items = {} });
-    own.pages.push_back({ .name = "Categories", .items = { model::Text{} }, .pages = {}, .id = "categories" });
     auto ss2 = mod("SS2");
     ss2.displayName = "Sim Settlements 2";
     auto alpha = mod("Alpha");
     alpha.displayName = "alpha";
-    // the mod's own is among the mods the menu lists, and has one row
-    const std::vector<model::Mod> mods{ ss2, own, alpha };
 
-    REQUIRE(model::addCategoryRows(own, mods, known));
+    const auto content = nlohmann::json::parse(model::categoryPageContent({ ss2, own, alpha }, known));
+    REQUIRE(content.size() == 2);
+    CHECK(content[0]["type"] == "text");
+    const auto& section = content[1];
+    CHECK(section["type"] == "section");
+    CHECK(section["id"] == model::CATEGORY_ROWS_ID);
+    CHECK(section["text"] == "Mods");
+    const auto& rows = section["content"];
+    REQUIRE(rows.size() == 3);
 
-    const auto& page = own.pages[1];
-    REQUIRE(page.items.size() == 2);
-    const auto& section = std::get<model::Group>(page.items[1]);
-    CHECK(section.text == "Mods");
-    REQUIRE(section.items.size() == 3);
+    const auto& first = rows[0];
+    CHECK(first["id"] == "category.Alpha");
+    CHECK(first["type"] == "dropdown");
+    CHECK(first["valueType"] == "string");
+    CHECK(first["text"] == "alpha");
+    CHECK(first["storage"] == nlohmann::json{ { "path", { "Alpha" } } });
+    CHECK(first["default"] == "");
+    CHECK(first["help"] == "Reset gives No category: the mod has no category of its own.");
+    CHECK(first["valueOptions"] == nlohmann::json{ { "listFromClientCallback", true }, { "allowTyped", true }, { "maxLength", 24 } });
+    CHECK(first["omitDefault"] == true);
+    CHECK(first["searchable"] == false);
 
-    const auto& first = std::get<model::Setting>(section.items[0]);
-    CHECK(first.id == "category.Alpha");
-    CHECK(first.text == "alpha");
-    CHECK(first.type == model::SettingType::Dropdown);
-    CHECK(first.storage == model::Storage(model::FileStorage{ .file = "categories", .path = { "Alpha" } }));
-    CHECK(first.defaultValue == model::Value(std::string()));
-    CHECK(first.help == "Reset gives No category: the mod has no category of its own.");
-    CHECK(first.valueOptions.clientOptions);
-    CHECK(first.valueOptions.typedOption);
-    CHECK(first.valueOptions.maxLength == 24);
-    CHECK(first.applies == model::Applies::Save);
-    CHECK(first.omitDefault);
-    CHECK(first.notSearched);
+    CHECK(rows[1]["id"] == "category.ModsConfigFO4VR");
+    CHECK(rows[1]["default"] == "Interface");
+    CHECK(rows[1]["help"] == "Reset gives Interface, the mod's own category.");
 
-    const auto& second = std::get<model::Setting>(section.items[1]);
-    CHECK(second.id == "category.ModsConfigFO4VR");
-    CHECK(second.defaultValue == model::Value(std::string("Interface")));
-    CHECK(second.help == "Reset gives Interface, the mod's own category.");
-
-    const auto& third = std::get<model::Setting>(section.items[2]);
-    CHECK(third.id == "category.SS2");
-    CHECK(third.defaultValue == model::Value(std::string("Settlements")));
-    CHECK(third.help == "Reset gives Settlements, from the table of known mods.");
-
-    // filled again, its rows are replaced
-    REQUIRE(model::addCategoryRows(own, { ss2 }, known));
-    REQUIRE(own.pages[1].items.size() == 2);
-    CHECK(std::get<model::Group>(own.pages[1].items[1]).items.size() == 2);
-
-    // a config spec with no such page is left as it is
-    auto other = mod("Other");
-    CHECK(!model::addCategoryRows(other, mods, known));
+    CHECK(rows[2]["id"] == "category.SS2");
+    CHECK(rows[2]["default"] == "Settlements");
+    CHECK(rows[2]["help"] == "Reset gives Settlements, from the table of known mods.");
 }
 
 TEST_CASE("Categories: a typed name is trimmed, takes the spelling of an option it is in another case, and an empty one is none")

@@ -22,6 +22,7 @@
 #include "model/TextMarkup.h"
 #include "model/Transforms.h"
 #include "spec/ConfigSpecLoader.h"
+#include "spec/PageContentReader.h"
 
 using namespace mods_config;
 using namespace test_config_specs;
@@ -914,7 +915,7 @@ TEST_CASE("ConfigSpecLoader: a config spec's category is read as it is written, 
     CHECK(newer.category == "Combat");
 }
 
-TEST_CASE("ConfigSpecLoader: the mod's own config spec has the Categories page the menu fills, and the file of the player's categories")
+TEST_CASE("ConfigSpecLoader: the mod's own config spec has the Categories page its client gives the rows of, and the file of the player's categories")
 {
     auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
     REQUIRE(mods.size() == 1);
@@ -924,13 +925,50 @@ TEST_CASE("ConfigSpecLoader: the mod's own config spec has the Categories page t
     CHECK(mod.files.at(model::CATEGORIES_FILE) ==
           model::File{ .format = model::FileFormat::Toml, .root = model::FileRoot::MyGames, .path = "Mods_Config/ModsConfigFO4VR/Categories.toml", .pathFromClientState = {} });
 
-    REQUIRE(model::addCategoryRows(mod, {}, {}));
     const auto page = std::ranges::find(mod.pages, model::CATEGORIES_PAGE_ID, &model::Page::id);
     REQUIRE(page != mod.pages.end());
     CHECK(page->name == "Categories");
-    // its text, and the section of the rows, which has the mod's own
-    REQUIRE(page->items.size() == 2);
-    CHECK(std::get<model::Group>(page->items[1]).items.size() == 1);
+    // a dynamic page, with no rows until its client gives them
+    CHECK(page->contentFromClient);
+    CHECK(page->items.empty());
+}
+
+TEST_CASE("ConfigSpecLoader: the content of the Categories page is read against the mod's own config spec with no problem")
+{
+    auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
+    REQUIRE(mods.size() == 1);
+    auto& own = mods[0];
+    REQUIRE(own.pageContent);
+    const auto table = model::readCategoryTable(R"({ "categories": ["Interface", "Settlements"], "mods": { "SS2": "Settlements" } })");
+    REQUIRE(table);
+    const std::vector<model::Mod> listed{ own, model::Mod{ .name = "SS2", .displayName = "Sim Settlements 2", .frontPage = {}, .pages = {} } };
+
+    const auto content = spec::readPageContent(*own.pageContent, model::CATEGORIES_PAGE_ID, model::categoryPageContent(listed, *table), {}, {}, {});
+    REQUIRE(content);
+    CHECK(content->problems.empty());
+    // the line of what the page does, and the section of the rows
+    REQUIRE(content->items.size() == 2);
+    CHECK(std::holds_alternative<model::Text>(content->items[0]));
+    const auto& section = std::get<model::Group>(content->items[1]);
+    CHECK(section.id == model::CATEGORY_ROWS_ID);
+    REQUIRE(section.items.size() == 2);
+
+    // each row as the page's file, applies and the row's own fields have it
+    const auto& first = std::get<model::Setting>(section.items[0]);
+    CHECK(first.id == "category.ModsConfigFO4VR");
+    CHECK(first.type == model::SettingType::Dropdown);
+    CHECK(first.storage == model::Storage(model::FileStorage{ .file = model::CATEGORIES_FILE, .path = { "ModsConfigFO4VR" } }));
+    CHECK(first.defaultValue == model::Value("Interface"s));
+    CHECK(first.valueOptions.clientOptions);
+    CHECK(first.valueOptions.typedOption);
+    CHECK(first.valueOptions.maxLength == model::CATEGORY_NAME_MAX_LENGTH);
+    CHECK(first.applies == model::Applies::Save);
+    CHECK(first.omitDefault);
+    CHECK(first.notSearched);
+    const auto& second = std::get<model::Setting>(section.items[1]);
+    CHECK(second.id == "category.SS2");
+    CHECK(second.text == "Sim Settlements 2");
+    CHECK(second.defaultValue == model::Value("Settlements"s));
 }
 
 TEST_CASE("ConfigSpecLoader: a condition and an option's sets on the front page name a setting on a page")

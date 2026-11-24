@@ -71,7 +71,7 @@ namespace mods_config::menu
             }
             return _configSpecStore.setPendingValue(modName, id, value);
         });
-        // the mod's own config spec has the Categories page, which the mod list fills with a row for each mod
+        // the mod's own config spec has the Categories page, whose rows offer the names pending on it
         _fullPanel.modList().setOwnMod(std::string(Version::PROJECT));
         _fullPanel.setLiveCopyAction([this](const std::string& folder, const ui::LiveCopyAction action) {
             _liveCopyRequest = LiveCopyRequest{ .folder = folder, .action = action };
@@ -81,8 +81,9 @@ namespace mods_config::menu
     /**
      * Adds the options of its own config spec's Config spec setting to the mod's client of the native API, as any
      * CommonFramework mod adds its own: none first, then each config spec the menu lists, by its modName and its name,
-     * in their order. The framework connects the client at kPostLoad. The client keeps the handlers for the whole run,
-     * so only the controller that lives as long calls it, and only that one adds the Categories rows' options in setMods.
+     * in their order, and the rows of its Categories page. The framework connects the client at kPostLoad. The client
+     * keeps the handlers for the whole run, so only the controller that lives as long calls it, and only that one adds
+     * the Categories rows' options in setMods.
      */
     void MenuController::registerOwnOptions()
     {
@@ -100,6 +101,10 @@ namespace mods_config::menu
                 }
             }
             return options;
+        });
+        // the Categories page is a dynamic page, whose rows are the mods the menu lists as it is shown
+        api::ModsConfigFO4Client::get().addPageContent(model::CATEGORIES_PAGE_ID, [this] {
+            return std::optional<std::string>(_fullPanel.modList().categoryPageContent());
         });
     }
 
@@ -229,7 +234,7 @@ namespace mods_config::menu
         // the textures are kept by the pixels of the mods that are replaced
         _port.dropImageTextures();
 
-        // the rows of the Categories page of the mod's own config spec, which the mod list fills, take their options
+        // the rows of the Categories page of the mod's own config spec, which its client gives, take their options
         // from its own client, which only the controller that owns the client adds them to
         if (_ownsClient) {
             for (const auto& mod : mods) {

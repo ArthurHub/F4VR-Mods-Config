@@ -17,8 +17,8 @@ namespace mods_config::ui
 
     /**
      * The mods the menu lists, in order of their display names, with their categories and the last read of each config
-     * spec's live copy. It groups the mods again as they or their categories change, and refills the rows of the
-     * Categories page of the menu's own config spec. Private to the panel, which sets and replaces the mods, as that is
+     * spec's live copy. It groups the mods again as they or their categories change, and gives the rows of the
+     * Categories page of the menu's own config spec and their options. Private to the panel, which sets and replaces the mods, as that is
      * panel work too; the menu sets the categories and the live copy reads through `FullPanel::modList()`.
      */
     class ModList
@@ -29,6 +29,7 @@ namespace mods_config::ui
         void setCategoryChoices(model::CategoryChoices choices);
         void setCategoriesMinMods(int minMods);
         std::vector<model::Option> categoryOptions(model::StoreReader& store) const;
+        std::string categoryPageContent() const;
         void liveCopyNotRead(std::string_view folder, std::string_view liveCopy, std::string_view time, std::string_view reason);
         void setLiveCopyStale(std::string_view folder, bool stale);
         std::optional<std::size_t> placeOf(std::string_view folder) const;
@@ -57,7 +58,6 @@ namespace mods_config::ui
         void setMods(std::vector<model::Mod> mods);
         std::optional<std::vector<std::size_t>> replace(model::Mod mod, std::size_t dropped, std::string_view time);
         bool isOwnMod(const model::Mod& mod) const;
-        void refillCategoryRows();
         void group();
 
         // a mod the panel's store session holds, which can change it

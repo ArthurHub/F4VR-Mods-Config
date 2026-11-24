@@ -406,12 +406,7 @@
       "help": "The category each mod is under while the mod list is grouped.",
       "defaultFile": "categories",
       "applies": "save",
-      "content": [
-        {
-          "type": "text",
-          "text": "Give a mod another category. The mod list is grouped by category when it is long: see Min mods to group by category on the Panel page."
-        }
-      ]
+      "contentFromClientCallback": true
     },
     {
       "pageDisplayName": "Developer",
