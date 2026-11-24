@@ -35,6 +35,7 @@ MCM mods show while `mcm_vr.dll` is loaded (found by name). The menu calls only 
 | `switcher` | As in MCM | M25 |
 | `hiddenSwitcher` | As in MCM: never shown, and controls its group | M38 |
 | `slider` | As in MCM, with its `min`, `max` and `step` | M26 |
+| Three sliders of a color, R, G and B | One color row, which the color editor edits: three sliders in a row, each from 0 to 255, whose ids are the same but for one letter, `R`, `G` and `B` in this order, as FallUI's `iCustomColorR:Interface`. A fourth with `A` is its alpha. The row is named by its section, or `Color` out of one. The sliders are hidden settings, as a `hiddenSwitcher` is: a change of the color sets each slider that changes, with its action and its event, and counts as one change. MCM's menu shows the sliders | |
 | `stepper`, `dropdown` | As in MCM, with `options` or `sharedOptions` | M27, M37 |
 | `dropdownFiles` | As in MCM, with its `path` and `mask`, but its pick writes the name of the file, which MCM's menu loses. It is drawn as a config spec's choice of files: a file's name with its extension muted where the mask does not name it, and its folder and how many files it has over the list | M39, M76 |
 | `button` | As in MCM: runs its action | M33 |

@@ -418,6 +418,19 @@ namespace mods_config::model
     };
 
     /**
+     * A color kept in sliders of its own, its parts: its red, green and blue, and its alpha where it has one, as MCM's
+     * three sliders of a color. Its value is their `r,g,b` or `r,g,b,a`, each slider's range as 0 to 255, and a change of
+     * it sets each of them. The parts stay settings of their own, and their rows are hidden.
+     */
+    struct ColorPartsStorage
+    {
+        // the ids of the red, the green and the blue slider, and of the alpha's where it has one
+        std::vector<std::string> parts;
+
+        bool operator==(const ColorPartsStorage&) const = default;
+    };
+
+    /**
      * A storage the menu does not read: the value of its setting is not available.
      */
     struct UnknownStorage
@@ -431,7 +444,7 @@ namespace mods_config::model
     /**
      * Where the value of a setting is kept. Only the store reads it.
      */
-    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, ClientStateStorage, SetsStorage, UnknownStorage>;
+    using Storage = std::variant<NoStorage, GlobalStorage, ModSettingStorage, PropertyStorage, FileStorage, ClientStateStorage, SetsStorage, ColorPartsStorage, UnknownStorage>;
 
     /**
      * When a change of a setting takes effect in the running mod, as its config spec says it: the menu cannot tell.

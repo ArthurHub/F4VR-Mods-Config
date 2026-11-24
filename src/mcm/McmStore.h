@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -88,10 +90,7 @@ namespace mods_config::mcm
 
         bool isDirty(const model::Setting& setting) const override;
 
-        std::size_t dirtyCount() const override
-        {
-            return _changes.size();
-        }
+        std::size_t dirtyCount() const override;
 
         bool writesChangesAtOnce() const override
         {
@@ -148,7 +147,12 @@ namespace mods_config::mcm
             model::Value baseline;
         };
 
+        // the value of a part of a color kept in sliders of its own, or why it has none
+        using PartReader = std::function<std::expected<model::Value, std::string>(const model::Setting& part)>;
+
         model::StoredValue stored(const model::Setting& setting);
+        std::vector<const model::Setting*> colorParts(const model::ColorPartsStorage& storage) const;
+        model::StoredValue colorValue(const model::Setting& setting, const model::ColorPartsStorage& storage, const PartReader& read) const;
         std::optional<model::Value> readBack(const model::Setting& setting, const model::Value& value) const;
         bool change(const model::Setting& setting, const model::Value& value);
         bool write(const model::Setting& setting, const model::Value& value);
@@ -173,6 +177,9 @@ namespace mods_config::mcm
 
         // the settings of the mod that is selected, by their ids
         std::map<std::string, const model::Setting*, std::less<>> _settings;
+
+        // the color kept in sliders of its own that each of its parts is of, of the mod that is selected
+        std::unordered_map<const model::Setting*, const model::Setting*> _colorOfPart;
 
         // the values of the settings with no storage that were set, of the mod that is selected
         std::unordered_map<const model::Setting*, model::Value> _held;

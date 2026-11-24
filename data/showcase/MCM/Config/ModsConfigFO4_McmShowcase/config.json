@@ -689,6 +689,58 @@
           "id": "fNoRange:Sliders",
           "valueOptions": { "sourceType": "ModSettingFloat" }
         },
+        { "type": "section", "text": "Custom color" },
+        {
+          "type": "text",
+          "text": "Three sliders from 0 to 255 whose ids differ by R, G and B are one color, as FallUI's custom color. MCM's menu shows the three sliders."
+        },
+        {
+          "type": "slider",
+          "text": "Red",
+          "id": "iColorR:Sliders",
+          "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 5 }
+        },
+        {
+          "type": "slider",
+          "text": "Green",
+          "id": "iColorG:Sliders",
+          "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 5 }
+        },
+        {
+          "type": "slider",
+          "text": "Blue",
+          "id": "iColorB:Sliders",
+          "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 5 }
+        },
+        { "type": "section", "text": "Tint with alpha" },
+        {
+          "type": "text",
+          "text": "A fourth slider whose id has A is the color's alpha."
+        },
+        {
+          "type": "slider",
+          "text": "Red",
+          "id": "iTintR:Sliders",
+          "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 1 }
+        },
+        {
+          "type": "slider",
+          "text": "Green",
+          "id": "iTintG:Sliders",
+          "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 1 }
+        },
+        {
+          "type": "slider",
+          "text": "Blue",
+          "id": "iTintB:Sliders",
+          "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 1 }
+        },
+        {
+          "type": "slider",
+          "text": "Alpha",
+          "id": "iTintA:Sliders",
+          "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 1 }
+        },
         { "type": "section", "text": "With no storage" },
         {
           "type": "slider",

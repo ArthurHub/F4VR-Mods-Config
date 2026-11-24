@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <format>
 
 #include "TestFiles.h"
 #include "TestSwf.h"
@@ -1544,4 +1545,76 @@ TEST_CASE("McmLoader: a config's category is read as it is written, also of a mo
     REQUIRE(missing);
     CHECK(!missing->notAvailable.empty());
     CHECK(missing->category == "Combat");
+}
+
+namespace
+{
+    /**
+     * A config of one page whose rows are the given ones.
+     */
+    std::string configOfRows(const std::string& rows)
+    {
+        return R"({ "modName": "MyMod", "content": [ )" + rows + " ] }";
+    }
+
+    std::string colorSlider(const std::string& id, const int max = 255)
+    {
+        return std::format(R"({{ "type": "slider", "text": "{0}", "id": "{0}", "valueOptions": {{ "sourceType": "ModSettingInt", "min": 0, "max": {1} }} }})", id, max);
+    }
+
+    bool isHidden(const model::Item& item)
+    {
+        const auto& setting = std::get<model::Setting>(item);
+        return setting.visibleWhen && setting.visibleWhen->kind == model::Condition::Kind::Any && setting.visibleWhen->conditions.empty();
+    }
+}
+
+TEST_CASE("McmLoader: the sliders of a color, R, G and B from 0 to 255, are one color row, and they are hidden")
+{
+    const auto mod = mcm::loadConfig(
+        configOfRows(R"({ "type": "section", "text": "Custom color" }, )" + colorSlider("iColorR:Main") + ", " + colorSlider("iColorG:Main") + ", " + colorSlider("iColorB:Main")));
+    REQUIRE(mod);
+    const auto& items = std::get<model::Group>(mod->frontPage.items.front()).items;
+    REQUIRE(items.size() == 4);
+    const auto& color = std::get<model::Setting>(items[0]);
+    CHECK(color.type == model::SettingType::Color);
+    CHECK(color.id == "iColor:Main");
+    CHECK(color.text == "Custom color");
+    CHECK_FALSE(color.valueOptions.alpha);
+    CHECK(color.tableForm == model::TableForm::IniLine);
+    CHECK(std::get<model::ColorPartsStorage>(color.storage).parts == std::vector<std::string>{ "iColorR:Main", "iColorG:Main", "iColorB:Main" });
+    CHECK(isHidden(items[1]));
+    CHECK(isHidden(items[2]));
+    CHECK(isHidden(items[3]));
+}
+
+TEST_CASE("McmLoader: a fourth slider A is the alpha of a color, and a color out of a section is named Color")
+{
+    const auto mod = mcm::loadConfig(configOfRows(colorSlider("RColor") + ", " + colorSlider("GColor") + ", " + colorSlider("BColor") + ", " + colorSlider("AColor")));
+    REQUIRE(mod);
+    const auto& items = mod->frontPage.items;
+    REQUIRE(items.size() == 5);
+    const auto& color = std::get<model::Setting>(items[0]);
+    CHECK(color.text == "Color");
+    CHECK(color.valueOptions.alpha);
+    CHECK(std::get<model::ColorPartsStorage>(color.storage).parts.size() == 4);
+    CHECK(isHidden(items[4]));
+}
+
+TEST_CASE("McmLoader: sliders whose ids or ranges are no color's stay sliders")
+{
+    const auto check = [](const std::string& rows, const std::size_t count) {
+        const auto mod = mcm::loadConfig(configOfRows(rows));
+        REQUIRE(mod);
+        CHECK(mod->frontPage.items.size() == count);
+        CHECK(std::ranges::none_of(mod->frontPage.items, [](const model::Item& item) {
+            const auto* setting = std::get_if<model::Setting>(&item);
+            return setting && setting->type == model::SettingType::Color;
+        }));
+    };
+    // another order, a range of 0 to 100, two letters that differ, and two sliders alone
+    check(colorSlider("iColorG") + ", " + colorSlider("iColorR") + ", " + colorSlider("iColorB"), 3);
+    check(colorSlider("iColorR", 100) + ", " + colorSlider("iColorG", 100) + ", " + colorSlider("iColorB", 100), 3);
+    check(colorSlider("iColorRx") + ", " + colorSlider("iColorGy") + ", " + colorSlider("iColorBz"), 3);
+    check(colorSlider("iColorR") + ", " + colorSlider("iColorG"), 2);
 }

@@ -61,6 +61,7 @@ Mods Config also displays your existing MCM menus in the same interface, without
 [*][size=3][size=3][b]MCM compatibility:[/b] Browse existing pages, settings, images, help text, and translations. Supported buttons and presets execute their original scripts.[/size][/size][/*]
 [*][size=3][size=3][b]Keep and Revert:[/b] MCM changes take effect immediately, just as they do in MCM. Keep accepts the changes, while Revert restores the previous settings.[/size][/size][/*]
 [*][size=3][size=3][b]Text input in VR:[/b] Enter text using SteamVR's keyboard, or a physical keyboard.[/size][/size][/*]
+[*][size=3][size=3][b]Color pickers:[/b] A color set with red, green and blue sliders, as FallUI's custom color, is edited with the color picker.[/size][/size][/*]
 [*][size=3][size=3][b]Existing hotkeys:[/b] Hotkeys are displayed, while MCM continues to manage their bindings and execution.[/size][/size][/*]
 [/list]
 [size=3][size=3]

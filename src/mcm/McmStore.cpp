@@ -7,9 +7,11 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <unordered_set>
 #include <variant>
 
 #include "common/CommonUtils.h"
+#include "model/Colors.h"
 #include "model/SessionEvents.h"
 #include "model/SettingValues.h"
 #include "perf/Perf.h"
@@ -77,6 +79,10 @@ namespace
         case model::SettingType::Dropdown:
             return setting.valueOptions.options.empty() ? model::Value(0) : setting.valueOptions.options.front().value;
         case model::SettingType::TextInput:
+            break;
+        case model::SettingType::Color:
+            return std::string("0,0,0");
+        default:
             break;
         }
         return model::isNumberField(setting) ? std::string("0") : std::string();
@@ -366,6 +372,15 @@ namespace mods_config::mcm
         for (const auto& page : mod.pages) {
             addSettings(page.items, _settings);
         }
+        for (const auto& [id, setting] : _settings) {
+            if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting->storage)) {
+                for (const auto* part : colorParts(*color)) {
+                    if (part) {
+                        _colorOfPart.insert_or_assign(part, setting);
+                    }
+                }
+            }
+        }
         sendEvent("OnMCMMenuOpen");
         sendEvent("OnMCMMenuOpen|" + _modName);
     }
@@ -392,6 +407,7 @@ namespace mods_config::mcm
         _options.clear();
         _held.clear();
         _settings.clear();
+        _colorOfPart.clear();
         _changes.clear();
         _lastSave.reset();
     }
@@ -429,10 +445,16 @@ namespace mods_config::mcm
      * A ModSetting that is in neither of MCM's files is what MCM reads for it, until it is set and held.
      * A global that is not in the game is not available, with the reason, and neither is a property that is
      * not in the game, a value of a storage the store does not read, and a choice whose list of options is not
-     * in the game.
+     * in the game. A color kept in sliders of its own is their `r,g,b` or `r,g,b,a`, and is not available while one of them is not.
      */
     model::StoredValue McmStore::stored(const model::Setting& setting)
     {
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            return colorValue(setting, *color, [this](const model::Setting& part) {
+                const auto value = stored(part);
+                return value.available ? std::expected<model::Value, std::string>(value.value) : std::unexpected(value.reason);
+            });
+        }
         if (const auto reason = _options.notAvailable(setting); !reason.empty()) {
             return { .value = valueWithNone(setting), .available = false, .reason = std::string(reason) };
         }
@@ -488,9 +510,26 @@ namespace mods_config::mcm
      * A value that is set ends the last Save.
      * Returns false for a value that is not set: one of a storage that is not available or that the store does
      * not write, one its storage does not keep, and a text that is no number, for a text input that takes one.
+     * A color kept in sliders of its own sets each of them, in their order, as its slider in MCM's menu would: each is
+     * a change of its own, with its action and its event, and one whose value stays changes nothing.
      */
     bool McmStore::set(const model::Setting& setting, const model::Value& typed)
     {
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            const auto* text = std::get_if<std::string>(&typed);
+            const auto parts = colorParts(*color);
+            const auto values = text && !std::ranges::contains(parts, nullptr) ? model::partsOfColor(parts, *text) : std::vector<std::optional<model::Value>>();
+            if (values.empty()) {
+                return false;
+            }
+            bool setAll = true;
+            for (std::size_t i = 0; i < parts.size(); ++i) {
+                if (values[i]) {
+                    setAll = set(*parts[i], *values[i]) && setAll;
+                }
+            }
+            return setAll;
+        }
         auto value = typed;
         if (model::isNumberField(setting)) {
             auto text = typedNumberText(setting, typed);
@@ -530,11 +569,66 @@ namespace mods_config::mcm
     }
 
     /**
-     * Whether the player changed a setting from the value it had before, which a Save keeps.
+     * Whether the player changed a setting from the value it had before, which a Save keeps: a color kept in sliders
+     * of its own while one of them is changed.
      */
     bool McmStore::isDirty(const model::Setting& setting) const
     {
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            return std::ranges::any_of(colorParts(*color), [this](const model::Setting* part) {
+                return part && isDirty(*part);
+            });
+        }
         return std::ranges::contains(_changes, &setting, &Change::setting);
+    }
+
+    /**
+     * How many settings the player changed: the parts of a color kept in sliders of its own count once, as its one row.
+     */
+    std::size_t McmStore::dirtyCount() const
+    {
+        std::unordered_set<const model::Setting*> changed;
+        for (const auto& change : _changes) {
+            const auto color = _colorOfPart.find(change.setting);
+            changed.insert(color != _colorOfPart.end() ? color->second : change.setting);
+        }
+        return changed.size();
+    }
+
+    /**
+     * The parts of a color kept in sliders of its own, of the mod that is selected, in their order. None for an id
+     * that no setting of it has.
+     */
+    std::vector<const model::Setting*> McmStore::colorParts(const model::ColorPartsStorage& storage) const
+    {
+        std::vector<const model::Setting*> parts;
+        for (const auto& id : storage.parts) {
+            const auto found = _settings.find(id);
+            parts.push_back(found != _settings.end() ? found->second : nullptr);
+        }
+        return parts;
+    }
+
+    /**
+     * The `r,g,b` or `r,g,b,a` of a color kept in sliders of its own, from the value `read` gives each of them. Not
+     * available while a part is not a setting of the mod, or `read` has no value of it, with its reason.
+     */
+    model::StoredValue McmStore::colorValue(const model::Setting& setting, const model::ColorPartsStorage& storage, const PartReader& read) const
+    {
+        std::vector<model::Value> values;
+        const auto parts = colorParts(storage);
+        for (std::size_t i = 0; i < parts.size(); ++i) {
+            auto value = parts[i] ? read(*parts[i]) : std::unexpected(std::format("Not available: the setting {} is not in the mod.", storage.parts[i]));
+            if (!value) {
+                return { .value = valueWithNone(setting), .available = false, .reason = std::move(value.error()) };
+            }
+            values.push_back(std::move(*value));
+        }
+        auto color = model::colorOfParts(parts, values);
+        if (!color) {
+            return { .value = valueWithNone(setting), .available = false, .reason = {} };
+        }
+        return { .value = std::move(*color), .available = true, .reason = {} };
     }
 
     /**
@@ -619,10 +713,18 @@ namespace mods_config::mcm
 
     /**
      * Sets one setting the player changed back to the value it had before, as discard does. It ends the last Save, as
-     * a set does.
+     * a set does. A color kept in sliders of its own sets back each of them the player changed.
      */
     void McmStore::discard(const model::Setting& setting)
     {
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            for (const auto* part : colorParts(*color)) {
+                if (part) {
+                    discard(*part);
+                }
+            }
+            return;
+        }
         const auto found = std::ranges::find(_changes, &setting, &Change::setting);
         if (found == _changes.end()) {
             return;
@@ -636,9 +738,23 @@ namespace mods_config::mcm
 
     /**
      * The value a dirty setting had before the player changed it, which its Discard writes back. None for a clean one.
+     * A color kept in sliders of its own has the values its parts had, of those the player changed, and the others' now.
      */
     std::optional<model::Value> McmStore::savedValue(const model::Setting& setting)
     {
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            if (!isDirty(setting)) {
+                return std::nullopt;
+            }
+            auto saved = colorValue(setting, *color, [this](const model::Setting& part) -> std::expected<model::Value, std::string> {
+                if (auto baseline = savedValue(part)) {
+                    return std::move(*baseline);
+                }
+                auto now = stored(part);
+                return now.available ? std::expected<model::Value, std::string>(std::move(now.value)) : std::unexpected(std::move(now.reason));
+            });
+            return saved.available ? std::optional(std::move(saved.value)) : std::nullopt;
+        }
         const auto found = std::ranges::find(_changes, &setting, &Change::setting);
         return found != _changes.end() ? std::optional(found->baseline) : std::nullopt;
     }
@@ -659,9 +775,19 @@ namespace mods_config::mcm
      * The default of a setting: for a ModSetting, the value the mod's own `settings.ini` has for it, read as
      * the value of the player's file is. MCM has no default for a global and a property of a script.
      * None for a ModSetting the mod's file does not have, and for one whose text there is no value of the setting.
+     * A color kept in sliders of its own has the defaults of its parts, and none while one of them has none.
      */
     std::optional<model::Value> McmStore::defaultValue(const model::Setting& setting)
     {
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            auto defaults = colorValue(setting, *color, [this](const model::Setting& part) -> std::expected<model::Value, std::string> {
+                if (auto value = defaultValue(part)) {
+                    return std::move(*value);
+                }
+                return std::unexpected(std::string());
+            });
+            return defaults.available ? std::optional(std::move(defaults.value)) : std::nullopt;
+        }
         const auto* modSetting = std::get_if<model::ModSettingStorage>(&setting.storage);
         const auto* text = modSetting ? _modSettings.findDefault(modSetting->name) : nullptr;
         if (!text) {

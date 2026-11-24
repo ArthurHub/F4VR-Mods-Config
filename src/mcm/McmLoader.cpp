@@ -873,11 +873,124 @@ namespace
         return model::GameText{ .kind = *kind, .plugin = std::move(form->first), .formId = form->second };
     }
 
+    // what a color kept in three sliders is named, out of a section, which names it in one
+    constexpr auto COLOR_TEXT = "Color";
+
+    /**
+     * Whether a row is a slider of a part of a color: a whole number from 0 to 255.
+     */
+    const model::Setting* colorPartSlider(const model::Item& item)
+    {
+        const auto* setting = std::get_if<model::Setting>(&item);
+        const bool isPart = setting && setting->type == model::SettingType::Slider && !setting->sourceId.empty() && common::fEqual(setting->valueOptions.min, 0.0f) &&
+                            common::fEqual(setting->valueOptions.max, 255.0f);
+        return isPart ? setting : nullptr;
+    }
+
+    // the letters the ids of a color's sliders differ by, in their order: red, green, blue, and alpha where it has one
+    constexpr std::string_view COLOR_LETTERS = "RGBA";
+
+    /**
+     * The id of a color its sliders' ids make: the same id with its letter taken out, where the ids are the same but
+     * for one letter, R, G, B and A in this order, as `iCustomColorR:Interface`. None for any other ids.
+     */
+    std::optional<std::string> colorIdOf(const std::vector<const model::Setting*>& sliders)
+    {
+        const auto& first = sliders.front()->sourceId;
+        std::optional<std::size_t> letter;
+        for (std::size_t at = 0; at < first.size(); ++at) {
+            const bool same = std::ranges::all_of(sliders, [&](const model::Setting* slider) {
+                return slider->sourceId.size() == first.size() && slider->sourceId[at] == first[at];
+            });
+            if (same) {
+                continue;
+            }
+            if (letter) {
+                return std::nullopt;
+            }
+            for (std::size_t part = 0; part < sliders.size(); ++part) {
+                if (sliders[part]->sourceId.size() != first.size() || sliders[part]->sourceId[at] != COLOR_LETTERS[part]) {
+                    return std::nullopt;
+                }
+            }
+            letter = at;
+        }
+        return letter ? std::optional(std::string(first).erase(*letter, 1)) : std::nullopt;
+    }
+
+    /**
+     * The sliders of a color that start at a place of items: its red, green and blue, and its alpha where a fourth
+     * follows them. None where no color starts.
+     */
+    std::vector<const model::Setting*> colorSlidersAt(const std::vector<model::Item>& items, const std::size_t at)
+    {
+        std::vector<const model::Setting*> sliders;
+        for (std::size_t part = at; part < items.size() && sliders.size() < COLOR_LETTERS.size(); ++part) {
+            const auto* slider = colorPartSlider(items[part]);
+            if (!slider) {
+                break;
+            }
+            sliders.push_back(slider);
+        }
+        if (sliders.size() == COLOR_LETTERS.size() && !colorIdOf(sliders)) {
+            sliders.pop_back();
+        }
+        if (sliders.size() < 3 || !colorIdOf(sliders)) {
+            return {};
+        }
+        return sliders;
+    }
+
+    /**
+     * Makes the sliders of each color in a row of items, and of the sections in them, one color, which the Color
+     * editor edits: the sliders, by their ids, are its parts, and stay hidden settings, as a hidden switcher is. Their
+     * ids are the same but for R, G, B and A, and each is from 0 to 255, as FallUI's custom color. A color with no A
+     * slider has no alpha. The color is named by its section, and is shown as its red slider was.
+     */
+    void joinColorSliders(std::vector<model::Item>& items, const std::string& sectionText, std::unordered_set<std::string>& takenIds)
+    {
+        for (std::size_t at = 0; at < items.size(); ++at) {
+            if (auto* group = std::get_if<model::Group>(&items[at])) {
+                joinColorSliders(group->items, group->text, takenIds);
+                continue;
+            }
+            const auto sliders = colorSlidersAt(items, at);
+            if (sliders.empty()) {
+                continue;
+            }
+            auto colorId = *colorIdOf(sliders);
+            if (!takenIds.insert(colorId).second) {
+                colorId = sliders.front()->id + "/color";
+                takenIds.insert(colorId);
+            }
+            model::Setting color;
+            color.id = std::move(colorId);
+            color.type = model::SettingType::Color;
+            color.text = sectionText.empty() ? COLOR_TEXT : sectionText;
+            color.help = sliders.front()->help;
+            color.valueOptions.alpha = sliders.size() == COLOR_LETTERS.size();
+            color.tableForm = model::TableForm::IniLine;
+            color.visibleWhen = sliders.front()->visibleWhen;
+            model::ColorPartsStorage storage;
+            for (const auto* slider : sliders) {
+                storage.parts.push_back(slider->id);
+            }
+            color.storage = std::move(storage);
+            for (std::size_t part = at; part < at + sliders.size(); ++part) {
+                std::get<model::Setting>(items[part]).visibleWhen = model::Condition{ .kind = model::Condition::Kind::Any, .setting = {}, .conditions = {} };
+            }
+            const auto partCount = sliders.size();
+            items.insert(items.begin() + static_cast<std::ptrdiff_t>(at), std::move(color));
+            at += partCount;
+        }
+    }
+
     /**
      * The items of the `content` array of a page. A section becomes a group, with the rows that follow it up
      * to the next section. The rows before the first section are items of the page itself.
      * A row with a `groupCondition` is shown by the groups of its own page, and a section's is of its heading
      * alone, as in MCM's menu. The page's name for an id is in the ids the loader makes for its settings.
+     * Three sliders of a color in a row are one color row, with the sliders hidden.
      */
     std::vector<model::Item> loadItems(const Json& page, const std::string& pageId, const ConfigTexts& texts, mcm::McmConfigImages& images, const std::filesystem::path& gameFolder,
         std::unordered_set<std::string>& takenIds)
@@ -918,6 +1031,7 @@ namespace
             auto& target = inGroup ? std::get<model::Group>(items.back()).items : items;
             target.push_back(std::move(item));
         }
+        joinColorSliders(items, {}, takenIds);
         return items;
     }
 

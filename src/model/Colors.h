@@ -3,8 +3,10 @@
 #include <array>
 #include <expected>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "ConfigDefinition.h"
 #include "render/Color.h"
@@ -34,4 +36,6 @@ namespace mods_config::model
     render::Color colorBase(const Setting& setting);
     std::optional<render::Color> colorOf(const Setting& setting, const Value& value);
     std::string colorNumbers(const render::Color& color, bool alpha);
+    std::optional<std::string> colorOfParts(std::span<const Setting* const> parts, std::span<const Value> values);
+    std::vector<std::optional<Value>> partsOfColor(std::span<const Setting* const> parts, std::string_view color);
 }

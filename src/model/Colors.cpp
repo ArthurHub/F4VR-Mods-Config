@@ -1,6 +1,8 @@
 #include "Colors.h"
 
+#include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <format>
 #include <ranges>
 #include <vector>
@@ -179,5 +181,63 @@ namespace mods_config::model
         const auto bytes = color.bytes();
         const auto rgb = std::format("{}, {}, {}", bytes[0], bytes[1], bytes[2]);
         return alpha ? std::format("{}, alpha {}", rgb, bytes[3]) : rgb;
+    }
+
+    /**
+     * The `r,g,b` or `r,g,b,a` of a color kept in parts (`ColorPartsStorage`) from their values: each part is a slider,
+     * and a value from its min to its max is a channel from 0 to 255, the nearest whole number. None for a value that is
+     * no number, a part with no range, or other than three or four parts.
+     */
+    std::optional<std::string> colorOfParts(const std::span<const Setting* const> parts, const std::span<const Value> values)
+    {
+        if (parts.size() < 3 || parts.size() > 4 || values.size() != parts.size()) {
+            return std::nullopt;
+        }
+        ColorTable table{ .rgb = std::array<int, 3>{}, .alpha = std::nullopt };
+        for (std::size_t i = 0; i < parts.size(); ++i) {
+            const auto& range = parts[i]->valueOptions;
+            const float span = range.max - range.min;
+            const auto* whole = std::get_if<int>(&values[i]);
+            const auto* number = std::get_if<float>(&values[i]);
+            if ((!whole && !number) || span <= 0.0f || common::fEqual(span, 0.0f)) {
+                return std::nullopt;
+            }
+            const float value = whole ? static_cast<float>(*whole) : *number;
+            const int channel = std::clamp(static_cast<int>(std::lround((value - range.min) / span * 255.0f)), 0, 255);
+            if (i < 3) {
+                (*table.rgb)[i] = channel;
+            } else {
+                table.alpha = channel;
+            }
+        }
+        return colorText(table, TableForm::IniLine);
+    }
+
+    /**
+     * The values a color's `r,g,b` or `r,g,b,a` gives its parts, in their order: each channel from 0 to 255 as a value
+     * from its slider's min to its max, a whole number for a slider of one. None for the alpha part while the color has
+     * no alpha, which keeps its value. Empty for a text that is no color, and for a part with no range.
+     */
+    std::vector<std::optional<Value>> partsOfColor(const std::span<const Setting* const> parts, const std::string_view color)
+    {
+        const auto table = parseColorTable(color, TableForm::IniLine);
+        if (!table || !table->rgb || parts.size() < 3 || parts.size() > 4) {
+            return {};
+        }
+        std::vector<std::optional<Value>> values;
+        for (std::size_t i = 0; i < parts.size(); ++i) {
+            const auto channel = i < 3 ? std::optional((*table->rgb)[i]) : table->alpha;
+            const auto& range = parts[i]->valueOptions;
+            if (range.max <= range.min || common::fEqual(range.max, range.min)) {
+                return {};
+            }
+            if (!channel) {
+                values.emplace_back();
+                continue;
+            }
+            const float value = range.min + static_cast<float>(*channel) / 255.0f * (range.max - range.min);
+            values.emplace_back(parts[i]->valueType == StoredType::Int ? Value(static_cast<int>(std::lround(value))) : Value(value));
+        }
+        return values;
     }
 }

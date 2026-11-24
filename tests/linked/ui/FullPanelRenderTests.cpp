@@ -925,6 +925,21 @@ TEST_CASE("FullPanel render: the pages of the MCM showcase", "[.render]")
     for (std::size_t page = 0; page < mods[0].pages.size(); ++page) {
         render({ page }, std::format("mcm-showcase-page-{}", page + 1));
     }
+
+    // the colors of sliders at the end of the page of sliders, scrolled as the thumbstick scrolls it
+    const auto sliders = std::ranges::find(mods[0].pages, "Sliders", &model::Page::name);
+    REQUIRE(sliders != mods[0].pages.end());
+    FullPanel panel;
+    panel.setStore(model::Source::Mcm, &store);
+    panel.setMods(mods);
+    panel.select({ .mod = 0, .page = { static_cast<std::size_t>(sliders - mods[0].pages.begin()) } });
+    const auto scrollToEnd = [&panel] {
+        test_panel::drawFrame(panel, pageRow(3));
+        test_panel::drawFrame(panel, pageRow(3));
+        ImGui::GetIO().AddMouseWheelEvent(0.0f, -100.0f);
+        test_panel::drawFrame(panel, pageRow(3));
+    };
+    WARN("Saved " << renderToFile(panel, "mcm-showcase-slider-colors", POINTER_AWAY, false, scrollToEnd));
 }
 
 TEST_CASE("FullPanel render: the pages of the mod's own config spec, with the ray on the row of a page with a help", "[.render]")

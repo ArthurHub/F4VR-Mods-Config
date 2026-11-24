@@ -1018,6 +1018,10 @@ TEST_CASE("McmStore: the ModSettings of the MCM showcase have the values of its 
     CHECK(store.valueById("fTenth:Sliders").value == model::Value(1.3f));
     CHECK(store.valueById("iCount:Sliders").value == model::Value(5.0f));
     CHECK(store.valueById("bMissing:Switchers").value == model::Value(false));
+
+    // the colors of its sliders, one with no alpha and one with
+    CHECK(store.valueById("iColor:Sliders").value == model::Value("255,180,60"s));
+    CHECK(store.valueById("iTint:Sliders").value == model::Value("90,160,255,160"s));
 }
 
 TEST_CASE("McmStore: a mod that is shown and left sends MCM's events of it")
@@ -1249,4 +1253,75 @@ TEST_CASE("McmStore: no action is run for a value that is not set, nor one the s
     CHECK(actions.called.empty());
     CHECK(common::fEqual(globals.values.at({ PLUGIN, 0x803 }), 1.0f));
     CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, bOn)", "OnMCMSettingChange|MyMod(MyMod, bOn)" });
+}
+
+namespace
+{
+    // a page with a color kept in four sliders of ModSettings, R, G, B and A, under a section that names it
+    constexpr auto COLOR_CONFIG = R"({
+        "modName": "MyMod",
+        "content": [
+            { "type": "section", "text": "Custom color" },
+            { "type": "slider", "text": "Red", "id": "iColorR:Main", "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 5 } },
+            { "type": "slider", "text": "Green", "id": "iColorG:Main", "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 5 } },
+            { "type": "slider", "text": "Blue", "id": "iColorB:Main", "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 5 } },
+            { "type": "slider", "text": "Alpha", "id": "iColorA:Main", "valueOptions": { "sourceType": "ModSettingInt", "min": 0, "max": 255, "step": 5 } }
+        ]
+    })";
+
+    const model::Setting& colorOf(const model::Mod& mod)
+    {
+        return std::get<model::Setting>(std::get<model::Group>(mod.frontPage.items.front()).items.front());
+    }
+}
+
+TEST_CASE("McmStore: a color kept in sliders is their r,g,b,a, and a change of it sets each slider that changes")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\r\niColorR=10\r\niColorG=20\r\niColorB=30\r\niColorA=255\r\n");
+    mcm.write("Settings/MyMod.ini", "[Main]\r\niColorR=40\r\n");
+    const auto mod = mcm::loadConfig(COLOR_CONFIG);
+    REQUIRE(mod);
+    const auto& color = colorOf(*mod);
+    TestEvents events;
+    McmStore store(mcm.path);
+    store.open(*mod);
+    events.sent.clear();
+
+    CHECK(store.value(color).value == model::Value("40,20,30,255"s));
+    CHECK(store.defaultValue(color) == model::Value("10,20,30,255"s));
+    CHECK_FALSE(store.isDirty(color));
+
+    // the alpha and the blue stay: only red and green are changes, each with its event
+    CHECK(store.set(color, "100,200,30,255"s));
+    CHECK(store.value(color).value == model::Value("100,200,30,255"s));
+    CHECK(events.sent == Events{ "OnMCMSettingChange(MyMod, iColorR:Main)",
+                             "OnMCMSettingChange|MyMod(MyMod, iColorR:Main)",
+                             "OnMCMSettingChange(MyMod, iColorG:Main)",
+                             "OnMCMSettingChange|MyMod(MyMod, iColorG:Main)" });
+    CHECK(store.isDirty(color));
+    CHECK(store.dirtyCount() == 1);
+    CHECK(store.savedValue(color) == model::Value("40,20,30,255"s));
+
+    // its Discard sets back each part
+    store.discard(color);
+    CHECK(store.value(color).value == model::Value("40,20,30,255"s));
+    CHECK_FALSE(store.isDirty(color));
+    CHECK(store.dirtyCount() == 0);
+
+    // a text that is no color sets nothing
+    CHECK_FALSE(store.set(color, "red"s));
+}
+
+TEST_CASE("McmStore: a color kept in sliders is not available while one of them is not")
+{
+    const test_files::TempFolder mcm;
+    mcm.write("Config/MyMod/settings.ini", "[Main]\r\niColorR=10\r\niColorG=20\r\niColorB=nothing\r\niColorA=255\r\n");
+    const auto mod = mcm::loadConfig(COLOR_CONFIG);
+    REQUIRE(mod);
+    McmStore store(mcm.path);
+    store.open(*mod);
+
+    CHECK_FALSE(store.value(colorOf(*mod)).available);
+    CHECK_FALSE(store.defaultValue(colorOf(*mod)));
 }

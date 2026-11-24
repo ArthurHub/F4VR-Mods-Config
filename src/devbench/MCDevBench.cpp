@@ -421,6 +421,8 @@ namespace mods_config::devbench
                         return { { "kind", "unknown" }, { "type", kept.type } };
                     } else if constexpr (std::is_same_v<T, model::SetsStorage>) {
                         return { { "kind", "sets" } };
+                    } else if constexpr (std::is_same_v<T, model::ColorPartsStorage>) {
+                        return { { "kind", "colorParts" }, { "parts", kept.parts } };
                     } else {
                         return { { "kind", "none" } };
                     }
