@@ -178,7 +178,7 @@ Press in the offhand thumbstick and hold it to bring the menu in front of you. W
   <summary>The keyboard doesn't show when I edit a text</summary>
 &#10240;
 
-The menu uses SteamVR's keyboard. OpenComposite has none, so type with a real keyboard, or a keyboard overlay that types into the game's window.
+The menu has its own keyboard, under the panel, on every runtime, OpenComposite too. If it doesn't show, the field isn't being edited: press it with the trigger. A real keyboard types too.
 
 </details>
 

@@ -8,7 +8,7 @@ The search of the mods and their settings: the tree's header is the field, and a
 
 - It is the tree's header: 40 px high, the width of the rows, in `track` with a `frame-border` outline and `radius-frame`. A drawn magnifier (20 px), then the text.
 - Idle it says what it searches, in `t-detail` `green-muted`: "Search 11 mods". Hover: `hover`, its text `green`.
-- A press on it shows SteamVR's keyboard, as a [text input](../../../../controls.md#text-input) does. Each key filters as it is typed: the keyboard's text reaches the field as character events. Done and the keyboard's close button both keep the query.
+- A press on it shows the framework's keyboard, as a [text input](../../../../controls.md#text-input) does. Each key filters as it is typed: the keyboard's text reaches the field as character events. Done and Back both keep the query.
 - Typing: a `green` outline, the query in `t-body` `green` with a caret, then how many settings match in `t-detail` `green-muted`, then Clear.
 - With a query and the keyboard closed: the query in `green`, the count and Clear, with the `frame-border` outline.
 - **Clear** is a 32 px icon button (`X`) at the right of the field. It empties the query and gives the tree back. Hover: `hover` with a `frame-border` outline.

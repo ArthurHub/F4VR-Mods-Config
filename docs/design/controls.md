@@ -60,8 +60,8 @@ A file of a folder: MCM's `dropdownFiles`, as Immersive Flashlight's gobo textur
 
 Short strings, and typed numbers: a `textinput` with `valueType` int or float takes a number (MCM's `textinputInt` / `textinputFloat`), limited by `valueOptions` `min` / `max`.
 
-- The keyboard is SteamVR's, shown while the field is edited; a physical keyboard and an overlay that types into the game window work too, and are all a runtime without one (OpenComposite) has. See the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md).
-- `Done` validates and commits to the pending value. `Cancel` (the keyboard's close) restores the value from before editing.
+- The keyboard is the framework's own, shown under the panel while the field is edited and typed with the rays, on every runtime, OpenComposite too; a physical keyboard types too. See the framework's [VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md).
+- `Done` (or Back) validates and commits to the pending value. The row's Discard restores the value from before editing; the keyboard has no cancel, as no VR keyboard does.
 - Invalid temporary text is never previewed; the last valid preview stays.
 - No multiline, password, selection tools or speech input.
 

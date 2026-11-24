@@ -207,10 +207,12 @@ The game keeps running, so input is taken only while the panel is operated:
 
 Back is a tap of the grip of the hand pointing at the panel, either hand: an any-hand binding that fires only on the pointing hand (`VRControllers.check(binding, hand)`); a single-hand binding fires only while that hand points. A longer hold moves the panel instead: a long press that fires is never a tap. The pointing wand is hidden from the game; with no ray on the panel the press is the game's, so looking away to try a change never steps back.
 
-Back resolves the most local interaction first:
+While the keyboard is open, Back is its Done, with the ray on the keyboard or on the panel: it closes the keyboard and keeps what was typed, and does nothing else.
 
-1. Cancel an active drag or text edit.
-2. Close a popup, dropdown, keyboard or confirmation.
+Otherwise Back resolves the most local interaction first:
+
+1. Cancel an active drag.
+2. Close a popup, dropdown or confirmation.
 3. From the Help page, return to the page under it.
 4. While searching, show a filtered page whole, with the focus ring on the last row the ray was on.
 5. From a mod's page, go to its parent page or the mod's front page.
@@ -255,7 +257,7 @@ Priority:
 
 The tree's header is a search field that finds a setting by name across all mods.
 
-- Idle, it says what it searches: "Search 11 mods". A press shows the keyboard as a text input does, filtering per key. Done and the keyboard's close keep the query; closing the menu empties it.
+- Idle, it says what it searches: "Search 11 mods". A press shows the keyboard as a text input does, filtering per key. Done and Back keep the query; closing the menu empties it.
 - It matches the names the player sees: mod display name, page, section heading, and the text of a setting, button or hotkey, config spec and MCM alike (an MCM row's text from the game too); not help or text rows. Each query word must start a word of the name, any order, ignoring case and accents: "hol siz" finds "Holster size". A Chinese, Japanese or Korean word matches anywhere.
 - A word can match the row's mod, page or section name, as long as one word matches the row's own: "frik height" finds FRIK's Height.
 - A setting with [`"searchable": false`](schema.md#settings) isn't found by its own text, only with its section, page or mod.

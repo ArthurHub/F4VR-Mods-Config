@@ -1,5 +1,6 @@
 ## v1.1.0
 
+- The menu has its own keyboard, in place of SteamVR's: it shows under the panel as a text or the search is edited, and both hands type on it with their rays. It works on OpenComposite too, which has no keyboard of its own. A press on its line moves the caret, and Done or Back keeps what was typed; a grip hold moves the keyboard.
 - A setting another mod overrides, as ROCK sets FRIK's Pip-Boy button, has the warning mark, and the help line names the mod and the value in effect. A change of it is still saved, and applies once the override ends; it isn't previewed meanwhile.
 - For mod authors: a native client tells the menu a setting's overrides with `addOverrides`, API version 2. A CommonFramework mod's config file needs no code, once the mod is built with the framework that answers them.
 

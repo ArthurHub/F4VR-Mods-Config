@@ -40,7 +40,7 @@ MCM mods show while `mcm_vr.dll` is loaded (found by name). The menu calls only 
 | `dropdownFiles` | As in MCM, with its `path` and `mask`, but its pick writes the name of the file, which MCM's menu loses. It is drawn as a config spec's choice of files: a file's name with its extension muted where the mask does not name it, and its folder and how many files it has over the list | M39, M76 |
 | `button` | As in MCM: runs its action | M33 |
 | `hotkey` | Read-only: its key, as MCM's files have it | M35 |
-| `textinput`, `textinputInt`, `textinputFloat` | As in MCM, typed on SteamVR's keyboard or with the keys of the game's window. A text that is no number is not written for a `textinputInt` and a `textinputFloat` | M36, M45 |
+| `textinput`, `textinputInt`, `textinputFloat` | As in MCM, typed on the framework's keyboard or with the keys of the game's window. A text that is no number is not written for a `textinputInt` and a `textinputFloat` | M36, M45 |
 | `positioner`, `keyinput`, `customClipLoader` | Not run: the help line says the menu has no such control | M36 |
 | A type MCM's menu does not have, or no type | Not run, as a `positioner` is. MCM's menu shows an empty line. DearModdingUI's inventory has names that are no type of MCM's: `switch`, `hidden`, `menu`, `enum`, `color`, `input`, `header`, `empty` and `keymap`. They are such a type | M36, M38 |
 

@@ -8,6 +8,7 @@
 #include "common/MatrixUtils.h"
 #include "f4vr/F4VRUtils.h"
 #include "imgui/ImGuiImage.h"
+#include "imgui/ImGuiKeyboard.h"
 #include "imgui/ImGuiPointer.h"
 #include "imgui/ImGuiSettings.h"
 #include "vrcf/VRControllersHaptic.h"
@@ -107,7 +108,7 @@ namespace mods_config
     /**
      * Gives the ray the config's look, and the panel its look, its size and scale, its place from where it was put in
      * front of the player, and how it is moved: after a short press, where that is Back. The place is from where the
-     * panel is now, also after a hand moved it.
+     * panel is now, also after a hand moved it. The framework's keyboard takes the panel's see-through and Back.
      */
     void GameMenu::applyPanelLook()
     {
@@ -132,15 +133,23 @@ namespace mods_config
         _panel->setCurveRadius(g_config.panelCurve * g_config.panelDistance / g_config.panelScale);
         g_uiManager->setWorldMoveBinding(g_config.moveBinding);
         g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
+
+        // the framework's keyboard is already the panel's green: it takes the panel's see-through, and Back closes it
+        auto keyboardStyle = imgui::keyboard().style();
+        keyboardStyle.background = render::Color::rgba(15, 15, 15, g_config.panelBackgroundOpacity);
+        imgui::keyboard().setStyle(keyboardStyle);
+        imgui::keyboard().setCloseBinding(g_config.backBinding);
     }
 
     /**
      * A short press of Back on the hand that points at the panel, either hand, whose wand is hidden from the game then:
-     * the game does not get the press, and a press while the player looks away is the game's.
+     * the game does not get the press, and a press while the player looks away is the game's. While the framework's
+     * keyboard is open, Back is its close binding, which closes it as Done does, keeping the text, and not a step of
+     * the menu.
      */
     bool GameMenu::backPressed()
     {
-        return imgui::pointer().state().canvas && vrcf::VRControllers.check(g_config.backBinding, pointingHand());
+        return !imgui::keyboard().isOpen() && imgui::pointer().state().canvas && vrcf::VRControllers.check(g_config.backBinding, pointingHand());
     }
 
     /**

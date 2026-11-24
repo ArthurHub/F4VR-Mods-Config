@@ -24,8 +24,8 @@ namespace mods_config::ui
 
     /**
      * The search field, the header of the tree, as the design system's Search has it: idle it says what it searches,
-     * a press edits it on SteamVR's keyboard, and each key changes the query as it is typed. The keyboard's Done and
-     * its close button both keep the query, and Clear empties it.
+     * a press edits it on the framework's keyboard, and each key changes the query as it is typed. The keyboard's Done and
+     * Back both keep the query, and Clear empties it.
      */
     class SearchField
     {

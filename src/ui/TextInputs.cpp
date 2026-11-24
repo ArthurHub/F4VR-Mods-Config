@@ -65,9 +65,9 @@ namespace mods_config::ui
      * that takes a number keeps only the characters of one, and one with a most of characters takes none
      * past it, with the count of its characters at the right of its box, as `12 / 32`. It is drawn while its
      * row is scrolled out of the page too, so the edit lasts.
-     * The edit ends as ImGui leaves the field: on Done of the keyboard, Enter, or a press beside it, with the
-     * text it has then, and on the keyboard's close button or Escape, with the text it started with. Back ends
-     * it with nothing written.
+     * The edit ends as ImGui leaves the field: on Done or Back of the keyboard, Enter, or a press beside it, with
+     * the text it has then, and on a physical keyboard's Escape, with the text it started with, so nothing is
+     * written.
      * Returns the text to write, as the edit ends with another text than it started with. The pulse is for
      * the press that starts it.
      */

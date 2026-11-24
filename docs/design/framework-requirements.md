@@ -17,7 +17,7 @@ The mod's UI is one Dear ImGui panel in a vrui layout, operated with a controlle
 | 9 | Overrides at preview rates | Live preview | Batched overrides on the cached parse; subscribers once a frame on the game thread |
 | 10 | Override ownership | Previews beside other overrides | Each override has an owner; last set wins |
 | 11 | Images in canvases | MCM and config spec images | Textures from pixels, drawn as ImGui images |
-| 12 | Text entry and on-screen keyboard | Text inputs, search | SteamVR's keyboard ([VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md)) |
+| 12 | Text entry and on-screen keyboard | Text inputs, search | The framework's own keyboard ([VR keyboard](../../external/F4VR-CommonFramework/docs/tech/vr-keyboard.md)) |
 | 13 | Mods Config FO4 VR client in `ModBase` | Own UIs and live preview without mod code | See [CommonFramework adapter](architecture.md#commonframework-adapter) |
 
 ## Later work

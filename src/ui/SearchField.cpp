@@ -59,8 +59,8 @@ namespace mods_config::ui
     /**
      * Draws the field at a place, in a width: the magnifier, then idle "Search 11 mods", or the query, then how many
      * settings match and Clear while it has one. A press on the field edits it in ImGui's field from the next frame,
-     * with the caret at the end, which the framework shows SteamVR's keyboard for, and the query is its text as it
-     * is typed. ImGui gives the field back the text it had on the keyboard's close button and Escape: the query
+     * with the caret at the end, which the framework shows its keyboard for, and the query is its text as it
+     * is typed. ImGui gives the field back the text it had on a physical keyboard's Escape: the query
      * keeps what was typed then.
      */
     SearchDrawn SearchField::draw(const ImVec2& pos, const float width, const std::size_t mods, const std::optional<std::size_t> matches)

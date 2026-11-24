@@ -20,7 +20,7 @@ You don't have to do anything. While MCM VR is installed, the menu reads your `D
 **What the player sees differently:**
 
 - **Keep and Revert.** A change is made in the game as the player makes it, as in MCM's menu, and stays a change of the session until **Keep** accepts it. **Revert** sets the changes back, each as a change is made: its value is written, its action runs again and its event is sent, so a preset that is set back sets its rows back.
-- **Text inputs are typed in the headset,** on SteamVR's keyboard, or a real one. MCM's menu in VR has no keyboard for them.
+- **Text inputs are typed in the headset,** on the menu's own keyboard, or a real one. MCM's menu in VR has no keyboard for them.
 - **A color's sliders are one color picker.** Three sliders in a row, each from 0 to 255, whose ids are the same but for `R`, `G` and `B` (`iColorR:Main`, `iColorG:Main`, `iColorB:Main`), are one color row, named by their section. A fourth slider with `A` is its alpha. Each slider is still set as it changes, with its action and its event.
 - **Reset** sets a ModSetting to its default from your `settings.ini`, which MCM's menu can't do.
 - **The game keeps running** while the menu is open, so your script acts on a change while the player looks.

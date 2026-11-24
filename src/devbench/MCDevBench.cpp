@@ -66,7 +66,7 @@ namespace mods_config::devbench
             std::size_t searchMatches = 0;
             bool searchFiltered = false;
 
-            // SteamVR's keyboard is open on the search field
+            // the framework's keyboard is open on the search field
             bool searchEdited = false;
 
             // the help line as it is shown: a row's help, or with no row the session's status, in the look of the status
@@ -95,7 +95,7 @@ namespace mods_config::devbench
                    "which block Save); "
                    "search: text (the search field's query as the panel last searched it, empty for none), matches (the rows it shows, of every mod), "
                    "filtered (while there is a query: a mod's page has only its rows that match, until Back shows it whole, and the menu's front page "
-                   "says how many match; not over the Help page or a report), edited (SteamVR's keyboard is open on the search field); "
+                   "says how many match; not over the Help page or a report), edited (the framework's keyboard is open on the search field); "
                    "helpLine: text (what the footer's help line shows: the help of the row the ray is on, else the session's status), onRow (it is a row's "
                    "help), tag (when the row's pending change takes effect, null for none), invalid (the row's value is invalid), look (the status's look "
                    "while it is not a row's: plain, pending, invalid, restart); "
