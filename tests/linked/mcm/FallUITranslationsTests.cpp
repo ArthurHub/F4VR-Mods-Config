@@ -137,6 +137,34 @@ TEST_CASE("FallUITranslations: a line of a file is a token, a tab and its text")
     CHECK(fallUI.translate("$One") == "Erste");
 }
 
+TEST_CASE("FallUITranslations: a file is UTF-8, or UTF-16 with its byte order mark")
+{
+    // the bytes of a text in UTF-16 with its byte order mark
+    const auto utf16 = [](const std::u16string_view text, const bool littleEndian) {
+        std::string bytes = littleEndian ? "\xFF\xFE" : "\xFE\xFF";
+        for (const auto unit : text) {
+            const auto low = static_cast<char>(unit & 0xFF);
+            const auto high = static_cast<char>(unit >> 8);
+            bytes += littleEndian ? std::string{ low, high } : std::string{ high, low };
+        }
+        return bytes;
+    };
+    const auto text = u"$Coffee\tAjustes del café\r\n$Attach\t装上\r\n";
+
+    const model::Translations game;
+    for (const auto littleEndian : { true, false }) {
+        mcm::FallUITranslations fallUI(game);
+        fallUI.addFile(utf16(text, littleEndian));
+        CHECK(fallUI.translate("$Coffee") == "Ajustes del café");
+        CHECK(fallUI.translate("$Attach") == "装上");
+    }
+
+    // a UTF-8 byte order mark is not part of the first token
+    mcm::FallUITranslations withMark(game);
+    withMark.addFile("\xEF\xBB\xBF$Coffee\tCafé\r\n");
+    CHECK(withMark.translate("$Coffee") == "Café");
+}
+
 TEST_CASE("FallUITranslations: the file of the game's language is read over the English one")
 {
     const test_files::TempFolder folder;

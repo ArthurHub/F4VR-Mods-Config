@@ -35,6 +35,32 @@ namespace
         LanguageOfText{ "裝上", "cn" },
     };
 
+    /**
+     * A language file's text as UTF-8, read as Flash reads a text file: UTF-16 by its byte order mark, little or
+     * big endian, and else UTF-8, without its byte order mark. A UTF-16 file that cannot be read is empty.
+     */
+    std::string toUtf8(const std::string_view file)
+    {
+        const auto hasMark = [file](const std::string_view mark) {
+            return file.starts_with(mark);
+        };
+        if (hasMark("\xEF\xBB\xBF")) {
+            return std::string(file.substr(3));
+        }
+        const bool littleEndian = hasMark("\xFF\xFE");
+        if (!littleEndian && !hasMark("\xFE\xFF")) {
+            return std::string(file);
+        }
+        std::wstring wide;
+        wide.reserve(file.size() / 2);
+        for (std::size_t at = 2; at + 1 < file.size(); at += 2) {
+            const auto low = static_cast<unsigned char>(file[littleEndian ? at : at + 1]);
+            const auto high = static_cast<unsigned char>(file[littleEndian ? at + 1 : at]);
+            wide.push_back(static_cast<wchar_t>(low | (high << 8)));
+        }
+        return F4SE::stl::utf16_to_utf8(wide).value_or(std::string());
+    }
+
     bool isSpace(const char c)
     {
         return c == ' ' || (c >= '\t' && c <= '\r');
@@ -178,10 +204,12 @@ namespace mods_config::mcm
 
     /**
      * Adds the texts of a language file: a line is a token, a tab and its text. A text that is added later
-     * replaces the one its token has.
+     * replaces the one its token has. The file is UTF-8, or UTF-16 with its byte order mark.
      */
-    void FallUITranslations::addFile(std::string_view text)
+    void FallUITranslations::addFile(const std::string_view file)
     {
+        const auto decoded = toUtf8(file);
+        std::string_view text = decoded;
         while (!text.empty()) {
             const auto line = text.substr(0, text.find_first_of("\r\n"));
             text.remove_prefix(std::min(line.size() + 1, text.size()));

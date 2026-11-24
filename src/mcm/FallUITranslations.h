@@ -20,7 +20,7 @@ namespace mods_config::mcm
         explicit FallUITranslations(const model::Translations& game);
 
         void loadFiles(std::string_view languageFile, const std::filesystem::path& interfaceFolder);
-        void addFile(std::string_view text);
+        void addFile(std::string_view file);
 
         [[nodiscard]] std::string translate(const std::string& text, const std::string& key = {}) const;
 
