@@ -2430,6 +2430,23 @@ TEST_CASE("ConfigSpecStore: a Save removes the key of a clean setting whose file
     CHECK(s.store.dirtyCount() == 0);
 }
 
+TEST_CASE("ConfigSpecStore: an int slider set back to its default keeps none, though its default is an int and its value a float")
+{
+    Session s(R"(
+        { "type": "slider", "valueType": "int", "text": "Count", "default": 5, "omitDefault": true, "valueOptions": { "min": 0, "max": 10, "step": 1 },
+          "storage": { "path": ["count"] } })");
+    s.open("other = 1\n");
+    REQUIRE(s.setting(0).omitDefault);
+
+    REQUIRE(s.store.set(s.setting(0), 6.0f));
+    REQUIRE(s.store.save());
+    CHECK(readFile(s.myGames.path / MOD_FILE) == "other = 1\ncount = 6\n");
+
+    REQUIRE(s.store.set(s.setting(0), 5.0f));
+    REQUIRE(s.store.save());
+    CHECK(readFile(s.myGames.path / MOD_FILE) == "other = 1\n");
+}
+
 TEST_CASE("ConfigSpecStore: a setting that keeps its default has it written, as any setting has")
 {
     Session s(CHOICES);

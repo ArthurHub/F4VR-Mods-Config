@@ -166,14 +166,22 @@ namespace mods_config::model
 
     /**
      * Whether two values of a setting are the same one. Two numbers are when they are as near as a number and the text
-     * of it in a file; any other two when they are equal. A table's text is compared as it is, so a caller compares
-     * canonical values (`canonicalValue`).
+     * of it in a file, an int and a float too: an int slider's default is read as an int, and its value is a float. Any
+     * other two are when they are equal. A table's text is compared as it is, so a caller compares canonical values
+     * (`canonicalValue`).
      */
     bool sameValue(const Value& value, const Value& other)
     {
-        const auto* number = std::get_if<float>(&value);
-        const auto* otherNumber = std::get_if<float>(&other);
-        return number && otherNumber ? common::fEqual(*number, *otherNumber) : value == other;
+        const auto number = [](const Value& given) -> std::optional<float> {
+            if (const auto* whole = std::get_if<int>(&given)) {
+                return static_cast<float>(*whole);
+            }
+            const auto* real = std::get_if<float>(&given);
+            return real ? std::optional(*real) : std::nullopt;
+        };
+        const auto first = number(value);
+        const auto second = number(other);
+        return first && second ? common::fEqual(*first, *second) : value == other;
     }
 
     /**

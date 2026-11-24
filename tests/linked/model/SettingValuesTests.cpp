@@ -101,7 +101,12 @@ TEST_CASE("SettingValues: two numbers are the same value when they are as near a
     CHECK(model::sameValue(0.1f + 0.2f, 0.3f));
     CHECK_FALSE(model::sameValue(1.0f, 1.5f));
     CHECK(model::sameValue(3, 3));
-    CHECK_FALSE(model::sameValue(3, 3.0f));
+    // an int and a float are numbers too, as an int slider's default and its value
+    CHECK(model::sameValue(3, 3.0f));
+    CHECK(model::sameValue(3.0f, 3));
+    CHECK_FALSE(model::sameValue(3, 3.5f));
+    CHECK_FALSE(model::sameValue(1, true));
+    CHECK_FALSE(model::sameValue(3, std::string("3")));
     CHECK(model::sameValue(std::string("a"), std::string("a")));
     CHECK_FALSE(model::sameValue(true, false));
     // a table's text is compared as it is: a caller compares canonical values
