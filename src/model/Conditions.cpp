@@ -5,6 +5,7 @@
 #include <optional>
 #include <variant>
 
+#include "SettingValues.h"
 #include "common/CommonUtils.h"
 
 using namespace mods_config;
@@ -40,23 +41,6 @@ namespace
     }
 
     /**
-     * Whether two values are the same: two of one type that are equal, and two numbers, an int and a float
-     * too, that are as near as a number and the text of it in a file. A text is never a number.
-     */
-    bool isEqual(const model::Value& value, const model::Value& other)
-    {
-        if (std::holds_alternative<int>(value) && std::holds_alternative<int>(other)) {
-            return value == other;
-        }
-        const auto number = numberOf(value);
-        const auto otherNumber = numberOf(other);
-        if (number && otherNumber) {
-            return common::fEqual(*number, *otherNumber);
-        }
-        return value == other;
-    }
-
-    /**
      * Whether a comparison holds on the value of its setting. A value below or above another is a number:
      * a comparison of a bool or a text by them does not hold.
      */
@@ -64,7 +48,7 @@ namespace
     {
         using Kind = model::Condition::Kind;
         const bool isOneOf = std::ranges::any_of(condition.values, [&value](const model::Value& other) {
-            return isEqual(value, other);
+            return model::sameValue(value, other);
         });
         if (condition.kind == Kind::Equals || condition.kind == Kind::OneOf) {
             return isOneOf;
