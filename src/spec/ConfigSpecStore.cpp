@@ -1421,9 +1421,11 @@ namespace mods_config::spec
                     continue;
                 }
                 // a value that is the default of a setting that keeps none of it is removed, also one that was there
-                // before the session, which is not a change the mod is told
-                const auto isDefault = [setting](const std::optional<model::Value>& value) {
-                    return setting->omitDefault && value && setting->defaultValue && model::sameValue(*value, *setting->defaultValue);
+                // before the session, which is not a change the mod is told. The default is in its control's type, as
+                // the value is: a number text input's is its text
+                const auto defaultValue = setting->omitDefault ? this->defaultValue(*setting) : std::nullopt;
+                const auto isDefault = [&defaultValue](const std::optional<model::Value>& value) {
+                    return value && defaultValue && model::sameValue(*value, *defaultValue);
                 };
                 if (entry.pending) {
                     changes.push_back(

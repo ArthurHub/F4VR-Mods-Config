@@ -2430,21 +2430,45 @@ TEST_CASE("ConfigSpecStore: a Save removes the key of a clean setting whose file
     CHECK(s.store.dirtyCount() == 0);
 }
 
-TEST_CASE("ConfigSpecStore: an int slider set back to its default keeps none, though its default is an int and its value a float")
+TEST_CASE("ConfigSpecStore: a setting of each type set back to its default keeps none, though its default and its value differ in type or text")
 {
-    Session s(R"(
-        { "type": "slider", "valueType": "int", "text": "Count", "default": 5, "omitDefault": true, "valueOptions": { "min": 0, "max": 10, "step": 1 },
-          "storage": { "path": ["count"] } })");
-    s.open("other = 1\n");
-    REQUIRE(s.setting(0).omitDefault);
+    // a setting that keeps no default, a value of it that is not its default, and its default as its control sets it:
+    // an int slider's default is an int and its value a float, a number text input's value is its text, and a table's
+    // text need not be its default's
+    struct Case
+    {
+        std::string row;
+        model::Value other;
+        model::Value back;
+    };
 
-    REQUIRE(s.store.set(s.setting(0), 6.0f));
-    REQUIRE(s.store.save());
-    CHECK(readFile(s.myGames.path / MOD_FILE) == "other = 1\ncount = 6\n");
+    const std::vector<Case> cases{
+        { R"("type": "slider", "valueType": "int", "default": 5, "valueOptions": { "min": 0, "max": 10, "step": 1 })", 6.0f, 5.0f },
+        { R"("type": "slider", "default": 0.5, "valueOptions": { "min": 0, "max": 1, "step": 0.1 })", 0.6f, 0.5f },
+        { R"("type": "switcher", "default": true)", false, true },
+        { R"("type": "dropdown", "default": 1, "valueOptions": { "options": [ { "value": 0, "text": "A" }, { "value": 1, "text": "B" } ] })", 0, 1 },
+        { R"("type": "textinput", "valueType": "float", "default": 2.5)", "3.5"s, "2.5"s },
+        { R"("type": "textinput", "valueType": "int", "default": 4)", "5"s, "4"s },
+        { R"("type": "cf.color", "default": { "rgb": [1, 2, 3] })", "{ rgb = [4, 5, 6] }"s, "{rgb=[1,2,3]}"s },
+        { R"("type": "cf.transform", "default": { "pos": [1, 2, 3] })", "{ pos = [4, 5, 6] }"s, "{ pos = [1.0, 2.0, 3.0] }"s },
+        { R"("type": "cf.inputBinding", "default": { "hand": "primary", "type": "tap", "button": "trigger" })",
+            R"({ hand = "offhand", type = "tap", button = "trigger" })"s,
+            R"({ button = "trigger", hand = "primary", type = "tap" })"s },
+    };
+    for (const auto& [row, other, back] : cases) {
+        INFO(row);
+        Session s(std::format(R"({{ {}, "text": "Value", "omitDefault": true, "storage": {{ "path": ["value"] }} }})", row));
+        s.open("other = 1\n");
+        REQUIRE(s.setting(0).omitDefault);
 
-    REQUIRE(s.store.set(s.setting(0), 5.0f));
-    REQUIRE(s.store.save());
-    CHECK(readFile(s.myGames.path / MOD_FILE) == "other = 1\n");
+        REQUIRE(s.store.set(s.setting(0), other));
+        REQUIRE(s.store.save());
+        CHECK(readFile(s.myGames.path / MOD_FILE).starts_with("other = 1\nvalue = "));
+
+        REQUIRE(s.store.set(s.setting(0), back));
+        REQUIRE(s.store.save());
+        CHECK(readFile(s.myGames.path / MOD_FILE) == "other = 1\n");
+    }
 }
 
 TEST_CASE("ConfigSpecStore: a setting that keeps its default has it written, as any setting has")
