@@ -83,6 +83,7 @@ namespace mods_config::spec
         auto items = loadRows(rows, "", page->second.inherited, reading);
         loadRowsConditions(rows, "", items, page->second.conditions, reading);
         loadRowsIds(rows, "", items, reading);
+        hideColorParts(items, reading.colorParts);
 
         auto& given = reader.given[id];
         for (const auto& key : reading.settings | std::views::keys) {

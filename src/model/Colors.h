@@ -2,6 +2,7 @@
 
 #include <array>
 #include <expected>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -9,6 +10,7 @@
 #include <vector>
 
 #include "ConfigDefinition.h"
+#include "Store.h"
 #include "render/Color.h"
 
 // The value of a color setting, which is the TOML text of a CommonFramework color's inline table,
@@ -37,5 +39,6 @@ namespace mods_config::model
     std::optional<render::Color> colorOf(const Setting& setting, const Value& value);
     std::string colorNumbers(const render::Color& color, bool alpha);
     std::optional<std::string> colorOfParts(std::span<const Setting* const> parts, std::span<const Value> values);
-    std::vector<std::optional<Value>> partsOfColor(std::span<const Setting* const> parts, std::string_view color);
+    std::vector<std::optional<Value>> partsOfColor(std::span<const Setting* const> parts, std::string_view color, std::span<const Value> current = {});
+    StoredValue colorPartsValue(std::span<const Setting* const> parts, const std::function<StoredValue(const Setting& part)>& read);
 }

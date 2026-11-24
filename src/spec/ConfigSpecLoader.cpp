@@ -181,9 +181,20 @@ namespace
     }
 
     /**
+     * Hides the rows of the sliders colors are kept in, on pages and the pages under them (`hideColorParts`).
+     */
+    void hidePagesColorParts(std::vector<model::Page>& pages, const std::set<std::string, std::less<>>& parts)
+    {
+        for (auto& page : pages) {
+            hideColorParts(page.items, parts);
+            hidePagesColorParts(page.pages, parts);
+        }
+    }
+
+    /**
      * Reads what can name a setting of any page, once every setting of the config spec is read: the conditions and the
      * warnings of the rows of the front page and of every page, and then the ids of their sections, spheres and buttons,
-     * which no setting's id can be.
+     * which no setting's id can be. The rows of the sliders colors are kept in are hidden then.
      */
     void loadConditionsAndIds(const Json& configSpec, model::Mod& mod, ConfigSpecReading& reading, std::map<std::string, ContentPage>& contentPages)
     {
@@ -195,6 +206,8 @@ namespace
         forEachPage(configSpec, reading, [&](const Json& page, const std::size_t place) {
             loadPageItemIds(page, mod.pages[place], reading);
         });
+        hideColorParts(mod.frontPage.items, reading.colorParts);
+        hidePagesColorParts(mod.pages, reading.colorParts);
     }
 
     /**

@@ -261,6 +261,7 @@ namespace mods_config::spec
         std::vector<const model::Setting*> setTargets(const model::Setting& choice) const;
         std::optional<std::size_t> setOption(const model::Setting& choice, Reading reading);
         bool pickSets(const model::Setting& choice, const model::Value& picked);
+        std::vector<const model::Setting*> colorParts(const model::ColorPartsStorage& storage) const;
 
         /**
          * A section with a `maxOn`: the places its switchers can take while they are on, and its switchers, in its
@@ -321,6 +322,9 @@ namespace mods_config::spec
 
         // and by their ids
         std::map<std::string, const model::Setting*, std::less<>> _settings;
+
+        // the color kept in sliders that each of its sliders is of, of the mod that is selected
+        std::unordered_map<const model::Setting*, const model::Setting*> _colorOfPart;
 
         // what the session has of each setting of the mod that is selected
         std::unordered_map<const model::Setting*, Entry> _entries;

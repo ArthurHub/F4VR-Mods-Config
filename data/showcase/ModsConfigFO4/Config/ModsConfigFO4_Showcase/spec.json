@@ -1634,6 +1634,54 @@
             },
             {
               "type": "section",
+              "text": "Kept in sliders",
+              "help": "A color whose file keeps a value per channel: its parts name the sliders, which are hidden, and each slider's range is 0 to 255 of its channel.",
+              "content": [
+                {
+                  "type": "cf.color",
+                  "text": "Glow",
+                  "help": "Its red, green and blue are whole numbers from 0 to 255, and its alpha a number from 0 to 1. A change sets each slider whose channel changes.",
+                  "parts": { "r": "glowRed", "g": "glowGreen", "b": "glowBlue", "a": "glowAlpha" }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "id": "glowRed",
+                  "text": "Glow red",
+                  "default": 255,
+                  "valueOptions": { "min": 0, "max": 255 },
+                  "storage": { "path": ["Colors", "iGlowRed"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "id": "glowGreen",
+                  "text": "Glow green",
+                  "default": 150,
+                  "valueOptions": { "min": 0, "max": 255 },
+                  "storage": { "path": ["Colors", "iGlowGreen"] }
+                },
+                {
+                  "type": "slider",
+                  "valueType": "int",
+                  "id": "glowBlue",
+                  "text": "Glow blue",
+                  "default": 40,
+                  "valueOptions": { "min": 0, "max": 255 },
+                  "storage": { "path": ["Colors", "iGlowBlue"] }
+                },
+                {
+                  "type": "slider",
+                  "id": "glowAlpha",
+                  "text": "Glow alpha",
+                  "default": 0.75,
+                  "valueOptions": { "min": 0, "max": 1, "step": 0.01 },
+                  "storage": { "path": ["Colors", "fGlowAlpha"] }
+                }
+              ]
+            },
+            {
+              "type": "section",
               "text": "Invalid",
               "help": "A table the framework cannot read: its text in red, and the framework's reason in the help line.",
               "defaultFile": "invalid",

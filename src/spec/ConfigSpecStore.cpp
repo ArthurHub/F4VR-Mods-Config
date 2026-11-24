@@ -515,6 +515,9 @@ namespace
         if (storage.type == "transform parts") {
             return "Not available: its config spec turns off its position, its rotation and its scale.";
         }
+        if (storage.type == "color parts") {
+            return "Not available: its parts do not name a slider with a range for each of its red, green and blue.";
+        }
         return storage.type == "file" ? "Not available: the setting names no file of its config spec, or no value of it." : "Not available: the setting has no storage.";
     }
 
@@ -628,6 +631,15 @@ namespace mods_config::spec
                 entry.overrides = readOverrides(*setting);
             }
         }
+        for (const auto* setting : _settingList) {
+            if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting->storage)) {
+                for (const auto* part : colorParts(*color)) {
+                    if (part) {
+                        _colorOfPart.insert_or_assign(part, setting);
+                    }
+                }
+            }
+        }
         logger::debug("Read {} settings of '{}', of {} files and of the game", _settingList.size(), mod.name, files.size());
     }
 
@@ -660,7 +672,7 @@ namespace mods_config::spec
     /**
      * Reads the baseline of a setting, with why it is not available or is invalid, as `open` has it: of the game, of a
      * state of the mod's client, or of a file. A choice whose options set other settings has none of its own: its value
-     * is that of the settings it sets, which are read as settings of their own.
+     * is that of the settings it sets, which are read as settings of their own. Neither has a color kept in sliders.
      */
     void ConfigSpecStore::readBaseline(const model::Setting& setting, Entry& entry, const FilesOfSession& files, const model::Mod& mod) const
     {
@@ -676,7 +688,7 @@ namespace mods_config::spec
             entry.notAvailable = unknownStorageReason(*unknown);
             return;
         }
-        if (model::setsOthers(setting)) {
+        if (model::setsOthers(setting) || std::holds_alternative<model::ColorPartsStorage>(setting.storage)) {
             return;
         }
         if (isInGame(setting.storage)) {
@@ -878,6 +890,7 @@ namespace mods_config::spec
         _options.clear();
         _settingList.clear();
         _settings.clear();
+        _colorOfPart.clear();
         _entries.clear();
         _limits.clear();
         _limitsOf.clear();
@@ -992,9 +1005,15 @@ namespace mods_config::spec
      * reason, and so has one that is invalid: a pending value the player set so, or the file's value, which is
      * the setting's default where it is not of its type. A read-only setting whose file has no value of it is
      * not available, with no reason: it has no value to show.
+     * A color kept in sliders is their `r,g,b` or `r,g,b,a`, as `model::colorPartsValue` makes it of their values.
      */
     model::StoredValue ConfigSpecStore::ownValue(const model::Setting& setting)
     {
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            return model::colorPartsValue(colorParts(*color), [this](const model::Setting& part) {
+                return value(part);
+            });
+        }
         if (model::setsOthers(setting)) {
             if (const auto option = setOption(setting, Reading::Current)) {
                 return { .value = setting.valueOptions.options[*option].value, .available = true, .invalid = false, .reason = {}, .overrides = setOverrides(setting) };
@@ -1040,12 +1059,36 @@ namespace mods_config::spec
      * preview before it. A value that is set ends the last Save, and its failure.
      * Returns false for a value that is not set: one of a setting that is read-only or not available, and one
      * that is not of the type its control shows.
+     * A color kept in sliders sets each of them to its channel, a pending value of its own, as `model::partsOfColor`
+     * makes it: a slider that is at its channel already keeps its value, and so does its alpha's while the color has none.
      */
     bool ConfigSpecStore::set(const model::Setting& setting, const model::Value& value)
     {
         F4CF_PERF_FUNCTION();
         if (model::setsOthers(setting)) {
             return pickSets(setting, value);
+        }
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            const auto* text = std::get_if<std::string>(&value);
+            const auto parts = colorParts(*color);
+            if (!text || setting.readOnly || std::ranges::contains(parts, nullptr)) {
+                return false;
+            }
+            std::vector<model::Value> current;
+            for (const auto* part : parts) {
+                current.push_back(this->value(*part).value);
+            }
+            const auto values = model::partsOfColor(parts, *text, current);
+            if (values.empty()) {
+                return false;
+            }
+            bool setAll = true;
+            for (std::size_t i = 0; i < parts.size(); ++i) {
+                if (values[i]) {
+                    setAll = set(*parts[i], *values[i]) && setAll;
+                }
+            }
+            return setAll;
         }
         const auto found = _entries.find(&setting);
         if (setting.readOnly || found == _entries.end() || !found->second.notAvailable.empty()) {
@@ -1085,7 +1128,8 @@ namespace mods_config::spec
     }
 
     /**
-     * The default of a setting, as its config spec gives it, as its control has it.
+     * The default of a setting, as its config spec gives it, as its control has it. A color kept in sliders has the
+     * color of their defaults, and none while one of them has none.
      */
     std::optional<model::Value> ConfigSpecStore::defaultValue(const model::Setting& setting)
     {
@@ -1093,12 +1137,19 @@ namespace mods_config::spec
             const auto option = setOption(setting, Reading::Default);
             return option ? std::optional(setting.valueOptions.options[*option].value) : std::nullopt;
         }
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            auto defaults = model::colorPartsValue(colorParts(*color), [this](const model::Setting& part) {
+                auto value = defaultValue(part);
+                return model::StoredValue{ .value = value.value_or(model::Value()), .available = value.has_value(), .invalid = false, .reason = {} };
+            });
+            return defaults.available ? std::optional(std::move(defaults.value)) : std::nullopt;
+        }
         return setting.defaultValue ? controlValue(setting, _options.of(setting), *setting.defaultValue) : std::nullopt;
     }
 
     /**
      * Whether a setting has a pending value. A choice that sets other settings has none of its own: it is dirty while one
-     * of them is.
+     * of them is, and so is a color kept in sliders.
      */
     bool ConfigSpecStore::isDirty(const model::Setting& setting) const
     {
@@ -1107,15 +1158,42 @@ namespace mods_config::spec
                 return isDirty(*target);
             });
         }
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            return std::ranges::any_of(colorParts(*color), [this](const model::Setting* part) {
+                return part && isDirty(*part);
+            });
+        }
         const auto found = _entries.find(&setting);
         return found != _entries.end() && found->second.pending.has_value();
     }
 
+    /**
+     * How many settings have a pending value: the sliders of a color count once, as its one row.
+     */
     std::size_t ConfigSpecStore::dirtyCount() const
     {
-        return static_cast<std::size_t>(std::ranges::count_if(_entries, [](const auto& entry) {
-            return entry.second.pending.has_value();
-        }));
+        std::unordered_set<const model::Setting*> changed;
+        for (const auto& [setting, entry] : _entries) {
+            if (entry.pending) {
+                const auto color = _colorOfPart.find(setting);
+                changed.insert(color != _colorOfPart.end() ? color->second : setting);
+            }
+        }
+        return changed.size();
+    }
+
+    /**
+     * The sliders of a color kept in them, of the mod that is selected, in their order. None for an id that no setting
+     * of it has.
+     */
+    std::vector<const model::Setting*> ConfigSpecStore::colorParts(const model::ColorPartsStorage& storage) const
+    {
+        std::vector<const model::Setting*> parts;
+        for (const auto& id : storage.parts) {
+            const auto found = _settings.find(id);
+            parts.push_back(found != _settings.end() ? found->second : nullptr);
+        }
+        return parts;
     }
 
     /**
@@ -1534,6 +1612,14 @@ namespace mods_config::spec
             }
             return;
         }
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            for (const auto* part : colorParts(*color)) {
+                if (part) {
+                    discard(*part);
+                }
+            }
+            return;
+        }
         const auto found = _entries.find(&setting);
         if (found == _entries.end() || !found->second.pending) {
             return;
@@ -1589,13 +1675,26 @@ namespace mods_config::spec
     }
 
     /**
-     * The baseline of a dirty setting: none for a clean one, and for one whose file has a value of another type.
+     * The baseline of a dirty setting: none for a clean one, and for one whose file has a value of another type. A dirty
+     * color kept in sliders has the color of their baselines, of those that are dirty, and the others' values.
      */
     std::optional<model::Value> ConfigSpecStore::savedValue(const model::Setting& setting)
     {
         if (model::setsOthers(setting)) {
             const auto option = isDirty(setting) ? setOption(setting, Reading::Saved) : std::nullopt;
             return option ? std::optional(setting.valueOptions.options[*option].value) : std::nullopt;
+        }
+        if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
+            if (!isDirty(setting)) {
+                return std::nullopt;
+            }
+            auto saved = model::colorPartsValue(colorParts(*color), [this](const model::Setting& part) {
+                if (auto baseline = savedValue(part)) {
+                    return model::StoredValue{ .value = std::move(*baseline), .available = true, .invalid = false, .reason = {} };
+                }
+                return value(part);
+            });
+            return saved.available ? std::optional(std::move(saved.value)) : std::nullopt;
         }
         const auto found = _entries.find(&setting);
         return found != _entries.end() && found->second.pending ? found->second.baseline : std::nullopt;
@@ -1695,6 +1794,7 @@ namespace mods_config::spec
         _filePaths.clear();
         _settingList.clear();
         _settings.clear();
+        _colorOfPart.clear();
         _limits.clear();
         _limitsOf.clear();
         _options.clear();

@@ -295,6 +295,21 @@ A `cf.` type edits a value in CommonFramework's TOML form ([CommonFramework-spec
 }
 ```
 
+**A color kept in sliders:** a mod whose file keeps a value per channel (`iGlowR`, `iGlowG`, `iGlowB`) has a `cf.color` with `parts`, naming its sliders by id, and a slider of its own for each channel, kept where the mod keeps it.
+
+```json
+{ "type": "cf.color", "id": "glow", "text": "Glow", "parts": { "r": "glowR", "g": "glowG", "b": "glowB", "a": "glowA" } },
+{ "type": "slider", "valueType": "int", "id": "glowR", "text": "Glow red", "default": 255, "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Glow", "iGlowR"] } },
+{ "type": "slider", "id": "glowA", "text": "Glow alpha", "default": 0.75, "valueOptions": { "min": 0, "max": 1, "step": 0.01 }, "storage": { "path": ["Glow", "fGlowA"] } }
+```
+
+- `r`, `g` and `b` are required; `a` is optional, and a color without it has no alpha (an `alpha` in `valueOptions` is a warning, and ignored). Each names a `slider` by id, as a [condition](#conditions) names a setting: on any page, before or after the color.
+- A slider's range is its channel: `min` is 0 and `max` is 255, so a slider from 0 to 1 is a channel from 0 to 1. Its value is the nearest whole channel.
+- The sliders' rows are hidden: the color's row edits them. Each slider keeps its own storage, default, `applies`, preview and action, and a change of the color sets each slider whose channel changes, as a pending value of its own. A slider whose channel stays keeps its value, so a float isn't rounded to the nearest channel.
+- The color is pending while one of its sliders is, its Discard takes them all back, and it counts as one change. Its default, which Reset sets, is the color of the sliders' defaults; with one missing it has no Reset. It is invalid while a slider is, with its reason, and not available while one is not.
+- No `storage`, `default` or `applies`: a `storage` with `parts` is an error and the parts are ignored; a `default` or `applies` is a warning and left out. `parts` on any other type is an error.
+- A part that is missing, names no setting, is not a slider, is a slider with no range, or is a part of another color is an error, and the color is not available.
+
 **`cf.transform`**: a `t` key placing a mesh, light or zone on its node, `{ pos = [x, y, z], rot = [heading, roll, attitude], scale = s }`, rotation in degrees, each key optional. An omitted key reads as the framework's (no move, no rotation, scale 1). `valueOptions` has `position`, `rotation`, `scale`, each:
 
 - `true` or omitted: on, with the part's range (position -50..50 by 1, rotation -180°..180° by 1°, scale 0.1..3 by 0.1).

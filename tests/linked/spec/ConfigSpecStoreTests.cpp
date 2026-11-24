@@ -3132,3 +3132,77 @@ TEST_CASE("ConfigSpecStore: a page whose rows its client gives is not available 
     asked.readTexts(mod);
     CHECK(wheel.notAvailable == "its mod's client failed, and is cut off until the game is restarted");
 }
+
+namespace
+{
+    // a color kept in four sliders after it: whole numbers from 0 to 255 for its red, green and blue, and an alpha from
+    // 0 to 1, whose defaults are 10, 20, 30 and 1
+    constexpr auto GLOW = R"(
+        { "type": "cf.color", "id": "glow", "text": "Glow", "parts": { "r": "glowR", "g": "glowG", "b": "glowB", "a": "glowA" } },
+        { "type": "slider", "valueType": "int", "id": "glowR", "text": "Red", "default": 10, "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "iGlowR"] } },
+        { "type": "slider", "valueType": "int", "id": "glowG", "text": "Green", "default": 20, "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "iGlowG"] } },
+        { "type": "slider", "valueType": "int", "id": "glowB", "text": "Blue", "default": 30, "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "iGlowB"] } },
+        { "type": "slider", "valueType": "float", "id": "glowA", "text": "Alpha", "default": 1.0, "valueOptions": { "min": 0, "max": 1, "step": 0.01 },
+          "storage": { "path": ["Main", "fGlowA"] } })";
+}
+
+TEST_CASE("ConfigSpecStore: a color kept in sliders is their r,g,b,a, each slider's range as 0 to 255, and a change sets each of them")
+{
+    Session session(GLOW);
+    session.open(
+        "[Main]\r\n"
+        "iGlowR = 40\r\n"
+        "iGlowG = 20\r\n"
+        "iGlowB = 30\r\n"
+        "fGlowA = 0.5\r\n");
+    const auto& glow = session.setting(0);
+    CHECK(session.value(0).value == model::Value("40,20,30,128"s));
+    CHECK(session.store.defaultValue(glow) == model::Value("10,20,30,255"s));
+    CHECK_FALSE(session.store.isDirty(glow));
+
+    // the sliders it sets are pending, and the color is one change
+    CHECK(session.store.set(glow, "100,20,30,255"s));
+    CHECK(session.value(1).value == model::Value(100.0f));
+    CHECK(session.value(2).value == model::Value(20.0f));
+    CHECK(common::fEqual(std::get<float>(session.value(4).value), 1.0f));
+    CHECK(session.value(0).value == model::Value("100,20,30,255"s));
+    CHECK(session.store.isDirty(glow));
+    CHECK(session.store.savedValue(glow) == model::Value("40,20,30,128"s));
+    CHECK(session.store.dirtyCount() == 1);
+    CHECK(model::unsavedChanges(session.mod.frontPage, session.store, false) == 1);
+
+    // a color with no alpha keeps the alpha's slider, and a text that is no color sets nothing
+    CHECK(session.store.set(glow, "100,20,31"s));
+    CHECK(common::fEqual(std::get<float>(session.value(4).value), 1.0f));
+    CHECK_FALSE(session.store.set(glow, "red"s));
+
+    // its Discard takes back each slider
+    session.store.discard(glow);
+    CHECK(session.store.dirtyCount() == 0);
+    CHECK(session.value(0).value == model::Value("40,20,30,128"s));
+
+    // a Save writes the sliders
+    CHECK(session.store.set(glow, "200,20,30,128"s));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE) ==
+          "[Main]\r\n"
+          "iGlowR = 200\r\n"
+          "iGlowG = 20\r\n"
+          "iGlowB = 30\r\n"
+          "fGlowA = 0.5\r\n");
+}
+
+TEST_CASE("ConfigSpecStore: a color kept in sliders is invalid while one of them is, with its reason")
+{
+    Session session(GLOW);
+    session.open(
+        "[Main]\r\n"
+        "iGlowR = 400\r\n"
+        "iGlowG = 20\r\n"
+        "iGlowB = 30\r\n"
+        "fGlowA = 1.0\r\n");
+    const auto glow = session.value(0);
+    CHECK(glow.available);
+    CHECK(glow.invalid);
+    CHECK(glow.reason == session.value(1).reason);
+}

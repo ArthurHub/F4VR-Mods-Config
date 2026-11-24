@@ -59,6 +59,7 @@ Start from the Showcase's front page and General page, as the author guide's "Yo
 - Every row has `text`; give every setting a `help` in the player's terms: what it changes in the game, not the key's name. Every writable setting has a `default`.
 - A file the mod keeps only changed values in, removing a key set back to its default, takes `"omitDefault": true` in `files`.
 - A `dropdown` or `stepper` is for a closed set of values the mod writes as the options spell them: a value in the file that is none of its options is invalid, and blocks Save for the whole mod. If the mod's parser takes other spellings (any case, aliases), or the value has no closed list, use a `textinput` or ask me.
+- A color the mod keeps as a value per channel (red, green, blue and maybe alpha keys) is a `cf.color` with `parts` naming a `slider` per channel, each with its own storage, default and range: the sliders' rows are hidden, and the color's row edits them.
 - A value the menu has no control for, as an `[x, y, z]` array, can't be shown as it is. Tell me, and propose a change of the mod's file, as an array of a position turned into a `cf.transform`: changing the mod's format is my decision.
 - Give the mod a `category`, one of the twelve shipped names where one fits.
 - Use only fields the schema has: the menu ignores an unknown field, with a warning.

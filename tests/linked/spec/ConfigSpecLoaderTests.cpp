@@ -651,8 +651,8 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,
     // and a read-only setting needs none. The default of an activation sphere's key is the framework's, and a sphere
-    // leaves out most of its keys, as a mod's does. A choice that sets other settings has no value of its own, and one
-    // that omits its default is not in its file at its default
+    // leaves out most of its keys, as a mod's does. A choice that sets other settings has no value of its own, nor has a
+    // color kept in sliders, and one that omits its default is not in its file at its default
     const auto shipped = toml::parse(readFile(std::filesystem::path(MODS_CONFIG_SPEC_SHOWCASE_DIR) / "ModsConfigFO4_Showcase" / "showcase.toml"));
     Lines withNoDefault;
     std::size_t checked = 0;
@@ -661,7 +661,7 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     std::unordered_set<std::string> sphereKeys;
     addSphereKeys(mod.pages, sphereKeys);
     for (const auto& setting : settingsOf(mod)) {
-        if (sphereKeys.contains(setting.id) || model::setsOthers(setting)) {
+        if (sphereKeys.contains(setting.id) || model::setsOthers(setting) || std::holds_alternative<model::ColorPartsStorage>(setting.storage)) {
             continue;
         }
         if (setting.omitDefault) {

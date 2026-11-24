@@ -23,7 +23,7 @@ namespace mods_config::spec
     namespace
     {
         // the fields of a setting row and of its parts, as the schema has them (docs/design/schema.md)
-        constexpr std::array<std::string_view, 19> SETTING_FIELDS{ "type",
+        constexpr std::array<std::string_view, 20> SETTING_FIELDS{ "type",
             "id",
             "text",
             "help",
@@ -41,7 +41,8 @@ namespace mods_config::spec
             "visibleWhen",
             "enabledWhen",
             "countsAs",
-            "searchable" };
+            "searchable",
+            "parts" };
         // a setting's parts:
         constexpr std::array<std::string_view, 23> VALUE_OPTIONS_FIELDS{ "min",
             "max",
@@ -67,6 +68,9 @@ namespace mods_config::spec
             "rotation",
             "scale" };
         constexpr std::array<std::string_view, 3> DISPLAY_FIELDS{ "decimals", "unit", "percent" };
+
+        // the parts of a color kept in sliders, in the order of its value: red, green, blue, and its alpha
+        constexpr std::array<std::string_view, 4> COLOR_PART_FIELDS{ "r", "g", "b", "a" };
 
         /**
          * A length of a key: a whole number above 0, or else 0, which is no limit.
@@ -447,6 +451,37 @@ namespace mods_config::spec
         }
 
         /**
+         * Whether a setting is a color kept in sliders, as its `parts` name them: only a `cf.color` with no storage is,
+         * and the parts of any other are ignored, which is reported. The default and the `applies` of one that is are
+         * left out, and reported too: its sliders have their own.
+         */
+        bool readsColorParts(const Json& row, const model::SettingType type, ConfigSpecReading& reading)
+        {
+            if (!row.contains("parts")) {
+                return false;
+            }
+            if (type != model::SettingType::Color) {
+                const Into into(reading, "parts");
+                reading.report(model::Severity::Error, "Only a cf.color has parts, the sliders it is kept in: its parts are ignored.");
+                return false;
+            }
+            if (row.contains("storage")) {
+                const Into into(reading, "storage");
+                reading.report(model::Severity::Error, "It has a storage, and parts, the sliders it is kept in: its parts are ignored.");
+                return false;
+            }
+            if (row.contains("default")) {
+                const Into into(reading, "default");
+                reading.report(model::Severity::Warning, "Its default is left out: it is the color of its sliders' defaults.");
+            }
+            if (findApplies(row)) {
+                const Into into(reading, "applies");
+                reading.report(model::Severity::Warning, "Its applies is left out: each of its sliders takes effect as its own says.");
+            }
+            return true;
+        }
+
+        /**
          * How a setting of a table type keeps its value: as a TOML table, or as the line of an INI file. A table type kept
          * in anything but a file's value is not available, which is reported, and its storage is then unknown.
          */
@@ -582,6 +617,8 @@ namespace mods_config::spec
      * A stepper or a dropdown whose options have `sets` is kept in the settings they set (`SetsStorage`): it has no
      * storage, default or `applies` of its own, and its options' sets are read once every setting is (`loadOptionSets`).
      * One with a storage too is an error, and so is any other type with them: their sets are ignored. Its fields are checked here.
+     * A `cf.color` with `parts` is kept in the sliders they name (`ColorPartsStorage`), as an INI file's line, in the same
+     * way: its parts are read once every setting is (`loadColorParts`).
      */
     model::Setting loadSetting(const Json& row, const model::SettingType type, const Inherited& above, ConfigSpecReading& reading)
     {
@@ -589,8 +626,10 @@ namespace mods_config::spec
         const auto own = inherit(row, above, reading);
         const auto valueType = loadValueType(row, type, reading);
         const bool sets = readsOptionSets(row, type, reading);
-        auto storage = sets ? model::Storage(model::SetsStorage{}) : loadStorage(row, own.defaultFile, valueType, reading);
-        const auto tableForm = loadTableForm(type, storage, reading);
+        const bool parts = readsColorParts(row, type, reading);
+        auto storage = sets ? model::Storage(model::SetsStorage{}) : parts ? model::Storage(model::ColorPartsStorage{}) : loadStorage(row, own.defaultFile, valueType, reading);
+        // a color kept in sliders has their r,g,b or r,g,b,a, as an INI file's line
+        const auto tableForm = parts ? model::TableForm::IniLine : loadTableForm(type, storage, reading);
         const bool readOnly = getBool(row, "readOnly");
         const bool made = row.contains(MADE_ROW_PATH);
         auto [id, info] = registerSetting(row, storage, type, valueType, reading);
@@ -616,7 +655,7 @@ namespace mods_config::spec
         if (made) {
             valueOptions.sphereWords = sphereWordsOf(row);
         }
-        auto defaultValue = sets || readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
+        auto defaultValue = sets || parts || readOnly || (made && !row.contains("default")) ? std::nullopt : loadDefault(row, type, valueType, tableForm, valueOptions, reading);
         const bool omitDefault = loadOmitDefault(row, own, storage, readOnly, defaultValue.has_value(), reading);
         reportMissingValue(storage, readOnly, omitDefault, made, reading);
         auto text = getLabel(row, reading);
@@ -637,7 +676,7 @@ namespace mods_config::spec
             .action = std::move(action),
             .visibleWhen = {},
             .enabledWhen = {},
-            .applies = sets ? model::Applies::Unknown : own.applies,
+            .applies = sets || parts ? model::Applies::Unknown : own.applies,
             .defaultValue = std::move(defaultValue),
             .display = std::move(display),
             .readOnly = readOnly,
@@ -680,5 +719,79 @@ namespace mods_config::spec
             option->sets = loadSetValues(written, "sets", reading);
             option->alsoSets = loadSetValues(written, "alsoSets", reading);
         }
+    }
+
+    namespace
+    {
+        /**
+         * Whether a slider has a range, from its min up to a max above it.
+         */
+        bool hasRange(const model::ValueOptions& options)
+        {
+            return options.max > options.min && !common::fEqual(options.max, options.min);
+        }
+    }
+
+    /**
+     * The sliders a color kept in them names in its `parts`, once every setting of its config spec is read, so a part can
+     * be after it: `r`, `g` and `b`, and `a` for its alpha, each the id of a slider with a range, as a condition names a
+     * setting. A color with no `a` has no alpha, whatever its `alpha` says. A part that is missing, names no such slider,
+     * or is a part of another color is an error, and the color is not available. Each slider's row is hidden after
+     * (`hideColorParts`).
+     */
+    void loadColorParts(const Json& row, model::Setting& setting, ConfigSpecReading& reading)
+    {
+        const Into into(reading, "parts");
+        const auto& written = row["parts"];
+        const auto notAvailable = [&setting] {
+            setting.storage = model::UnknownStorage{ .type = "color parts" };
+        };
+        if (!written.is_object()) {
+            reading.report(model::Severity::Error, R"(Its parts are not the ids of its sliders, as { "r": "red", "g": "green", "b": "blue" }: it is not available.)");
+            notAvailable();
+            return;
+        }
+        checkFields(written, COLOR_PART_FIELDS, reading);
+        model::ColorPartsStorage storage;
+        std::set<std::string, std::less<>> claimed;
+        bool found = true;
+        for (const auto key : COLOR_PART_FIELDS) {
+            const auto part = written.find(key);
+            if (part == written.end()) {
+                if (key != "a") {
+                    reading.report(model::Severity::Error, std::format("It has no part \"{}\": it is not available.", key));
+                    found = false;
+                }
+                continue;
+            }
+            const Into intoPart(reading, key);
+            const auto id = part->is_string() ? part->get<std::string>() : part->dump();
+            const auto lower = common::str_tolower(id);
+            const auto target = reading.settings.find(lower);
+            const auto* problem = target == reading.settings.end()                    ? "names no setting"
+                                  : target->second.type != model::SettingType::Slider ? "is not a slider"
+                                  : !hasRange(target->second.valueOptions)            ? "is a slider with no range from its min to its max"
+                                  : reading.colorParts.contains(lower)                ? "is a part of another color"
+                                  : !claimed.insert(lower).second                     ? "is another of its parts too"
+                                                                                      : nullptr;
+            if (problem) {
+                reading.report(model::Severity::Error, std::format("\"{}\" {}: it is not available.", id, problem));
+                found = false;
+                continue;
+            }
+            storage.parts.push_back(target->second.id);
+        }
+        if (!found) {
+            notAvailable();
+            return;
+        }
+        reading.colorParts.merge(claimed);
+        if (const auto options = row.find("valueOptions"); options != row.end() && options->is_object() && options->contains("alpha")) {
+            const Into intoOptions(reading, "valueOptions");
+            const Into intoAlpha(reading, "alpha");
+            reading.report(model::Severity::Warning, "Its alpha is ignored: a color kept in sliders has an alpha while its parts have an \"a\".");
+        }
+        setting.valueOptions.alpha = storage.parts.size() == COLOR_PART_FIELDS.size();
+        setting.storage = std::move(storage);
     }
 }

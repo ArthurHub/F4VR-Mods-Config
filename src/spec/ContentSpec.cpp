@@ -304,11 +304,30 @@ namespace mods_config::spec
                 if (model::setsOthers(*setting)) {
                     loadOptionSets(row, *setting, reading);
                 }
+                if (std::holds_alternative<model::ColorPartsStorage>(setting->storage)) {
+                    loadColorParts(row, *setting, reading);
+                }
             } else if (auto* button = std::get_if<model::Button>(&item)) {
                 button->enabledWhen = own.enabledWhen;
                 button->warnings = loadWarnings(row, reading);
             } else if (auto* group = std::get_if<model::Group>(&item)) {
                 loadConditions(row, group->items, own, reading);
+            }
+        }
+    }
+
+    /**
+     * Hides the rows of the sliders colors are kept in, of items and of the sections in them, by their ids in lower case
+     * (`ConfigSpecReading::colorParts`): the color's row edits them. Their conditions are read already, and so a slider
+     * on any page, before its color or after it, is hidden.
+     */
+    void hideColorParts(std::vector<model::Item>& items, const std::set<std::string, std::less<>>& parts)
+    {
+        for (auto& item : items) {
+            if (auto* group = std::get_if<model::Group>(&item)) {
+                hideColorParts(group->items, parts);
+            } else if (auto* setting = std::get_if<model::Setting>(&item); setting && parts.contains(common::str_tolower(setting->id))) {
+                setting->visibleWhen = model::Condition{ .kind = model::Condition::Kind::Any, .setting = {}, .conditions = {} };
             }
         }
     }

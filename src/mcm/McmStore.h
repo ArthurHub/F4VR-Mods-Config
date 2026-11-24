@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-#include <expected>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -147,12 +145,8 @@ namespace mods_config::mcm
             model::Value baseline;
         };
 
-        // the value of a part of a color kept in sliders of its own, or why it has none
-        using PartReader = std::function<std::expected<model::Value, std::string>(const model::Setting& part)>;
-
         model::StoredValue stored(const model::Setting& setting);
         std::vector<const model::Setting*> colorParts(const model::ColorPartsStorage& storage) const;
-        model::StoredValue colorValue(const model::Setting& setting, const model::ColorPartsStorage& storage, const PartReader& read) const;
         std::optional<model::Value> readBack(const model::Setting& setting, const model::Value& value) const;
         bool change(const model::Setting& setting, const model::Value& value);
         bool write(const model::Setting& setting, const model::Value& value);

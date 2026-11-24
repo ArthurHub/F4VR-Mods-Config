@@ -450,9 +450,8 @@ namespace mods_config::mcm
     model::StoredValue McmStore::stored(const model::Setting& setting)
     {
         if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
-            return colorValue(setting, *color, [this](const model::Setting& part) {
-                const auto value = stored(part);
-                return value.available ? std::expected<model::Value, std::string>(value.value) : std::unexpected(value.reason);
+            return model::colorPartsValue(colorParts(*color), [this](const model::Setting& part) {
+                return stored(part);
             });
         }
         if (const auto reason = _options.notAvailable(setting); !reason.empty()) {
@@ -518,7 +517,14 @@ namespace mods_config::mcm
         if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
             const auto* text = std::get_if<std::string>(&typed);
             const auto parts = colorParts(*color);
-            const auto values = text && !std::ranges::contains(parts, nullptr) ? model::partsOfColor(parts, *text) : std::vector<std::optional<model::Value>>();
+            if (!text || std::ranges::contains(parts, nullptr)) {
+                return false;
+            }
+            std::vector<model::Value> current;
+            for (const auto* part : parts) {
+                current.push_back(stored(*part).value);
+            }
+            const auto values = model::partsOfColor(parts, *text, current);
             if (values.empty()) {
                 return false;
             }
@@ -607,28 +613,6 @@ namespace mods_config::mcm
             parts.push_back(found != _settings.end() ? found->second : nullptr);
         }
         return parts;
-    }
-
-    /**
-     * The `r,g,b` or `r,g,b,a` of a color kept in sliders of its own, from the value `read` gives each of them. Not
-     * available while a part is not a setting of the mod, or `read` has no value of it, with its reason.
-     */
-    model::StoredValue McmStore::colorValue(const model::Setting& setting, const model::ColorPartsStorage& storage, const PartReader& read) const
-    {
-        std::vector<model::Value> values;
-        const auto parts = colorParts(storage);
-        for (std::size_t i = 0; i < parts.size(); ++i) {
-            auto value = parts[i] ? read(*parts[i]) : std::unexpected(std::format("Not available: the setting {} is not in the mod.", storage.parts[i]));
-            if (!value) {
-                return { .value = valueWithNone(setting), .available = false, .reason = std::move(value.error()) };
-            }
-            values.push_back(std::move(*value));
-        }
-        auto color = model::colorOfParts(parts, values);
-        if (!color) {
-            return { .value = valueWithNone(setting), .available = false, .reason = {} };
-        }
-        return { .value = std::move(*color), .available = true, .reason = {} };
     }
 
     /**
@@ -746,12 +730,11 @@ namespace mods_config::mcm
             if (!isDirty(setting)) {
                 return std::nullopt;
             }
-            auto saved = colorValue(setting, *color, [this](const model::Setting& part) -> std::expected<model::Value, std::string> {
+            auto saved = model::colorPartsValue(colorParts(*color), [this](const model::Setting& part) {
                 if (auto baseline = savedValue(part)) {
-                    return std::move(*baseline);
+                    return model::StoredValue{ .value = std::move(*baseline), .available = true, .invalid = false, .reason = {} };
                 }
-                auto now = stored(part);
-                return now.available ? std::expected<model::Value, std::string>(std::move(now.value)) : std::unexpected(std::move(now.reason));
+                return stored(part);
             });
             return saved.available ? std::optional(std::move(saved.value)) : std::nullopt;
         }
@@ -780,11 +763,9 @@ namespace mods_config::mcm
     std::optional<model::Value> McmStore::defaultValue(const model::Setting& setting)
     {
         if (const auto* color = std::get_if<model::ColorPartsStorage>(&setting.storage)) {
-            auto defaults = colorValue(setting, *color, [this](const model::Setting& part) -> std::expected<model::Value, std::string> {
-                if (auto value = defaultValue(part)) {
-                    return std::move(*value);
-                }
-                return std::unexpected(std::string());
+            auto defaults = model::colorPartsValue(colorParts(*color), [this](const model::Setting& part) {
+                auto value = defaultValue(part);
+                return model::StoredValue{ .value = value.value_or(model::Value()), .available = value.has_value(), .invalid = false, .reason = {} };
             });
             return defaults.available ? std::optional(std::move(defaults.value)) : std::nullopt;
         }

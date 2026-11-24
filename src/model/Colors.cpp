@@ -16,6 +16,23 @@ namespace
 {
     // the color a key that neither the value nor its default has keeps: white, and opaque
     constexpr f4cf::render::Color WHITE{};
+
+    /**
+     * The channel from 0 to 255 a value of a color's slider is: its place from the slider's min to its max, the nearest
+     * whole number. None for a value that is no number, and for a slider with no range.
+     */
+    std::optional<int> channelOf(const mods_config::model::Setting& part, const mods_config::model::Value& value)
+    {
+        const auto& range = part.valueOptions;
+        const float span = range.max - range.min;
+        const auto* whole = std::get_if<int>(&value);
+        const auto* number = std::get_if<float>(&value);
+        if ((!whole && !number) || span <= 0.0f || f4cf::common::fEqual(span, 0.0f)) {
+            return std::nullopt;
+        }
+        const float at = whole ? static_cast<float>(*whole) : *number;
+        return std::clamp(static_cast<int>(std::lround((at - range.min) / span * 255.0f)), 0, 255);
+    }
 }
 
 namespace mods_config::model
@@ -195,30 +212,61 @@ namespace mods_config::model
         }
         ColorTable table{ .rgb = std::array<int, 3>{}, .alpha = std::nullopt };
         for (std::size_t i = 0; i < parts.size(); ++i) {
-            const auto& range = parts[i]->valueOptions;
-            const float span = range.max - range.min;
-            const auto* whole = std::get_if<int>(&values[i]);
-            const auto* number = std::get_if<float>(&values[i]);
-            if ((!whole && !number) || span <= 0.0f || common::fEqual(span, 0.0f)) {
+            const auto channel = channelOf(*parts[i], values[i]);
+            if (!channel) {
                 return std::nullopt;
             }
-            const float value = whole ? static_cast<float>(*whole) : *number;
-            const int channel = std::clamp(static_cast<int>(std::lround((value - range.min) / span * 255.0f)), 0, 255);
             if (i < 3) {
-                (*table.rgb)[i] = channel;
+                (*table.rgb)[i] = *channel;
             } else {
-                table.alpha = channel;
+                table.alpha = *channel;
             }
         }
         return colorText(table, TableForm::IniLine);
     }
 
     /**
-     * The values a color's `r,g,b` or `r,g,b,a` gives its parts, in their order: each channel from 0 to 255 as a value
-     * from its slider's min to its max, a whole number for a slider of one. None for the alpha part while the color has
-     * no alpha, which keeps its value. Empty for a text that is no color, and for a part with no range.
+     * The value of a color kept in sliders from what `read` gives each of its parts, in their order. It is not available
+     * while a part is not, or is no setting of its mod (null), with the part's reason, and is invalid while a part is,
+     * with that part's reason. With no value it is black.
      */
-    std::vector<std::optional<Value>> partsOfColor(const std::span<const Setting* const> parts, const std::string_view color)
+    StoredValue colorPartsValue(const std::span<const Setting* const> parts, const std::function<StoredValue(const Setting& part)>& read)
+    {
+        StoredValue color{ .value = std::string("0,0,0"), .available = false, .invalid = false, .reason = {} };
+        std::vector<Value> values;
+        for (const auto* part : parts) {
+            if (!part) {
+                color.reason = "Not available: a part of the color is no setting of its mod.";
+                return color;
+            }
+            auto stored = read(*part);
+            if (!stored.available) {
+                color.reason = std::move(stored.reason);
+                return color;
+            }
+            if (stored.invalid && !color.invalid) {
+                color.invalid = true;
+                color.reason = std::move(stored.reason);
+            }
+            values.push_back(std::move(stored.value));
+        }
+        auto text = colorOfParts(parts, values);
+        if (!text) {
+            return { .value = std::move(color.value), .available = false, .invalid = false, .reason = {} };
+        }
+        color.value = std::move(*text);
+        color.available = true;
+        return color;
+    }
+
+    /**
+     * The values a color's `r,g,b` or `r,g,b,a` gives its parts, in their order: each channel from 0 to 255 as a value
+     * from its slider's min to its max, as a slider's control has it, a float, of a whole number for a slider of one.
+     * None for a part whose `current` value is that channel already, which keeps its value rather than its channel's
+     * rounding, and for the alpha part while the color has no alpha. Empty for a text that is no color, and for a part
+     * with no range.
+     */
+    std::vector<std::optional<Value>> partsOfColor(const std::span<const Setting* const> parts, const std::string_view color, const std::span<const Value> current)
     {
         const auto table = parseColorTable(color, TableForm::IniLine);
         if (!table || !table->rgb || parts.size() < 3 || parts.size() > 4) {
@@ -231,12 +279,12 @@ namespace mods_config::model
             if (range.max <= range.min || common::fEqual(range.max, range.min)) {
                 return {};
             }
-            if (!channel) {
+            if (!channel || (i < current.size() && channelOf(*parts[i], current[i]) == channel)) {
                 values.emplace_back();
                 continue;
             }
             const float value = range.min + static_cast<float>(*channel) / 255.0f * (range.max - range.min);
-            values.emplace_back(parts[i]->valueType == StoredType::Int ? Value(static_cast<int>(std::lround(value))) : Value(value));
+            values.emplace_back(parts[i]->valueType == StoredType::Int ? std::round(value) : value);
         }
         return values;
     }

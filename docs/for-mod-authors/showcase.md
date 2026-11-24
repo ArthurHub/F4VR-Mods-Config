@@ -237,6 +237,12 @@ A color, `cf.color`: a swatch and its numbers, and an editor with a picker. `"al
 
 ![Colors](../assets/showcase/colors.png)
 
+A mod that keeps a value per channel, as `iGlowR`, `iGlowG` and `iGlowB`, names them in its color's `parts`, as **Glow** does under **Kept in sliders**. Each channel is a slider of its own, with its own storage and default, and its row is hidden: the color's row edits them, and each slider's range is 0 to 255 of its channel, so a slider from 0 to 1 works too. See [A color kept in sliders](../design/schema.md#commonframework-values).
+
+```json
+{ "type": "cf.color", "text": "Glow", "parts": { "r": "glowRed", "g": "glowGreen", "b": "glowBlue", "a": "glowAlpha" } }
+```
+
 The editor: the color before and now, a picker, a slider for each channel, the presets of the config spec, and five basic colors every color has.
 
 ![The color editor](../assets/showcase/color-editor.png)

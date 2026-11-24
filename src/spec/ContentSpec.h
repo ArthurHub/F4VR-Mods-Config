@@ -30,6 +30,7 @@ namespace mods_config::spec
     void loadRowsConditions(const Json& rows, std::string_view key, std::vector<model::Item>& items, const RowConditions& above, ConfigSpecReading& reading);
     void loadItemIds(const Json& container, std::vector<model::Item>& items, ConfigSpecReading& reading);
     void loadRowsIds(const Json& rows, std::string_view key, std::vector<model::Item>& items, ConfigSpecReading& reading);
+    void hideColorParts(std::vector<model::Item>& items, const std::set<std::string, std::less<>>& parts);
 
     /**
      * What the rows of a page's content get from the page, as a mod's client gives them: what they inherit, the

@@ -12,4 +12,5 @@ namespace mods_config::spec
     std::optional<model::SettingType> findSettingType(std::string_view type);
     model::Setting loadSetting(const Json& row, model::SettingType type, const Inherited& above, ConfigSpecReading& reading);
     void loadOptionSets(const Json& row, model::Setting& setting, ConfigSpecReading& reading);
+    void loadColorParts(const Json& row, model::Setting& setting, ConfigSpecReading& reading);
 }

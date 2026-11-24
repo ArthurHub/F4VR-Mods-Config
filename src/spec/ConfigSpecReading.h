@@ -105,6 +105,10 @@ namespace mods_config::spec
         // names them
         std::set<std::string, std::less<>> itemIds;
 
+        // the ids of the sliders colors are kept in so far, in lower case: a slider is a part of one color alone, and
+        // its row is hidden
+        std::set<std::string, std::less<>> colorParts;
+
         /**
          * Adds a problem where the reading is: on its row, with the row's place, or else on its page, or else of the
          * config spec itself.

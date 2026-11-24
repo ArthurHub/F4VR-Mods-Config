@@ -500,3 +500,80 @@ TEST_CASE("ConfigSpecLoader: an option's alsoSets are read as its sets are, and 
     CHECK(closer.sets.empty());
     CHECK(closer.alsoSets.size() == 1);
 }
+
+TEST_CASE("ConfigSpecLoader: a cf.color with parts is kept in the sliders they name, which are hidden, and has an alpha with an a")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "cf.color", "id": "glow", "text": "Glow", "parts": { "r": "GLOWR", "g": "glowG", "b": "glowB" } },
+        { "type": "cf.color", "id": "tint", "text": "Tint", "parts": { "r": "tintR", "g": "tintG", "b": "tintB", "a": "tintA" } },
+        { "type": "slider", "valueType": "int", "default": 0, "id": "glowR", "text": "Red", "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "a"] } },
+        { "type": "slider", "valueType": "int", "default": 0, "id": "glowG", "text": "Green", "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "b"] } },
+        { "type": "slider", "valueType": "int", "default": 0, "id": "glowB", "text": "Blue", "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "c"] } },
+        { "type": "slider", "default": 0.5, "id": "tintR", "text": "Red", "valueOptions": { "min": 0, "max": 1 }, "storage": { "path": ["Main", "d"] } },
+        { "type": "slider", "default": 0.5, "id": "tintG", "text": "Green", "valueOptions": { "min": 0, "max": 1 }, "storage": { "path": ["Main", "e"] } },
+        { "type": "slider", "default": 0.5, "id": "tintB", "text": "Blue", "valueOptions": { "min": 0, "max": 1 }, "storage": { "path": ["Main", "f"] } },
+        { "type": "slider", "default": 0.5, "id": "tintA", "text": "Alpha", "valueOptions": { "min": 0, "max": 1 }, "storage": { "path": ["Main", "g"] } }
+    )"));
+    CHECK(mod.problems.empty());
+    const auto settings = settingsOf(mod);
+    REQUIRE(settings.size() == 9);
+    CHECK(std::get<model::ColorPartsStorage>(settings[0].storage).parts == std::vector<std::string>{ "glowR", "glowG", "glowB" });
+    CHECK_FALSE(settings[0].valueOptions.alpha);
+    CHECK(settings[0].tableForm == model::TableForm::IniLine);
+    CHECK_FALSE(settings[0].visibleWhen);
+    CHECK(std::get<model::ColorPartsStorage>(settings[1].storage).parts.size() == 4);
+    CHECK(settings[1].valueOptions.alpha);
+    for (std::size_t part = 2; part < settings.size(); ++part) {
+        INFO(settings[part].id);
+        REQUIRE(settings[part].visibleWhen);
+        CHECK(settings[part].visibleWhen->kind == model::Condition::Kind::Any);
+        CHECK(settings[part].visibleWhen->conditions.empty());
+    }
+}
+
+TEST_CASE("ConfigSpecLoader: parts that name no slider with a range are reported, and the color is not available")
+{
+    const auto mod = loaded(configSpecOf(R"(
+        { "type": "cf.color", "text": "No blue", "default": { "rgb": [1, 2, 3] }, "applies": "live", "parts": { "r": "red", "g": "green" } },
+        { "type": "cf.color", "text": "Wrong parts", "parts": { "r": "nothing", "g": "flag", "b": "flat", "x": "red" } },
+        { "type": "cf.color", "text": "Shared", "parts": { "r": "red", "g": "green", "b": "blue" } },
+        { "type": "cf.color", "text": "Again", "parts": { "r": "red", "g": "green", "b": "blue" } },
+        { "type": "cf.color", "text": "Kept", "default": { "rgb": [1, 2, 3] }, "parts": { "r": "red", "g": "green", "b": "blue" }, "storage": { "path": ["Main", "cKept"] } },
+        { "type": "slider", "default": 0.5, "text": "Not a color", "parts": { "r": "red" }, "storage": { "path": ["Main", "h"] } },
+        { "type": "switcher", "default": false, "id": "flag", "text": "Flag", "storage": { "path": ["Main", "a"] } },
+        { "type": "slider", "default": 0.5, "id": "flat", "text": "Flat", "storage": { "path": ["Main", "b"] } },
+        { "type": "slider", "default": 0, "id": "red", "text": "Red", "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "c"] } },
+        { "type": "slider", "default": 0, "id": "green", "text": "Green", "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "d"] } },
+        { "type": "slider", "default": 0, "id": "blue", "text": "Blue", "valueOptions": { "min": 0, "max": 255 }, "storage": { "path": ["Main", "e"] } }
+    )"));
+    for (const auto& line : problemLines(mod)) {
+        UNSCOPED_INFO(line);
+    }
+    Lines messages;
+    for (const auto& problem : mod.problems) {
+        messages.push_back(problem.message);
+    }
+    std::ranges::sort(messages);
+    Lines expected{ "Its default is left out: it is the color of its sliders' defaults.",
+        "Its applies is left out: each of its sliders takes effect as its own says.",
+        "It has no part \"b\": it is not available.",
+        "\"nothing\" names no setting: it is not available.",
+        "\"flag\" is not a slider: it is not available.",
+        "\"flat\" is a slider with no range from its min to its max: it is not available.",
+        "Unknown field \"x\": it is not read.",
+        "\"red\" is a part of another color: it is not available.",
+        "\"green\" is a part of another color: it is not available.",
+        "\"blue\" is a part of another color: it is not available.",
+        "It has a storage, and parts, the sliders it is kept in: its parts are ignored.",
+        "Only a cf.color has parts, the sliders it is kept in: its parts are ignored." };
+    std::ranges::sort(expected);
+    CHECK(messages == expected);
+
+    const auto settings = settingsOf(mod);
+    for (const auto place : { 0, 1, 3 }) {
+        INFO(settings[place].text);
+        CHECK(std::get<model::UnknownStorage>(settings[place].storage).type == "color parts");
+    }
+    CHECK(std::holds_alternative<model::ColorPartsStorage>(settings[2].storage));
+    CHECK(std::holds_alternative<model::FileStorage>(settings[4].storage));
+}
