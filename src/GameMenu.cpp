@@ -169,7 +169,7 @@ namespace mods_config
 
     bool GameMenu::isLeftHanded()
     {
-        return f4vr::isLeftHandedMode();
+        return RE::VRSettings::IsLeftHandedMode();
     }
 
     bool GameMenu::isGameMenuTakingInput()
