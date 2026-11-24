@@ -1,6 +1,6 @@
 # Framework work plan
 
-The framework commits (F) that delivered [CommonFramework work required](framework-requirements.md), with the mod commits (M) that used them as the test bed. All done, but the [VR keyboard](#vr-keyboard), work added after them. Per-commit notes are in each framework subsystem's README and the framework's `0.5.0` changelog; the narrative this plan had is at `git show 6a0be38:docs/design/framework-plan.md`.
+The framework commits (F) that delivered [CommonFramework work required](framework-requirements.md), with the mod commits (M) that used them as the test bed. All done; the [VR keyboard](#vr-keyboard) was added after them, and the [ImGui controls](#imgui-controls) are planned. Per-commit notes are in each framework subsystem's README and the framework's `0.5.0` changelog; the narrative this plan had is at `git show 6a0be38:docs/design/framework-plan.md`.
 
 ## Commits
 
@@ -106,6 +106,39 @@ Not an item of the requirements. SteamVR's keyboard opens where the dashboard wa
 | F25 | framework | devbench: a `keyboard` action, its state and a key press                                                        | done   |
 | M11 | mod       | The keyboard in the panel's theme, Back closes it and steps no page while it is open                            | done   |
 | M12 | mod       | e2e: typing into a text setting and the search field                                                            | done   |
+
+### ImGui controls
+
+Not an item of the requirements. The next mod, a cheat terminal and item spawner, is a tree beside a page of buttons, number inputs, sliders and search: the panel's small controls, which any ImGui panel in VR needs, move to the framework so it is built from them. Only what is plainly generic moves now. Framework version `0.7.0`.
+
+- **Where:** `src/imgui/controls/` with its README, namespace `f4cf::imgui::controls`. The drawing primitives are free functions; the controls' state is one `Controls` instance, `imgui::controls()`, as the keyboard and the pointer are.
+- **Shape:** ImGui's. A control takes plain values (a float with its range, step and format; option texts; a string) and keeps its state by `ImGuiID`. Nothing in it knows a setting, a store or a config spec, so a change to this mod's rows never touches the framework.
+- **Look:** a `ControlsStyle` set with `controls().setStyle`, as `KeyboardStyle` and `PointerStyle`, whose defaults are the framework's green (`F4VR_PANEL_STYLE`). The mod fills it from its generated [`Theme.h`](../../src/Theme.h); the design system and its generator stay in the mod.
+- **Input:** a control reads the pointing hand's trigger and thumbstick through the framework, and plays the style's pulse on that hand as it acts. The mod passes no thumbstick value and handles no pulse for them.
+- **Back:** `controls().back()` ends what a control holds open (a drag, a list, a text edit) and returns whether it did. The mod calls it first; the order of the rest of Back stays the mod's.
+- **Pointed boxes:** a control returns its box, from which the mod's `PanelTargets` records it for devbench as now.
+- **Tests:** the framework tests each control on a headless ImGui context, as the mod's panel tests do. A port changes no look or behavior: the mod's panel and render tests pass unchanged after each.
+
+What moves: the generic part of [`Drawing.h`](../../src/ui/Drawing.h) (clipped and wrapped text, underlined ranges, the drawn icons and marks, frames and outlines, `popupTop`), the button, icon button and switcher, the dialog and its buttons, the slider (`Sliders`, `StepRepeat`, `valueBoxText`), the stepper and the dropdown with its list (`drawList`, `ListExtras`), and the text input on the framework's keyboard with the search field's Escape trap.
+
+What waits for the next mod: the tree, panes and their scrolling, a clipped list for thousands of rows, breadcrumbs, the help line, the order of Back, devbench targets kept by the framework, and the editors of the framework's types (`cf.color`, `cf.transform`, `cf.inputBinding`, `cf.haptic`). The next mod builds them, copied from here where that helps; each moves once both mods have it and the shape they share shows.
+
+What stays: everything about config specs, MCM and Save: the rows' rules (`RowView`, `ButtonView`), the pending, invalid and applies marks, the rich text of a config spec's markup, `FullPanel` and its sessions.
+
+Each framework commit is followed by the mod's port onto it, one at a time.
+
+| #   | Repo      | Commit                                                                                                       | Status  |
+| --- | --------- | ------------------------------------------------------------------------------------------------------------ | ------- |
+| F26 | framework | imgui: controls style and drawing primitives: text, underlined ranges, drawn icons and marks, frames         | planned |
+| M13 | mod       | `Drawing` on the framework's primitives, `ControlsStyle` from `Theme.h`                                      | planned |
+| F27 | framework | imgui: button, icon button, switcher, dialog and its buttons                                                 | planned |
+| M14 | mod       | Buttons, switchers and dialogs from the framework                                                            | planned |
+| F28 | framework | imgui: slider: trigger drag written on release, step arrows, thumbstick steps that repeat, Back cancels      | planned |
+| M15 | mod       | Sliders from the framework, in rows and in the editors                                                       | planned |
+| F29 | framework | imgui: stepper and dropdown, with its list beside its box: suffixes, a header line, an action after them     | planned |
+| M16 | mod       | Steppers, dropdowns and the haptic list from the framework                                                   | planned |
+| F30 | framework | imgui: text input on the framework's keyboard, kept through Escape                                           | planned |
+| M17 | mod       | Text inputs and the search field from the framework                                                          | planned |
 
 ## Decisions that differ from the requirements
 

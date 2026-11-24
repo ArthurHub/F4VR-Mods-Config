@@ -12,7 +12,7 @@ The current product and architecture decisions. Build order and release contents
 - [Dynamic pages](dynamic-pages.md): a page whose rows the mod's DLL gives as it is selected, with RobCo PALM's wheel as the example. Not reviewed yet.
 - [UI and VR interaction](ui-and-vr-interaction.md): opening, the Full and Minimized states, placement, pointing, navigation, search, categories.
 - [Design system](design-system/README.md): the look (colors, type, sizes, the ImGui style) and mocks of every component and panel; the source of the Design System artifact.
-- [CommonFramework work required](framework-requirements.md) and [Framework work plan](framework-plan.md): what the framework gained for this mod, done.
+- [CommonFramework work required](framework-requirements.md) and [Framework work plan](framework-plan.md): what the framework gained for this mod, done, and the panel's controls moving to it, planned.
 - [Mod work plan](mod-plan.md): the milestones, with each phase's commits in [phase 1](mod-plan-phase-1.md) (MCM support, done), [phase 2](mod-plan-phase-2.md) (first release, done) and [phase 3](mod-plan-phase-3.md) (after the first release).
 - [Open questions](open-questions.md): deferred design topics, not assigned to a release.
 
