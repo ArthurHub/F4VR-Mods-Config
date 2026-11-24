@@ -14,7 +14,7 @@ pytest tests that drive the running game through devbench's REST port and check 
 ```powershell
 pytest tests/e2e                      # all but perf, the sweep one setting of each kind
 pytest tests/e2e -m full              # everything: perf, and the whole sweep of every mod
-pytest tests/e2e -m showcase          # one area: sweep, showcase, dialog, mcm, live, controllers, navigation, rows, session, search
+pytest tests/e2e -m showcase          # one area: sweep, showcase, dialog, mcm, live, controllers, keyboard, navigation, rows, session, search
 pytest tests/e2e -m perf              # perf, which runs only when asked for (or test_perf.py is named)
 pytest tests/e2e -m sweep -k FallUI   # one mod's whole sweep
 pytest tests/e2e -m sweep -rA         # with the skipped settings
@@ -48,10 +48,11 @@ A setting whose failure is an open issue goes in `KNOWN` in `test_sweep.py` with
 | `test_mcm_keep_revert.py` | MCM's immediate writes, Keep and Revert. |
 | `test_live_preview.py` | FRIK's and Immersive Flashlight's live preview; the menu's own client handing an edit back. |
 | `test_controllers.py` | The menu worked with the controllers, which devbench's input tool holds: the opening gesture, the trigger on tree and page rows, the help line under the ray, the color editor with Back on the grip, Back only with the ray on the panel, the thumbstick scrolling the page and the tree and stepping a slider and a stepper, the stick turning the player only off the panel, and a left-handed player's primary hand. The headset and controllers are held while a test runs, so the physical ones do nothing then. |
+| `test_keyboard.py` | The framework's keyboard: shown by a press on a text input or the search field, typed with the ray and through its devbench action, Done and Back on the grip keeping the text and stepping no page, the caret keys and a pull on the line moving the caret, the symbols and accents pages, Enter doing nothing on a one-line field, a number field dropping a letter, and the search filtering per key. |
 | `test_navigation.py` | Back, breadcrumbs, Help, Minimize/Restore. |
 | `test_rows.py` | Reset, Run without saving / Save and run, confirmations, MCM buttons, client state in text, MCM game texts, images and plugin requirements, FallUI translations, the config spec report. |
 | `test_session.py` | A loading screen closing the menu and discarding pending changes and previews. |
 | `test_search.py` | The search field: what a query finds in the mods and on the page, Back showing a filtered page whole, a row a condition hides, an MCM row found by its text from the game, the query emptied as the menu opens. |
 | `test_perf.py` | Per-frame cost of held states (10 s each, fails over budget at p95) and the worst frame of one-off actions (no check). Only run when asked for: `-m perf`, right after game start to catch the session's first open. |
 
-Helpers: `menu.py` (the menu through the mod's devbench tool), `stored.py` (a value in its file), `controllers.py` (the primary hand's ray aimed at a target of the panel, as the mod's devbench `targets` action tells them, and its presses). devbench-client gives the rest: the client, events, console, files, waits and the plugin's fixtures (`game`, `mod`, `events`, `report`).
+Helpers: `menu.py` (the menu through the mod's devbench tool), `stored.py` (a value in its file), `controllers.py` (the primary hand's ray aimed at a target of the panel, as the mod's devbench `targets` action tells them, or at a key of the keyboard, as its `keyboard` action tells them, and its presses). devbench-client gives the rest: the client, events, console, files, waits and the plugin's fixtures (`game`, `mod`, `events`, `report`).

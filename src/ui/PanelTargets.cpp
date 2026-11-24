@@ -30,6 +30,8 @@ namespace mods_config::ui
             return "colorChannel";
         case TargetKind::Option:
             return "option";
+        case TargetKind::Search:
+            return "search";
         }
         return "unknown";
     }

@@ -1,6 +1,7 @@
 """The menu worked by the controllers as the player works it: devbench's input tool holds the headset and both
-controllers, the ray of the primary hand is turned onto a place of the panel, and its buttons and thumbstick are pressed
-there. The places are the panel's targets, which the mod's devbench tool tells as they were drawn."""
+controllers, the ray of the primary hand is turned onto a place of the panel or of the framework's keyboard, and its
+buttons and thumbstick are pressed there. The places are the panel's targets and the keyboard's keys, which the mod's
+devbench tool tells as they were drawn."""
 
 from devbench import Hands, wait_until
 from devbench.vr import handedness
@@ -25,6 +26,9 @@ GESTURE_MS = 1500
 
 # the pitch that points a controller well under the panel, where its ray is on nothing
 POINTED_DOWN = -70.0
+
+# how far each step of the search for the keyboard turns the controller down
+KEYBOARD_SEARCH_DEGREES = 2.0
 
 
 def middle(target):
@@ -98,24 +102,28 @@ class Pointer:
         raise AssertionError("no turn of the controller puts its ray on the panel")
 
     def aim(self, x, y):
-        """
-        Turn the controller until the pointer is on a place of the panel, within AIM_TOLERANCE. The pixels a degree
-        moves the pointer change across the panel, so each step learns them from the step before, and a step goes
-        MAX_STEP_DEGREES at the most. A step that takes the ray off the panel is taken back and halved.
-        """
+        """Turn the controller until the pointer is on a place of the panel, within AIM_TOLERANCE."""
         self.find_panel()
+        return self._aim(x, y, self.pointer, AIM_TOLERANCE)
+
+    def _aim(self, x, y, locate, tolerance):
+        """
+        Turn the controller until the ray is on a place of a canvas, as locate tells where it is, within tolerance. The
+        pixels a degree moves the ray change across the canvas, so each step learns them from the step before, and a
+        step goes MAX_STEP_DEGREES at the most. A step that takes the ray off the canvas is taken back and halved.
+        """
         gain = [PIXELS_PER_DEGREE, PIXELS_PER_DEGREE]
-        at = self.pointer()
+        at = locate()
         for _ in range(AIM_STEPS):
             dx, dy = x - at[0], y - at[1]
-            if abs(dx) <= AIM_TOLERANCE and abs(dy) <= AIM_TOLERANCE:
+            if abs(dx) <= tolerance and abs(dy) <= tolerance:
                 return at
-            # the pointer goes left as the controller yaws left, and up as it pitches up
+            # the ray goes left as the controller yaws left, and up as it pitches up
             step_yaw = max(-MAX_STEP_DEGREES, min(MAX_STEP_DEGREES, -dx / gain[0]))
             step_pitch = max(-MAX_STEP_DEGREES, min(MAX_STEP_DEGREES, -dy / gain[1]))
             pitch, yaw = self.pitch, self.yaw
             self.turn(pitch + step_pitch, yaw + step_yaw)
-            moved = self.pointer()
+            moved = locate()
             if moved is None:
                 self.turn(pitch, yaw)
                 gain = [gain[0] * 2, gain[1] * 2]
@@ -124,7 +132,7 @@ class Pointer:
                 if abs(step) > 0.5 and abs(delta) > 2:
                     gain[axis] = max(2.0, abs(delta / step))
             at = moved
-        raise AssertionError(f"the ray did not come to ({x:.0f}, {y:.0f}): it is at {self.pointer()}")
+        raise AssertionError(f"the ray did not come to ({x:.0f}, {y:.0f}): it is at {locate()}")
 
     def away(self):
         """Point the controller over the panel, at nothing."""
@@ -181,6 +189,52 @@ class Pointer:
         """A push of the primary hand's thumbstick, x right and y up, each -1..1."""
         self.hands.stick("primary", x, y, duration_ms)
         self.menu.state()
+
+    def keyboard(self, key=None):
+        """
+        The framework's keyboard as the mod's devbench tool reports it, with a key of its page pressed first, by its
+        label or its action, as a pull on it does.
+        """
+        return self.menu.call("keyboard", **({"key": key} if key else {}))
+
+    def on_keyboard(self):
+        """Where the primary hand's ray is on the keyboard, in its canvas's pixels, None while it is not on it."""
+        hand = self.keyboard()["hands"]["primary"]
+        return (hand["x"], hand["y"]) if hand["on"] else None
+
+    def find_keyboard(self):
+        """Turn the controller down from where it points, as the keyboard is under the panel, until its ray is on it."""
+        if self.on_keyboard() is not None:
+            return
+        pitch, yaw = self.pitch, self.yaw
+        for step in range(1, 40):
+            self.turn(pitch - step * KEYBOARD_SEARCH_DEGREES, yaw)
+            if self.on_keyboard() is not None:
+                return
+        raise AssertionError("no turn of the controller down puts its ray on the keyboard")
+
+    def key(self, label):
+        """A key of the keyboard's page by its label as shown, or by its action for one that types no character."""
+        keys = self.keyboard()["keys"]
+        found = next((k for k in keys if k["label"] == label), None) or next((k for k in keys if k["action"] == label), None)
+        assert found, f"the keyboard's page has no key {label!r}: it has {[k['label'] or k['action'] for k in keys]}"
+        return found
+
+    def aim_keyboard(self, x, y, tolerance):
+        """Turn the controller until its ray is on a place of the keyboard, within tolerance of its pixels."""
+        self.find_keyboard()
+        return self._aim(x, y, self.on_keyboard, tolerance)
+
+    def point_at_key(self, label):
+        """Aim at the middle of a key of the keyboard, within a quarter of the key, and return it."""
+        found = self.key(label)
+        self.aim_keyboard(*middle(found), min(found["width"], found["height"]) / 4)
+        return found
+
+    def type_key(self, label):
+        """Aim at a key of the keyboard and pull the trigger."""
+        self.point_at_key(label)
+        self.trigger()
 
     def gesture(self):
         """The opening gesture: both thumbsticks pressed in together and held."""

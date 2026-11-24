@@ -35,6 +35,8 @@ namespace mods_config::ui
         ColorChannel,
         // an option of the dropdown list that is open, by its text, and the action under them, by its text
         Option,
+        // the search field of the tree's header while it is not edited, Field, and its Clear while it has a query
+        Search,
     };
 
     /**

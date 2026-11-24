@@ -73,6 +73,7 @@ DEVBENCH = Config(
         "test_mcm_keep_revert.py": Area("MCM Keep and Revert", "mcm"),
         "test_live_preview.py": Area("Live preview", "live"),
         "test_controllers.py": Area("Controllers", "controllers"),
+        "test_keyboard.py": Area("Keyboard", "keyboard"),
         "test_sweep.py": Area("Sweep", "sweep"),
         "test_perf.py": Area("Perf", "perf"),
     },

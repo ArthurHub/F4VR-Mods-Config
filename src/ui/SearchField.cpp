@@ -7,6 +7,7 @@
 #include <imgui_stdlib.h>
 
 #include "Drawing.h"
+#include "PanelTargets.h"
 #include "Theme.h"
 
 namespace
@@ -88,6 +89,7 @@ namespace mods_config::ui
             ImGui::SetCursorScreenPos(box.Min);
             pressed = ImGui::InvisibleButton("##searchField", ImVec2(fieldRight - box.Min.x, FIELD_HEIGHT));
             pointed = ImGui::IsItemHovered();
+            panelTargets().add(TargetKind::Search, "Field", ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
         }
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed ? theme::color::HOVER : theme::color::TRACK), theme::RADIUS_FRAME);
@@ -152,6 +154,7 @@ namespace mods_config::ui
                 clear();
                 drawn.pressActed = true;
             }
+            panelTargets().add(TargetKind::Search, "Clear", clearBox);
             drawRowState();
             if (ImGui::IsItemHovered()) {
                 drawn.pointed = PointedRow{ .text = "Clear", .help = CLEAR_HELP };

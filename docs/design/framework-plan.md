@@ -105,7 +105,7 @@ Not an item of the requirements. SteamVR's keyboard opens where the dashboard wa
 | F24 | framework | imgui: the VR keyboard replaces SteamVR's, typed with both rays, moved with the grip, closed by the mod's Back  | done   |
 | F25 | framework | devbench: a `keyboard` action, its state and a key press                                                        | done   |
 | M11 | mod       | The keyboard in the panel's theme, Back closes it and steps no page while it is open                            | done   |
-| M12 | mod       | e2e: typing into a text setting and the search field                                                            | todo   |
+| M12 | mod       | e2e: typing into a text setting and the search field                                                            | done   |
 
 ## Decisions that differ from the requirements
 
