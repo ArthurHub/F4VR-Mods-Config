@@ -5,10 +5,10 @@ namespace mods_config::ui
     /**
      * Shows a mod of a store, or the menu's front page with no mod and no store. Another mod starts its session in its store, after
      * the store before ends its own; the same mod is told another page is shown. Its rows then read their texts, and
-     * only then is `resolvePage` asked which page shows, as its conditions ask the open store. The store is told that
-     * page, and that no row is pointed when one was.
+     * only then is `resolvePage` asked which page shows, as its conditions ask the open store. A page whose rows the
+     * mod's client gives is asked for them, and the store is told the page, and that no row is pointed when one was.
      */
-    void StoreSession::show(model::Store* store, model::Mod* mod, const std::function<const model::Page*()>& resolvePage)
+    void StoreSession::show(model::Store* store, model::Mod* mod, const std::function<model::Page*()>& resolvePage)
     {
         const bool sameMod = store == _store && (mod ? mod->name : std::string()) == _modName;
         if (!sameMod) {
@@ -28,11 +28,28 @@ namespace mods_config::ui
         if (_store) {
             _store->readTexts(*mod);
         }
-        const auto* page = resolvePage();
+        auto* const page = resolvePage();
+        if (_store && page) {
+            _store->readPageContent(*mod, *page);
+        }
         if (_store) {
             _store->showPage(page);
         }
         point(nullptr);
+    }
+
+    /**
+     * Asks the mod's client again for the rows of the page that is shown, while it is, as `show` asks as it is shown.
+     * Returns whether it asked: the store is then told that no row is pointed, as the old rows are gone.
+     */
+    bool StoreSession::readPageContent(model::Mod& mod, model::Page& page)
+    {
+        if (!_store || !_store->readPageContent(mod, page)) {
+            return false;
+        }
+        _pointed = nullptr;
+        _store->showPointed(nullptr);
+        return true;
     }
 
     /**

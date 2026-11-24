@@ -173,8 +173,9 @@ namespace mods_config::model
             Overrides overrides;
 
             // the content of a page with `contentFromClientCallback`, by its `id`: the JSON text of its rows, or why
-            // there is none
-            std::function<std::expected<std::string, std::string>(std::string_view pageId)> content;
+            // there is none. None for a client built with an API that has no page content, which is not asked
+            using Content = std::function<std::expected<std::string, std::string>(std::string_view pageId)>;
+            Content content;
         };
 
         bool addClient(std::string_view modName, Client client);
@@ -191,6 +192,7 @@ namespace mods_config::model
         void sendChange(std::string_view modName, const SettingChange& change) const;
         void sendSave(std::string_view modName, const SaveBatch& batch) const;
         std::vector<ClientOverride> overrides(std::string_view modName, const ClientSetting& setting) const;
+        std::string contentNotAsked(std::string_view modName, std::string_view displayName) const;
         std::expected<std::string, std::string> content(std::string_view modName, std::string_view displayName, std::string_view pageId) const;
         bool addQuickLaunch(ClientQuickLaunch entry);
 

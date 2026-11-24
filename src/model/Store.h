@@ -157,6 +157,16 @@ namespace mods_config::model
         {}
 
         /**
+         * Asks the mod's client for the rows of a page of the mod whose session it is that has `contentFromClient`, and
+         * puts them in the page: as it is shown, and again while it is. Returns whether it asked, as the page has new rows
+         * then, which point nowhere the old ones did. False for a store whose pages have their own rows.
+         */
+        virtual bool readPageContent(Mod& /*mod*/, Page& /*page*/)
+        {
+            return false;
+        }
+
+        /**
          * Sets the value of a setting. Returns whether it is set. A store that keeps a change for a Save sets a
          * value of the setting's type that is no value of it, as invalid.
          */

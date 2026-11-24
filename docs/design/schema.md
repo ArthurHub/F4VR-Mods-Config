@@ -138,7 +138,7 @@ A page is a tree row under the mod or another page, so the tree has as many leve
 }
 ```
 
-- `content` is required and non-empty, also on a page with sub-pages.
+- `content` is required and non-empty, also on a page with sub-pages, unless `contentFromClientCallback: true` takes its place: the mod's DLL gives the page's rows as it is shown ([Dynamic pages](dynamic-pages.md)).
 - `help` shows while the ray is on its tree row.
 - `id` (optional, unique among pages) is told to the client as the page is shown and left ([The client's events](architecture.md#the-clients-events)).
 - Sub-pages show in the tree while the page or one of them is selected; breadcrumbs name every level (`MODS CONFIG FO4 » My Mod » Body » Hands`, [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior)).

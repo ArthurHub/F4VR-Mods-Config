@@ -2924,3 +2924,160 @@ TEST_CASE("ConfigSpecStore: a choice that turns switchers on can take their sect
     CHECK(session.store.set(aid, false));
     CHECK(session.store.invalidCount() == 0);
 }
+
+namespace
+{
+    /**
+     * A config spec whose page `wheel`, under the page Items, has its rows from its mod's client and takes effect on a
+     * Save, with a switcher on its front page, all in the file `main`.
+     */
+    model::Mod wheelConfigSpec()
+    {
+        auto mod = spec::loadConfigSpec(R"({
+            "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "live",
+            "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+            "defaultFile": "main",
+            "content": [ { "type": "switcher", "text": "Enable", "default": true, "storage": { "path": ["Main", "bEnable"] } } ],
+            "pages": [
+                { "pageDisplayName": "Items", "content": [],
+                  "pages": [ { "id": "wheel", "pageDisplayName": "Wheel", "applies": "save", "contentFromClientCallback": true } ] }
+            ]
+        })");
+        if (!mod) {
+            FAIL(mod.error());
+        }
+        return std::move(*mod);
+    }
+
+    /**
+     * A switcher a mod's client gives, kept in the section Wheel of the file by its key.
+     */
+    std::string clientRow(const std::string& text, const std::string& key)
+    {
+        return std::format(R"({{ "type": "switcher", "text": "{}", "default": false, "storage": {{ "path": ["Wheel", "{}"] }} }})", text, key);
+    }
+
+    std::vector<std::string> problemPaths(const model::Mod& mod)
+    {
+        std::vector<std::string> paths;
+        for (const auto& problem : mod.problems) {
+            paths.push_back(problem.path);
+        }
+        return paths;
+    }
+}
+
+TEST_CASE("ConfigSpecStore: a page's rows are its client's, read with their values, and asked for again only while none of them has a change")
+{
+    Session session;
+    session.mod = wheelConfigSpec();
+    std::string rows = "[" + clientRow("Apple", "bApple") + "]";
+    session.store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .pages = { { "wheel",
+                                      [&rows] {
+                                          return rows;
+                                      } } } }
+            .calls());
+    session.open("[Main]\r\nbEnable = false\r\n[Wheel]\r\nbApple = true\r\n");
+    auto& wheel = session.mod.pages.at(0).pages.at(0);
+    CHECK(wheel.items.empty());
+
+    REQUIRE(session.store.readPageContent(session.mod, wheel));
+    REQUIRE(wheel.items.size() == 1);
+    const auto* apple = &std::get<model::Setting>(wheel.items[0]);
+    CHECK(apple->id == "bApple:Wheel");
+    // it takes effect as its page says, and has its value of the file
+    CHECK(apple->applies == model::Applies::Save);
+    CHECK(session.store.value(*apple).value == model::Value(true));
+    CHECK(session.store.valueById("bApple:Wheel").value == model::Value(true));
+    CHECK(wheel.contentNotGiven.empty());
+
+    // a change of one of its rows keeps the rows it has, which new ones would drop
+    rows = "[" + clientRow("Apple", "bApple") + "," + clientRow("Banana", "bBanana") + "]";
+    CHECK(session.store.set(*apple, false));
+    CHECK_FALSE(session.store.readPageContent(session.mod, wheel));
+    CHECK(wheel.items.size() == 1);
+    CHECK(&std::get<model::Setting>(wheel.items[0]) == apple);
+    CHECK(session.store.isDirty(*apple));
+
+    // a change elsewhere does not, and stays
+    session.store.discard();
+    CHECK(session.store.set(session.setting(0), true));
+    REQUIRE(session.store.readPageContent(session.mod, wheel));
+    REQUIRE(wheel.items.size() == 2);
+    CHECK(session.store.dirtyCount() == 1);
+    CHECK(session.store.isDirty(session.setting(0)));
+    const auto& banana = std::get<model::Setting>(wheel.items[1]);
+    CHECK(session.store.value(banana).value == model::Value(false));
+    CHECK(session.store.value(std::get<model::Setting>(wheel.items[0])).value == model::Value(true));
+
+    // its new rows are saved as any other
+    CHECK(session.store.set(banana, true));
+    REQUIRE(session.store.save());
+    CHECK(readFile(session.myGames.path / MOD_FILE).contains("bBanana = true"));
+
+    // a page that has its own rows is not asked
+    CHECK_FALSE(session.store.readPageContent(session.mod, session.mod.pages.at(0)));
+}
+
+TEST_CASE("ConfigSpecStore: a page whose client gives no rows has none, and why, and the problems of the rows it gives replace the page's last ones")
+{
+    Session session;
+    session.mod = wheelConfigSpec();
+    std::optional<std::string> rows = R"([{ "type": "switcher", "text": "Typo", "default": false, "storage": { "path": ["Wheel", "bTypo"] }, "valu": 1 }])";
+    session.store.clientCalls().addClient("MyMod",
+        test_clients::TestClient{ .pages = { { "wheel",
+                                      [&rows] {
+                                          return rows.value_or("not JSON");
+                                      } } } }
+            .calls());
+    session.open("[Wheel]\r\nbTypo = true\r\n");
+    auto& wheel = session.mod.pages.at(0).pages.at(0);
+    REQUIRE(session.store.readPageContent(session.mod, wheel));
+    CHECK(wheel.items.size() == 1);
+    CHECK(problemPaths(session.mod) == std::vector<std::string>{ "giveContent(\"wheel\")[0].valu" });
+
+    // asked again, the page has the problems of its new rows alone
+    rows = "[" + clientRow("Fixed", "bTypo") + "]";
+    REQUIRE(session.store.readPageContent(session.mod, wheel));
+    CHECK(session.mod.problems.empty());
+
+    // text that is no JSON array, and no content at all, leave the page with no rows, and the reason, and free its ids
+    rows.reset();
+    REQUIRE(session.store.readPageContent(session.mod, wheel));
+    CHECK(wheel.items.empty());
+    CHECK(wheel.contentNotGiven == "Not available: its mod's client gave content that is not a JSON array.");
+    CHECK_FALSE(session.store.valueById("bTypo:Wheel").available);
+
+    session.store.clientCalls().cutOff("MyMod");
+    rows = "[" + clientRow("Fixed", "bTypo") + "]";
+    REQUIRE(session.store.readPageContent(session.mod, wheel));
+    CHECK(wheel.items.empty());
+    CHECK(wheel.contentNotGiven == "Not available: its mod's client failed, and is cut off until the game is restarted.");
+}
+
+TEST_CASE("ConfigSpecStore: a page whose rows its client gives is not available while the client cannot be asked, with the reason")
+{
+    ConfigSpecStore store({}, {});
+    auto mod = wheelConfigSpec();
+    const auto& wheel = mod.pages.at(0).pages.at(0);
+
+    // no client
+    store.readTexts(mod);
+    CHECK(wheel.notAvailable == "needs My Mod's DLL, which is not loaded");
+    // the page above it has rows of its own
+    CHECK(mod.pages.at(0).notAvailable.empty());
+
+    // a client of an older native API gives no page content
+    store.clientCalls().addClient("MyMod", {});
+    store.readTexts(mod);
+    CHECK(wheel.notAvailable == "My Mod's DLL is built with an older native API, and a page of its content needs version 2");
+
+    ConfigSpecStore asked({}, {});
+    asked.clientCalls().addClient("MyMod", test_clients::TestClient{}.calls());
+    asked.readTexts(mod);
+    CHECK(wheel.notAvailable.empty());
+    asked.clientCalls().cutOff("MyMod");
+    asked.readTexts(mod);
+    CHECK(wheel.notAvailable == "its mod's client failed, and is cut off until the game is restarted");
+}

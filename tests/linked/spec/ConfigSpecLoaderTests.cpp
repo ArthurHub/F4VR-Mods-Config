@@ -256,6 +256,40 @@ TEST_CASE(
     CHECK(std::get<model::Setting>(mod.frontPage.items.at(5)).countsAs == 1);
 }
 
+TEST_CASE("ConfigSpecLoader: a page with contentFromClientCallback and an id has its rows from its mod's client, and none of its own content")
+{
+    const auto mod = loaded(R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "applies": "live",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "MyMod.toml" } },
+        "defaultFile": "main",
+        "pages": [
+            { "id": "wheel", "pageDisplayName": "Wheel", "contentFromClientCallback": true,
+              "pages": [ { "pageDisplayName": "Under", "content": [ { "type": "text", "text": "Its own." } ] } ] },
+            { "id": "both", "pageDisplayName": "Both", "contentFromClientCallback": true,
+              "content": [ { "type": "switcher", "text": "Not read", "default": false, "visibleWhen": { "setting": "nothing", "equals": true },
+                             "storage": { "path": ["Main", "bNotRead"] } } ] },
+            { "pageDisplayName": "No id", "contentFromClientCallback": true, "content": [ { "type": "text", "text": "Its own." } ] },
+            { "id": "off", "pageDisplayName": "Off", "contentFromClientCallback": false, "content": [ { "type": "text", "text": "Its own." } ] },
+            { "id": "odd", "pageDisplayName": "Odd", "contentFromClientCallback": "yes", "content": [ { "type": "text", "text": "Its own." } ] }
+        ]
+    })");
+    CHECK(problemLines(mod) ==
+          Lines{ "E Both: The page's rows are given by its mod's client, as its contentFromClientCallback says: its content is not read. [Both] pages[1].content",
+              "E No id: The page has no id, which its mod's client is asked for its rows by: the client is not asked. [No id] pages[2].contentFromClientCallback",
+              "W Odd: Its contentFromClientCallback is not true or false: it is left out. [Odd] pages[4].contentFromClientCallback" });
+
+    // its sub-pages are its own, and the content it has beside the flag is not read, nor its conditions
+    CHECK(mod.pages[0].contentFromClient);
+    CHECK(mod.pages[0].items.empty());
+    CHECK(mod.pages[0].pages.at(0).items.size() == 1);
+    CHECK(mod.pages[1].contentFromClient);
+    CHECK(mod.pages[1].items.empty());
+    for (std::size_t place = 2; place < mod.pages.size(); ++place) {
+        CHECK_FALSE(mod.pages[place].contentFromClient);
+        CHECK(mod.pages[place].items.size() == 1);
+    }
+}
+
 TEST_CASE("ConfigSpecLoader: a switcher, a slider, a choice and a text input are settings, and any other row is a placeholder with its type")
 {
     const auto mod = loaded(configSpecOf(R"(
@@ -589,11 +623,13 @@ TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped
     CHECK(files == Lines{ "developer", "ini", "invalid", "player", "showcase" });
     CHECK(mod.files.at("developer").omitDefault);
 
-    // a page has pages under it, two levels deep
+    // a page has pages under it, two levels deep, and one whose rows the mod's DLL gives
     const auto pages = std::ranges::find(examples.pages, "Pages", &model::Page::name);
     REQUIRE(pages != examples.pages.end());
-    REQUIRE(pages->pages.size() == 2);
+    REQUIRE(pages->pages.size() == 3);
     CHECK(pages->pages[0].pages.size() == 1);
+    CHECK(pages->pages[2].contentFromClient);
+    CHECK(pages->pages[2].id == "fromTheDll");
 
     // the settings of the shipped file, but for those with no default: a choice with no options has none either,
     // and a read-only setting needs none. The default of an activation sphere's key is the framework's, and a sphere

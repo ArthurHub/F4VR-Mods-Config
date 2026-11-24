@@ -1713,6 +1713,68 @@ TEST_CASE("FullPanel render: the config spec showcase's limits, with the ray on 
     WARN("Saved " << renderToFile(panel, "config-spec-showcase-limits-held", pageRow(4)));
 }
 
+TEST_CASE(
+    "FullPanel render: a page whose rows its client gives, as a wheel's items: a full category with its other rows held off and an item not carried, "
+    "a page whose client is not loaded, and one whose client gives no rows",
+    "[.render]")
+{
+    constexpr auto WHEEL = R"({
+        "minSchemaVersion": 1, "modName": "PalmLike", "displayName": "Wheel menu", "applies": "live",
+        "content": [ { "type": "text", "text": "A wheel of the items the player carries." } ],
+        "pages": [ { "id": "wheelItems", "pageDisplayName": "Wheel items", "help": "Choose up to eight items for each part of the wheel.",
+                     "contentFromClientCallback": true } ]
+    })";
+    // two categories, as the client gives them: Weapons is full, and Aid has an item the player no longer carries
+    constexpr auto ITEMS = R"json([
+        { "type": "section", "text": "Weapons", "maxOn": 2, "content": [
+            { "type": "switcher", "text": "10mm Pistol (Equipped)", "default": false, "storage": { "clientState": "item.weapons.Fallout4.esm|4822" } },
+            { "type": "switcher", "text": "Combat Rifle", "default": false, "storage": { "clientState": "item.weapons.Fallout4.esm|DF42E" } },
+            { "type": "switcher", "text": "Laser Musket", "default": false, "storage": { "clientState": "item.weapons.Fallout4.esm|1F669" } } ] },
+        { "type": "section", "text": "Aid", "maxOn": 8, "content": [
+            { "type": "switcher", "text": "Stimpak (12)", "default": false, "storage": { "clientState": "item.aid.Fallout4.esm|23736" } },
+            { "type": "switcher", "text": "RadAway (3)", "default": false, "storage": { "clientState": "item.aid.Fallout4.esm|23742" } },
+            { "type": "switcher", "text": "Jet", "help": "Not carried: it stays on the wheel until you turn it off.", "default": false,
+              "storage": { "clientState": "item.aid.Fallout4.esm|33A1B" } } ] }
+    ])json";
+    const auto mod = spec::loadConfigSpec(WHEEL);
+    REQUIRE(mod);
+    test_clients::TestClient client{ .pages = { { "wheelItems", [] {
+                                                     return std::string(ITEMS);
+                                                 } } } };
+    for (const auto* on : { "item.weapons.Fallout4.esm|4822", "item.weapons.Fallout4.esm|DF42E", "item.aid.Fallout4.esm|23736", "item.aid.Fallout4.esm|33A1B" }) {
+        client.states[on] = [] {
+            return std::optional<model::Value>(true);
+        };
+    }
+    for (const auto* off : { "item.weapons.Fallout4.esm|1F669", "item.aid.Fallout4.esm|23742" }) {
+        client.states[off] = [] {
+            return std::optional<model::Value>(false);
+        };
+    }
+    const auto render = [&mod](spec::ConfigSpecStore& store, const Selection& selection, const std::string& name, const ImVec2 pointer) {
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods({ *mod });
+        panel.select(selection);
+        WARN("Saved " << renderToFile(panel, name, pointer));
+    };
+
+    // the ray on Laser Musket, which the full Weapons holds off
+    spec::ConfigSpecStore store({}, {});
+    store.clientCalls().addClient("PalmLike", client.calls());
+    render(store, { .mod = 0, .page = { 0 } }, "dynamic-page-wheel-items", pageRow(3));
+
+    // the ray on the page's row in the tree, the second row
+    spec::ConfigSpecStore alone({}, {});
+    const float rowsTop = test_panel::CONTENT_START + theme::TITLEBAR_HEIGHT + theme::SPACE_3 + theme::SPACE_2 + 40.0f + theme::SPACE_1;
+    const ImVec2 onPage(test_panel::CONTENT_START + theme::SPACE_2 + 100.0f, rowsTop + theme::CONTROL_HEIGHT + theme::SPACE_1 + theme::CONTROL_HEIGHT * 0.5f);
+    render(alone, { .mod = 0, .page = { 0 } }, "dynamic-page-not-available", onPage);
+
+    spec::ConfigSpecStore none({}, {});
+    none.clientCalls().addClient("PalmLike", test_clients::TestClient{}.calls());
+    render(none, { .mod = 0, .page = { 0 } }, "dynamic-page-no-rows", POINTER_AWAY);
+}
+
 TEST_CASE("FullPanel render: a config spec's section in a section, with rows before and after it", "[.render]")
 {
     auto mod = spec::loadConfigSpec(R"({

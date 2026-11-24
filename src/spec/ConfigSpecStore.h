@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "ConfigSpecLoader.h"
 #include "ModFile.h"
 #include "model/ChoiceOptions.h"
 #include "model/ClientCalls.h"
@@ -70,9 +71,19 @@ namespace mods_config::spec
             return _clientCalls;
         }
 
+        // what the rows a mod's client gives a page are read with: the game's texts, which outlive the store, and the
+        // plugin checks
+        void setPageContentReading(const model::Translations* translations, PluginChecks plugins)
+        {
+            _translations = translations;
+            _plugins = std::move(plugins);
+        }
+
         void open(const model::Mod& mod) override;
         void close() override;
         void pageShown() override;
+        void readTexts(model::Mod& mod) override;
+        bool readPageContent(model::Mod& mod, model::Page& page) override;
         model::StoredValue value(const model::Setting& setting) override;
         model::StoredValue valueById(std::string_view id) override;
         bool set(const model::Setting& setting, const model::Value& value) override;
@@ -291,6 +302,10 @@ namespace mods_config::spec
 
         // where each of those files is, as the session started: its root and its path, or the path its mod's client gives
         std::map<std::string, std::filesystem::path, std::less<>> _filePaths;
+
+        // what the rows a mod's client gives a page are read with: none for no texts of the game
+        const model::Translations* _translations = nullptr;
+        PluginChecks _plugins;
 
         // the options of the choices of the mod that is selected, and the callbacks that give the options of a choice
         // that takes them from its mod's client

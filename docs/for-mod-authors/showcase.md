@@ -397,6 +397,18 @@ A page can have pages of its own, as deep as you need. A page can be hidden or d
 
 See [Pages](../design/schema.md#pages).
 
+A page's rows can come from the mod's DLL, for rows that depend on the game right now, as the items the player carries. The page has an `id`, which the menu asks the DLL for its rows by, as the page is shown:
+
+```json
+{
+  "id": "fromTheDll",
+  "pageDisplayName": "From the mod's DLL",
+  "contentFromClientCallback": true
+}
+```
+
+The showcase has no DLL, so **From the mod's DLL** is not available, and the help line says why. See [Dynamic pages](../design/dynamic-pages.md).
+
 ![Pages](../assets/showcase/pages.png)
 
 ## How Settings Behave

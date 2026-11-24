@@ -90,6 +90,7 @@ namespace mods_config::ui
         void setLeftHanded(bool leftHanded);
         PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue, const PageSearch& search = {});
         std::optional<OpenEditor> openEditor() const;
+        bool isEditing() const;
         bool back();
         void resumeTransformEdit();
         void focus(const model::Item& item, const std::vector<const model::Group*>& sections);

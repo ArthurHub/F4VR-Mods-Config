@@ -65,6 +65,12 @@ namespace mods_config::ui
         bool cancelDrag();
         void reset();
 
+        // whether the trigger holds a slider since a press on its track
+        bool isDragging() const
+        {
+            return _dragged != nullptr;
+        }
+
     private:
         int stepsOfPush(float push, float seconds);
 

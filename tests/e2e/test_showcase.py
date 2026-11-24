@@ -169,6 +169,12 @@ def test_pages(show, game):
     save_and_check(menu, game, "Two levels down", True)
 
 
+def test_page_from_the_dll(show):
+    # the showcase has no DLL, so the page whose rows its DLL gives is disabled: a selection of it shows the page above it
+    menu = show("Pages", "From the mod's DLL")
+    assert menu.page()["page"] == "Pages"
+
+
 def test_read_only(show):
     menu = show("Read-only")
     height = menu.setting("Measured height")

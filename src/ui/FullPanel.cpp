@@ -59,6 +59,21 @@ namespace
         }
         return false;
     }
+
+    /**
+     * The page of a mod its places name, from its front page down: the mod's front page for none.
+     */
+    template <typename ModOf>
+    auto* pageAt(ModOf& mod, const std::vector<std::size_t>& places)
+    {
+        auto* page = &mod.frontPage;
+        auto* pages = &mod.pages;
+        for (const auto place : places) {
+            page = &(*pages)[place];
+            pages = &page->pages;
+        }
+        return page;
+    }
 }
 
 namespace mods_config::ui
@@ -173,7 +188,7 @@ namespace mods_config::ui
             const auto shown = existing(_selection);
             _session.show(shown.mod ? storeOf(mods()[*shown.mod]) : nullptr, shown.mod ? &_modList.mod(*shown.mod) : nullptr, [this, &shown] {
                 _selection = available(shown);
-                return selectedPage();
+                return shownPage();
             });
             // the page that stays keeps where it was scrolled to
             _pageChanged = _selection != before;
@@ -302,8 +317,9 @@ namespace mods_config::ui
      * A mod with unsaved changes is not left for another or for the menu's front page at once: the dialog asks
      * first, and its Save and Discard show the selection.
      * It leaves the Help page: the selection under it is shown again, as Back shows it, with its session kept.
-     * And it leaves a config spec's report.
-     * Returns whether it did something: it shows another page than before, or the dialog asks.
+     * And it leaves a config spec's report. The page that is shown, selected again, asks its client again for its rows
+     * where the client gives them.
+     * Returns whether it did something: it shows another page than before, or new rows, or the dialog asks.
      */
     bool FullPanel::select(const Selection& selection)
     {
@@ -311,7 +327,12 @@ namespace mods_config::ui
         const auto shown = target.mod == _selection.mod ? available(target) : target;
         if (shown == _selection) {
             // the menu's front page, which a report is shown over, from the report
-            return _report ? leaveReport(false) : showHelp(false);
+            if (_report) {
+                return leaveReport(false);
+            }
+            // the page, shown again from the Help page, and asked again for the rows its mod's client gives
+            const bool fromHelp = showHelp(false);
+            return readContentAgain() || fromHelp;
         }
         if (shown.mod != _selection.mod && hasUnsavedChanges()) {
             _leaving = Leave{ .to = shown };
@@ -380,10 +401,74 @@ namespace mods_config::ui
         _returnToReport.reset();
         _session.show(shown.mod ? storeOf(mods()[*shown.mod]) : nullptr, shown.mod ? &_modList.mod(*shown.mod) : nullptr, [this, &shown] {
             _selection = available(shown);
-            return selectedPage();
+            return shownPage();
         });
         pageShown();
         return true;
+    }
+
+    /**
+     * Asks the selected mod's client again for the rows of the page that is shown, where its client gives them, as it
+     * is shown again, saved, discarded or read again. Not while a row of the page is edited, dragged or confirmed, as
+     * new rows would leave that pointing nowhere. The page keeps where it was scrolled to, and forgets what it kept of
+     * the old rows, as a page that is shown does. Returns whether it asked.
+     */
+    bool FullPanel::readContentAgain()
+    {
+        auto* const page = shownPage();
+        if (!page || !page->contentFromClient || _modPage.isEditing()) {
+            return false;
+        }
+        if (!_session.readPageContent(_modList.mod(*_selection.mod), *page)) {
+            return false;
+        }
+        _modPage.reset();
+        _helpLine.clear();
+        _search.modReplaced();
+        updateStatus();
+        return true;
+    }
+
+    /**
+     * Writes the selected mod's changes, as the footer's Save does, and asks its client again for the rows of the page
+     * that is shown where it gives them. Returns why the Save failed, as the store does.
+     */
+    std::expected<void, std::string> FullPanel::save()
+    {
+        auto* const store = selectedStore();
+        if (!store) {
+            return std::unexpected(std::string("no mod is selected"));
+        }
+        auto saved = store->save();
+        if (saved) {
+            readContentAgain();
+        }
+        updateStatus();
+        return saved;
+    }
+
+    /**
+     * Takes back the selected mod's changes, as the footer's Discard does, and asks its client again for the rows of the
+     * page that is shown where it gives them.
+     */
+    void FullPanel::discard()
+    {
+        if (auto* const store = selectedStore()) {
+            store->discard();
+            readContentAgain();
+            updateStatus();
+        }
+    }
+
+    /**
+     * Reads the selected mod's values again, as its client or its own UI changed them, and asks its client again for
+     * the rows of the page that is shown where it gives them, which reads the values too.
+     */
+    void FullPanel::readAgain()
+    {
+        if (auto* const store = selectedStore(); store && !readContentAgain()) {
+            store->readAgain();
+        }
     }
 
     /**
@@ -441,17 +526,16 @@ namespace mods_config::ui
      */
     const model::Page* FullPanel::selectedPage() const
     {
-        if (!_selection.mod) {
-            return nullptr;
-        }
-        const auto& mod = mods()[*_selection.mod];
-        const auto* page = &mod.frontPage;
-        const auto* pages = &mod.pages;
-        for (const auto place : _selection.page) {
-            page = &(*pages)[place];
-            pages = &page->pages;
-        }
-        return page;
+        return _selection.mod ? pageAt(mods()[*_selection.mod], _selection.page) : nullptr;
+    }
+
+    /**
+     * The page of the selection, as `selectedPage`, in the mod list, where a store puts the rows a mod's client gives
+     * it. None on the menu's front page.
+     */
+    model::Page* FullPanel::shownPage()
+    {
+        return _selection.mod ? pageAt(_modList.mod(*_selection.mod), _selection.page) : nullptr;
     }
 
     /**
@@ -1053,13 +1137,13 @@ namespace mods_config::ui
         const auto discard = controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
         if (button(made ? "Revert" : "Discard", discard, ButtonLook::Secondary)) {
-            store->discard();
+            this->discard();
             _pressActed = true;
         }
         ImGui::BeginDisabled(store && store->invalidCount() > 0);
         if (button(made ? "Keep" : "Save", save, ButtonLook::Primary)) {
             // the status has the reason of a Save that failed, which the store keeps
-            std::ignore = store->save();
+            std::ignore = this->save();
             _pressActed = true;
         }
         ImGui::EndDisabled();

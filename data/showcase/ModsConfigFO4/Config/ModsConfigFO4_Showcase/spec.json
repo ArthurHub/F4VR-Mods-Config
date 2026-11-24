@@ -2728,6 +2728,12 @@
                   ]
                 }
               ]
+            },
+            {
+              "id": "fromTheDll",
+              "pageDisplayName": "From the mod's DLL",
+              "help": "Its rows are given by the mod's DLL as the page is shown. The showcase has no DLL, so it is not available.",
+              "contentFromClientCallback": true
             }
           ]
         },

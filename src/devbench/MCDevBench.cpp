@@ -809,7 +809,7 @@ namespace mods_config::devbench
         json runSave(const json&)
         {
             auto& store = selectedStore();
-            const auto saved = store.save();
+            const auto saved = g_modsConfig.menu().fullPanel().save();
             return { { "saved", saved.has_value() }, { "reason", saved ? std::string() : saved.error() }, { "session", sessionToJson(store) } };
         }
 
@@ -821,7 +821,7 @@ namespace mods_config::devbench
         {
             auto& store = selectedStore();
             if (!args.contains("id")) {
-                store.discard();
+                g_modsConfig.menu().fullPanel().discard();
                 return { { "session", sessionToJson(store) } };
             }
             const auto& setting = selectedSetting(args);

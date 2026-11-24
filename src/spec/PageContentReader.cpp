@@ -31,6 +31,15 @@ namespace mods_config::spec
     }
 
     /**
+     * Drops the ids of the content a mod's client last gave a page, by the page's `id`, as the page has none of its rows
+     * any more: the client gave none the next time it was asked.
+     */
+    void forgetPageContent(PageContentReader& reader, const std::string_view pageId)
+    {
+        reader.forget(common::str_tolower(std::string(pageId)));
+    }
+
+    /**
      * Reads the content a mod's client gives a page, by the page's `id`, against its loaded config spec: `text` is the
      * page's `content` array in the config spec's format, read as the config spec's rows are. The rows inherit the
      * page's `defaultFile`, `applies` and `omitDefault`, join its conditions, can name any setting of the mod, and their

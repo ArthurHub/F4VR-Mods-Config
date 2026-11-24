@@ -15,6 +15,7 @@
 #include "GameActions.h"
 #include "GameValues.h"
 #include "IniFile.h"
+#include "PageContentReader.h"
 #include "TomlFile.h"
 #include "common/CommonUtils.h"
 #include "model/ActivationSpheres.h"
@@ -464,6 +465,20 @@ namespace
     }
 
     /**
+     * Marks each page whose rows its mod's client gives, with the pages under it, as not available for the reason, and
+     * as available for none.
+     */
+    void markContentPages(std::vector<model::Page>& pages, const std::string& reason)
+    {
+        for (auto& page : pages) {
+            if (page.contentFromClient) {
+                page.notAvailable = reason;
+            }
+            markContentPages(page.pages, reason);
+        }
+    }
+
+    /**
      * Adds the settings of pages to the list, with those of the pages under them.
      */
     void addSettings(const std::vector<model::Page>& pages, std::vector<const model::Setting*>& settings)
@@ -876,6 +891,80 @@ namespace mods_config::spec
      */
     void ConfigSpecStore::pageShown()
     {}
+
+    /**
+     * Marks each page of a config spec whose rows its mod's client gives as not available while the client cannot be
+     * asked for them, with the reason the tree shows, and as available again once it can. It asks the client nothing, so
+     * it is done for every mod as a search starts too.
+     */
+    void ConfigSpecStore::readTexts(model::Mod& mod)
+    {
+        if (mod.pageContent) {
+            markContentPages(mod.pages, _clientCalls.contentNotAsked(mod.name, mod.displayName));
+        }
+    }
+
+    /**
+     * Asks the mod's client for the rows of a page that has `contentFromClient`, reads them against the mod's config spec
+     * and puts them in the page in place of the rows it gave before, with their problems in place of the page's earlier
+     * ones. Not while one of the page's own rows has a pending change, which new rows would drop. A client that gives no
+     * rows leaves the page with none, and the reason. The mod's values are read again, which reads the new rows' too.
+     */
+    bool ConfigSpecStore::readPageContent(model::Mod& mod, model::Page& page)
+    {
+        if (!page.contentFromClient || &mod != _mod || !mod.pageContent) {
+            return false;
+        }
+        std::vector<const model::Setting*> settings;
+        addSettings(page.items, settings);
+        if (std::ranges::any_of(settings, [this](const model::Setting* setting) {
+                return isDirty(*setting);
+            })) {
+            logger::debug("The page '{}' of '{}' is not asked for its rows again: one of them has a change", page.id, _modName);
+            return false;
+        }
+        std::expected<PageContent, std::string> content = std::unexpected(std::string());
+        if (auto text = _clientCalls.content(mod.name, mod.displayName, page.id); !text) {
+            content = std::unexpected(std::move(text.error()));
+        } else {
+            static const model::Translations noTexts;
+            content =
+                spec::readPageContent(*mod.pageContent, page.id, *text, _translations ? *_translations : noTexts, _plugins, { .data = _dataFolder, .myGames = _myGamesFolder });
+            if (!content) {
+                content = std::unexpected(std::format("Not available: {}.", content.error()));
+            }
+        }
+
+        // the old rows go, and nothing of the session points at them any more
+        for (const auto* setting : settings) {
+            _entries.erase(setting);
+        }
+        const auto path = std::format("giveContent(\"{}\")", page.id);
+        std::erase_if(mod.problems, [&path](const model::Problem& problem) {
+            return problem.path.starts_with(path);
+        });
+        if (content) {
+            page.items = std::move(content->items);
+            page.contentNotGiven.clear();
+            for (const auto& problem : content->problems) {
+                logger::warn("Config spec '{}': {} of {}: {} ({})",
+                    mod.displayName,
+                    problem.severity == model::Severity::Error ? "error" : "warning",
+                    problem.row,
+                    problem.message,
+                    problem.path);
+            }
+            mod.problems.insert(mod.problems.end(), content->problems.begin(), content->problems.end());
+            logger::info("The page '{}' of '{}' has {} rows from its mod's client", page.id, _modName, page.items.size());
+        } else {
+            spec::forgetPageContent(*mod.pageContent, page.id);
+            page.items.clear();
+            page.contentNotGiven = std::move(content.error());
+            logger::info("The page '{}' of '{}' has no rows: {}", page.id, _modName, page.contentNotGiven);
+        }
+        readAgain();
+        return true;
+    }
 
     /**
      * The value of a setting, as `ownValue` has it, and a switcher that is on in a section over its `maxOn` is

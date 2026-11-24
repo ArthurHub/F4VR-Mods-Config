@@ -26,6 +26,12 @@ namespace mods_config::ui
         bool cancelConfirmation();
         void reset();
 
+        // whether a button's confirmation is shown
+        bool isConfirming() const
+        {
+            return _confirming != nullptr;
+        }
+
     private:
         /**
          * The result of a button's last run that gave one: a message, or a failure.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <functional>
 #include <map>
 #include <optional>
@@ -84,6 +85,9 @@ namespace mods_config::ui
         void point(const model::Item* item);
         void reset();
         void draw();
+        std::expected<void, std::string> save();
+        void discard();
+        void readAgain();
         model::Store* selectedStore() const;
         SessionStatus sessionStatus() const;
         std::vector<FrontPageMod> frontPageMods() const;
@@ -254,6 +258,8 @@ namespace mods_config::ui
         Selection available(const Selection& selection) const;
         bool hasUnsavedChanges() const;
         bool show(const Selection& shown);
+        model::Page* shownPage();
+        bool readContentAgain();
         bool leave();
         bool leaveReport(bool toDeveloper);
         void updateStatus();

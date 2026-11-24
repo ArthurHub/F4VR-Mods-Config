@@ -16,7 +16,8 @@ namespace mods_config::ui
     class StoreSession
     {
     public:
-        void show(model::Store* store, model::Mod* mod, const std::function<const model::Page*()>& resolvePage);
+        void show(model::Store* store, model::Mod* mod, const std::function<model::Page*()>& resolvePage);
+        bool readPageContent(model::Mod& mod, model::Page& page);
         void point(const model::Item* item);
         void startFrame() const;
         void end();

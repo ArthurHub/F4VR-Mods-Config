@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <functional>
 #include <map>
 #include <optional>
@@ -26,9 +27,13 @@ namespace test_clients
         std::function<void(model::ClientEvent event, std::string_view pageId)> onEvent;
         std::function<void(const std::vector<std::string>& ids)> onPointed;
 
+        // the JSON text of the rows of each page it gives, by the page's id
+        std::map<std::string, std::function<std::string()>> pages;
+
         /**
          * The client the client calls ask, which finds each by its name with no regard to case, as the menu asks a
-         * client: a choice whose options it does not have has none, with the reason.
+         * client: a choice whose options it does not have has none, and so has a page whose rows it does not give, with
+         * the reason.
          */
         model::ClientCalls::Client calls() const
         {
@@ -59,7 +64,14 @@ namespace test_clients
                     return found->second(setting);
                 },
                 .onEvent = onEvent,
-                .onPointed = onPointed };
+                .onPointed = onPointed,
+                .content = [pages = pages, find](const std::string_view pageId) -> std::expected<std::string, std::string> {
+                    const auto found = find(pages, pageId);
+                    if (found == pages.end()) {
+                        return std::unexpected("Not available: its mod's client gives no content for it.");
+                    }
+                    return found->second();
+                } };
         }
     };
 }

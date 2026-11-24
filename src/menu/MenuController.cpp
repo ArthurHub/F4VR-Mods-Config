@@ -64,6 +64,7 @@ namespace mods_config::menu
           _configSpecStore(_setup.data, _setup.myGames)
     {
         _nativeClients.setTranslations(&_translations);
+        _configSpecStore.setPageContentReading(&_translations, _setup.plugins);
         _nativeClients.setPendingValueAction([this](const std::string_view modName, const std::string_view id, const model::Value& value) -> std::expected<void, std::string> {
             if (_fullPanel.isAsking()) {
                 return std::unexpected(std::string("the menu asks what to do with the unsaved changes"));
@@ -517,13 +518,11 @@ namespace mods_config::menu
     }
 
     /**
-     * Reads the values of the mod that is shown again, in its store.
+     * Reads the values of the mod that is shown again, in its store, and the rows its client gives the page that is shown.
      */
     void MenuController::readSelectedAgain()
     {
-        if (auto* const store = _fullPanel.selectedStore()) {
-            store->readAgain();
-        }
+        _fullPanel.readAgain();
     }
 
     /**

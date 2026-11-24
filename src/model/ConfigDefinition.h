@@ -1011,8 +1011,16 @@ namespace mods_config::model
         std::optional<Condition> enabledWhen;
 
         // why an MCM page is not available, as `its plugin SS2.esm is not loaded`: empty for one that is. One that
-        // is not available is disabled, with this in the help line, and has no rows
+        // is not available is disabled, with this in the help line, and has no rows. A config spec's page whose content
+        // its mod's client cannot be asked for has it too, with the rows it was last given
         std::string notAvailable;
+
+        // a config spec's page whose rows its mod's client gives (`contentFromClientCallback`), asked by its `id` as the
+        // page is shown: its items are the rows it gave last, none before
+        bool contentFromClient = false;
+
+        // why the client gave no rows the last time it was asked, as a sentence the page shows: empty while it gave them
+        std::string contentNotGiven;
     };
 
     /**

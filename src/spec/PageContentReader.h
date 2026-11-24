@@ -26,4 +26,5 @@ namespace mods_config::spec
 
     std::expected<PageContent, std::string> readPageContent(PageContentReader& reader, std::string_view pageId, std::string_view text, const model::Translations& translations = {},
         const PluginChecks& plugins = {}, const FileFolders& folders = {});
+    void forgetPageContent(PageContentReader& reader, std::string_view pageId);
 }

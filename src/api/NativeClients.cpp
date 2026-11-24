@@ -355,10 +355,10 @@ namespace mods_config::api
                     return giveOverrides(*kept, setting);
                 })
                                           : model::ClientCalls::Client::Overrides(),
-                .content =
-                    [this, kept](const std::string_view pageId) {
-                        return giveContent(*kept, pageId);
-                    } });
+                .content = version >= 2 ? model::ClientCalls::Client::Content([this, kept](const std::string_view pageId) {
+                    return giveContent(*kept, pageId);
+                })
+                                        : model::ClientCalls::Client::Content() });
         if (!added) {
             logger::warn("Native API: '{}' has a client already, so another is not registered", name);
             return false;
@@ -531,15 +531,11 @@ namespace mods_config::api
 
     /**
      * Asks a client the content of a page by its `id`, inside the guard, which copies its text: the JSON text of the
-     * page's rows, or why there is none. A client of version 1 has no giveContent, and is not asked.
+     * page's rows, or why there is none. A client of version 1 has no giveContent: it is given no `content` call.
      */
     std::expected<std::string, std::string> NativeClients::giveContent(Registered& registered, const std::string_view pageId) const
     {
         const std::string page(pageId);
-        if (registered.version < 2) {
-            logger::debug("Native API: client '{}' is of version {}, so it is not asked the content of the page '{}'", registered.name, registered.version, page);
-            return std::unexpected(std::format("Not available: its mod's client is built with API version {}, and a page of its content needs version 2.", registered.version));
-        }
         HostContent content;
         bool given = false;
         auto ask = [&registered, &page, &content, &given] {

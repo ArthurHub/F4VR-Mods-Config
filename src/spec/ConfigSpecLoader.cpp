@@ -49,8 +49,38 @@ namespace
         "content",
         "pages" };
     // a page:
-    constexpr std::array<std::string_view, 10>
-        PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "pages", "defaultFile", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
+    constexpr std::array<std::string_view, 11>
+        PAGE_FIELDS{ "pageDisplayName", "help", "id", "content", "contentFromClientCallback", "pages", "defaultFile", "applies", "omitDefault", "visibleWhen", "enabledWhen" };
+
+    /**
+     * Whether a page's rows are given by its mod's client (`contentFromClientCallback`). The client is asked by the
+     * page's `id`, so a page with none keeps the rows of its own `content`; a page with one has no `content` read.
+     */
+    bool readContentFromClient(const Json& page, const std::string_view id, ConfigSpecReading& reading)
+    {
+        const auto flag = page.find("contentFromClientCallback");
+        if (flag == page.end()) {
+            return false;
+        }
+        if (!flag->is_boolean()) {
+            const Into into(reading, "contentFromClientCallback");
+            reading.report(model::Severity::Warning, "Its contentFromClientCallback is not true or false: it is left out.");
+            return false;
+        }
+        if (!flag->get<bool>()) {
+            return false;
+        }
+        if (id.empty()) {
+            const Into into(reading, "contentFromClientCallback");
+            reading.report(model::Severity::Error, "The page has no id, which its mod's client is asked for its rows by: the client is not asked.");
+            return false;
+        }
+        if (page.contains("content")) {
+            const Into into(reading, "content");
+            reading.report(model::Severity::Error, "The page's rows are given by its mod's client, as its contentFromClientCallback says: its content is not read.");
+        }
+        return true;
+    }
 
     /**
      * A page of a config spec, with the pages under it, which get its `defaultFile` and its `applies` as its
@@ -71,7 +101,10 @@ namespace
         if (!loaded.id.empty()) {
             contentPages.try_emplace(common::str_tolower(loaded.id), ContentPage{ .inherited = own, .conditions = {}, .names = reading.at.pages, .places = reading.at.pagePlaces });
         }
-        loaded.items = loadItems(page, own, reading);
+        loaded.contentFromClient = readContentFromClient(page, loaded.id, reading);
+        if (!loaded.contentFromClient) {
+            loaded.items = loadItems(page, own, reading);
+        }
         if (const auto pages = page.find("pages"); pages != page.end() && pages->is_array()) {
             for (std::size_t place = 0; place < pages->size(); ++place) {
                 const Into into(reading, "pages", place);
@@ -88,7 +121,9 @@ namespace
     void loadPageItemIds(const Json& page, model::Page& loaded, ConfigSpecReading& reading)
     {
         reading.at.pages.push_back(common::trim(loaded.name));
-        loadItemIds(page, loaded.items, reading);
+        if (!loaded.contentFromClient) {
+            loadItemIds(page, loaded.items, reading);
+        }
         const auto pages = page.find("pages");
         if (pages == page.end() || !pages->is_array()) {
             return;
@@ -113,7 +148,9 @@ namespace
         if (const auto kept = contentPages.find(common::str_tolower(loaded.id)); kept != contentPages.end() && kept->second.places == reading.at.pagePlaces) {
             kept->second.conditions = own;
         }
-        loadConditions(page, loaded.items, own, reading);
+        if (!loaded.contentFromClient) {
+            loadConditions(page, loaded.items, own, reading);
+        }
         const auto pages = page.find("pages");
         if (pages == page.end() || !pages->is_array()) {
             return;

@@ -183,19 +183,32 @@ namespace mods_config::model
     }
 
     /**
-     * Asks a mod's client the content of a page by its `id`: the JSON text of its rows, or why there is none, which the
-     * page says: its mod has no client, as its DLL is not loaded, its client is cut off, or gives none.
+     * Why a mod's client is not asked the content of a page, as a page that is not available says it, with no
+     * `Not available:` and no period: its mod has no client, as its DLL is not loaded, its client is cut off, or is
+     * built with an API that has no page content. Empty for one that is asked. It asks the client nothing.
      */
-    std::expected<std::string, std::string> ClientCalls::content(const std::string_view modName, const std::string_view displayName, const std::string_view pageId) const
+    std::string ClientCalls::contentNotAsked(const std::string_view modName, const std::string_view displayName) const
     {
         if (!_clients.contains(common::str_tolower(std::string(modName)))) {
-            return std::unexpected(std::format("Not available: needs {}'s DLL, which is not loaded.", displayName));
+            return std::format("needs {}'s DLL, which is not loaded", displayName);
         }
         const auto* client = find(modName);
         if (!client) {
-            return std::unexpected(CUT_OFF);
+            return "its mod's client failed, and is cut off until the game is restarted";
         }
-        return client->content ? client->content(pageId) : std::unexpected(std::format("Not available: {}'s DLL gives no content for it.", displayName));
+        return client->content ? std::string() : std::format("{}'s DLL is built with an older native API, and a page of its content needs version 2", displayName);
+    }
+
+    /**
+     * Asks a mod's client the content of a page by its `id`: the JSON text of its rows, or why there is none, which the
+     * page says: the client is not asked (`contentNotAsked`), or gives none.
+     */
+    std::expected<std::string, std::string> ClientCalls::content(const std::string_view modName, const std::string_view displayName, const std::string_view pageId) const
+    {
+        if (const auto reason = contentNotAsked(modName, displayName); !reason.empty()) {
+            return std::unexpected(std::format("Not available: {}.", reason));
+        }
+        return find(modName)->content(pageId);
     }
 
     /**

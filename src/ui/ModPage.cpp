@@ -432,7 +432,7 @@ namespace mods_config::ui
      * no help that does not fold. While the list of a dropdown is open it is the row of that dropdown. And
      * whether a press did something, or the thumbstick stepped a slider or a stepper. While the query has text the
      * names of the items the search shows have its match underlined, and while the page is filtered it has their
-     * rows alone.
+     * rows alone. A page whose mod's client gave it no rows says why in their place.
      */
     PageDrawn ModPage::draw(const model::Page& page, model::Store* store, const float thumbstickSideValue, const PageSearch& search)
     {
@@ -443,6 +443,9 @@ namespace mods_config::ui
         _bindingEditor.startFrame(thumbstickSideValue);
         _colorEditor.startFrame(thumbstickSideValue);
         _transformEditor.startFrame(thumbstickSideValue);
+        if (!page.contentNotGiven.empty()) {
+            drawPageText(page.contentNotGiven);
+        }
         drawItems(page.items,
             PageDrawing{ .imageDrawer = _imageDrawer,
                 .leftHanded = _leftHanded,
@@ -509,11 +512,6 @@ namespace mods_config::ui
     }
 
     /**
-     * Forgets what is edited in the page, as another page is shown, how its sections were folded, as each
-     * starts as its `collapsed` says each time its page is shown, the results of its buttons, and the row that has
-     * the focus ring.
-     */
-    /**
      * The editor, the dropdown's list or the text input's keyboard that is open over a setting's row of the page, with
      * its setting; none while the page has none open. A page has one open at a time.
      */
@@ -537,6 +535,20 @@ namespace mods_config::ui
         return std::nullopt;
     }
 
+    /**
+     * Whether a row of the page is in use: an editor, a list or a keyboard is open over it, a slider of it is dragged, or
+     * a button's confirmation is shown. The rows are not replaced while one is, as it points into them.
+     */
+    bool ModPage::isEditing() const
+    {
+        return openEditor().has_value() || _sliders.isDragging() || _buttons.isConfirming();
+    }
+
+    /**
+     * Forgets what is edited in the page, as another page is shown or its rows are given again, how its sections were
+     * folded, as each starts as its `collapsed` says each time its page is shown, the results of its buttons, and the
+     * row that has the focus ring.
+     */
     void ModPage::reset()
     {
         _sliders.reset();

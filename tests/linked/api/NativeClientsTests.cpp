@@ -830,6 +830,8 @@ TEST_CASE("NativeClients: a client of version 2 gives the content of a page by i
     CHECK(clients.calls.content("MyMod", "My Mod", "cleared").error() == NO_CONTENT);
 
     // a mod with no client
+    CHECK(clients.calls.contentNotAsked("MyMod", "My Mod").empty());
+    CHECK(clients.calls.contentNotAsked("OtherMod", "Other Mod") == "needs Other Mod's DLL, which is not loaded");
     CHECK(clients.calls.content("OtherMod", "Other Mod", "wheelItems").error() == "Not available: needs Other Mod's DLL, which is not loaded.");
 
     SECTION("a client of version 1 has no giveContent, and is not asked")
@@ -841,7 +843,9 @@ TEST_CASE("NativeClients: a client of version 2 gives the content of a page by i
             return false;
         };
         REQUIRE(older.clients.registerClient("Old", 1, &old));
-        CHECK(older.calls.content("Old", "Old", "wheelItems").error() == "Not available: its mod's client is built with API version 1, and a page of its content needs version 2.");
+        constexpr auto OLDER = "Old Mod's DLL is built with an older native API, and a page of its content needs version 2";
+        CHECK(older.calls.contentNotAsked("Old", "Old Mod") == OLDER);
+        CHECK(older.calls.content("Old", "Old Mod", "wheelItems").error() == std::format("Not available: {}.", OLDER));
     }
 
     SECTION("a client that throws is cut off")
@@ -851,6 +855,7 @@ TEST_CASE("NativeClients: a client of version 2 gives the content of a page by i
         };
         CHECK(clients.calls.content("MyMod", "My Mod", "wheelItems").error() == CUT_OFF);
         CHECK_FALSE(clients.calls.isConnected("MyMod"));
+        CHECK(clients.calls.contentNotAsked("MyMod", "My Mod") == "its mod's client failed, and is cut off until the game is restarted");
         CHECK(clients.calls.content("MyMod", "My Mod", "wheelItems").error() == CUT_OFF);
     }
 }

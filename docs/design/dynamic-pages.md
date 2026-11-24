@@ -17,10 +17,17 @@ The worked example is [RobCo PALM's wheel](#example-robco-palms-wheel).
 }
 ```
 
-- `contentFromClientCallback: true` takes the place of `content`, which the page then can't have.
-- `id` is required: it is how the menu asks the client for the page's content.
+- `contentFromClientCallback: true` takes the place of `content`. A page with both is an error, and its `content` is not read.
+- `id` is required: it is how the menu asks the client for the page's content. Without one the flag is an error, and the page keeps its own `content`.
 - `pages` (sub-pages), conditions and the inherited defaults (`defaultFile`, `applies`, `omitDefault`) work as on any page. The rows the client gives inherit them.
-- A config spec with a dynamic page needs a DLL. Without a client, the page shows as not available, with the reason, as a `CallNativeFunction` button does.
+- The front page can't be dynamic: it has no `id`.
+
+## Not available
+
+A page whose content can't be had is not available, in one of two ways:
+
+- **The client can't be asked**: the mod's DLL isn't loaded, its client is cut off, or it is built with API version 1. The page is disabled in the tree, with the reason in the help line, as a page whose conditions disable it, and so are its sub-pages. The menu knows this without calling the client, so it marks the page as the mod is shown, and as a search starts. The config spec showcase's dynamic page is one: the showcase has no DLL.
+- **The client gives nothing**: false, no `set`, or text that isn't a JSON array. The page still opens, the rows it was given before are dropped, and the page says why in their place. A client that fails at runtime doesn't take the player off the page.
 
 ## Native API
 
@@ -37,9 +44,9 @@ virtual bool giveContent(const char* pageId, IContent* content) = 0;
 ```
 
 - `json` is the page's `content` array as text, in the config spec's format. The host copies it in `set`, and reads it after the call returns.
-- false, or no `set`, means the client has no content for the page. The page then shows as not available.
+- false, or no `set`, means the client has no content for the page. The page then shows as [not available](#not-available).
 - The call is inside the [failure guard](architecture.md#a-client-that-fails), as every client call is.
-- The host asks only clients registered at version 2 or later. An older client's dynamic page shows as not available, with the reason.
+- The host asks only clients registered at version 2 or later. An older client's dynamic page is disabled in the tree, with the reason.
 - The C++ layer adds `addPageContent(pageId, handler)`, where the handler returns the JSON text. It works like `addFunction` and answers by page id.
 
 ## What the client gives
@@ -50,15 +57,18 @@ The rows are read as the config spec's own rows are, against the mod's config sp
 - A setting's storage is any storage a config spec setting can have. A file must be one of the config spec's `files`.
 - Ids are unique across the whole mod. A row whose id is already in use, statically or on another dynamic page, is an error.
 - A row's conditions can name any setting of the mod, or a client state. A static row's condition can't name a dynamic row, because that id doesn't exist when the config spec is loaded. It is then a missing setting, handled as any missing setting is ([Conditions](schema.md#conditions)).
-- Errors are handled as a config spec's are: the affected item is disabled, and the error goes to the log and to [Developer tools](ui-and-vr-interaction.md#developer-tools). Text that isn't a JSON array makes the whole page not available.
+- Errors are handled as a config spec's are: the affected item is disabled, and the error goes to the log and to [Developer tools](ui-and-vr-interaction.md#developer-tools). Text that isn't a JSON array makes the whole page [not available](#not-available).
 
 ## When the menu asks
 
 The menu asks for a page's content when the page is selected, and keeps it until it asks again:
 
-- It asks again when the page is selected again, after a Save or Discard while the page is shown, and on `reloadValues` while the page is shown. A client whose rows changed while the page is shown (the player picked something up) calls `reloadValues`.
-- It never asks while a row of the page has a pending change, because new rows would drop that change. Pending changes can't outlive the mod's session: leaving the mod asks to save them or discard them first.
-- Once given, the rows are in the mod's definition like any other rows. Pending markers, the tree's unsaved marks, folded sections' counts, Reset, Save and Discard all work on them unchanged.
+- It asks again each time the page is shown: selected again from another page, pressed again in the tree while it is shown, Back from a sub-page, a search result. And while the page is shown: after a Save or Discard of the footer that succeeds, on `reloadValues`, and on Restore after the menu was minimized, as the values are read again then. A client whose rows changed while the page is shown (the player picked something up) calls `reloadValues`. A single row's Reset and a failed Save don't ask.
+- It never asks while a row of the page itself has a pending change, because new rows would drop that change. Rows of its sub-pages and of other pages don't count. Pending changes can't outlive the mod's session: leaving the mod asks to save them or discard them first.
+- It never asks while a row of the page is in use: an editor, a list or the keyboard open over it, a slider dragged, a button's confirmation shown, or a transform tuned with Adjust in world. New rows would leave that pointing at nothing.
+- An ask held back is dropped, not kept for later: the Save or Discard that ends the pending change asks, and so does the next show of the page.
+- Each ask reads the mod's values again, with those of the new rows. The page keeps where it is scrolled to; its folded sections, focus ring and buttons' results start again, as on a page that is shown.
+- Once given, the rows are in the mod's definition like any other rows. Pending markers, the tree's unsaved marks, folded sections' counts, Reset, Save and Discard all work on them unchanged. Their problems replace the page's earlier ones in [Developer tools](ui-and-vr-interaction.md#developer-tools).
 
 ## Search
 
@@ -80,5 +90,5 @@ The rows can be `applies: live`, so the wheel follows each change as the player 
 
 ## Showcase and tests
 
-- The config spec showcase has no DLL, so its dynamic page shows as not available, with the reason, as its `CallNativeFunction` button does. A `maxOn` section is static, so the showcase shows it on an ordinary page.
+- The config spec showcase has no DLL, so its dynamic page, under Pages, is disabled in the tree with the reason, as its `CallNativeFunction` button is disabled. A `maxOn` section is static, so the showcase shows it on an ordinary page.
 - The unit tests give the content through a test client. They cover reading the content, every time the menu asks and doesn't ask (pending changes, Save, Discard, `reloadValues`), and search before and after the page is shown. A render test draws a PALM-like page: two categories, a full one with its other rows disabled, and a not-carried item.

@@ -6081,3 +6081,166 @@ TEST_CASE("FullPanel: a name typed in another case takes the option's spelling, 
     CHECK(ImGui::GetActiveID() == 0);
     CHECK(first() == model::Value("A name far longer than t"s));
 }
+
+namespace
+{
+    // a config spec whose first page has its rows from its mod's client, and a page of its own rows after it
+    constexpr auto WHEEL_CONFIG_SPEC = R"({
+        "minSchemaVersion": 1, "modName": "MyMod", "displayName": "My Mod", "applies": "save",
+        "files": { "main": { "format": "toml", "root": "myGames", "path": "Mods_Config/MyMod/MyMod.toml" } },
+        "defaultFile": "main",
+        "content": [ { "type": "text", "text": "The front page." } ],
+        "pages": [
+            { "id": "wheel", "pageDisplayName": "Wheel", "contentFromClientCallback": true },
+            { "pageDisplayName": "Other", "content": [ { "type": "text", "text": "Its own." } ] }
+        ]
+    })";
+
+    // the rows the client gives the page: a switcher and a dropdown
+    constexpr auto WHEEL_ROWS = R"([
+        { "type": "switcher", "text": "Banana", "default": false, "storage": { "path": ["Wheel", "bBanana"] } },
+        { "type": "dropdown", "valueType": "string", "text": "Place", "default": "hip",
+          "valueOptions": { "options": [ { "value": "hip", "text": "Hip" }, { "value": "chest", "text": "Chest" } ] },
+          "storage": { "path": ["Wheel", "sPlace"] } }
+    ])";
+
+    /**
+     * The config spec of the page whose rows its client gives, in a panel with its store, whose client counts how many
+     * times it is asked for the rows.
+     */
+    struct WheelPanel
+    {
+        test_files::TempFolder myGames;
+        spec::ConfigSpecStore store{ {}, myGames.path };
+        FullPanel panel;
+        int asked = 0;
+
+        explicit WheelPanel(const bool withClient = true)
+        {
+            if (withClient) {
+                store.clientCalls().addClient("MyMod",
+                    test_clients::TestClient{ .pages = { { "wheel",
+                                                  [this] {
+                                                      ++asked;
+                                                      return std::string(WHEEL_ROWS);
+                                                  } } } }
+                        .calls());
+            }
+            auto mod = spec::loadConfigSpec(WHEEL_CONFIG_SPEC);
+            REQUIRE(mod);
+            panel.setStore(model::Source::ConfigSpec, &store);
+            panel.setMods({ std::move(*mod) });
+        }
+    };
+}
+
+TEST_CASE("FullPanel: a page whose rows its client gives asks for them as it is shown, shown again, saved, discarded and read again, and not while a row is changed or open")
+{
+    const test_panel::PanelContext context;
+    WheelPanel wheel;
+    auto& panel = wheel.panel;
+    panel.select(selectionOf(0));
+    CHECK(wheel.asked == 0);
+
+    // shown, and pressed again in the tree
+    CHECK(panel.select(selectionOf(0, 0)));
+    CHECK(wheel.asked == 1);
+    drawFrames(panel, 2);
+    REQUIRE(panel.selectedPage()->items.size() == 2);
+    CHECK(panel.select(selectionOf(0, 0)));
+    CHECK(wheel.asked == 2);
+    drawFrames(panel, 2);
+
+    // a change of one of its rows holds its rows, until it is discarded or saved
+    CHECK(pressActs(panel, pageRow(0)));
+    CHECK(wheel.store.dirtyCount() == 1);
+    CHECK_FALSE(panel.select(selectionOf(0, 0)));
+    panel.readAgain();
+    CHECK(wheel.asked == 2);
+    panel.discard();
+    CHECK(wheel.asked == 3);
+    drawFrames(panel, 2);
+    CHECK(pressActs(panel, pageRow(0)));
+    REQUIRE(panel.save());
+    CHECK(wheel.asked == 4);
+    drawFrames(panel, 2);
+    CHECK(wheel.store.value(std::get<model::Setting>(panel.selectedPage()->items.at(0))).value == model::Value(true));
+
+    // read again, as its client asks
+    panel.readAgain();
+    CHECK(wheel.asked == 5);
+    drawFrames(panel, 2);
+
+    // an open list holds its rows too, until it is closed
+    CHECK(pressActs(panel, pageRow(1)));
+    REQUIRE(panel.openEditor());
+    panel.readAgain();
+    CHECK(wheel.asked == 5);
+    CHECK(panel.back());
+    drawFrames(panel, 2);
+    CHECK_FALSE(panel.openEditor());
+    panel.readAgain();
+    CHECK(wheel.asked == 6);
+    drawFrames(panel, 2);
+
+    // another page asks nothing, and the page shown again asks
+    panel.select(selectionOf(0, 1));
+    drawFrames(panel, 2);
+    panel.readAgain();
+    CHECK(wheel.asked == 6);
+    panel.select(selectionOf(0, 0));
+    CHECK(wheel.asked == 7);
+    drawFrames(panel, 2);
+}
+
+TEST_CASE("FullPanel: a page whose client cannot be asked is disabled in the tree with why, and one whose client gives no rows says why")
+{
+    const test_panel::PanelContext context;
+    SECTION("no client")
+    {
+        WheelPanel wheel(false);
+        auto& panel = wheel.panel;
+        panel.select(selectionOf(0, 0));
+        drawFrames(panel, 2);
+        // the mod's front page, as for a disabled page
+        CHECK(panel.selection().page.empty());
+        CHECK(panel.mods()[0].pages[0].notAvailable == "needs My Mod's DLL, which is not loaded");
+    }
+    SECTION("a client that gives none")
+    {
+        const test_files::TempFolder myGames;
+        spec::ConfigSpecStore store({}, myGames.path);
+        store.clientCalls().addClient("MyMod", test_clients::TestClient{}.calls());
+        auto mod = spec::loadConfigSpec(WHEEL_CONFIG_SPEC);
+        REQUIRE(mod);
+        FullPanel panel;
+        panel.setStore(model::Source::ConfigSpec, &store);
+        panel.setMods({ std::move(*mod) });
+        panel.select(selectionOf(0, 0));
+        drawFrames(panel, 2);
+        CHECK(panel.selection().page == std::vector<std::size_t>{ 0 });
+        CHECK(panel.selectedPage()->items.empty());
+        CHECK(panel.selectedPage()->contentNotGiven == "Not available: its mod's client gives no content for it.");
+    }
+}
+
+TEST_CASE("FullPanel: search finds a page's rows its client gives once the page is shown, as it last gave them")
+{
+    const test_panel::PanelContext context;
+    WheelPanel wheel;
+    auto& panel = wheel.panel;
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+    // before the page is shown it has no rows to find, and search asks its client nothing
+    search(panel, "banana");
+    CHECK(panel.search().matches() == 0);
+    CHECK(wheel.asked == 0);
+
+    panel.select(selectionOf(0, 0));
+    drawFrames(panel, 2);
+    CHECK(panel.search().matches() == 1);
+    panel.select(selectionOf(0, 1));
+    drawFrames(panel, 2);
+    CHECK(panel.search().matches() == 1);
+    CHECK(wheel.asked == 1);
+}
