@@ -12,6 +12,7 @@ Where to start: [For Mod Authors](README.md). The API in full: [Native API](../d
 - [Functions for Buttons](#functions-for-buttons)
 - [States](#states)
 - [Options of a Choice](#options-of-a-choice)
+- [A Page's Rows](#a-pages-rows)
 - [Quick Launch](#quick-launch)
 - [Live Preview and Saves](#live-preview-and-saves)
   - [Previewing in Your Mod](#previewing-in-your-mod)
@@ -30,6 +31,7 @@ Where to start: [For Mod Authors](README.md). The API in full: [Native API](../d
 | Functions | A `CallNativeFunction` button runs your code, and the help line shows its message |
 | States | A condition, a text or a setting reads a value only your code has, as whether a calibration runs |
 | Options | A choice lists what only your code knows, as your presets |
+| A page's rows | A page lists rows only your code knows, as a switcher for each item the player carries |
 | Quick launch entries | The menu's front page opens your own UI |
 | Handlers of changes and Saves | A `live` setting shows in the game as the player changes it, and your mod applies what a Save wrote |
 | Overrides | A setting something else sets in place of its value says so, so the player knows why a change does nothing |
@@ -116,6 +118,40 @@ modsConfig.addOptions("preset", [] {
     return std::vector<Option>{ { .value = std::string("default"), .text = "Default" }, { .value = std::string("sniper"), .text = "Sniper" } };
 });
 ```
+
+## A Page's Rows
+
+A page's rows can come from your DLL, for rows that depend on the game right now: the items the player carries, or what other mods registered with yours. The page is in the config spec as usual, with an `id`, and `contentFromClientCallback` in place of its `content`:
+
+```json
+{ "id": "wheelItems", "pageDisplayName": "Wheel items", "help": "Choose up to eight items.", "contentFromClientCallback": true }
+```
+
+Your DLL gives the rows by the page's `id`, as the JSON text of a `content` array, here with nlohmann::json:
+
+```cpp
+modsConfig.addPageContent("wheelItems", [&modsConfig] {
+    auto rows = nlohmann::json::array();
+    for (const auto& item : carriedAid()) {
+        const auto state = "item.aid." + item.key;
+        modsConfig.addState(state, [key = item.key] { return std::optional<Value>(isOnWheel(key)); },
+            [key = item.key](const Value& value) { setOnWheel(key, std::get<bool>(value)); });
+        rows.push_back({ { "id", state }, { "type", "switcher" }, { "valueType", "bool" }, { "text", item.name },
+            { "default", false }, { "storage", { { "clientState", state } } } });
+    }
+    const nlohmann::json section = { { "type", "section" }, { "text", "Aid" }, { "maxOn", 8 }, { "content", rows } };
+    return std::optional<std::string>(nlohmann::json::array({ section }).dump());
+});
+```
+
+- **The rows are read as the config spec's own:** settings, sections, buttons, texts, spacers and images, with any storage, a file being one of the config spec's `files`. Sub-pages are the config spec's. They inherit the page's defaults, as `defaultFile` and `applies`, and their errors are in the report, as a config spec's are.
+- **Ids are the mod's:** a row's `id` can't be one another row has, on this page or any other. A condition of a row you give can name any setting; a config spec's own row can't name yours, as it is read before yours exist.
+- **A row kept in a state needs the state:** add it as you give the row. `addState` keeps the first of a name, so a state already added stays as it is.
+- **The menu asks** as the page is shown, and again after a Save or Discard and on `reloadValues`, so a mod whose rows changed while the page is shown (the player picked something up) calls `reloadValues`. It never asks while the player has a change pending on the page, or a row of it in use: new rows would drop it.
+- **Not available:** no rows (`std::nullopt`), or text that isn't a JSON array, and the page says so in place of its rows. A page of a mod whose DLL isn't connected, or is built with API version 1, is disabled in the tree with the reason.
+- **Search** finds the page by its name, and its rows once it has been shown: it never asks your DLL.
+
+A choice of up to a number of things, as eight items for a wheel, is a section with `maxOn`, as above: at the limit, the menu holds off the switchers that are off. See [A limit on switchers](../design/schema.md#a-limit-on-switchers). `addPageContent` needs a menu of API version 2: on an older one the page is disabled. The whole design, with RobCo PALM's wheel as the worked example: [Dynamic pages](../design/dynamic-pages.md).
 
 ## Quick Launch
 
@@ -283,7 +319,7 @@ modsConfig.addQuickLaunch("openPipboyConfig", { .text = "FRIK: Pip-Boy", .help =
 - **The game's main thread:** every call, both ways, is on it.
 - **Return at once:** a function, a state and a handler answer and return. Longer work goes on after.
 - **Copy what you keep:** the texts the menu passes are valid during the call.
-- **The first name stays:** a second function, state or option list of the same name is refused, and so is a second client of a mod's name.
+- **The first name stays:** a second function, state, option list or page's rows of the same name is refused, and so is a second client of a mod's name.
 - **A client that fails is cut off:** a call that throws or faults cuts your DLL off until the game restarts. Your mod is then a mod with no DLL in the menu, and every other mod keeps working.
 
 ## Versions

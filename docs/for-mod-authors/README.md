@@ -31,7 +31,7 @@ The full list, and moving from MCM: [Config spec vs MCM](config-spec-vs-mcm.md).
 ### From No Code to a DLL
 
 - **No code:** a config spec, one `spec.json`, is all a mod with its settings in files, globals or properties needs.
-- **The [native API](native-api.md),** for a mod with a DLL: live preview of each change before Save, buttons that run your functions, states and options only your code knows, your own UI opened from the menu, and what the player is on, to show in the world what it sets.
+- **The [native API](native-api.md),** for a mod with a DLL: live preview of each change before Save, buttons that run your functions, states, options and whole pages of rows only your code knows, your own UI opened from the menu, and what the player is on, to show in the world what it sets.
 - **Easier on the [F4VR Common Framework](https://github.com/ArthurHub/F4VR-CommonFramework):** the framework connects your DLL by itself and handles the config's lifecycle. It applies each live change by reloading your config, with no code, and you add only what is your own, through the same API.
 
 ### Keep Your MCM Menu Too
@@ -92,8 +92,9 @@ A suggestion, not a rule: FRIK's and Immersive Flashlight VR's pages are laid ou
 - **Choices in the object form,** with a `help` for each option, so the help line says what the option does as the player points at it.
 - **Short `id`s** for the settings a condition asks, as `shadows`.
 - **Units:** `display.unit` for a short symbol, as `°` or `ms`; others in the `help`.
+- **A choice of up to a number of things,** as three perks: a switcher each, in a section with `"maxOn": 3`. At the limit, the menu holds off the rest and says why ([A limit on switchers](../design/schema.md#a-limit-on-switchers)).
 
-Both mods also use what only a DLL connected to the menu gives: a version line with `{clientState:modVersion}`, and `CallNativeFunction` buttons ([Native API](native-api.md)). Leave those out without one.
+Both mods also use what only a DLL connected to the menu gives: a version line with `{clientState:modVersion}`, and `CallNativeFunction` buttons ([Native API](native-api.md)). Leave those out without one. A DLL can also give a whole page's rows, for settings that depend on the game right now, as a switcher for each item the player carries: [A Page's Rows](native-api.md#a-pages-rows).
 
 ## Testing It in the Game
 

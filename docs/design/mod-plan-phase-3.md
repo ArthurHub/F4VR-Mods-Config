@@ -84,7 +84,7 @@ Design: [Dynamic pages](dynamic-pages.md), [A limit on switchers](schema.md#a-li
 | M177 | mod       | API version 2: `giveContent`, and the C++ client's `addPageContent`                      | done   |
 | F97  | framework | The client header's copy with `giveContent`                                              | done   |
 | M178 | mod       | A dynamic page: asked as it is selected and again after Save, Discard and `reloadValues` | done   |
-| M179 | mod       | docs: dynamic pages and `maxOn` in the author's guide and the native API guide           | todo   |
+| M179 | mod       | docs: dynamic pages and `maxOn` in the author's guide and the native API guide           | done   |
 
 - **M175** is static, so it adds a `maxOn` section to the config spec showcase, with a `countsAs` switcher, and its page to the walkthrough.
 - **M176** splits the reading of a page's `content` out of `ConfigSpecLoader`, with the ids, files and defaults the page inherits; no behavior change.

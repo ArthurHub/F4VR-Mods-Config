@@ -19,6 +19,7 @@ A config spec has what an MCM config has, by MCM's names, and gives your players
   - Numbers with decimals, a unit or a percentage, and read-only values, shown and not edited.
   - Buttons that run a console command or a function of your DLL, with their own text, an icon, a style and a confirmation.
   - Presets: a choice whose options set several settings at once.
+  - A choice of up to a number of things: a section that limits how many of its switchers are on.
   - A help for the mod and for each page, and texts with a fallback, so English needs no translation file.
   - Images as textures, with no `lib.swf`.
 - **Save and Discard.** A change waits for Save, so players try values and drop them. Each setting has a default for Reset, and says when it takes effect: live, on Save, or after a restart.
