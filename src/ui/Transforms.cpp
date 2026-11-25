@@ -117,21 +117,21 @@ namespace mods_config::ui
      */
     float drawTransform(const model::Setting& setting, const float right, const float top, const std::string* value, const ValueLook look, const bool open)
     {
-        const auto box = controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
+        const auto box = controls::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
+        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
         const float textLeft = box.Min.x + theme::SPACE_4;
         const float textRight = arrowLeft - theme::SPACE_2;
-        drawFrame(box, look);
+        controls::drawFrame(box, toneOf(look));
         if (open) {
-            drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
         }
-        drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
+        controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
         if (!value) {
             return box.Min.x;
         }
         const auto table = model::parseTransformTable(*value, setting.tableForm);
         if (!table) {
-            drawText(textLeft, textRight, top, theme::CONTROL_HEIGHT, valueColor(look), *value);
+            controls::drawText(textLeft, textRight, top, theme::CONTROL_HEIGHT, valueColor(look), *value);
             return box.Min.x;
         }
 
@@ -144,14 +144,14 @@ namespace mods_config::ui
             const auto& line = lines[i];
             const float lineTop = linesTop + static_cast<float>(i) * LINE_HEIGHT;
             const float numbersLeft = textLeft + KEY_WIDTH;
-            drawText(textLeft, numbersLeft, lineTop, LINE_HEIGHT, theme::color::GREEN_MUTED, line.key);
-            drawText(numbersLeft, textRight, lineTop, LINE_HEIGHT, line.leftOut ? theme::color::GREEN_MUTED : valueColor(look), line.numbers);
+            controls::drawText(textLeft, numbersLeft, lineTop, LINE_HEIGHT, theme::color::GREEN_MUTED, line.key);
+            controls::drawText(numbersLeft, textRight, lineTop, LINE_HEIGHT, line.leftOut ? theme::color::GREEN_MUTED : valueColor(look), line.numbers);
             if (i == 0 && scale) {
-                drawText(numbersLeft + textWidth(line.numbers) + theme::SPACE_3, textRight, lineTop, LINE_HEIGHT, valueColor(look), *scale);
+                controls::drawText(numbersLeft + controls::textWidth(line.numbers) + theme::SPACE_3, textRight, lineTop, LINE_HEIGHT, valueColor(look), *scale);
             }
         }
         if (lines.empty() && scale) {
-            drawText(textLeft, textRight, linesTop, LINE_HEIGHT, table->scale ? valueColor(look) : theme::color::GREEN_MUTED, *scale);
+            controls::drawText(textLeft, textRight, linesTop, LINE_HEIGHT, table->scale ? valueColor(look) : theme::color::GREEN_MUTED, *scale);
         }
         ImGui::PopFont();
         return box.Min.x;

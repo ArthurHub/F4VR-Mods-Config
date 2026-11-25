@@ -19,7 +19,7 @@ namespace mods_config::ui
     {
         bool pending = false;
         model::Applies applies = model::Applies::Unknown;
-        TextMark mark = TextMark::None;
+        controls::Mark mark = controls::Mark::None;
     };
 
     // Visibility and pointer interactions for a row added to the page.

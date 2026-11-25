@@ -44,7 +44,7 @@ namespace mods_config::ui
         std::optional<model::Applies> applies;
 
         // the mark after its name: invalid, warning, which an overridden setting has too, or none
-        TextMark mark = TextMark::None;
+        controls::Mark mark = controls::Mark::None;
 
         // what its Reset sets: its default, while its value is available and its control can show the default. None
         // for a slider with no range and a default that is none of the options, so the row has no Reset

@@ -67,19 +67,19 @@ namespace
             ui::drawAppliesMark(model::Applies::Unknown, center);
             break;
         case LineMark::Discard:
-            ui::drawDiscardIcon(center, ICON_SCALE);
+            controls::drawUndoIcon(center, ICON_SCALE);
             break;
         case LineMark::Reset:
-            ui::drawResetIcon(center, ICON_SCALE);
+            controls::drawResetIcon(center, ICON_SCALE);
             break;
         case LineMark::Invalid:
-            ui::drawInvalidMark(center);
+            controls::drawErrorMark(center);
             break;
         case LineMark::Warning:
-            ui::drawWarningMark(center);
+            controls::drawWarningMark(center);
             break;
         case LineMark::Info:
-            ui::drawInfoMark(center);
+            controls::drawInfoMark(center);
             break;
         default:
             break;
@@ -97,12 +97,12 @@ namespace
         const float left = pos.x + ui::HEADING_TEXT_INSET;
         const float width = ImGui::GetContentRegionAvail().x - ui::HEADING_TEXT_INSET - theme::SPACE_2 - markRoom;
         const auto label = std::string(line.name) + ": ";
-        const std::array pieces{ ui::TextPiece{ .text = label, .color = line.nameColor }, ui::TextPiece{ .text = line.text, .color = theme::color::GREEN_MUTED } };
-        const int lines = ui::countTextLines(pieces, width);
+        const std::array pieces{ controls::TextPiece{ .text = label, .color = line.nameColor }, controls::TextPiece{ .text = line.text, .color = theme::color::GREEN_MUTED } };
+        const int lines = controls::countTextLines(pieces, width);
         if (line.mark != LineMark::None) {
             drawLineMark(line.mark, ImVec2(left + MARK_COLUMN * 0.5f, pos.y + ImGui::GetFontSize() * 0.5f));
         }
-        ui::drawTextPieces(pieces, ImVec2(left + markRoom, pos.y), width, lines);
+        controls::drawTextPieces(pieces, ImVec2(left + markRoom, pos.y), width, lines);
         ImGui::Dummy(ImVec2(width, static_cast<float>(lines) * ImGui::GetFontSize()));
     }
 

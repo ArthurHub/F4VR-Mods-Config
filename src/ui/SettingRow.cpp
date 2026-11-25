@@ -173,7 +173,7 @@ namespace
             // the slot is pressed a little beside it too, as a button of a stepper is. A press is its own when it began
             // there: a slider that is dragged and let go on it is not reset
             const auto& io = ImGui::GetIO();
-            slotBox = ui::controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
+            slotBox = controls::controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
             onSlot = (view.dirty || view.resetValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
             slotHeld = onSlot && io.MouseClickedPos[ImGuiMouseButton_Left].x >= slotBox.Min.x - theme::SPACE_1;
             onPlay = setting.type == model::SettingType::Haptic && row.pointed && !onSlot && ui::HapticBoxes(right, pos.y).onPlay(io.MousePos.x);
@@ -551,11 +551,11 @@ namespace
         }
         const bool active = state.discards() || (!state.view.dirty && state.view.resets);
         ImGui::BeginDisabled(!active);
-        ui::drawButtonFrame(state.slotBox, active && state.onSlot, active && state.onSlot && state.slotHeld && state.row.held);
+        controls::drawButtonFrame(state.slotBox, active && state.onSlot, active && state.onSlot && state.slotHeld && state.row.held);
         if (state.view.dirty) {
-            ui::drawDiscardIcon(state.slotBox.GetCenter());
+            controls::drawUndoIcon(state.slotBox.GetCenter());
         } else {
-            ui::drawResetIcon(state.slotBox.GetCenter());
+            controls::drawResetIcon(state.slotBox.GetCenter());
         }
         ImGui::EndDisabled();
     }
@@ -573,7 +573,7 @@ namespace mods_config::ui
     {
         SettingRowState state(setting, context);
         if ((!state.view.enabled || setting.readOnly) && state.row.shown) {
-            drawRowState();
+            controls::drawRowState();
         }
         SettingRowDrawn drawn;
         drawn.pressActed = pressSlot(state);

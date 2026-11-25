@@ -1139,8 +1139,8 @@ namespace mods_config::ui
         auto* const store = _selection.mod ? storeOf(mods()[*_selection.mod]) : nullptr;
         const bool made = store && store->writesChangesAtOnce();
         const float top = pos.y + (theme::FOOTER_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
-        const auto save = controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
-        const auto discard = controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
+        const auto save = controls::controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
+        const auto discard = controls::controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
         if (button(made ? "Revert" : "Discard", discard, ButtonLook::Secondary)) {
             this->discard();

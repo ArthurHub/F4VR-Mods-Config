@@ -51,7 +51,7 @@ namespace mods_config::ui
         if (row.shown) {
             row.pointed = ImGui::IsItemHovered();
             if (pressable) {
-                drawRowState();
+                controls::drawRowState();
             }
         }
         return row;
@@ -87,16 +87,16 @@ namespace mods_config::ui
         if (marks.pending) {
             textRight -= theme::SPACE_2 + pendingWidth;
         }
-        if (marks.mark != TextMark::None) {
-            textRight -= theme::SPACE_2 + WARNING_MARK_WIDTH;
+        if (marks.mark != controls::Mark::None) {
+            textRight -= theme::SPACE_2 + controls::MARK_WIDTH;
         }
         float width = 0.0f;
         if (runs.empty()) {
-            drawText(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+            controls::drawText(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
             if (query) {
-                drawUnderlines(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text, model::matchRanges(*query, text));
+                controls::drawUnderlines(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text, model::matchRanges(*query, text));
             }
-            width = text.empty() ? 0.0f : (std::min)(textWidth(text), textRight - left);
+            width = text.empty() ? 0.0f : (std::min)(controls::textWidth(text), textRight - left);
         } else {
             width = drawTextRuns(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, runs);
         }
@@ -106,7 +106,7 @@ namespace mods_config::ui
             drawAppliesMark(marks.applies, ImVec2(markLeft + pendingWidth * 0.5f, middle));
             markLeft += pendingWidth + theme::SPACE_2;
         }
-        drawMark(marks.mark, ImVec2(markLeft + WARNING_MARK_WIDTH * 0.5f, middle));
+        controls::drawMark(marks.mark, ImVec2(markLeft + controls::MARK_WIDTH * 0.5f, middle));
     }
 
     /**

@@ -37,8 +37,8 @@ namespace
         constexpr float SCALE = MAGNIFIER_SIZE / 24.0f;
         auto* drawList = ImGui::GetWindowDrawList();
         const auto ink = ImGui::GetColorU32(color);
-        drawList->AddCircle(ImVec2(min.x + 10.5f * SCALE, min.y + 10.5f * SCALE), 6.0f * SCALE, ink, 0, ui::ICON_THICKNESS * SCALE);
-        drawList->AddLine(ImVec2(min.x + 15.0f * SCALE, min.y + 15.0f * SCALE), ImVec2(min.x + 20.0f * SCALE, min.y + 20.0f * SCALE), ink, ui::ICON_THICKNESS * SCALE);
+        drawList->AddCircle(ImVec2(min.x + 10.5f * SCALE, min.y + 10.5f * SCALE), 6.0f * SCALE, ink, 0, controls::ICON_THICKNESS * SCALE);
+        drawList->AddLine(ImVec2(min.x + 15.0f * SCALE, min.y + 15.0f * SCALE), ImVec2(min.x + 20.0f * SCALE, min.y + 20.0f * SCALE), ink, controls::ICON_THICKNESS * SCALE);
     }
 
     /**
@@ -47,7 +47,7 @@ namespace
     void drawCross(const ImVec2& center)
     {
         constexpr float HALF = 6.0f * CROSS_SIZE / 24.0f;
-        constexpr float THICKNESS = ui::ICON_THICKNESS * CROSS_SIZE / 24.0f;
+        constexpr float THICKNESS = controls::ICON_THICKNESS * CROSS_SIZE / 24.0f;
         const auto color = ImGui::GetColorU32(theme::color::GREEN);
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->AddLine(ImVec2(center.x - HALF, center.y - HALF), ImVec2(center.x + HALF, center.y + HALF), color, THICKNESS);
@@ -93,7 +93,7 @@ namespace mods_config::ui
         }
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed ? theme::color::HOVER : theme::color::TRACK), theme::RADIUS_FRAME);
-        drawOutline(box.Min, box.Max, _edited ? theme::color::GREEN : theme::color::FRAME_BORDER);
+        controls::drawOutline(box.Min, box.Max, _edited ? theme::color::GREEN : theme::color::FRAME_BORDER);
         drawMagnifier(ImVec2(box.Min.x + theme::SPACE_2, middle - MAGNIFIER_SIZE * 0.5f), pointed ? theme::color::GREEN : theme::color::GREEN_MUTED);
 
         // how many settings match, at the right of the text
@@ -102,8 +102,8 @@ namespace mods_config::ui
         if (hasQuery && matches) {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
             const auto count = std::to_string(*matches);
-            const float countLeft = textRight - textWidth(count);
-            drawText(countLeft, textRight, box.Min.y, FIELD_HEIGHT, theme::color::GREEN_MUTED, count);
+            const float countLeft = textRight - controls::textWidth(count);
+            controls::drawText(countLeft, textRight, box.Min.y, FIELD_HEIGHT, theme::color::GREEN_MUTED, count);
             ImGui::PopFont();
             textRight = countLeft - theme::SPACE_2;
         }
@@ -138,10 +138,10 @@ namespace mods_config::ui
                 _edited = false;
             }
         } else if (hasQuery) {
-            drawText(textLeft, textRight, box.Min.y, FIELD_HEIGHT, theme::color::GREEN, _query);
+            controls::drawText(textLeft, textRight, box.Min.y, FIELD_HEIGHT, theme::color::GREEN, _query);
         } else {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            drawText(textLeft, textRight, box.Min.y, FIELD_HEIGHT, pointed ? theme::color::GREEN : theme::color::GREEN_MUTED, std::format("Search {} mods", mods));
+            controls::drawText(textLeft, textRight, box.Min.y, FIELD_HEIGHT, pointed ? theme::color::GREEN : theme::color::GREEN_MUTED, std::format("Search {} mods", mods));
             ImGui::PopFont();
         }
         if (pointed) {
@@ -155,7 +155,7 @@ namespace mods_config::ui
                 drawn.pressActed = true;
             }
             panelTargets().add(TargetKind::Search, "Clear", clearBox);
-            drawRowState();
+            controls::drawRowState();
             if (ImGui::IsItemHovered()) {
                 drawn.pointed = PointedRow{ .text = "Clear", .help = CLEAR_HELP };
             }

@@ -220,7 +220,7 @@ namespace mods_config::ui
         const auto filterPos = ImGui::GetCursorScreenPos();
         const bool pressed = ImGui::InvisibleButton("filter", ImVec2(rowWidth, theme::CONTROL_HEIGHT));
         const ChoiceRow row{ .pointed = ImGui::IsItemHovered(), .held = ImGui::IsItemActive(), .pressed = pressed };
-        drawRowState();
+        controls::drawRowState();
         bool pulse = false;
         if (const auto picked = _filter.edit(_filterSetting, options, right, filterPos.y, row, chosen, pulse); picked && picked != chosen) {
             chosen = picked;
@@ -231,8 +231,8 @@ namespace mods_config::ui
         }
         drawn.pressActed = drawn.pressActed || pulse;
         const float stepperLeft = _filter.draw(_filterSetting, options, right, filterPos.y, row, chosen, ValueLook::Saved);
-        drawText(textLeft, stepperLeft - theme::SPACE_3, filterPos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, FILTER);
-        drawTag(textLeft + textWidth(FILTER) + theme::SPACE_2, filterPos.y + theme::CONTROL_HEIGHT * 0.5f, std::format("{} of {}", listed.size(), configSpecs));
+        controls::drawText(textLeft, stepperLeft - theme::SPACE_3, filterPos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, FILTER);
+        controls::drawTag(textLeft + controls::textWidth(FILTER) + theme::SPACE_2, filterPos.y + theme::CONTROL_HEIGHT * 0.5f, std::format("{} of {}", listed.size(), configSpecs));
         if (row.pointed) {
             drawn.pointed = PointedRow{ .text = FILTER, .help = FILTER_HELP, .warning = {}, .invalid = false };
         }
@@ -249,10 +249,11 @@ namespace mods_config::ui
                 drawn.pressActed = true;
             }
             const bool onRow = ImGui::IsItemHovered();
-            drawRowState();
+            controls::drawRowState();
 
             const float slotLeft = right + theme::SPACE_2;
-            drawFoldArrow(ImVec2(std::floor(slotLeft + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f),
+            controls::drawFoldArrow(
+                ImVec2(std::floor(slotLeft + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f), pos.y + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f),
                 false,
                 theme::color::GREEN);
             float left = right;
@@ -263,14 +264,14 @@ namespace mods_config::ui
                 left = drawMarkedCounts(right, pos.y, problemCounts(state.errors, state.warnings));
             } else {
                 const auto* text = state.notAvailable ? "Not available" : "No problems";
-                left = std::floor(right - textWidth(text));
-                drawText(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, text);
+                left = std::floor(right - controls::textWidth(text));
+                controls::drawText(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, text);
             }
             if (!mod.liveCopy.empty()) {
-                left -= tagWidth(LIVE_COPY_TAG) + theme::SPACE_3;
-                drawTag(left, pos.y + theme::CONTROL_HEIGHT * 0.5f, LIVE_COPY_TAG);
+                left -= controls::tagWidth(LIVE_COPY_TAG) + theme::SPACE_3;
+                controls::drawTag(left, pos.y + theme::CONTROL_HEIGHT * 0.5f, LIVE_COPY_TAG);
             }
-            drawText(textLeft, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, mod.displayName);
+            controls::drawText(textLeft, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, mod.displayName);
             if (onRow) {
                 drawn.pointed = configSpecHelp(mod, state);
             }

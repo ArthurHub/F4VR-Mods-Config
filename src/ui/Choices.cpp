@@ -22,8 +22,8 @@ namespace
 {
     using namespace mods_config;
 
-    using ui::ARROW_SIZE;
-    using ui::ControlArrow;
+    using controls::Arrow;
+    using controls::ARROW_SIZE;
     using ui::DROPDOWN_WIDTH;
 
     // The sizes of a stepper and a dropdown that are not tokens of the design system, in the panel's pixels.
@@ -48,9 +48,9 @@ namespace
         ImRect previous;
 
         StepperBoxes(const float right, const float top)
-            : next(ui::controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT)),
-              option(ui::controlBox(next.Min.x - theme::SPACE_2 - ui::TRACK_WIDTH, top, ui::TRACK_WIDTH)),
-              previous(ui::controlBox(option.Min.x - theme::SPACE_2 - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT))
+            : next(controls::controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT)),
+              option(controls::controlBox(next.Min.x - theme::SPACE_2 - ui::TRACK_WIDTH, top, ui::TRACK_WIDTH)),
+              previous(controls::controlBox(option.Min.x - theme::SPACE_2 - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT))
         {}
 
         /**
@@ -77,7 +77,7 @@ namespace
         if (setting.type == model::SettingType::Haptic) {
             return ui::HapticBoxes(right, top).frame;
         }
-        return ui::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
+        return controls::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
     }
 
     /**
@@ -120,22 +120,22 @@ namespace
         const ui::ChoiceRow& row)
     {
         const auto& box = boxes.frame;
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
-        const auto shape = shapeIn(box, theme::SPACE_4 + ARROW_SIZE);
-        ui::drawFrame(box, look);
+        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
+        const auto shape = shapeIn(box, theme::SPACE_4 + controls::ARROW_SIZE);
+        controls::drawFrame(box, toneOf(look));
         if (listOpen) {
-            ui::drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
         }
-        ui::drawText(box.Min.x + theme::SPACE_4, shape.x - theme::SPACE_3, box.Min.y, theme::CONTROL_HEIGHT, ui::valueColor(look), text);
+        controls::drawText(box.Min.x + theme::SPACE_4, shape.x - theme::SPACE_3, box.Min.y, theme::CONTROL_HEIGHT, ui::valueColor(look), text);
         if (option && look != ui::ValueLook::Invalid) {
             ui::drawHapticShape(shape, patternOf(option->value), ImGui::GetColorU32(ui::valueColor(look)), ImGui::GetColorU32(theme::color::RULE));
         }
-        ui::drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
+        controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
 
         const bool plays = option && patternOf(option->value).has_value();
         const bool onPlay = boxes.onPlay(ImGui::GetIO().MousePos.x);
         ImGui::BeginDisabled(!plays);
-        ui::drawButtonFrame(boxes.play, plays && row.pointed && onPlay, plays && row.held && onPlay);
+        controls::drawButtonFrame(boxes.play, plays && row.pointed && onPlay, plays && row.held && onPlay);
         ui::drawPlayIcon(boxes.play.GetCenter());
         ImGui::EndDisabled();
         return box.Min.x;
@@ -158,7 +158,7 @@ namespace
         const float headerHeight = header ? LIST_HEADER_HEIGHT + theme::BORDER_FRAME + LIST_GAP : 0.0f;
         const float actionRoom = action ? ACTION_GAP : 0.0f;
         const float height = (std::min)(shown * (theme::CONTROL_HEIGHT + LIST_GAP) - LIST_GAP + LIST_PADDING * 2.0f + headerHeight + actionRoom, page.GetHeight());
-        const float top = ui::popupTop(box, height, page);
+        const float top = controls::popupTop(box, height, page);
         return { box.Min.x, top, box.Max.x, top + height };
     }
 
@@ -337,11 +337,11 @@ namespace mods_config::ui
             const float headerWidth = ImGui::GetContentRegionAvail().x;
             ImGui::Dummy(ImVec2(headerWidth, LIST_HEADER_HEIGHT + theme::BORDER_FRAME));
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            const float rightWidth = textWidth(extras.headerRight);
+            const float rightWidth = controls::textWidth(extras.headerRight);
             const float textTop = pos.y + theme::SPACE_1;
             const float textRight = pos.x + headerWidth - theme::SPACE_2;
-            drawText(pos.x + theme::SPACE_2, textRight - rightWidth - theme::SPACE_3, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerLeft);
-            drawText(textRight - rightWidth, textRight, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerRight);
+            controls::drawText(pos.x + theme::SPACE_2, textRight - rightWidth - theme::SPACE_3, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerLeft);
+            controls::drawText(textRight - rightWidth, textRight, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerRight);
             ImGui::PopFont();
             const float ruleY = pos.y + LIST_HEADER_HEIGHT + theme::BORDER_FRAME * 0.5f;
             ImGui::GetWindowDrawList()->AddLine(ImVec2(pos.x, ruleY), ImVec2(pos.x + headerWidth, ruleY), theme::color::RULE, theme::BORDER_FRAME);
@@ -411,15 +411,15 @@ namespace mods_config::ui
         }
         if (setting.type == model::SettingType::Dropdown) {
             const auto box = dropdownBox(setting, right, top);
-            const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
-            drawFrame(box, look);
+            const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
+            controls::drawFrame(box, toneOf(look));
             if (isListOpen(setting)) {
-                drawOutline(box.Min, box.Max, theme::color::GREEN);
+                controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
             }
             // a file has its name with a muted extension, and the option that is no file its text
             const auto& files = setting.valueOptions.folderOptions;
             const auto shown = files && (!chosen || isFileOption(options[*chosen])) ? model::shownFileName(option, files->mask) : model::ShownFileName{ .name = option };
-            drawTextWithSuffix(box.Min.x + theme::SPACE_4,
+            controls::drawTextWithSuffix(box.Min.x + theme::SPACE_4,
                 arrowLeft - theme::SPACE_2,
                 top,
                 theme::CONTROL_HEIGHT,
@@ -427,7 +427,7 @@ namespace mods_config::ui
                 shown.name,
                 theme::color::GREEN_MUTED,
                 shown.extension);
-            ui::drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
+            controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
             return box.Min.x;
         }
 
@@ -437,10 +437,10 @@ namespace mods_config::ui
         const bool onNext = boxes.onNext(x);
         const auto after = chosen ? *chosen + 1 : 0;
         const bool hasPrevious = chosen ? *chosen > 0 : model::setsOthers(setting);
-        drawStepButton(boxes.previous, ControlArrow::Left, hasPrevious, row.pointed && onPrevious, row.held && onPrevious);
-        drawFrame(boxes.option, look);
-        drawTextIn(boxes.option, option, valueColor(look), 0.5f, theme::SPACE_3);
-        drawStepButton(boxes.next, ControlArrow::Right, after < options.size(), row.pointed && onNext, row.held && onNext);
+        controls::drawStepButton(boxes.previous, controls::Arrow::Left, hasPrevious, row.pointed && onPrevious, row.held && onPrevious);
+        controls::drawFrame(boxes.option, toneOf(look));
+        controls::drawTextIn(boxes.option, option, valueColor(look), 0.5f, theme::SPACE_3);
+        controls::drawStepButton(boxes.next, controls::Arrow::Right, after < options.size(), row.pointed && onNext, row.held && onNext);
         return boxes.previous.Min.x;
     }
 

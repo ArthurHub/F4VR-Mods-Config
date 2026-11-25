@@ -80,11 +80,11 @@ namespace mods_config::ui
             const auto error = drawer.textureError ? drawer.textureError(image.texture) : std::string();
             reason = error.empty() ? std::string("Not loaded: the game has not loaded it.") : std::format("Not loaded: {}.", error);
         }
-        drawDashedOutline(topLeft, bottomRight, theme::color::FRAME_BORDER);
+        controls::drawDashedOutline(topLeft, bottomRight, theme::color::FRAME_BORDER);
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
         const auto text = "Not loaded: " + image.texture;
-        const float left = (std::max)(topLeft.x + theme::SPACE_2, std::floor((topLeft.x + bottomRight.x - textWidth(text)) * 0.5f));
-        drawText(left, bottomRight.x - theme::SPACE_2, topLeft.y, size.y, theme::color::GREEN_MUTED, text);
+        const float left = (std::max)(topLeft.x + theme::SPACE_2, std::floor((topLeft.x + bottomRight.x - controls::textWidth(text)) * 0.5f));
+        controls::drawText(left, bottomRight.x - theme::SPACE_2, topLeft.y, size.y, theme::color::GREEN_MUTED, text);
         ImGui::PopFont();
         return pointed;
     }

@@ -83,7 +83,7 @@ namespace
      * Returns whether the ray is on it, and tells whether a press did something.
      */
     bool foldingHeading(const char* id, const std::string& text, bool& folded, bool& pressActed, const std::span<const ui::MarkedCount> hidden = {},
-        const ui::TextMark mark = ui::TextMark::None)
+        const controls::Mark mark = controls::Mark::None)
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = ui::rowWidth();
@@ -102,7 +102,7 @@ namespace
         const char* text = nullptr;
         const char* button = nullptr;
         bool enabled = true;
-        ui::TextMark mark = ui::TextMark::None;
+        controls::Mark mark = controls::Mark::None;
     };
 
     /**
@@ -118,16 +118,16 @@ namespace
         const float width = ui::rowWidth();
         const auto added = ui::addRow(row.enabled);
         if (!row.enabled && added.shown) {
-            ui::drawRowState();
+            controls::drawRowState();
         }
         pointed = added.pointed;
         const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
         ImGui::BeginDisabled(!row.enabled);
         float left = right;
         if (row.button) {
-            const auto box = ui::controlBox(right - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
-            ui::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
-            ui::drawTextIn(box, row.button, theme::color::GREEN, 0.5f, theme::SPACE_3);
+            const auto box = controls::controlBox(right - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
+            controls::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
+            controls::drawTextIn(box, row.button, theme::color::GREEN, 0.5f, theme::SPACE_3);
             left = box.Min.x;
         } else {
             left = ui::drawSwitcher(right, pos.y, on, ui::ValueLook::Saved);
@@ -180,7 +180,7 @@ namespace
 
         const bool hasResult = read && !read->result.empty();
         const bool failed = hasResult && read->failed;
-        const auto mark = failed ? ui::TextMark::Invalid : hasResult && !read->seen ? ui::TextMark::Info : ui::TextMark::None;
+        const auto mark = failed ? controls::Mark::Error : hasResult && !read->seen ? controls::Mark::Info : controls::Mark::None;
         if (drawLiveCopyRow({ .text = RELOAD, .button = RELOAD, .enabled = live, .mark = mark }, live, pointed)) {
             drawn.liveCopy = ui::LiveCopyAction::Reload;
         }
@@ -196,7 +196,7 @@ namespace
             read->seeing = pointed;
         }
 
-        if (drawLiveCopyRow({ .text = OVERWRITE, .button = "Overwrite", .enabled = live, .mark = stale ? ui::TextMark::Warning : ui::TextMark::None }, live, pointed)) {
+        if (drawLiveCopyRow({ .text = OVERWRITE, .button = "Overwrite", .enabled = live, .mark = stale ? controls::Mark::Warning : controls::Mark::None }, live, pointed)) {
             drawn.liveCopy = ui::LiveCopyAction::Overwrite;
         }
         if (pointed) {
@@ -217,7 +217,7 @@ namespace
         }
         // the sub-section's line, from under its heading to its last row, short of the rows
         const float rowsEnd = ImGui::GetCursorScreenPos().y;
-        ui::drawSectionLine(headingLeft + theme::SPACE_1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, headingLeft + theme::SPACE_3 - theme::SPACE_1);
+        controls::drawSectionLine(headingLeft + theme::SPACE_1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, headingLeft + theme::SPACE_3 - theme::SPACE_1);
         ImGui::Unindent(theme::SPACE_3);
 
         drawn.pressActed = drawn.pressActed || drawn.liveCopy != ui::LiveCopyAction::None;
@@ -276,7 +276,7 @@ namespace mods_config::ui
             }
             auto& folded = isError ? _errorsFolded : _warningsFolded;
             const auto heading = countOf(count, isError ? "error" : "warning");
-            if (foldingHeading(isError ? "errors" : "warnings", heading, folded, drawn.pressActed, {}, isError ? TextMark::Invalid : TextMark::Warning)) {
+            if (foldingHeading(isError ? "errors" : "warnings", heading, folded, drawn.pressActed, {}, isError ? controls::Mark::Error : controls::Mark::Warning)) {
                 drawn.pointed = PointedRow{ .text = isError ? "Errors" : "Warnings",
                     .help = isError ? "What the menu left out of the config spec: all of it, or a part." : "What the menu read that is likely not what is meant.",
                     .warning = {},
@@ -296,12 +296,13 @@ namespace mods_config::ui
                 const float width = rowWidth();
                 const bool pressed = ImGui::InvisibleButton("problem", ImVec2(width, theme::CONTROL_HEIGHT));
                 const bool pointed = ImGui::IsItemHovered();
-                drawRowState();
+                controls::drawRowState();
                 const bool goes = available && problem.place.has_value();
                 const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
                 if (goes) {
                     const float slotLeft = right + theme::SPACE_2;
-                    drawFoldArrow(ImVec2(std::floor(slotLeft + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f), pos.y + (theme::CONTROL_HEIGHT - FOLD_ARROW_SIZE) * 0.5f),
+                    controls::drawFoldArrow(ImVec2(std::floor(slotLeft + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f),
+                                                pos.y + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f),
                         false,
                         theme::color::GREEN);
                     if (pressed) {
@@ -310,7 +311,7 @@ namespace mods_config::ui
                     }
                 }
                 // the message says "it" of its row, so the row's name is before it
-                drawText(pos.x + theme::SPACE_3, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, problem.row + ": " + problem.message);
+                controls::drawText(pos.x + theme::SPACE_3, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, problem.row + ": " + problem.message);
                 if (pointed) {
                     drawn.pointed = PointedRow{ .text = problem.row, .help = problemHelp(problem, goes), .warning = {}, .invalid = isUnreadable(problem) };
                 }

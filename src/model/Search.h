@@ -12,16 +12,8 @@
 
 namespace mods_config::model
 {
-    /**
-     * A range of the bytes of a name: where a word of a query matched it, which the tree underlines.
-     */
-    struct TextRange
-    {
-        std::size_t begin = 0;
-        std::size_t end = 0;
-
-        bool operator==(const TextRange&) const = default;
-    };
+    // a range of the bytes of a name: where a word of a query matched it, which the tree underlines
+    using TextRange = f4cf::imgui::controls::TextRange;
 
     /**
      * What the player typed in the search field, as the words it is matched by: folded to lower case without

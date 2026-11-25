@@ -28,7 +28,7 @@ namespace
     ImRect fieldBox(const model::Setting& setting, const float right, const float top)
     {
         const float width = setting.type == model::SettingType::Dropdown ? ui::DROPDOWN_WIDTH : FIELD_WIDTH;
-        return ui::controlBox(right - width, top, width);
+        return controls::controlBox(right - width, top, width);
     }
 
     /**
@@ -96,8 +96,8 @@ namespace mods_config::ui
 
         // drawn under the field, which draws its text and caret alone
         const auto box = fieldBox(setting, right, top);
-        drawFrame(box);
-        drawOutline(box.Min, box.Max, theme::color::GREEN);
+        controls::drawFrame(box);
+        controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
 
         // the field is an item at the box, and the cursor is put back after it, so the rows go on under its row
         const auto cursor = ImGui::GetCursorScreenPos();
@@ -111,7 +111,7 @@ namespace mods_config::ui
         float countWidth = 0.0f;
         if (most > 0) {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            countWidth = textWidth(std::format("{} / {}", most, most)) + theme::SPACE_4;
+            countWidth = controls::textWidth(std::format("{} / {}", most, most)) + theme::SPACE_4;
             ImGui::PopFont();
         }
         ImGui::SetNextItemWidth(box.GetWidth() - countWidth);
@@ -124,7 +124,7 @@ namespace mods_config::ui
         ImGui::PopStyleColor();
         if (most > 0) {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            drawTextIn(box, std::format("{} / {}", model::textLength(_text), most), theme::color::GREEN_MUTED, 1.0f, theme::SPACE_4);
+            controls::drawTextIn(box, std::format("{} / {}", model::textLength(_text), most), theme::color::GREEN_MUTED, 1.0f, theme::SPACE_4);
             ImGui::PopFont();
         }
         // not with SetCursorScreenPos: ImGui takes a cursor that is set and followed by no item, as after the
@@ -157,8 +157,8 @@ namespace mods_config::ui
     {
         const auto box = fieldBox(setting, right, top);
         if (!isEdited(setting)) {
-            drawFrame(box, look);
-            drawTextIn(box, text, valueColor(look), 0.0f, theme::SPACE_4);
+            controls::drawFrame(box, toneOf(look));
+            controls::drawTextIn(box, text, valueColor(look), 0.0f, theme::SPACE_4);
         }
         return box.Min.x;
     }

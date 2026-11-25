@@ -130,8 +130,8 @@ namespace mods_config::ui
         const float iconTop = middle - iconHeight * 0.5f;
         for (std::size_t i = 0; i < icons.size(); ++i) {
             if (i > 0) {
-                drawText(right + theme::SPACE_1, right + theme::SPACE_8, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, color, "+");
-                right += theme::SPACE_1 * 2.0f + textWidth("+");
+                controls::drawText(right + theme::SPACE_1, right + theme::SPACE_8, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, color, "+");
+                right += theme::SPACE_1 * 2.0f + controls::textWidth("+");
             }
             const float width = iconWidth(icons[i], scale, drawer);
             drawer.drawIcon(icons[i], ImVec2(right, iconTop), ImVec2(right + width, iconTop + iconHeight), ImGui::GetColorU32(color));
@@ -149,12 +149,12 @@ namespace mods_config::ui
     float drawBinding(const model::Setting& setting, const float right, const float top, const std::string* value, const ValueLook look, const bool open, const bool leftHanded,
         const ImageDrawer& drawer)
     {
-        const auto box = controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
+        const auto box = controls::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
+        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
         const auto color = valueColor(look);
-        drawFrame(box, look);
+        controls::drawFrame(box, toneOf(look));
         if (open) {
-            drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
         }
 
         float textLeft = box.Min.x + theme::SPACE_4;
@@ -169,8 +169,8 @@ namespace mods_config::ui
                 }
             }
         }
-        drawText(textLeft, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, color, text);
-        drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
+        controls::drawText(textLeft, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, color, text);
+        controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
         return box.Min.x;
     }
 }

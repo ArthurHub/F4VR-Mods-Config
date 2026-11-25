@@ -11,6 +11,7 @@
 #include "imgui/ImGuiKeyboard.h"
 #include "imgui/ImGuiPointer.h"
 #include "imgui/ImGuiSettings.h"
+#include "ui/Drawing.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
 #include "vrui/UIButtonPanel.h"
@@ -139,6 +140,9 @@ namespace mods_config
         keyboardStyle.background = render::Color::rgba(15, 15, 15, g_config.panelBackgroundOpacity);
         imgui::keyboard().setStyle(keyboardStyle);
         imgui::keyboard().setCloseBinding(g_config.backBinding);
+
+        // the framework's controls in the look of the design system
+        controls::get().setStyle(ui::controlsStyle());
     }
 
     /**

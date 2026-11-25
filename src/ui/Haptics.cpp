@@ -28,8 +28,8 @@ namespace
 namespace mods_config::ui
 {
     HapticBoxes::HapticBoxes(const float right, const float top)
-        : frame(controlBox(right - DROPDOWN_WIDTH, top, HAPTIC_FRAME_WIDTH)),
-          play(controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT))
+        : frame(controls::controlBox(right - DROPDOWN_WIDTH, top, HAPTIC_FRAME_WIDTH)),
+          play(controls::controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT))
     {}
 
     /**
@@ -85,9 +85,9 @@ namespace mods_config::ui
         drawList->AddCircleFilled(center, PLAY_DOT_RADIUS, color);
         for (const float radius : { PLAY_INNER_RADIUS, PLAY_OUTER_RADIUS }) {
             drawList->PathArcTo(center, radius, 3.0f * QUARTER, 5.0f * QUARTER);
-            drawList->PathStroke(color, ICON_THICKNESS);
+            drawList->PathStroke(color, controls::ICON_THICKNESS);
             drawList->PathArcTo(center, radius, -QUARTER, QUARTER);
-            drawList->PathStroke(color, ICON_THICKNESS);
+            drawList->PathStroke(color, controls::ICON_THICKNESS);
         }
     }
 }

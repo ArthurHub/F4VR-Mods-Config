@@ -54,14 +54,14 @@ namespace
     {
         const auto text = button.buttonText.empty() ? std::string_view("Run") : std::string_view(button.buttonText);
         if (button.icon == model::ButtonIcon::None) {
-            ui::drawTextIn(box, text, color, 0.5f, theme::SPACE_3);
+            controls::drawTextIn(box, text, color, 0.5f, theme::SPACE_3);
             return;
         }
         const float iconRoom = ui::BUTTON_ICON_SIZE + theme::SPACE_2;
         const float room = box.GetWidth() - theme::SPACE_3 * 2.0f;
-        const float left = std::floor(box.Min.x + theme::SPACE_3 + (std::max)(room - iconRoom - ui::textWidth(text), 0.0f) * 0.5f);
+        const float left = std::floor(box.Min.x + theme::SPACE_3 + (std::max)(room - iconRoom - controls::textWidth(text), 0.0f) * 0.5f);
         ui::drawButtonIcon(button.icon, ImVec2(left + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), color);
-        ui::drawText(left + iconRoom, box.Max.x - theme::SPACE_3, box.Min.y, box.GetHeight(), color, text);
+        controls::drawText(left + iconRoom, box.Max.x - theme::SPACE_3, box.Min.y, box.GetHeight(), color, text);
     }
 }
 
@@ -85,7 +85,7 @@ namespace mods_config::ui
         auto view = buttonViewOf(button, store);
         const auto row = addRow(view.enabled);
         if (!view.enabled && row.shown) {
-            drawRowState();
+            controls::drawRowState();
         }
 
         if (view.runs && row.pressed) {
@@ -108,15 +108,18 @@ namespace mods_config::ui
             return std::nullopt;
         }
         const auto warning = warningOf(button.warnings, store);
-        const auto mark = result && result->failed ? TextMark::Invalid : result && result->unread ? TextMark::Info : !warning.empty() ? TextMark::Warning : TextMark::None;
+        const auto mark = result && result->failed   ? controls::Mark::Error
+                          : result && result->unread ? controls::Mark::Info
+                          : !warning.empty()         ? controls::Mark::Warning
+                                                     : controls::Mark::None;
 
         ImGui::BeginDisabled(!view.runs);
-        const auto box = controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
+        const auto box = controls::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
         const bool styled = button.style != model::ButtonStyle::None;
         const auto color = styleColor(button.style);
-        drawOutline(box.Min, box.Max, styled ? color : theme::color::FRAME_BORDER);
+        controls::drawOutline(box.Min, box.Max, styled ? color : theme::color::FRAME_BORDER);
         if (styled && row.held) {
-            drawButtonRing(box, color);
+            controls::drawButtonRing(box, color);
         }
         drawButtonContent(button, box, color);
         drawLabel(pos, box.Min.x - theme::SPACE_3, model::resolveClientText(button.text, store), model::resolveClientRuns(button.textRuns, store), { .mark = mark }, query);

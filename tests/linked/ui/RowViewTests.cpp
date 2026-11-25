@@ -9,8 +9,8 @@
 #include "ui/RowView.h"
 
 using namespace mods_config;
+using controls::Mark;
 using model::Condition;
-using ui::TextMark;
 using ui::ValueLook;
 
 namespace
@@ -100,13 +100,13 @@ TEST_CASE("RowView: a saved row is enabled and editable, in the saved look, with
     CHECK_FALSE(view.dirty);
     CHECK(view.look == ValueLook::Saved);
     CHECK(view.warning.empty());
-    CHECK(view.mark == TextMark::None);
+    CHECK(view.mark == controls::Mark::None);
     CHECK_FALSE(view.applies);
 
     store.values["loud"] = true;
     view = ui::rowViewOf(row, &store);
     CHECK(view.warning == "It is loud.");
-    CHECK(view.mark == TextMark::Warning);
+    CHECK(view.mark == controls::Mark::Warning);
 }
 
 TEST_CASE("RowView: a dirty row is in the pending look and tells when its change takes effect, which a saved one does not")
@@ -121,7 +121,7 @@ TEST_CASE("RowView: a dirty row is in the pending look and tells when its change
     CHECK(view.look == ValueLook::Pending);
     CHECK(view.applies == model::Applies::Restart);
     CHECK(view.warning == "It is loud.");
-    CHECK(view.mark == TextMark::Warning);
+    CHECK(view.mark == controls::Mark::Warning);
 
     CHECK_FALSE(ui::rowViewOf(setting("b"), &store).applies);
 }
@@ -138,7 +138,7 @@ TEST_CASE("RowView: an invalid row is in the invalid look with its mark and reas
     CHECK(view.editable);
     CHECK(view.dirty);
     CHECK(view.look == ValueLook::Invalid);
-    CHECK(view.mark == TextMark::Invalid);
+    CHECK(view.mark == controls::Mark::Error);
     CHECK(view.warning.empty());
     CHECK(view.stored.reason == "Not a value of it.");
 }
@@ -153,13 +153,13 @@ TEST_CASE("RowView: an overridden row has the warning mark and stays editable, a
     const auto view = ui::rowViewOf(row, &store);
     CHECK(view.editable);
     CHECK(view.look == ValueLook::Pending);
-    CHECK(view.mark == TextMark::Warning);
+    CHECK(view.mark == controls::Mark::Warning);
     CHECK(view.warning.empty());
     CHECK_FALSE(view.applies);
 
     // an invalid value's mark comes first
     store.invalid.insert("a");
-    CHECK(ui::rowViewOf(row, &store).mark == TextMark::Invalid);
+    CHECK(ui::rowViewOf(row, &store).mark == controls::Mark::Error);
 }
 
 TEST_CASE("RowView: a row whose value is not available cannot be edited and is never dirty")

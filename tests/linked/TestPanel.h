@@ -49,6 +49,8 @@ namespace test_panel
             io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
             ImGui::StyleColorsDark();
             f4cf::imgui::internal::loadCanvasFont(FONT_SIZE);
+            // as GameMenu.cpp gives the framework's controls their look
+            controls::get().setStyle(ui::controlsStyle());
         }
 
         PanelContext(const PanelContext&) = delete;

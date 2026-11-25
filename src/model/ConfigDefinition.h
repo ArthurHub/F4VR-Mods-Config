@@ -12,6 +12,7 @@
 #include <variant>
 #include <vector>
 
+#include "imgui/controls/TextRange.h"
 #include "vrcf/VRControllersManager.h"
 
 // The definition of the settings model: what a mod's menu holds, whatever it comes from. A loader fills it once,
@@ -865,12 +866,8 @@ namespace mods_config::model
         std::optional<Condition> visibleWhen;
     };
 
-    enum class TextAlign : std::uint8_t
-    {
-        Left,
-        Center,
-        Right,
-    };
+    // where a line of a text is set in its room, as the framework's controls set it
+    using TextAlign = f4cf::imgui::controls::TextAlign;
 
     /**
      * A line of a text, which is wrapped where it is wider than its room. A line with no runs is an empty one.

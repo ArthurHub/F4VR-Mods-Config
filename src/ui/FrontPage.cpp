@@ -74,16 +74,16 @@ namespace
         ImGui::BeginDisabled(!enabled);
         const bool pressed = ImGui::InvisibleButton(entry.name.c_str(), ImVec2(width, theme::CONTROL_HEIGHT));
         pointed = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled);
-        ui::drawRowState();
+        controls::drawRowState();
 
         // the button ends where a setting's control does, before the room of its Reset
         const float buttonRight = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
         const float buttonLeft = buttonRight - BUTTON_WIDTH;
-        ui::drawOutline(ImVec2(buttonLeft, pos.y), ImVec2(buttonRight, pos.y + theme::CONTROL_HEIGHT), theme::color::FRAME_BORDER);
+        controls::drawOutline(ImVec2(buttonLeft, pos.y), ImVec2(buttonRight, pos.y + theme::CONTROL_HEIGHT), theme::color::FRAME_BORDER);
         const std::string_view label = entry.buttonText.empty() ? std::string_view("Open") : std::string_view(entry.buttonText);
-        ui::drawTextIn(ImRect(buttonLeft, pos.y, buttonRight, pos.y + theme::CONTROL_HEIGHT), label, theme::color::GREEN, 0.5f, theme::SPACE_3);
+        controls::drawTextIn(ImRect(buttonLeft, pos.y, buttonRight, pos.y + theme::CONTROL_HEIGHT), label, theme::color::GREEN, 0.5f, theme::SPACE_3);
 
-        ui::drawText(pos.x + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, entry.name);
+        controls::drawText(pos.x + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, entry.name);
         ImGui::EndDisabled();
         ImGui::Unindent(theme::SPACE_3);
         return pressed && enabled;

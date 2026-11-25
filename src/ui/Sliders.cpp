@@ -20,7 +20,7 @@ namespace
     constexpr float GRAB_HEIGHT = 40.0f;
     constexpr float STEP_ARROW_WIDTH = 24.0f;
     // the triangle of a step arrow is 10 pixels, of the 14 of a stepper's
-    constexpr float STEP_ARROW_SCALE = 10.0f / ui::ARROW_SIZE;
+    constexpr float STEP_ARROW_SCALE = 10.0f / controls::ARROW_SIZE;
 
     // The thumbstick steps a slider from this far off its center, of 1 for a full push. It is far, so a push
     // that scrolls the page and is a little to a side steps nothing.
@@ -52,10 +52,10 @@ namespace
         float grabMost = 0.0f;
 
         Boxes(const float right, const float top)
-            : previous(ui::controlBox(right - theme::VALUE_WIDTH - theme::SPACE_2 - ui::TRACK_WIDTH, top, STEP_ARROW_WIDTH)),
-              track(ui::controlBox(previous.Max.x + theme::SPACE_1, top, ui::TRACK_WIDTH - (STEP_ARROW_WIDTH + theme::SPACE_1) * 2.0f)),
-              next(ui::controlBox(track.Max.x + theme::SPACE_1, top, STEP_ARROW_WIDTH)),
-              valueBox(ui::controlBox(right - theme::VALUE_WIDTH, top, theme::VALUE_WIDTH)),
+            : previous(controls::controlBox(right - theme::VALUE_WIDTH - theme::SPACE_2 - ui::TRACK_WIDTH, top, STEP_ARROW_WIDTH)),
+              track(controls::controlBox(previous.Max.x + theme::SPACE_1, top, ui::TRACK_WIDTH - (STEP_ARROW_WIDTH + theme::SPACE_1) * 2.0f)),
+              next(controls::controlBox(track.Max.x + theme::SPACE_1, top, STEP_ARROW_WIDTH)),
+              valueBox(controls::controlBox(right - theme::VALUE_WIDTH, top, theme::VALUE_WIDTH)),
               grabLeast(track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f),
               grabMost(track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f)
         {}
@@ -148,12 +148,12 @@ namespace mods_config::ui
         constexpr float ROOM = theme::VALUE_WIDTH - theme::SPACE_3 * 2.0f;
         const auto widthAt = [](const std::string& text, const float size) {
             ImGui::PushFont(nullptr, size);
-            const float width = textWidth(text);
+            const float width = controls::textWidth(text);
             ImGui::PopFont();
             return width;
         };
         auto text = numberText(setting, value);
-        if (textWidth(text) <= ROOM) {
+        if (controls::textWidth(text) <= ROOM) {
             return { .text = std::move(text), .fontSize = ImGui::GetFontSize(), .withUnit = true };
         }
         if (widthAt(text, theme::FONT_SIZE_DETAIL) <= ROOM) {
@@ -161,7 +161,7 @@ namespace mods_config::ui
         }
         auto number = numberText(setting, value, false);
         const bool withUnit = number == text;
-        const float size = textWidth(number) <= ROOM ? ImGui::GetFontSize() : theme::FONT_SIZE_DETAIL;
+        const float size = controls::textWidth(number) <= ROOM ? ImGui::GetFontSize() : theme::FONT_SIZE_DETAIL;
         return { .text = std::move(number), .fontSize = size, .withUnit = withUnit };
     }
 
@@ -259,13 +259,13 @@ namespace mods_config::ui
         const bool dragged = _dragged == &setting && _dragHeld && !_dragCancelled;
         const int pointedArrow = row.pointed && !dragged ? boxes.arrowAt(ImGui::GetIO().MousePos.x) : 0;
         const int heldArrow = _arrowHeld == &setting ? _arrowSide : 0;
-        drawStepButton(boxes.previous, ControlArrow::Left, value && *value > options.min, pointedArrow < 0, heldArrow < 0, STEP_ARROW_SCALE);
-        drawStepButton(boxes.next, ControlArrow::Right, value && *value < options.max, pointedArrow > 0, heldArrow > 0, STEP_ARROW_SCALE);
-        drawFrame(track);
+        controls::drawStepButton(boxes.previous, controls::Arrow::Left, value && *value > options.min, pointedArrow < 0, heldArrow < 0, STEP_ARROW_SCALE);
+        controls::drawStepButton(boxes.next, controls::Arrow::Right, value && *value < options.max, pointedArrow > 0, heldArrow > 0, STEP_ARROW_SCALE);
+        controls::drawFrame(track);
         if (dragged) {
-            drawOutline(track.Min, track.Max, theme::color::GLOW);
+            controls::drawOutline(track.Min, track.Max, theme::color::GLOW);
         }
-        drawFrame(boxes.valueBox, look);
+        controls::drawFrame(boxes.valueBox, toneOf(look));
         if (!value) {
             return boxes.previous.Min.x;
         }
@@ -284,7 +284,7 @@ namespace mods_config::ui
 
         const auto text = valueBoxText(setting, *value);
         ImGui::PushFont(nullptr, text.fontSize);
-        drawTextIn(boxes.valueBox, text.text, valueColor(look), 1.0f, theme::SPACE_3);
+        controls::drawTextIn(boxes.valueBox, text.text, valueColor(look), 1.0f, theme::SPACE_3);
         ImGui::PopFont();
         return boxes.previous.Min.x;
     }

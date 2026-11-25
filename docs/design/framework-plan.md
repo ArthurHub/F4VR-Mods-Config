@@ -109,13 +109,13 @@ Not an item of the requirements. SteamVR's keyboard opens where the dashboard wa
 
 ### ImGui controls
 
-Not an item of the requirements. The next mod, a cheat terminal and item spawner, is a tree beside a page of buttons, number inputs, sliders and search: the panel's small controls, which any ImGui panel in VR needs, move to the framework so it is built from them. Only what is plainly generic moves now. Framework version `0.7.0`.
+Not an item of the requirements. The next mod, a cheat terminal and item spawner, is a tree beside a page of buttons, number inputs, sliders and search: the panel's small controls, which any ImGui panel in VR needs, move to the framework so it is built from them. Only what is plainly generic moves now. Framework version `0.6.1`, the mod `1.1.1`.
 
-- **Where:** `src/imgui/controls/` with its README, namespace `f4cf::imgui::controls`. The drawing primitives are free functions; the controls' state is one `Controls` instance, `imgui::controls()`, as the keyboard and the pointer are.
+- **Where:** `src/imgui/controls/` with its README, namespace `f4cf::imgui::controls`. The drawing primitives are free functions; the controls' state is one `Controls` instance, `controls::get()`, as the keyboard and the pointer are one each.
 - **Shape:** ImGui's. A control takes plain values (a float with its range, step and format; option texts; a string) and keeps its state by `ImGuiID`. Nothing in it knows a setting, a store or a config spec, so a change to this mod's rows never touches the framework.
-- **Look:** a `ControlsStyle` set with `controls().setStyle`, as `KeyboardStyle` and `PointerStyle`, whose defaults are the framework's green (`F4VR_PANEL_STYLE`). The mod fills it from its generated [`Theme.h`](../../src/Theme.h); the design system and its generator stay in the mod.
+- **Look:** a `ControlsStyle` set with `controls::get().setStyle`, as `KeyboardStyle` and `PointerStyle`, whose defaults are the framework's green (`F4VR_PANEL_STYLE`). The mod fills it from its generated [`Theme.h`](../../src/Theme.h); the design system and its generator stay in the mod.
 - **Input:** a control reads the pointing hand's trigger and thumbstick through the framework, and plays the style's pulse on that hand as it acts. The mod passes no thumbstick value and handles no pulse for them.
-- **Back:** `controls().back()` ends what a control holds open (a drag, a list, a text edit) and returns whether it did. The mod calls it first; the order of the rest of Back stays the mod's.
+- **Back:** `controls::get().back()` ends what a control holds open (a drag, a list, a text edit) and returns whether it did. The mod calls it first; the order of the rest of Back stays the mod's.
 - **Pointed boxes:** a control returns its box, from which the mod's `PanelTargets` records it for devbench as now.
 - **Tests:** the framework tests each control on a headless ImGui context, as the mod's panel tests do. A port changes no look or behavior: the mod's panel and render tests pass unchanged after each.
 
@@ -129,8 +129,8 @@ Each framework commit is followed by the mod's port onto it, one at a time.
 
 | #   | Repo      | Commit                                                                                                       | Status  |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------ | ------- |
-| F26 | framework | imgui: controls style and drawing primitives: text, underlined ranges, drawn icons and marks, frames         | planned |
-| M13 | mod       | `Drawing` on the framework's primitives, `ControlsStyle` from `Theme.h`                                      | planned |
+| F26 | framework | imgui: controls style and drawing primitives: text, underlined ranges, drawn icons and marks, frames         | done    |
+| M13 | mod       | `Drawing` on the framework's primitives, `ControlsStyle` from `Theme.h`                                      | done    |
 | F27 | framework | imgui: button, icon button, switcher, dialog and its buttons                                                 | planned |
 | M14 | mod       | Buttons, switchers and dialogs from the framework                                                            | planned |
 | F28 | framework | imgui: slider: trigger drag written on release, step arrows, thumbstick steps that repeat, Back cancels      | planned |

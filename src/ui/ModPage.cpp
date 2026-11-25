@@ -61,12 +61,12 @@ namespace
             return false;
         }
         if (hasHelp) {
-            ui::drawRowState();
+            controls::drawRowState();
         }
 
         ImGui::BeginDisabled(hasHelp);
-        const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - ui::textWidth(type);
-        ui::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
+        const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - controls::textWidth(type);
+        controls::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
         ui::drawLabel(pos, typeLeft - theme::SPACE_3, text, runs, {}, query);
         ImGui::EndDisabled();
         return row.pointed;
@@ -133,16 +133,16 @@ namespace
         if (!row.shown) {
             return false;
         }
-        ui::drawRowState();
+        controls::drawRowState();
         const auto* key = std::get_if<std::string>(&stored.value);
         const std::string_view name = key ? std::string_view(*key) : "None";
-        const float boxWidth = (std::max)(KEY_MIN_WIDTH, std::ceil(ui::textWidth(name)) + theme::SPACE_3 * 2.0f);
-        const auto box = ui::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - boxWidth, pos.y, boxWidth);
+        const float boxWidth = (std::max)(KEY_MIN_WIDTH, std::ceil(controls::textWidth(name)) + theme::SPACE_3 * 2.0f);
+        const auto box = controls::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - boxWidth, pos.y, boxWidth);
 
         ImGui::BeginDisabled();
         ui::drawLabel(pos, box.Min.x - theme::SPACE_3, hotkey.text, hotkey.textRuns, {}, query);
-        ui::drawFrame(box);
-        ui::drawTextIn(box, name, theme::color::GREEN, 0.5f);
+        controls::drawFrame(box);
+        controls::drawTextIn(box, name, theme::color::GREEN, 0.5f);
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -158,7 +158,7 @@ namespace
         if (rows.Max.y <= rows.Min.y) {
             return;
         }
-        ui::drawOutline(rows.Min, rows.Max, theme::color::GREEN);
+        controls::drawOutline(rows.Min, rows.Max, theme::color::GREEN);
         if (scrollTo) {
             ImGui::ScrollToRectEx(ImGui::GetCurrentWindow(), rows, ImGuiScrollFlags_KeepVisibleCenterY);
             scrollTo = false;
@@ -241,7 +241,7 @@ namespace
             if (depth > 0 && headingShown && rowsEnd > rowsTop) {
                 // the rows' frames are a level in from the heading
                 const float rowsLeft = headingLeft + theme::SPACE_3;
-                ui::drawSectionLine(headingLeft + theme::SPACE_1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, rowsLeft - theme::SPACE_1);
+                controls::drawSectionLine(headingLeft + theme::SPACE_1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, rowsLeft - theme::SPACE_1);
             }
         }
         if (setIn) {

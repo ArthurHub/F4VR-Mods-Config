@@ -81,11 +81,11 @@ namespace mods_config::ui
      */
     float drawColor(const model::Setting& setting, const float right, const float top, const std::string* value, const ValueLook look, const bool open)
     {
-        const auto box = controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - ARROW_SIZE;
-        drawFrame(box, look);
+        const auto box = controls::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
+        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
+        controls::drawFrame(box, toneOf(look));
         if (open) {
-            drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
         }
         float textLeft = box.Min.x + theme::SPACE_4;
         std::string text;
@@ -99,8 +99,8 @@ namespace mods_config::ui
                 textLeft = swatchLeft + SWATCH_WIDTH + theme::SPACE_3;
             }
         }
-        drawText(textLeft, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, valueColor(look), text);
-        drawControlArrow(ImVec2(arrowLeft + ARROW_SIZE * 0.5f, box.GetCenter().y), ControlArrow::Down);
+        controls::drawText(textLeft, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, valueColor(look), text);
+        controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
         return box.Min.x;
     }
 }

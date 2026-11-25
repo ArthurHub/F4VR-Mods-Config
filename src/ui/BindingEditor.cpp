@@ -430,10 +430,10 @@ namespace
     void drawLabel(const std::string_view text, const ImVec2& at)
     {
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const ui::TextPiece piece{ .text = text, .color = ImGui::GetColorU32(theme::color::GREEN_MUTED) };
-        const int lines = (std::min)(ui::countTextLines(std::span(&piece, 1), LABEL_WIDTH), LABEL_MAX_LINES);
+        const controls::TextPiece piece{ .text = text, .color = ImGui::GetColorU32(theme::color::GREEN_MUTED) };
+        const int lines = (std::min)(controls::countTextLines(std::span(&piece, 1), LABEL_WIDTH), LABEL_MAX_LINES);
         const float height = static_cast<float>(lines) * ImGui::GetFontSize();
-        ui::drawTextPieces(std::span(&piece, 1), ImVec2(at.x, at.y + std::floor((theme::CONTROL_HEIGHT - height) * 0.5f)), LABEL_WIDTH, LABEL_MAX_LINES);
+        controls::drawTextPieces(std::span(&piece, 1), ImVec2(at.x, at.y + std::floor((theme::CONTROL_HEIGHT - height) * 0.5f)), LABEL_WIDTH, LABEL_MAX_LINES);
         ImGui::PopFont();
     }
 
@@ -442,7 +442,7 @@ namespace
      */
     ImRect partControl(const ImVec2& at, const float width)
     {
-        return ui::controlBox(at.x + LABEL_WIDTH + theme::SPACE_2, at.y, width);
+        return controls::controlBox(at.x + LABEL_WIDTH + theme::SPACE_2, at.y, width);
     }
 
     /**
@@ -454,13 +454,13 @@ namespace
         ImGui::SetCursorScreenPos(box.Min);
         const bool pressed = ImGui::InvisibleButton("box", box.GetSize());
         const bool pointed = ImGui::IsItemHovered();
-        ui::drawFrame(box);
+        controls::drawFrame(box);
         if (pointed || open) {
-            ui::drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
         }
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - ui::ARROW_SIZE;
-        ui::drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, box.Min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
-        ui::drawControlArrow(ImVec2(arrowLeft + ui::ARROW_SIZE * 0.5f, box.GetCenter().y), ui::ControlArrow::Down);
+        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
+        controls::drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, box.Min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+        controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
         return pressed;
     }
 
@@ -468,13 +468,13 @@ namespace
      * A button of the stepper of a part, with its arrow. One that goes nowhere is disabled. Returns whether it was
      * pressed.
      */
-    bool stepButton(const char* id, const ImRect& box, const ui::ControlArrow arrow, const bool enabled)
+    bool stepButton(const char* id, const ImRect& box, const controls::Arrow arrow, const bool enabled)
     {
         ImGui::BeginDisabled(!enabled);
         ImGui::SetCursorScreenPos(box.Min);
         const bool pressed = ImGui::InvisibleButton(id, box.GetSize());
-        ui::drawButtonFrame(box, enabled && ImGui::IsItemHovered(), enabled && ImGui::IsItemActive());
-        ui::drawControlArrow(box.GetCenter(), arrow);
+        controls::drawButtonFrame(box, enabled && ImGui::IsItemHovered(), enabled && ImGui::IsItemActive());
+        controls::drawControlArrow(box.GetCenter(), arrow);
         ImGui::EndDisabled();
         return pressed;
     }
@@ -882,20 +882,20 @@ namespace mods_config::ui
     {
         const auto at = frame.partAt(false, 3);
         const auto box = partControl(at, PART_WIDTH);
-        const auto previous = controlBox(box.Min.x, at.y, theme::CONTROL_HEIGHT);
-        const auto next = controlBox(box.Max.x - theme::CONTROL_HEIGHT, at.y, theme::CONTROL_HEIGHT);
+        const auto previous = controls::controlBox(box.Min.x, at.y, theme::CONTROL_HEIGHT);
+        const auto next = controls::controlBox(box.Max.x - theme::CONTROL_HEIGHT, at.y, theme::CONTROL_HEIGHT);
         const ImRect side(previous.Max.x + theme::SPACE_2, at.y, next.Min.x - theme::SPACE_2, at.y + theme::CONTROL_HEIGHT);
         const auto place = placeOf(DIRECTIONS, _binding.direction);
         const auto moved = placeOf(MOVED_DIRECTIONS, _binding.direction);
         ImGui::PushID("direction");
         drawLabel("Direction", at);
-        if (stepButton("previous", previous, ControlArrow::Left, place && *place > 0)) {
+        if (stepButton("previous", previous, controls::Arrow::Left, place && *place > 0)) {
             _binding.direction = DIRECTIONS[*place - 1].value;
             frame.changed = true;
         }
-        drawFrame(side);
-        drawTextIn(side, moved ? MOVED_DIRECTIONS[*moved].text : DIRECTIONS[place.value_or(0)].text, theme::color::GREEN, 0.5f);
-        if (stepButton("next", next, ControlArrow::Right, place && *place + 1 < DIRECTIONS.size())) {
+        controls::drawFrame(side);
+        controls::drawTextIn(side, moved ? MOVED_DIRECTIONS[*moved].text : DIRECTIONS[place.value_or(0)].text, theme::color::GREEN, 0.5f);
+        if (stepButton("next", next, controls::Arrow::Right, place && *place + 1 < DIRECTIONS.size())) {
             _binding.direction = DIRECTIONS[*place + 1].value;
             frame.changed = true;
         }
@@ -916,7 +916,7 @@ namespace mods_config::ui
         const bool enabled = hasDuration(_binding.type) || push;
         const auto [typeValue, least, most, current] = timeSliderOf(_binding, push);
         const auto track = partControl(at, SLIDER_TRACK_WIDTH);
-        const auto valueBox = controlBox(track.Max.x + theme::SPACE_2, at.y, PART_WIDTH - SLIDER_TRACK_WIDTH - theme::SPACE_2);
+        const auto valueBox = controls::controlBox(track.Max.x + theme::SPACE_2, at.y, PART_WIDTH - SLIDER_TRACK_WIDTH - theme::SPACE_2);
         const float grabLeast = track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
         const float grabMost = track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f;
         const auto name = push ? std::string_view("Threshold") : std::string_view("Duration");
@@ -948,11 +948,11 @@ namespace mods_config::ui
             setValue(*stepped);
         }
         const float shownValue = _dragged.value_or(stepped.value_or(current));
-        drawFrame(track);
-        drawFrame(valueBox);
+        controls::drawFrame(track);
+        controls::drawFrame(valueBox);
         if (enabled) {
             drawTimeGrab(track, grabLeast, grabMost, std::clamp((shownValue - least) / (most - least), 0.0f, 1.0f), _dragged.has_value());
-            drawTextIn(valueBox, timeText(_binding.type, push, shownValue), theme::color::GREEN, 1.0f, theme::SPACE_3);
+            controls::drawTextIn(valueBox, timeText(_binding.type, push, shownValue), theme::color::GREEN, 1.0f, theme::SPACE_3);
         }
         ImGui::EndDisabled();
         ImGui::PopID();
@@ -1049,18 +1049,23 @@ namespace mods_config::ui
     {
         const auto stored = frame.store.value(frame.setting);
         const auto color = valueColor(stored.invalid ? ValueLook::Invalid : frame.store.isDirty(frame.setting) ? ValueLook::Pending : ValueLook::Saved);
-        drawText(frame.contentLeft, frame.contentRight, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(frame.setting.text, &frame.store));
+        controls::drawText(frame.contentLeft,
+            frame.contentRight,
+            frame.headerTop,
+            theme::CONTROL_HEIGHT,
+            theme::color::GREEN,
+            model::resolveClientText(frame.setting.text, &frame.store));
         const auto& strip = frame.strip;
         ImGui::GetWindowDrawList()->AddRectFilled(strip.Min, strip.Max, ImGui::GetColorU32(theme::color::PLATE), theme::RADIUS_FRAME);
         const float iconsLeft = strip.Min.x + theme::SPACE_3;
         const float iconsRight = drawBindingIcons(_binding, iconsLeft, strip.GetCenter().y, STRIP_ICON_SCALE, ImGui::GetColorU32(color), frame.leftHanded, frame.drawer);
         const float sentenceLeft = iconsRight > iconsLeft ? iconsRight + theme::SPACE_3 : strip.Min.x + theme::SPACE_4;
         const auto sentence = bindingSentence(_binding, frame.leftHanded);
-        const TextPiece piece{ .text = sentence, .color = ImGui::GetColorU32(color) };
+        const controls::TextPiece piece{ .text = sentence, .color = ImGui::GetColorU32(color) };
         const float sentenceWidth = strip.Max.x - theme::SPACE_4 - sentenceLeft;
-        const int lines = (std::min)(countTextLines(std::span(&piece, 1), sentenceWidth), 2);
+        const int lines = (std::min)(controls::countTextLines(std::span(&piece, 1), sentenceWidth), 2);
         const float sentenceTop = strip.GetCenter().y - static_cast<float>(lines) * ImGui::GetFontSize() * 0.5f;
-        drawTextPieces(std::span(&piece, 1), ImVec2(sentenceLeft, std::floor(sentenceTop)), sentenceWidth, 2);
+        controls::drawTextPieces(std::span(&piece, 1), ImVec2(sentenceLeft, std::floor(sentenceTop)), sentenceWidth, 2);
     }
 
     /**
@@ -1073,8 +1078,8 @@ namespace mods_config::ui
         const float ruleY = frame.partsTop + partLines * theme::CONTROL_HEIGHT + (partLines - 1.0f) * theme::SPACE_2 + theme::SPACE_3;
         ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
         const float footerTop = ruleY + theme::BORDER_FRAME + theme::SPACE_3;
-        const auto done = controlBox(frame.contentRight - DONE_WIDTH, footerTop, DONE_WIDTH);
-        const auto cancelBox = controlBox(done.Min.x - theme::SPACE_3 - CANCEL_WIDTH, footerTop, CANCEL_WIDTH);
+        const auto done = controls::controlBox(frame.contentRight - DONE_WIDTH, footerTop, DONE_WIDTH);
+        const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_3 - CANCEL_WIDTH, footerTop, CANCEL_WIDTH);
         if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();

@@ -114,35 +114,35 @@ namespace mods_config::ui
         }
         if (!hasRow && _look == StatusLook::Pending) {
             constexpr float MARK_WIDTH = 10.0f;
-            drawPendingMark(ImVec2(pos.x + MARK_WIDTH * 0.5f, middle));
+            controls::drawDot(ImVec2(pos.x + MARK_WIDTH * 0.5f, middle), theme::color::AMBER);
             const float left = pos.x + MARK_WIDTH + theme::SPACE_2;
-            drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::AMBER, _status);
+            controls::drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::AMBER, _status);
             return;
         }
         if (!hasRow && _look == StatusLook::Restart) {
             drawRestartMark(pos.x, middle);
             const float left = pos.x + restartMarkWidth() + theme::SPACE_2;
-            drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::GREEN, _status);
+            controls::drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::GREEN, _status);
             return;
         }
         const bool invalid = hasRow ? _invalid : _look == StatusLook::Invalid;
-        const auto mark = invalid ? TextMark::Invalid : !_warning.empty() ? TextMark::Warning : hasRow && !_result.empty() ? TextMark::Info : TextMark::None;
-        const std::array pieces{ TextPiece{ .text = _name, .color = theme::color::GREEN },
-            TextPiece{ .text = {}, .color = theme::color::AMBER, .mark = mark },
-            TextPiece{ .text = _warning, .color = theme::color::AMBER },
-            TextPiece{ .text = hasRow && !invalid ? std::string_view(_result) : std::string_view(), .color = theme::color::GREEN },
-            TextPiece{ .text = hasRow ? _help : _status, .color = invalid ? theme::color::RED : theme::color::GREEN_MUTED } };
-        int lines = countTextLines(pieces, width);
+        const auto mark = invalid ? controls::Mark::Error : !_warning.empty() ? controls::Mark::Warning : hasRow && !_result.empty() ? controls::Mark::Info : controls::Mark::None;
+        const std::array pieces{ controls::TextPiece{ .text = _name, .color = theme::color::GREEN },
+            controls::TextPiece{ .text = {}, .color = theme::color::AMBER, .mark = mark },
+            controls::TextPiece{ .text = _warning, .color = theme::color::AMBER },
+            controls::TextPiece{ .text = hasRow && !invalid ? std::string_view(_result) : std::string_view(), .color = theme::color::GREEN },
+            controls::TextPiece{ .text = hasRow ? _help : _status, .color = invalid ? theme::color::RED : theme::color::GREEN_MUTED } };
+        int lines = controls::countTextLines(pieces, width);
         if (lines == 0) {
             return;
         }
         const bool detail = lines > BODY_LINES;
         if (detail) {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            lines = (std::min)(countTextLines(pieces, width), DETAIL_LINES);
+            lines = (std::min)(controls::countTextLines(pieces, width), DETAIL_LINES);
         }
         const float height = static_cast<float>(lines) * ImGui::GetFontSize();
-        drawTextPieces(pieces, ImVec2(pos.x, pos.y + (theme::FOOTER_HEIGHT - height) * 0.5f), width, lines);
+        controls::drawTextPieces(pieces, ImVec2(pos.x, pos.y + (theme::FOOTER_HEIGHT - height) * 0.5f), width, lines);
         if (detail) {
             ImGui::PopFont();
         }

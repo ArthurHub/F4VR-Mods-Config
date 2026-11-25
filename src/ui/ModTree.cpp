@@ -76,8 +76,8 @@ namespace
      */
     void drawArrow(const float left, const float rowTop, const bool open, const ImU32 color)
     {
-        const ImVec2 box(left + (ARROW_COLUMN - ui::FOLD_ARROW_SIZE) * 0.5f, rowTop + (theme::CONTROL_HEIGHT - ui::FOLD_ARROW_SIZE) * 0.5f);
-        ui::drawFoldArrow(box, open, color);
+        const ImVec2 box(left + (ARROW_COLUMN - controls::FOLD_ARROW_SIZE) * 0.5f, rowTop + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f);
+        controls::drawFoldArrow(box, open, color);
     }
 
     /**
@@ -89,11 +89,11 @@ namespace
         ImGui::PushFont(nullptr, TAG_FONT_SIZE);
         const float inside = TAG_PADDING + theme::BORDER_FRAME;
         const float height = TAG_FONT_SIZE + inside * 2.0f;
-        const float width = std::ceil(ui::textWidth(tag) + inside * 2.0f);
+        const float width = std::ceil(controls::textWidth(tag) + inside * 2.0f);
         const ImVec2 min(std::floor(right - width), std::floor(rowTop + (theme::CONTROL_HEIGHT - height) * 0.5f));
         const ImVec2 max(min.x + width, min.y + height);
-        ui::drawOutline(min, max, onFill ? theme::color::ON_GREEN : theme::color::RULE);
-        ui::drawText(min.x + inside, max.x, min.y, height, onFill ? theme::color::ON_GREEN : theme::color::GREEN, tag);
+        controls::drawOutline(min, max, onFill ? theme::color::ON_GREEN : theme::color::RULE);
+        controls::drawText(min.x + inside, max.x, min.y, height, onFill ? theme::color::ON_GREEN : theme::color::GREEN, tag);
         ImGui::PopFont();
         return min.x;
     }
@@ -116,14 +116,14 @@ namespace
     float drawNameWithDot(const float left, const float right, const float top, const ImU32 color, const std::string_view name, const bool unsaved, const bool onFill)
     {
         if (!unsaved) {
-            ui::drawText(left, right, top, theme::CONTROL_HEIGHT, color, name);
-            return (std::min)(left + ui::textWidth(name), right);
+            controls::drawText(left, right, top, theme::CONTROL_HEIGHT, color, name);
+            return (std::min)(left + controls::textWidth(name), right);
         }
-        const float nameRight = right - theme::SPACE_2 - ui::PENDING_MARK_WIDTH;
-        ui::drawText(left, nameRight, top, theme::CONTROL_HEIGHT, color, name);
-        const float dotLeft = (std::min)(left + ui::textWidth(name), nameRight) + theme::SPACE_2;
-        ui::drawPendingMark(ImVec2(dotLeft + ui::PENDING_MARK_WIDTH * 0.5f, top + theme::CONTROL_HEIGHT * 0.5f), onFill ? theme::color::ON_GREEN : theme::color::AMBER);
-        return dotLeft + ui::PENDING_MARK_WIDTH;
+        const float nameRight = right - theme::SPACE_2 - controls::DOT_WIDTH;
+        controls::drawText(left, nameRight, top, theme::CONTROL_HEIGHT, color, name);
+        const float dotLeft = (std::min)(left + controls::textWidth(name), nameRight) + theme::SPACE_2;
+        controls::drawDot(ImVec2(dotLeft + controls::DOT_WIDTH * 0.5f, top + theme::CONTROL_HEIGHT * 0.5f), onFill ? theme::color::ON_GREEN : theme::color::AMBER);
+        return dotLeft + controls::DOT_WIDTH;
     }
 
     /**
@@ -154,14 +154,14 @@ namespace
         if (found.count > 0) {
             ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
             const auto count = std::to_string(found.count);
-            const float countLeft = right - ui::textWidth(count);
-            ui::drawText(countLeft, right, min.y, theme::CONTROL_HEIGHT, onFill ? theme::color::ON_GREEN : theme::color::GREEN_MUTED, count);
+            const float countLeft = right - controls::textWidth(count);
+            controls::drawText(countLeft, right, min.y, theme::CONTROL_HEIGHT, onFill ? theme::color::ON_GREEN : theme::color::GREEN_MUTED, count);
             ImGui::PopFont();
             right = countLeft - theme::SPACE_2;
         }
         const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
         drawNameWithDot(nameLeft, right, min.y, color, name, unsaved, onFill);
-        ui::drawUnderlines(nameLeft, right, min.y, theme::CONTROL_HEIGHT, color, name, found.ranges);
+        controls::drawUnderlines(nameLeft, right, min.y, theme::CONTROL_HEIGHT, color, name, found.ranges);
     }
 
     /**
@@ -209,9 +209,9 @@ namespace
         }
 
         if (selected) {
-            ui::drawSelectedBar(min, max);
+            controls::drawSelectedBar(min, max);
         } else {
-            ui::drawRowState();
+            controls::drawRowState();
         }
         const auto color = selected ? theme::color::ON_GREEN : theme::color::GREEN;
         const float left = min.x + theme::SPACE_2 + indentOf(level);
@@ -237,7 +237,7 @@ namespace
             return false;
         }
         const bool pointed = ImGui::IsItemHovered();
-        ui::drawRowState();
+        controls::drawRowState();
 
         ImGui::BeginDisabled();
         const float left = min.x + theme::SPACE_2 + indentOf(level);
@@ -266,21 +266,21 @@ namespace
             return pressed;
         }
         const auto color = theme::color::GREEN_MUTED;
-        ui::drawRowState();
+        controls::drawRowState();
         const float left = min.x + theme::SPACE_2;
         drawArrow(left, min.y, open, color);
 
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
         const auto countText = std::to_string(count);
         const float countRight = max.x - theme::SPACE_3;
-        const float countLeft = countRight - ui::textWidth(countText);
-        ui::drawText(countLeft, countRight, min.y, theme::CONTROL_HEIGHT, color, countText);
+        const float countLeft = countRight - controls::textWidth(countText);
+        controls::drawText(countLeft, countRight, min.y, theme::CONTROL_HEIGHT, color, countText);
         ImGui::PopFont();
 
         const float ruleRight = countLeft - theme::SPACE_2;
         const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
-        const float dotWidth = unsaved ? theme::SPACE_2 + ui::PENDING_MARK_WIDTH : 0.0f;
-        const float nameRight = (std::min)(nameLeft + ui::textWidth(name) + dotWidth, ruleRight - CATEGORY_RULE_MIN_WIDTH - theme::SPACE_3);
+        const float dotWidth = unsaved ? theme::SPACE_2 + controls::DOT_WIDTH : 0.0f;
+        const float nameRight = (std::min)(nameLeft + controls::textWidth(name) + dotWidth, ruleRight - CATEGORY_RULE_MIN_WIDTH - theme::SPACE_3);
         const float drawnRight = drawNameWithDot(nameLeft, nameRight, min.y, color, name, unsaved, false);
         const float ruleLeft = std::ceil(drawnRight) + theme::SPACE_3;
         if (ruleLeft < ruleRight) {
@@ -565,7 +565,7 @@ namespace mods_config::ui
         if (!any) {
             const auto pos = ImGui::GetCursorScreenPos();
             ImGui::Dummy(ImVec2(rowWidth, theme::CONTROL_HEIGHT));
-            drawText(pos.x + theme::SPACE_2, pos.x + rowWidth, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, "No mod matches");
+            controls::drawText(pos.x + theme::SPACE_2, pos.x + rowWidth, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, "No mod matches");
         }
     }
 

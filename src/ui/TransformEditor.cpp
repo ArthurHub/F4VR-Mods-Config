@@ -119,13 +119,13 @@ namespace
         ImGui::BeginDisabled(!enabled);
         ImGui::SetCursorScreenPos(box.Min);
         const bool pressed = ImGui::InvisibleButton("adjust", box.GetSize());
-        ui::drawOutline(box.Min, box.Max, theme::color::ACCENT);
+        controls::drawOutline(box.Min, box.Max, theme::color::ACCENT);
         if (ImGui::IsItemActive()) {
-            ui::drawButtonRing(box, theme::color::ACCENT);
+            controls::drawButtonRing(box, theme::color::ACCENT);
         }
         const float iconLeft = box.Min.x + theme::SPACE_4;
         ui::drawButtonIcon(model::ButtonIcon::Hand, ImVec2(iconLeft + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), theme::color::ACCENT);
-        ui::drawText(iconLeft + ui::BUTTON_ICON_SIZE + theme::SPACE_2, box.Max.x, box.Min.y, box.GetHeight(), theme::color::ACCENT, ADJUST_TEXT);
+        controls::drawText(iconLeft + ui::BUTTON_ICON_SIZE + theme::SPACE_2, box.Max.x, box.Min.y, box.GetHeight(), theme::color::ACCENT, ADJUST_TEXT);
         ImGui::EndDisabled();
         return pressed;
     }
@@ -246,7 +246,7 @@ namespace mods_config::ui
             .mouse = ImGui::GetIO().MousePos };
 
         // the header: the setting's name
-        drawText(frame.contentLeft, frame.contentRight, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
+        controls::drawText(frame.contentLeft, frame.contentRight, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN, model::resolveClientText(setting.text, &store));
 
         // a line for each axis of the parts that are on
         const auto saved = savedTable(setting, store);
@@ -290,14 +290,14 @@ namespace mods_config::ui
 
         if (pointed) {
             ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
-            drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
+            controls::drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
             frame.point(AXES[axis].name, axisHelp(frame.setting, axis, frame.store));
         }
         const float shownValue = model::axisValue(_table, axis);
         const bool differs = frame.store.isDirty(frame.setting) && (!saved || common::fNotEqual(model::axisValue(*saved, axis), shownValue));
         _axes[axis].display.decimals = (std::max)(stepDecimals(frame.setting.valueOptions.transformAxes[axis].step), stepDecimals(shownValue));
         const float labelLeft = frame.contentLeft + theme::SPACE_2;
-        drawText(labelLeft, labelLeft + LABEL_WIDTH, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN, AXES[axis].name);
+        controls::drawText(labelLeft, labelLeft + LABEL_WIDTH, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN, AXES[axis].name);
         _sliders.draw(_axes[axis], right, lineTop, sliderRow, shownValue, differs ? ValueLook::Pending : ValueLook::Saved);
     }
 
@@ -310,7 +310,8 @@ namespace mods_config::ui
         const float ruleY = frame.footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
         ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
         const auto notPreviewed = frame.store.notPreviewed(frame.setting);
-        const auto adjustBox = controlBox(frame.contentLeft, frame.footerTop, textWidth(ADJUST_TEXT) + BUTTON_ICON_SIZE + theme::SPACE_2 + theme::SPACE_4 * 2.0f);
+        const auto adjustBox =
+            controls::controlBox(frame.contentLeft, frame.footerTop, controls::textWidth(ADJUST_TEXT) + BUTTON_ICON_SIZE + theme::SPACE_2 + theme::SPACE_4 * 2.0f);
         if (drawAdjustButton(adjustBox, notPreviewed.empty())) {
             frame.edited.adjust = true;
             frame.edited.pulse = true;
@@ -318,10 +319,10 @@ namespace mods_config::ui
         if (frame.hovered && adjustBox.Contains(frame.mouse)) {
             frame.point(ADJUST_TEXT, notPreviewed.empty() ? std::string(ADJUST_HELP) : notPreviewed);
         }
-        const float doneWidth = textWidth("Done") + theme::SPACE_4 * 2.0f;
-        const float cancelWidth = textWidth("Cancel") + theme::SPACE_4 * 2.0f;
-        const auto done = controlBox(frame.contentRight - doneWidth, frame.footerTop, doneWidth);
-        const auto cancelBox = controlBox(done.Min.x - theme::SPACE_2 - cancelWidth, frame.footerTop, cancelWidth);
+        const float doneWidth = controls::textWidth("Done") + theme::SPACE_4 * 2.0f;
+        const float cancelWidth = controls::textWidth("Cancel") + theme::SPACE_4 * 2.0f;
+        const auto done = controls::controlBox(frame.contentRight - doneWidth, frame.footerTop, doneWidth);
+        const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_2 - cancelWidth, frame.footerTop, cancelWidth);
         if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();

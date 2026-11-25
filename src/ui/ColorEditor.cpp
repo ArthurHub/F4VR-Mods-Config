@@ -98,7 +98,7 @@ namespace
         const auto left = ImGui::GetColorU32(ui::colorU32(withChannel(color, channel, 0), channel < 3));
         const auto right = ImGui::GetColorU32(ui::colorU32(withChannel(color, channel, 255), channel < 3));
         drawList->AddRectFilledMultiColor(track.Min, track.Max, left, right, right, left);
-        ui::drawOutline(track.Min, track.Max, dragged ? theme::color::GLOW : theme::color::FRAME_BORDER);
+        controls::drawOutline(track.Min, track.Max, dragged ? theme::color::GLOW : theme::color::FRAME_BORDER);
     }
 
     /**
@@ -153,7 +153,7 @@ namespace
     void drawDetail(const std::string_view text, const float left, const float right, const float top, const float height, const ImU32 color)
     {
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        ui::drawText(left, right, top, height, color, text);
+        controls::drawText(left, right, top, height, color, text);
         ImGui::PopFont();
     }
 
@@ -298,12 +298,12 @@ namespace mods_config::ui
         const float swatchTop = frame.headerTop + (theme::CONTROL_HEIGHT - BIG_SWATCH_HEIGHT) * 0.5f;
         const ImRect now(nowLeft, swatchTop, frame.contentRight, swatchTop + BIG_SWATCH_HEIGHT);
         ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const float nowLabelLeft = nowLeft - theme::SPACE_2 - textWidth("Now");
+        const float nowLabelLeft = nowLeft - theme::SPACE_2 - controls::textWidth("Now");
         const float beforeRight = nowLabelLeft - theme::SPACE_4;
-        const float beforeLabelLeft = beforeRight - BIG_SWATCH_WIDTH - theme::SPACE_2 - textWidth("Before");
+        const float beforeLabelLeft = beforeRight - BIG_SWATCH_WIDTH - theme::SPACE_2 - controls::textWidth("Before");
         ImGui::PopFont();
         const ImRect before(beforeRight - BIG_SWATCH_WIDTH, swatchTop, beforeRight, swatchTop + BIG_SWATCH_HEIGHT);
-        drawText(frame.contentLeft,
+        controls::drawText(frame.contentLeft,
             beforeLabelLeft - theme::SPACE_3,
             frame.headerTop,
             theme::CONTROL_HEIGHT,
@@ -320,7 +320,7 @@ namespace mods_config::ui
         }
         drawSwatch(before, beforeColor, frame.alpha);
         if (ImGui::IsItemHovered()) {
-            drawOutline(before.Min, before.Max, theme::color::GREEN);
+            controls::drawOutline(before.Min, before.Max, theme::color::GREEN);
             frame.point("Before", "The color when the editor opened. Press it to go back to it.");
         }
         return now;
@@ -374,7 +374,7 @@ namespace mods_config::ui
         const float channelsLeft = frame.contentRight - CHANNELS_WIDTH;
         const float lineTop = frame.bodyTop + static_cast<float>(channel) * theme::ROW_PITCH;
         const ImRect line(channelsLeft, lineTop, frame.contentRight, lineTop + theme::CONTROL_HEIGHT);
-        const auto valueBox = controlBox(frame.contentRight - theme::VALUE_WIDTH, lineTop, theme::VALUE_WIDTH);
+        const auto valueBox = controls::controlBox(frame.contentRight - theme::VALUE_WIDTH, lineTop, theme::VALUE_WIDTH);
         const float trackLeft = channelsLeft + CHANNEL_LABEL_WIDTH + theme::SPACE_2;
         const ImRect track(trackLeft, lineTop, valueBox.Min.x - theme::SPACE_2, lineTop + theme::CONTROL_HEIGHT);
         const int current = _color.bytes()[channel];
@@ -410,15 +410,15 @@ namespace mods_config::ui
 
         if (pointed) {
             ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
-            drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
+            controls::drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
             frame.point(CHANNELS[channel].name, std::string(CHANNELS[channel].help));
         }
         drawDetail(CHANNELS[channel].name, channelsLeft, trackLeft, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN);
         const int byte = _color.bytes()[channel];
         drawTrack(track, _color, channel, _dragged == channel);
         drawGrab(track, byte, _dragged == channel);
-        drawFrame(valueBox);
-        drawTextIn(valueBox, std::format("{}", byte), theme::color::GREEN, 1.0f, theme::SPACE_3);
+        controls::drawFrame(valueBox);
+        controls::drawTextIn(valueBox, std::format("{}", byte), theme::color::GREEN, 1.0f, theme::SPACE_3);
     }
 
     /**
@@ -468,7 +468,7 @@ namespace mods_config::ui
         ImGui::PopID();
         drawSwatch(box, color, hasAlpha);
         if (over) {
-            drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
             frame.point(name.empty() ? "Preset" : name, std::format("{}. Press it to set the color.", model::colorNumbers(color, hasAlpha)));
         }
     }
@@ -479,8 +479,8 @@ namespace mods_config::ui
      */
     void ColorEditor::drawFooter(Frame& frame)
     {
-        const auto done = controlBox(frame.contentRight - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
-        const auto cancelBox = controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
+        const auto done = controls::controlBox(frame.contentRight - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
+        const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
         if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();

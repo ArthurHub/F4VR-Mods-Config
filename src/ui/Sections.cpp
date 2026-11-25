@@ -93,7 +93,7 @@ namespace mods_config::ui
             counts.push_back({ .mark = CountMark::Pending, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
         }
         const auto text = model::resolveClientText(group.text, store);
-        drawFoldingHeading(text, pos, width, folded, counts, TextMark::None, query ? model::matchRanges(*query, text) : std::vector<model::TextRange>());
+        drawFoldingHeading(text, pos, width, folded, counts, controls::Mark::None, query ? model::matchRanges(*query, text) : std::vector<model::TextRange>());
         return folded;
     }
 

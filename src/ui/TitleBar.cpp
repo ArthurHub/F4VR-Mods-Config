@@ -45,7 +45,7 @@ namespace
 
     float crumbWidth(const std::string_view text)
     {
-        return ui::textWidth(text) + theme::SPACE_2 * 2.0f;
+        return controls::textWidth(text) + theme::SPACE_2 * 2.0f;
     }
 
     /**
@@ -65,16 +65,16 @@ namespace
         } else if (look == ui::CrumbLook::Link) {
             ImGui::SetCursorScreenPos(min);
             pressed = ImGui::InvisibleButton(id, ImVec2(width, theme::CONTROL_HEIGHT));
-            ui::drawRowState();
+            controls::drawRowState();
             if (!ImGui::IsItemHovered() && !ImGui::IsItemActive()) {
                 color = theme::color::GREEN_MUTED;
             }
         }
         const float textLeft = min.x + theme::SPACE_2;
-        const float suffixLeft = (std::min)(textLeft + ui::textWidth(text), max.x - theme::SPACE_2 - ui::textWidth(suffix));
-        ui::drawText(textLeft, suffix.empty() ? max.x - theme::SPACE_1 : suffixLeft, min.y, theme::CONTROL_HEIGHT, color, text);
+        const float suffixLeft = (std::min)(textLeft + controls::textWidth(text), max.x - theme::SPACE_2 - controls::textWidth(suffix));
+        controls::drawText(textLeft, suffix.empty() ? max.x - theme::SPACE_1 : suffixLeft, min.y, theme::CONTROL_HEIGHT, color, text);
         if (!suffix.empty()) {
-            ui::drawText(suffixLeft, max.x, min.y, theme::CONTROL_HEIGHT, theme::color::DISABLED, suffix);
+            controls::drawText(suffixLeft, max.x, min.y, theme::CONTROL_HEIGHT, theme::color::DISABLED, suffix);
         }
         return pressed;
     }
@@ -85,7 +85,7 @@ namespace
      */
     void drawElided(const ImVec2& min)
     {
-        ui::drawText(min.x + theme::SPACE_2, min.x + crumbWidth(PAGES_ELIDED) - theme::SPACE_1, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, PAGES_ELIDED);
+        controls::drawText(min.x + theme::SPACE_2, min.x + crumbWidth(PAGES_ELIDED) - theme::SPACE_1, min.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, PAGES_ELIDED);
     }
 
     /**
@@ -93,7 +93,7 @@ namespace
      */
     float highlightedHelpWidth()
     {
-        return std::ceil(ui::textWidth(HELP_MARK) + theme::SPACE_2 + ui::textWidth(HELP_LABEL) + theme::SPACE_4 * 2.0f);
+        return std::ceil(controls::textWidth(HELP_MARK) + theme::SPACE_2 + controls::textWidth(HELP_LABEL) + theme::SPACE_4 * 2.0f);
     }
 
     /**
@@ -109,13 +109,13 @@ namespace
         if (pointed || held) {
             ImGui::GetWindowDrawList()->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(held ? theme::color::PRESSED : theme::color::HOVER), theme::RADIUS_FRAME);
         }
-        ui::drawOutline(box.Min, box.Max, theme::color::ACCENT);
+        controls::drawOutline(box.Min, box.Max, theme::color::ACCENT);
         if (held) {
-            ui::drawButtonRing(box, theme::color::ACCENT);
+            controls::drawButtonRing(box, theme::color::ACCENT);
         }
         const float textLeft = box.Min.x + theme::SPACE_4;
-        ui::drawText(textLeft, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_MARK);
-        ui::drawText(textLeft + ui::textWidth(HELP_MARK) + theme::SPACE_2, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_LABEL);
+        controls::drawText(textLeft, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_MARK);
+        controls::drawText(textLeft + controls::textWidth(HELP_MARK) + theme::SPACE_2, box.Max.x, box.Min.y, theme::CONTROL_HEIGHT, theme::color::ACCENT, HELP_LABEL);
         return pressed;
     }
 
@@ -127,7 +127,7 @@ namespace
         ImGui::GetWindowDrawList()->AddLine(ImVec2(center.x - 6.0f, center.y + 5.0f),
             ImVec2(center.x + 6.0f, center.y + 5.0f),
             ImGui::GetColorU32(theme::color::GREEN),
-            ui::ICON_THICKNESS);
+            controls::ICON_THICKNESS);
     }
 
     /**
@@ -138,8 +138,8 @@ namespace
         constexpr float HALF = 6.0f;
         const auto color = ImGui::GetColorU32(theme::color::GREEN);
         auto* drawList = ImGui::GetWindowDrawList();
-        drawList->AddLine(ImVec2(center.x - HALF, center.y - HALF), ImVec2(center.x + HALF, center.y + HALF), color, ui::ICON_THICKNESS);
-        drawList->AddLine(ImVec2(center.x + HALF, center.y - HALF), ImVec2(center.x - HALF, center.y + HALF), color, ui::ICON_THICKNESS);
+        drawList->AddLine(ImVec2(center.x - HALF, center.y - HALF), ImVec2(center.x + HALF, center.y + HALF), color, controls::ICON_THICKNESS);
+        drawList->AddLine(ImVec2(center.x + HALF, center.y - HALF), ImVec2(center.x - HALF, center.y + HALF), color, controls::ICON_THICKNESS);
     }
 
 }
@@ -177,7 +177,7 @@ namespace mods_config::ui
             const bool highlighted = highlightHelp && button.button == TitleButton::Help;
             const float buttonWidth = highlighted ? highlightedHelpWidth() : theme::CONTROL_HEIGHT;
             buttonLeft -= buttonWidth;
-            const auto box = controlBox(buttonLeft, buttonTop, buttonWidth);
+            const auto box = controls::controlBox(buttonLeft, buttonTop, buttonWidth);
             panelTargets().add(TargetKind::TitleButton, button.name, box);
             bool pointed = false;
             if (highlighted ? highlightedHelp(button.name, box, pointed) : iconButton(button.name, box, pointed)) {
@@ -191,7 +191,7 @@ namespace mods_config::ui
             } else if (button.button == TitleButton::Close) {
                 drawCloseIcon(box.GetCenter());
             } else if (!highlighted) {
-                drawTextIn(box, HELP_MARK, theme::color::GREEN, 0.5f);
+                controls::drawTextIn(box, HELP_MARK, theme::color::GREEN, 0.5f);
             }
             buttonLeft -= theme::SPACE_2;
         }
@@ -201,9 +201,9 @@ namespace mods_config::ui
         ImVec2 at(std::floor(pos.x + theme::SPACE_2), buttonTop);
         const float right = buttonLeft;
         const float gap = theme::SPACE_1;
-        const float separatorWidth = textWidth(CRUMB_SEPARATOR);
+        const float separatorWidth = controls::textWidth(CRUMB_SEPARATOR);
         const auto drawSeparator = [&at, right, separatorWidth, gap] {
-            drawText(at.x, right, at.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, CRUMB_SEPARATOR);
+            controls::drawText(at.x, right, at.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, CRUMB_SEPARATOR);
             at.x += separatorWidth + gap;
         };
 
@@ -221,7 +221,7 @@ namespace mods_config::ui
             // the room of a crumb after another: the gap after the one before, the separator, and a gap
             const float before = gap + separatorWidth + gap;
             const std::string_view suffix = crumbs.back().filtered ? FILTERED : "";
-            const float suffixWidth = suffix.empty() ? 0.0f : textWidth(suffix);
+            const float suffixWidth = suffix.empty() ? 0.0f : controls::textWidth(suffix);
             float pagesWidth = pages.empty() ? 0.0f : suffixWidth;
             for (const auto& page : pages) {
                 pagesWidth += before + crumbWidth(page.text);
