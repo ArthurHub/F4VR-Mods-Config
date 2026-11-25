@@ -94,8 +94,8 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float markRoom = line.mark != LineMark::None ? MARK_COLUMN + theme::SPACE_2 : 0.0f;
-        const float left = pos.x + ui::HEADING_TEXT_INSET;
-        const float width = ImGui::GetContentRegionAvail().x - ui::HEADING_TEXT_INSET - theme::SPACE_2 - markRoom;
+        const float left = pos.x + controls::HEADING_TEXT_INSET;
+        const float width = ImGui::GetContentRegionAvail().x - controls::HEADING_TEXT_INSET - theme::SPACE_2 - markRoom;
         const auto label = std::string(line.name) + ": ";
         const std::array pieces{ controls::TextPiece{ .text = label, .color = line.nameColor }, controls::TextPiece{ .text = line.text, .color = theme::color::GREEN_MUTED } };
         const int lines = controls::countTextLines(pieces, width);
@@ -114,9 +114,7 @@ namespace
     void drawHeading(const std::string_view heading)
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_2);
-        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(ImGui::GetStyle().SeparatorTextPadding.x, (theme::CONTROL_HEIGHT - ImGui::GetFontSize()) * 0.5f));
-        ui::sectionHeading(heading, ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x);
-        ImGui::PopStyleVar();
+        controls::sectionHeading(heading, ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x, {}, theme::CONTROL_HEIGHT);
         // the first line starts under the heading's row, with no spacing of its own
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
     }

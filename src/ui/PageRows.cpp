@@ -23,57 +23,6 @@ namespace
 namespace mods_config::ui
 {
     /**
-     * The width of a row at the cursor: the same whether or not the page's scroll bar shows. A row of a section
-     * in a section is set in, and ends where the other rows do.
-     */
-    float rowWidth()
-    {
-        const float indent = ImGui::GetCursorPosX() - ImGui::GetCursorStartPos().x;
-        return ImGui::GetWindowWidth() - theme::SCROLLBAR_SIZE - theme::SPACE_2 - indent;
-    }
-
-    /**
-     * Adds a row at the cursor, as wide as the rows and as high as a control. A row that is pressed has the
-     * look of a row under the ray, and a stronger one while the trigger is held. Any other is only its room.
-     */
-    Row addRow(const bool pressable)
-    {
-        const ImVec2 size(rowWidth(), theme::CONTROL_HEIGHT);
-        Row row;
-        if (pressable) {
-            row.pressed = ImGui::InvisibleButton("row", size);
-            row.started = ImGui::IsItemActivated();
-            row.held = ImGui::IsItemActive();
-        } else {
-            ImGui::Dummy(size);
-        }
-        row.shown = ImGui::IsItemVisible();
-        if (row.shown) {
-            row.pointed = ImGui::IsItemHovered();
-            if (pressable) {
-                controls::drawRowState();
-            }
-        }
-        return row;
-    }
-
-    /**
-     * Adds the row of a heading that folds at the cursor, by its id, as a section's heading of a page is: a row
-     * that is pressed, with the look of a row under the ray. A press folds or opens it. The caller draws the
-     * heading in it with `drawFoldingHeading`.
-     */
-    Row addFoldingRow(const char* id, bool& folded)
-    {
-        ImGui::PushID(id);
-        const auto row = addRow(true);
-        ImGui::PopID();
-        if (row.pressed) {
-            folded = !folded;
-        }
-        return row;
-    }
-
-    /**
      * Draws a row's plain or formatted label `space-3` inside the row's frame, with its marks after it, each
      * `space-2` after what is before it. The label shortens before a mark does, so the marks always show.
      * With a query, where it matches a plain label is underlined, as the tree's names are while searching.

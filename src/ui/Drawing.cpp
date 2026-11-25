@@ -70,7 +70,7 @@ namespace mods_config::ui
      */
     void drawPageText(const std::string_view text)
     {
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + HEADING_TEXT_INSET);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::HEADING_TEXT_INSET);
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
@@ -144,30 +144,6 @@ namespace mods_config::ui
     }
 
     /**
-     * The heading of a section of rows at the cursor: its muted text, `space-3` in as a row's text is in its frame,
-     * and a line from it to a right edge, where the rows end. ImGui draws the line to the right of the window's
-     * work area, past the rows into the room of the scroll bar, so that edge is the heading's while it is drawn.
-     * The ranges of the text a search found are underlined.
-     */
-    void sectionHeading(const std::string_view text, const float right, const std::span<const model::TextRange> found)
-    {
-        auto* window = ImGui::GetCurrentWindow();
-        const float workRight = window->WorkRect.Max.x;
-        window->WorkRect.Max.x = right;
-        // the style's padding is not a heading's
-        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(HEADING_TEXT_INSET, ImGui::GetStyle().SeparatorTextPadding.y));
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
-        // by its end: the text is a mod's, and ImGui would cut it at a "##"
-        ImGui::SeparatorTextEx(0, text.data(), text.data() + text.size(), 0.0f);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-        window->WorkRect.Max.x = workRight;
-        const auto min = ImGui::GetItemRectMin();
-        const float textLeft = min.x + HEADING_TEXT_INSET;
-        controls::drawUnderlines(textLeft, textLeft + controls::textWidth(text), min.y, ImGui::GetItemRectSize().y, theme::color::GREEN_MUTED, text, found);
-    }
-
-    /**
      * The heading of an activation sphere at the cursor, as high as any heading: the sphere's mark, its muted text and a
      * line from it to a right edge. It is drawn here, as ImGui's heading has a line before a text that is this far in.
      * The ranges of the text a search found are underlined.
@@ -178,7 +154,7 @@ namespace mods_config::ui
         const float height = ImGui::GetFontSize() + ImGui::GetStyle().SeparatorTextPadding.y * 2.0f;
         ImGui::Dummy(ImVec2(right - pos.x, height));
         const float middle = pos.y + height * 0.5f;
-        const float markLeft = pos.x + HEADING_TEXT_INSET;
+        const float markLeft = pos.x + controls::HEADING_TEXT_INSET;
         drawSphereMark(ImVec2(markLeft + SPHERE_MARK_SIZE * 0.5f, middle));
         const float textLeft = markLeft + SPHERE_MARK_SIZE + theme::SPACE_1;
         const float textRight = (std::min)(textLeft + controls::textWidth(text), right);
@@ -297,78 +273,6 @@ namespace mods_config::ui
     void drawRestartMark(const float left, const float middle)
     {
         controls::drawTag(left, middle, RESTART_TEXT);
-    }
-
-    /**
-     * Counts that each have their mark before them, as `2 errors` after the invalid mark, ending at a right edge
-     * in the current font and in the middle of a control's height from a top. Returns their left edge.
-     */
-    float drawMarkedCounts(const float right, const float top, const std::span<const MarkedCount> counts)
-    {
-        const auto markWidth = [](const CountMark mark) {
-            return mark == CountMark::Pending ? controls::DOT_WIDTH : controls::MARK_WIDTH;
-        };
-
-        float width = 0.0f;
-        for (const auto& count : counts) {
-            width += (width > 0.0f ? theme::SPACE_2 * 2.0f : 0.0f) + markWidth(count.mark) + theme::SPACE_2 + controls::textWidth(count.text);
-        }
-        const float left = std::floor(right - width);
-        const float middle = top + theme::CONTROL_HEIGHT * 0.5f;
-        float x = left;
-        for (const auto& count : counts) {
-            const ImVec2 center(x + markWidth(count.mark) * 0.5f, middle);
-            if (count.mark == CountMark::Invalid) {
-                controls::drawErrorMark(center);
-            } else if (count.mark == CountMark::Warning) {
-                controls::drawWarningMark(center);
-            } else {
-                controls::drawDot(center, theme::color::AMBER);
-            }
-            x += markWidth(count.mark) + theme::SPACE_2;
-            controls::drawText(x, right, top, theme::CONTROL_HEIGHT, count.color, count.text);
-            x += controls::textWidth(count.text) + theme::SPACE_2 * 2.0f;
-        }
-        return left;
-    }
-
-    /**
-     * A heading that folds, in a row at a place and in a width: an arrow that points right while it is folded
-     * and down while it is open, its text, and a rule from it to the right edge, as a heading has. The arrow
-     * starts where a heading's text does. Its text and its arrow are muted, under the ray too. The counts of what
-     * it hides end the rule, in the detail size. A heading with the invalid mark or the warning mark has it before
-     * its text, and its text and its arrow are red or amber. The ranges of the text a search found are underlined.
-     */
-    void drawFoldingHeading(const std::string_view text, const ImVec2& pos, const float width, const bool folded, const std::span<const MarkedCount> counts,
-        const controls::Mark mark, const std::span<const model::TextRange> found)
-    {
-        // the room a rule keeps at the least, as the design system has it
-        constexpr float RULE_MIN_WIDTH = theme::SPACE_4;
-        auto color = theme::color::GREEN_MUTED;
-        if (mark == controls::Mark::Error || mark == controls::Mark::Warning) {
-            color = mark == controls::Mark::Error ? theme::color::RED : theme::color::AMBER;
-        }
-        const float arrowLeft = pos.x + HEADING_TEXT_INSET;
-        controls::drawFoldArrow(ImVec2(arrowLeft, pos.y + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f), !folded, color);
-        float ruleRight = pos.x + width;
-        if (!counts.empty()) {
-            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            ruleRight = drawMarkedCounts(ruleRight - theme::SPACE_3, pos.y, counts) - theme::SPACE_2;
-            ImGui::PopFont();
-        }
-        float textLeft = arrowLeft + controls::FOLD_ARROW_SIZE + theme::SPACE_2;
-        if (mark != controls::Mark::None) {
-            controls::drawMark(mark, ImVec2(textLeft + controls::MARK_WIDTH * 0.5f, pos.y + theme::CONTROL_HEIGHT * 0.5f));
-            textLeft += controls::MARK_WIDTH + theme::SPACE_2;
-        }
-        const float textRight = (std::min)(textLeft + controls::textWidth(text), ruleRight - RULE_MIN_WIDTH - theme::SPACE_3);
-        controls::drawText(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, text);
-        controls::drawUnderlines(textLeft, textRight, pos.y, theme::CONTROL_HEIGHT, color, text, found);
-        const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
-        if (ruleLeft < ruleRight) {
-            const float ruleTop = std::floor(pos.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);
-            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(ruleRight, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
-        }
     }
 
     /**

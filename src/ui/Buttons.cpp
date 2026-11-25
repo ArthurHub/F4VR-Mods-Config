@@ -81,9 +81,9 @@ namespace mods_config::ui
     std::optional<PointedRow> Buttons::draw(const model::Button& button, model::Store* store, bool& pressActed, const model::SearchQuery* query)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = rowWidth();
+        const float width = controls::rowWidth();
         auto view = buttonViewOf(button, store);
-        const auto row = addRow(view.enabled);
+        const auto row = controls::addRow(view.enabled);
         if (!view.enabled && row.shown) {
             controls::drawRowState();
         }

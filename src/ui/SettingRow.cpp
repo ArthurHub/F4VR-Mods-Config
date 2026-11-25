@@ -164,9 +164,9 @@ namespace
               choiceOptions(rowContext.store ? rowContext.store->options(rowSetting) : rowSetting.valueOptions.options)
         {
             pos = ImGui::GetCursorScreenPos();
-            width = ui::rowWidth();
+            width = controls::rowWidth();
             view = ui::rowViewOf(setting, context.store);
-            row = ui::addRow(view.enabled && !setting.readOnly && !context.textInputs.isEdited(setting));
+            row = controls::addRow(view.enabled && !setting.readOnly && !context.textInputs.isEdited(setting));
             right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
             showsValue = view.stored.available || !setting.readOnly;
 
@@ -203,7 +203,7 @@ namespace
 
         // where the control ends on the right, before the slot
         float right = 0.0f;
-        ui::Row row;
+        controls::Row row;
 
         // how the row looks, on its value as it is after a press in this frame
         ui::RowView view;

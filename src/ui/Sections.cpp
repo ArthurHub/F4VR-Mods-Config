@@ -85,15 +85,15 @@ namespace mods_config::ui
             return folded;
         }
 
-        std::vector<MarkedCount> counts;
+        std::vector<controls::MarkedCount> counts;
         if (hidden.invalid > 0) {
-            counts.push_back({ .mark = CountMark::Invalid, .text = std::format("{} invalid", hidden.invalid), .color = theme::color::RED });
+            counts.push_back({ .mark = controls::CountMark::Error, .text = std::format("{} invalid", hidden.invalid), .color = theme::color::RED });
         }
         if (hidden.unsaved > 0) {
-            counts.push_back({ .mark = CountMark::Pending, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
+            counts.push_back({ .mark = controls::CountMark::Dot, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
         }
         const auto text = model::resolveClientText(group.text, store);
-        drawFoldingHeading(text, pos, width, folded, counts, controls::Mark::None, query ? model::matchRanges(*query, text) : std::vector<model::TextRange>());
+        controls::drawFoldingHeading(text, pos, width, folded, counts, controls::Mark::None, query ? model::matchRanges(*query, text) : std::vector<model::TextRange>());
         return folded;
     }
 

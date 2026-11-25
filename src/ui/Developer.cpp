@@ -107,14 +107,14 @@ namespace
     /**
      * The counts of errors and warnings, each with its mark, of those there are.
      */
-    std::vector<ui::MarkedCount> problemCounts(const std::size_t errors, const std::size_t warnings)
+    std::vector<controls::MarkedCount> problemCounts(const std::size_t errors, const std::size_t warnings)
     {
-        std::vector<ui::MarkedCount> counts;
+        std::vector<controls::MarkedCount> counts;
         if (errors > 0) {
-            counts.push_back({ .mark = ui::CountMark::Invalid, .text = countOf(errors, "error"), .color = theme::color::RED });
+            counts.push_back({ .mark = controls::CountMark::Error, .text = countOf(errors, "error"), .color = theme::color::RED });
         }
         if (warnings > 0) {
-            counts.push_back({ .mark = ui::CountMark::Warning, .text = countOf(warnings, "warning"), .color = theme::color::AMBER });
+            counts.push_back({ .mark = controls::CountMark::Warning, .text = countOf(warnings, "warning"), .color = theme::color::AMBER });
         }
         return counts;
     }
@@ -164,8 +164,8 @@ namespace mods_config::ui
         DeveloperDrawn drawn;
 
         const auto headingPos = ImGui::GetCursorScreenPos();
-        const float width = rowWidth();
-        const auto headingRow = addFoldingRow("developer", view.folded);
+        const float width = controls::rowWidth();
+        const auto headingRow = controls::addFoldingRow("developer", view.folded);
         drawn.changed = headingRow.pressed;
         drawn.pressActed = headingRow.pressed;
         const bool onHeading = headingRow.pointed;
@@ -181,8 +181,8 @@ namespace mods_config::ui
             errors += state.errors;
             warnings += state.warnings;
         }
-        const auto hidden = view.folded ? problemCounts(errors, warnings) : std::vector<MarkedCount>{};
-        drawFoldingHeading(HEADING, headingPos, width, view.folded, hidden);
+        const auto hidden = view.folded ? problemCounts(errors, warnings) : std::vector<controls::MarkedCount>{};
+        controls::drawFoldingHeading(HEADING, headingPos, width, view.folded, hidden);
         if (onHeading) {
             auto help = std::string(HEADING_HELP);
             if (!hidden.empty()) {
@@ -250,10 +250,10 @@ namespace mods_config::ui
                 theme::color::GREEN);
             float left = right;
             if (state.notLoaded) {
-                const std::array counts{ MarkedCount{ .mark = CountMark::Invalid, .text = "Not loaded", .color = theme::color::RED } };
-                left = drawMarkedCounts(right, pos.y, counts);
+                const std::array counts{ controls::MarkedCount{ .mark = controls::CountMark::Error, .text = "Not loaded", .color = theme::color::RED } };
+                left = controls::drawMarkedCounts(right, pos.y, counts);
             } else if (state.errors > 0 || state.warnings > 0) {
-                left = drawMarkedCounts(right, pos.y, problemCounts(state.errors, state.warnings));
+                left = controls::drawMarkedCounts(right, pos.y, problemCounts(state.errors, state.warnings));
             } else {
                 const auto* text = state.notAvailable ? "Not available" : "No problems";
                 left = std::floor(right - controls::textWidth(text));

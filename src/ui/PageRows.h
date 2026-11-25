@@ -22,19 +22,6 @@ namespace mods_config::ui
         controls::Mark mark = controls::Mark::None;
     };
 
-    // Visibility and pointer interactions for a row added to the page.
-    struct Row
-    {
-        bool shown = false;
-        bool pointed = false;
-        bool started = false;
-        bool held = false;
-        bool pressed = false;
-    };
-
-    float rowWidth();
-    Row addRow(bool pressable);
-    Row addFoldingRow(const char* id, bool& folded);
     void drawLabel(const ImVec2& pos, float right, std::string_view text, std::span<const model::TextRun> runs, const RowMarks& marks = {},
         const model::SearchQuery* query = nullptr);
     bool isShown(const model::Item& item, model::StoreReader* store);

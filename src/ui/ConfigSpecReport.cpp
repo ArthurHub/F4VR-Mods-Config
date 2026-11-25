@@ -82,14 +82,14 @@ namespace
      * or opens it. Folded, it ends with the counts of what it hides. A mark is before its text, in its color.
      * Returns whether the ray is on it, and tells whether a press did something.
      */
-    bool foldingHeading(const char* id, const std::string& text, bool& folded, bool& pressActed, const std::span<const ui::MarkedCount> hidden = {},
+    bool foldingHeading(const char* id, const std::string& text, bool& folded, bool& pressActed, const std::span<const controls::MarkedCount> hidden = {},
         const controls::Mark mark = controls::Mark::None)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
-        const auto row = ui::addFoldingRow(id, folded);
+        const float width = controls::rowWidth();
+        const auto row = controls::addFoldingRow(id, folded);
         pressActed = pressActed || row.pressed;
-        ui::drawFoldingHeading(text, pos, width, folded, folded ? hidden : std::span<const ui::MarkedCount>(), mark);
+        controls::drawFoldingHeading(text, pos, width, folded, folded ? hidden : std::span<const controls::MarkedCount>(), mark);
         return row.pointed;
     }
 
@@ -115,8 +115,8 @@ namespace
     {
         ImGui::PushID(row.text);
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
-        const auto added = ui::addRow(row.enabled);
+        const float width = controls::rowWidth();
+        const auto added = controls::addRow(row.enabled);
         if (!row.enabled && added.shown) {
             controls::drawRowState();
         }
@@ -149,7 +149,7 @@ namespace
     void drawLiveCopy(const model::Mod& mod, ui::LiveCopyRead* read, bool& folded, ui::ReportDrawn& drawn)
     {
         const bool live = !mod.liveCopy.empty();
-        ui::sectionHeading(LIVE_COPY, ImGui::GetCursorScreenPos().x + ui::rowWidth());
+        controls::sectionHeading(LIVE_COPY, ImGui::GetCursorScreenPos().x + controls::rowWidth());
         ImGui::Indent(theme::SPACE_3);
         const auto help = [live](const char* text) {
             return std::string(text) + (live ? "" : NEEDS_LIVE_COPY);
@@ -166,8 +166,12 @@ namespace
         // the sub-section of the copy, whose heading starts where the rows do, and whose rows are a level further in
         const bool stale = live && read && read->stale;
         const float headingLeft = ImGui::GetCursorScreenPos().x;
-        const std::array staleCount{ ui::MarkedCount{ .mark = ui::CountMark::Warning, .text = STALE_FOLDED, .color = theme::color::AMBER } };
-        if (foldingHeading("liveSpec", LIVE_SPEC, folded, drawn.pressActed, stale ? std::span<const ui::MarkedCount>(staleCount) : std::span<const ui::MarkedCount>())) {
+        const std::array staleCount{ controls::MarkedCount{ .mark = controls::CountMark::Warning, .text = STALE_FOLDED, .color = theme::color::AMBER } };
+        if (foldingHeading("liveSpec",
+                LIVE_SPEC,
+                folded,
+                drawn.pressActed,
+                stale ? std::span<const controls::MarkedCount>(staleCount) : std::span<const controls::MarkedCount>())) {
             drawn.pointed = ui::PointedRow{ .text = LIVE_SPEC, .help = LIVE_SPEC_HELP, .warning = folded && stale ? STALE : "", .invalid = false };
         }
         if (folded) {
@@ -293,7 +297,7 @@ namespace mods_config::ui
                 }
                 ImGui::PushID(static_cast<int>(place));
                 const auto pos = ImGui::GetCursorScreenPos();
-                const float width = rowWidth();
+                const float width = controls::rowWidth();
                 const bool pressed = ImGui::InvisibleButton("problem", ImVec2(width, theme::CONTROL_HEIGHT));
                 const bool pointed = ImGui::IsItemHovered();
                 controls::drawRowState();

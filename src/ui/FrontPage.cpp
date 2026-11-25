@@ -33,10 +33,10 @@ namespace
     void foldingHeading(const char* text, const char* help, bool& folded, ui::FrontPageDrawn& drawn)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
-        const auto row = ui::addFoldingRow(text, folded);
+        const float width = controls::rowWidth();
+        const auto row = controls::addFoldingRow(text, folded);
         drawn.pressActed = drawn.pressActed || row.pressed;
-        ui::drawFoldingHeading(text, pos, width, folded, {});
+        controls::drawFoldingHeading(text, pos, width, folded, {});
         if (row.pointed) {
             drawn.pointed = ui::PointedRow{ .text = text, .help = help };
         }
@@ -50,8 +50,8 @@ namespace
     void restartNotice(const std::string_view text)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        ui::drawRestartMark(pos.x + ui::HEADING_TEXT_INSET, pos.y + ImGui::GetFontSize() * 0.5f);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ui::HEADING_TEXT_INSET + ui::restartMarkWidth() + theme::SPACE_2);
+        ui::drawRestartMark(pos.x + controls::HEADING_TEXT_INSET, pos.y + ImGui::GetFontSize() * 0.5f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::HEADING_TEXT_INSET + ui::restartMarkWidth() + theme::SPACE_2);
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
@@ -69,7 +69,7 @@ namespace
     {
         ImGui::Indent(theme::SPACE_3);
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
+        const float width = controls::rowWidth();
         const bool enabled = entry.notAvailable.empty();
         ImGui::BeginDisabled(!enabled);
         const bool pressed = ImGui::InvisibleButton(entry.name.c_str(), ImVec2(width, theme::CONTROL_HEIGHT));

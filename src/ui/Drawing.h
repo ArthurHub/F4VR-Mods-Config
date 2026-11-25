@@ -15,6 +15,7 @@
 #include "imgui/controls/Dialogs.h"
 #include "imgui/controls/Frames.h"
 #include "imgui/controls/Marks.h"
+#include "imgui/controls/Rows.h"
 #include "imgui/controls/Text.h"
 #include "model/ConfigDefinition.h"
 #include "model/Search.h"
@@ -29,26 +30,6 @@ namespace mods_config
 
 namespace mods_config::ui
 {
-    /**
-     * The mark before a count: the invalid mark, the warning mark, or the pending mark.
-     */
-    enum class CountMark : std::uint8_t
-    {
-        Invalid,
-        Warning,
-        Pending,
-    };
-
-    /**
-     * A count with its mark, as `2 errors` in red after the invalid mark.
-     */
-    struct MarkedCount
-    {
-        CountMark mark = CountMark::Invalid;
-        std::string text;
-        ImU32 color = 0;
-    };
-
     /**
      * How the value of a setting looks: as it is saved, pending a Save in amber, or invalid in red.
      */
@@ -70,10 +51,6 @@ namespace mods_config::ui
     // the box of the mark of when a pending change takes effect, which is drawn in place of the dot
     constexpr float APPLIES_MARK_WIDTH = 16.0f;
 
-    // where a heading's text starts in its row, as a row's text does in its frame, so a heading lines up with the
-    // rows beside it: and where the page's texts start, in from the content's left
-    constexpr float HEADING_TEXT_INSET = theme::SPACE_3;
-
     // the width of an activation sphere's mark, as the design system has it
     constexpr float SPHERE_MARK_SIZE = 20.0f;
 
@@ -84,7 +61,6 @@ namespace mods_config::ui
     void drawPageText(std::string_view text);
     float drawTextRuns(float left, float right, float top, float height, ImU32 color, std::span<const model::TextRun> runs);
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
-    void sectionHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
     void sphereHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
     bool panelButton(const char* label, const ImRect& box, controls::ButtonLook look);
     bool beginRowEditor(ImGuiID id, const ImRect& row, float width, float height);
@@ -93,9 +69,6 @@ namespace mods_config::ui
     void drawAppliesTag(float left, float middle, model::Applies applies, std::string_view word);
     float restartMarkWidth();
     void drawRestartMark(float left, float middle);
-    float drawMarkedCounts(float right, float top, std::span<const MarkedCount> counts);
-    void drawFoldingHeading(std::string_view text, const ImVec2& pos, float width, bool folded, std::span<const MarkedCount> counts, controls::Mark mark = controls::Mark::None,
-        std::span<const model::TextRange> found = {});
     float pendingMarkWidth(model::Applies applies);
     void drawAppliesMark(model::Applies applies, const ImVec2& center);
 }

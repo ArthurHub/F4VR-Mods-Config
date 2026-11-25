@@ -37,7 +37,7 @@ namespace
     void drawTextRow(const model::Text& text, model::Store* store)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
+        const float width = controls::rowWidth();
         const auto resolved = model::resolveClientText(text.lines, store);
         const float height =
             ui::drawTextLines(resolved ? *resolved : text.lines, ImVec2(pos.x + theme::SPACE_3, pos.y), width - theme::SPACE_3 - theme::SPACE_2, theme::color::GREEN_MUTED);
@@ -55,8 +55,8 @@ namespace
         const model::SearchQuery* query = nullptr)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
-        const auto row = ui::addRow(false);
+        const float width = controls::rowWidth();
+        const auto row = controls::addRow(false);
         if (!row.shown) {
             return false;
         }
@@ -124,8 +124,8 @@ namespace
     bool drawHotkey(const model::Hotkey& hotkey, const PageDrawing& page, std::string& reason, const model::SearchQuery* query)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
-        const auto row = ui::addRow(false);
+        const float width = controls::rowWidth();
+        const auto row = controls::addRow(false);
 
         auto stored = page.store ? page.store->hotkey(hotkey) : model::StoredValue{};
         reason = std::move(stored.reason);
@@ -172,8 +172,8 @@ namespace
     bool drawFoldingHeading(const model::Item& item, const model::Group& group, const PageDrawing& page)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float width = ui::rowWidth();
-        const auto row = ui::addRow(true);
+        const float width = controls::rowWidth();
+        const auto row = controls::addRow(true);
         if (ui::panelTargets().isRecording()) {
             ui::panelTargets().add(ui::TargetKind::Section, model::resolveClientText(group.text, page.store), ImRect(pos, ImVec2(pos.x + width, pos.y + theme::CONTROL_HEIGHT)));
         }
@@ -215,14 +215,14 @@ namespace
         if (group.collapsible && !page.search.filtered) {
             folded = headingShown ? drawFoldingHeading(item, group, page) : page.sections.isFolded(group);
         } else if (headingShown) {
-            const float right = ImGui::GetCursorScreenPos().x + ui::rowWidth();
+            const float right = ImGui::GetCursorScreenPos().x + controls::rowWidth();
             const auto heading = model::resolveClientText(group.text, page.store);
             const auto* query = underlinedBy(item, page);
             const auto found = query ? model::matchRanges(*query, heading) : std::vector<model::TextRange>();
             if (group.role == model::GroupRole::ActivationSphere) {
                 ui::sphereHeading(heading, right, found);
             } else {
-                ui::sectionHeading(heading, right, found);
+                controls::sectionHeading(heading, right, found);
             }
             ui::panelTargets().add(ui::TargetKind::Section, heading, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
             if (ImGui::IsItemHovered()) {
@@ -324,10 +324,10 @@ namespace
         void operator()(const model::Image& image) const
         {
             if (image.pixels) {
-                ui::drawImage(image, page.imageDrawer, ui::rowWidth());
+                ui::drawImage(image, page.imageDrawer, controls::rowWidth());
             } else if (!image.texture.empty()) {
                 std::string reason;
-                if (ui::drawTexture(image, page.imageDrawer, ui::rowWidth(), reason)) {
+                if (ui::drawTexture(image, page.imageDrawer, controls::rowWidth(), reason)) {
                     page.drawn.pointed = ui::PointedRow{ .text = image.texture, .help = std::move(reason), .invalid = true };
                     page.drawn.pointedItem = &item;
                 }
@@ -362,7 +362,7 @@ namespace
         if (!targets.isRecording()) {
             return;
         }
-        const ImRect row(top, ImVec2(top.x + ui::rowWidth(), top.y + theme::CONTROL_HEIGHT));
+        const ImRect row(top, ImVec2(top.x + controls::rowWidth(), top.y + theme::CONTROL_HEIGHT));
         if (const auto* setting = std::get_if<model::Setting>(&item)) {
             targets.add(ui::TargetKind::Setting, setting->id, row);
         } else if (const auto* button = std::get_if<model::Button>(&item)) {
@@ -398,7 +398,7 @@ namespace
                 drawGroup(item, page, depth, false);
             }
             if (&item == page.focused) {
-                drawFocus(ImRect(top, ImVec2(top.x + ui::rowWidth(), ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y)), page.scrollToFocused);
+                drawFocus(ImRect(top, ImVec2(top.x + controls::rowWidth(), ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y)), page.scrollToFocused);
             }
             if (setIn) {
                 ImGui::Unindent(theme::SPACE_3);
