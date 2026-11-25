@@ -121,7 +121,14 @@ Not an item of the requirements. The next mod, a cheat terminal and item spawner
 
 What moves: the generic part of [`Drawing.h`](../../src/ui/Drawing.h) (clipped and wrapped text, underlined ranges, the drawn icons and marks, frames and outlines, `popupTop`), the button, icon button and switcher, the dialog and its buttons, the slider (`Sliders`, `StepRepeat`, `valueBoxText`), the stepper and the dropdown with its list (`drawList`, `ListExtras`), and the text input on the framework's keyboard with the search field's Escape trap.
 
-What waits for the next mod: the tree, panes and their scrolling, a clipped list for thousands of rows, breadcrumbs, the help line, the order of Back, devbench targets kept by the framework, and the editors of the framework's types (`cf.color`, `cf.transform`, `cf.inputBinding`, `cf.haptic`). The next mod builds them, copied from here where that helps; each moves once both mods have it and the shape they share shows.
+Then the rows and the tree's rows, which set the panel's look as the controls do and take plain values:
+
+- **Rows** (`controls/Rows.h`): `rowWidth()`, the width of a row at the cursor whether or not the scroll bar shows, set in by a section; `addRow(pressable)`, which gives `Row{shown, pointed, started, held, pressed}` with the look of a row under the ray; `addFoldingRow(id, bool& folded)`, whose folded state the caller keeps, so the mod's `Sections` keeps it for each page and devbench and a search can open a section; `drawFoldingHeading`, the arrow, text and rule with `MarkedCount`s ending the rule (the error mark, the warning mark, or the dot in the warning color); and `sectionHeading`, the heading with a rule that ends where the rows do.
+- **Tree rows** (`controls/Tree.h`): `treeRow(TreeRow, width)`, set in a step of 16 px for each level up to 3, in an arrow column of 16 px every row keeps, with its name, a tag of 10 px, the selected bar, the disabled look, the unsaved dot, underlined ranges, a count while searched, and `show` to scroll to the selected row; it gives pressed and pointed. `treeGroupRow(name, count, open, unsaved, width)` is a category's: muted, an arrow, a rule and the count. The tree's tag is its own, smaller than `drawTag` and in the color on the accent while selected.
+
+What stays of them: `drawLabel` with the pending, applies and invalid marks, `sphereHeading`, what `Sections` counts in a folded section and says of it, and all of `ModTree`: the mods, pages, categories and search results it walks, the open categories, the scroll to the first rows a press opened, and the search field.
+
+What waits for the next mod: the tree as a whole, panes and their scrolling, a clipped list for thousands of rows, breadcrumbs, the help line, the order of Back, devbench targets kept by the framework, and the editors of the framework's types (`cf.color`, `cf.transform`, `cf.inputBinding`, `cf.haptic`). The next mod builds them, copied from here where that helps; each moves once both mods have it and the shape they share shows.
 
 What stays: everything about config specs, MCM and Save: the rows' rules (`RowView`, `ButtonView`), the pending, invalid and applies marks, the rich text of a config spec's markup, `FullPanel` and its sessions.
 
@@ -139,6 +146,10 @@ Each framework commit is followed by the mod's port onto it, one at a time.
 | M16 | mod       | Steppers, dropdowns and the haptic list from the framework                                                   | done    |
 | F30 | framework | imgui: text input on the framework's keyboard, kept through Escape                                           | done    |
 | M17 | mod       | Text inputs and the search field from the framework                                                          | done    |
+| F31 | framework | imgui: rows and section headings: a row as wide as the rows, a folding heading with counts, a heading's rule | todo    |
+| M18 | mod       | Page rows and section headings from the framework                                                            | todo    |
+| F32 | framework | imgui: tree rows: set in by level, an arrow column, selected, disabled, a tag, and a group row with a count  | todo    |
+| M19 | mod       | The tree's rows from the framework                                                                           | todo    |
 
 ## Decisions that differ from the requirements
 
