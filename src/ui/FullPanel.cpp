@@ -701,7 +701,7 @@ namespace mods_config::ui
      * Goes one step back: the dialog is cancelled, with nothing saved or discarded, a button's confirmation is
      * cancelled, with nothing run, a slider that is dragged
      * has the value it had before the drag, the list of a dropdown that is open is closed, a text input that
-     * is edited keeps its value, and the editor of a binding closes its list, or gives back the binding it had as it
+     * is edited keeps its value, the search field that is edited keeps its query, and the editor of a binding closes its list, or gives back the binding it had as it
      * opened. With none of them, from the Help page to the page it was shown over, with the ray on the search field
      * and a query in it, the query is emptied, as Clear does, from a page filtered by the search
      * to the whole page, with the focus ring on the last row the ray was on, from a
@@ -716,7 +716,7 @@ namespace mods_config::ui
             _leaving.reset();
             return true;
         }
-        if (_modTree.endSearchEdit() || _modPage.back() || showHelp(false)) {
+        if (controls::get().back() || _modPage.back() || showHelp(false)) {
             return true;
         }
         if (_onSearchField && !_modTree.query().empty()) {

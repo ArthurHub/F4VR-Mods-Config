@@ -491,7 +491,7 @@ namespace mods_config::ui
      */
     bool ModPage::back()
     {
-        return controls::get().back() || _buttons.cancelConfirmation() || _textInputs.cancelEdit() || _bindingEditor.cancel() || _colorEditor.cancel() || _transformEditor.cancel();
+        return controls::get().back() || _buttons.cancelConfirmation() || _bindingEditor.cancel() || _colorEditor.cancel() || _transformEditor.cancel();
     }
 
     /**

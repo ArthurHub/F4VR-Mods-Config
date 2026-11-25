@@ -69,15 +69,10 @@ namespace mods_config::ui
             return _search.query();
         }
 
-        // ends the edit of the search field, for Back, with the query kept: false while it is not edited
+        // the search field is edited: the framework's Back ends its edit, with the query kept
         bool isSearchEdited() const
         {
             return _search.isEdited();
-        }
-
-        bool endSearchEdit()
-        {
-            return _search.endEdit();
         }
 
         // empties the search field's query, as the menu opens

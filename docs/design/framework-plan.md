@@ -137,8 +137,8 @@ Each framework commit is followed by the mod's port onto it, one at a time.
 | M15 | mod       | Sliders from the framework, in rows and in the editors                                                       | done    |
 | F29 | framework | imgui: stepper and dropdown, with its list beside its box: suffixes, a header line, an action after them     | done    |
 | M16 | mod       | Steppers, dropdowns and the haptic list from the framework                                                   | done    |
-| F30 | framework | imgui: text input on the framework's keyboard, kept through Escape                                           | planned |
-| M17 | mod       | Text inputs and the search field from the framework                                                          | planned |
+| F30 | framework | imgui: text input on the framework's keyboard, kept through Escape                                           | done    |
+| M17 | mod       | Text inputs and the search field from the framework                                                          | done    |
 
 ## Decisions that differ from the requirements
 

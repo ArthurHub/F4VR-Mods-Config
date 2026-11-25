@@ -56,6 +56,9 @@ namespace test_panel
             controls::get().setStyle(ui::controlsStyle());
             controls::get().reset();
             controls::get().setThumbstickSide(0.0f);
+            // a reset keeps a text edit, as a search outlives the page: one a test left ends as this context's first
+            // frame begins
+            controls::get().endTextEdit();
         }
 
         PanelContext(const PanelContext&) = delete;

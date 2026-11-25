@@ -4,11 +4,11 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <imgui_stdlib.h>
 
 #include "Drawing.h"
 #include "PanelTargets.h"
 #include "Theme.h"
+#include "imgui/controls/TextInputs.h"
 
 namespace
 {
@@ -24,6 +24,10 @@ namespace
 
     // the field of ImGui that is edited, by its name in the tree's window
     constexpr const char* QUERY_ID = "##searchQuery";
+
+    // the query is written as it is typed, and its field is bare in the field's look, which the field draws
+    constexpr controls::TextOptions QUERY_OPTIONS{ .live = true };
+    constexpr controls::TextLook QUERY_LOOK{ .framed = false, .padding = 0.0f };
 
     constexpr auto FIELD_HELP = "Finds a setting by its name in every mod: the start of each word, in any order.";
     constexpr auto CLEAR_HELP = "Empties the search, and shows every mod again.";
@@ -59,25 +63,16 @@ namespace mods_config::ui
 {
     /**
      * Draws the field at a place, in a width: the magnifier, then idle "Search 11 mods", or the query, then how many
-     * settings match and Clear while it has one. A press on the field edits it in ImGui's field from the next frame,
-     * with the caret at the end, which the framework shows its keyboard for, and the query is its text as it
-     * is typed. ImGui gives the field back the text it had on a physical keyboard's Escape: the query
-     * keeps what was typed then.
+     * settings match and Clear while it has one. A press on the field edits it on the framework's live text input,
+     * bare in the field's look, and the query is its text as it is typed, which a physical keyboard's Escape keeps.
      */
     SearchDrawn SearchField::draw(const ImVec2& pos, const float width, const std::size_t mods, const std::optional<std::size_t> matches)
     {
         SearchDrawn drawn;
         const ImRect box(pos, ImVec2(pos.x + width, pos.y + FIELD_HEIGHT));
         const float middle = box.GetCenter().y;
-        const ImGuiID queryId = ImGui::GetID(QUERY_ID);
-
-        if (_end) {
-            if (ImGui::GetActiveID() == queryId) {
-                ImGui::ClearActiveID();
-            }
-            _edited = false;
-            _end = false;
-        }
+        _queryId = ImGui::GetID(QUERY_ID);
+        const bool edited = isEdited();
 
         const bool hasQuery = !_query.empty();
         const ImRect clearBox(ImVec2(box.Max.x - theme::SPACE_1 - CLEAR_SIZE, middle - CLEAR_SIZE * 0.5f), ImVec2(box.Max.x - theme::SPACE_1, middle + CLEAR_SIZE * 0.5f));
@@ -85,7 +80,7 @@ namespace mods_config::ui
 
         bool pointed = false;
         bool pressed = false;
-        if (!_edited) {
+        if (!edited) {
             ImGui::SetCursorScreenPos(box.Min);
             pressed = ImGui::InvisibleButton("##searchField", ImVec2(fieldRight - box.Min.x, FIELD_HEIGHT));
             pointed = ImGui::IsItemHovered();
@@ -93,7 +88,7 @@ namespace mods_config::ui
         }
         auto* drawList = ImGui::GetWindowDrawList();
         drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(pointed ? theme::color::HOVER : theme::color::TRACK), theme::RADIUS_FRAME);
-        controls::drawOutline(box.Min, box.Max, _edited ? theme::color::GREEN : theme::color::FRAME_BORDER);
+        controls::drawOutline(box.Min, box.Max, edited ? theme::color::GREEN : theme::color::FRAME_BORDER);
         drawMagnifier(ImVec2(box.Min.x + theme::SPACE_2, middle - MAGNIFIER_SIZE * 0.5f), pointed ? theme::color::GREEN : theme::color::GREEN_MUTED);
 
         // how many settings match, at the right of the text
@@ -108,34 +103,10 @@ namespace mods_config::ui
             textRight = countLeft - theme::SPACE_2;
         }
 
-        if (_edited) {
-            const auto cursor = ImGui::GetCursorScreenPos();
-            ImGui::SetCursorScreenPos(ImVec2(textLeft, box.Min.y));
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0));
-            ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, (FIELD_HEIGHT - ImGui::GetFontSize()) * 0.5f));
-            ImGui::SetNextItemWidth(textRight - textLeft);
-            ImGui::InputText(QUERY_ID, &_text);
-            const bool activated = ImGui::IsItemActivated();
-            const bool active = ImGui::IsItemActive();
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(2);
-            ImGui::GetCurrentWindow()->DC.CursorPos = cursor;
-            if (activated) {
-                if (auto* state = ImGui::GetInputTextState(queryId)) {
-                    state->SetSelection(state->TextLen, state->TextLen);
-                }
-            }
-            if (active) {
-                _active = true;
-                _query = _text;
-            } else {
-                // left: on Escape ImGui gave the field back the text it had, and the query keeps what was typed
-                if (_active && !ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
-                    _query = _text;
-                }
-                _edited = false;
+        const ImRect textBox(ImVec2(textLeft, box.Min.y), ImVec2(textRight, box.Max.y));
+        if (edited) {
+            if (auto edit = controls::textEdit(_queryId, textBox, false, _query, QUERY_OPTIONS, QUERY_LOOK); edit.write) {
+                _query = std::move(*edit.write);
             }
         } else if (hasQuery) {
             controls::drawText(textLeft, textRight, box.Min.y, FIELD_HEIGHT, theme::color::GREEN, _query);
@@ -163,26 +134,18 @@ namespace mods_config::ui
         }
 
         if (pressed) {
-            _edited = true;
-            _active = false;
-            _text = _query;
-            ImGui::ActivateItemByID(queryId);
+            controls::textEdit(_queryId, textBox, true, _query, QUERY_OPTIONS, QUERY_LOOK);
             drawn.pressActed = true;
         }
         return drawn;
     }
 
     /**
-     * Ends the edit of the field in the next frame, for Back, with the query it has. Returns false while it is not
-     * edited.
+     * The field is edited, and Back has not ended its edit.
      */
-    bool SearchField::endEdit()
+    bool SearchField::isEdited() const
     {
-        if (!_edited || _end) {
-            return false;
-        }
-        _end = true;
-        return true;
+        return controls::get().isTextEdited(_queryId);
     }
 
     /**
@@ -199,7 +162,8 @@ namespace mods_config::ui
     void SearchField::setQuery(std::string query)
     {
         _query = std::move(query);
-        _text = _query;
-        _end = _edited;
+        if (isEdited()) {
+            controls::get().endTextEdit();
+        }
     }
 }
