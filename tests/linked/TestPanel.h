@@ -52,8 +52,10 @@ namespace test_panel
             // in an earlier test context does not apply it again to this one
             theme::applyStyle(ImGui::GetStyle());
             f4cf::imgui::internal::loadCanvasFont(FONT_SIZE);
-            // as GameMenu.cpp gives the framework's controls their look
+            // as GameMenu.cpp gives the framework's controls their look, with nothing held from another test
             controls::get().setStyle(ui::controlsStyle());
+            controls::get().reset();
+            controls::get().setThumbstickSide(0.0f);
         }
 
         PanelContext(const PanelContext&) = delete;
@@ -100,6 +102,8 @@ namespace test_panel
         io.AddMousePosEvent(pointer.x, pointer.y);
         io.AddMouseButtonEvent(ImGuiMouseButton_Left, pressed);
         ImGui::NewFrame();
+        // the controls' frame, as the framework's layer begins it before any canvas's content
+        controls::get().beginFrame(io.DeltaTime);
 
         const ImVec2 windowMin(HALF_BORDER, HALF_BORDER);
         const ImVec2 windowMax(PANEL_WIDTH - HALF_BORDER, PANEL_HEIGHT - HALF_BORDER);
@@ -127,6 +131,7 @@ namespace test_panel
         ImGui::EndChild();
         ImGui::End();
         ImGui::PopStyleColor();
+        controls::get().endFrame();
         ImGui::Render();
         answerTextureRequests();
 

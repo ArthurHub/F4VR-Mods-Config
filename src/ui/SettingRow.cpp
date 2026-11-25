@@ -240,7 +240,7 @@ namespace
 
         // the value of a slider, as a drag has it
         float sliderValue = 0.0f;
-        ui::SliderRow sliderRow;
+        controls::SliderRow sliderRow;
         std::optional<std::size_t> chosen;
         ui::ChoiceRow choiceRow;
         ui::BindingEdited bindingEdited;
@@ -306,14 +306,12 @@ namespace
             .chosen = ui::chosenOption(state.choiceOptions, state.view.stored),
             .choiceRow = { .pointed = isChoice && state.row.pointed, .held = isChoice && state.row.held, .pressed = isChoice && rowPressed } };
         if (isSlider) {
-            bool write = false;
-            bool pulse = false;
             edited.sliderRow = { .pointed = state.row.pointed, .started = state.row.started, .held = state.row.held };
-            const float value = context.sliders.edit(setting, state.right, state.pos.y, edited.sliderRow, edited.sliderValue, write, pulse);
-            if (!write || context.store->set(setting, value)) {
-                edited.sliderValue = value;
+            const auto slid = controls::sliderEdit(ui::sliderId(setting), state.right, state.pos.y, edited.sliderRow, edited.sliderValue, ui::sliderRange(setting));
+            if (!slid.write || context.store->set(setting, slid.value)) {
+                edited.sliderValue = slid.value;
             }
-            edited.pulse = edited.pulse || pulse;
+            edited.pulse = edited.pulse || slid.pulse;
         }
         if (isSwitcher && rowPressed && context.store->set(setting, !*on)) {
             edited.pulse = true;
@@ -479,7 +477,14 @@ namespace
             break;
         }
         case model::SettingType::Slider:
-            left = context.sliders.draw(setting, right, top, edited.sliderRow, state.showsValue ? std::optional(edited.sliderValue) : std::nullopt, look);
+            left = controls::drawSlider(ui::sliderId(setting),
+                right,
+                top,
+                edited.sliderRow,
+                state.showsValue ? std::optional(edited.sliderValue) : std::nullopt,
+                ui::sliderRange(setting),
+                toneOf(look),
+                state.showsValue ? ui::valueBoxText(setting, edited.sliderValue) : controls::ValueText{});
             break;
         case model::SettingType::Stepper:
         case model::SettingType::Dropdown: {

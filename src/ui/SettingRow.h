@@ -21,7 +21,6 @@ namespace mods_config::ui
     struct SettingRowContext
     {
         model::Store* store = nullptr;
-        Sliders& sliders;
         Choices& choices;
         TextInputs& textInputs;
         BindingEditor& bindingEditor;

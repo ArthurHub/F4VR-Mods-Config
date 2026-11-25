@@ -358,11 +358,9 @@ namespace mods_config::ui
     void ColorEditor::editChannels(Frame& frame)
     {
         const std::size_t count = frame.alpha ? 4 : 3;
-        _sliders.startFrame(_thumbstickSideValue);
         for (std::size_t channel = 0; channel < count; ++channel) {
             editChannel(frame, channel);
         }
-        _sliders.endFrame();
     }
 
     /**
@@ -398,11 +396,14 @@ namespace mods_config::ui
             _dragged.reset();
         }
         // the thumbstick steps the channel the ray is on, as it steps a setting's slider
-        bool write = false;
-        bool pulse = false;
-        const float stepped = _sliders.edit(_stepped[channel], track.Max.x, lineTop, SliderRow{ .pointed = pointed && !_dragged }, static_cast<float>(current), write, pulse);
-        if (write) {
-            _color = withChannel(_color, channel, static_cast<int>(stepped));
+        const auto stepped = controls::sliderEdit(sliderId(_stepped[channel]),
+            track.Max.x,
+            lineTop,
+            controls::SliderRow{ .pointed = pointed && !_dragged },
+            static_cast<float>(current),
+            sliderRange(_stepped[channel]));
+        if (stepped.write) {
+            _color = withChannel(_color, channel, static_cast<int>(stepped.value));
             apply(frame.setting, frame.store, channel < 3, channel == 3);
             frame.edited.pulse = true;
         }
@@ -525,15 +526,6 @@ namespace mods_config::ui
             _table.alpha = bytes[3];
         }
         store.set(setting, model::colorText(_table, setting.tableForm));
-    }
-
-    /**
-     * Starts a frame of the page, before its rows. The thumbstick's value is how far the one of the hand that points is
-     * pushed to a side, from -1 at the left to 1 at the right, which steps the channel the ray is on.
-     */
-    void ColorEditor::startFrame(const float thumbstickSideValue)
-    {
-        _thumbstickSideValue = thumbstickSideValue;
     }
 
     bool ColorEditor::isOpen(const model::Setting& setting) const

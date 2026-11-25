@@ -1,354 +1,36 @@
 #include "Sliders.h"
 
-#include <algorithm>
-#include <cmath>
-#include <string>
-
-#include <imgui.h>
 #include <imgui_internal.h>
 
-#include "Drawing.h"
 #include "Numbers.h"
-#include "Theme.h"
-
-namespace
-{
-    using namespace mods_config;
-
-    // The sizes of a slider that are not tokens of the design system, in the panel's pixels
-    constexpr float FILL_HEIGHT = 8.0f;
-    constexpr float GRAB_HEIGHT = 40.0f;
-    constexpr float STEP_ARROW_WIDTH = 24.0f;
-    // the triangle of a step arrow is 10 pixels, of the 14 of a stepper's
-    constexpr float STEP_ARROW_SCALE = 10.0f / controls::ARROW_SIZE;
-
-    // The thumbstick steps a slider from this far off its center, of 1 for a full push. It is far, so a push
-    // that scrolls the page and is a little to a side steps nothing.
-    constexpr float STEP_PUSH = 0.6f;
-    // The seconds the ray is on the row of a slider before the thumbstick steps it, so a ray that crosses
-    // the row steps nothing
-    constexpr float STEP_POINTED_DELAY = 0.3f;
-    // A press that is held steps again after the delay, then at the interval, and at the fast one once it is
-    // held for long: in seconds
-    constexpr float STEP_REPEAT_DELAY = 0.4f;
-    constexpr float STEP_REPEAT_INTERVAL = 0.12f;
-    constexpr float STEP_FAST_AFTER = 1.5f;
-    constexpr float STEP_FAST_INTERVAL = 0.03f;
-    // the steps a slider with no step of its own has from its least to its most
-    constexpr float STEPS_WITH_NO_STEP = 100.0f;
-
-    /**
-     * Where the parts of a slider that ends at the right are: its track between its step arrows, the box of
-     * its value after them, and the two ends the middle of its grab moves between, so the grab is whole inside
-     * the track at both.
-     */
-    struct Boxes
-    {
-        ImRect previous;
-        ImRect track;
-        ImRect next;
-        ImRect valueBox;
-        float grabLeast = 0.0f;
-        float grabMost = 0.0f;
-
-        Boxes(const float right, const float top)
-            : previous(controls::controlBox(right - theme::VALUE_WIDTH - theme::SPACE_2 - ui::TRACK_WIDTH, top, STEP_ARROW_WIDTH)),
-              track(controls::controlBox(previous.Max.x + theme::SPACE_1, top, ui::TRACK_WIDTH - (STEP_ARROW_WIDTH + theme::SPACE_1) * 2.0f)),
-              next(controls::controlBox(track.Max.x + theme::SPACE_1, top, STEP_ARROW_WIDTH)),
-              valueBox(controls::controlBox(right - theme::VALUE_WIDTH, top, theme::VALUE_WIDTH)),
-              grabLeast(track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f),
-              grabMost(track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f)
-        {}
-
-        /**
-         * The side of the step arrow at a place of the row, as -1 or 1, and 0 for none. An arrow is pressed a
-         * little beside it too, and in the gap between it and the track.
-         */
-        int arrowAt(const float x) const
-        {
-            if (x >= previous.Min.x - theme::SPACE_1 && x < track.Min.x) {
-                return -1;
-            }
-            return x >= track.Max.x && x < next.Max.x + theme::SPACE_1 ? 1 : 0;
-        }
-
-        /**
-         * The middle of the grab at a value of the slider. A value outside the range is at its end.
-         */
-        float grabAt(const model::ValueOptions& options, const float value) const
-        {
-            const float fraction = options.max > options.min ? std::clamp((value - options.min) / (options.max - options.min), 0.0f, 1.0f) : 0.0f;
-            return std::lerp(grabLeast, grabMost, fraction);
-        }
-
-        /**
-         * The value of the slider with the middle of its grab at a place, in its range and not on a step.
-         */
-        float valueAt(const model::ValueOptions& options, const float grab) const
-        {
-            return std::lerp(options.min, options.max, std::clamp((grab - grabLeast) / (grabMost - grabLeast), 0.0f, 1.0f));
-        }
-    };
-
-    /**
-     * A value of a slider on the step that is nearest to it, counted from the least, and in the range. A
-     * slider with no step has any value of its range.
-     */
-    float onStep(const model::ValueOptions& options, const float value)
-    {
-        double stepped = value;
-        if (options.step > 0.0f) {
-            stepped = options.min + std::round((static_cast<double>(value) - options.min) / options.step) * options.step;
-        }
-        return std::clamp(static_cast<float>(stepped), options.min, options.max);
-    }
-
-    /**
-     * The value of a slider a number of steps from its value, and whether that is a change to write, which gives
-     * the hand its pulse.
-     */
-    float stepBy(const model::ValueOptions& options, const float value, const int steps, bool& write, bool& pulse)
-    {
-        const float step = options.step > 0.0f ? options.step : (options.max - options.min) / STEPS_WITH_NO_STEP;
-        const float stepped = onStep(options, value + static_cast<float>(steps) * step);
-        write = stepped != value;
-        pulse = pulse || write;
-        return stepped;
-    }
-}
 
 namespace mods_config::ui
 {
     /**
-     * Whether a press that is held steps in this frame: as it begins, and again after a delay and then
-     * faster.
+     * The range of a setting's slider: its least, its most and its step.
      */
-    bool StepRepeat::step(const float seconds)
-    {
-        if (!begun) {
-            begun = true;
-            nextStepSeconds = STEP_REPEAT_DELAY;
-            return true;
-        }
-        heldSeconds += seconds;
-        if (heldSeconds < nextStepSeconds) {
-            return false;
-        }
-        nextStepSeconds += heldSeconds < STEP_FAST_AFTER ? STEP_REPEAT_INTERVAL : STEP_FAST_INTERVAL;
-        return true;
-    }
-
-    /**
-     * The text of a slider's value in the box of its value, as its display writes it. One that does not fit
-     * the box's room is in the detail size, and one that does not fit then either is the number alone, so the
-     * help line has its unit. A number is never shortened.
-     */
-    ValueBoxText valueBoxText(const model::Setting& setting, const float value)
-    {
-        constexpr float ROOM = theme::VALUE_WIDTH - theme::SPACE_3 * 2.0f;
-        const auto widthAt = [](const std::string& text, const float size) {
-            ImGui::PushFont(nullptr, size);
-            const float width = controls::textWidth(text);
-            ImGui::PopFont();
-            return width;
-        };
-        auto text = numberText(setting, value);
-        if (controls::textWidth(text) <= ROOM) {
-            return { .text = std::move(text), .fontSize = ImGui::GetFontSize(), .withUnit = true };
-        }
-        if (widthAt(text, theme::FONT_SIZE_DETAIL) <= ROOM) {
-            return { .text = std::move(text), .fontSize = theme::FONT_SIZE_DETAIL, .withUnit = true };
-        }
-        auto number = numberText(setting, value, false);
-        const bool withUnit = number == text;
-        const float size = controls::textWidth(number) <= ROOM ? ImGui::GetFontSize() : theme::FONT_SIZE_DETAIL;
-        return { .text = std::move(number), .fontSize = size, .withUnit = withUnit };
-    }
-
-    /**
-     * Starts a frame of the page, before its rows. The thumbstick's value is how far the one of the hand
-     * that points is pushed to a side, from -1 at the left to 1 at the right.
-     */
-    void Sliders::startFrame(const float thumbstickSideValue)
-    {
-        _dragHeld = false;
-        _pointedSeen = false;
-        _steps = stepsOfPush(thumbstickSideValue, ImGui::GetIO().DeltaTime);
-    }
-
-    /**
-     * The value a slider that ends at the right shows in this frame: the one the player gives it, and its
-     * own where they give none. A pull of the trigger on the track takes hold of the grab, which follows
-     * the ray until the trigger is let go, also beside the track. A pull on the grab itself does not move
-     * it. The value of a drag is to be written as the trigger is let go, and not before: a store can write
-     * a file for each. After Back the drag gives nothing.
-     * A pull on a step arrow steps the slider, and again while it is held, until the ray leaves the arrow. The
-     * thumbstick steps the slider whose row the ray is on, once it is there for a short time. Each step is to
-     * be written.
-     * Tells whether the hand gets its pulse: the pull took hold of the slider, or a step changed it.
-     */
-    float Sliders::edit(const model::Setting& setting, const float right, const float top, const SliderRow& row, const float value, bool& write, bool& pulse)
+    controls::SliderRange sliderRange(const model::Setting& setting)
     {
         const auto& options = setting.valueOptions;
-        const auto& io = ImGui::GetIO();
-        const Boxes boxes(right, top);
-        if (row.started && boxes.track.Contains(io.MousePos)) {
-            const float grab = boxes.grabAt(options, value);
-            _dragged = &setting;
-            _dragValue = value;
-            _grabOffset = std::abs(io.MousePos.x - grab) <= theme::GRAB_WIDTH * 0.5f ? io.MousePos.x - grab : 0.0f;
-            _dragCancelled = false;
-            pulse = true;
-        }
-        const int arrow = boxes.arrowAt(io.MousePos.x);
-        if (row.started && arrow != 0) {
-            _arrowHeld = &setting;
-            _arrowSide = arrow;
-            _arrowRepeat = {};
-        }
-        // by the frame before, as the steps of this frame are
-        const bool wasPointed = row.pointed && _pointed == &setting;
-        if (row.pointed) {
-            _pointedSeen = true;
-            if (_pointed == &setting) {
-                _pointedSeconds += io.DeltaTime;
-            } else {
-                // a push that is held as the ray comes here is not for this slider
-                _pointed = &setting;
-                _pointedSeconds = 0.0f;
-                _pushIgnored = _pushSide != 0;
-            }
-        }
-        if (_dragged == &setting) {
-            if (_dragCancelled) {
-                _dragHeld = row.held;
-                return value;
-            }
-            if (!row.held) {
-                write = _dragValue != value;
-                return _dragValue;
-            }
-            _dragHeld = true;
-            _dragValue = onStep(options, boxes.valueAt(options, io.MousePos.x - _grabOffset));
-            return _dragValue;
-        }
-        if (_arrowHeld == &setting && (!row.held || arrow != _arrowSide)) {
-            _arrowHeld = nullptr;
-        }
-        if (_arrowHeld == &setting) {
-            return _arrowRepeat.step(io.DeltaTime) ? stepBy(options, value, _arrowSide, write, pulse) : value;
-        }
-        if (wasPointed && _steps != 0) {
-            return stepBy(options, value, _steps, write, pulse);
-        }
-        return value;
+        return { .min = options.min, .max = options.max, .step = options.step };
     }
 
     /**
-     * A slider that ends at the right: its track between its step arrows, with a fill from the least to the
-     * grab, and the box of its value, in the color of its value's look. While it is dragged the grab and the
-     * outline of the track are in the color of the pointer's mark. A slider with no value has no fill, no grab
-     * and an empty box. The arrow of the end the value is at is disabled, and so are both with no value.
-     * Returns its left edge.
+     * The id the framework keeps a setting's slider's state by: of the setting itself, which stays while its page is
+     * shown, and not of ImGui's id stack, so its edit and its draw have the same one wherever each is called.
      */
-    float Sliders::draw(const model::Setting& setting, const float right, const float top, const SliderRow& row, const std::optional<float> value, const ValueLook look) const
+    ImGuiID sliderId(const model::Setting& setting)
     {
-        const auto& options = setting.valueOptions;
-        const Boxes boxes(right, top);
-        const auto& track = boxes.track;
-        const bool dragged = _dragged == &setting && _dragHeld && !_dragCancelled;
-        const int pointedArrow = row.pointed && !dragged ? boxes.arrowAt(ImGui::GetIO().MousePos.x) : 0;
-        const int heldArrow = _arrowHeld == &setting ? _arrowSide : 0;
-        controls::drawStepButton(boxes.previous, controls::Arrow::Left, value && *value > options.min, pointedArrow < 0, heldArrow < 0, STEP_ARROW_SCALE);
-        controls::drawStepButton(boxes.next, controls::Arrow::Right, value && *value < options.max, pointedArrow > 0, heldArrow > 0, STEP_ARROW_SCALE);
-        controls::drawFrame(track);
-        if (dragged) {
-            controls::drawOutline(track.Min, track.Max, theme::color::GLOW);
-        }
-        controls::drawFrame(boxes.valueBox, toneOf(look));
-        if (!value) {
-            return boxes.previous.Min.x;
-        }
-
-        const float grab = boxes.grabAt(options, *value);
-        const float middle = track.GetCenter().y;
-        const auto color = ImGui::GetColorU32(valueColor(look));
-        auto* drawList = ImGui::GetWindowDrawList();
-        if (grab > boxes.grabLeast) {
-            drawList->AddRectFilled(ImVec2(boxes.grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, theme::RADIUS_GRAB);
-        }
-        drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
-            ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
-            dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
-            theme::RADIUS_GRAB);
-
-        const auto text = valueBoxText(setting, *value);
-        ImGui::PushFont(nullptr, text.fontSize);
-        controls::drawTextIn(boxes.valueBox, text.text, valueColor(look), 1.0f, theme::SPACE_3);
-        ImGui::PopFont();
-        return boxes.previous.Min.x;
+        const auto* address = &setting;
+        return ImHashData(&address, sizeof(address));
     }
 
     /**
-     * Ends a frame of the page, after its rows: a slider whose row was not held is not dragged any more, and
-     * one whose row the ray has left is not the one the thumbstick steps.
+     * The text of a slider's value in the box of its value, as its display writes it: with its unit, smaller, or the
+     * number alone, so the help line has its unit. A number is never shortened.
      */
-    void Sliders::endFrame()
+    controls::ValueText valueBoxText(const model::Setting& setting, const float value)
     {
-        if (!_dragHeld) {
-            _dragged = nullptr;
-        }
-        if (!_pointedSeen) {
-            _pointed = nullptr;
-        }
-    }
-
-    /**
-     * Ends the drag of a slider with nothing written, for Back: the slider has the value it had as the drag
-     * began. The trigger is still held then, and the rest of its press changes nothing.
-     * Returns false while no slider is dragged.
-     */
-    bool Sliders::cancelDrag()
-    {
-        if (!_dragged || _dragCancelled) {
-            return false;
-        }
-        _dragCancelled = true;
-        return true;
-    }
-
-    /**
-     * Forgets the slider that is edited, as another page is shown: it is a row of the page before.
-     */
-    void Sliders::reset()
-    {
-        *this = {};
-    }
-
-    /**
-     * The steps the thumbstick moves the slider under the ray by in this frame: one to the side it is pushed
-     * to, and one again while it is held, after a delay and then faster. None until the ray is on the row
-     * of the slider for a short time: a push in that time steps as the time is over. A push that began
-     * with the ray on no slider, or on another, steps nothing until the thumbstick is let go.
-     */
-    int Sliders::stepsOfPush(const float push, const float seconds)
-    {
-        const int side = push >= STEP_PUSH ? 1 : push <= -STEP_PUSH ? -1 : 0;
-        if (side != _pushSide) {
-            _pushSide = side;
-            _pushRepeat = {};
-            _pushIgnored = side != 0 && !_pointed;
-        }
-        if (side == 0 || _pushIgnored) {
-            return 0;
-        }
-        if (!_pointed) {
-            _pushIgnored = true;
-            return 0;
-        }
-        if (_pointedSeconds < STEP_POINTED_DELAY) {
-            return 0;
-        }
-        return _pushRepeat.step(seconds) ? side : 0;
+        return controls::fitValueText(numberText(setting, value), numberText(setting, value, false));
     }
 }

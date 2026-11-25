@@ -194,7 +194,7 @@ namespace mods_config::ui
             _open = &setting;
             _cancel = false;
             _resume = false;
-            _sliders.reset();
+            controls::get().reset();
             ImGui::OpenPopupEx(id);
             edited.pulse = true;
         }
@@ -208,7 +208,7 @@ namespace mods_config::ui
             const auto stored = store.value(setting);
             const auto* text = std::get_if<std::string>(&stored.value);
             start(setting, text ? *text : _before);
-            _sliders.reset();
+            controls::get().reset();
         }
         if (!ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
             // a press beside it closed it, which keeps the transform
@@ -251,12 +251,10 @@ namespace mods_config::ui
         // a line for each axis of the parts that are on
         const auto saved = savedTable(setting, store);
         float lineTop = frame.headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3;
-        _sliders.startFrame(_thumbstickSideValue);
         for (const std::size_t axis : lines) {
             editAxis(frame, axis, lineTop, saved);
             lineTop += theme::CONTROL_HEIGHT + theme::SPACE_1;
         }
-        _sliders.endFrame();
 
         drawFooter(frame);
         ImGui::EndPopup();
@@ -276,15 +274,15 @@ namespace mods_config::ui
         ImGui::InvisibleButton("line", line.GetSize());
         // of the item, as a row's is: the window is not hovered while the line is held, and another line is not
         const bool pointed = ImGui::IsItemHovered();
-        const SliderRow sliderRow{ .pointed = pointed, .started = ImGui::IsItemActivated(), .held = ImGui::IsItemActive() };
+        const controls::SliderRow sliderRow{ .pointed = pointed, .started = ImGui::IsItemActivated(), .held = ImGui::IsItemActive() };
         ImGui::PopID();
 
         const float value = model::axisValue(_table, axis);
-        bool write = false;
         const float right = frame.contentRight - theme::SPACE_2;
-        const float changed = _sliders.edit(_axes[axis], right, lineTop, sliderRow, value, write, frame.edited.pulse);
-        if (write || !common::fEqual(changed, value)) {
-            model::setAxis(_table, axis, changed);
+        const auto slid = controls::sliderEdit(sliderId(_axes[axis]), right, lineTop, sliderRow, value, sliderRange(_axes[axis]));
+        frame.edited.pulse = frame.edited.pulse || slid.pulse;
+        if (slid.write || !common::fEqual(slid.value, value)) {
+            model::setAxis(_table, axis, slid.value);
             frame.store.set(frame.setting, model::transformText(_table, frame.setting.tableForm));
         }
 
@@ -298,7 +296,14 @@ namespace mods_config::ui
         _axes[axis].display.decimals = (std::max)(stepDecimals(frame.setting.valueOptions.transformAxes[axis].step), stepDecimals(shownValue));
         const float labelLeft = frame.contentLeft + theme::SPACE_2;
         controls::drawText(labelLeft, labelLeft + LABEL_WIDTH, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN, AXES[axis].name);
-        _sliders.draw(_axes[axis], right, lineTop, sliderRow, shownValue, differs ? ValueLook::Pending : ValueLook::Saved);
+        controls::drawSlider(sliderId(_axes[axis]),
+            right,
+            lineTop,
+            sliderRow,
+            shownValue,
+            sliderRange(_axes[axis]),
+            differs ? controls::Tone::Warning : controls::Tone::Normal,
+            valueBoxText(_axes[axis], shownValue));
     }
 
     /**
@@ -356,15 +361,6 @@ namespace mods_config::ui
         }
     }
 
-    /**
-     * Starts a frame of the page, before its rows. The thumbstick's value is how far the one of the hand that points is
-     * pushed to a side, from -1 at the left to 1 at the right, which steps the slider the ray is on.
-     */
-    void TransformEditor::startFrame(const float thumbstickSideValue)
-    {
-        _thumbstickSideValue = thumbstickSideValue;
-    }
-
     bool TransformEditor::isOpen(const model::Setting& setting) const
     {
         return _open == &setting;
@@ -412,6 +408,6 @@ namespace mods_config::ui
         _openSeen = false;
         _cancel = false;
         _resume = false;
-        _sliders.reset();
+        controls::get().reset();
     }
 }

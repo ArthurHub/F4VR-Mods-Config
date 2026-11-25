@@ -40,7 +40,6 @@ namespace mods_config::ui
     class TransformEditor
     {
     public:
-        void startFrame(float thumbstickSideValue);
         TransformEdited edit(const model::Setting& setting, model::Store& store, const ImRect& row, bool pressed);
         bool isOpen(const model::Setting& setting) const;
 
@@ -81,8 +80,6 @@ namespace mods_config::ui
 
         // how far the thumbstick is pushed to a side in the frame that is drawn, and the sliders of the axes, the page
         // sliders' own, each with a setting of the axis's range
-        float _thumbstickSideValue = 0.0f;
-        Sliders _sliders;
         std::array<model::Setting, model::TRANSFORM_AXES> _axes;
     };
 }

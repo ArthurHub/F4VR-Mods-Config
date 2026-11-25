@@ -968,12 +968,8 @@ namespace mods_config::ui
     std::optional<float> BindingEditor::stepTime(const float least, const float most, const float current, const ImVec2& end, const bool pointed)
     {
         _stepped.valueOptions = model::ValueOptions{ .min = least, .max = most, .step = SLIDER_STEP };
-        bool write = false;
-        bool pulse = false;
-        _sliders.startFrame(_thumbstickSideValue);
-        const float stepped = _sliders.edit(_stepped, end.x, end.y, SliderRow{ .pointed = pointed }, current, write, pulse);
-        _sliders.endFrame();
-        return write ? std::optional(stepped) : std::nullopt;
+        const auto stepped = controls::sliderEdit(sliderId(_stepped), end.x, end.y, controls::SliderRow{ .pointed = pointed }, current, sliderRange(_stepped));
+        return stepped.write ? std::optional(stepped.value) : std::nullopt;
     }
 
     /**
@@ -1097,16 +1093,6 @@ namespace mods_config::ui
         if (frame.hovered && done.Contains(frame.mouse)) {
             frame.point("Done", "Keep the binding.");
         }
-    }
-
-    /**
-     * Starts a frame of the page, before its rows. The thumbstick's value is how far the one of the hand that points is
-     * pushed to a side, from -1 at the left to 1 at the right, which steps the time or the threshold of the editor that
-     * is open.
-     */
-    void BindingEditor::startFrame(const float thumbstickSideValue)
-    {
-        _thumbstickSideValue = thumbstickSideValue;
     }
 
     /**

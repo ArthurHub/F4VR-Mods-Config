@@ -82,7 +82,6 @@ namespace
         // the player's handedness, which says what a button of a hand is printed as
         bool leftHanded = false;
         model::Store* store;
-        ui::Sliders& sliders;
         ui::Choices& choices;
         ui::TextInputs& textInputs;
         ui::BindingEditor& bindingEditor;
@@ -274,7 +273,6 @@ namespace
         {
             auto drawn = ui::drawSettingRow(setting,
                 { .store = page.store,
-                    .sliders = page.sliders,
                     .choices = page.choices,
                     .textInputs = page.textInputs,
                     .bindingEditor = page.bindingEditor,
@@ -438,11 +436,7 @@ namespace mods_config::ui
     {
         F4CF_PERF_FUNCTION();
         PageDrawn drawn;
-        _sliders.startFrame(thumbstickSideValue);
         _choices.startFrame(thumbstickSideValue);
-        _bindingEditor.startFrame(thumbstickSideValue);
-        _colorEditor.startFrame(thumbstickSideValue);
-        _transformEditor.startFrame(thumbstickSideValue);
         if (!page.contentNotGiven.empty()) {
             drawPageText(page.contentNotGiven);
         }
@@ -450,7 +444,6 @@ namespace mods_config::ui
             PageDrawing{ .imageDrawer = _imageDrawer,
                 .leftHanded = _leftHanded,
                 .store = store,
-                .sliders = _sliders,
                 .choices = _choices,
                 .textInputs = _textInputs,
                 .bindingEditor = _bindingEditor,
@@ -462,7 +455,6 @@ namespace mods_config::ui
                 .focused = _focused,
                 .scrollToFocused = _scrollToFocused,
                 .search = search });
-        _sliders.endFrame();
         _choices.endFrame();
         _bindingEditor.endFrame();
         _colorEditor.endFrame();
@@ -492,14 +484,14 @@ namespace mods_config::ui
     }
 
     /**
-     * Goes one step back in the page, for Back: closes a button's confirmation with nothing run, ends the drag of a
-     * slider with nothing written, closes the open list of a dropdown with no option picked, ends the edit of a text
+     * Goes one step back in the page, for Back: ends what a control holds, as the drag of a slider with nothing written,
+     * closes a button's confirmation with nothing run, closes the open list of a dropdown with no option picked, ends the edit of a text
      * input with nothing written, closes the list of a binding's editor or gives the binding back, and gives a color or
      * a transform back as its editor closes. Only one step is taken. Returns false while none of them is open.
      */
     bool ModPage::back()
     {
-        return _buttons.cancelConfirmation() || _sliders.cancelDrag() || _choices.closeList() || _textInputs.cancelEdit() || _bindingEditor.cancel() || _colorEditor.cancel() ||
+        return controls::get().back() || _buttons.cancelConfirmation() || _choices.closeList() || _textInputs.cancelEdit() || _bindingEditor.cancel() || _colorEditor.cancel() ||
                _transformEditor.cancel();
     }
 
@@ -541,7 +533,7 @@ namespace mods_config::ui
      */
     bool ModPage::isEditing() const
     {
-        return openEditor().has_value() || _sliders.isDragging() || _buttons.isConfirming();
+        return openEditor().has_value() || controls::get().isDragging() || _buttons.isConfirming();
     }
 
     /**
@@ -551,7 +543,7 @@ namespace mods_config::ui
      */
     void ModPage::reset()
     {
-        _sliders.reset();
+        controls::get().reset();
         _choices.reset();
         _textInputs.reset();
         _bindingEditor.reset();

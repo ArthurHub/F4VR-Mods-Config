@@ -272,6 +272,7 @@ namespace
     void pushFrames(FullPanel& panel, const ImVec2 at, const float push, const int count)
     {
         panel.setThumbstickSideValue(push);
+        controls::get().setThumbstickSide(push);
         for (int i = 0; i < count; ++i) {
             test_panel::drawFrame(panel, at);
         }
@@ -2673,6 +2674,7 @@ TEST_CASE("FullPanel: a push of the thumbstick steps the stepper the ray is on, 
     pushFrames(panel, pageRow(1), 1.0f, 2);
     CHECK(numberOf(store, panel, 0x821) == 0.0f);
     panel.setThumbstickSideValue(0.0f);
+    controls::get().setThumbstickSide(0.0f);
 }
 
 TEST_CASE("FullPanel: a press on the row of a dropdown opens its list, and a press on an option picks it")
@@ -5010,6 +5012,7 @@ TEST_CASE("FullPanel: a press on a binding opens its editor, whose parts set it 
     pushFrames(panel, bindingPart(true, 0), 0.0f, 40);
     pushFrames(panel, bindingPart(true, 0), 1.0f, 2);
     panel.setThumbstickSideValue(0.0f);
+    controls::get().setThumbstickSide(0.0f);
     drawFrames(panel, 1);
     CHECK(value() == R"({ hand = "offhand", type = "longpress", button = "trigger", duration = 0.65 })");
 
@@ -5183,6 +5186,7 @@ TEST_CASE("FullPanel: a press on a color opens its editor, whose channels set it
     pushFrames(panel, colorTrackAt(2, 128), 0.0f, 40);
     pushFrames(panel, colorTrackAt(2, 128), 1.0f, 2);
     panel.setThumbstickSideValue(0.0f);
+    controls::get().setThumbstickSide(0.0f);
     drawFrames(panel, 1);
     CHECK(value(ray) == "{ rgb = [0, 255, 191], alpha = 200 }");
 
@@ -5556,6 +5560,7 @@ TEST_CASE("FullPanel: a press on a transform opens its editor, of a slider for e
     pushFrames(panel, transformTrackAt(1, 0.5f), 0.0f, 40);
     pushFrames(panel, transformTrackAt(1, 0.5f), 1.0f, 2);
     panel.setThumbstickSideValue(0.0f);
+    controls::get().setThumbstickSide(0.0f);
     drawFrames(panel, 1);
     CHECK(value(0) == "{ pos = [20.0, -5.85, -5.13], rot = [20.72, 0.0, 90.0], scale = 1.5 }");
 
@@ -5608,6 +5613,7 @@ TEST_CASE("FullPanel: a press on a transform opens its editor, of a slider for e
     pushFrames(panel, transformTrackAt(0, 0.5f), 0.0f, 40);
     pushFrames(panel, transformTrackAt(0, 0.5f), -1.0f, 2);
     panel.setThumbstickSideValue(0.0f);
+    controls::get().setThumbstickSide(0.0f);
     drawFrames(panel, 1);
     CHECK(value(3) == "{ pos = [50.0, 0.0, 0.0] }");
 }

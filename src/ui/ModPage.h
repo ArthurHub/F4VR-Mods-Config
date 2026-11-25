@@ -114,7 +114,6 @@ namespace mods_config::ui
         bool _leftHanded = false;
 
         // the sliders of the page that is shown, and how the player edits one
-        Sliders _sliders;
 
         // its steppers and dropdowns, and the list that is open
         Choices _choices;

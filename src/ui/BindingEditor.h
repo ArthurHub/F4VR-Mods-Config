@@ -40,7 +40,6 @@ namespace mods_config::ui
     class BindingEditor
     {
     public:
-        void startFrame(float thumbstickSideValue);
         BindingEdited edit(const model::Setting& setting, model::Store& store, const ImRect& row, bool pressed, bool leftHanded, const ImageDrawer& drawer);
         bool isOpen(const model::Setting& setting) const;
 
@@ -114,8 +113,6 @@ namespace mods_config::ui
 
         // how far the thumbstick is pushed to a side in the frame that is drawn, and the steps it gives the slider, which
         // are the page sliders' own, as a setting of the slider's range
-        float _thumbstickSideValue = 0.0f;
-        Sliders _sliders;
         model::Setting _stepped;
     };
 }
