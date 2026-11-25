@@ -65,7 +65,7 @@ namespace mods_config::ui
     {
         const auto* confirmation = button && button->confirmation ? &*button->confirmation : nullptr;
         const bool dangerous = confirmation && confirmation->dangerous;
-        if (!beginDialog(POPUP_ID, button && (confirmation || saveFirst), dangerous ? theme::color::RED : theme::color::GREEN)) {
+        if (!controls::beginDialog(POPUP_ID, button && (confirmation || saveFirst), dangerous ? controls::Tone::Error : controls::Tone::Normal)) {
             return ConfirmAnswer::None;
         }
 
@@ -86,17 +86,19 @@ namespace mods_config::ui
                                          : !confirmation->confirm.empty() ? std::string_view(confirmation->confirm)
                                          : !button->buttonText.empty()    ? std::string_view(button->buttonText)
                                                                           : std::string_view("Run");
-        const DialogButton confirming{ .label = confirm, .look = dangerous ? ButtonLook::Danger : ButtonLook::Primary, .disabled = saveFirst && saveFirst->invalid > 0 };
-        const DialogButton cancel{ .label = "Cancel", .look = ButtonLook::Quiet };
+        const controls::DialogButton confirming{ .label = confirm,
+            .look = dangerous ? controls::ButtonLook::Danger : controls::ButtonLook::Primary,
+            .disabled = saveFirst && saveFirst->invalid > 0 };
+        const controls::DialogButton cancel{ .label = "Cancel", .look = controls::ButtonLook::Quiet };
         ConfirmAnswer answer = ConfirmAnswer::None;
         if (saveFirst) {
-            const std::array buttons{ confirming, DialogButton{ .label = "Run without saving", .look = ButtonLook::Secondary }, cancel };
+            const std::array buttons{ confirming, controls::DialogButton{ .label = "Run without saving", .look = controls::ButtonLook::Secondary }, cancel };
             constexpr std::array ANSWERS{ ConfirmAnswer::Confirm, ConfirmAnswer::RunWithoutSaving, ConfirmAnswer::Cancel };
-            const int pressed = dialogButtons(buttons);
+            const int pressed = panelDialogButtons(buttons);
             answer = pressed >= 0 ? ANSWERS[pressed] : ConfirmAnswer::None;
         } else {
             const std::array buttons{ confirming, cancel };
-            const int pressed = dialogButtons(buttons);
+            const int pressed = panelDialogButtons(buttons);
             answer = pressed == 0 ? ConfirmAnswer::Confirm : pressed == 1 ? ConfirmAnswer::Cancel : ConfirmAnswer::None;
         }
         if (answer != ConfirmAnswer::None) {

@@ -323,7 +323,7 @@ namespace mods_config::ui
         const float cancelWidth = controls::textWidth("Cancel") + theme::SPACE_4 * 2.0f;
         const auto done = controls::controlBox(frame.contentRight - doneWidth, frame.footerTop, doneWidth);
         const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_2 - cancelWidth, frame.footerTop, cancelWidth);
-        if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
+        if (panelButton("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
@@ -332,7 +332,7 @@ namespace mods_config::ui
         if (frame.hovered && cancelBox.Contains(frame.mouse)) {
             frame.point("Cancel", "Give back the value it had as the editor opened.");
         }
-        if (button("Done", done, ButtonLook::Primary)) {
+        if (panelButton("Done", done, controls::ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
             frame.edited.pulse = true;

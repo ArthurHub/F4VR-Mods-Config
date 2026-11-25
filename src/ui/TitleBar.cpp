@@ -180,7 +180,7 @@ namespace mods_config::ui
             const auto box = controls::controlBox(buttonLeft, buttonTop, buttonWidth);
             panelTargets().add(TargetKind::TitleButton, button.name, box);
             bool pointed = false;
-            if (highlighted ? highlightedHelp(button.name, box, pointed) : iconButton(button.name, box, pointed)) {
+            if (highlighted ? highlightedHelp(button.name, box, pointed) : controls::iconButton(button.name, box, pointed)) {
                 bar.pressedButton = button.button;
             }
             if (pointed) {

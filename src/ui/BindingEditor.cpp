@@ -1022,8 +1022,8 @@ namespace mods_config::ui
         ImGui::BeginDisabled(frame.off);
         drawLabel("Suppress from the game", at);
         const float toggleLeft = at.x + LABEL_WIDTH + theme::SPACE_2;
-        const float toggleRight = toggleLeft + TOGGLE_CELL_WIDTH * 2.0f;
-        drawSwitcher(toggleRight, at.y, _binding.suppress, ValueLook::Saved);
+        const float toggleRight = toggleLeft + controls::SWITCHER_CELL_WIDTH * 2.0f;
+        controls::drawSwitcher(toggleRight, at.y, _binding.suppress, controls::Tone::Normal);
         ImGui::SetCursorScreenPos(ImVec2(toggleLeft, at.y));
         if (ImGui::InvisibleButton("toggle", ImVec2(toggleRight - toggleLeft, theme::CONTROL_HEIGHT))) {
             const bool on = frame.mouse.x >= (toggleLeft + toggleRight) * 0.5f;
@@ -1080,7 +1080,7 @@ namespace mods_config::ui
         const float footerTop = ruleY + theme::BORDER_FRAME + theme::SPACE_3;
         const auto done = controls::controlBox(frame.contentRight - DONE_WIDTH, footerTop, DONE_WIDTH);
         const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_3 - CANCEL_WIDTH, footerTop, CANCEL_WIDTH);
-        if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
+        if (panelButton("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
@@ -1089,7 +1089,7 @@ namespace mods_config::ui
         if (frame.hovered && cancelBox.Contains(frame.mouse)) {
             frame.point("Cancel", "Give back the binding it had as the editor opened.");
         }
-        if (button("Done", done, ButtonLook::Primary)) {
+        if (panelButton("Done", done, controls::ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
             frame.edited.pulse = true;

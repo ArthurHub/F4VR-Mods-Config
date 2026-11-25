@@ -475,7 +475,7 @@ namespace
         switch (setting.type) {
         case model::SettingType::Switcher: {
             const auto* on = std::get_if<bool>(&stored.value);
-            left = ui::drawSwitcher(right, top, state.showsValue ? std::optional(on && *on) : std::nullopt, look);
+            left = controls::drawSwitcher(right, top, state.showsValue ? std::optional(on && *on) : std::nullopt, toneOf(look));
             break;
         }
         case model::SettingType::Slider:

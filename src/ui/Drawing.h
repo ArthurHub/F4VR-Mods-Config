@@ -10,7 +10,9 @@
 #include <imgui_internal.h>
 
 #include "Theme.h"
+#include "imgui/controls/Buttons.h"
 #include "imgui/controls/Controls.h"
+#include "imgui/controls/Dialogs.h"
 #include "imgui/controls/Frames.h"
 #include "imgui/controls/Marks.h"
 #include "imgui/controls/Text.h"
@@ -57,31 +59,6 @@ namespace mods_config::ui
         Invalid,
     };
 
-    /**
-     * How a button of the footer and of the dialog looks, as the design system's Button has it.
-     */
-    enum class ButtonLook : std::uint8_t
-    {
-        // Save: a solid green
-        Primary,
-        // Discard: an outline
-        Secondary,
-        // Cancel: no outline until the ray is on it
-        Quiet,
-        // the confirming button of a dangerous confirmation: a solid red
-        Danger,
-    };
-
-    /**
-     * A button of a dialog: its text, its look, and whether it is disabled.
-     */
-    struct DialogButton
-    {
-        std::string_view label;
-        ButtonLook look = ButtonLook::Quiet;
-        bool disabled = false;
-    };
-
     // the box of a stepper's option, and a slider's track with its step arrows, in the panel's pixels: not a token
     // of the design system
     constexpr float TRACK_WIDTH = 280.0f;
@@ -89,9 +66,6 @@ namespace mods_config::ui
     // the box of a dropdown, which fills the room of a control in its row: the control column without the room of
     // Reset. A binding's frame is as wide
     constexpr float DROPDOWN_WIDTH = theme::CONTROL_WIDTH - theme::CONTROL_HEIGHT - theme::SPACE_2;
-
-    // a cell of a switcher, Off or On, which has two, in the panel's pixels: not a token of the design system
-    constexpr float TOGGLE_CELL_WIDTH = 88.0f;
 
     // the box of the mark of when a pending change takes effect, which is drawn in place of the dot
     constexpr float APPLIES_MARK_WIDTH = 16.0f;
@@ -114,12 +88,9 @@ namespace mods_config::ui
     void sphereHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
     bool listOption(std::string_view text, bool chosen, float width, std::string_view suffix = {});
     bool listAction(std::string_view text, float width);
-    float drawSwitcher(float right, float top, std::optional<bool> on, ValueLook look);
-    bool iconButton(const char* id, const ImRect& box, bool& pointed);
-    bool button(const char* label, const ImRect& box, ButtonLook look);
+    bool panelButton(const char* label, const ImRect& box, controls::ButtonLook look);
     bool beginRowEditor(ImGuiID id, const ImRect& row, float width, float height);
-    bool beginDialog(const char* id, bool asked, ImU32 border);
-    int dialogButtons(std::span<const DialogButton> buttons);
+    int panelDialogButtons(std::span<const controls::DialogButton> buttons);
     float appliesTagWidth(std::string_view word);
     void drawAppliesTag(float left, float middle, model::Applies applies, std::string_view word);
     float restartMarkWidth();

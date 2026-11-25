@@ -49,7 +49,7 @@ namespace mods_config::ui
      */
     DialogAnswer drawUnsavedDialog(const UnsavedChanges* changes)
     {
-        if (!beginDialog(TITLE, changes != nullptr, theme::color::GREEN)) {
+        if (!controls::beginDialog(TITLE, changes != nullptr, controls::Tone::Normal)) {
             return DialogAnswer::None;
         }
 
@@ -61,11 +61,13 @@ namespace mods_config::ui
         ImGui::TextUnformatted(question.data(), question.data() + question.size());
         ImGui::PopTextWrapPos();
 
-        const std::array<DialogButton, 3> buttons{ DialogButton{ .label = changes->made ? "Keep" : "Save", .look = ButtonLook::Primary, .disabled = changes->invalid > 0 },
-            DialogButton{ .label = changes->made ? "Revert" : "Discard", .look = ButtonLook::Secondary },
-            DialogButton{ .label = "Cancel", .look = ButtonLook::Quiet } };
+        const std::array<controls::DialogButton, 3> buttons{
+            controls::DialogButton{ .label = changes->made ? "Keep" : "Save", .look = controls::ButtonLook::Primary, .disabled = changes->invalid > 0 },
+            controls::DialogButton{ .label = changes->made ? "Revert" : "Discard", .look = controls::ButtonLook::Secondary },
+            controls::DialogButton{ .label = "Cancel", .look = controls::ButtonLook::Quiet }
+        };
         constexpr std::array ANSWERS{ DialogAnswer::Save, DialogAnswer::Discard, DialogAnswer::Cancel };
-        const int pressed = dialogButtons(buttons);
+        const int pressed = panelDialogButtons(buttons);
         const auto answer = pressed >= 0 ? ANSWERS[pressed] : DialogAnswer::None;
 
         if (answer != DialogAnswer::None) {

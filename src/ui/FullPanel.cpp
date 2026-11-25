@@ -1142,12 +1142,12 @@ namespace mods_config::ui
         const auto save = controls::controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         const auto discard = controls::controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
-        if (button(made ? "Revert" : "Discard", discard, ButtonLook::Secondary)) {
+        if (panelButton(made ? "Revert" : "Discard", discard, controls::ButtonLook::Secondary)) {
             this->discard();
             _pressActed = true;
         }
         ImGui::BeginDisabled(store && store->invalidCount() > 0);
-        if (button(made ? "Keep" : "Save", save, ButtonLook::Primary)) {
+        if (panelButton(made ? "Keep" : "Save", save, controls::ButtonLook::Primary)) {
             // the status has the reason of a Save that failed, which the store keeps
             std::ignore = this->save();
             _pressActed = true;

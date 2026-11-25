@@ -131,8 +131,8 @@ Each framework commit is followed by the mod's port onto it, one at a time.
 | --- | --------- | ------------------------------------------------------------------------------------------------------------ | ------- |
 | F26 | framework | imgui: controls style and drawing primitives: text, underlined ranges, drawn icons and marks, frames         | done    |
 | M13 | mod       | `Drawing` on the framework's primitives, `ControlsStyle` from `Theme.h`                                      | done    |
-| F27 | framework | imgui: button, icon button, switcher, dialog and its buttons                                                 | planned |
-| M14 | mod       | Buttons, switchers and dialogs from the framework                                                            | planned |
+| F27 | framework | imgui: button, icon button, switcher, dialog and its buttons                                                 | done    |
+| M14 | mod       | Buttons, switchers and dialogs from the framework                                                            | done    |
 | F28 | framework | imgui: slider: trigger drag written on release, step arrows, thumbstick steps that repeat, Back cancels      | planned |
 | M15 | mod       | Sliders from the framework, in rows and in the editors                                                       | planned |
 | F29 | framework | imgui: stepper and dropdown, with its list beside its box: suffixes, a header line, an action after them     | planned |

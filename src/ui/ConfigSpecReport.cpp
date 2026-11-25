@@ -130,7 +130,7 @@ namespace
             controls::drawTextIn(box, row.button, theme::color::GREEN, 0.5f, theme::SPACE_3);
             left = box.Min.x;
         } else {
-            left = ui::drawSwitcher(right, pos.y, on, ui::ValueLook::Saved);
+            left = controls::drawSwitcher(right, pos.y, on, controls::Tone::Normal);
         }
         ui::drawLabel(pos, left - theme::SPACE_3, row.text, {}, { .mark = row.mark });
         ImGui::EndDisabled();

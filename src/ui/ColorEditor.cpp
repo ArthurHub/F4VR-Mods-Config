@@ -481,7 +481,7 @@ namespace mods_config::ui
     {
         const auto done = controls::controlBox(frame.contentRight - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
         const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
-        if (button("Cancel", cancelBox, ButtonLook::Quiet)) {
+        if (panelButton("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
@@ -490,7 +490,7 @@ namespace mods_config::ui
         if (frame.hovered && cancelBox.Contains(frame.mouse)) {
             frame.point("Cancel", "Give back the color it had as the editor opened.");
         }
-        if (button("Done", done, ButtonLook::Primary)) {
+        if (panelButton("Done", done, controls::ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
             frame.edited.pulse = true;
