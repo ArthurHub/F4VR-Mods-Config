@@ -804,7 +804,8 @@ namespace mods_config::ui
     /**
      * Searches the mods for the query of the search field, before the title bar and the tree are drawn, as the search
      * session has it. A query that changes scrolls the tree to its top, and filters the page again from its top. A
-     * query emptied, as by Clear, shows the whole page, with the focus ring on the last row the ray was on.
+     * query emptied, as by Clear, scrolls the whole tree to the selected row instead, and shows the whole page, with
+     * the focus ring on the last row the ray was on.
      */
     void FullPanel::updateSearch()
     {
@@ -816,7 +817,12 @@ namespace mods_config::ui
         if (!_search.update(_modTree.query(), _modList.changeableMods(), _selection.mod, storeOfMod)) {
             return;
         }
-        _modTree.showTop();
+        // the whole tree back has the selected row in view, with its category open
+        if (_search.query().empty() && _selection.mod) {
+            _modTree.showSelection();
+        } else {
+            _modTree.showTop();
+        }
         if (_search.query().empty() && filtered) {
             showWhole();
         } else if (isFiltered()) {

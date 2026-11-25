@@ -5939,6 +5939,23 @@ TEST_CASE("FullPanel: a search of a grouped tree shows the mods it found in one 
     CHECK(panel.selection() == selectionOf(3));
 }
 
+TEST_CASE("FullPanel: a mod selected while searching has its category opened as the search ends")
+{
+    const test_panel::PanelContext context;
+    auto panel = groupedMods();
+    drawFrames(panel, 2);
+    search(panel, "Gamma");
+    press(panel, treeRow(0));
+    CHECK(panel.selection() == selectionOf(3));
+
+    CHECK(pressActs(panel, searchClear()));
+    drawFrames(panel, 2);
+
+    // Combat is open: Alpha is its first mod
+    press(panel, treeRow(1));
+    CHECK(panel.selection() == selectionOf(0));
+}
+
 TEST_CASE("FullPanel: a mod the player gave a category is under it, and the tree is grouped again as the choices change")
 {
     const test_panel::PanelContext context;

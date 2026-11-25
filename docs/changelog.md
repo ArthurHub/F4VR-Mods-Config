@@ -17,6 +17,7 @@
 - For mod authors: a page with `contentFromClientCallback` gets its rows from the mod's DLL as it is shown, for rows that depend on the game right now, as the items the player carries. The native client gives them with `addPageContent`, API version 2.
 - For mod authors: a `string` dropdown with `allowTyped` also takes a value the player types, of the lengths its `minLength` and `maxLength` allow. Its list shows a value that is none of its options after them.
 - The entry that types a name of your own, last in a dropdown's list, is now **Type your own**.
+- As a search ends, the tree shows the mod or page selected while searching, with its category open. It showed the tree's top before.
 - For mod authors: a setting with `"searchable": false` isn't found by search by its name, only with its section, page or mod, for rows named after what search finds already.
 
 ## v1.0.1
