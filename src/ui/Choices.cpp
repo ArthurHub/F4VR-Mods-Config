@@ -1,8 +1,6 @@
 #include "Choices.h"
 
 #include <algorithm>
-#include <array>
-#include <cstdint>
 #include <format>
 #include <string>
 #include <string_view>
@@ -22,51 +20,7 @@ namespace
 {
     using namespace mods_config;
 
-    using controls::Arrow;
-    using controls::ARROW_SIZE;
     using ui::DROPDOWN_WIDTH;
-
-    // The sizes of a stepper and a dropdown that are not tokens of the design system, in the panel's pixels.
-    // The options of a list are this far from each other, and from the edge of the list
-    constexpr float LIST_GAP = theme::SPACE_1;
-    constexpr float LIST_PADDING = theme::SPACE_2;
-    // the entry that does something other than pick is this much further from the options, with a rule in the middle
-    constexpr float ACTION_GAP = theme::SPACE_1;
-    // the options a list shows at most: one with more scrolls
-    constexpr std::size_t LIST_MAX_OPTIONS = 5;
-    // The thumbstick steps a stepper from this far off its center, of 1 for a full push, as it steps a slider
-    constexpr float STEP_PUSH = 0.6f;
-
-    /**
-     * Where the parts of a stepper that ends at the right are: the box of its option, between the button to
-     * the option before it and the one to the option after.
-     */
-    struct StepperBoxes
-    {
-        ImRect next;
-        ImRect option;
-        ImRect previous;
-
-        StepperBoxes(const float right, const float top)
-            : next(controls::controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT)),
-              option(controls::controlBox(next.Min.x - theme::SPACE_2 - ui::TRACK_WIDTH, top, ui::TRACK_WIDTH)),
-              previous(controls::controlBox(option.Min.x - theme::SPACE_2 - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT))
-        {}
-
-        /**
-         * Whether a place of the row is on a button. A button is pressed a little beside it too, and in
-         * the gap between it and the box of the option.
-         */
-        bool onPrevious(const float x) const
-        {
-            return x >= previous.Min.x - theme::SPACE_1 && x < option.Min.x;
-        }
-
-        bool onNext(const float x) const
-        {
-            return x >= option.Max.x && x < next.Max.x + theme::SPACE_1;
-        }
-    };
 
     /**
      * The box of a dropdown that ends at the right, which its list opens at: a haptic's is its frame, before its Play
@@ -117,7 +71,7 @@ namespace
      * a value that is no option has its text alone. Play is disabled for None and for no option. Returns its left edge.
      */
     float drawHaptic(const ui::HapticBoxes& boxes, const std::string_view text, const model::Option* option, const ui::ValueLook look, const bool listOpen,
-        const ui::ChoiceRow& row)
+        const controls::ChoiceRow& row)
     {
         const auto& box = boxes.frame;
         const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
@@ -140,28 +94,6 @@ namespace
         ImGui::EndDisabled();
         return box.Min.x;
     }
-
-    // the line over the options of a list of files: its text in the detail size, with room above and under it
-    constexpr float LIST_HEADER_HEIGHT = theme::SPACE_1 + theme::FONT_SIZE_DETAIL + theme::SPACE_2;
-
-    /**
-     * Where the list of a dropdown is, by the box of the dropdown and the number of its entries: as wide as
-     * the box, and as high as its entries, up to the most it shows, its header, and the room of the rule over an entry
-     * that does something other than pick. It is under the box, or over it where
-     * the window it is in, the page or a binding's editor, has no room under it. Where it has room for neither, it
-     * is at the bottom of the window, over the box. The list is so never over the title bar and the footer.
-     */
-    ImRect listBox(const ImRect& box, const std::size_t entries, const bool header, const bool action)
-    {
-        const auto& page = ImGui::GetCurrentWindow()->InnerRect;
-        const auto shown = static_cast<float>((std::min)(entries, LIST_MAX_OPTIONS));
-        const float headerHeight = header ? LIST_HEADER_HEIGHT + theme::BORDER_FRAME + LIST_GAP : 0.0f;
-        const float actionRoom = action ? ACTION_GAP : 0.0f;
-        const float height = (std::min)(shown * (theme::CONTROL_HEIGHT + LIST_GAP) - LIST_GAP + LIST_PADDING * 2.0f + headerHeight + actionRoom, page.GetHeight());
-        const float top = controls::popupTop(box, height, page);
-        return { box.Min.x, top, box.Max.x, top + height };
-    }
-
 }
 
 namespace mods_config::ui
@@ -180,37 +112,45 @@ namespace mods_config::ui
     }
 
     /**
-     * Starts a frame of the page, before its rows. The thumbstick's value is how far the one of the hand
-     * that points is pushed to a side, from -1 at the left to 1 at the right: a push is one step, in the
-     * frame it begins, and a push that is held steps no more.
-     * A list that Back closed, or that is of the page before, is closed here: ImGui closes a list inside
-     * a frame.
+     * The framework's list of options of a dropdown that is open, as `controls::drawList` draws it, whose options and
+     * scroll devbench finds: each option by its text, and the action entry by its own.
      */
-    void Choices::startFrame(const float thumbstickSideValue)
+    controls::ListDrawn panelList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen,
+        const controls::OptionDecoration& decorate, const controls::ListExtras& extras)
     {
-        const int side = thumbstickSideValue >= STEP_PUSH ? 1 : thumbstickSideValue <= -STEP_PUSH ? -1 : 0;
-        _step = side != _pushSide ? side : 0;
-        _pushSide = side;
-        _openSeen = false;
-        if (_close) {
-            ImGui::ClosePopupsExceptModals();
-            _close = false;
+        auto drawn = controls::drawList(id, box, texts, chosen, decorate, extras);
+        if (!drawn.shown) {
+            return drawn;
         }
+        for (std::size_t i = 0; i < texts.size() && i < drawn.boxes.size(); ++i) {
+            panelTargets().add(TargetKind::Option, texts[i], drawn.boxes[i]);
+        }
+        if (!extras.action.empty() && drawn.boxes.size() > texts.size()) {
+            panelTargets().add(TargetKind::Option, extras.action, drawn.boxes.back());
+        }
+        panelTargets().addScroll(ScrollArea::List, drawn.scrollY, drawn.scrollMaxY);
+        return drawn;
+    }
+
+    /**
+     * Starts a frame of the page, before its rows.
+     */
+    void Choices::startFrame()
+    {
+        _openSeen = false;
     }
 
     /**
      * The option the player picks in this frame for a stepper or a dropdown that ends at the right, by its
      * place among the options, and none where they pick none. The setting has an option at least.
-     * A press on a button of a stepper goes to the option before or after, and stops at the first and the
-     * last. With no option chosen, the one after is the first, and of a choice that sets other settings the one before is
-     * the last. A press anywhere else on its row goes to the option after, and from the last to the first, as
-     * in MCM's menu. A push of the thumbstick to a side, while the ray is on the row, goes to the option
-     * before or after as the buttons do.
+     * A stepper is the framework's: its buttons go to the option before and after, a press elsewhere on its row to the
+     * option after, as in MCM's menu, and the thumbstick steps it. With no option chosen, the one before is the last for a
+     * choice that sets other settings.
      * A press on the row of a dropdown opens its list, which tells that the hand gets its pulse, and so does one on the
      * row of a haptic but on its Play button, which the row plays.
      */
-    std::optional<std::size_t> Choices::edit(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
-        const std::optional<std::size_t> chosen, bool& pulse)
+    std::optional<std::size_t> Choices::edit(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top,
+        const controls::ChoiceRow& row, const std::optional<std::size_t> chosen, bool& pulse)
     {
         if (setting.type == model::SettingType::Haptic) {
             const bool onPlay = HapticBoxes(right, top).onPlay(ImGui::GetIO().MousePos.x);
@@ -219,36 +159,19 @@ namespace mods_config::ui
         if (setting.type == model::SettingType::Dropdown) {
             return editList(setting, options, right, top, row, chosen, pulse);
         }
-        const StepperBoxes boxes(right, top);
-        const auto count = options.size();
-        const auto after = chosen ? *chosen + 1 : 0;
-        const float x = ImGui::GetIO().MousePos.x;
-        const bool pushed = row.pointed && _step != 0;
-        if (!row.pressed && !pushed) {
-            return std::nullopt;
-        }
-        if (row.pressed ? boxes.onPrevious(x) : _step < 0) {
-            if (!chosen && model::setsOthers(setting)) {
-                return count - 1;
-            }
-            return chosen && *chosen > 0 ? std::optional(*chosen - 1) : std::nullopt;
-        }
-        if (row.pressed ? boxes.onNext(x) : _step > 0) {
-            return after < count ? std::optional(after) : std::nullopt;
-        }
-        return after % count;
+        return controls::stepperEdit(right, top, row, chosen, options.size(), model::setsOthers(setting));
     }
 
     /**
-     * The list of a dropdown: a press on the row opens it, at the box of the dropdown. One with many
-     * options scrolls, from the chosen option as it opens. A press on an option picks it and closes the
-     * list, and a press beside the list closes it and does nothing else: ImGui gives the page under an open
-     * list no press. The list of a haptic has each pattern's shape after its option's text, and the list of a dropdown
-     * with a typed entry ends with Type your own.
+     * The list of a dropdown: a press on the row opens it, at the box of the dropdown, as the framework's list. A press on
+     * an option picks it and closes the list, and a press beside the list closes it and does nothing else: ImGui gives the
+     * page under an open list no press. The list of a choice of files has its files' names with muted extensions under
+     * its folder and how many files it has, the list of a haptic has each pattern's shape after its option's text, and the
+     * list of a dropdown with a typed entry ends with Type your own.
      * Returns the option that was picked, the place after the options for Type your own, and none.
      */
-    std::optional<std::size_t> Choices::editList(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
-        const std::optional<std::size_t> chosen, bool& pulse)
+    std::optional<std::size_t> Choices::editList(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top,
+        const controls::ChoiceRow& row, const std::optional<std::size_t> chosen, bool& pulse)
     {
         const auto id = ImGui::GetID("list");
         if (row.pressed) {
@@ -270,7 +193,7 @@ namespace mods_config::ui
         std::vector<std::string_view> extensions;
         std::string folder;
         std::string count;
-        ListExtras extras;
+        controls::ListExtras extras;
         if (const auto& files = setting.valueOptions.folderOptions) {
             std::size_t fileCount = 0;
             for (std::size_t i = 0; i < options.size(); ++i) {
@@ -286,7 +209,7 @@ namespace mods_config::ui
         if (setting.valueOptions.typedOption) {
             extras.action = TYPED_OPTION_TEXT;
         }
-        OptionDecoration decorate;
+        controls::OptionDecoration decorate;
         if (setting.type == model::SettingType::Haptic) {
             decorate = [&options](const std::size_t option, const ImRect& box, const bool isChosen) {
                 // on the chosen option's solid fill, the shape is in the color on green, over its base at 40%
@@ -295,113 +218,20 @@ namespace mods_config::ui
                 drawHapticShape(shapeIn(box, theme::SPACE_4 - theme::SPACE_3), patternOf(options[option].value), ImGui::GetColorU32(color), ImGui::GetColorU32(base));
             };
         }
-        const auto drawn = drawList(id, dropdownBox(setting, right, top), texts, chosen, decorate, extras);
+        const auto drawn = panelList(id, dropdownBox(setting, right, top), texts, chosen, decorate, extras);
         _pointedOption = drawn.pointed;
         return drawn.picked;
     }
 
     /**
-     * The list of options of a dropdown that is open, by its popup's id, at the box of its dropdown, inside the window it
-     * is drawn in: the page, or the editor of a binding. One with many options scrolls, from the chosen option as it
-     * opens. A press on an option picks it and closes the list. Nothing for a list that is not open. An option can have
-     * more drawn after its text, and a muted text, and the list a line over its options, which stays as they scroll,
-     * and an entry after them that does something other than pick, under a rule, which is the place after the options.
-     * Returns the option that was picked, and the one the ray is on.
-     */
-    ListDrawn drawList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen,
-        const OptionDecoration& decorate, const ListExtras& extras)
-    {
-        if (!ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
-            return {};
-        }
-        const bool header = !extras.headerLeft.empty() || !extras.headerRight.empty();
-        const bool action = !extras.action.empty();
-        const auto list = listBox(box, texts.size() + (action ? 1 : 0), header, action);
-        ImGui::SetNextWindowPos(list.Min);
-        ImGui::SetNextWindowSize(list.GetSize());
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(LIST_PADDING, LIST_PADDING));
-        ImGui::PushStyleColor(ImGuiCol_Border, theme::color::GREEN);
-        const bool shown = ImGui::BeginPopupEx(id, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-        if (!shown) {
-            return {};
-        }
-
-        ListDrawn drawn;
-        const bool appearing = ImGui::IsWindowAppearing();
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, LIST_GAP));
-        // the header stays at the top, and the options scroll under it, in a window of their own
-        if (header) {
-            const auto pos = ImGui::GetCursorScreenPos();
-            const float headerWidth = ImGui::GetContentRegionAvail().x;
-            ImGui::Dummy(ImVec2(headerWidth, LIST_HEADER_HEIGHT + theme::BORDER_FRAME));
-            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            const float rightWidth = controls::textWidth(extras.headerRight);
-            const float textTop = pos.y + theme::SPACE_1;
-            const float textRight = pos.x + headerWidth - theme::SPACE_2;
-            controls::drawText(pos.x + theme::SPACE_2, textRight - rightWidth - theme::SPACE_3, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerLeft);
-            controls::drawText(textRight - rightWidth, textRight, textTop, theme::FONT_SIZE_DETAIL, theme::color::GREEN_MUTED, extras.headerRight);
-            ImGui::PopFont();
-            const float ruleY = pos.y + LIST_HEADER_HEIGHT + theme::BORDER_FRAME * 0.5f;
-            ImGui::GetWindowDrawList()->AddLine(ImVec2(pos.x, ruleY), ImVec2(pos.x + headerWidth, ruleY), theme::color::RULE, theme::BORDER_FRAME);
-            ImGui::BeginChild("options");
-        }
-        // the options end a little before a scroll bar
-        const float width = ImGui::GetContentRegionAvail().x - (ImGui::GetCurrentWindow()->ScrollbarY ? LIST_PADDING : 0.0f);
-        for (std::size_t i = 0; i < texts.size(); ++i) {
-            ImGui::PushID(static_cast<int>(i));
-            if (listOption(texts[i], chosen == i, width, i < extras.suffixes.size() ? extras.suffixes[i] : std::string_view())) {
-                drawn.picked = i;
-                ImGui::CloseCurrentPopup();
-            }
-            panelTargets().add(TargetKind::Option, texts[i], ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
-            if (decorate) {
-                decorate(i, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()), chosen == i);
-            }
-            if (ImGui::IsItemHovered()) {
-                drawn.pointed = i;
-            }
-            if (chosen == i && appearing) {
-                ImGui::SetScrollHereY();
-            }
-            ImGui::PopID();
-        }
-        if (action) {
-            ImGui::Dummy(ImVec2(0.0f, ACTION_GAP - LIST_GAP));
-            const auto pos = ImGui::GetCursorScreenPos();
-            const float ruleY = pos.y - (LIST_GAP + ACTION_GAP) * 0.5f;
-            ImGui::GetWindowDrawList()->AddLine(ImVec2(pos.x, ruleY), ImVec2(pos.x + width, ruleY), theme::color::RULE, theme::BORDER_FRAME);
-            if (listAction(extras.action, width)) {
-                drawn.picked = texts.size();
-                ImGui::CloseCurrentPopup();
-            }
-            panelTargets().add(TargetKind::Option, extras.action, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
-            if (ImGui::IsItemHovered()) {
-                drawn.pointed = texts.size();
-            }
-        }
-        // the options scroll in their child under a header, and in the popup with none
-        panelTargets().addScroll(ScrollArea::List);
-        if (header) {
-            ImGui::EndChild();
-        }
-        ImGui::PopStyleVar();
-        ImGui::EndPopup();
-        return drawn;
-    }
-
-    /**
      * A stepper or a dropdown that ends at the right, with the text of the option it is at in the color of
      * its value's look, and none where it is at no option. Returns its left edge.
-     * A stepper is the option in a box, between a button to the option before it and one to the option
-     * after. A dropdown is the option at the left of its box, and an arrow at the right. The box has its
-     * outline in the full color while its list is open. A haptic is a dropdown with its pattern's shape before the
-     * arrow, and a Play button after its box. A value that is at no option shows the text given for it, as a haptic
-     * shows a name the framework does not have. A choice of files shows a file's name with its extension muted, or none
-     * where its mask names it (`shownFileName`).
+     * A stepper and a dropdown are the framework's: the box of a dropdown has its outline in the full color while its list
+     * is open. A haptic is a dropdown with its pattern's shape before the arrow, and a Play button after its box. A value
+     * that is at no option shows the text given for it, as a haptic shows a name the framework does not have. A choice of
+     * files shows a file's name with its extension muted, or none where its mask names it (`shownFileName`).
      */
-    float Choices::draw(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const ChoiceRow& row,
+    float Choices::draw(const model::Setting& setting, const std::vector<model::Option>& options, const float right, const float top, const controls::ChoiceRow& row,
         const std::optional<std::size_t> chosen, const ValueLook look, const std::string_view unchosenText) const
     {
         const auto option = chosen ? std::string_view(options[*chosen].text) : unchosenText;
@@ -411,37 +241,13 @@ namespace mods_config::ui
         }
         if (setting.type == model::SettingType::Dropdown) {
             const auto box = dropdownBox(setting, right, top);
-            const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
-            controls::drawFrame(box, toneOf(look));
-            if (isListOpen(setting)) {
-                controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
-            }
             // a file has its name with a muted extension, and the option that is no file its text
             const auto& files = setting.valueOptions.folderOptions;
             const auto shown = files && (!chosen || isFileOption(options[*chosen])) ? model::shownFileName(option, files->mask) : model::ShownFileName{ .name = option };
-            controls::drawTextWithSuffix(box.Min.x + theme::SPACE_4,
-                arrowLeft - theme::SPACE_2,
-                top,
-                theme::CONTROL_HEIGHT,
-                valueColor(look),
-                shown.name,
-                theme::color::GREEN_MUTED,
-                shown.extension);
-            controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
+            controls::drawDropdown(box, shown.name, shown.extension, toneOf(look), isListOpen(setting));
             return box.Min.x;
         }
-
-        const StepperBoxes boxes(right, top);
-        const float x = ImGui::GetIO().MousePos.x;
-        const bool onPrevious = boxes.onPrevious(x);
-        const bool onNext = boxes.onNext(x);
-        const auto after = chosen ? *chosen + 1 : 0;
-        const bool hasPrevious = chosen ? *chosen > 0 : model::setsOthers(setting);
-        controls::drawStepButton(boxes.previous, controls::Arrow::Left, hasPrevious, row.pointed && onPrevious, row.held && onPrevious);
-        controls::drawFrame(boxes.option, toneOf(look));
-        controls::drawTextIn(boxes.option, option, valueColor(look), 0.5f, theme::SPACE_3);
-        controls::drawStepButton(boxes.next, controls::Arrow::Right, after < options.size(), row.pointed && onNext, row.held && onNext);
-        return boxes.previous.Min.x;
+        return controls::drawStepper(right, top, row, option, toneOf(look), chosen, options.size(), model::setsOthers(setting));
     }
 
     /**
@@ -461,27 +267,13 @@ namespace mods_config::ui
     }
 
     /**
-     * Closes the list that is open, with no option picked, for Back. Returns false while none is open.
-     */
-    bool Choices::closeList()
-    {
-        if (!_open || _close) {
-            return false;
-        }
-        _close = true;
-        return true;
-    }
-
-    /**
-     * Forgets the dropdown whose list is open, as another page is shown: it is a row of the page before.
-     * Its list is closed. A push of the thumbstick that is held is still not a new one.
+     * Forgets the dropdown whose list is open, as another page is shown: it is a row of the page before. The page closes
+     * its list (`controls::Controls::closePopups`).
      */
     void Choices::reset()
     {
         _open = nullptr;
         _openSeen = false;
         _pointedOption.reset();
-        _close = true;
-        _step = 0;
     }
 }

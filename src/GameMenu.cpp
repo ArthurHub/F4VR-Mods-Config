@@ -156,21 +156,6 @@ namespace mods_config
         return !imgui::keyboard().isOpen() && imgui::pointer().state().canvas && vrcf::VRControllers.check(g_config.backBinding, pointingHand());
     }
 
-    /**
-     * How far the thumbstick of the hand that points at the panel is pushed to a side, which steps a slider or a stepper
-     * of the panel: from -1 at the left to 1 at the right. None while no hand points, as the thumbstick is
-     * the game's then, and none for a push that is more up or down, which scrolls.
-     * Called while the panel's content is drawn, when the pointer's state is this frame's.
-     */
-    float GameMenu::thumbstickSideValue()
-    {
-        if (!imgui::pointer().state().canvas) {
-            return 0.0f;
-        }
-        const auto push = vrcf::VRControllers.getThumbstickValue(pointingHand());
-        return std::abs(push.x) > std::abs(push.y) ? push.x : 0.0f;
-    }
-
     bool GameMenu::isLeftHanded()
     {
         return RE::VRSettings::IsLeftHandedMode();

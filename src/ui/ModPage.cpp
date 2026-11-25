@@ -432,11 +432,11 @@ namespace mods_config::ui
      * names of the items the search shows have its match underlined, and while the page is filtered it has their
      * rows alone. A page whose mod's client gave it no rows says why in their place.
      */
-    PageDrawn ModPage::draw(const model::Page& page, model::Store* store, const float thumbstickSideValue, const PageSearch& search)
+    PageDrawn ModPage::draw(const model::Page& page, model::Store* store, const PageSearch& search)
     {
         F4CF_PERF_FUNCTION();
         PageDrawn drawn;
-        _choices.startFrame(thumbstickSideValue);
+        _choices.startFrame();
         if (!page.contentNotGiven.empty()) {
             drawPageText(page.contentNotGiven);
         }
@@ -491,8 +491,7 @@ namespace mods_config::ui
      */
     bool ModPage::back()
     {
-        return controls::get().back() || _buttons.cancelConfirmation() || _choices.closeList() || _textInputs.cancelEdit() || _bindingEditor.cancel() || _colorEditor.cancel() ||
-               _transformEditor.cancel();
+        return controls::get().back() || _buttons.cancelConfirmation() || _textInputs.cancelEdit() || _bindingEditor.cancel() || _colorEditor.cancel() || _transformEditor.cancel();
     }
 
     /**
@@ -544,6 +543,7 @@ namespace mods_config::ui
     void ModPage::reset()
     {
         controls::get().reset();
+        controls::get().closePopups();
         _choices.reset();
         _textInputs.reset();
         _bindingEditor.reset();

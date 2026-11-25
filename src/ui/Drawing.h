@@ -86,8 +86,6 @@ namespace mods_config::ui
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
     void sectionHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
     void sphereHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
-    bool listOption(std::string_view text, bool chosen, float width, std::string_view suffix = {});
-    bool listAction(std::string_view text, float width);
     bool panelButton(const char* label, const ImRect& box, controls::ButtonLook look);
     bool beginRowEditor(ImGuiID id, const ImRect& row, float width, float height);
     int panelDialogButtons(std::span<const controls::DialogButton> buttons);

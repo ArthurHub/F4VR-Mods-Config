@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "Choices.h"
+#include "Drawing.h"
 #include "HelpLine.h"
 #include "model/ConfigDefinition.h"
 
@@ -60,12 +60,6 @@ namespace mods_config::ui
     class DeveloperSection
     {
     public:
-        DeveloperSection();
-        DeveloperDrawn draw(const std::vector<model::Mod>& mods, DeveloperView& view, float thumbstickSideValue, bool scrollTo = false);
-
-    private:
-        // the filter's stepper, which a stepper of the page draws
-        Choices _filter;
-        model::Setting _filterSetting;
+        DeveloperDrawn draw(const std::vector<model::Mod>& mods, DeveloperView& view, bool scrollTo = false);
     };
 }

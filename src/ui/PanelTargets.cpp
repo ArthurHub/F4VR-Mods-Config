@@ -104,4 +104,15 @@ namespace mods_config::ui
         }
         _scrolls.push_back({ .area = area, .y = ImGui::GetScrollY(), .max = ImGui::GetScrollMaxY() });
     }
+
+    /**
+     * Records a scroll area by its scroll and the most it scrolls, as a list the framework draws gives them.
+     */
+    void PanelTargets::addScroll(const ScrollArea area, const float y, const float max)
+    {
+        if (!_recording) {
+            return;
+        }
+        _scrolls.push_back({ .area = area, .y = y, .max = max });
+    }
 }

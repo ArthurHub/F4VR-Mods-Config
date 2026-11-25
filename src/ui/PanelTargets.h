@@ -110,6 +110,7 @@ namespace mods_config::ui
         void startFrame();
         void add(TargetKind kind, std::string_view key, const ImRect& rect, std::vector<std::string> path = {});
         void addScroll(ScrollArea area);
+        void addScroll(ScrollArea area, float y, float max);
 
     private:
         PanelTargets() = default;

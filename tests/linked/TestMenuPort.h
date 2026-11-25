@@ -26,7 +26,6 @@ namespace test_menu_port
 
         // the answers to the controller's questions
         bool backIsPressed = false;
-        float thumbstick = 0.0f;
         bool leftHanded = false;
         bool gameMenuTakingInput = false;
         bool adjusting = false;
@@ -72,11 +71,6 @@ namespace test_menu_port
         bool backPressed() override
         {
             return std::exchange(backIsPressed, false);
-        }
-
-        float thumbstickSideValue() override
-        {
-            return thumbstick;
         }
 
         bool isLeftHanded() override

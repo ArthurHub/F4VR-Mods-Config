@@ -650,15 +650,14 @@ namespace mods_config::ui
         _typeOn = _binding.isEnabled() ? _binding.type : vrcf::ActivationType::Tap;
         _open = &setting;
         _list = Part::None;
-        _closeList = false;
         _cancel = false;
         _dragged.reset();
     }
 
     /**
      * Does what Back asked in the frame before, inside the editor's popup: gives back the binding the row had as the
-     * editor opened and closes the editor, or closes the list over it. Returns true when it closed the editor, and its
-     * popup is ended then.
+     * editor opened and closes the editor. A list over it is the framework's, which Back closes first. Returns true when
+     * it closed the editor, and its popup is ended then.
      */
     bool BindingEditor::backClosed(const model::Setting& setting, model::Store& store)
     {
@@ -669,12 +668,6 @@ namespace mods_config::ui
             _open = nullptr;
             _cancel = false;
             return true;
-        }
-        if (_closeList) {
-            // the lists over the editor, and not the editor
-            ImGui::ClosePopupToLevel(ImGui::GetCurrentContext()->BeginPopupStack.Size, true);
-            _list = Part::None;
-            _closeList = false;
         }
         return false;
     }
@@ -750,7 +743,7 @@ namespace mods_config::ui
         }
         ImGui::EndDisabled();
         std::vector<std::string_view> views(texts.begin(), texts.end());
-        const auto drawn = drawList(listId, box, views, chosen);
+        const auto drawn = panelList(listId, box, views, chosen);
         if (_list == part && !ImGui::IsPopupOpen(listId, ImGuiPopupFlags_None)) {
             _list = Part::None;
         }
@@ -1123,19 +1116,16 @@ namespace mods_config::ui
     }
 
     /**
-     * Back in the editor: it closes the list that is open, or else gives back the binding the row had as the editor
-     * opened, and closes the editor, as the next frame draws it. Returns false while no editor is open.
+     * Back in the editor: it gives back the binding the row had as the editor opened, and closes the editor, as the next
+     * frame draws it. A list over it is the framework's, which Back closes first (`controls::Controls::back`). Returns
+     * false while no editor is open.
      */
     bool BindingEditor::cancel()
     {
         if (!_open || _cancel) {
             return false;
         }
-        if (_list != Part::None) {
-            _closeList = true;
-        } else {
-            _cancel = true;
-        }
+        _cancel = true;
         return true;
     }
 
@@ -1147,7 +1137,6 @@ namespace mods_config::ui
         _open = nullptr;
         _openSeen = false;
         _list = Part::None;
-        _closeList = false;
         _cancel = false;
         _dragged.reset();
     }

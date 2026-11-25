@@ -292,16 +292,6 @@ namespace mods_config::ui
     }
 
     /**
-     * How far the thumbstick of the hand that points is pushed to a side, from -1 at the left to 1 at the
-     * right, for the frames that are drawn next: it steps the slider or the stepper the ray is on. The panel does not know
-     * the game, so the menu tells it.
-     */
-    void FullPanel::setThumbstickSideValue(const float value)
-    {
-        _thumbstickSideValue = value;
-    }
-
-    /**
      * The width of the tree of the mods, in the panel's pixels: the content of a page has the rest of the
      * panel's width. The design system's is `theme::NAV_WIDTH`, which the panel has until it is told another.
      */
@@ -792,7 +782,6 @@ namespace mods_config::ui
         _pageChanged = true;
         _pressActed = false;
         _hapticPlayed.reset();
-        _thumbstickSideValue = 0.0f;
         _modPage.reset();
         _helpLine.clear();
         updateStatus();
@@ -1025,7 +1014,7 @@ namespace mods_config::ui
         if (const auto* found = _search.foundIn(*_selection.mod)) {
             pageSearch = { .query = &_search.query(), .found = &found->rows, .filtered = isFiltered() };
         }
-        auto drawn = _modPage.draw(*selectedPage(), storeOf(mod), _thumbstickSideValue, pageSearch);
+        auto drawn = _modPage.draw(*selectedPage(), storeOf(mod), pageSearch);
         if (pageSearch.filtered) {
             _search.pointWhileFiltered(drawn.pointedItem);
         }
@@ -1049,7 +1038,7 @@ namespace mods_config::ui
         ContentDrawn content{ .pointed = std::move(drawn.pointed) };
         _pressActed = drawn.pressActed;
         if (_developerView.enabled) {
-            auto developer = _developer.draw(mods(), _developerView, _thumbstickSideValue, _scrollToDeveloper);
+            auto developer = _developer.draw(mods(), _developerView, _scrollToDeveloper);
             _scrollToDeveloper = false;
             content.report = developer.opened;
             if (developer.pointed) {

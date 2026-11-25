@@ -192,53 +192,6 @@ namespace mods_config::ui
     }
 
     /**
-     * An option of the list that is open, at the cursor: the mark of the chosen one, and its text, with a muted text
-     * after it, as a file's extension. The chosen option is a solid fill, and any other has the look of a row under the
-     * ray. Returns whether it was pressed.
-     */
-    bool listOption(const std::string_view text, const bool chosen, const float width, const std::string_view suffix)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        const ImVec2 max(pos.x + width, pos.y + theme::CONTROL_HEIGHT);
-        const bool pressed = ImGui::InvisibleButton("option", ImVec2(width, theme::CONTROL_HEIGHT));
-        auto color = theme::color::GREEN;
-        // on the chosen option's solid fill, the muted text is in the color on green at 60%
-        auto muted = theme::color::GREEN_MUTED;
-        if (chosen) {
-            ImGui::GetWindowDrawList()->AddRectFilled(pos, max, ImGui::GetColorU32(theme::color::GREEN), theme::RADIUS_FRAME);
-            controls::drawCheck(ImVec2(pos.x + theme::SPACE_3, pos.y + (theme::CONTROL_HEIGHT - controls::CHECK_SIZE) * 0.5f), theme::color::ON_GREEN);
-            color = theme::color::ON_GREEN;
-            muted = (theme::color::ON_GREEN & ~IM_COL32_A_MASK) | (153u << IM_COL32_A_SHIFT);
-        } else {
-            controls::drawRowState();
-        }
-        controls::drawTextWithSuffix(pos.x + theme::SPACE_3 + controls::CHECK_SIZE + theme::SPACE_3,
-            max.x - theme::SPACE_4,
-            pos.y,
-            theme::CONTROL_HEIGHT,
-            color,
-            text,
-            muted,
-            suffix);
-        return pressed;
-    }
-
-    /**
-     * The entry of the list that is open that does something other than pick, as typing a new value, at the cursor: its
-     * text where an option's is, in `green-muted`, and in `green` with the look of a row under the ray. Returns whether
-     * it was pressed.
-     */
-    bool listAction(const std::string_view text, const float width)
-    {
-        const auto pos = ImGui::GetCursorScreenPos();
-        const bool pressed = ImGui::InvisibleButton("action", ImVec2(width, theme::CONTROL_HEIGHT));
-        controls::drawRowState();
-        const auto color = ImGui::IsItemHovered() || ImGui::IsItemActive() ? theme::color::GREEN : theme::color::GREEN_MUTED;
-        controls::drawText(pos.x + theme::SPACE_3 + controls::CHECK_SIZE + theme::SPACE_3, pos.x + width - theme::SPACE_4, pos.y, theme::CONTROL_HEIGHT, color, text);
-        return pressed;
-    }
-
-    /**
      * A button of the footer or of a row's editor in its box, as the framework's controls draw it, which devbench
      * finds by its label. Returns whether it was pressed.
      */

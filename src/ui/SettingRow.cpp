@@ -242,7 +242,7 @@ namespace
         float sliderValue = 0.0f;
         controls::SliderRow sliderRow;
         std::optional<std::size_t> chosen;
-        ui::ChoiceRow choiceRow;
+        controls::ChoiceRow choiceRow;
         ui::BindingEdited bindingEdited;
         ui::ColorEdited colorEdited;
         ui::TransformEdited transformEdited;

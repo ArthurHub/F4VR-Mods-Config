@@ -73,7 +73,6 @@ namespace mods_config::ui
         std::size_t replaceMod(model::Mod mod, std::string_view time);
         void setImageDrawer(ImageDrawer drawer);
         void setStore(model::Source source, model::Store* store);
-        void setThumbstickSideValue(float value);
         void setTreeWidth(float width);
         bool select(const Selection& selection);
         std::vector<Crumb> breadcrumbs() const;
@@ -348,8 +347,5 @@ namespace mods_config::ui
 
         // the pattern a press on a haptic played in the frame that was drawn last
         std::optional<vrcf::HapticPattern> _hapticPlayed;
-
-        // how far the thumbstick of the hand that points is pushed to a side, as the menu tells it
-        float _thumbstickSideValue = 0.0f;
     };
 }

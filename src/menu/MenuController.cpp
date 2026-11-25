@@ -556,12 +556,11 @@ namespace mods_config::menu
     }
 
     /**
-     * One frame of the panel's content, which the game draws: the thumbstick's push steps a slider, and a press that
-     * did something gets its feedback on the pointing hand, the pattern a haptic's press played or else the pulse.
+     * One frame of the panel's content, which the game draws: a press that did something gets its feedback on the
+     * pointing hand, the pattern a haptic's press played or else the pulse.
      */
     void MenuController::drawPanel()
     {
-        _fullPanel.setThumbstickSideValue(_port.thumbstickSideValue());
         _fullPanel.draw();
         if (const auto played = _fullPanel.hapticPlayed()) {
             _port.playHaptic(*played);

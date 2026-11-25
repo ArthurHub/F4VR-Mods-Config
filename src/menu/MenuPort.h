@@ -76,9 +76,6 @@ namespace mods_config::menu
         // a short press of Back in this frame, on the hand that points at the panel
         virtual bool backPressed() = 0;
 
-        // how far the pointing hand's thumbstick is pushed to a side, from -1 to 1, and 0 while no hand points
-        virtual float thumbstickSideValue() = 0;
-
         virtual bool isLeftHanded() = 0;
         virtual bool isGameMenuTakingInput() = 0;
 

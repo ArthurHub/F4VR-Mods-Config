@@ -29,7 +29,6 @@ namespace mods_config
         void recenterPanel() override;
         void applyPanelLook() override;
         bool backPressed() override;
-        float thumbstickSideValue() override;
         bool isLeftHanded() override;
         bool isGameMenuTakingInput() override;
         void playHaptic(const vrcf::HapticPattern& pattern) override;

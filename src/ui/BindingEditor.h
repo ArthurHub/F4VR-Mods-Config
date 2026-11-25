@@ -104,8 +104,7 @@ namespace mods_config::ui
         // the part whose list is open
         Part _list = Part::None;
 
-        // Back asked to close the list that is open, or to give back the binding, as the next frame draws the editor
-        bool _closeList = false;
+        // Back asked to give back the binding, as the next frame draws the editor
         bool _cancel = false;
 
         // the time or the threshold while its slider is dragged, which is set as the trigger is let go

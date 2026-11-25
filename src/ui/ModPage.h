@@ -88,7 +88,7 @@ namespace mods_config::ui
 
         void setImageDrawer(ImageDrawer drawer);
         void setLeftHanded(bool leftHanded);
-        PageDrawn draw(const model::Page& page, model::Store* store, float thumbstickSideValue, const PageSearch& search = {});
+        PageDrawn draw(const model::Page& page, model::Store* store, const PageSearch& search = {});
         std::optional<OpenEditor> openEditor() const;
         bool isEditing() const;
         bool back();

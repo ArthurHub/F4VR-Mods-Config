@@ -11,6 +11,7 @@
 #include "PageRows.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
+#include "imgui/controls/Choices.h"
 #include "perf/Perf.h"
 
 namespace
@@ -145,11 +146,6 @@ namespace
 
 namespace mods_config::ui
 {
-    DeveloperSection::DeveloperSection()
-    {
-        _filterSetting.type = model::SettingType::Stepper;
-    }
-
     /**
      * Draws the section at the cursor, as the design system's Developer has it.
      * Its heading folds, and folded it says the errors and the warnings of the config specs it lists. A press on it
@@ -162,11 +158,10 @@ namespace mods_config::ui
      * available`, and an arrow in the room of a Reset: a press on it tells its config spec, whose report it opens.
      * Scrolled to, the page is scrolled to put the section's heading at its top.
      */
-    DeveloperDrawn DeveloperSection::draw(const std::vector<model::Mod>& mods, DeveloperView& view, const float thumbstickSideValue, const bool scrollTo)
+    DeveloperDrawn DeveloperSection::draw(const std::vector<model::Mod>& mods, DeveloperView& view, const bool scrollTo)
     {
         F4CF_PERF_FUNCTION();
         DeveloperDrawn drawn;
-        _filter.startFrame(thumbstickSideValue);
 
         const auto headingPos = ImGui::GetCursorScreenPos();
         const float width = rowWidth();
@@ -196,7 +191,6 @@ namespace mods_config::ui
             drawn.pointed = PointedRow{ .text = HEADING, .help = std::move(help), .warning = {}, .invalid = false };
         }
         if (view.folded) {
-            _filter.endFrame();
             return drawn;
         }
 
@@ -219,24 +213,22 @@ namespace mods_config::ui
 
         const auto filterPos = ImGui::GetCursorScreenPos();
         const bool pressed = ImGui::InvisibleButton("filter", ImVec2(rowWidth, theme::CONTROL_HEIGHT));
-        const ChoiceRow row{ .pointed = ImGui::IsItemHovered(), .held = ImGui::IsItemActive(), .pressed = pressed };
+        const controls::ChoiceRow row{ .pointed = ImGui::IsItemHovered(), .held = ImGui::IsItemActive(), .pressed = pressed };
         controls::drawRowState();
-        bool pulse = false;
-        if (const auto picked = _filter.edit(_filterSetting, options, right, filterPos.y, row, chosen, pulse); picked && picked != chosen) {
+        if (const auto picked = controls::stepperEdit(right, filterPos.y, row, chosen, options.size()); picked && picked != chosen) {
             chosen = picked;
             view.show = static_cast<ShowConfigSpecs>(*picked);
             listed = listedConfigSpecs(mods, view, configSpecs);
             drawn.changed = true;
-            pulse = true;
+            drawn.pressActed = true;
         }
-        drawn.pressActed = drawn.pressActed || pulse;
-        const float stepperLeft = _filter.draw(_filterSetting, options, right, filterPos.y, row, chosen, ValueLook::Saved);
+        const auto filterText = chosen ? std::string_view(options[*chosen].text) : std::string_view();
+        const float stepperLeft = controls::drawStepper(right, filterPos.y, row, filterText, controls::Tone::Normal, chosen, options.size());
         controls::drawText(textLeft, stepperLeft - theme::SPACE_3, filterPos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, FILTER);
         controls::drawTag(textLeft + controls::textWidth(FILTER) + theme::SPACE_2, filterPos.y + theme::CONTROL_HEIGHT * 0.5f, std::format("{} of {}", listed.size(), configSpecs));
         if (row.pointed) {
             drawn.pointed = PointedRow{ .text = FILTER, .help = FILTER_HELP, .warning = {}, .invalid = false };
         }
-        _filter.endFrame();
 
         // a row for each config spec
         for (const auto place : listed) {
