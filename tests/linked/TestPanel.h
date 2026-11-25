@@ -48,6 +48,9 @@ namespace test_panel
             io.DisplayFramebufferScale = ImVec2(SUPERSAMPLE, SUPERSAMPLE);
             io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
             ImGui::StyleColorsDark();
+            // the panel's style, which FullPanel applies to the game's one context on its first frame: a panel drawn
+            // in an earlier test context does not apply it again to this one
+            theme::applyStyle(ImGui::GetStyle());
             f4cf::imgui::internal::loadCanvasFont(FONT_SIZE);
             // as GameMenu.cpp gives the framework's controls their look
             controls::get().setStyle(ui::controlsStyle());
