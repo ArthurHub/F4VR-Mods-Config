@@ -10,7 +10,6 @@
 #include "imgui/ImGuiImage.h"
 #include "imgui/ImGuiKeyboard.h"
 #include "imgui/ImGuiPointer.h"
-#include "imgui/ImGuiSettings.h"
 #include "ui/Drawing.h"
 #include "vrcf/VRControllersHaptic.h"
 #include "vrcf/VRControllersManager.h"
@@ -63,8 +62,6 @@ namespace mods_config
      */
     void GameMenu::openPanel(menu::PanelHandlers handlers)
     {
-        // the size of the design system's body text: it is read as the first canvas draws, and later calls do nothing
-        imgui::setFontSizePixels(theme::FONT_SIZE);
         _panel = std::make_shared<imgui::UIImGuiPanel>("ModsConfigFO4_Panel", g_config.panelWidth, g_config.panelHeight);
         applyPanelLook();
         // the menu's one ImGui panel: at this size it needs a texture of its own, and a dropdown's list or a dialog opens inside it
@@ -107,24 +104,18 @@ namespace mods_config
     }
 
     /**
-     * Gives the ray the config's look, and the panel its look, its size and scale, its place from where it was put in
-     * front of the player, and how it is moved: after a short press, where that is Back. The place is from where the
-     * panel is now, also after a hand moved it. The framework's keyboard takes the panel's see-through and Back.
+     * Gives the ray the config's look, the framework the design system's theme with the config's see-through, and the
+     * panel its look, its size and scale, its place from where it was put in front of the player, and how it is moved:
+     * after a short press, where that is Back. The place is from where the panel is now, also after a hand moved it.
+     * The theme gives the framework's keyboard the panel's see-through; Back closes it.
      */
     void GameMenu::applyPanelLook()
     {
         imgui::pointer().setStyle(g_config.pointerStyle);
-        _panel->setStyle({
-            // Opaque, both of them: these are picked to match the widgets beside the panel, and an alpha
-            // below 255 blends a colour toward whatever is behind it, which reads as the wrong colour
-            // rather than as a see-through one. The background is the only part that wants an alpha.
-            .color = render::Color::rgba(10, 250, 120),
-            .background = render::Color::rgba(15, 15, 15, g_config.panelBackgroundOpacity),
-            .borderColor = render::Color::rgba(10, 250, 120),
-            .borderThicknessUnits = 0.08f,
-            .cornerRadiusUnits = 0.5f,
-            .padding = UIPadding::all(0.3f),
-        });
+        auto look = theme::designTheme();
+        look.glass.a = static_cast<float>(g_config.panelBackgroundOpacity) / 255.0f;
+        controls::get().setTheme(look);
+        _panel->setStyle(look.panelStyle());
         // the canvas follows the size at its next frame, with as many pixels per unit
         _panel->setSize(g_config.panelWidth, g_config.panelHeight);
         _panel->setScale(g_config.panelScale);
@@ -134,15 +125,7 @@ namespace mods_config
         _panel->setCurveRadius(g_config.panelCurve * g_config.panelDistance / g_config.panelScale);
         g_uiManager->setWorldMoveBinding(g_config.moveBinding);
         g_uiManager->setWorldMoveSmoothing(g_config.moveSmoothing);
-
-        // the framework's keyboard is already the panel's green: it takes the panel's see-through, and Back closes it
-        auto keyboardStyle = imgui::keyboard().style();
-        keyboardStyle.background = render::Color::rgba(15, 15, 15, g_config.panelBackgroundOpacity);
-        imgui::keyboard().setStyle(keyboardStyle);
         imgui::keyboard().setCloseBinding(g_config.backBinding);
-
-        // the framework's controls in the look of the design system
-        controls::get().setStyle(ui::controlsStyle());
     }
 
     /**

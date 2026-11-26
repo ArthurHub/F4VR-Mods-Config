@@ -884,11 +884,6 @@ namespace mods_config::ui
     {
         F4CF_PERF_FUNCTION();
         panelTargets().startFrame();
-        if (!_styleApplied) {
-            theme::applyStyle(ImGui::GetStyle());
-            _styleApplied = true;
-        }
-
         _pressActed = false;
         _hapticPlayed.reset();
         {

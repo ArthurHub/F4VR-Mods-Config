@@ -6,7 +6,7 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 
 ## Decisions
 
-- **A mod's design is the mod's own.** The framework's `Theme` has defaults, the framework's green, for a mod that sets nothing. This mod applies the theme of its design system, generated from its tokens, and depends on no default; a mod with another design applies its own theme the same way.
+- **A mod's design is the mod's own.** The framework's `Theme` has defaults, the framework's green and the panel of `vrui::F4VR_PANEL_STYLE`, for a mod that sets nothing. This mod applies the theme of its design system, generated from its tokens, and depends on no default; a mod with another design applies its own theme the same way.
 - **Every canvas of the main context gets the theme's ImGui style.** The framework sets it there in place of `ImGui::StyleColorsDark()`. No other mod draws ImGui yet. The keyboard's canvas, of the framework's own context, reads no ImGui style: it is drawn in its `KeyboardStyle`, whose colors the theme gives.
 - **The body font size is the theme's `bodyFontSize`**, 21 px in the default theme, not 24. `imgui::setFontSizePixels` is removed, so the size has one setting.
 - **The pointer's look stays `PointerStyle`'s.** A ray is the player's to set, as this mod's config does, and a theme that set it would set it over the config.
@@ -16,8 +16,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 
 | #   | Repo      | Commit                                                                                                       | Status  |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------ | ------- |
-| F33 | framework | imgui: one `Theme` for the controls, ImGui's style, the keyboard and the panel, set live                     | planned |
-| M20 | mod       | The design system's theme, generated from its tokens, applied as the framework's theme                       | planned |
+| F33 | framework | imgui: one `Theme` for the controls, ImGui's style, the keyboard and the panel, set live                     | done    |
+| M20 | mod       | The design system's theme, generated from its tokens, applied as the framework's theme                       | done    |
 | F34 | framework | imgui: the controls' gaps from the theme's spacing scale, and tests that every control draws in the theme    | planned |
 | M21 | mod       | The heading's inset from the framework's function                                                            | planned |
 | F35 | framework | devbench: a `theme` action that sets the theme's fields live                                                 | planned |
@@ -47,7 +47,7 @@ The house look is typed in four places, each with its own colors: `controls::Con
 
 ### What the framework gets
 
-`src/imgui/ImGuiTheme.h` and `.cpp`, namespace `f4cf::imgui`. `Theme` is a plain aggregate with a defaulted `operator==`. Its defaults are the framework's own look, its green, which a mod that sets no theme gets. A mod with a design sets every field from it, so a default that changes later does not change that mod.
+`src/imgui/ImGuiTheme.h` and `.cpp`, namespace `f4cf::imgui`. `Theme` is a plain aggregate with no `operator==`, as its fields are floats: a test compares colors by their bytes and sizes with `fEqual`. Its defaults are the framework's own look, its green, and the panel of `vrui::F4VR_PANEL_STYLE`, which a mod that sets no theme gets. The header declares `vrui::UIPanelStyle` and `KeyboardStyle` only, as their headers bring in Windows.h's `min` and `max`, which the controls' code does not take. A mod with a design sets every field from it, so a default that changes later does not change that mod.
 
 A theme is the colors, the sizes, the font sizes and the spacing scale, which the gaps inside a control and between the rows are steps of. What a theme does not set is the shape of a drawn part: a mark, an icon, an arrow.
 
@@ -58,7 +58,7 @@ struct Theme
     // frameBorder, onAccent, warning, onWarning, error, onError, popup, scrim
 
     // the background of a panel, and of the keyboard
-    render::Color glass = render::Color::rgba(15, 15, 15, 217);
+    render::Color glass = render::Color::rgba(15, 15, 15, 166);
 
     // the fill of a navigation pane, so it reads as a fixed region
     render::Color plate = render::Color::rgba(10, 250, 120, 15);
@@ -86,19 +86,19 @@ struct Theme
     float space12 = 48.0f;
 
     // a panel's edge, corner and padding, in vrui units
-    float panelBorderUnits = 0.08f;
-    float panelCornerUnits = 0.5f;
-    float panelPaddingUnits = 0.3f;
+    float panelBorderUnits = 0.05f;
+    float panelCornerUnits = 0.2f;
+    float panelPaddingUnits = 0.15f;
 
     void applyTo(ImGuiStyle& style) const;
     vrui::UIPanelStyle panelStyle() const;
-    KeyboardStyle keyboardStyle(KeyboardStyle base) const;
+    KeyboardStyle keyboardStyle(const KeyboardStyle& base) const;
 };
 ```
 
-- **`applyTo`** sets every `ImGuiStyle` field and `ImGuiCol_` of the two tables of the design system's [ImGui style](design-system/project/README.md#imgui-style) section: it is the body of today's generated `theme::applyStyle`, with the theme's fields in place of the constants. Its paddings and spacings are steps of the spacing scale, as the table has them (`WindowPadding` is `space4`, `ItemSpacing` is `space3` and `space2`, ...). It sets one color more: `ImGuiCol_InputTextCursor`, a text input's caret, is `accent`. ImGui's dark style leaves the caret white, the one color of the panel that is not the theme's.
-- **`panelStyle`** is the look `GameMenu::applyPanelLook` types now: the content and the border in `accent`, the background `glass`, and the three panel sizes.
-- **`keyboardStyle`** takes a keyboard style and gives it the theme's colors: `background` is `glass`, `border` and `accent` are `accent`, `accentText` is `onAccent`, and `selection` is `accent` at alpha 90. The key grays, `widthShare` and `tiltDegrees` stay as `base` has them.
+- **`applyTo`** sets every `ImGuiStyle` field and `ImGuiCol_` of the two tables of the design system's [ImGui style](design-system/project/README.md#imgui-style) section, and only those: a field a mod sets by hand outside them outlives a new theme. It is the body of the mod's generated `theme::applyStyle`, with the theme's fields in place of the constants. Its paddings and spacings are steps of the spacing scale, as the table has them (`WindowPadding` is `space4`, `ItemSpacing` is `space3` and `space2`, ...). It sets one color more: `ImGuiCol_InputTextCursor`, a text input's caret, is `accent`. ImGui's dark style leaves the caret white, the one color of the panel that is not the theme's.
+- **`panelStyle`** is the look `GameMenu::applyPanelLook` types by hand: the content and the border in `accent`, the background `glass`, and the three panel sizes. The default theme's is `F4VR_PANEL_STYLE`.
+- **`keyboardStyle`** takes a keyboard style and gives it the theme's colors: `background` is `glass`, `border` and `accent` are `accent`, `accentText` is `onAccent`, and `selection` is `accent` at alpha 90. The key grays, `widthShare` and `tiltDegrees` stay as `base` has them. `KeyboardStyle`'s own color defaults are what the default theme gives it, so the keyboard of a mod that sets no theme is in the default theme too: its background alpha is 166, and the text of a key in the accent is `onAccent`.
 
 The controls' own gaps are their constants until F34, which are the default theme's steps.
 
@@ -116,9 +116,9 @@ The controls' own gaps are their constants until F34, which are the default them
 
 1. It keeps the theme and packs its colors, as `setStyle` does. `ControlsColors` has every color of the theme, the new ones too (`glass`, `plate`, `important`).
 2. It sets the keyboard at once: `keyboard().setStyle(theme.keyboardStyle(keyboard().style()))`. A mod that wants its own keyboard look calls `keyboard().setStyle` after `setTheme`.
-3. It marks ImGui's style as not applied. The layer applies it with `applyTo` as it makes its main context, in place of `StyleColorsDark`, and `Controls::beginFrame` applies it again after a `setTheme`. `Controls::applyImGuiStyle()` is public for a test's own context.
+3. It marks ImGui's style as not applied, as it is from the start. Before the main context's `ImGui::NewFrame`, the layer calls `Controls::updateImGuiStyle`, which applies it with `applyTo` while it is marked: in the first frame, over the `StyleColorsDark` the context is made with, and after a `setTheme`. It is before `NewFrame` because ImGui reads `FontSizeBase` there, and a size set later in the frame is lost. `Controls::applyImGuiStyle()` is public for a test's own context, and leaves the mark as it is.
 
-**The body font size** is the theme's `bodyFontSize`, clamped to `MIN_FONT_SIZE_PIXELS` and `MAX_FONT_SIZE_PIXELS`: the canvas font is loaded at it, and `applyTo` sets `ImGuiStyle::FontSizeBase` to it. `imgui::setFontSizePixels` and `internal::fontSizePixels` are removed.
+**The body font size** is the theme's `bodyFontSize`, clamped to `MIN_FONT_SIZE_PIXELS` and `MAX_FONT_SIZE_PIXELS`: `applyTo` sets `ImGuiStyle::FontSizeBase` to it, which is the size from the first frame on. The canvas font is loaded at it too, as the context is made. `imgui::setFontSizePixels` and `internal::fontSizePixels` are removed.
 
 A mod with no design of its own has the default theme with no call:
 
@@ -134,34 +134,33 @@ controls::get().setTheme(myDesignTheme());
 _panel->setStyle(controls::get().theme().panelStyle());
 ```
 
-What is checked while implementing: `keyboard()` takes a `setStyle` with no game, as `Controls`' tests run under `test_no_game`. If it does not, `setTheme` keeps the derived style and the layer sets it before its next frame, unless the mod set one itself since.
-
 ### Changing the theme live
 
 `setTheme` is called at any time, and the next frame is drawn in the new theme. This mod does it already as its config is changed while the menu is open: `applyPanelLook` runs again for a new `iBackgroundOpacity`.
 
 - The controls keep no color and no size from one frame to the next: each reads `colors()` and `theme()` as it draws. What they hold across frames is a value and an id (a drag, an open list, an edit), which a new theme does not touch.
-- ImGui's style is applied again as the next frame begins, and the keyboard is set in the call.
+- ImGui's style is applied again before the next frame begins, and the keyboard is set in the call.
 - ImGui reads `FontSizeBase` in each frame, so the body size follows too.
 - A panel's edge and background are its `UIPanelStyle`: the mod gives the panel `theme.panelStyle()` again after `setTheme`, as `applyPanelLook` does.
 - A mod's own drawing follows where it reads the theme as it draws. This mod's reads its generated constants until M30, so until then only `glass` changes live in it.
 
 ### Tests and docs (F33)
 
-- `tests/linked/imgui/controls/ControlsThemeTests.cpp`: the default theme's `accent` is `vrui::F4VR_PANEL_STYLE.color`; `panelStyle()` has the theme's colors and sizes; `keyboardStyle` changes the colors and keeps the rest of `base`; `setTheme` packs `colors()` again and marks the style, which `applyImGuiStyle` then sets.
-- **ImGui's style:** every field and color `applyTo` sets has its theme value, by a table of the two, `FontSizeBase` and `ImGuiCol_InputTextCursor` among them, and a field the table lacks is as `StyleColorsDark` leaves it.
+- `tests/linked/imgui/ImGuiThemeTests.cpp`, `Theme` alone: the default theme's `accent` is `vrui::F4VR_PANEL_STYLE.color` and its `panelStyle()` is `F4VR_PANEL_STYLE`; the default theme's `keyboardStyle` of a default `KeyboardStyle` is a default `KeyboardStyle`; `panelStyle()` has the theme's colors and sizes; `keyboardStyle` changes the colors and keeps the rest of `base`; the body font size is clamped.
+- **ImGui's style**, there too: every field and color `applyTo` sets has its theme value, by a table of the two, `FontSizeBase` and `ImGuiCol_InputTextCursor` among them, and a color or field the table lacks is as `StyleColorsDark` leaves it.
+- `tests/linked/imgui/controls/ControlsThemeTests.cpp`, `setTheme`: it packs `colors()` again, the new ones too; it gives the keyboard the theme's colors and keeps the rest of its style; it marks the style, which `updateImGuiStyle` then sets once; `applyImGuiStyle` sets the current context's.
 - The controls' tests call `controls::get().applyImGuiStyle()` in their `TestContext`.
-- [`imgui/README.md`](../../external/F4VR-CommonFramework/src/imgui/README.md): a Theme section, and the font size there. The controls README: its Style section becomes the theme's. `docs/CHANGELOG.md` `0.7.0`, with **Upgrading**: the renames of the table above, the ImGui style every canvas of the main context gets, and the body font size, 21 px where no theme is set and not 24.
+- [`imgui/README.md`](../../external/F4VR-CommonFramework/src/imgui/README.md): a Theme section, and the font size there. The controls README: its Style section becomes the theme's. `docs/CHANGELOG.md` `0.7.0`, with **Upgrading**: the renames of the table above, the ImGui style every canvas of the main context gets, the body font size, 21 px where no theme is set and not 24, and the keyboard's default colors.
 
 ### The mod's port (M20)
 
-- `gen_theme.py` writes `theme::designTheme()` into `Theme.h`: an `imgui::Theme` with every field set from a token, by a table in the generator of which token is which field (`accent` from `green`, `warning` from `amber`, `important` from `accent`, `bodyFontSize` from `t-body`, `space2` from `space-2`, `panelBorderUnits` from `border-panel` over 48, ...). A field of `Theme` the table lacks stops the generator: it reads the fields from the framework's `ImGuiTheme.h`.
+- `gen_theme.py` writes `theme::designTheme()` into `Theme.h`: an `imgui::Theme` with every field set from a token, by a table in the generator of which token is which field (`accent` from `green`, `warning` from `amber`, `important` from `accent`, `bodyFontSize` from `t-body`, `space2` from `space-2`, `panelBorderUnits` from `border-panel` over 48, ...). A field of `Theme` the table lacks stops the generator: it reads the fields from the framework's `ImGuiTheme.h`. Its pre-commit hook runs on a change of the framework submodule too.
 - `Theme.h` gets a `static_assert` that `sizeof(imgui::Theme)` is what the generator read. A build on a framework whose `Theme` has a new field stops there until the generator is run, so the mod never takes a default for it.
 - `gen_theme.py` no longer writes `applyStyle`: the framework's `Theme::applyTo` sets ImGui's style from the theme. It still checks the first table of the design system's [ImGui style](design-system/project/README.md#imgui-style) section against the tokens. The section's intro says the framework sets the style from the mod's theme, and the `green` row of its second table gets `InputTextCursor`.
 - `Theme.h` keeps every token as a constant: the mod's own code keeps `theme::color::GREEN` and `theme::SPACE_2`, which are what `designTheme()` gives the framework, so nothing else is edited. The pointer's tokens (`color::RAY`, `MARK`, `MARK_BORDER`) are no field of the theme.
-- `GameMenu::applyPanelLook`: `theme::designTheme()` with `glass` at the config's `iBackgroundOpacity`, given to `controls::get().setTheme`, then `_panel->setStyle(theme.panelStyle())`. `pointer().setStyle(g_config.pointerStyle)` stays as it is. The lines that give the keyboard the panel's background go: the theme does it. `setFontSizePixels(theme::FONT_SIZE)` goes: the font is loaded at the theme's `bodyFontSize`.
+- `GameMenu::applyPanelLook`: `theme::designTheme()` with `glass` at the config's `iBackgroundOpacity`, given to `controls::get().setTheme`, then `_panel->setStyle(theme.panelStyle())`. `pointer().setStyle(g_config.pointerStyle)` stays as it is. The lines that give the keyboard the panel's background go: the theme does it. `setFontSizePixels(theme::FONT_SIZE)` goes: the font is loaded at the theme's `bodyFontSize`, and the generator no longer writes `FONT_SIZE`, which was `FONT_SIZE_BODY` again.
 - `ui::controlsStyle()` and `colorOf` in [`Drawing.cpp`](../../src/ui/Drawing.cpp) go.
-- `FullPanel::draw` no longer applies the style (`_styleApplied` goes). [`tests/linked/TestPanel.h`](../../tests/linked/TestPanel.h) sets `theme::designTheme()` and calls `controls::get().applyImGuiStyle()`.
+- `FullPanel::draw` no longer applies the style (`_styleApplied` goes). [`tests/linked/TestPanel.h`](../../tests/linked/TestPanel.h) sets `theme::designTheme()` and calls `controls::get().applyImGuiStyle()`, and loads the font at `FONT_SIZE_BODY`.
 
 Accepted when the panel tests, the render tests and e2e pass unchanged, and the in-game panel, keyboard and ray look as before but for two colors the theme sets now: a text input's caret is `green` and not white, and the text of a keyboard's key drawn in the accent, as one held down, is `on-green` (4, 23, 12) and not the keyboard's own (15, 15, 15).
 
@@ -218,7 +217,7 @@ A look is tuned in the headset without a build: an agent or a script changes a f
 - **Over the mod's theme.** `Controls` keeps the theme the mod set beside the one devbench set over it (`overrideTheme`, internal), which is the one drawn. `reset` drops the override, and so does the mod's next `setTheme`, as on a change of its config.
 - **What follows:** the controls, ImGui's style and the keyboard, from the next frame. A panel's edge and background follow as the mod gives the panel its style again, and a mod's own drawing where it reads the theme. The pointer does not: its look is not the theme's.
 
-**Tests and docs.** The action is a thin handler over two functions of `ImGuiTheme.cpp`, the theme as JSON and a JSON's fields set on a theme, which `ControlsThemeTests.cpp` tests with no devbench: it answers every field of the table in its shape; a `set` changes those fields and no other, and is drawn in the next frame; an unknown field and a wrong shape set nothing; `reset` and a `setTheme` of the mod each end the override. The devbench README gets the `theme` row.
+**Tests and docs.** The action is a thin handler over two functions of `ImGuiTheme.cpp`, the theme as JSON and a JSON's fields set on a theme, which `ImGuiThemeTests.cpp` tests with no devbench, and `ControlsThemeTests.cpp` where it is `Controls`' override: it answers every field of the table in its shape; a `set` changes those fields and no other, and is drawn in the next frame; an unknown field and a wrong shape set nothing; `reset` and a `setTheme` of the mod each end the override. The devbench README gets the `theme` row.
 
 ## Targets (F36, M22)
 

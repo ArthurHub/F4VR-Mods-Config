@@ -5,6 +5,8 @@
 
 #include <imgui.h>
 
+#include "imgui/ImGuiTheme.h"
+
 // clang-format off
 namespace mods_config::theme
 {
@@ -75,71 +77,72 @@ namespace mods_config::theme
     constexpr float OPACITY_DISABLED  = 0.4f;     // ImGuiStyle.DisabledAlpha, applied by BeginDisabled to a whole row
     constexpr float OPACITY_OTHER_RAY = 0.3f;     // The ray of the hand that does not own the pointer, drawn by the framework with no mark
 
-    // The size the canvas font is loaded at, for imgui::setFontSizePixels: t-body.
-    constexpr float FONT_SIZE         = 21.0f;      // 21 px
-
-    // Font sizes for ImGui::PushFont(nullptr, size) around the call, and PopFont after it.
+    // Font sizes for ImGui::PushFont(nullptr, size) around the call, and PopFont after it. t-body is the canvas font's.
     constexpr float FONT_SIZE_TITLE   = 26.0f;      // 26 px
     constexpr float FONT_SIZE_BODY    = 21.0f;      // 21 px
     constexpr float FONT_SIZE_DETAIL  = 18.0f;      // 18 px
 
     /**
-     * Sets the menu's sizes and colors on an ImGui style. Call it once, before the first canvas draws.
+     * A color token as the framework's color.
      */
-    inline void applyStyle(ImGuiStyle& style)
+    constexpr f4cf::render::Color toColor(const ImU32 color)
     {
-        style.WindowPadding = ImVec2(SPACE_4, SPACE_4);
-        style.FramePadding = ImVec2(SPACE_4, SPACE_3);
-        style.ItemSpacing = ImVec2(SPACE_3, SPACE_2);
-        style.ItemInnerSpacing = ImVec2(SPACE_2, SPACE_2);
-        style.TouchExtraPadding = ImVec2(SPACE_1, SPACE_1);
-        style.IndentSpacing = SPACE_8;
-        style.ScrollbarSize = SCROLLBAR_SIZE;
-        style.GrabMinSize = GRAB_WIDTH;
-        style.FrameBorderSize = BORDER_FRAME;
-        style.PopupBorderSize = BORDER_FRAME;
-        style.WindowBorderSize = BORDER_FRAME;
-        style.ChildBorderSize = 0.0f;
-        style.FrameRounding = RADIUS_FRAME;
-        style.ScrollbarRounding = RADIUS_FRAME;
-        style.WindowRounding = RADIUS_POPUP;
-        style.ChildRounding = RADIUS_POPUP;
-        style.PopupRounding = RADIUS_POPUP;
-        style.GrabRounding = RADIUS_GRAB;
-        style.SeparatorTextBorderSize = BORDER_FRAME;
-        style.SeparatorTextAlign = ImVec2(0.0f, 0.5f);
-        style.SeparatorTextPadding = ImVec2(8.0f, 8.0f);
-        style.SelectableTextAlign = ImVec2(0.0f, 0.5f);
-        style.DisabledAlpha = OPACITY_DISABLED;
-
-        style.Colors[ImGuiCol_Text] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
-        style.Colors[ImGuiCol_TextDisabled] = ImGui::ColorConvertU32ToFloat4(color::GREEN_MUTED);
-        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-        style.Colors[ImGuiCol_ChildBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-        style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-        style.Colors[ImGuiCol_Button] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-        style.Colors[ImGuiCol_PopupBg] = ImGui::ColorConvertU32ToFloat4(color::POPUP);
-        style.Colors[ImGuiCol_Border] = ImGui::ColorConvertU32ToFloat4(color::FRAME_BORDER);
-        style.Colors[ImGuiCol_FrameBg] = ImGui::ColorConvertU32ToFloat4(color::TRACK);
-        style.Colors[ImGuiCol_ScrollbarBg] = ImGui::ColorConvertU32ToFloat4(color::TRACK);
-        style.Colors[ImGuiCol_FrameBgHovered] = ImGui::ColorConvertU32ToFloat4(color::HOVER);
-        style.Colors[ImGuiCol_ButtonHovered] = ImGui::ColorConvertU32ToFloat4(color::HOVER);
-        style.Colors[ImGuiCol_HeaderHovered] = ImGui::ColorConvertU32ToFloat4(color::HOVER);
-        style.Colors[ImGuiCol_FrameBgActive] = ImGui::ColorConvertU32ToFloat4(color::PRESSED);
-        style.Colors[ImGuiCol_ButtonActive] = ImGui::ColorConvertU32ToFloat4(color::PRESSED);
-        style.Colors[ImGuiCol_HeaderActive] = ImGui::ColorConvertU32ToFloat4(color::PRESSED);
-        style.Colors[ImGuiCol_TextSelectedBg] = ImGui::ColorConvertU32ToFloat4(color::PRESSED);
-        style.Colors[ImGuiCol_Header] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
-        style.Colors[ImGuiCol_CheckMark] = ImGui::ColorConvertU32ToFloat4(color::ON_GREEN);
-        style.Colors[ImGuiCol_SliderGrab] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
-        style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
-        style.Colors[ImGuiCol_NavCursor] = ImGui::ColorConvertU32ToFloat4(color::GREEN);
-        style.Colors[ImGuiCol_SliderGrabActive] = ImGui::ColorConvertU32ToFloat4(color::GLOW);
-        style.Colors[ImGuiCol_ScrollbarGrabActive] = ImGui::ColorConvertU32ToFloat4(color::GLOW);
-        style.Colors[ImGuiCol_ScrollbarGrab] = ImGui::ColorConvertU32ToFloat4(color::FRAME_BORDER);
-        style.Colors[ImGuiCol_Separator] = ImGui::ColorConvertU32ToFloat4(color::RULE);
-        style.Colors[ImGuiCol_ModalWindowDimBg] = ImGui::ColorConvertU32ToFloat4(color::SCRIM);
+        return f4cf::render::Color::rgba(static_cast<int>((color >> IM_COL32_R_SHIFT) & 0xFF), static_cast<int>((color >> IM_COL32_G_SHIFT) & 0xFF),
+            static_cast<int>((color >> IM_COL32_B_SHIFT) & 0xFF), static_cast<int>((color >> IM_COL32_A_SHIFT) & 0xFF));
     }
+
+    /**
+     * The design system as the framework's theme, every field from its token: the controls, ImGui's style, the
+     * keyboard and the panel's edge are drawn in it. A panel's sizes in vrui units are their px over the 48 of a unit.
+     */
+    inline f4cf::imgui::Theme designTheme()
+    {
+        return {
+            .accent            = toColor(color::GREEN),
+            .muted             = toColor(color::GREEN_MUTED),
+            .track             = toColor(color::TRACK),
+            .hover             = toColor(color::HOVER),
+            .pressed           = toColor(color::PRESSED),
+            .glow              = toColor(color::GLOW),
+            .rule              = toColor(color::RULE),
+            .frameBorder       = toColor(color::FRAME_BORDER),
+            .onAccent          = toColor(color::ON_GREEN),
+            .warning           = toColor(color::AMBER),
+            .onWarning         = toColor(color::ON_AMBER),
+            .error             = toColor(color::RED),
+            .onError           = toColor(color::ON_RED),
+            .popup             = toColor(color::POPUP),
+            .scrim             = toColor(color::SCRIM),
+            .glass             = toColor(color::GLASS),
+            .plate             = toColor(color::PLATE),
+            .important         = toColor(color::ACCENT),
+            .controlHeight     = CONTROL_HEIGHT,
+            .frameRounding     = RADIUS_FRAME,
+            .frameBorderSize   = BORDER_FRAME,
+            .popupRounding     = RADIUS_POPUP,
+            .titleFontSize     = FONT_SIZE_TITLE,
+            .bodyFontSize      = FONT_SIZE_BODY,
+            .detailFontSize    = FONT_SIZE_DETAIL,
+            .scrollbarSize     = SCROLLBAR_SIZE,
+            .grabWidth         = GRAB_WIDTH,
+            .grabRounding      = RADIUS_GRAB,
+            .disabledOpacity   = OPACITY_DISABLED,
+            .space1            = SPACE_1,
+            .space2            = SPACE_2,
+            .space3            = SPACE_3,
+            .space4            = SPACE_4,
+            .space6            = SPACE_6,
+            .space8            = SPACE_8,
+            .space12           = SPACE_12,
+            .panelBorderUnits  = BORDER_PANEL / 48.0f,
+            .panelCornerUnits  = RADIUS_PANEL / 48.0f,
+            .panelPaddingUnits = PANEL_PADDING / 48.0f,
+        };
+    }
+
+    // A framework whose Theme has another field than the generator read stops the build here, so the mod never takes
+    // a default for it: run the generator.
+    static_assert(sizeof(f4cf::imgui::Theme) == 372, "imgui::Theme has changed: run docs/design/design-system/tools/gen_theme.py");
 }
 
 // clang-format on

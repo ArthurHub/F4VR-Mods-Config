@@ -336,9 +336,6 @@ namespace mods_config::ui
         // what does what a press on a row of a report's live copy asks, which the menu does
         std::function<void(const std::string&, LiveCopyAction)> _liveCopyAction;
 
-        // the design system's sizes and colors are set on ImGui's style once
-        bool _styleApplied = false;
-
         // another page is shown since the last draw, which starts at its top
         bool _pageChanged = false;
 

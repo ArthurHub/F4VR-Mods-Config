@@ -49,17 +49,6 @@ namespace
             .size = fontSize,
             .underline = run.underline };
     }
-
-    /**
-     * A token of the design system as the framework's color.
-     */
-    f4cf::render::Color colorOf(const ImU32 color)
-    {
-        return f4cf::render::Color::rgba(static_cast<int>((color >> IM_COL32_R_SHIFT) & 0xFF),
-            static_cast<int>((color >> IM_COL32_G_SHIFT) & 0xFF),
-            static_cast<int>((color >> IM_COL32_B_SHIFT) & 0xFF),
-            static_cast<int>((color >> IM_COL32_A_SHIFT) & 0xFF));
-    }
 }
 
 namespace mods_config::ui
@@ -329,30 +318,5 @@ namespace mods_config::ui
             controls::drawDot(center, theme::color::AMBER);
             break;
         }
-    }
-
-    /**
-     * The framework controls' style in the look of the design system: its tokens by role.
-     */
-    controls::ControlsStyle controlsStyle()
-    {
-        return { .accent = colorOf(theme::color::GREEN),
-            .muted = colorOf(theme::color::GREEN_MUTED),
-            .track = colorOf(theme::color::TRACK),
-            .hover = colorOf(theme::color::HOVER),
-            .pressed = colorOf(theme::color::PRESSED),
-            .glow = colorOf(theme::color::GLOW),
-            .rule = colorOf(theme::color::RULE),
-            .frameBorder = colorOf(theme::color::FRAME_BORDER),
-            .onAccent = colorOf(theme::color::ON_GREEN),
-            .warning = colorOf(theme::color::AMBER),
-            .onWarning = colorOf(theme::color::ON_AMBER),
-            .error = colorOf(theme::color::RED),
-            .onError = colorOf(theme::color::ON_RED),
-            .popup = colorOf(theme::color::POPUP),
-            .controlHeight = theme::CONTROL_HEIGHT,
-            .frameRounding = theme::RADIUS_FRAME,
-            .frameBorderSize = theme::BORDER_FRAME,
-            .detailFontSize = theme::FONT_SIZE_DETAIL };
     }
 }

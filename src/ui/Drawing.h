@@ -54,7 +54,6 @@ namespace mods_config::ui
     // the width of an activation sphere's mark, as the design system has it
     constexpr float SPHERE_MARK_SIZE = 20.0f;
 
-    controls::ControlsStyle controlsStyle();
     controls::Tone toneOf(ValueLook look);
     ImU32 valueColor(ValueLook look);
     float mcmScale();

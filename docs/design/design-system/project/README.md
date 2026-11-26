@@ -12,7 +12,7 @@ Mods Config FO4 VR is one settings panel for every Fallout 4 VR mod, drawn with 
 
 - Lay out in ImGui pixels. A `UIImGuiPanel` gets 48 px per vrui unit, so the Full panel at 24 x 15 units is `panel-width` x `panel-height`: 1152 x 720 px.
 - At the defaults in `GameMenu.cpp` (scale 6, 120 game units in front of the HMD, curve radius 25), one layout pixel is about 0.06 degrees at the panel's middle, about 17 px a degree. A `t-body` line is about 1.2 degrees tall, and a 48 px target about 2.9 degrees.
-- Set `setFontSizePixels` to the `t-body` size, 21 (`theme::FONT_SIZE`), and keep `setSupersample` at 1.5. The panel texture is then 1728 x 1080, about 25 texels a degree. Raise the factor only if text looks soft in the headset: memory grows with its square.
+- Draw the body text at the `t-body` size, 21: the framework's theme gets it as `bodyFontSize`. Keep `setSupersample` at 1.5. The panel texture is then 1728 x 1080, about 25 texels a degree. Raise the factor only if text looks soft in the headset: memory grows with its square.
 - Set `TouchExtraPadding` to `space-1` on each side. It widens every hit box into the 8 px gap between items without moving anything, which absorbs hand jitter.
 
 ## Color
@@ -64,7 +64,7 @@ ImGui draws a label in `ImGuiCol_Text` whatever the item's state, so a solid fil
 
 ## ImGui style
 
-Set these once, before the first canvas draws. In the mod, `mods_config::theme::applyStyle` does it: `src/Theme.h` is generated from these two tables and `tokens.json` by `tools/gen_theme.py`, with every token as a constant (`theme::color::GREEN`, `theme::CONTROL_HEIGHT`). Keep the tables in this form, because the generator reads them, and a value in the first table that differs from its token stops it.
+The framework sets these from the mod's theme (`imgui::Theme::applyTo`), before the first frame and after each new theme. In the mod, `src/Theme.h` is generated from `tokens.json` by `tools/gen_theme.py`, with every token as a constant (`theme::color::GREEN`, `theme::CONTROL_HEIGHT`) and `theme::designTheme()`, the framework's theme with every field from its token. These two tables say which token each field and color gets through the theme: keep them in this form, because the generator reads them, and a value in the first table that differs from its token stops it.
 
 | `ImGuiStyle` | Value | Token |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ Set these once, before the first canvas draws. In the mod, `mods_config::theme::
 | `FrameBgActive`, `ButtonActive`, `HeaderActive`, `TextSelectedBg` | `pressed` |
 | `Header` | `green` (selected; push `Text` = `on-green`) |
 | `CheckMark` | `on-green` |
-| `SliderGrab`, `ScrollbarGrabHovered`, `NavCursor` | `green` |
+| `SliderGrab`, `ScrollbarGrabHovered`, `NavCursor`, `InputTextCursor` | `green` |
 | `SliderGrabActive`, `ScrollbarGrabActive` | `glow` |
 | `ScrollbarGrab` | `frame-border` |
 | `Separator` | `rule` |

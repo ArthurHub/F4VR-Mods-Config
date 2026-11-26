@@ -22,7 +22,7 @@ namespace test_panel
     constexpr float PANEL_RADIUS = theme::RADIUS_PANEL;
     constexpr float PANEL_PADDING = theme::PANEL_PADDING;
     constexpr ImU32 PANEL_BACKGROUND = IM_COL32(15, 15, 15, 217);
-    constexpr float FONT_SIZE = theme::FONT_SIZE;
+    constexpr float FONT_SIZE = theme::FONT_SIZE_BODY;
     constexpr float SUPERSAMPLE = 1.5f;
 
     // where the panel's content starts, from the panel's left and from its top
@@ -48,12 +48,11 @@ namespace test_panel
             io.DisplayFramebufferScale = ImVec2(SUPERSAMPLE, SUPERSAMPLE);
             io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
             ImGui::StyleColorsDark();
-            // the panel's style, which FullPanel applies to the game's one context on its first frame: a panel drawn
-            // in an earlier test context does not apply it again to this one
-            theme::applyStyle(ImGui::GetStyle());
             f4cf::imgui::internal::loadCanvasFont(FONT_SIZE);
-            // as GameMenu.cpp gives the framework's controls their look, with nothing held from another test
-            controls::get().setStyle(ui::controlsStyle());
+            // the theme GameMenu.cpp gives the framework, and the ImGui style the framework sets from it on the game's
+            // context, with nothing held from another test
+            controls::get().setTheme(theme::designTheme());
+            controls::get().applyImGuiStyle();
             controls::get().reset();
             controls::get().setThumbstickSide(0.0f);
             // a reset keeps a text edit, as a search outlives the page: one a test left ends as this context's first
