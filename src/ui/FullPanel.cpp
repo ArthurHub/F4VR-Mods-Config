@@ -1,6 +1,7 @@
 #include "FullPanel.h"
 
 #include <algorithm>
+#include <array>
 #include <format>
 #include <numeric>
 #include <optional>
@@ -15,6 +16,7 @@
 #include "HelpPage.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
+#include "imgui/controls/Footers.h"
 #include "imgui/controls/Panes.h"
 #include "model/Conditions.h"
 #include "perf/Perf.h"
@@ -36,9 +38,6 @@ namespace
     // the same of an MCM mod, whose change is in the game as it is made: there is nothing to save, so it is kept
     constexpr auto NONE_MADE = "No changes made";
     constexpr auto KEPT = "Kept";
-
-    // the width of a footer button, in the panel's pixels
-    constexpr float BUTTON_WIDTH = 160.0f;
 
     /**
      * Finds the sections an item is in, from the outermost, in a list of items and the sections in it.
@@ -1104,42 +1103,32 @@ namespace mods_config::ui
     }
 
     /**
-     * The footer, from its top left: a line over it, the help line on its left, and Discard and Save on its
-     * right, which keep their places. They are enabled while the selected mod has changes that wait for a
-     * Save, also after a Save that failed, and are disabled on the menu's front page, which has no session.
+     * The footer, from its top left: the framework's footer with Discard and Save on its right, which keep their
+     * places, and the help line in the room it leaves on its left. They are enabled while the selected mod has
+     * changes that wait for a Save, also after a Save that failed, and are disabled on the menu's front page, which
+     * has no session.
      * Save is disabled while a change is invalid, which the status says. A press on Save writes the changes,
      * and one on Discard takes them back. An MCM mod's are named Keep and Revert, as its changes are written already.
      */
     void FullPanel::drawFooter(const ImVec2& pos)
     {
         F4CF_PERF_FUNCTION();
-        const float width = ImGui::GetContentRegionAvail().x;
-        ImGui::GetWindowDrawList()->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
-
         auto* const store = _selection.mod ? storeOf(mods()[*_selection.mod]) : nullptr;
         const bool made = store && store->writesChangesAtOnce();
-        const float top = pos.y + (theme::FOOTER_HEIGHT - theme::CONTROL_HEIGHT) * 0.5f;
-        const auto save = controls::controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
-        const auto discard = controls::controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
-        ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
-        if (controls::button(made ? "Revert" : "Discard", discard, controls::ButtonLook::Secondary)) {
+        const bool unchanged = !store || store->dirtyCount() == 0;
+        const std::array buttons{ controls::FooterButton{ .label = made ? "Revert" : "Discard", .disabled = unchanged },
+            controls::FooterButton{ .label = made ? "Keep" : "Save", .look = controls::ButtonLook::Primary, .disabled = unchanged || store->invalidCount() > 0 } };
+        const auto footer = controls::footer(pos, buttons, theme::FOOTER_HEIGHT);
+        if (footer.pressed == 0) {
             this->discard();
             _pressActed = true;
-        }
-        ImGui::BeginDisabled(store && store->invalidCount() > 0);
-        if (controls::button(made ? "Keep" : "Save", save, controls::ButtonLook::Primary)) {
+        } else if (footer.pressed == 1) {
             // the status has the reason of a Save that failed, which the store keeps
             std::ignore = this->save();
             _pressActed = true;
         }
-        ImGui::EndDisabled();
-        ImGui::EndDisabled();
         updateStatus();
-
-        const float helpRight = discard.Min.x - theme::SPACE_3;
-        _helpLine.draw(ImVec2(pos.x + theme::SPACE_4, pos.y), helpRight - pos.x - theme::SPACE_4);
-        ImGui::SetCursorScreenPos(pos);
-        ImGui::Dummy(ImVec2(width, theme::FOOTER_HEIGHT));
+        _helpLine.draw(footer.left.Min, footer.left.GetWidth());
     }
 
     /**

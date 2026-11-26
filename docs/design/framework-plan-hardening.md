@@ -31,8 +31,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M25 | mod       | The tree's pane and the content pane from the framework                                                      | done    |
 | F40 | framework | imgui: the title bar: breadcrumbs that shorten to fit, and its buttons                                       | done    |
 | M26 | mod       | The title bar from the framework                                                                             | done    |
-| F41 | framework | imgui: the footer: a rule, its buttons at the right, and the room of a help line                             | planned |
-| M27 | mod       | The footer from the framework                                                                                | planned |
+| F41 | framework | imgui: the footer: a rule, its buttons at the right, and the room of a help line                             | done    |
+| M27 | mod       | The footer from the framework                                                                                | done    |
 | F42 | framework | imgui: controls with their label in a row, and the press pulse                                               | planned |
 | M28 | mod       | A render test of the controls with their label                                                               | planned |
 | F43 | framework | imgui: a clipped list of rows                                                                                | planned |
@@ -487,7 +487,7 @@ FooterDrawn footer(const ImVec2& pos, std::span<const FooterButton> buttons, flo
 
 It draws the rule over it and the buttons at the right in their order, the last `space2` inside the right edge, `space3` apart, in the middle of its height, and takes its room. `left` starts `space4` in and ends `space3` before the first button.
 
-**The mod (M27):** `FullPanel::drawFooter` gives Discard and Save (Revert and Keep for an MCM mod) with their disabled states, acts on `pressed`, and draws its `HelpLine` in `left`. `HelpLine` stays the mod's: what it says of a row is about settings.
+**The mod (M27):** `FullPanel::drawFooter` gives Discard and Save (Revert and Keep for an MCM mod) with their disabled states, acts on `pressed`, and draws its `HelpLine` in `left`, with `theme::FOOTER_HEIGHT` the `height` it gives. `HelpLine` stays the mod's: what it says of a row is about settings. The renders are the same byte for byte.
 
 ## Controls with their label, and the press pulse (F42, M28)
 
