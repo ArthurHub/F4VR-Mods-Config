@@ -18,8 +18,6 @@ namespace mods_config::ui
     constexpr auto TYPED_OPTION_HELP = "Opens the keyboard to type a value that is not in the list.";
 
     std::optional<std::size_t> chosenOption(const std::vector<model::Option>& options, const model::StoredValue& stored);
-    controls::ListDrawn panelList(ImGuiID id, const ImRect& box, std::span<const std::string_view> texts, std::optional<std::size_t> chosen,
-        const controls::OptionDecoration& decorate = {}, const controls::ListExtras& extras = {});
 
     /**
      * The steppers, the dropdowns and the haptics of the page that is shown, on the framework's controls: a setting's

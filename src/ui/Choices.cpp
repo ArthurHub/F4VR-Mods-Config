@@ -10,7 +10,6 @@
 
 #include "Drawing.h"
 #include "Haptics.h"
-#include "PanelTargets.h"
 #include "Theme.h"
 #include "model/FileChoices.h"
 #include "model/Haptics.h"
@@ -112,27 +111,6 @@ namespace mods_config::ui
     }
 
     /**
-     * The framework's list of options of a dropdown that is open, as `controls::drawList` draws it, whose options and
-     * scroll devbench finds: each option by its text, and the action entry by its own.
-     */
-    controls::ListDrawn panelList(const ImGuiID id, const ImRect& box, const std::span<const std::string_view> texts, const std::optional<std::size_t> chosen,
-        const controls::OptionDecoration& decorate, const controls::ListExtras& extras)
-    {
-        auto drawn = controls::drawList(id, box, texts, chosen, decorate, extras);
-        if (!drawn.shown) {
-            return drawn;
-        }
-        for (std::size_t i = 0; i < texts.size() && i < drawn.boxes.size(); ++i) {
-            panelTargets().add(TargetKind::Option, texts[i], drawn.boxes[i]);
-        }
-        if (!extras.action.empty() && drawn.boxes.size() > texts.size()) {
-            panelTargets().add(TargetKind::Option, extras.action, drawn.boxes.back());
-        }
-        panelTargets().addScroll(ScrollArea::List, drawn.scrollY, drawn.scrollMaxY);
-        return drawn;
-    }
-
-    /**
      * Starts a frame of the page, before its rows.
      */
     void Choices::startFrame()
@@ -218,7 +196,7 @@ namespace mods_config::ui
                 drawHapticShape(shapeIn(box, theme::SPACE_4 - theme::SPACE_3), patternOf(options[option].value), ImGui::GetColorU32(color), ImGui::GetColorU32(base));
             };
         }
-        const auto drawn = panelList(id, dropdownBox(setting, right, top), texts, chosen, decorate, extras);
+        const auto drawn = controls::drawList(id, dropdownBox(setting, right, top), texts, chosen, decorate, extras);
         _pointedOption = drawn.pointed;
         return drawn.picked;
     }

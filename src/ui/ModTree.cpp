@@ -12,7 +12,7 @@
 #include <imgui.h>
 
 #include "Drawing.h"
-#include "PanelTargets.h"
+#include "Targets.h"
 #include "Theme.h"
 #include "imgui/controls/Tree.h"
 #include "model/Conditions.h"
@@ -54,7 +54,7 @@ namespace
      */
     void addTreeTarget(const model::Mod& mod, const std::span<const std::size_t> path = {})
     {
-        auto& targets = ui::panelTargets();
+        auto& targets = controls::targets();
         if (!targets.isRecording()) {
             return;
         }
@@ -64,7 +64,7 @@ namespace
             names.push_back((*pages)[place].name);
             pages = &(*pages)[place].pages;
         }
-        targets.add(ui::TargetKind::Tree, mod.name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()), std::move(names));
+        targets.add(ui::target::TREE, mod.name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()), std::move(names));
     }
 
     /**
@@ -138,7 +138,7 @@ namespace mods_config::ui
                     }
                 }
                 _showSelection = false;
-                panelTargets().addScroll(ScrollArea::Tree);
+                controls::targets().addScroll(target::TREE_AREA);
             }
             ImGui::EndChild();
         }
@@ -170,7 +170,7 @@ namespace mods_config::ui
             // not a number, which a mod's place is
             ImGui::PushID(key.c_str());
             const auto row = controls::treeGroupRow(name, category.mods.size(), open, unsaved > 0, rowWidth);
-            panelTargets().add(TargetKind::Category, name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
+            controls::targets().add(target::CATEGORY, name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
             if (row.pointed && unsaved > 0) {
                 drawn.pointed = PointedRow{ .text = name, .help = withUnsaved({}, unsaved) };
             }

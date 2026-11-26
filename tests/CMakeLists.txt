@@ -154,7 +154,6 @@ add_executable(${PROJECT_NAME}_linked_tests
   ${SOURCE_DIR}/ui/ConfigSpecReport.cpp
   ${SOURCE_DIR}/ui/PageImages.cpp
   ${SOURCE_DIR}/ui/PageRows.cpp
-  ${SOURCE_DIR}/ui/PanelTargets.cpp
   ${SOURCE_DIR}/ui/RowView.cpp
   ${SOURCE_DIR}/ui/SearchField.cpp
   ${SOURCE_DIR}/ui/SearchSession.cpp

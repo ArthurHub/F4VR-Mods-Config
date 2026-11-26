@@ -21,8 +21,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | F34 | framework | imgui: the controls' gaps from the theme's spacing scale, and tests that every control draws in the theme    | done    |
 | M21 | mod       | The heading's inset from the framework's function                                                            | done    |
 | F35 | framework | devbench: a `theme` action that sets the theme's fields live                                                 | done    |
-| F36 | framework | imgui: the targets of a panel, which the controls record, and a devbench `targets` action                    | planned |
-| M22 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | planned |
+| F36 | framework | imgui: the targets of a panel, which the controls record, and a devbench `targets` action                    | done    |
+| M22 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | done    |
 | F37 | framework | imgui: the search field                                                                                      | planned |
 | M23 | mod       | The tree's search field from the framework                                                                   | planned |
 | F38 | framework | imgui: the drawn icons as one `Icon` set, and a popup beside its row                                         | planned |
@@ -270,25 +270,26 @@ inline Targets& targets() { return Targets::get(); }
 ```
 
 - **Recording** is off until asked, so a game with no test pays one check a target.
-- **A frame:** `Controls::beginFrame` clears the targets and scrolls. The layer calls `beginCanvas` with the canvas's top left in ImGui's display before it draws the canvas's content. A rect is kept as the part its window shows, from that origin: the canvas's pixels, which is the space `Pointer::state()` gives the pointer in. It must give this mod's targets the places `PanelTargets::startFrame` gives them now (the canvas's window stands half the panel's border inside the canvas).
+- **The framework's kinds** are texts in `controls::target`: `BUTTON`, `OPTION`, and the scroll area `LIST_AREA`.
+- **A frame:** `Controls::beginFrame` clears the targets and scrolls. The layer calls `beginCanvas` with the canvas's top left in ImGui's display before it draws the canvas's content. A rect is kept as the part its window shows, from that origin: the canvas's pixels, which is the space `Pointer::state()` gives the pointer in. It must give this mod's targets the places `PanelTargets::startFrame` gives them now (the canvas's window stands half the panel's border inside the canvas). It does: the canvas's top left is the window's place less half the canvas's border, which is the panel's 3.84 px at 48 pixels a unit. `beginFrame` sets the origin back to the display's top left, so a test's frame that starts its canvas there needs no `beginCanvas`.
 - **What records itself**, by a key a test knows without the mod:
 
 | Control | Kind | Key |
 | --- | --- | --- |
-| `button`, `dialogButtons` | `button` | its label |
-| `drawList` | `option` | each option's text, and the action entry's; its scroll as area `list` |
+| `button`, `dialogButtons` | `button` | its label; `dialogButtons` through `button` |
+| `drawList` | `option` | each option's text, and the action entry's; its scroll as area `list`. Recorded inside its popup, so an option is clipped to the list's window, not the page's as the mod's wrapper did |
 | `searchField` (F37) | `search` | `Field`, `Clear` |
 | `titleBar` (F40) | `crumb`, `titleButton` | the crumb's text, the button's name |
 | the panes (F39) | | their scroll, as the area the mod names |
 
 - **What the mod records**, with `controls::targets().add`: a row whose key is the mod's own, as a tree's row by its node and path, a setting's row by its id, a section by its text.
-- **devbench:** a built-in `targets` action beside `keyboard` in `DevBench.cpp`, with the answer of this mod's `targets` action: `recording`, `targets` (`kind`, `key`, `x`, `y`, `width`, `height`, and `path` where it has one) and `scrolls` (`area`, `y`, `max`). The first call starts the recording and answers none.
+- **devbench:** a built-in `targets` action beside `keyboard` in `DevBench.cpp`, with the answer of this mod's `targets` action: `recording`, `targets` (`kind`, `key`, `x`, `y`, `width`, `height`, and `path` where it has one) and `scrolls` (`area`, `y`, `max`). The first call starts the recording and answers none. It runs on the game thread, and the tool's contract is 8. A mod's own action of the same name is ignored beside it, as devbench keeps the first of a name.
 
 With two panels at once a target does not say which canvas it is in. A `canvas` name is added when a mod has two panels with targets.
 
 ### Tests and docs (F36)
 
-- `ControlsTargetsTests.cpp`, from this mod's `PanelTargetsTests.cpp`: nothing is kept while not recording; a rect is clipped to its window and kept from the canvas's origin; one scrolled out is not kept; a frame clears; a `button` and a `drawList` record themselves.
+- `ControlsTargetsTests.cpp`, from this mod's `PanelTargetsTests.cpp`: nothing is kept while not recording; a rect is clipped to its window and kept from the canvas's origin, with its path; one scrolled out is not kept; a frame clears targets and scrolls; a `button`, a dialog's buttons and an open `drawList`'s options and action record themselves, with the list's scroll.
 - The controls README: a Targets section. The devbench README: the `targets` row. `CHANGELOG.md`.
 
 ### The mod's port (M22)
@@ -296,8 +297,9 @@ With two panels at once a target does not say which canvas it is in. A `canvas` 
 - `src/ui/PanelTargets.h/.cpp` go. The kinds become texts in `src/ui/Targets.h` (`ui::target::TREE = "tree"`, ...), with the names `targetKindName` gives now, so e2e reads the same answer.
 - Every `panelTargets().add(TargetKind::X, ...)` becomes `controls::targets().add(ui::target::X, ...)`, and `addScroll(ScrollArea::X)` the area's text.
 - `panelButton`, `panelDialogButtons` and `panelList` go: their callers call `controls::button`, `controls::dialogButtons` and `controls::drawList`.
-- The mod's `targets` devbench action and `runTargets` go: the built-in one answers. [`tests/e2e/controllers.py`](../../tests/e2e/controllers.py) is unchanged.
-- `PanelTargetsTests.cpp` keeps what is the mod's: which rows record which kind and key.
+- The mod's `targets` devbench action and `runTargets` go: the built-in one answers. [`tests/e2e/controllers.py`](../../tests/e2e/controllers.py) is unchanged. A tree's row answers `path` only where it is not empty, so a mod's own row has none; e2e reads it only for a page's row.
+- `PanelTargetsTests.cpp` keeps what is the mod's: which rows record which kind and key, as `Panel targets:` cases. The test panel's frame gives the canvas's top left as the layer does.
+- The F36 bump lands with this commit: with F36 alone, devbench would ignore the mod's `targets` and answer the framework's kinds only.
 
 ## Search field (F37, M23)
 

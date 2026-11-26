@@ -17,7 +17,6 @@
 #include "model/TextStates.h"
 #include "ui/ButtonView.h"
 #include "ui/PageRows.h"
-#include "ui/PanelTargets.h"
 #include "ui/RowView.h"
 
 namespace mods_config::devbench
@@ -676,36 +675,6 @@ namespace mods_config::devbench
                 throw std::runtime_error("the choice has no option of the value or the text " + value.dump());
             }
             throw std::runtime_error("the setting's type is not known");
-        }
-
-        /**
-         * Where the panel's targets were in its last frame, in the panel's pixels as the state's pointer has them, and
-         * how far its lists were scrolled. The first call starts keeping them, for the rest of the session, so it
-         * answers none; a frame later there are.
-         */
-        json runTargets(const json&)
-        {
-            auto& recorder = ui::panelTargets();
-            const bool recording = recorder.isRecording();
-            recorder.setRecording(true);
-            auto targets = json::array();
-            for (const auto& target : recording ? recorder.targets() : std::vector<ui::Target>()) {
-                json entry = { { "kind", ui::targetKindName(target.kind) },
-                    { "key", target.key },
-                    { "x", target.rect.Min.x },
-                    { "y", target.rect.Min.y },
-                    { "width", target.rect.GetWidth() },
-                    { "height", target.rect.GetHeight() } };
-                if (target.kind == ui::TargetKind::Tree) {
-                    entry["path"] = target.path;
-                }
-                targets.push_back(std::move(entry));
-            }
-            auto scrolls = json::array();
-            for (const auto& scroll : recording ? recorder.scrolls() : std::vector<ui::Scroll>()) {
-                scrolls.push_back({ { "area", ui::scrollAreaName(scroll.area) }, { "y", scroll.y }, { "max", scroll.max } });
-            }
-            return { { "recording", recording }, { "targets", std::move(targets) }, { "scrolls", std::move(scrolls) } };
         }
 
         /**
@@ -1393,21 +1362,6 @@ namespace mods_config::devbench
             .description = "a setting of the selected mod by its id, on any of its pages, as the page action has its row, without changing it: a hidden "
                            "one too, as the sliders a color is kept in",
             .handler = &runSetting,
-        });
-        f4cf::devbench::addAction({
-            .name = "targets",
-            .description = "where the panel's targets were in its last frame, for a test that points the controllers at them: each with its kind and key "
-                           "(tree: a mod's row by its name, with path, the names of the pages on the way to a page's row; category: by its name; setting: a "
-                           "page's row by the setting's id; pageButton: a page's button row by its text; section: a heading by its text; titleButton: Help, "
-                           "Minimize, Close; crumb: by its text; button: a dialog's or an editor's button by its label; colorChannel: a track of the open "
-                           "color editor, Red, Green, Blue or Alpha; option: an option of the open dropdown list by its text, and the action under them; search: the search field, "
-                           "Field while it is not "
-                           "edited, and its Clear while it has a query), and "
-                           "x, y, width and height, the part of it that was shown, in the panel's pixels from its top left as the state's pointer has "
-                           "them; and scrolls, each list that was drawn with its area (tree, page, list for an open dropdown's), y (how far it is "
-                           "scrolled) and max (how far it can be). The first call starts keeping them and answers recording false with none; ask "
-                           "again after a frame",
-            .handler = &runTargets,
         });
         f4cf::devbench::addAction({
             .name = "setValue",

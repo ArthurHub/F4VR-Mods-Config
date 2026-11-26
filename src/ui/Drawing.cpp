@@ -7,7 +7,6 @@
 
 #include <imgui_internal.h>
 
-#include "PanelTargets.h"
 #include "Theme.h"
 #include "imgui/ImGuiFonts.h"
 
@@ -157,17 +156,6 @@ namespace mods_config::ui
     }
 
     /**
-     * A button of the footer or of a row's editor in its box, as the framework's controls draw it, which devbench
-     * finds by its label. Returns whether it was pressed.
-     */
-    bool panelButton(const char* label, const ImRect& box, const controls::ButtonLook look)
-    {
-        const bool pressed = controls::button(label, box, look);
-        panelTargets().add(TargetKind::Button, label, box);
-        return pressed;
-    }
-
-    /**
      * Begins the popup of an editor of a row, as the binding, the color and the transform editors are: of a width and a
      * height, centered on the row as far as the page lets it, under or over the row as `controls::popupTop` places it, padded and
      * outlined in `green`. Returns whether its content is drawn, which ends with `ImGui::EndPopup`.
@@ -186,20 +174,6 @@ namespace mods_config::ui
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         return shown;
-    }
-
-    /**
-     * The buttons of a dialog, as the framework's controls lay them out, each of which devbench finds by its label.
-     * Returns the place of the one that was pressed, and -1 for none.
-     */
-    int panelDialogButtons(const std::span<const controls::DialogButton> buttons)
-    {
-        std::vector<ImRect> boxes(buttons.size());
-        const int pressed = controls::dialogButtons(buttons, boxes);
-        for (std::size_t place = 0; place < buttons.size(); ++place) {
-            panelTargets().add(TargetKind::Button, buttons[place].label, boxes[place]);
-        }
-        return pressed;
     }
 
     /**

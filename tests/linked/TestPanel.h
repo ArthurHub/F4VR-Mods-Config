@@ -8,6 +8,7 @@
 
 #include "Theme.h"
 #include "imgui/ImGuiFonts.h"
+#include "imgui/controls/Targets.h"
 #include "ui/FullPanel.h"
 
 // The Full panel in frames of ImGui with no game and no renderer, as the framework's canvas has it in the game.
@@ -127,6 +128,8 @@ namespace test_panel
         if (ImGui::BeginChild("content", contentSize, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground)) {
             ImGui::GetWindowDrawList()->_FringeScale = FRINGE_SCALE;
             ImGui::BeginGroup();
+            // the targets are from the canvas's top left, as the layer gives it before the content
+            controls::targets().beginCanvas(ImVec2(0.0f, 0.0f));
             panel.draw();
             ImGui::EndGroup();
         }

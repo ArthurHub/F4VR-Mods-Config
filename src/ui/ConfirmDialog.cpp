@@ -94,11 +94,11 @@ namespace mods_config::ui
         if (saveFirst) {
             const std::array buttons{ confirming, controls::DialogButton{ .label = "Run without saving", .look = controls::ButtonLook::Secondary }, cancel };
             constexpr std::array ANSWERS{ ConfirmAnswer::Confirm, ConfirmAnswer::RunWithoutSaving, ConfirmAnswer::Cancel };
-            const int pressed = panelDialogButtons(buttons);
+            const int pressed = controls::dialogButtons(buttons);
             answer = pressed >= 0 ? ANSWERS[pressed] : ConfirmAnswer::None;
         } else {
             const std::array buttons{ confirming, cancel };
-            const int pressed = panelDialogButtons(buttons);
+            const int pressed = controls::dialogButtons(buttons);
             answer = pressed == 0 ? ConfirmAnswer::Confirm : pressed == 1 ? ConfirmAnswer::Cancel : ConfirmAnswer::None;
         }
         if (answer != ConfirmAnswer::None) {

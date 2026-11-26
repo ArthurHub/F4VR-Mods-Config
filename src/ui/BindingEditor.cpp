@@ -743,7 +743,7 @@ namespace mods_config::ui
         }
         ImGui::EndDisabled();
         std::vector<std::string_view> views(texts.begin(), texts.end());
-        const auto drawn = panelList(listId, box, views, chosen);
+        const auto drawn = controls::drawList(listId, box, views, chosen);
         if (_list == part && !ImGui::IsPopupOpen(listId, ImGuiPopupFlags_None)) {
             _list = Part::None;
         }
@@ -1069,7 +1069,7 @@ namespace mods_config::ui
         const float footerTop = ruleY + theme::BORDER_FRAME + theme::SPACE_3;
         const auto done = controls::controlBox(frame.contentRight - DONE_WIDTH, footerTop, DONE_WIDTH);
         const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_3 - CANCEL_WIDTH, footerTop, CANCEL_WIDTH);
-        if (panelButton("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
+        if (controls::button("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
@@ -1078,7 +1078,7 @@ namespace mods_config::ui
         if (frame.hovered && cancelBox.Contains(frame.mouse)) {
             frame.point("Cancel", "Give back the binding it had as the editor opened.");
         }
-        if (panelButton("Done", done, controls::ButtonLook::Primary)) {
+        if (controls::button("Done", done, controls::ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
             frame.edited.pulse = true;

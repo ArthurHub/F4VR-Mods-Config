@@ -7,7 +7,7 @@
 
 #include "Colors.h"
 #include "Drawing.h"
-#include "PanelTargets.h"
+#include "Targets.h"
 #include "Theme.h"
 #include "model/TextStates.h"
 
@@ -380,7 +380,7 @@ namespace mods_config::ui
         ImGui::PushID(static_cast<int>(channel));
         ImGui::SetCursorScreenPos(track.Min);
         ImGui::InvisibleButton("track", track.GetSize());
-        panelTargets().add(TargetKind::ColorChannel, CHANNELS[channel].name, track);
+        controls::targets().add(target::COLOR_CHANNEL, CHANNELS[channel].name, track);
         // the window is not hovered while the track is held, and the ray stays on its line then
         const bool pointed = line.Contains(frame.mouse) && (frame.hovered || ImGui::IsItemActive());
         if (ImGui::IsItemActivated()) {
@@ -482,7 +482,7 @@ namespace mods_config::ui
     {
         const auto done = controls::controlBox(frame.contentRight - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
         const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
-        if (panelButton("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
+        if (controls::button("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();
             _open = nullptr;
@@ -491,7 +491,7 @@ namespace mods_config::ui
         if (frame.hovered && cancelBox.Contains(frame.mouse)) {
             frame.point("Cancel", "Give back the color it had as the editor opened.");
         }
-        if (panelButton("Done", done, controls::ButtonLook::Primary)) {
+        if (controls::button("Done", done, controls::ButtonLook::Primary)) {
             ImGui::CloseCurrentPopup();
             _open = nullptr;
             frame.edited.pulse = true;

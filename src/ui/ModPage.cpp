@@ -17,10 +17,10 @@
 #include "Choices.h"
 #include "Drawing.h"
 #include "PageRows.h"
-#include "PanelTargets.h"
 #include "Sections.h"
 #include "SettingRow.h"
 #include "Sliders.h"
+#include "Targets.h"
 #include "Theme.h"
 #include "model/Conditions.h"
 #include "model/TextMarkup.h"
@@ -213,8 +213,8 @@ namespace
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = controls::rowWidth();
         const auto row = controls::addRow(true);
-        if (ui::panelTargets().isRecording()) {
-            ui::panelTargets().add(ui::TargetKind::Section, model::resolveClientText(group.text, page.store), ImRect(pos, ImVec2(pos.x + width, pos.y + theme::CONTROL_HEIGHT)));
+        if (controls::targets().isRecording()) {
+            controls::targets().add(ui::target::SECTION, model::resolveClientText(group.text, page.store), ImRect(pos, ImVec2(pos.x + width, pos.y + theme::CONTROL_HEIGHT)));
         }
         std::string help;
         const bool folded =
@@ -263,7 +263,7 @@ namespace
             } else {
                 controls::sectionHeading(heading, right, found);
             }
-            ui::panelTargets().add(ui::TargetKind::Section, heading, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
+            controls::targets().add(ui::target::SECTION, heading, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
             if (ImGui::IsItemHovered()) {
                 page.drawn.pointedItem = &item;
                 if (!group.help.empty()) {
@@ -397,15 +397,15 @@ namespace
      */
     void addRowTarget(const model::Item& item, const ImVec2& top, model::Store* store)
     {
-        auto& targets = ui::panelTargets();
+        auto& targets = controls::targets();
         if (!targets.isRecording()) {
             return;
         }
         const ImRect row(top, ImVec2(top.x + controls::rowWidth(), top.y + theme::CONTROL_HEIGHT));
         if (const auto* setting = std::get_if<model::Setting>(&item)) {
-            targets.add(ui::TargetKind::Setting, setting->id, row);
+            targets.add(ui::target::SETTING, setting->id, row);
         } else if (const auto* button = std::get_if<model::Button>(&item)) {
-            targets.add(ui::TargetKind::PageButton, model::resolveClientText(button->text, store), row);
+            targets.add(ui::target::PAGE_BUTTON, model::resolveClientText(button->text, store), row);
         }
     }
 

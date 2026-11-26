@@ -61,9 +61,7 @@ namespace mods_config::ui
     float drawTextRuns(float left, float right, float top, float height, ImU32 color, std::span<const model::TextRun> runs);
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
     void sphereHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
-    bool panelButton(const char* label, const ImRect& box, controls::ButtonLook look);
     bool beginRowEditor(ImGuiID id, const ImRect& row, float width, float height);
-    int panelDialogButtons(std::span<const controls::DialogButton> buttons);
     float appliesTagWidth(std::string_view word);
     void drawAppliesTag(float left, float middle, model::Applies applies, std::string_view word);
     float restartMarkWidth();

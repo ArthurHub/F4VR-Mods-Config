@@ -1,6 +1,6 @@
 #include "FullPanel.h"
 
-#include "PanelTargets.h"
+#include "Targets.h"
 
 #include <algorithm>
 #include <format>
@@ -883,7 +883,6 @@ namespace mods_config::ui
     void FullPanel::draw()
     {
         F4CF_PERF_FUNCTION();
-        panelTargets().startFrame();
         _pressActed = false;
         _hapticPlayed.reset();
         {
@@ -965,7 +964,7 @@ namespace mods_config::ui
                 content = drawFrontPage();
             }
             content.onPage = onPage;
-            panelTargets().addScroll(ScrollArea::Page);
+            controls::targets().addScroll(target::PAGE_AREA);
         }
         ImGui::EndChild();
         return content;
@@ -1126,12 +1125,12 @@ namespace mods_config::ui
         const auto save = controls::controlBox(pos.x + width - theme::SPACE_2 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         const auto discard = controls::controlBox(save.Min.x - theme::SPACE_3 - BUTTON_WIDTH, top, BUTTON_WIDTH);
         ImGui::BeginDisabled(!store || store->dirtyCount() == 0);
-        if (panelButton(made ? "Revert" : "Discard", discard, controls::ButtonLook::Secondary)) {
+        if (controls::button(made ? "Revert" : "Discard", discard, controls::ButtonLook::Secondary)) {
             this->discard();
             _pressActed = true;
         }
         ImGui::BeginDisabled(store && store->invalidCount() > 0);
-        if (panelButton(made ? "Keep" : "Save", save, controls::ButtonLook::Primary)) {
+        if (controls::button(made ? "Keep" : "Save", save, controls::ButtonLook::Primary)) {
             // the status has the reason of a Save that failed, which the store keeps
             std::ignore = this->save();
             _pressActed = true;

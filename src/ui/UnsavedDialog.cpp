@@ -67,7 +67,7 @@ namespace mods_config::ui
             controls::DialogButton{ .label = "Cancel", .look = controls::ButtonLook::Quiet }
         };
         constexpr std::array ANSWERS{ DialogAnswer::Save, DialogAnswer::Discard, DialogAnswer::Cancel };
-        const int pressed = panelDialogButtons(buttons);
+        const int pressed = controls::dialogButtons(buttons);
         const auto answer = pressed >= 0 ? ANSWERS[pressed] : DialogAnswer::None;
 
         if (answer != DialogAnswer::None) {
