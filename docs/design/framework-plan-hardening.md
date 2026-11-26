@@ -20,7 +20,7 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M20 | mod       | The design system's theme, generated from its tokens, applied as the framework's theme                       | done    |
 | F34 | framework | imgui: the controls' gaps from the theme's spacing scale, and tests that every control draws in the theme    | done    |
 | M21 | mod       | The heading's inset from the framework's function                                                            | done    |
-| F35 | framework | devbench: a `theme` action that sets the theme's fields live                                                 | planned |
+| F35 | framework | devbench: a `theme` action that sets the theme's fields live                                                 | done    |
 | F36 | framework | imgui: the targets of a panel, which the controls record, and a devbench `targets` action                    | planned |
 | M22 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | planned |
 | F37 | framework | imgui: the search field                                                                                      | planned |
@@ -211,14 +211,15 @@ The six uses of `controls::HEADING_TEXT_INSET` become `controls::headingTextInse
 
 A look is tuned in the headset without a build: an agent or a script changes a field, and the next frame shows it. The value that is right is then typed into the mod's design, as a token of `tokens.json` here. The mod has no port: the action is every mod's.
 
-- **The action** is built in, beside `keyboard` in `DevBench.cpp`, so every mod's tool has it:
-  - With no argument it answers `fields`, each field of `themeFields()` by its name: a color as `[r, g, b, a]` from 0 to 255, a size as a number; and `overridden`, whether devbench set any.
-  - `set` is an object of fields and their values, in the same shapes: `{ "set": { "accent": [255, 180, 60, 255], "space2": 6 } }`. A name that is no field, or a value of the wrong shape, is an error that names it, and nothing is set.
-  - `reset` true goes back to the theme the mod set.
-- **Over the mod's theme.** `Controls` keeps the theme the mod set beside the one devbench set over it (`overrideTheme`, internal), which is the one drawn. `reset` drops the override, and so does the mod's next `setTheme`, as on a change of its config.
+- **The action** is built in, beside `keyboard` in `DevBench.cpp`, so every mod's tool has it. It runs on the game thread, where the frames read the theme, and the tool's contract is 7:
+  - Every call answers `fields`, each field of `themeFields()` by its name: a color as `[r, g, b, a]` from 0 to 255, a size as a number, the shortest text that reads back as its float; and `overridden`, the names of the fields devbench set.
+  - `set` is an object of fields and their values, in the same shapes: `{ "set": { "accent": [255, 180, 60, 255], "space2": 6 } }`. A color is exactly 4 integers from 0 to 255; a size is any finite number, with no range. A name that is no field, a value of the wrong shape, or a `set` that is not an object of at least one field is an error that names it, and nothing is set.
+  - `reset` true drops the fields devbench set. With `set` in the same call it is done first, and a `set` that is not valid does neither.
+- **Over the mod's theme.** `Controls` keeps the theme the mod set, and the fields devbench set over it with their values (`overrideTheme`, `clearThemeOverride`, internal); the theme drawn, which `theme()` answers, is the mod's with those fields replaced. They stay over each `setTheme` of the mod, whose other fields are drawn, until `reset`: this mod sets its theme each time the panel opens and as its panel's config changes, which would otherwise drop a tuned value.
 - **What follows:** the controls, ImGui's style and the keyboard, from the next frame. A panel's edge and background follow as the mod gives the panel its style again, and a mod's own drawing where it reads the theme. The pointer does not: its look is not the theme's.
+- **The panel's own fields in this mod** (`glass`, `plate` and the vrui units) are not tuned live: `GameMenu` gives the panel its style only as it opens and on a change of its config, from the theme it made, not the one drawn. A possible follow-up, not done: `GameMenu` gives the panel `controls::get().theme().panelStyle()` after `setTheme`, so a panel opened again shows them.
 
-**Tests and docs.** The action is a thin handler over two functions of `ImGuiTheme.cpp`, the theme as JSON and a JSON's fields set on a theme, which `ImGuiThemeTests.cpp` tests with no devbench, and `ControlsThemeTests.cpp` where it is `Controls`' override: it answers every field of the table in its shape; a `set` changes those fields and no other, and is drawn in the next frame; an unknown field and a wrong shape set nothing; `reset` and a `setTheme` of the mod each end the override. The devbench README gets the `theme` row.
+**Tests and docs.** The action is a thin handler over two functions of `ImGuiTheme.cpp`, `themeJson` and `themeWithFields`, which `ImGuiThemeTests.cpp` tests with no devbench: every field of the table in its shape, a number in its shortest text, a theme's JSON set on another giving that theme, a `set` that changes those fields and no other, and each unknown field and wrong shape named and setting nothing. `ControlsThemeTests.cpp` tests `Controls`' override: its fields are packed, given the keyboard and ImGui's style, add up over two calls, and set nothing when one is not valid; they stay over a new theme of the mod, whose other fields are drawn; a clear draws the mod's theme as it set it. `ControlsThemeUseTests.cpp` draws the gallery under an override of every field, in no color but the override's. The devbench, imgui and controls READMEs and the CHANGELOG say so.
 
 ## Targets (F36, M22)
 
