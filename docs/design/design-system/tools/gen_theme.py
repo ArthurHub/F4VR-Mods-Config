@@ -7,6 +7,10 @@ one it names that the framework has not, stops the generator. The framework sets
 tables of the "ImGui style" section of project/README.md say which token each ImGuiStyle field and ImGuiCol_ gets,
 and a value written in the first table that differs from its token stops the generator, as does an unknown token.
 
+The panel draws in the theme that is set, read as look() and colors() (src/ui/Drawing.h), so devbench's theme action
+tunes all of it: a file of src/ other than Theme.h that names the constant of a token the theme has a field for stops
+the generator too, with where it does. The tokens of the mod's own layout, which no theme sets, stay constants.
+
 Usage: python tools/gen_theme.py           write src/Theme.h
        python tools/gen_theme.py --check   only report whether it is out of date (exit code 1)
 """
@@ -293,3 +297,29 @@ if '--check' in sys.argv[1:]:
 elif old != text:
     OUT.write_bytes(text.encode('utf-8'))
     print(f'wrote {OUT}')
+
+# ---- the drawing reads the theme, not the constants of its fields
+field_constants = set()
+for name, source in THEME_FIELDS.items():
+    if isinstance(source, tuple):
+        continue  # a panel's edge, corner and padding in vrui units: the panel's style reads them
+    if source in colors:
+        field_constants.add('color::' + const_name(source))
+    elif source in sizes:
+        field_constants.add(const_name(source))
+    else:
+        field_constants.add(font_tokens[source])
+# read of fields too: a disabled row's color is the accent at the disabled opacity, a row's pitch a control's height
+# and space-2
+field_constants |= {'color::DISABLED', 'ROW_PITCH'}
+reads = []
+for path in sorted((ROOT / 'src').rglob('*')):
+    if path.suffix not in ('.h', '.cpp') or path == OUT:
+        continue
+    for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+        for name in re.findall(r'\btheme::((?:color::)?[A-Z][A-Z0-9_]*)\b', line):
+            if name in field_constants:
+                reads.append(f'{path.relative_to(ROOT).as_posix()}:{number}: theme::{name}')
+if reads:
+    fail('the drawing reads the theme as look() and colors() (src/ui/Drawing.h), not these constants of its fields:\n  '
+         + '\n  '.join(reads))

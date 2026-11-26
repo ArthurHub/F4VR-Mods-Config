@@ -59,8 +59,8 @@ namespace mods_config::ui
     void drawPageText(const std::string_view text)
     {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::headingTextInset());
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
+        ImGui::PushStyleColor(ImGuiCol_Text, colors().muted);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - look().space2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
         ImGui::PopTextWrapPos();
         ImGui::PopStyleColor();
@@ -123,12 +123,12 @@ namespace mods_config::ui
         constexpr float RADIUS = 7.0f;
         constexpr float GLOW_STEP = 1.0f;
         constexpr ImU32 GLOW_ALPHA = 46;
-        const ImU32 glow = (theme::color::GREEN & ~IM_COL32_A_MASK) | (GLOW_ALPHA << IM_COL32_A_SHIFT);
+        const ImU32 glow = (colors().accent & ~IM_COL32_A_MASK) | (GLOW_ALPHA << IM_COL32_A_SHIFT);
         auto* drawList = ImGui::GetWindowDrawList();
         for (float radius = RADIUS; radius > 0.0f; radius -= GLOW_STEP) {
             drawList->AddCircleFilled(center, radius, glow);
         }
-        drawList->AddCircle(center, RADIUS, theme::color::GREEN, 0, 1.5f);
+        drawList->AddCircle(center, RADIUS, colors().accent, 0, 1.5f);
     }
 
     /**
@@ -144,15 +144,24 @@ namespace mods_config::ui
         const float middle = pos.y + height * 0.5f;
         const float markLeft = pos.x + controls::headingTextInset();
         drawSphereMark(ImVec2(markLeft + SPHERE_MARK_SIZE * 0.5f, middle));
-        const float textLeft = markLeft + SPHERE_MARK_SIZE + theme::SPACE_1;
+        const float textLeft = markLeft + SPHERE_MARK_SIZE + look().space1;
         const float textRight = (std::min)(textLeft + controls::textWidth(text), right);
-        controls::drawText(textLeft, textRight, pos.y, height, theme::color::GREEN_MUTED, text);
-        controls::drawUnderlines(textLeft, textRight, pos.y, height, theme::color::GREEN_MUTED, text, found);
-        const float ruleLeft = std::ceil(textRight) + theme::SPACE_3;
+        controls::drawText(textLeft, textRight, pos.y, height, colors().muted, text);
+        controls::drawUnderlines(textLeft, textRight, pos.y, height, colors().muted, text, found);
+        const float ruleLeft = std::ceil(textRight) + look().space3;
         if (ruleLeft < right) {
-            const float ruleTop = std::floor(middle - theme::BORDER_FRAME * 0.5f);
-            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(right, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
+            const float ruleTop = std::floor(middle - look().frameBorderSize * 0.5f);
+            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(right, ruleTop + look().frameBorderSize), ImGui::GetColorU32(colors().rule));
         }
+    }
+
+    /**
+     * The box of a dropdown, which fills the room of a control in its row: the control column without the room of
+     * Reset. A binding's frame is as wide.
+     */
+    float dropdownWidth()
+    {
+        return theme::CONTROL_WIDTH - look().controlHeight - look().space2;
     }
 
     /**
@@ -185,7 +194,7 @@ namespace mods_config::ui
      */
     float appliesTagWidth(const std::string_view word)
     {
-        return controls::tagWidth(word) + APPLIES_MARK_WIDTH + theme::SPACE_1;
+        return controls::tagWidth(word) + APPLIES_MARK_WIDTH + look().space1;
     }
 
     /**
@@ -196,11 +205,11 @@ namespace mods_config::ui
     {
         const ImVec2 min(std::floor(left), std::floor(middle - controls::tagHeight() * 0.5f));
         const ImVec2 max(min.x + appliesTagWidth(word), min.y + controls::tagHeight());
-        controls::drawOutline(min, max, theme::color::AMBER);
-        const float markLeft = min.x + theme::BORDER_FRAME + theme::SPACE_2;
+        controls::drawOutline(min, max, colors().warning);
+        const float markLeft = min.x + look().frameBorderSize + look().space2;
         drawAppliesMark(applies, ImVec2(markLeft + APPLIES_MARK_WIDTH * 0.5f, min.y + controls::tagHeight() * 0.5f));
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        controls::drawText(markLeft + APPLIES_MARK_WIDTH + theme::SPACE_1, max.x, min.y, controls::tagHeight(), theme::color::AMBER, word);
+        ImGui::PushFont(nullptr, look().detailFontSize);
+        controls::drawText(markLeft + APPLIES_MARK_WIDTH + look().space1, max.x, min.y, controls::tagHeight(), colors().warning, word);
         ImGui::PopFont();
     }
 
@@ -238,7 +247,7 @@ namespace mods_config::ui
             return ImVec2(origin.x + x, origin.y + y);
         };
         auto* drawList = ImGui::GetWindowDrawList();
-        const auto color = ImGui::GetColorU32(theme::color::AMBER);
+        const auto color = ImGui::GetColorU32(colors().warning);
         switch (applies) {
         case model::Applies::Live: {
             // a dot with an arc on each side of it
@@ -268,7 +277,7 @@ namespace mods_config::ui
             break;
         }
         case model::Applies::Unknown:
-            controls::drawDot(center, theme::color::AMBER);
+            controls::drawDot(center, colors().warning);
             break;
         }
     }

@@ -31,7 +31,7 @@ namespace mods_config::ui
     void drawCheckerboard(const ImRect& box)
     {
         auto* drawList = ImGui::GetWindowDrawList();
-        drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(theme::color::GLASS));
+        drawList->AddRectFilled(box.Min, box.Max, ImGui::GetColorU32(colors().glass));
         int row = 0;
         for (float y = box.Min.y; y < box.Max.y; y += CHECKER_SIZE, ++row) {
             int column = 0;
@@ -39,7 +39,7 @@ namespace mods_config::ui
                 if ((row + column) % 2 == 0) {
                     drawList->AddRectFilled(ImVec2(x, y),
                         ImVec2((std::min)(x + CHECKER_SIZE, box.Max.x), (std::min)(y + CHECKER_SIZE, box.Max.y)),
-                        ImGui::GetColorU32(theme::color::RULE));
+                        ImGui::GetColorU32(colors().rule));
                 }
             }
         }
@@ -60,7 +60,7 @@ namespace mods_config::ui
             drawCheckerboard(half);
             drawList->AddRectFilled(half.Min, half.Max, ImGui::GetColorU32(colorU32(color)));
         }
-        drawList->AddRect(box.Min, box.Max, ImGui::GetColorU32(theme::color::FRAME_BORDER), theme::RADIUS_GRAB, 0, theme::BORDER_FRAME);
+        drawList->AddRect(box.Min, box.Max, ImGui::GetColorU32(colors().frameBorder), look().grabRounding, 0, look().frameBorderSize);
     }
 
     /**
@@ -81,25 +81,25 @@ namespace mods_config::ui
      */
     float drawColor(const model::Setting& setting, const float right, const float top, const std::string* value, const ValueLook look, const bool open)
     {
-        const auto box = controls::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
+        const auto box = controls::controlBox(right - dropdownWidth(), top, dropdownWidth());
+        const float arrowLeft = box.Max.x - ui::look().space4 - controls::ARROW_SIZE;
         controls::drawFrame(box, toneOf(look));
         if (open) {
-            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, colors().accent);
         }
-        float textLeft = box.Min.x + theme::SPACE_4;
+        float textLeft = box.Min.x + ui::look().space4;
         std::string text;
         if (value) {
             const auto color = model::colorOf(setting, *value);
             text = color ? model::colorNumbers(*color, setting.valueOptions.alpha) : *value;
             if (color) {
-                const float swatchLeft = box.Min.x + theme::SPACE_2;
+                const float swatchLeft = box.Min.x + ui::look().space2;
                 const float swatchTop = box.GetCenter().y - SWATCH_HEIGHT * 0.5f;
                 drawSwatch(ImRect(swatchLeft, swatchTop, swatchLeft + SWATCH_WIDTH, swatchTop + SWATCH_HEIGHT), *color, setting.valueOptions.alpha);
-                textLeft = swatchLeft + SWATCH_WIDTH + theme::SPACE_3;
+                textLeft = swatchLeft + SWATCH_WIDTH + ui::look().space3;
             }
         }
-        controls::drawText(textLeft, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, valueColor(look), text);
+        controls::drawText(textLeft, arrowLeft - ui::look().space2, top, ui::look().controlHeight, valueColor(look), text);
         controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
         return box.Min.x;
     }

@@ -38,6 +38,18 @@ namespace
     };
 
     /**
+     * The color of a line's name, which is read from the theme as the line is drawn: the accent, the warning's and the
+     * error's as a value has them, and the accent as a disabled row has it.
+     */
+    enum class NameColor : std::uint8_t
+    {
+        Accent,
+        Warning,
+        Error,
+        Disabled,
+    };
+
+    /**
      * A line of the page: its name in its color, its text, and the mark it starts with.
      */
     struct PageLine
@@ -45,8 +57,29 @@ namespace
         std::string_view name;
         std::string_view text;
         LineMark mark = LineMark::None;
-        ImU32 nameColor = theme::color::GREEN;
+        NameColor nameColor = NameColor::Accent;
     };
+
+    /**
+     * The color of a line's name in the theme that is set. A disabled row's is the accent at the theme's disabled
+     * opacity, as `BeginDisabled` draws it.
+     */
+    ImU32 nameColorOf(const NameColor color)
+    {
+        switch (color) {
+        case NameColor::Warning:
+            return colors().warning;
+        case NameColor::Error:
+            return colors().error;
+        case NameColor::Disabled: {
+            const auto& accent = look().accent;
+            return ImGui::ColorConvertFloat4ToU32(ImVec4(accent.r, accent.g, accent.b, accent.a * look().disabledOpacity));
+        }
+        case NameColor::Accent:
+            break;
+        }
+        return colors().accent;
+    }
 
     /**
      * Draws a line's mark in the middle of its column.
@@ -93,11 +126,11 @@ namespace
     void drawLine(const PageLine& line)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        const float markRoom = line.mark != LineMark::None ? MARK_COLUMN + theme::SPACE_2 : 0.0f;
+        const float markRoom = line.mark != LineMark::None ? MARK_COLUMN + look().space2 : 0.0f;
         const float left = pos.x + controls::headingTextInset();
-        const float width = ImGui::GetContentRegionAvail().x - controls::headingTextInset() - theme::SPACE_2 - markRoom;
+        const float width = ImGui::GetContentRegionAvail().x - controls::headingTextInset() - look().space2 - markRoom;
         const auto label = std::string(line.name) + ": ";
-        const std::array pieces{ controls::TextPiece{ .text = label, .color = line.nameColor }, controls::TextPiece{ .text = line.text, .color = theme::color::GREEN_MUTED } };
+        const std::array pieces{ controls::TextPiece{ .text = label, .color = nameColorOf(line.nameColor) }, controls::TextPiece{ .text = line.text, .color = colors().muted } };
         const int lines = controls::countTextLines(pieces, width);
         if (line.mark != LineMark::None) {
             drawLineMark(line.mark, ImVec2(left + MARK_COLUMN * 0.5f, pos.y + ImGui::GetFontSize() * 0.5f));
@@ -113,8 +146,8 @@ namespace
      */
     void drawHeading(const std::string_view heading)
     {
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_2);
-        controls::sectionHeading(heading, ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x, {}, theme::CONTROL_HEIGHT);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + look().space2);
+        controls::sectionHeading(heading, ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x, {}, look().controlHeight);
         // the first line starts under the heading's row, with no spacing of its own
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
     }
@@ -160,11 +193,11 @@ namespace
     };
 
     const std::array MARKS{
-        PageLine{ .name = "Amber value", .text = "Changed, but not saved or kept yet.", .nameColor = theme::color::AMBER },
-        PageLine{ .name = "Red value", .text = "Invalid. The help line explains why.", .mark = LineMark::Invalid, .nameColor = theme::color::RED },
+        PageLine{ .name = "Amber value", .text = "Changed, but not saved or kept yet.", .nameColor = NameColor::Warning },
+        PageLine{ .name = "Red value", .text = "Invalid. The help line explains why.", .mark = LineMark::Invalid, .nameColor = NameColor::Error },
         PageLine{ .name = "Warning", .text = "Something to know about the current value. The help line explains it.", .mark = LineMark::Warning },
         PageLine{ .name = "Result", .text = "A button returned a result. Point at its row to read it.", .mark = LineMark::Info },
-        PageLine{ .name = "Greyed row", .text = "Can't be changed. Point at it and the help line explains why.", .nameColor = theme::color::DISABLED },
+        PageLine{ .name = "Greyed row", .text = "Can't be changed. Point at it and the help line explains why.", .nameColor = NameColor::Disabled },
     };
 
     const std::array MCM{
@@ -185,7 +218,7 @@ namespace mods_config::ui
     void drawHelpPage(const std::vector<ControlHelp>& controls)
     {
         F4CF_PERF_FUNCTION();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + look().space1);
         drawPageText(
             "The menu doesn't pause the game, so you can see changes in the world "
             "as you make them. The controls below reflect your current button configuration.");

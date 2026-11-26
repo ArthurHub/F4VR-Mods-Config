@@ -19,8 +19,6 @@ namespace
 {
     using namespace mods_config;
 
-    using ui::DROPDOWN_WIDTH;
-
     /**
      * The box of a dropdown that ends at the right, which its list opens at: a haptic's is its frame, before its Play
      * button.
@@ -30,7 +28,7 @@ namespace
         if (setting.type == model::SettingType::Haptic) {
             return ui::HapticBoxes(right, top).frame;
         }
-        return controls::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
+        return controls::controlBox(right - ui::dropdownWidth(), top, ui::dropdownWidth());
     }
 
     /**
@@ -61,7 +59,7 @@ namespace
      */
     ImVec2 shapeIn(const ImRect& box, const float after)
     {
-        return { box.Max.x - after - theme::SPACE_3 - ui::HAPTIC_SHAPE_WIDTH, box.GetCenter().y - ui::HAPTIC_SHAPE_HEIGHT * 0.5f };
+        return { box.Max.x - after - look().space3 - ui::HAPTIC_SHAPE_WIDTH, box.GetCenter().y - ui::HAPTIC_SHAPE_HEIGHT * 0.5f };
     }
 
     /**
@@ -73,15 +71,15 @@ namespace
         const controls::ChoiceRow& row)
     {
         const auto& box = boxes.frame;
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
-        const auto shape = shapeIn(box, theme::SPACE_4 + controls::ARROW_SIZE);
+        const float arrowLeft = box.Max.x - ui::look().space4 - controls::ARROW_SIZE;
+        const auto shape = shapeIn(box, ui::look().space4 + controls::ARROW_SIZE);
         controls::drawFrame(box, toneOf(look));
         if (listOpen) {
-            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, colors().accent);
         }
-        controls::drawText(box.Min.x + theme::SPACE_4, shape.x - theme::SPACE_3, box.Min.y, theme::CONTROL_HEIGHT, ui::valueColor(look), text);
+        controls::drawText(box.Min.x + ui::look().space4, shape.x - ui::look().space3, box.Min.y, ui::look().controlHeight, ui::valueColor(look), text);
         if (option && look != ui::ValueLook::Invalid) {
-            ui::drawHapticShape(shape, patternOf(option->value), ImGui::GetColorU32(ui::valueColor(look)), ImGui::GetColorU32(theme::color::RULE));
+            ui::drawHapticShape(shape, patternOf(option->value), ImGui::GetColorU32(ui::valueColor(look)), ImGui::GetColorU32(colors().rule));
         }
         controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
 
@@ -89,7 +87,7 @@ namespace
         const bool onPlay = boxes.onPlay(ImGui::GetIO().MousePos.x);
         ImGui::BeginDisabled(!plays);
         controls::drawButtonFrame(boxes.play, plays && row.pointed && onPlay, plays && row.held && onPlay);
-        controls::drawIcon(controls::Icon::Vibrate, boxes.play.GetCenter(), theme::color::GREEN);
+        controls::drawIcon(controls::Icon::Vibrate, boxes.play.GetCenter(), colors().accent);
         ImGui::EndDisabled();
         return box.Min.x;
     }
@@ -191,9 +189,9 @@ namespace mods_config::ui
         if (setting.type == model::SettingType::Haptic) {
             decorate = [&options](const std::size_t option, const ImRect& box, const bool isChosen) {
                 // on the chosen option's solid fill, the shape is in the color on green, over its base at 40%
-                const auto color = isChosen ? theme::color::ON_GREEN : theme::color::GREEN;
-                const auto base = isChosen ? (theme::color::ON_GREEN & ~IM_COL32_A_MASK) | (theme::color::RULE & IM_COL32_A_MASK) : theme::color::RULE;
-                drawHapticShape(shapeIn(box, theme::SPACE_4 - theme::SPACE_3), patternOf(options[option].value), ImGui::GetColorU32(color), ImGui::GetColorU32(base));
+                const auto color = isChosen ? colors().onAccent : colors().accent;
+                const auto base = isChosen ? (colors().onAccent & ~IM_COL32_A_MASK) | (colors().rule & IM_COL32_A_MASK) : colors().rule;
+                drawHapticShape(shapeIn(box, look().space4 - look().space3), patternOf(options[option].value), ImGui::GetColorU32(color), ImGui::GetColorU32(base));
             };
         }
         const auto drawn = controls::drawList(id, dropdownBox(setting, right, top), texts, chosen, decorate, extras);

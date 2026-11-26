@@ -130,8 +130,8 @@ namespace mods_config::ui
         const float iconTop = middle - iconHeight * 0.5f;
         for (std::size_t i = 0; i < icons.size(); ++i) {
             if (i > 0) {
-                controls::drawText(right + theme::SPACE_1, right + theme::SPACE_8, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, color, "+");
-                right += theme::SPACE_1 * 2.0f + controls::textWidth("+");
+                controls::drawText(right + look().space1, right + look().space8, middle - look().controlHeight * 0.5f, look().controlHeight, color, "+");
+                right += look().space1 * 2.0f + controls::textWidth("+");
             }
             const float width = iconWidth(icons[i], scale, drawer);
             drawer.drawIcon(icons[i], ImVec2(right, iconTop), ImVec2(right + width, iconTop + iconHeight), ImGui::GetColorU32(color));
@@ -149,27 +149,27 @@ namespace mods_config::ui
     float drawBinding(const model::Setting& setting, const float right, const float top, const std::string* value, const ValueLook look, const bool open, const bool leftHanded,
         const ImageDrawer& drawer)
     {
-        const auto box = controls::controlBox(right - DROPDOWN_WIDTH, top, DROPDOWN_WIDTH);
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
+        const auto box = controls::controlBox(right - dropdownWidth(), top, dropdownWidth());
+        const float arrowLeft = box.Max.x - ui::look().space4 - controls::ARROW_SIZE;
         const auto color = valueColor(look);
         controls::drawFrame(box, toneOf(look));
         if (open) {
-            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, colors().accent);
         }
 
-        float textLeft = box.Min.x + theme::SPACE_4;
+        float textLeft = box.Min.x + ui::look().space4;
         std::string text;
         if (value) {
             const auto binding = bindingOf(setting, *value);
             text = binding ? bindingSentence(*binding, leftHanded) : *value;
             if (binding) {
-                const float iconsRight = drawBindingIcons(*binding, box.Min.x + theme::SPACE_3, box.GetCenter().y, ICON_SCALE, color, leftHanded, drawer);
-                if (iconsRight > box.Min.x + theme::SPACE_3) {
-                    textLeft = iconsRight + theme::SPACE_2;
+                const float iconsRight = drawBindingIcons(*binding, box.Min.x + ui::look().space3, box.GetCenter().y, ICON_SCALE, color, leftHanded, drawer);
+                if (iconsRight > box.Min.x + ui::look().space3) {
+                    textLeft = iconsRight + ui::look().space2;
                 }
             }
         }
-        controls::drawText(textLeft, arrowLeft - theme::SPACE_2, top, theme::CONTROL_HEIGHT, color, text);
+        controls::drawText(textLeft, arrowLeft - ui::look().space2, top, ui::look().controlHeight, color, text);
         controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
         return box.Min.x;
     }

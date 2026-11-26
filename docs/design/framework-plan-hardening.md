@@ -37,7 +37,7 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M28 | mod       | A render test of the controls with their label                                                               | done    |
 | F43 | framework | imgui: a clipped list of rows                                                                                | done    |
 | M29 | mod       | A render test of a clipped list                                                                              | done    |
-| M30 | mod       | The mod's own drawing reads the theme as it draws, not the constants of `Theme.h`                            | planned |
+| M30 | mod       | The mod's own drawing reads the theme as it draws, not the constants of `Theme.h`                            | done    |
 
 ## Theme (F33, M20)
 
@@ -586,6 +586,7 @@ Each read of a constant that is a field of the theme becomes a read of that fiel
 - **`Theme.h`** keeps every token as a constant: `designTheme()` is built of them, and the tests read them as the values they expect.
 - **The check that it stays so:** `gen_theme.py`, which has the table of which token is a field, also fails when a file of `src/` other than `Theme.h` names the constant of one. Its pre-commit hook runs on a change of `src/` too.
 - The mod's design docs keep the design system's names (`green`, `amber`): the code's are the theme's roles.
+- **As done:** `mods_config` has `using ui::look` and `ui::colors`, for the helpers of a part in an anonymous namespace; where a value's `look` is a variable, the theme is `ui::look()`. The Help page's lines keep the name of their color (`NameColor`) and read it as they are drawn, as they are made before a theme is set. The renders are the same byte for byte.
 
 ### Accepted when
 

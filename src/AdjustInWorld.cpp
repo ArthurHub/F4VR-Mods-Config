@@ -4,9 +4,9 @@
 #include <format>
 #include <string_view>
 
-#include "Theme.h"
 #include "common/CommonUtils.h"
 #include "f4vr/F4VRUtils.h"
+#include "imgui/controls/Controls.h"
 #include "model/TextStates.h"
 #include "vrcf/VRControllersManager.h"
 #include "vrcf/VRControllersSuppressor.h"
@@ -48,9 +48,6 @@ namespace
 
     // the longest a frame counts as, so a hitch does not throw the object away
     constexpr float LONGEST_FRAME_SECONDS = 0.1f;
-
-    // what a value is shown as while it differs from the start
-    constexpr auto PENDING_COLOR = render::Color::rgba(theme::color::AMBER & 0xFF, (theme::color::AMBER >> 8) & 0xFF, (theme::color::AMBER >> 16) & 0xFF);
 
     /**
      * A thumbstick's icon at the end of a line, moved along the axes the tuning reads of it. The tuning reads the
@@ -260,7 +257,8 @@ namespace mods_config
             const float value = model::axisValue(table, axis);
             auto& span = row.spans.emplace_back(TextSpan{ .text = std::format("{}{}{}", prefix, wristNumber(value), unit) });
             if (common::fNotEqual(value, model::axisValue(_startTable, axis))) {
-                span.color = PENDING_COLOR;
+                // a value that differs from the start is in the theme's warning color, as a pending value is
+                span.color = imgui::controls::get().theme().warning;
             }
             row.spans.push_back({ .text = std::string(separator) });
         };

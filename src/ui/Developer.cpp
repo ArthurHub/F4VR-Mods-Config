@@ -111,10 +111,10 @@ namespace
     {
         std::vector<controls::MarkedCount> counts;
         if (errors > 0) {
-            counts.push_back({ .mark = controls::CountMark::Error, .text = countOf(errors, "error"), .color = theme::color::RED });
+            counts.push_back({ .mark = controls::CountMark::Error, .text = countOf(errors, "error"), .color = colors().error });
         }
         if (warnings > 0) {
-            counts.push_back({ .mark = controls::CountMark::Warning, .text = countOf(warnings, "warning"), .color = theme::color::AMBER });
+            counts.push_back({ .mark = controls::CountMark::Warning, .text = countOf(warnings, "warning"), .color = colors().warning });
         }
         return counts;
     }
@@ -195,12 +195,12 @@ namespace mods_config::ui
         }
 
         // the rows are set in a level under the heading, and their names are a level inside their frames
-        ImGui::Indent(theme::SPACE_3);
-        const float rowWidth = width - theme::SPACE_3;
-        const float textLeft = std::floor(headingPos.x + theme::SPACE_3 + theme::SPACE_3);
+        ImGui::Indent(look().space3);
+        const float rowWidth = width - look().space3;
+        const float textLeft = std::floor(headingPos.x + look().space3 + look().space3);
 
         // the filter
-        const float right = headingPos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
+        const float right = headingPos.x + width - look().controlHeight - look().space2;
         std::vector<model::Option> options;
         for (const auto* text : FILTER_OPTIONS) {
             options.push_back({ .value = static_cast<int>(options.size()), .text = text });
@@ -212,7 +212,7 @@ namespace mods_config::ui
         auto chosen = shown < options.size() ? std::optional(shown) : std::nullopt;
 
         const auto filterPos = ImGui::GetCursorScreenPos();
-        const bool pressed = ImGui::InvisibleButton("filter", ImVec2(rowWidth, theme::CONTROL_HEIGHT));
+        const bool pressed = ImGui::InvisibleButton("filter", ImVec2(rowWidth, look().controlHeight));
         const controls::ChoiceRow row{ .pointed = ImGui::IsItemHovered(), .held = ImGui::IsItemActive(), .pressed = pressed };
         controls::drawRowState();
         if (const auto picked = controls::stepperEdit(right, filterPos.y, row, chosen, options.size()); picked && picked != chosen) {
@@ -224,8 +224,8 @@ namespace mods_config::ui
         }
         const auto filterText = chosen ? std::string_view(options[*chosen].text) : std::string_view();
         const float stepperLeft = controls::drawStepper(right, filterPos.y, row, filterText, controls::Tone::Normal, chosen, options.size());
-        controls::drawText(textLeft, stepperLeft - theme::SPACE_3, filterPos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, FILTER);
-        controls::drawTag(textLeft + controls::textWidth(FILTER) + theme::SPACE_2, filterPos.y + theme::CONTROL_HEIGHT * 0.5f, std::format("{} of {}", listed.size(), configSpecs));
+        controls::drawText(textLeft, stepperLeft - look().space3, filterPos.y, look().controlHeight, colors().accent, FILTER);
+        controls::drawTag(textLeft + controls::textWidth(FILTER) + look().space2, filterPos.y + look().controlHeight * 0.5f, std::format("{} of {}", listed.size(), configSpecs));
         if (row.pointed) {
             drawn.pointed = PointedRow{ .text = FILTER, .help = FILTER_HELP, .warning = {}, .invalid = false };
         }
@@ -236,40 +236,40 @@ namespace mods_config::ui
             const auto state = stateOf(mod);
             ImGui::PushID(static_cast<int>(place));
             const auto pos = ImGui::GetCursorScreenPos();
-            if (ImGui::InvisibleButton("configSpec", ImVec2(rowWidth, theme::CONTROL_HEIGHT))) {
+            if (ImGui::InvisibleButton("configSpec", ImVec2(rowWidth, look().controlHeight))) {
                 drawn.opened = place;
                 drawn.pressActed = true;
             }
             const bool onRow = ImGui::IsItemHovered();
             controls::drawRowState();
 
-            const float slotLeft = right + theme::SPACE_2;
+            const float slotLeft = right + look().space2;
             controls::drawFoldArrow(
-                ImVec2(std::floor(slotLeft + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f), pos.y + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f),
+                ImVec2(std::floor(slotLeft + (look().controlHeight - controls::FOLD_ARROW_SIZE) * 0.5f), pos.y + (look().controlHeight - controls::FOLD_ARROW_SIZE) * 0.5f),
                 false,
-                theme::color::GREEN);
+                colors().accent);
             float left = right;
             if (state.notLoaded) {
-                const std::array counts{ controls::MarkedCount{ .mark = controls::CountMark::Error, .text = "Not loaded", .color = theme::color::RED } };
+                const std::array counts{ controls::MarkedCount{ .mark = controls::CountMark::Error, .text = "Not loaded", .color = colors().error } };
                 left = controls::drawMarkedCounts(right, pos.y, counts);
             } else if (state.errors > 0 || state.warnings > 0) {
                 left = controls::drawMarkedCounts(right, pos.y, problemCounts(state.errors, state.warnings));
             } else {
                 const auto* text = state.notAvailable ? "Not available" : "No problems";
                 left = std::floor(right - controls::textWidth(text));
-                controls::drawText(left, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, text);
+                controls::drawText(left, right, pos.y, look().controlHeight, colors().muted, text);
             }
             if (!mod.liveCopy.empty()) {
-                left -= controls::tagWidth(LIVE_COPY_TAG) + theme::SPACE_3;
-                controls::drawTag(left, pos.y + theme::CONTROL_HEIGHT * 0.5f, LIVE_COPY_TAG);
+                left -= controls::tagWidth(LIVE_COPY_TAG) + look().space3;
+                controls::drawTag(left, pos.y + look().controlHeight * 0.5f, LIVE_COPY_TAG);
             }
-            controls::drawText(textLeft, left - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, mod.displayName);
+            controls::drawText(textLeft, left - look().space3, pos.y, look().controlHeight, colors().accent, mod.displayName);
             if (onRow) {
                 drawn.pointed = configSpecHelp(mod, state);
             }
             ImGui::PopID();
         }
-        ImGui::Unindent(theme::SPACE_3);
+        ImGui::Unindent(look().space3);
         return drawn;
     }
 }

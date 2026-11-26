@@ -53,7 +53,7 @@ namespace mods_config::ui
             return DialogAnswer::None;
         }
 
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_TITLE);
+        ImGui::PushFont(nullptr, look().titleFontSize);
         ImGui::TextUnformatted(changes->made ? MADE_TITLE : TITLE);
         ImGui::PopFont();
         const auto question = questionText(*changes);

@@ -30,30 +30,30 @@ namespace mods_config::ui
     void drawLabel(const ImVec2& pos, const float right, const std::string_view text, const std::span<const model::TextRun> runs, const RowMarks& marks,
         const model::SearchQuery* query)
     {
-        const float left = pos.x + theme::SPACE_3;
+        const float left = pos.x + look().space3;
         float textRight = right;
         const float pendingWidth = pendingMarkWidth(marks.applies);
         if (marks.pending) {
-            textRight -= theme::SPACE_2 + pendingWidth;
+            textRight -= look().space2 + pendingWidth;
         }
         if (marks.mark != controls::Mark::None) {
-            textRight -= theme::SPACE_2 + controls::MARK_WIDTH;
+            textRight -= look().space2 + controls::MARK_WIDTH;
         }
         float width = 0.0f;
         if (runs.empty()) {
-            controls::drawText(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+            controls::drawText(left, textRight, pos.y, look().controlHeight, colors().accent, text);
             if (query) {
-                controls::drawUnderlines(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text, model::matchRanges(*query, text));
+                controls::drawUnderlines(left, textRight, pos.y, look().controlHeight, colors().accent, text, model::matchRanges(*query, text));
             }
             width = text.empty() ? 0.0f : (std::min)(controls::textWidth(text), textRight - left);
         } else {
-            width = drawTextRuns(left, textRight, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, runs);
+            width = drawTextRuns(left, textRight, pos.y, look().controlHeight, colors().accent, runs);
         }
-        const float middle = pos.y + theme::CONTROL_HEIGHT * 0.5f;
-        float markLeft = left + width + (width > 0.0f ? theme::SPACE_2 : 0.0f);
+        const float middle = pos.y + look().controlHeight * 0.5f;
+        float markLeft = left + width + (width > 0.0f ? look().space2 : 0.0f);
         if (marks.pending) {
             drawAppliesMark(marks.applies, ImVec2(markLeft + pendingWidth * 0.5f, middle));
-            markLeft += pendingWidth + theme::SPACE_2;
+            markLeft += pendingWidth + look().space2;
         }
         controls::drawMark(marks.mark, ImVec2(markLeft + controls::MARK_WIDTH * 0.5f, middle));
     }

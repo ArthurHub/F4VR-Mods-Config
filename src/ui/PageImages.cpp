@@ -21,7 +21,7 @@ namespace
     {
         ImVec2 size(image.width, image.height);
         if (!own) {
-            size = ImVec2(size.x > 0.0f ? size.x : room, size.y > 0.0f ? size.y : theme::CONTROL_HEIGHT);
+            size = ImVec2(size.x > 0.0f ? size.x : room, size.y > 0.0f ? size.y : look().controlHeight);
         } else if (size.x <= 0.0f && size.y <= 0.0f) {
             size = *own;
         } else if (size.x <= 0.0f) {
@@ -65,11 +65,11 @@ namespace mods_config::ui
         const auto own = drawer.textureSize ? drawer.textureSize(image.texture) : std::nullopt;
         const auto pos = ImGui::GetCursorScreenPos();
         const auto size = textureSize(image, own, width);
-        ImGui::Dummy(ImVec2(width, size.y + theme::SPACE_1 * 2.0f));
+        ImGui::Dummy(ImVec2(width, size.y + look().space1 * 2.0f));
         if (!ImGui::IsItemVisible()) {
             return false;
         }
-        const ImVec2 topLeft(pos.x + std::floor((width - size.x) * 0.5f), pos.y + theme::SPACE_1);
+        const ImVec2 topLeft(pos.x + std::floor((width - size.x) * 0.5f), pos.y + look().space1);
         const ImVec2 bottomRight(topLeft.x + size.x, topLeft.y + size.y);
         if (own && drawer.draw) {
             drawer.draw(image, topLeft, bottomRight);
@@ -80,11 +80,11 @@ namespace mods_config::ui
             const auto error = drawer.textureError ? drawer.textureError(image.texture) : std::string();
             reason = error.empty() ? std::string("Not loaded: the game has not loaded it.") : std::format("Not loaded: {}.", error);
         }
-        controls::drawDashedOutline(topLeft, bottomRight, theme::color::FRAME_BORDER);
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+        controls::drawDashedOutline(topLeft, bottomRight, colors().frameBorder);
+        ImGui::PushFont(nullptr, look().detailFontSize);
         const auto text = "Not loaded: " + image.texture;
-        const float left = (std::max)(topLeft.x + theme::SPACE_2, std::floor((topLeft.x + bottomRight.x - controls::textWidth(text)) * 0.5f));
-        controls::drawText(left, bottomRight.x - theme::SPACE_2, topLeft.y, size.y, theme::color::GREEN_MUTED, text);
+        const float left = (std::max)(topLeft.x + look().space2, std::floor((topLeft.x + bottomRight.x - controls::textWidth(text)) * 0.5f));
+        controls::drawText(left, bottomRight.x - look().space2, topLeft.y, size.y, colors().muted, text);
         ImGui::PopFont();
         return pointed;
     }

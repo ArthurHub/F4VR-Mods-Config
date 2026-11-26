@@ -51,9 +51,9 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         ui::drawRestartMark(pos.x + controls::headingTextInset(), pos.y + ImGui::GetFontSize() * 0.5f);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::headingTextInset() + ui::restartMarkWidth() + theme::SPACE_2);
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::headingTextInset() + ui::restartMarkWidth() + look().space2);
+        ImGui::PushStyleColor(ImGuiCol_Text, colors().accent);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - look().space2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
         ImGui::PopTextWrapPos();
         ImGui::PopStyleColor();
@@ -67,25 +67,25 @@ namespace
      */
     bool quickLaunchRow(const ui::QuickLaunchEntry& entry, bool& pointed)
     {
-        ImGui::Indent(theme::SPACE_3);
+        ImGui::Indent(look().space3);
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = controls::rowWidth();
         const bool enabled = entry.notAvailable.empty();
         ImGui::BeginDisabled(!enabled);
-        const bool pressed = ImGui::InvisibleButton(entry.name.c_str(), ImVec2(width, theme::CONTROL_HEIGHT));
+        const bool pressed = ImGui::InvisibleButton(entry.name.c_str(), ImVec2(width, look().controlHeight));
         pointed = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled);
         controls::drawRowState();
 
         // the button ends where a setting's control does, before the room of its Reset
-        const float buttonRight = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
+        const float buttonRight = pos.x + width - look().controlHeight - look().space2;
         const float buttonLeft = buttonRight - BUTTON_WIDTH;
-        controls::drawOutline(ImVec2(buttonLeft, pos.y), ImVec2(buttonRight, pos.y + theme::CONTROL_HEIGHT), theme::color::FRAME_BORDER);
+        controls::drawOutline(ImVec2(buttonLeft, pos.y), ImVec2(buttonRight, pos.y + look().controlHeight), colors().frameBorder);
         const std::string_view label = entry.buttonText.empty() ? std::string_view("Open") : std::string_view(entry.buttonText);
-        controls::drawTextIn(ImRect(buttonLeft, pos.y, buttonRight, pos.y + theme::CONTROL_HEIGHT), label, theme::color::GREEN, 0.5f, theme::SPACE_3);
+        controls::drawTextIn(ImRect(buttonLeft, pos.y, buttonRight, pos.y + look().controlHeight), label, colors().accent, 0.5f, look().space3);
 
-        controls::drawText(pos.x + theme::SPACE_3, buttonLeft - theme::SPACE_3, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, entry.name);
+        controls::drawText(pos.x + look().space3, buttonLeft - look().space3, pos.y, look().controlHeight, colors().accent, entry.name);
         ImGui::EndDisabled();
-        ImGui::Unindent(theme::SPACE_3);
+        ImGui::Unindent(look().space3);
         return pressed && enabled;
     }
 
@@ -110,7 +110,7 @@ namespace mods_config::ui
     FrontPageDrawn FrontPage::draw(const std::vector<FrontPageMod>& mods)
     {
         F4CF_PERF_FUNCTION();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + look().space1);
         drawPageText(std::format("Settings for the mods you have installed. Pick a mod on the left to see its settings.\nVersion {}", Version::NAME));
 
         FrontPageDrawn drawn;

@@ -167,15 +167,15 @@ namespace
             width = controls::rowWidth();
             view = ui::rowViewOf(setting, context.store);
             row = controls::addRow(view.enabled && !setting.readOnly && !context.textInputs.isEdited(setting));
-            right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
+            right = pos.x + width - look().controlHeight - look().space2;
             showsValue = view.stored.available || !setting.readOnly;
 
             // the slot is pressed a little beside it too, as a button of a stepper is. A press is its own when it began
             // there: a slider that is dragged and let go on it is not reset
             const auto& io = ImGui::GetIO();
-            slotBox = controls::controlBox(right + theme::SPACE_2, pos.y, theme::CONTROL_HEIGHT);
-            onSlot = (view.dirty || view.resetValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - theme::SPACE_1;
-            slotHeld = onSlot && io.MouseClickedPos[ImGuiMouseButton_Left].x >= slotBox.Min.x - theme::SPACE_1;
+            slotBox = controls::controlBox(right + look().space2, pos.y, look().controlHeight);
+            onSlot = (view.dirty || view.resetValue) && row.pointed && io.MousePos.x >= slotBox.Min.x - look().space1;
+            slotHeld = onSlot && io.MouseClickedPos[ImGuiMouseButton_Left].x >= slotBox.Min.x - look().space1;
             onPlay = setting.type == model::SettingType::Haptic && row.pointed && !onSlot && ui::HapticBoxes(right, pos.y).onPlay(io.MousePos.x);
         }
 
@@ -350,19 +350,19 @@ namespace
             edited.pulse = edited.pulse || pulse;
         }
         if (isBinding) {
-            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + theme::CONTROL_HEIGHT));
+            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + look().controlHeight));
             edited.bindingEdited = context.bindingEditor.edit(setting, *context.store, rowBox, rowPressed, context.leftHanded, context.imageDrawer);
             state.refresh();
             edited.pulse = edited.pulse || edited.bindingEdited.pulse;
         }
         if (isColor) {
-            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + theme::CONTROL_HEIGHT));
+            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + look().controlHeight));
             edited.colorEdited = context.colorEditor.edit(setting, *context.store, rowBox, rowPressed);
             state.refresh();
             edited.pulse = edited.pulse || edited.colorEdited.pulse;
         }
         if (isTransform) {
-            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + theme::CONTROL_HEIGHT));
+            const auto rowBox = ImRect(state.pos, ImVec2(state.pos.x + state.width, state.pos.y + look().controlHeight));
             edited.transformEdited = context.transformEditor.edit(setting, *context.store, rowBox, rowPressed);
             state.refresh();
             edited.pulse = edited.pulse || edited.transformEdited.pulse;
@@ -537,7 +537,7 @@ namespace
         }
         const ui::RowMarks marks{ .pending = look == ui::ValueLook::Pending, .applies = state.view.applies.value_or(model::Applies::Unknown), .mark = state.view.mark };
         ui::drawLabel(state.pos,
-            left - theme::SPACE_3,
+            left - ui::look().space3,
             model::resolveClientText(setting.text, context.store),
             model::resolveClientRuns(setting.textRuns, context.store),
             marks,

@@ -87,10 +87,10 @@ namespace mods_config::ui
 
         std::vector<controls::MarkedCount> counts;
         if (hidden.invalid > 0) {
-            counts.push_back({ .mark = controls::CountMark::Error, .text = std::format("{} invalid", hidden.invalid), .color = theme::color::RED });
+            counts.push_back({ .mark = controls::CountMark::Error, .text = std::format("{} invalid", hidden.invalid), .color = colors().error });
         }
         if (hidden.unsaved > 0) {
-            counts.push_back({ .mark = controls::CountMark::Dot, .text = std::format("{} unsaved", hidden.unsaved), .color = theme::color::AMBER });
+            counts.push_back({ .mark = controls::CountMark::Dot, .text = std::format("{} unsaved", hidden.unsaved), .color = colors().warning });
         }
         const auto text = model::resolveClientText(group.text, store);
         controls::drawFoldingHeading(text, pos, width, folded, counts, controls::Mark::None, query ? model::matchRanges(*query, text) : std::vector<model::TextRange>());

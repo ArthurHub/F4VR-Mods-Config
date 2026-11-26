@@ -71,7 +71,7 @@ namespace mods_config::ui
 
         const std::string_view title = confirmation ? std::string_view(confirmation->title) : UNSAVED_TITLE;
         if (!title.empty()) {
-            ImGui::PushFont(nullptr, theme::FONT_SIZE_TITLE);
+            ImGui::PushFont(nullptr, look().titleFontSize);
             ImGui::TextUnformatted(title.data(), title.data() + title.size());
             ImGui::PopFont();
         }

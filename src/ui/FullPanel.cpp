@@ -901,18 +901,18 @@ namespace mods_config::ui
         auto titleBar = drawTitleBar(crumbs, _highlightHelp);
         const auto crumbPressed = titleBar.pressed ? crumbs[*titleBar.pressed].target : std::nullopt;
         // the body stands a little further from the title bar than a row from a row
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_3 - ImGui::GetStyle().ItemSpacing.y);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + look().space3 - ImGui::GetStyle().ItemSpacing.y);
 
         // the body ends as far above the footer as it starts under the title bar
         const auto bodyPos = ImGui::GetCursorScreenPos();
-        const float bodyHeight = ImGui::GetContentRegionAvail().y - theme::SPACE_3 - theme::FOOTER_HEIGHT;
+        const float bodyHeight = ImGui::GetContentRegionAvail().y - look().space3 - theme::FOOTER_HEIGHT;
 
         const TreeSearch search{ .query = &_search.query(), .found = &_search.found(), .matches = _search.matches() };
         auto tree =
             _modTree.draw(mods(), _selection, bodyHeight, selectedStore(), _search.query().empty() ? nullptr : &search, _modList.groups().empty() ? nullptr : &_modList.groups());
         _onSearchField = tree.searchPointed;
 
-        ImGui::SameLine(0.0f, theme::SPACE_4);
+        ImGui::SameLine(0.0f, look().space4);
         auto content = drawContent(bodyHeight);
         point(content.pointedItem);
 
@@ -929,7 +929,7 @@ namespace mods_config::ui
             _helpLine.clear();
         }
         updateStatus();
-        drawFooter(ImVec2(bodyPos.x, bodyPos.y + bodyHeight + theme::SPACE_3));
+        drawFooter(ImVec2(bodyPos.x, bodyPos.y + bodyHeight + look().space3));
 
         const bool acted = actOnPress(tree, crumbPressed, titleBar.pressedButton, content);
         _pressActed = _pressActed || acted || tree.searchActed;

@@ -14,8 +14,6 @@
 
 namespace mods_config::ui
 {
-    // the frame of a haptic: a dropdown's box without the room of its Play button
-    constexpr float HAPTIC_FRAME_WIDTH = DROPDOWN_WIDTH - theme::SPACE_2 - theme::CONTROL_HEIGHT;
 
     // the box of a pattern's shape
     constexpr float HAPTIC_SHAPE_WIDTH = 96.0f;

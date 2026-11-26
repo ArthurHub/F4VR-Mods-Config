@@ -32,6 +32,23 @@ namespace mods_config
 namespace mods_config::ui
 {
     /**
+     * The theme that is set, which the panel is drawn in: the design system's (`theme::designTheme()`), with what
+     * devbench's theme action sets over it. Its sizes are read as the panel draws, not `Theme.h`'s constants.
+     */
+    inline const f4cf::imgui::Theme& look()
+    {
+        return controls::get().theme();
+    }
+
+    /**
+     * The theme's colors, packed for ImGui.
+     */
+    inline const controls::ControlsColors& colors()
+    {
+        return controls::get().colors();
+    }
+
+    /**
      * How the value of a setting looks: as it is saved, pending a Save in amber, or invalid in red.
      */
     enum class ValueLook : std::uint8_t
@@ -45,16 +62,13 @@ namespace mods_config::ui
     // of the design system
     constexpr float TRACK_WIDTH = 280.0f;
 
-    // the box of a dropdown, which fills the room of a control in its row: the control column without the room of
-    // Reset. A binding's frame is as wide
-    constexpr float DROPDOWN_WIDTH = theme::CONTROL_WIDTH - theme::CONTROL_HEIGHT - theme::SPACE_2;
-
     // the box of the mark of when a pending change takes effect, which is drawn in place of the dot
     constexpr float APPLIES_MARK_WIDTH = 16.0f;
 
     // the width of an activation sphere's mark, as the design system has it
     constexpr float SPHERE_MARK_SIZE = 20.0f;
 
+    float dropdownWidth();
     controls::Tone toneOf(ValueLook look);
     ImU32 valueColor(ValueLook look);
     float mcmScale();
@@ -68,4 +82,11 @@ namespace mods_config::ui
     void drawRestartMark(float left, float middle);
     float pendingMarkWidth(model::Applies applies);
     void drawAppliesMark(model::Applies applies, const ImVec2& center);
+}
+
+namespace mods_config
+{
+    // the theme's reads, for the panel's code outside ui:: too, as the helpers of a part in an anonymous namespace
+    using ui::colors;
+    using ui::look;
 }

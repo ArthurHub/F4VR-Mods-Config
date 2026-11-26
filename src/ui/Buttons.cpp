@@ -37,13 +37,13 @@ namespace
     {
         switch (style) {
         case model::ButtonStyle::Important:
-            return theme::color::ACCENT;
+            return colors().important;
         case model::ButtonStyle::Dangerous:
-            return theme::color::RED;
+            return colors().error;
         case model::ButtonStyle::None:
             break;
         }
-        return theme::color::GREEN;
+        return colors().accent;
     }
 
     /**
@@ -54,14 +54,14 @@ namespace
     {
         const auto text = button.buttonText.empty() ? std::string_view("Run") : std::string_view(button.buttonText);
         if (button.icon == model::ButtonIcon::None) {
-            controls::drawTextIn(box, text, color, 0.5f, theme::SPACE_3);
+            controls::drawTextIn(box, text, color, 0.5f, look().space3);
             return;
         }
-        const float iconRoom = ui::BUTTON_ICON_SIZE + theme::SPACE_2;
-        const float room = box.GetWidth() - theme::SPACE_3 * 2.0f;
-        const float left = std::floor(box.Min.x + theme::SPACE_3 + (std::max)(room - iconRoom - controls::textWidth(text), 0.0f) * 0.5f);
+        const float iconRoom = ui::BUTTON_ICON_SIZE + look().space2;
+        const float room = box.GetWidth() - look().space3 * 2.0f;
+        const float left = std::floor(box.Min.x + look().space3 + (std::max)(room - iconRoom - controls::textWidth(text), 0.0f) * 0.5f);
         controls::drawIcon(ui::buttonIcon(button.icon), ImVec2(left + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), color, ui::BUTTON_ICON_SIZE);
-        controls::drawText(left + iconRoom, box.Max.x - theme::SPACE_3, box.Min.y, box.GetHeight(), color, text);
+        controls::drawText(left + iconRoom, box.Max.x - look().space3, box.Min.y, box.GetHeight(), color, text);
     }
 }
 
@@ -114,15 +114,15 @@ namespace mods_config::ui
                                                      : controls::Mark::None;
 
         ImGui::BeginDisabled(!view.runs);
-        const auto box = controls::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
+        const auto box = controls::controlBox(pos.x + width - look().controlHeight - look().space2 - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
         const bool styled = button.style != model::ButtonStyle::None;
         const auto color = styleColor(button.style);
-        controls::drawOutline(box.Min, box.Max, styled ? color : theme::color::FRAME_BORDER);
+        controls::drawOutline(box.Min, box.Max, styled ? color : colors().frameBorder);
         if (styled && row.held) {
             controls::drawButtonRing(box, color);
         }
         drawButtonContent(button, box, color);
-        drawLabel(pos, box.Min.x - theme::SPACE_3, model::resolveClientText(button.text, store), model::resolveClientRuns(button.textRuns, store), { .mark = mark }, query);
+        drawLabel(pos, box.Min.x - look().space3, model::resolveClientText(button.text, store), model::resolveClientRuns(button.textRuns, store), { .mark = mark }, query);
         ImGui::EndDisabled();
         if (!row.pointed) {
             return std::nullopt;

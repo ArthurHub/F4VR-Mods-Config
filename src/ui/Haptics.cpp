@@ -17,13 +17,21 @@ namespace
 
     // a keyframe of intensity is at least this wide, so a tap shows
     constexpr float SHAPE_MIN_KEYFRAME_WIDTH = 2.0f;
+
+    /**
+     * The frame of a haptic: a dropdown's box without the room of its Play button.
+     */
+    float hapticFrameWidth()
+    {
+        return ui::dropdownWidth() - ui::look().space2 - ui::look().controlHeight;
+    }
 }
 
 namespace mods_config::ui
 {
     HapticBoxes::HapticBoxes(const float right, const float top)
-        : frame(controls::controlBox(right - DROPDOWN_WIDTH, top, HAPTIC_FRAME_WIDTH)),
-          play(controls::controlBox(right - theme::CONTROL_HEIGHT, top, theme::CONTROL_HEIGHT))
+        : frame(controls::controlBox(right - dropdownWidth(), top, hapticFrameWidth())),
+          play(controls::controlBox(right - look().controlHeight, top, look().controlHeight))
     {}
 
     /**
@@ -32,7 +40,7 @@ namespace mods_config::ui
      */
     bool HapticBoxes::onPlay(const float x) const
     {
-        return x >= frame.Max.x && x < play.Max.x + theme::SPACE_1;
+        return x >= frame.Max.x && x < play.Max.x + look().space1;
     }
 
     /**

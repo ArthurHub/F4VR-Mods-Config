@@ -40,8 +40,7 @@ namespace
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = controls::rowWidth();
         const auto resolved = model::resolveClientText(text.lines, store);
-        const float height =
-            ui::drawTextLines(resolved ? *resolved : text.lines, ImVec2(pos.x + theme::SPACE_3, pos.y), width - theme::SPACE_3 - theme::SPACE_2, theme::color::GREEN_MUTED);
+        const float height = ui::drawTextLines(resolved ? *resolved : text.lines, ImVec2(pos.x + look().space3, pos.y), width - look().space3 - look().space2, colors().muted);
         ImGui::Dummy(ImVec2(width, height));
     }
 
@@ -66,9 +65,9 @@ namespace
         }
 
         ImGui::BeginDisabled(hasHelp);
-        const float typeLeft = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - controls::textWidth(type);
-        controls::drawText(typeLeft, pos.x + width, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, type);
-        ui::drawLabel(pos, typeLeft - theme::SPACE_3, text, runs, {}, query);
+        const float typeLeft = pos.x + width - look().controlHeight - look().space2 - controls::textWidth(type);
+        controls::drawText(typeLeft, pos.x + width, pos.y, look().controlHeight, colors().muted, type);
+        ui::drawLabel(pos, typeLeft - look().space3, text, runs, {}, query);
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -135,7 +134,7 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float width = controls::rowWidth();
-        const float height = ui::drawTextLines(model::plainLines(note), ImVec2(pos.x + theme::SPACE_3, pos.y), width - theme::SPACE_3 - theme::SPACE_2, theme::color::GREEN_MUTED);
+        const float height = ui::drawTextLines(model::plainLines(note), ImVec2(pos.x + look().space3, pos.y), width - look().space3 - look().space2, colors().muted);
         ImGui::Dummy(ImVec2(width, height));
     }
 
@@ -174,13 +173,13 @@ namespace
         controls::drawRowState();
         const auto* key = std::get_if<std::string>(&stored.value);
         const std::string_view name = key ? std::string_view(*key) : "None";
-        const float boxWidth = (std::max)(KEY_MIN_WIDTH, std::ceil(controls::textWidth(name)) + theme::SPACE_3 * 2.0f);
-        const auto box = controls::controlBox(pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2 - boxWidth, pos.y, boxWidth);
+        const float boxWidth = (std::max)(KEY_MIN_WIDTH, std::ceil(controls::textWidth(name)) + look().space3 * 2.0f);
+        const auto box = controls::controlBox(pos.x + width - look().controlHeight - look().space2 - boxWidth, pos.y, boxWidth);
 
         ImGui::BeginDisabled();
-        ui::drawLabel(pos, box.Min.x - theme::SPACE_3, hotkey.text, hotkey.textRuns, {}, query);
+        ui::drawLabel(pos, box.Min.x - look().space3, hotkey.text, hotkey.textRuns, {}, query);
         controls::drawFrame(box);
-        controls::drawTextIn(box, name, theme::color::GREEN, 0.5f);
+        controls::drawTextIn(box, name, colors().accent, 0.5f);
         ImGui::EndDisabled();
         return row.pointed;
     }
@@ -196,7 +195,7 @@ namespace
         if (rows.Max.y <= rows.Min.y) {
             return;
         }
-        controls::drawOutline(rows.Min, rows.Max, theme::color::GREEN);
+        controls::drawOutline(rows.Min, rows.Max, colors().accent);
         if (scrollTo) {
             ImGui::ScrollToRectEx(ImGui::GetCurrentWindow(), rows, ImGuiScrollFlags_KeepVisibleCenterY);
             scrollTo = false;
@@ -214,7 +213,7 @@ namespace
         const float width = controls::rowWidth();
         const auto row = controls::addRow(true);
         if (controls::targets().isRecording()) {
-            controls::targets().add(ui::target::SECTION, model::resolveClientText(group.text, page.store), ImRect(pos, ImVec2(pos.x + width, pos.y + theme::CONTROL_HEIGHT)));
+            controls::targets().add(ui::target::SECTION, model::resolveClientText(group.text, page.store), ImRect(pos, ImVec2(pos.x + width, pos.y + look().controlHeight)));
         }
         std::string help;
         const bool folded =
@@ -247,7 +246,7 @@ namespace
         const auto& group = std::get<model::Group>(item);
         const bool setIn = depth > 0 && depth <= MAX_SET_IN;
         if (setIn) {
-            ImGui::Indent(theme::SPACE_3);
+            ImGui::Indent(look().space3);
         }
         const float headingLeft = ImGui::GetCursorScreenPos().x;
         bool folded = false;
@@ -278,12 +277,12 @@ namespace
             const float rowsEnd = ImGui::GetCursorScreenPos().y;
             if (depth > 0 && headingShown && rowsEnd > rowsTop) {
                 // the rows' frames are a level in from the heading
-                const float rowsLeft = headingLeft + theme::SPACE_3;
-                controls::drawSectionLine(headingLeft + theme::SPACE_1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, rowsLeft - theme::SPACE_1);
+                const float rowsLeft = headingLeft + look().space3;
+                controls::drawSectionLine(headingLeft + look().space1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, rowsLeft - look().space1);
             }
         }
         if (setIn) {
-            ImGui::Unindent(theme::SPACE_3);
+            ImGui::Unindent(look().space3);
         }
     }
 
@@ -401,7 +400,7 @@ namespace
         if (!targets.isRecording()) {
             return;
         }
-        const ImRect row(top, ImVec2(top.x + controls::rowWidth(), top.y + theme::CONTROL_HEIGHT));
+        const ImRect row(top, ImVec2(top.x + controls::rowWidth(), top.y + look().controlHeight));
         if (const auto* setting = std::get_if<model::Setting>(&item)) {
             targets.add(ui::target::SETTING, setting->id, row);
         } else if (const auto* button = std::get_if<model::Button>(&item)) {
@@ -428,7 +427,7 @@ namespace
             // a section sets in its heading and its rows itself
             const bool setIn = depth > 0 && !std::holds_alternative<model::Group>(item);
             if (setIn) {
-                ImGui::Indent(theme::SPACE_3);
+                ImGui::Indent(look().space3);
             }
             const auto top = ImGui::GetCursorScreenPos();
             const auto* hidden = page.search.filtered && page.search.hidden && page.search.hidden->contains(&item) ? &page.search.hidden->at(&item) : nullptr;
@@ -448,7 +447,7 @@ namespace
                 drawFocus(ImRect(top, ImVec2(top.x + controls::rowWidth(), ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y)), page.scrollToFocused);
             }
             if (setIn) {
-                ImGui::Unindent(theme::SPACE_3);
+                ImGui::Unindent(look().space3);
             }
             ImGui::PopID();
         }

@@ -121,18 +121,18 @@ namespace
             controls::drawRowState();
         }
         pointed = added.pointed;
-        const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
+        const float right = pos.x + width - look().controlHeight - look().space2;
         ImGui::BeginDisabled(!row.enabled);
         float left = right;
         if (row.button) {
             const auto box = controls::controlBox(right - BUTTON_WIDTH, pos.y, BUTTON_WIDTH);
-            controls::drawOutline(box.Min, box.Max, theme::color::FRAME_BORDER);
-            controls::drawTextIn(box, row.button, theme::color::GREEN, 0.5f, theme::SPACE_3);
+            controls::drawOutline(box.Min, box.Max, colors().frameBorder);
+            controls::drawTextIn(box, row.button, colors().accent, 0.5f, look().space3);
             left = box.Min.x;
         } else {
             left = controls::drawSwitcher(right, pos.y, on, controls::Tone::Normal);
         }
-        ui::drawLabel(pos, left - theme::SPACE_3, row.text, {}, { .mark = row.mark });
+        ui::drawLabel(pos, left - look().space3, row.text, {}, { .mark = row.mark });
         ImGui::EndDisabled();
         ImGui::PopID();
         return added.pressed && row.enabled;
@@ -150,7 +150,7 @@ namespace
     {
         const bool live = !mod.liveCopy.empty();
         controls::sectionHeading(LIVE_COPY, ImGui::GetCursorScreenPos().x + controls::rowWidth());
-        ImGui::Indent(theme::SPACE_3);
+        ImGui::Indent(look().space3);
         const auto help = [live](const char* text) {
             return std::string(text) + (live ? "" : NEEDS_LIVE_COPY);
         };
@@ -166,7 +166,7 @@ namespace
         // the sub-section of the copy, whose heading starts where the rows do, and whose rows are a level further in
         const bool stale = live && read && read->stale;
         const float headingLeft = ImGui::GetCursorScreenPos().x;
-        const std::array staleCount{ controls::MarkedCount{ .mark = controls::CountMark::Warning, .text = STALE_FOLDED, .color = theme::color::AMBER } };
+        const std::array staleCount{ controls::MarkedCount{ .mark = controls::CountMark::Warning, .text = STALE_FOLDED, .color = colors().warning } };
         if (foldingHeading("liveSpec",
                 LIVE_SPEC,
                 folded,
@@ -176,11 +176,11 @@ namespace
         }
         if (folded) {
             drawn.pressActed = drawn.pressActed || drawn.liveCopy != ui::LiveCopyAction::None;
-            ImGui::Unindent(theme::SPACE_3);
+            ImGui::Unindent(look().space3);
             return;
         }
         const float lineTop = ImGui::GetItemRectMax().y;
-        ImGui::Indent(theme::SPACE_3);
+        ImGui::Indent(look().space3);
 
         const bool hasResult = read && !read->result.empty();
         const bool failed = hasResult && read->failed;
@@ -221,11 +221,11 @@ namespace
         }
         // the sub-section's line, from under its heading to its last row, short of the rows
         const float rowsEnd = ImGui::GetCursorScreenPos().y;
-        controls::drawSectionLine(headingLeft + theme::SPACE_1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, headingLeft + theme::SPACE_3 - theme::SPACE_1);
-        ImGui::Unindent(theme::SPACE_3);
+        controls::drawSectionLine(headingLeft + look().space1, lineTop, rowsEnd - ImGui::GetStyle().ItemSpacing.y, headingLeft + look().space3 - look().space1);
+        ImGui::Unindent(look().space3);
 
         drawn.pressActed = drawn.pressActed || drawn.liveCopy != ui::LiveCopyAction::None;
-        ImGui::Unindent(theme::SPACE_3);
+        ImGui::Unindent(look().space3);
     }
 
     /**
@@ -254,7 +254,7 @@ namespace mods_config::ui
     {
         F4CF_PERF_FUNCTION();
         ReportDrawn drawn;
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + theme::SPACE_1);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + look().space1);
         std::size_t errors = 0;
         for (const auto& problem : mod.problems) {
             errors += problem.severity == model::Severity::Error ? 1 : 0;
@@ -289,7 +289,7 @@ namespace mods_config::ui
             if (folded) {
                 continue;
             }
-            ImGui::Indent(theme::SPACE_3);
+            ImGui::Indent(look().space3);
             for (std::size_t place = 0; place < mod.problems.size(); ++place) {
                 const auto& problem = mod.problems[place];
                 if (problem.severity != severity) {
@@ -298,30 +298,30 @@ namespace mods_config::ui
                 ImGui::PushID(static_cast<int>(place));
                 const auto pos = ImGui::GetCursorScreenPos();
                 const float width = controls::rowWidth();
-                const bool pressed = ImGui::InvisibleButton("problem", ImVec2(width, theme::CONTROL_HEIGHT));
+                const bool pressed = ImGui::InvisibleButton("problem", ImVec2(width, look().controlHeight));
                 const bool pointed = ImGui::IsItemHovered();
                 controls::drawRowState();
                 const bool goes = available && problem.place.has_value();
-                const float right = pos.x + width - theme::CONTROL_HEIGHT - theme::SPACE_2;
+                const float right = pos.x + width - look().controlHeight - look().space2;
                 if (goes) {
-                    const float slotLeft = right + theme::SPACE_2;
-                    controls::drawFoldArrow(ImVec2(std::floor(slotLeft + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f),
-                                                pos.y + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f),
+                    const float slotLeft = right + look().space2;
+                    controls::drawFoldArrow(
+                        ImVec2(std::floor(slotLeft + (look().controlHeight - controls::FOLD_ARROW_SIZE) * 0.5f), pos.y + (look().controlHeight - controls::FOLD_ARROW_SIZE) * 0.5f),
                         false,
-                        theme::color::GREEN);
+                        colors().accent);
                     if (pressed) {
                         drawn.pressed = place;
                         drawn.pressActed = true;
                     }
                 }
                 // the message says "it" of its row, so the row's name is before it
-                controls::drawText(pos.x + theme::SPACE_3, right, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN, problem.row + ": " + problem.message);
+                controls::drawText(pos.x + look().space3, right, pos.y, look().controlHeight, colors().accent, problem.row + ": " + problem.message);
                 if (pointed) {
                     drawn.pointed = PointedRow{ .text = problem.row, .help = problemHelp(problem, goes), .warning = {}, .invalid = isUnreadable(problem) };
                 }
                 ImGui::PopID();
             }
-            ImGui::Unindent(theme::SPACE_3);
+            ImGui::Unindent(look().space3);
         }
         return drawn;
     }

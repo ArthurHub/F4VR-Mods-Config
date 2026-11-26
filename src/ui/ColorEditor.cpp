@@ -19,7 +19,14 @@ namespace
     // the line of them under the picker, which makes it taller
     constexpr float EDITOR_WIDTH = 717.0f;
     constexpr float EDITOR_HEIGHT = 414.0f;
-    constexpr float PRESETS_HEIGHT = theme::CONTROL_HEIGHT + theme::SPACE_3;
+
+    /**
+     * The line of the presets under the picker, which a color with presets is taller by.
+     */
+    float presetsHeight()
+    {
+        return ui::look().controlHeight + ui::look().space3;
+    }
 
     // the swatches of the header, Before and Now
     constexpr float BIG_SWATCH_WIDTH = 96.0f;
@@ -98,7 +105,7 @@ namespace
         const auto left = ImGui::GetColorU32(ui::colorU32(withChannel(color, channel, 0), channel < 3));
         const auto right = ImGui::GetColorU32(ui::colorU32(withChannel(color, channel, 255), channel < 3));
         drawList->AddRectFilledMultiColor(track.Min, track.Max, left, right, right, left);
-        controls::drawOutline(track.Min, track.Max, dragged ? theme::color::GLOW : theme::color::FRAME_BORDER);
+        controls::drawOutline(track.Min, track.Max, dragged ? colors().glow : colors().frameBorder);
     }
 
     /**
@@ -106,8 +113,8 @@ namespace
      */
     float grabAt(const ImRect& track, const int value)
     {
-        const float least = track.Min.x + theme::GRAB_WIDTH * 0.5f;
-        const float most = track.Max.x - theme::GRAB_WIDTH * 0.5f;
+        const float least = track.Min.x + look().grabWidth * 0.5f;
+        const float most = track.Max.x - look().grabWidth * 0.5f;
         return std::lerp(least, most, static_cast<float>(value) / 255.0f);
     }
 
@@ -116,8 +123,8 @@ namespace
      */
     int valueAt(const ImRect& track, const float x)
     {
-        const float least = track.Min.x + theme::GRAB_WIDTH * 0.5f;
-        const float most = track.Max.x - theme::GRAB_WIDTH * 0.5f;
+        const float least = track.Min.x + look().grabWidth * 0.5f;
+        const float most = track.Max.x - look().grabWidth * 0.5f;
         return static_cast<int>(std::round(std::clamp((x - least) / (most - least), 0.0f, 1.0f) * 255.0f));
     }
 
@@ -130,18 +137,18 @@ namespace
         auto* drawList = ImGui::GetWindowDrawList();
         const float x = grabAt(track, value);
         const float middle = track.GetCenter().y;
-        const ImVec2 min(x - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f);
-        const ImVec2 max(x + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f);
+        const ImVec2 min(x - look().grabWidth * 0.5f, middle - GRAB_HEIGHT * 0.5f);
+        const ImVec2 max(x + look().grabWidth * 0.5f, middle + GRAB_HEIGHT * 0.5f);
         const float half = GRAB_RING * 0.5f;
         drawList->AddRect(ImVec2(min.x + half, min.y + half),
             ImVec2(max.x - half, max.y - half),
-            ImGui::GetColorU32(dragged ? theme::color::GLOW : theme::color::GREEN),
-            theme::RADIUS_GRAB,
+            ImGui::GetColorU32(dragged ? colors().glow : colors().accent),
+            look().grabRounding,
             0,
             GRAB_RING);
         drawList->AddRect(ImVec2(min.x + GRAB_RING + half, min.y + GRAB_RING + half),
             ImVec2(max.x - GRAB_RING - half, max.y - GRAB_RING - half),
-            ImGui::GetColorU32(theme::color::ON_GREEN),
+            ImGui::GetColorU32(colors().onAccent),
             0.0f,
             0,
             GRAB_RING);
@@ -152,7 +159,7 @@ namespace
      */
     void drawDetail(const std::string_view text, const float left, const float right, const float top, const float height, const ImU32 color)
     {
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+        ImGui::PushFont(nullptr, look().detailFontSize);
         controls::drawText(left, right, top, height, color, text);
         ImGui::PopFont();
     }
@@ -162,8 +169,8 @@ namespace
      */
     ImRect swatchBox(const float left, const float top, const std::size_t place)
     {
-        const float x = left + static_cast<float>(place) * (theme::CONTROL_HEIGHT + theme::SPACE_2);
-        return ImRect(x, top, x + theme::CONTROL_HEIGHT, top + theme::CONTROL_HEIGHT);
+        const float x = left + static_cast<float>(place) * (look().controlHeight + look().space2);
+        return ImRect(x, top, x + look().controlHeight, top + look().controlHeight);
     }
 }
 
@@ -249,7 +256,7 @@ namespace mods_config::ui
         }
         _openSeen = true;
 
-        const float height = EDITOR_HEIGHT + (setting.valueOptions.presets.empty() ? 0.0f : PRESETS_HEIGHT);
+        const float height = EDITOR_HEIGHT + (setting.valueOptions.presets.empty() ? 0.0f : presetsHeight());
         if (!controls::beginRowPopup(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
@@ -263,16 +270,16 @@ namespace mods_config::ui
         }
 
         const auto origin = ImGui::GetWindowPos();
-        const float headerTop = origin.y + theme::SPACE_4;
+        const float headerTop = origin.y + look().space4;
         Frame frame{ .setting = setting,
             .store = store,
             .edited = edited,
             .alpha = setting.valueOptions.alpha,
-            .contentLeft = origin.x + theme::SPACE_4,
-            .contentRight = origin.x + EDITOR_WIDTH - theme::SPACE_4,
+            .contentLeft = origin.x + look().space4,
+            .contentRight = origin.x + EDITOR_WIDTH - look().space4,
             .headerTop = headerTop,
-            .bodyTop = headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3,
-            .footerTop = origin.y + height - theme::SPACE_4 - theme::CONTROL_HEIGHT,
+            .bodyTop = headerTop + look().controlHeight + look().space3,
+            .footerTop = origin.y + height - look().space4 - look().controlHeight,
             .hovered = ImGui::IsWindowHovered(),
             .mouse = ImGui::GetIO().MousePos };
 
@@ -295,22 +302,22 @@ namespace mods_config::ui
     ImRect ColorEditor::editHeader(Frame& frame)
     {
         const float nowLeft = frame.contentRight - BIG_SWATCH_WIDTH;
-        const float swatchTop = frame.headerTop + (theme::CONTROL_HEIGHT - BIG_SWATCH_HEIGHT) * 0.5f;
+        const float swatchTop = frame.headerTop + (look().controlHeight - BIG_SWATCH_HEIGHT) * 0.5f;
         const ImRect now(nowLeft, swatchTop, frame.contentRight, swatchTop + BIG_SWATCH_HEIGHT);
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const float nowLabelLeft = nowLeft - theme::SPACE_2 - controls::textWidth("Now");
-        const float beforeRight = nowLabelLeft - theme::SPACE_4;
-        const float beforeLabelLeft = beforeRight - BIG_SWATCH_WIDTH - theme::SPACE_2 - controls::textWidth("Before");
+        ImGui::PushFont(nullptr, look().detailFontSize);
+        const float nowLabelLeft = nowLeft - look().space2 - controls::textWidth("Now");
+        const float beforeRight = nowLabelLeft - look().space4;
+        const float beforeLabelLeft = beforeRight - BIG_SWATCH_WIDTH - look().space2 - controls::textWidth("Before");
         ImGui::PopFont();
         const ImRect before(beforeRight - BIG_SWATCH_WIDTH, swatchTop, beforeRight, swatchTop + BIG_SWATCH_HEIGHT);
         controls::drawText(frame.contentLeft,
-            beforeLabelLeft - theme::SPACE_3,
+            beforeLabelLeft - look().space3,
             frame.headerTop,
-            theme::CONTROL_HEIGHT,
-            theme::color::GREEN,
+            look().controlHeight,
+            colors().accent,
             model::resolveClientText(frame.setting.text, &frame.store));
-        drawDetail("Before", beforeLabelLeft, before.Min.x, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
-        drawDetail("Now", nowLabelLeft, now.Min.x, frame.headerTop, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED);
+        drawDetail("Before", beforeLabelLeft, before.Min.x, frame.headerTop, look().controlHeight, colors().muted);
+        drawDetail("Now", nowLabelLeft, now.Min.x, frame.headerTop, look().controlHeight, colors().muted);
         const auto beforeColor = model::colorOf(frame.setting, _before).value_or(model::colorBase(frame.setting));
         ImGui::SetCursorScreenPos(before.Min);
         if (ImGui::InvisibleButton("before", before.GetSize())) {
@@ -320,7 +327,7 @@ namespace mods_config::ui
         }
         drawSwatch(before, beforeColor, frame.alpha);
         if (ImGui::IsItemHovered()) {
-            controls::drawOutline(before.Min, before.Max, theme::color::GREEN);
+            controls::drawOutline(before.Min, before.Max, colors().accent);
             frame.point("Before", "The color when the editor opened. Press it to go back to it.");
         }
         return now;
@@ -370,11 +377,11 @@ namespace mods_config::ui
     void ColorEditor::editChannel(Frame& frame, const std::size_t channel)
     {
         const float channelsLeft = frame.contentRight - CHANNELS_WIDTH;
-        const float lineTop = frame.bodyTop + static_cast<float>(channel) * theme::ROW_PITCH;
-        const ImRect line(channelsLeft, lineTop, frame.contentRight, lineTop + theme::CONTROL_HEIGHT);
+        const float lineTop = frame.bodyTop + static_cast<float>(channel) * (look().controlHeight + look().space2);
+        const ImRect line(channelsLeft, lineTop, frame.contentRight, lineTop + look().controlHeight);
         const auto valueBox = controls::controlBox(frame.contentRight - theme::VALUE_WIDTH, lineTop, theme::VALUE_WIDTH);
-        const float trackLeft = channelsLeft + CHANNEL_LABEL_WIDTH + theme::SPACE_2;
-        const ImRect track(trackLeft, lineTop, valueBox.Min.x - theme::SPACE_2, lineTop + theme::CONTROL_HEIGHT);
+        const float trackLeft = channelsLeft + CHANNEL_LABEL_WIDTH + look().space2;
+        const ImRect track(trackLeft, lineTop, valueBox.Min.x - look().space2, lineTop + look().controlHeight);
         const int current = _color.bytes()[channel];
 
         ImGui::PushID(static_cast<int>(channel));
@@ -410,16 +417,16 @@ namespace mods_config::ui
         ImGui::PopID();
 
         if (pointed) {
-            ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(theme::color::HOVER), theme::RADIUS_FRAME);
-            controls::drawOutline(line.Min, line.Max, theme::color::FRAME_BORDER);
+            ImGui::GetWindowDrawList()->AddRectFilled(line.Min, line.Max, ImGui::GetColorU32(colors().hover), look().frameRounding);
+            controls::drawOutline(line.Min, line.Max, colors().frameBorder);
             frame.point(CHANNELS[channel].name, std::string(CHANNELS[channel].help));
         }
-        drawDetail(CHANNELS[channel].name, channelsLeft, trackLeft, lineTop, theme::CONTROL_HEIGHT, theme::color::GREEN);
+        drawDetail(CHANNELS[channel].name, channelsLeft, trackLeft, lineTop, look().controlHeight, colors().accent);
         const int byte = _color.bytes()[channel];
         drawTrack(track, _color, channel, _dragged == channel);
         drawGrab(track, byte, _dragged == channel);
         controls::drawFrame(valueBox);
-        controls::drawTextIn(valueBox, std::format("{}", byte), theme::color::GREEN, 1.0f, theme::SPACE_3);
+        controls::drawTextIn(valueBox, std::format("{}", byte), colors().accent, 1.0f, look().space3);
     }
 
     /**
@@ -428,7 +435,7 @@ namespace mods_config::ui
     void ColorEditor::editPresets(Frame& frame)
     {
         const auto& presets = frame.setting.valueOptions.presets;
-        const float presetsTop = frame.bodyTop + PICKER_HEIGHT + theme::SPACE_3;
+        const float presetsTop = frame.bodyTop + PICKER_HEIGHT + look().space3;
         ImGui::PushID("presets");
         for (std::size_t i = 0; i < presets.size(); ++i) {
             editSwatch(frame, static_cast<int>(i), swatchBox(frame.contentLeft, presetsTop, i), presets[i].rgb, presets[i].alpha, presets[i].text);
@@ -441,8 +448,8 @@ namespace mods_config::ui
      */
     void ColorEditor::editBasics(Frame& frame)
     {
-        const float ruleY = frame.footerTop - theme::SPACE_3 - theme::BORDER_FRAME * 0.5f;
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
+        const float ruleY = frame.footerTop - look().space3 - look().frameBorderSize * 0.5f;
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(colors().rule), look().frameBorderSize);
         ImGui::PushID("basics");
         for (std::size_t i = 0; i < BASICS.size(); ++i) {
             editSwatch(frame, static_cast<int>(i), swatchBox(frame.contentLeft, frame.footerTop, i), BASICS[i].rgb, std::nullopt, BASICS[i].name);
@@ -469,7 +476,7 @@ namespace mods_config::ui
         ImGui::PopID();
         drawSwatch(box, color, hasAlpha);
         if (over) {
-            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, colors().accent);
             frame.point(name.empty() ? "Preset" : name, std::format("{}. Press it to set the color.", model::colorNumbers(color, hasAlpha)));
         }
     }
@@ -481,7 +488,7 @@ namespace mods_config::ui
     void ColorEditor::drawFooter(Frame& frame)
     {
         const auto done = controls::controlBox(frame.contentRight - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
-        const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_2 - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
+        const auto cancelBox = controls::controlBox(done.Min.x - look().space2 - FOOTER_BUTTON_WIDTH, frame.footerTop, FOOTER_BUTTON_WIDTH);
         if (controls::button("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();

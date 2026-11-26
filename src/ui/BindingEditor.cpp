@@ -27,7 +27,6 @@ namespace
     // track of the slider of its time, and the buttons of its footer
     constexpr float EDITOR_WIDTH = 717.0f;
     constexpr float EDITOR_HEIGHT = 458.0f;
-    constexpr float EDITOR_HEIGHT_NO_DIRECTION = EDITOR_HEIGHT - theme::ROW_PITCH;
     constexpr float LABEL_WIDTH = 96.0f;
     constexpr float PART_WIDTH = 226.0f;
     constexpr float STRIP_HEIGHT = 64.0f;
@@ -36,8 +35,21 @@ namespace
     constexpr float CANCEL_WIDTH = 120.0f;
     constexpr float DONE_WIDTH = 160.0f;
 
-    // the line of a part: its label and its control
-    constexpr float PART_LINE_WIDTH = LABEL_WIDTH + theme::SPACE_2 + PART_WIDTH;
+    /**
+     * The editor without the line of Direction: a row's pitch less.
+     */
+    float editorHeightNoDirection()
+    {
+        return EDITOR_HEIGHT - (ui::look().controlHeight + ui::look().space2);
+    }
+
+    /**
+     * The line of a part: its label and its control.
+     */
+    float partLineWidth()
+    {
+        return LABEL_WIDTH + ui::look().space2 + PART_WIDTH;
+    }
 
     // the fill and the grab of the slider, as a setting's slider has them
     constexpr float FILL_HEIGHT = 8.0f;
@@ -295,14 +307,14 @@ namespace
         const float grab = std::lerp(grabLeast, grabMost, fraction);
         const float middle = track.GetCenter().y;
         auto* drawList = ImGui::GetWindowDrawList();
-        const auto color = ImGui::GetColorU32(theme::color::GREEN);
+        const auto color = ImGui::GetColorU32(colors().accent);
         if (grab > grabLeast) {
-            drawList->AddRectFilled(ImVec2(grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, theme::RADIUS_GRAB);
+            drawList->AddRectFilled(ImVec2(grabLeast, middle - FILL_HEIGHT * 0.5f), ImVec2(grab, middle + FILL_HEIGHT * 0.5f), color, look().grabRounding);
         }
-        drawList->AddRectFilled(ImVec2(grab - theme::GRAB_WIDTH * 0.5f, middle - GRAB_HEIGHT * 0.5f),
-            ImVec2(grab + theme::GRAB_WIDTH * 0.5f, middle + GRAB_HEIGHT * 0.5f),
-            dragged ? ImGui::GetColorU32(theme::color::GLOW) : color,
-            theme::RADIUS_GRAB);
+        drawList->AddRectFilled(ImVec2(grab - look().grabWidth * 0.5f, middle - GRAB_HEIGHT * 0.5f),
+            ImVec2(grab + look().grabWidth * 0.5f, middle + GRAB_HEIGHT * 0.5f),
+            dragged ? ImGui::GetColorU32(colors().glow) : color,
+            look().grabRounding);
     }
 
     /**
@@ -429,11 +441,11 @@ namespace
      */
     void drawLabel(const std::string_view text, const ImVec2& at)
     {
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const controls::TextPiece piece{ .text = text, .color = ImGui::GetColorU32(theme::color::GREEN_MUTED) };
+        ImGui::PushFont(nullptr, look().detailFontSize);
+        const controls::TextPiece piece{ .text = text, .color = ImGui::GetColorU32(colors().muted) };
         const int lines = (std::min)(controls::countTextLines(std::span(&piece, 1), LABEL_WIDTH), LABEL_MAX_LINES);
         const float height = static_cast<float>(lines) * ImGui::GetFontSize();
-        controls::drawTextPieces(std::span(&piece, 1), ImVec2(at.x, at.y + std::floor((theme::CONTROL_HEIGHT - height) * 0.5f)), LABEL_WIDTH, LABEL_MAX_LINES);
+        controls::drawTextPieces(std::span(&piece, 1), ImVec2(at.x, at.y + std::floor((look().controlHeight - height) * 0.5f)), LABEL_WIDTH, LABEL_MAX_LINES);
         ImGui::PopFont();
     }
 
@@ -442,7 +454,7 @@ namespace
      */
     ImRect partControl(const ImVec2& at, const float width)
     {
-        return controls::controlBox(at.x + LABEL_WIDTH + theme::SPACE_2, at.y, width);
+        return controls::controlBox(at.x + LABEL_WIDTH + look().space2, at.y, width);
     }
 
     /**
@@ -456,10 +468,10 @@ namespace
         const bool pointed = ImGui::IsItemHovered();
         controls::drawFrame(box);
         if (pointed || open) {
-            controls::drawOutline(box.Min, box.Max, theme::color::GREEN);
+            controls::drawOutline(box.Min, box.Max, colors().accent);
         }
-        const float arrowLeft = box.Max.x - theme::SPACE_4 - controls::ARROW_SIZE;
-        controls::drawText(box.Min.x + theme::SPACE_4, arrowLeft - theme::SPACE_2, box.Min.y, theme::CONTROL_HEIGHT, theme::color::GREEN, text);
+        const float arrowLeft = box.Max.x - look().space4 - controls::ARROW_SIZE;
+        controls::drawText(box.Min.x + look().space4, arrowLeft - look().space2, box.Min.y, look().controlHeight, colors().accent, text);
         controls::drawControlArrow(ImVec2(arrowLeft + controls::ARROW_SIZE * 0.5f, box.GetCenter().y), controls::Arrow::Down);
         return pressed;
     }
@@ -570,7 +582,7 @@ namespace mods_config::ui
          */
         ImVec2 partAt(const bool second, const int line) const
         {
-            return ImVec2(second ? contentRight - PART_LINE_WIDTH : contentLeft, partsTop + static_cast<float>(line) * (theme::CONTROL_HEIGHT + theme::SPACE_2));
+            return ImVec2(second ? contentRight - partLineWidth() : contentLeft, partsTop + static_cast<float>(line) * (look().controlHeight + look().space2));
         }
 
         /**
@@ -578,7 +590,7 @@ namespace mods_config::ui
          */
         bool pointedAt(const ImVec2& at) const
         {
-            return hovered && ImRect(at, ImVec2(at.x + PART_LINE_WIDTH, at.y + theme::CONTROL_HEIGHT)).Contains(mouse);
+            return hovered && ImRect(at, ImVec2(at.x + partLineWidth(), at.y + look().controlHeight)).Contains(mouse);
         }
     };
 
@@ -617,7 +629,7 @@ namespace mods_config::ui
         // the line of Direction is there for a push of the thumbstick alone, and the editor is as high as its lines: a
         // change of the binding in this frame shows it in the next
         const bool sided = _binding.type == vrcf::ActivationType::AxisDirection && _binding.axis == vrcf::Axis::Thumbstick;
-        const float height = sided ? EDITOR_HEIGHT : EDITOR_HEIGHT_NO_DIRECTION;
+        const float height = sided ? EDITOR_HEIGHT : editorHeightNoDirection();
         if (!controls::beginRowPopup(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
@@ -680,9 +692,9 @@ namespace mods_config::ui
         const bool sided) const
     {
         const auto origin = ImGui::GetWindowPos();
-        const float headerTop = origin.y + theme::SPACE_4;
-        const float stripTop = headerTop + theme::CONTROL_HEIGHT + theme::SPACE_3;
-        const ImRect strip(origin.x + theme::SPACE_4, stripTop, origin.x + EDITOR_WIDTH - theme::SPACE_4, stripTop + STRIP_HEIGHT);
+        const float headerTop = origin.y + look().space4;
+        const float stripTop = headerTop + look().controlHeight + look().space3;
+        const ImRect strip(origin.x + look().space4, stripTop, origin.x + EDITOR_WIDTH - look().space4, stripTop + STRIP_HEIGHT);
         return Frame{ .setting = setting,
             .store = store,
             .leftHanded = leftHanded,
@@ -695,7 +707,7 @@ namespace mods_config::ui
             .contentRight = strip.Max.x,
             .headerTop = headerTop,
             .strip = strip,
-            .partsTop = strip.Max.y + theme::SPACE_3,
+            .partsTop = strip.Max.y + look().space3,
             .hovered = ImGui::IsWindowHovered(),
             .mouse = ImGui::GetIO().MousePos,
             .changed = false };
@@ -875,9 +887,9 @@ namespace mods_config::ui
     {
         const auto at = frame.partAt(false, 3);
         const auto box = partControl(at, PART_WIDTH);
-        const auto previous = controls::controlBox(box.Min.x, at.y, theme::CONTROL_HEIGHT);
-        const auto next = controls::controlBox(box.Max.x - theme::CONTROL_HEIGHT, at.y, theme::CONTROL_HEIGHT);
-        const ImRect side(previous.Max.x + theme::SPACE_2, at.y, next.Min.x - theme::SPACE_2, at.y + theme::CONTROL_HEIGHT);
+        const auto previous = controls::controlBox(box.Min.x, at.y, look().controlHeight);
+        const auto next = controls::controlBox(box.Max.x - look().controlHeight, at.y, look().controlHeight);
+        const ImRect side(previous.Max.x + look().space2, at.y, next.Min.x - look().space2, at.y + look().controlHeight);
         const auto place = placeOf(DIRECTIONS, _binding.direction);
         const auto moved = placeOf(MOVED_DIRECTIONS, _binding.direction);
         ImGui::PushID("direction");
@@ -887,7 +899,7 @@ namespace mods_config::ui
             frame.changed = true;
         }
         controls::drawFrame(side);
-        controls::drawTextIn(side, moved ? MOVED_DIRECTIONS[*moved].text : DIRECTIONS[place.value_or(0)].text, theme::color::GREEN, 0.5f);
+        controls::drawTextIn(side, moved ? MOVED_DIRECTIONS[*moved].text : DIRECTIONS[place.value_or(0)].text, colors().accent, 0.5f);
         if (stepButton("next", next, controls::Arrow::Right, place && *place + 1 < DIRECTIONS.size())) {
             _binding.direction = DIRECTIONS[*place + 1].value;
             frame.changed = true;
@@ -909,9 +921,9 @@ namespace mods_config::ui
         const bool enabled = hasDuration(_binding.type) || push;
         const auto [typeValue, least, most, current] = timeSliderOf(_binding, push);
         const auto track = partControl(at, SLIDER_TRACK_WIDTH);
-        const auto valueBox = controls::controlBox(track.Max.x + theme::SPACE_2, at.y, PART_WIDTH - SLIDER_TRACK_WIDTH - theme::SPACE_2);
-        const float grabLeast = track.Min.x + theme::BORDER_FRAME + theme::GRAB_WIDTH * 0.5f;
-        const float grabMost = track.Max.x - theme::BORDER_FRAME - theme::GRAB_WIDTH * 0.5f;
+        const auto valueBox = controls::controlBox(track.Max.x + look().space2, at.y, PART_WIDTH - SLIDER_TRACK_WIDTH - look().space2);
+        const float grabLeast = track.Min.x + look().frameBorderSize + look().grabWidth * 0.5f;
+        const float grabMost = track.Max.x - look().frameBorderSize - look().grabWidth * 0.5f;
         const auto name = push ? std::string_view("Threshold") : std::string_view("Duration");
 
         ImGui::PushID("slider");
@@ -945,7 +957,7 @@ namespace mods_config::ui
         controls::drawFrame(valueBox);
         if (enabled) {
             drawTimeGrab(track, grabLeast, grabMost, std::clamp((shownValue - least) / (most - least), 0.0f, 1.0f), _dragged.has_value());
-            controls::drawTextIn(valueBox, timeText(_binding.type, push, shownValue), theme::color::GREEN, 1.0f, theme::SPACE_3);
+            controls::drawTextIn(valueBox, timeText(_binding.type, push, shownValue), colors().accent, 1.0f, look().space3);
         }
         ImGui::EndDisabled();
         ImGui::PopID();
@@ -1010,11 +1022,11 @@ namespace mods_config::ui
         ImGui::PushID("suppress");
         ImGui::BeginDisabled(frame.off);
         drawLabel("Suppress from the game", at);
-        const float toggleLeft = at.x + LABEL_WIDTH + theme::SPACE_2;
+        const float toggleLeft = at.x + LABEL_WIDTH + look().space2;
         const float toggleRight = toggleLeft + controls::SWITCHER_CELL_WIDTH * 2.0f;
         controls::drawSwitcher(toggleRight, at.y, _binding.suppress, controls::Tone::Normal);
         ImGui::SetCursorScreenPos(ImVec2(toggleLeft, at.y));
-        if (ImGui::InvisibleButton("toggle", ImVec2(toggleRight - toggleLeft, theme::CONTROL_HEIGHT))) {
+        if (ImGui::InvisibleButton("toggle", ImVec2(toggleRight - toggleLeft, look().controlHeight))) {
             const bool on = frame.mouse.x >= (toggleLeft + toggleRight) * 0.5f;
             if (on != _binding.suppress) {
                 _binding.suppress = on;
@@ -1041,17 +1053,17 @@ namespace mods_config::ui
         controls::drawText(frame.contentLeft,
             frame.contentRight,
             frame.headerTop,
-            theme::CONTROL_HEIGHT,
-            theme::color::GREEN,
+            look().controlHeight,
+            colors().accent,
             model::resolveClientText(frame.setting.text, &frame.store));
         const auto& strip = frame.strip;
-        ImGui::GetWindowDrawList()->AddRectFilled(strip.Min, strip.Max, ImGui::GetColorU32(theme::color::PLATE), theme::RADIUS_FRAME);
-        const float iconsLeft = strip.Min.x + theme::SPACE_3;
+        ImGui::GetWindowDrawList()->AddRectFilled(strip.Min, strip.Max, ImGui::GetColorU32(colors().plate), look().frameRounding);
+        const float iconsLeft = strip.Min.x + look().space3;
         const float iconsRight = drawBindingIcons(_binding, iconsLeft, strip.GetCenter().y, STRIP_ICON_SCALE, ImGui::GetColorU32(color), frame.leftHanded, frame.drawer);
-        const float sentenceLeft = iconsRight > iconsLeft ? iconsRight + theme::SPACE_3 : strip.Min.x + theme::SPACE_4;
+        const float sentenceLeft = iconsRight > iconsLeft ? iconsRight + look().space3 : strip.Min.x + look().space4;
         const auto sentence = bindingSentence(_binding, frame.leftHanded);
         const controls::TextPiece piece{ .text = sentence, .color = ImGui::GetColorU32(color) };
-        const float sentenceWidth = strip.Max.x - theme::SPACE_4 - sentenceLeft;
+        const float sentenceWidth = strip.Max.x - look().space4 - sentenceLeft;
         const int lines = (std::min)(controls::countTextLines(std::span(&piece, 1), sentenceWidth), 2);
         const float sentenceTop = strip.GetCenter().y - static_cast<float>(lines) * ImGui::GetFontSize() * 0.5f;
         controls::drawTextPieces(std::span(&piece, 1), ImVec2(sentenceLeft, std::floor(sentenceTop)), sentenceWidth, 2);
@@ -1064,11 +1076,11 @@ namespace mods_config::ui
     void BindingEditor::drawFooter(Frame& frame)
     {
         const float partLines = frame.sided ? 4.0f : 3.0f;
-        const float ruleY = frame.partsTop + partLines * theme::CONTROL_HEIGHT + (partLines - 1.0f) * theme::SPACE_2 + theme::SPACE_3;
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(theme::color::RULE), theme::BORDER_FRAME);
-        const float footerTop = ruleY + theme::BORDER_FRAME + theme::SPACE_3;
+        const float ruleY = frame.partsTop + partLines * look().controlHeight + (partLines - 1.0f) * look().space2 + look().space3;
+        ImGui::GetWindowDrawList()->AddLine(ImVec2(frame.contentLeft, ruleY), ImVec2(frame.contentRight, ruleY), ImGui::GetColorU32(colors().rule), look().frameBorderSize);
+        const float footerTop = ruleY + look().frameBorderSize + look().space3;
         const auto done = controls::controlBox(frame.contentRight - DONE_WIDTH, footerTop, DONE_WIDTH);
-        const auto cancelBox = controls::controlBox(done.Min.x - theme::SPACE_3 - CANCEL_WIDTH, footerTop, CANCEL_WIDTH);
+        const auto cancelBox = controls::controlBox(done.Min.x - look().space3 - CANCEL_WIDTH, footerTop, CANCEL_WIDTH);
         if (controls::button("Cancel", cancelBox, controls::ButtonLook::Quiet)) {
             frame.store.set(frame.setting, _before);
             ImGui::CloseCurrentPopup();

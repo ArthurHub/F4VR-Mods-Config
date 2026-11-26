@@ -177,7 +177,7 @@ namespace mods_config::ui
                 const float rowBottom = drawMod(mods, category.mods[place], 1, selection, rowWidth, drawn, store);
                 if (_openedCategory == key && place + 1 == (std::min)(category.mods.size(), CATEGORY_SHOWN_MODS)) {
                     if (rowBottom > ImGui::GetWindowPos().y + ImGui::GetWindowHeight()) {
-                        ImGui::SetScrollFromPosY(rowBottom + theme::SPACE_1 - ImGui::GetWindowPos().y, 1.0f);
+                        ImGui::SetScrollFromPosY(rowBottom + look().space1 - ImGui::GetWindowPos().y, 1.0f);
                     }
                     _openedCategory.reset();
                 }
@@ -235,9 +235,9 @@ namespace mods_config::ui
             if (_openedMod == modIndex) {
                 // the room of the first pages, under the mod's row, scrolled to where they are under the shown rows
                 const float shownCount = static_cast<float>((std::min)(mod.pages.size(), MOD_SHOWN_PAGES));
-                const float pagesBottom = rowBottom + shownCount * (theme::SPACE_1 + theme::CONTROL_HEIGHT);
+                const float pagesBottom = rowBottom + shownCount * (look().space1 + look().controlHeight);
                 if (pagesBottom > ImGui::GetWindowPos().y + ImGui::GetWindowHeight()) {
-                    ImGui::SetScrollFromPosY(pagesBottom + theme::SPACE_1 - ImGui::GetWindowPos().y, 1.0f);
+                    ImGui::SetScrollFromPosY(pagesBottom + look().space1 - ImGui::GetWindowPos().y, 1.0f);
                 }
                 _openedMod.reset();
             }
@@ -341,8 +341,8 @@ namespace mods_config::ui
         }
         if (!any) {
             const auto pos = ImGui::GetCursorScreenPos();
-            ImGui::Dummy(ImVec2(rowWidth, theme::CONTROL_HEIGHT));
-            controls::drawText(pos.x + theme::SPACE_2, pos.x + rowWidth, pos.y, theme::CONTROL_HEIGHT, theme::color::GREEN_MUTED, "No mod matches");
+            ImGui::Dummy(ImVec2(rowWidth, look().controlHeight));
+            controls::drawText(pos.x + look().space2, pos.x + rowWidth, pos.y, look().controlHeight, colors().muted, "No mod matches");
         }
     }
 

@@ -32,5 +32,6 @@ repos:
         entry: python docs/design/design-system/tools/gen_theme.py
         language: python
         pass_filenames: false
-        # a change of the design system, of Theme.h, or of the framework, whose imgui::Theme it reads
-        files: ^(docs/design/design-system/|src/Theme\.h$|external/F4VR-CommonFramework$)
+        # a change of the design system, of src/ (Theme.h, and the drawing, which reads the theme and not its
+        # constants), or of the framework, whose imgui::Theme it reads
+        files: ^(docs/design/design-system/|src/|external/F4VR-CommonFramework$)

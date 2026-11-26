@@ -13,8 +13,13 @@ namespace
 {
     using namespace mods_config;
 
-    // the box of a text input's text, in the panel's pixels: as wide as a slider with the box of its value
-    constexpr float FIELD_WIDTH = ui::TRACK_WIDTH + theme::SPACE_2 + theme::VALUE_WIDTH;
+    /**
+     * The box of a text input's text, in the panel's pixels: as wide as a slider with the box of its value.
+     */
+    float fieldWidth()
+    {
+        return ui::TRACK_WIDTH + ui::look().space2 + theme::VALUE_WIDTH;
+    }
 
     // the field's name in the row: its place in the page tells it from the others
     constexpr const char* FIELD_ID = "##field";
@@ -25,7 +30,7 @@ namespace
      */
     ImRect fieldBox(const model::Setting& setting, const float right, const float top)
     {
-        const float width = setting.type == model::SettingType::Dropdown ? ui::DROPDOWN_WIDTH : FIELD_WIDTH;
+        const float width = setting.type == model::SettingType::Dropdown ? ui::dropdownWidth() : fieldWidth();
         return controls::controlBox(right - width, top, width);
     }
 

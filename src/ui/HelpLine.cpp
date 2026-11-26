@@ -108,37 +108,37 @@ namespace mods_config::ui
         float width = lineWidth;
         if (const auto tag = this->tag(); !tag.empty()) {
             drawAppliesTag(pos.x, middle, *_applies, tag);
-            const float tagRoom = appliesTagWidth(tag) + theme::SPACE_3;
+            const float tagRoom = appliesTagWidth(tag) + look().space3;
             pos.x += tagRoom;
             width -= tagRoom;
         }
         if (!hasRow && _look == StatusLook::Pending) {
             constexpr float MARK_WIDTH = 10.0f;
-            controls::drawDot(ImVec2(pos.x + MARK_WIDTH * 0.5f, middle), theme::color::AMBER);
-            const float left = pos.x + MARK_WIDTH + theme::SPACE_2;
-            controls::drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::AMBER, _status);
+            controls::drawDot(ImVec2(pos.x + MARK_WIDTH * 0.5f, middle), colors().warning);
+            const float left = pos.x + MARK_WIDTH + look().space2;
+            controls::drawText(left, pos.x + width, middle - look().controlHeight * 0.5f, look().controlHeight, colors().warning, _status);
             return;
         }
         if (!hasRow && _look == StatusLook::Restart) {
             drawRestartMark(pos.x, middle);
-            const float left = pos.x + restartMarkWidth() + theme::SPACE_2;
-            controls::drawText(left, pos.x + width, middle - theme::CONTROL_HEIGHT * 0.5f, theme::CONTROL_HEIGHT, theme::color::GREEN, _status);
+            const float left = pos.x + restartMarkWidth() + look().space2;
+            controls::drawText(left, pos.x + width, middle - look().controlHeight * 0.5f, look().controlHeight, colors().accent, _status);
             return;
         }
         const bool invalid = hasRow ? _invalid : _look == StatusLook::Invalid;
         const auto mark = invalid ? controls::Mark::Error : !_warning.empty() ? controls::Mark::Warning : hasRow && !_result.empty() ? controls::Mark::Info : controls::Mark::None;
-        const std::array pieces{ controls::TextPiece{ .text = _name, .color = theme::color::GREEN },
-            controls::TextPiece{ .text = {}, .color = theme::color::AMBER, .mark = mark },
-            controls::TextPiece{ .text = _warning, .color = theme::color::AMBER },
-            controls::TextPiece{ .text = hasRow && !invalid ? std::string_view(_result) : std::string_view(), .color = theme::color::GREEN },
-            controls::TextPiece{ .text = hasRow ? _help : _status, .color = invalid ? theme::color::RED : theme::color::GREEN_MUTED } };
+        const std::array pieces{ controls::TextPiece{ .text = _name, .color = colors().accent },
+            controls::TextPiece{ .text = {}, .color = colors().warning, .mark = mark },
+            controls::TextPiece{ .text = _warning, .color = colors().warning },
+            controls::TextPiece{ .text = hasRow && !invalid ? std::string_view(_result) : std::string_view(), .color = colors().accent },
+            controls::TextPiece{ .text = hasRow ? _help : _status, .color = invalid ? colors().error : colors().muted } };
         int lines = controls::countTextLines(pieces, width);
         if (lines == 0) {
             return;
         }
         const bool detail = lines > BODY_LINES;
         if (detail) {
-            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
+            ImGui::PushFont(nullptr, look().detailFontSize);
             lines = (std::min)(controls::countTextLines(pieces, width), DETAIL_LINES);
         }
         const float height = static_cast<float>(lines) * ImGui::GetFontSize();
