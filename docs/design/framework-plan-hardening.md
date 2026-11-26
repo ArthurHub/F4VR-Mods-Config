@@ -29,8 +29,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M24 | mod       | Icons and the editors' popup from the framework                                                              | done    |
 | F39 | framework | imgui: the panes of a panel: a navigation pane with its header and rows, and a content pane                  | done    |
 | M25 | mod       | The tree's pane and the content pane from the framework                                                      | done    |
-| F40 | framework | imgui: the title bar: breadcrumbs that shorten to fit, and its buttons                                       | planned |
-| M26 | mod       | The title bar from the framework                                                                             | planned |
+| F40 | framework | imgui: the title bar: breadcrumbs that shorten to fit, and its buttons                                       | done    |
+| M26 | mod       | The title bar from the framework                                                                             | done    |
 | F41 | framework | imgui: the footer: a rule, its buttons at the right, and the room of a help line                             | planned |
 | M27 | mod       | The footer from the framework                                                                                | planned |
 | F42 | framework | imgui: controls with their label in a row, and the press pulse                                               | planned |
@@ -453,10 +453,11 @@ TitleBarDrawn titleBar(const TitleBar& bar);
 ```
 
 - The crumbs are in the theme's `titleFontSize`, with `»` between them, and shorten by the rules of today: with more than one crumb after the second, the ones between the second and the last become one `…`, which is not pressed; then the second shortens, down to a least width, unless it does not `shorten`; the last ends in an ellipsis. The first is never shortened.
-- A button is an `iconButton` as high as a control. One with a `highlightText` is drawn wider with that text, as the mod's Help while it stands out.
+- A button is an `iconButton` as high as a control, with its icon or its text in the accent. One with a `highlightText` is drawn wider with both texts in the theme's `important` color (the mod's `theme::color::ACCENT` is the important blue, not the green), outlined, with a ring while pressed, as the mod's Help while it stands out.
+- The suffix is dimmer than a link: the accent at the theme's `disabledOpacity`, the design's `DISABLED`. It is said after the last crumb, also where the first is the only one; the mod gives none then, as it never said it there.
 - A rule in the theme's `rule` ends the bar. Crumbs and buttons record themselves as targets (`crumb`, `titleButton`).
 
-**The mod (M26):** [`Breadcrumbs`](../../src/ui/Breadcrumbs.h) keeps `breadcrumbsOf` and each crumb's target; `drawTitleBar` builds the `TitleBar`, calls `controls::titleBar`, and makes the help line's row of the pointed button with its help text. `theme::TITLEBAR_HEIGHT` is the `height` it gives.
+**The mod (M26):** [`Breadcrumbs`](../../src/ui/Breadcrumbs.h) keeps `breadcrumbsOf` and each crumb's target, with `ui::CrumbLook` an alias of the framework's, so `BreadcrumbsTests.cpp` is unchanged; a crumb whose target is the Developer section does not shorten. The mod's `ui::target::CRUMB` and `TITLE_BUTTON` go; `drawTitleBar` builds the `TitleBar`, calls `controls::titleBar`, and makes the help line's row of the pointed button with its help text. `theme::TITLEBAR_HEIGHT` is the `height` it gives. The renders are the same byte for byte but one: `front-page-help-highlighted` differs by one step of one channel in 42 text pixels over the whole panel, the same in each run, which shows no difference to the eye.
 
 Tests, new in the framework, as the mod's `BreadcrumbsTests.cpp` is about which crumbs there are and stays: the crumbs fit; the middle ones become `…`; the second shortens to its least width; a second that does not shorten keeps its width; a press gives the crumb's place.
 

@@ -113,9 +113,9 @@ TEST_CASE("Panel targets: the rows of the tree and the page, the title bar, the 
     };
     CHECK(scrolled(controls::target::TREE_AREA));
     CHECK(scrolled(controls::target::PAGE_AREA));
-    CHECK(findTarget(ui::target::TITLE_BUTTON, "Help"));
-    CHECK(findTarget(ui::target::TITLE_BUTTON, "Close"));
-    CHECK(findTarget(ui::target::CRUMB, "MODS CONFIG FO4"));
+    CHECK(findTarget(controls::target::TITLE_BUTTON, "Help"));
+    CHECK(findTarget(controls::target::TITLE_BUTTON, "Close"));
+    CHECK(findTarget(controls::target::CRUMB, "MODS CONFIG FO4"));
 
     // the mod's row selects it, and then its page's row is there, by the mod's name and the page's
     CHECK(pressActs(panel, middleOf(ui::target::TREE, "MyMod")));

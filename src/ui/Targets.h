@@ -5,8 +5,8 @@
 #include "imgui/controls/Targets.h"
 
 // The kinds of the panel's targets that are the mod's, which a row records with `controls::targets().add` and devbench's
-// targets action tells; a button, a dropdown's option and the search field are the framework's
-// (`controls::target::BUTTON`, `OPTION`, `SEARCH`), and so are the scroll areas of the tree, the page and an open list
+// targets action tells; a button, a dropdown's option, the search field and the title bar's crumbs and buttons are the
+// framework's (`controls::target::BUTTON`, `OPTION`, `SEARCH`, `CRUMB`, `TITLE_BUTTON`), and so are the scroll areas of the tree, the page and an open list
 // (`TREE_AREA`, `PAGE_AREA`, `LIST_AREA`), which its panes and list record.
 namespace mods_config::ui::target
 {
@@ -20,10 +20,6 @@ namespace mods_config::ui::target
     inline constexpr std::string_view PAGE_BUTTON = "pageButton";
     // a section's heading on the page, by its text
     inline constexpr std::string_view SECTION = "section";
-    // a button of the title bar, by its name: Help, Minimize, Close
-    inline constexpr std::string_view TITLE_BUTTON = "titleButton";
-    // a breadcrumb of the title bar, by its text
-    inline constexpr std::string_view CRUMB = "crumb";
     // the track of a channel of the color editor that is open, by the channel's name
     inline constexpr std::string_view COLOR_CHANNEL = "colorChannel";
 }
