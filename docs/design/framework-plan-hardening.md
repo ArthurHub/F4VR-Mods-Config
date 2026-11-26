@@ -2,44 +2,48 @@
 
 The next mod, a cheat terminal and item spawner, is a panel heavy with UI: a tree beside pages of buttons, sliders, number inputs, lists of thousands of items and a search. It is built from the framework's [`imgui::controls`](../../external/F4VR-CommonFramework/src/imgui/controls/README.md), which this mod's panel is drawn with. This plan is what the framework still lacks for a second panel to look and behave as this one with little code of its own: one theme, the targets a test points at, the generic parts of the panel that are still in this mod, the panel's layout, and a tier of controls with their label.
 
-It continues the numbering of the [framework work plan](framework-plan.md): framework commits (F) from F33, each followed by this mod's port onto it (M) from M20, one at a time. A port changes no look and no behavior: the mod's panel tests, render tests and e2e tests pass unchanged after each. Framework version `0.7.0`, as F33 changes the controls' API.
+It continues the numbering of the [framework work plan](framework-plan.md): framework commits (F) from F33, each followed by this mod's port onto it (M) from M20 where the mod has one, one at a time. A port changes no look and no behavior: the mod's panel tests, render tests and e2e tests pass unchanged after each. Framework version `0.7.0`, as F33 changes the controls' API.
 
 ## Decisions
 
 - **A mod's design is the mod's own.** The framework's `Theme` has defaults, the framework's green, for a mod that sets nothing. This mod applies the theme of its design system, generated from its tokens, and depends on no default; a mod with another design applies its own theme the same way.
-- **Every canvas gets the theme's ImGui style.** The framework sets it on its ImGui context in place of `ImGui::StyleColorsDark()`. No other mod draws ImGui yet.
-- **The canvas font's default size is the theme's body size**, 21 px in the default theme, not 24.
-- **Nothing waits for the next mod.** The controls with their label and the clipped list have no row in this mod, so each is tested in the framework and drawn by a render test of this mod (M27, M28).
+- **Every canvas of the main context gets the theme's ImGui style.** The framework sets it there in place of `ImGui::StyleColorsDark()`. No other mod draws ImGui yet. The keyboard's canvas, of the framework's own context, reads no ImGui style: it is drawn in its `KeyboardStyle`, whose colors the theme gives.
+- **The body font size is the theme's `bodyFontSize`**, 21 px in the default theme, not 24. `imgui::setFontSizePixels` is removed, so the size has one setting.
+- **The pointer's look stays `PointerStyle`'s.** A ray is the player's to set, as this mod's config does, and a theme that set it would set it over the config.
+- **Nothing waits for the next mod.** The controls with their label and the clipped list have no row in this mod, so each is tested in the framework and drawn by a render test of this mod (M28, M29). No commit builds on F42 and F43, so their shape, as the fixed `CONTROL_COLUMN_WIDTH`, changes freely as the next mod's pages use them.
 
 ## Commits
 
 | #   | Repo      | Commit                                                                                                       | Status  |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------ | ------- |
-| F33 | framework | imgui: one `Theme` for the controls, ImGui's style, the keyboard, the pointer and the panel, set live, also by devbench | planned |
+| F33 | framework | imgui: one `Theme` for the controls, ImGui's style, the keyboard and the panel, set live                     | planned |
 | M20 | mod       | The design system's theme, generated from its tokens, applied as the framework's theme                       | planned |
-| F34 | framework | imgui: the targets of a panel, which the controls record, and a devbench `targets` action                    | planned |
-| M21 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | planned |
-| F35 | framework | imgui: the search field                                                                                      | planned |
-| M22 | mod       | The tree's search field from the framework                                                                   | planned |
-| F36 | framework | imgui: the drawn icons as one `Icon` set, and a popup beside its row                                         | planned |
-| M23 | mod       | Icons and the editors' popup from the framework                                                              | planned |
-| F37 | framework | imgui: the panes of a panel: a navigation pane with its header and rows, and a content pane                  | planned |
-| M24 | mod       | The tree's pane and the content pane from the framework                                                      | planned |
-| F38 | framework | imgui: the title bar: breadcrumbs that shorten to fit, and its buttons                                       | planned |
-| M25 | mod       | The title bar from the framework                                                                             | planned |
-| F39 | framework | imgui: the footer: a rule, its buttons at the right, and the room of a help line                             | planned |
-| M26 | mod       | The footer from the framework                                                                                | planned |
-| F40 | framework | imgui: controls with their label in a row, and the press pulse                                               | planned |
-| M27 | mod       | A render test of the controls with their label                                                               | planned |
-| F41 | framework | imgui: a clipped list of rows                                                                                | planned |
-| M28 | mod       | A render test of a clipped list                                                                              | planned |
-| M29 | mod       | The mod's own drawing reads the theme as it draws, not the constants of `Theme.h`                            | planned |
+| F34 | framework | imgui: the controls' gaps from the theme's spacing scale, and tests that every control draws in the theme    | planned |
+| M21 | mod       | The heading's inset from the framework's function                                                            | planned |
+| F35 | framework | devbench: a `theme` action that sets the theme's fields live                                                 | planned |
+| F36 | framework | imgui: the targets of a panel, which the controls record, and a devbench `targets` action                    | planned |
+| M22 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | planned |
+| F37 | framework | imgui: the search field                                                                                      | planned |
+| M23 | mod       | The tree's search field from the framework                                                                   | planned |
+| F38 | framework | imgui: the drawn icons as one `Icon` set, and a popup beside its row                                         | planned |
+| M24 | mod       | Icons and the editors' popup from the framework                                                              | planned |
+| F39 | framework | imgui: the panes of a panel: a navigation pane with its header and rows, and a content pane                  | planned |
+| M25 | mod       | The tree's pane and the content pane from the framework                                                      | planned |
+| F40 | framework | imgui: the title bar: breadcrumbs that shorten to fit, and its buttons                                       | planned |
+| M26 | mod       | The title bar from the framework                                                                             | planned |
+| F41 | framework | imgui: the footer: a rule, its buttons at the right, and the room of a help line                             | planned |
+| M27 | mod       | The footer from the framework                                                                                | planned |
+| F42 | framework | imgui: controls with their label in a row, and the press pulse                                               | planned |
+| M28 | mod       | A render test of the controls with their label                                                               | planned |
+| F43 | framework | imgui: a clipped list of rows                                                                                | planned |
+| M29 | mod       | A render test of a clipped list                                                                              | planned |
+| M30 | mod       | The mod's own drawing reads the theme as it draws, not the constants of `Theme.h`                            | planned |
 
 ## Theme (F33, M20)
 
 ### Why
 
-The house look is typed in five places, each with its own colors: `controls::ControlsStyle`, `vrui::F4VR_PANEL_STYLE`, `imgui::KeyboardStyle`, `imgui::PointerStyle`, and the ImGui style this mod sets with its generated `theme::applyStyle` ([`Theme.h`](../../src/Theme.h)). `GameMenu::applyPanelLook` puts them together by hand. The controls also need that ImGui style: `rowWidth()` reads `ScrollbarSize`, and the scroll bars, the gap between rows and the fade of a disabled row are ImGui's. A mod that calls the controls without this mod's `applyStyle` gets the framework's green controls among ImGui's default scroll bars and spacing.
+The house look is typed in four places, each with its own colors: `controls::ControlsStyle`, `vrui::F4VR_PANEL_STYLE`, `imgui::KeyboardStyle`, and the ImGui style this mod sets with its generated `theme::applyStyle` ([`Theme.h`](../../src/Theme.h)). `GameMenu::applyPanelLook` puts them together by hand. The controls also need that ImGui style: `rowWidth()` reads `ScrollbarSize`, and the scroll bars, the gap between rows and the fade of a disabled row are ImGui's. A mod that calls the controls without this mod's `applyStyle` gets the framework's green controls among ImGui's default scroll bars and spacing.
 
 ### What the framework gets
 
@@ -61,11 +65,6 @@ struct Theme
 
     // a button the player must not miss
     render::Color important = render::Color::rgba(95, 212, 255);
-
-    // the pointer's ray, its mark and the mark's border
-    render::Color ray = render::Color::rgba(190, 255, 190, 200);
-    render::Color mark = render::Color::rgba(215, 255, 215, 180);
-    render::Color markBorder = render::Color::rgba(215, 255, 215, 100);
 
     // the sizes of ControlsStyle: controlHeight 48, frameRounding 4, frameBorderSize 2, popupRounding 8,
     // detailFontSize 18
@@ -94,29 +93,14 @@ struct Theme
     void applyTo(ImGuiStyle& style) const;
     vrui::UIPanelStyle panelStyle() const;
     KeyboardStyle keyboardStyle(KeyboardStyle base) const;
-    PointerStyle pointerStyle(PointerStyle base) const;
 };
 ```
 
-- **`applyTo`** sets every `ImGuiStyle` field and `ImGuiCol_` of the two tables of the design system's [ImGui style](design-system/project/README.md#imgui-style) section: it is the body of today's generated `theme::applyStyle`, with the theme's fields in place of the constants.
+- **`applyTo`** sets every `ImGuiStyle` field and `ImGuiCol_` of the two tables of the design system's [ImGui style](design-system/project/README.md#imgui-style) section: it is the body of today's generated `theme::applyStyle`, with the theme's fields in place of the constants. Its paddings and spacings are steps of the spacing scale, as the table has them (`WindowPadding` is `space4`, `ItemSpacing` is `space3` and `space2`, ...). It sets one color more: `ImGuiCol_InputTextCursor`, a text input's caret, is `accent`. ImGui's dark style leaves the caret white, the one color of the panel that is not the theme's.
 - **`panelStyle`** is the look `GameMenu::applyPanelLook` types now: the content and the border in `accent`, the background `glass`, and the three panel sizes.
 - **`keyboardStyle`** takes a keyboard style and gives it the theme's colors: `background` is `glass`, `border` and `accent` are `accent`, `accentText` is `onAccent`, and `selection` is `accent` at alpha 90. The key grays, `widthShare` and `tiltDegrees` stay as `base` has them.
-- **`pointerStyle`** takes a pointer style and gives it `ray`, `mark` and `markBorder`. The rest stays as `base` has it.
 
-**The spacing scale.** `applyTo` sets ImGui's paddings and spacings from it, as the design system's table has them (`WindowPadding` is `space4`, `ItemSpacing` is `space3` and `space2`, ...). A control reads its gaps from the theme as it draws, in place of its constants:
-
-| Step | The constants that read it |
-| --- | --- |
-| `space1` | `Choices`: `BUTTON_SLOP`, `LIST_GAP`, `ACTION_GAP`, `HEADER_ABOVE`. `Sliders`: `ARROW_GAP` |
-| `space2` | `Choices`: `STEPPER_GAP`, `DROPDOWN_ARROW_GAP`, `LIST_PADDING`, `HEADER_UNDER`, `HEADER_INSET`. `Dialogs`: `DIALOG_BUTTON_GAP`, the x of `DIALOG_ITEM_SPACING`. `Frames`: `TAG_PADDING`. `Rows`: `ROW_RIGHT_GAP`, `MARK_GAP`, `HEADING_PADDING`. `Sliders`: `VALUE_GAP`. `Text`: `MARK_SPACE`. `Tree`: `ROW_INSET`, `NAME_GAP`, `TAG_GAP` |
-| `space3` | `Choices`: `STEPPER_TEXT_PADDING`, `OPTION_PADDING`, `HEADER_GAP`. `Rows`: `RULE_GAP`, `HEADING_TEXT_INSET`. `Sliders`: `SLIDER_VALUE_PADDING`. `Tree`: `ROW_RIGHT_INSET`, `GROUP_RULE_GAP` |
-| `space4` | `Choices`: `DROPDOWN_TEXT_PADDING`, `OPTION_END_PADDING`. `Dialogs`: `DIALOG_BUTTON_PADDING`, the y of `DIALOG_ITEM_SPACING`. `TextInputs`: `TEXT_INPUT_PADDING`. `Tree`: `TREE_INDENT` |
-| `space6` | `Dialogs`: `DIALOG_PADDING` |
-
-- The four that are public (`HEADING_TEXT_INSET`, `SLIDER_VALUE_PADDING`, `TEXT_INPUT_PADDING`, `TREE_INDENT`) become functions of the same meaning: `headingTextInset()`, `sliderValuePadding()`, `textInputPadding()`, `treeIndent()`.
-- A slider's grab is the theme's `grabWidth` and `grabRounding`, and as high as `controlHeight` less `space2`, in place of `GRAB_WIDTH`, `GRAB_ROUNDING` and `GRAB_HEIGHT`.
-- What stays a constant is a size of a drawn part or of one control's design: the marks, arrows and icons, `FILL_HEIGHT`, `STEP_ARROW_WIDTH`, `BUTTON_RING`, `TAG_LINE_HEIGHT`, the tree's arrow column and tag, the least width of a rule, `SWITCHER_CELL_WIDTH`, `DIALOG_WIDTH`, `DIALOG_BUTTON_MIN_WIDTH`, `SELECTED_BAR_TIP_DEPTH`, `LIST_MAX_OPTIONS`, and the timings. A gap or a padding that is not listed is given its step by the same rule.
-- The controls of the later commits (F35 to F41) read the scale from the theme from the start.
+The controls' own gaps are their constants until F34, which are the default theme's steps.
 
 `Controls` holds the theme in place of `ControlsStyle`, which is removed:
 
@@ -126,36 +110,15 @@ struct Theme
 | `controls::get().setStyle(style)` | `controls::get().setTheme(theme)` |
 | `controls::get().style()` | `controls::get().theme()` |
 | `controls::get().colors()`, `tone(t)` | the same |
+| `imgui::setFontSizePixels(size)` | the theme's `bodyFontSize` |
 
 `setTheme` does three things:
 
 1. It keeps the theme and packs its colors, as `setStyle` does. `ControlsColors` has every color of the theme, the new ones too (`glass`, `plate`, `important`).
-2. It sets the keyboard and the pointer at once: `keyboard().setStyle(theme.keyboardStyle(keyboard().style()))` and the same for the pointer. A mod that wants its own ray or keyboard look calls their `setStyle` after `setTheme`.
+2. It sets the keyboard at once: `keyboard().setStyle(theme.keyboardStyle(keyboard().style()))`. A mod that wants its own keyboard look calls `keyboard().setStyle` after `setTheme`.
 3. It marks ImGui's style as not applied. The layer applies it with `applyTo` as it makes its main context, in place of `StyleColorsDark`, and `Controls::beginFrame` applies it again after a `setTheme`. `Controls::applyImGuiStyle()` is public for a test's own context.
 
-The canvas font is loaded at the theme's `bodyFontSize` unless `setFontSizePixels` was called, which then wins.
-
-### Changing the theme live
-
-`setTheme` is called at any time, and the next frame is drawn in the new theme. This mod does it already as its config is changed while the menu is open: `applyPanelLook` runs again for a new `iBackgroundOpacity`.
-
-- The controls keep no color and no size from one frame to the next: each reads `colors()` and `theme()` as it draws. What they hold across frames is a value and an id (a drag, an open list, an edit), which a new theme does not touch.
-- ImGui's style is applied again as the next frame begins, and the keyboard and the pointer are set in the call.
-- `applyTo` sets `ImGuiStyle::FontSizeBase` to `bodyFontSize`, which ImGui reads in each frame, so the body size follows too. `setFontSizePixels` is then the theme's `bodyFontSize` of a mod that sets no theme.
-- A panel's edge and background are its `UIPanelStyle`: the mod gives the panel `theme.panelStyle()` again after `setTheme`, as `applyPanelLook` does.
-- A mod's own drawing follows where it reads the theme as it draws. This mod's reads its generated constants until M29, so until then only `glass` changes live in it.
-
-### devbench: the `theme` action
-
-A look is tuned in the headset without a build: an agent or a script changes a field, and the next frame shows it. The value that is right is then typed into the mod's design, as a token of `tokens.json` here.
-
-- **The fields' table.** `ImGuiTheme.cpp` has one table of the theme's fields: each with its name as in the struct, whether it is a color or a number, and its member. `themeFields()` gives it. A `static_assert` that the fields' sizes add up to `sizeof(Theme)` stops a build whose new field is not in it.
-- **The action** is built in, beside `keyboard` in `DevBench.cpp`, so every mod's tool has it:
-  - With no argument it answers `fields`, each field by its name: a color as `[r, g, b, a]` from 0 to 255, a size as a number; and `overridden`, whether devbench set any.
-  - `set` is an object of fields and their values, in the same shapes: `{ "set": { "accent": [255, 180, 60, 255], "space2": 6 } }`. A name that is no field, or a value of the wrong shape, is an error that names it, and nothing is set.
-  - `reset` true goes back to the theme the mod set.
-- **Over the mod's theme.** `Controls` keeps the theme the mod set beside the one devbench set over it (`overrideTheme`, internal), which is the one drawn. `reset` drops the override, and so does the mod's next `setTheme`, as on a change of its config.
-- **What follows:** the controls, ImGui's style, the keyboard and the pointer, from the next frame. A panel's edge and background follow as the mod gives the panel its style again, and a mod's own drawing where it reads the theme.
+**The body font size** is the theme's `bodyFontSize`, clamped to `MIN_FONT_SIZE_PIXELS` and `MAX_FONT_SIZE_PIXELS`: the canvas font is loaded at it, and `applyTo` sets `ImGuiStyle::FontSizeBase` to it. `imgui::setFontSizePixels` and `internal::fontSizePixels` are removed.
 
 A mod with no design of its own has the default theme with no call:
 
@@ -171,38 +134,93 @@ controls::get().setTheme(myDesignTheme());
 _panel->setStyle(controls::get().theme().panelStyle());
 ```
 
-What is checked while implementing: `keyboard()` and `pointer()` take a `setStyle` with no game, as `Controls`' tests run under `test_no_game`. If one does not, `setTheme` keeps the derived styles and the layer sets them before its next frame, unless the mod set one itself since.
+What is checked while implementing: `keyboard()` takes a `setStyle` with no game, as `Controls`' tests run under `test_no_game`. If it does not, `setTheme` keeps the derived style and the layer sets it before its next frame, unless the mod set one itself since.
+
+### Changing the theme live
+
+`setTheme` is called at any time, and the next frame is drawn in the new theme. This mod does it already as its config is changed while the menu is open: `applyPanelLook` runs again for a new `iBackgroundOpacity`.
+
+- The controls keep no color and no size from one frame to the next: each reads `colors()` and `theme()` as it draws. What they hold across frames is a value and an id (a drag, an open list, an edit), which a new theme does not touch.
+- ImGui's style is applied again as the next frame begins, and the keyboard is set in the call.
+- ImGui reads `FontSizeBase` in each frame, so the body size follows too.
+- A panel's edge and background are its `UIPanelStyle`: the mod gives the panel `theme.panelStyle()` again after `setTheme`, as `applyPanelLook` does.
+- A mod's own drawing follows where it reads the theme as it draws. This mod's reads its generated constants until M30, so until then only `glass` changes live in it.
 
 ### Tests and docs (F33)
 
-- `tests/linked/imgui/controls/ControlsThemeTests.cpp`: the default theme's `accent` is `vrui::F4VR_PANEL_STYLE.color`; `applyTo` sets `ScrollbarSize`, `DisabledAlpha`, `ItemSpacing` and `ImGuiCol_Text` from the theme; `panelStyle()` has the theme's colors and sizes; `keyboardStyle` and `pointerStyle` change the colors and keep the rest of `base`; `setTheme` packs `colors()` again and marks the style, which `applyImGuiStyle` then sets.
+- `tests/linked/imgui/controls/ControlsThemeTests.cpp`: the default theme's `accent` is `vrui::F4VR_PANEL_STYLE.color`; `panelStyle()` has the theme's colors and sizes; `keyboardStyle` changes the colors and keeps the rest of `base`; `setTheme` packs `colors()` again and marks the style, which `applyImGuiStyle` then sets.
+- **ImGui's style:** every field and color `applyTo` sets has its theme value, by a table of the two, `FontSizeBase` and `ImGuiCol_InputTextCursor` among them, and a field the table lacks is as `StyleColorsDark` leaves it.
 - The controls' tests call `controls::get().applyImGuiStyle()` in their `TestContext`.
+- [`imgui/README.md`](../../external/F4VR-CommonFramework/src/imgui/README.md): a Theme section, and the font size there. The controls README: its Style section becomes the theme's. `docs/CHANGELOG.md` `0.7.0`, with **Upgrading**: the renames of the table above, the ImGui style every canvas of the main context gets, and the body font size, 21 px where no theme is set and not 24.
 
-**That the controls use the theme** is tested with a theme no default equals. `tests/linked/imgui/controls/ControlsGallery.h` draws every control in every state it has (at rest, under the ray, held, disabled, in each tone, selected, a list open, a dialog open, a text edited), and `probeTheme()` is a theme whose every color has an RGB of its own and whose every size and step is unlike its default and unlike the others. `ControlsThemeUseTests.cpp`:
+### The mod's port (M20)
+
+- `gen_theme.py` writes `theme::designTheme()` into `Theme.h`: an `imgui::Theme` with every field set from a token, by a table in the generator of which token is which field (`accent` from `green`, `warning` from `amber`, `important` from `accent`, `bodyFontSize` from `t-body`, `space2` from `space-2`, `panelBorderUnits` from `border-panel` over 48, ...). A field of `Theme` the table lacks stops the generator: it reads the fields from the framework's `ImGuiTheme.h`.
+- `Theme.h` gets a `static_assert` that `sizeof(imgui::Theme)` is what the generator read. A build on a framework whose `Theme` has a new field stops there until the generator is run, so the mod never takes a default for it.
+- `gen_theme.py` no longer writes `applyStyle`: the framework's `Theme::applyTo` sets ImGui's style from the theme. It still checks the first table of the design system's [ImGui style](design-system/project/README.md#imgui-style) section against the tokens. The section's intro says the framework sets the style from the mod's theme, and the `green` row of its second table gets `InputTextCursor`.
+- `Theme.h` keeps every token as a constant: the mod's own code keeps `theme::color::GREEN` and `theme::SPACE_2`, which are what `designTheme()` gives the framework, so nothing else is edited. The pointer's tokens (`color::RAY`, `MARK`, `MARK_BORDER`) are no field of the theme.
+- `GameMenu::applyPanelLook`: `theme::designTheme()` with `glass` at the config's `iBackgroundOpacity`, given to `controls::get().setTheme`, then `_panel->setStyle(theme.panelStyle())`. `pointer().setStyle(g_config.pointerStyle)` stays as it is. The lines that give the keyboard the panel's background go: the theme does it. `setFontSizePixels(theme::FONT_SIZE)` goes: the font is loaded at the theme's `bodyFontSize`.
+- `ui::controlsStyle()` and `colorOf` in [`Drawing.cpp`](../../src/ui/Drawing.cpp) go.
+- `FullPanel::draw` no longer applies the style (`_styleApplied` goes). [`tests/linked/TestPanel.h`](../../tests/linked/TestPanel.h) sets `theme::designTheme()` and calls `controls::get().applyImGuiStyle()`.
+
+Accepted when the panel tests, the render tests and e2e pass unchanged, and the in-game panel, keyboard and ray look as before but for two colors the theme sets now: a text input's caret is `green` and not white, and the text of a keyboard's key drawn in the accent, as one held down, is `on-green` (4, 23, 12) and not the keyboard's own (15, 15, 15).
+
+## The spacing scale, and that the controls use the theme (F34, M21)
+
+### Why
+
+A theme's spacing reaches ImGui's style and not the controls, whose gaps are constants. Read from the theme, a mod's design sets them too, and a test with a theme no default equals tells a number typed in a control from the theme's.
+
+### What the framework gets
+
+A control reads its gaps from the theme as it draws, in place of its constants:
+
+| Step | The constants that read it |
+| --- | --- |
+| `space1` | `Choices`: `BUTTON_SLOP`, `LIST_GAP`, `ACTION_GAP`, `HEADER_ABOVE`. `Sliders`: `ARROW_GAP` |
+| `space2` | `Choices`: `STEPPER_GAP`, `DROPDOWN_ARROW_GAP`, `LIST_PADDING`, `HEADER_UNDER`, `HEADER_INSET`. `Dialogs`: `DIALOG_BUTTON_GAP`, the x of `DIALOG_ITEM_SPACING`. `Frames`: `TAG_PADDING`. `Rows`: `ROW_RIGHT_GAP`, `MARK_GAP`, `HEADING_PADDING`. `Sliders`: `VALUE_GAP`. `Text`: `MARK_SPACE`. `Tree`: `ROW_INSET`, `NAME_GAP`, `TAG_GAP` |
+| `space3` | `Choices`: `STEPPER_TEXT_PADDING`, `OPTION_PADDING`, `HEADER_GAP`. `Rows`: `RULE_GAP`, `HEADING_TEXT_INSET`. `Sliders`: `SLIDER_VALUE_PADDING`. `Tree`: `ROW_RIGHT_INSET`, `GROUP_RULE_GAP` |
+| `space4` | `Choices`: `DROPDOWN_TEXT_PADDING`, `OPTION_END_PADDING`. `Dialogs`: `DIALOG_BUTTON_PADDING`, the y of `DIALOG_ITEM_SPACING`. `TextInputs`: `TEXT_INPUT_PADDING`. `Tree`: `TREE_INDENT` |
+| `space6` | `Dialogs`: `DIALOG_PADDING` |
+
+- The four that are public (`HEADING_TEXT_INSET`, `SLIDER_VALUE_PADDING`, `TEXT_INPUT_PADDING`, `TREE_INDENT`) become functions of the same meaning: `headingTextInset()`, `sliderValuePadding()`, `textInputPadding()`, `treeIndent()`.
+- A slider's grab is the theme's `grabWidth` and `grabRounding`, and as high as `controlHeight` less `space2`, in place of `GRAB_WIDTH`, `GRAB_ROUNDING` and `GRAB_HEIGHT`.
+- What stays a constant is a size of a drawn part or of one control's design: the marks, arrows and icons, `FILL_HEIGHT`, `STEP_ARROW_WIDTH`, `BUTTON_RING`, `TAG_LINE_HEIGHT`, the tree's arrow column and tag, the least width of a rule, `SWITCHER_CELL_WIDTH`, `DIALOG_WIDTH`, `DIALOG_BUTTON_MIN_WIDTH`, `SELECTED_BAR_TIP_DEPTH`, `LIST_MAX_OPTIONS`, and the timings. A gap or a padding that is not listed is given its step by the same rule.
+- The controls of the later commits (F37 to F43) read the scale from the theme from the start.
+
+**The fields' table.** `ImGuiTheme.cpp` has one table of the theme's fields: each with its name as in the struct, whether it is a color or a number, and its member. `themeFields()` gives it, to the probe theme of the tests here and to the `theme` action of F35. A `static_assert` that the fields' sizes add up to `sizeof(Theme)` stops a build whose new field is not in it.
+
+### Tests and docs (F34)
+
+`tests/linked/imgui/controls/ControlsGallery.h` draws every control in every state it has (at rest, under the ray, held, disabled, in each tone, selected, a list open, a dialog open, a text edited), and `probeTheme()` is a theme whose every color has an RGB of its own and whose every size and step is unlike its default and unlike the others. It is built from `themeFields()`, so a new field is probed too. `ControlsThemeUseTests.cpp`:
 
 - **No color but the theme's:** the gallery is drawn in the probe theme, and the RGB of every vertex of ImGui's draw data is one of the probe theme's colors. A color typed in a control, or read from ImGui's default style, fails it. The alpha is not compared: a disabled control and an edge's fringe change it.
 - **The right color:** a case for each role names what is drawn in it: a frame's fill is `track`, its outline `frameBorder`, and `accent` while edited; a row under the ray is `hover` and a held one `pressed`; a primary button's fill is `accent` and its text `onAccent`; a value in the warning or error tone is that color; a list's and a dialog's background is `popup`, and the dim behind a dialog `scrim`; a heading's text is `muted` and its rule `rule`.
 - **No size but the theme's:** each control's box in the probe theme is what the probe's sizes give: a row is `controlHeight` high; a list is padded `space2` with `space1` between its options; a dialog is padded `space6`; a tree's row is set in `space4` a level; a heading's text starts `space3` in; a tag's and a count's text is `detailFontSize` high. The boxes are the ones the controls return and their items' rects.
-- **ImGui's style:** every field and color `applyTo` sets has its theme value, by a table of the two, and a field the table lacks is as `StyleColorsDark` leaves it.
 - **Live:** the gallery is drawn in the default theme, `setTheme(probeTheme())` is called, and the next frame passes the cases above, with a list open and a slider held across the change.
 
-Each control of a later commit adds itself to the gallery, so these cases cover it. `probeTheme()` is built from `themeFields()`, so a new field is probed too.
+Each control of a later commit adds itself to the gallery, so these cases cover it.
 
-**The `theme` action** is a thin handler over two functions of `ImGuiTheme.cpp`, the theme as JSON and a JSON's fields set on a theme, which `ControlsThemeTests.cpp` tests with no devbench: it answers every field of the table in its shape; a `set` changes those fields and no other, and is drawn in the next frame; an unknown field and a wrong shape set nothing; `reset` and a `setTheme` of the mod each end the override. The devbench README gets the `theme` row.
-- [`imgui/README.md`](../../external/F4VR-CommonFramework/src/imgui/README.md): a Theme section. The controls README: its Style section becomes the theme's. `CHANGELOG.md` `0.7.0`, with **Upgrading**: the renames of the table above, the ImGui style every canvas gets, and the font size.
+The controls README: the gaps are the theme's steps. `docs/CHANGELOG.md`, with **Upgrading**: the four constants that are functions.
 
-### The mod's port (M20)
+### The mod's port (M21)
 
-- `gen_theme.py` writes `theme::designTheme()` into `Theme.h`: an `imgui::Theme` with every field set from a token, by a table in the generator of which token is which field (`accent` from `green`, `warning` from `amber`, `important` from `accent`, `bodyFontSize` from `t-body`, `space2` from `space-2`, `panelBorderUnits` from `border-panel` over 48, ...). A field of `Theme` the table lacks stops the generator: it reads the field names from the framework's `ImGuiTheme.h`, which `themeFields()` has too.
-- `gen_theme.py` no longer writes `applyStyle`: the framework's `Theme::applyTo` sets ImGui's style from the theme. It still checks the first table of the design system's [ImGui style](design-system/project/README.md#imgui-style) section against the tokens, and the section's intro says the framework sets the style from the mod's theme.
-- `Theme.h` keeps every token as a constant: the mod's own code keeps `theme::color::GREEN` and `theme::SPACE_2`, which are what `designTheme()` gives the framework, so nothing else is edited but the uses of the four public gaps that became functions (`controls::HEADING_TEXT_INSET` in six places).
-- `GameMenu::applyPanelLook`: `theme::designTheme()` with `glass` at the config's `iBackgroundOpacity`, given to `controls::get().setTheme`, then `pointer().setStyle(g_config.pointerStyle)`, the config's ray over the theme's, then `_panel->setStyle(theme.panelStyle())`. The lines that give the keyboard the panel's background go: the theme does it. `setFontSizePixels(theme::FONT_SIZE)` goes: the font is loaded at the theme's `bodyFontSize`.
-- `ui::controlsStyle()` and `colorOf` in [`Drawing.cpp`](../../src/ui/Drawing.cpp) go.
-- `FullPanel::draw` no longer applies the style (`_styleApplied` goes). [`tests/linked/TestPanel.h`](../../tests/linked/TestPanel.h) sets `theme::designTheme()` and calls `controls::get().applyImGuiStyle()`.
+The six uses of `controls::HEADING_TEXT_INSET` become `controls::headingTextInset()`. The mod reads none of the other three. Accepted when the panel tests, the render tests and e2e pass unchanged.
 
-Accepted when the panel tests, the render tests and e2e pass unchanged, and the in-game panel, keyboard and ray look as before.
+## devbench: the `theme` action (F35)
 
-## Targets (F34, M21)
+A look is tuned in the headset without a build: an agent or a script changes a field, and the next frame shows it. The value that is right is then typed into the mod's design, as a token of `tokens.json` here. The mod has no port: the action is every mod's.
+
+- **The action** is built in, beside `keyboard` in `DevBench.cpp`, so every mod's tool has it:
+  - With no argument it answers `fields`, each field of `themeFields()` by its name: a color as `[r, g, b, a]` from 0 to 255, a size as a number; and `overridden`, whether devbench set any.
+  - `set` is an object of fields and their values, in the same shapes: `{ "set": { "accent": [255, 180, 60, 255], "space2": 6 } }`. A name that is no field, or a value of the wrong shape, is an error that names it, and nothing is set.
+  - `reset` true goes back to the theme the mod set.
+- **Over the mod's theme.** `Controls` keeps the theme the mod set beside the one devbench set over it (`overrideTheme`, internal), which is the one drawn. `reset` drops the override, and so does the mod's next `setTheme`, as on a change of its config.
+- **What follows:** the controls, ImGui's style and the keyboard, from the next frame. A panel's edge and background follow as the mod gives the panel its style again, and a mod's own drawing where it reads the theme. The pointer does not: its look is not the theme's.
+
+**Tests and docs.** The action is a thin handler over two functions of `ImGuiTheme.cpp`, the theme as JSON and a JSON's fields set on a theme, which `ControlsThemeTests.cpp` tests with no devbench: it answers every field of the table in its shape; a `set` changes those fields and no other, and is drawn in the next frame; an unknown field and a wrong shape set nothing; `reset` and a `setTheme` of the mod each end the override. The devbench README gets the `theme` row.
+
+## Targets (F36, M22)
 
 ### Why
 
@@ -258,21 +276,21 @@ inline Targets& targets() { return Targets::get(); }
 | --- | --- | --- |
 | `button`, `dialogButtons` | `button` | its label |
 | `drawList` | `option` | each option's text, and the action entry's; its scroll as area `list` |
-| `searchField` (F35) | `search` | `Field`, `Clear` |
-| `titleBar` (F38) | `crumb`, `titleButton` | the crumb's text, the button's name |
-| the panes (F37) | | their scroll, as the area the mod names |
+| `searchField` (F37) | `search` | `Field`, `Clear` |
+| `titleBar` (F40) | `crumb`, `titleButton` | the crumb's text, the button's name |
+| the panes (F39) | | their scroll, as the area the mod names |
 
 - **What the mod records**, with `controls::targets().add`: a row whose key is the mod's own, as a tree's row by its node and path, a setting's row by its id, a section by its text.
 - **devbench:** a built-in `targets` action beside `keyboard` in `DevBench.cpp`, with the answer of this mod's `targets` action: `recording`, `targets` (`kind`, `key`, `x`, `y`, `width`, `height`, and `path` where it has one) and `scrolls` (`area`, `y`, `max`). The first call starts the recording and answers none.
 
 With two panels at once a target does not say which canvas it is in. A `canvas` name is added when a mod has two panels with targets.
 
-### Tests and docs (F34)
+### Tests and docs (F36)
 
 - `ControlsTargetsTests.cpp`, from this mod's `PanelTargetsTests.cpp`: nothing is kept while not recording; a rect is clipped to its window and kept from the canvas's origin; one scrolled out is not kept; a frame clears; a `button` and a `drawList` record themselves.
 - The controls README: a Targets section. The devbench README: the `targets` row. `CHANGELOG.md`.
 
-### The mod's port (M21)
+### The mod's port (M22)
 
 - `src/ui/PanelTargets.h/.cpp` go. The kinds become texts in `src/ui/Targets.h` (`ui::target::TREE = "tree"`, ...), with the names `targetKindName` gives now, so e2e reads the same answer.
 - Every `panelTargets().add(TargetKind::X, ...)` becomes `controls::targets().add(ui::target::X, ...)`, and `addScroll(ScrollArea::X)` the area's text.
@@ -280,7 +298,7 @@ With two panels at once a target does not say which canvas it is in. A `canvas` 
 - The mod's `targets` devbench action and `runTargets` go: the built-in one answers. [`tests/e2e/controllers.py`](../../tests/e2e/controllers.py) is unchanged.
 - `PanelTargetsTests.cpp` keeps what is the mod's: which rows record which kind and key.
 
-## Search field (F35, M22)
+## Search field (F37, M23)
 
 [`SearchField.cpp`](../../src/ui/SearchField.cpp) knows nothing of a mod but its two help texts and its placeholder.
 
@@ -319,11 +337,11 @@ SearchDrawn searchField(const char* id, const ImVec2& pos, float width, std::str
 - A press edits it on the live, bare text input, so `controls::get().isTextEdited(ImGui::GetID(id))` says it is edited, Back ends the edit, and a physical keyboard's Escape keeps the query, as now.
 - The caller keeps the query: it writes `write`, and empties it on `cleared`.
 
-**The mod (M22):** `ui::SearchField` keeps the query, `setQuery`, `clear`, `isEdited` and the two help texts, and its `draw` is one `controls::searchField` call. `drawMagnifier` and `drawCross` go.
+**The mod (M23):** `ui::SearchField` keeps the query, `setQuery`, `clear`, `isEdited` and the two help texts, and its `draw` is one `controls::searchField` call. `drawMagnifier` and `drawCross` go.
 
-## Icons and the row popup (F36, M23)
+## Icons and the row popup (F38, M24)
 
-**Icons.** The drawn icons are in five files of the mod: the 18 of a config spec's button ([`ButtonIcons.cpp`](../../src/ui/ButtonIcons.cpp)), Minimize and Close ([`TitleBar.cpp`](../../src/ui/TitleBar.cpp)), Play (`Haptics`), and the magnifier and the cross, which F35 moved. `src/imgui/controls/Icons.h` has them as one set:
+**Icons.** The drawn icons are in five files of the mod: the 18 of a config spec's button ([`ButtonIcons.cpp`](../../src/ui/ButtonIcons.cpp)), Minimize and Close ([`TitleBar.cpp`](../../src/ui/TitleBar.cpp)), Play (`Haptics`), and the magnifier and the cross, which F37 moved. `src/imgui/controls/Icons.h` has them as one set:
 
 ```cpp
 enum class Icon : std::uint8_t
@@ -344,7 +362,7 @@ Each icon is drawn as the mod draws it now, strokes scaled with its size. `Marks
 
 Tests: each icon draws inside its box at two sizes (the draw list's vertices are within it); the popup is placed under a row with room, over one without, and never past its window's sides.
 
-## Panes (F37, M24)
+## Panes (F39, M25)
 
 The panel's body is two panes: the tree's, a plate with a header that stays and rows that scroll, and the content's, which scrolls from its top as its page changes. `ModTree::draw` and `FullPanel::drawContent` build them from `BeginChild` with the style pushed by hand. `src/imgui/controls/Panes.h`:
 
@@ -367,11 +385,11 @@ void endContentPane(std::string_view scrollArea = "page");
 - **Each `end` is called whether or not its `begin` returned true**, as ImGui's `EndChild`. It records the pane's scroll as a target's area.
 - The gap between the panes is the caller's `ImGui::SameLine(0.0f, controls::get().theme().space4)`.
 
-**The mod (M24):** `ModTree::draw` and `FullPanel::drawContent` call them. `RIGHT_ROOM` and the row width's arithmetic in `ModTree.cpp` go to `navRowWidth`. `theme::NAV_WIDTH` stays the mod's.
+**The mod (M25):** `ModTree::draw` and `FullPanel::drawContent` call them. `RIGHT_ROOM` and the row width's arithmetic in `ModTree.cpp` go to `navRowWidth`. `theme::NAV_WIDTH` stays the mod's.
 
 Tests: a nav pane's rows are `navRowWidth` wide with and without a scroll bar; `showTop` and `scrollTo` set the scroll; the scrolls are recorded under their areas.
 
-## Title bar (F38, M25)
+## Title bar (F40, M26)
 
 `drawTitleBar` ([`TitleBar.cpp`](../../src/ui/TitleBar.cpp)) is breadcrumbs that shorten to fit, and buttons at the right. What is the mod's is which crumbs there are and what a press on one does. `src/imgui/controls/TitleBars.h`:
 
@@ -430,11 +448,11 @@ TitleBarDrawn titleBar(const TitleBar& bar);
 - A button is an `iconButton` as high as a control. One with a `highlightText` is drawn wider with that text, as the mod's Help while it stands out.
 - A rule in the theme's `rule` ends the bar. Crumbs and buttons record themselves as targets (`crumb`, `titleButton`).
 
-**The mod (M25):** [`Breadcrumbs`](../../src/ui/Breadcrumbs.h) keeps `breadcrumbsOf` and each crumb's target; `drawTitleBar` builds the `TitleBar`, calls `controls::titleBar`, and makes the help line's row of the pointed button with its help text. `theme::TITLEBAR_HEIGHT` is the `height` it gives.
+**The mod (M26):** [`Breadcrumbs`](../../src/ui/Breadcrumbs.h) keeps `breadcrumbsOf` and each crumb's target; `drawTitleBar` builds the `TitleBar`, calls `controls::titleBar`, and makes the help line's row of the pointed button with its help text. `theme::TITLEBAR_HEIGHT` is the `height` it gives.
 
 Tests, new in the framework, as the mod's `BreadcrumbsTests.cpp` is about which crumbs there are and stays: the crumbs fit; the middle ones become `…`; the second shortens to its least width; a second that does not shorten keeps its width; a press gives the crumb's place.
 
-## Footer (F39, M26)
+## Footer (F41, M27)
 
 `src/imgui/controls/Footers.h`:
 
@@ -458,11 +476,11 @@ struct FooterDrawn
 FooterDrawn footer(const ImVec2& pos, std::span<const FooterButton> buttons, float height = 72.0f, float buttonWidth = 160.0f);
 ```
 
-It draws the rule over it and the buttons at the right in their order, the last at the right edge, `space3` apart, in the middle of its height, and takes its room. `left` starts `space4` in and ends `space3` before the first button.
+It draws the rule over it and the buttons at the right in their order, the last `space2` inside the right edge, `space3` apart, in the middle of its height, and takes its room. `left` starts `space4` in and ends `space3` before the first button.
 
-**The mod (M26):** `FullPanel::drawFooter` gives Discard and Save (Revert and Keep for an MCM mod) with their disabled states, acts on `pressed`, and draws its `HelpLine` in `left`. `HelpLine` stays the mod's: what it says of a row is about settings.
+**The mod (M27):** `FullPanel::drawFooter` gives Discard and Save (Revert and Keep for an MCM mod) with their disabled states, acts on `pressed`, and draws its `HelpLine` in `left`. `HelpLine` stays the mod's: what it says of a row is about settings.
 
-## Controls with their label, and the press pulse (F40, M27)
+## Controls with their label, and the press pulse (F42, M28)
 
 Today a slider is a row the caller adds, an id, `sliderEdit`, a write, then `drawSlider` at a `right` and a `top`. That is what this mod's rows need, as they draw a pending or invalid look between the edit and the draw. A plain page wants one call. `src/imgui/controls/Labelled.h`, built from the controls that are there:
 
@@ -505,9 +523,9 @@ float drawRowLabel(const ImVec2& pos, float right, std::string_view text, Mark m
 
 Tests: each labelled control on a headless context: a press changes the value and returns true once; a disabled one changes nothing; the slider writes on release; `pulsed()` is true in the frame of the press.
 
-**The mod (M27):** this mod's rows stay on the controls under them, so nothing is ported. `tests/linked/ui/ControlsRenderTests.cpp`, tagged `[render]` as the panel's render tests and saved as they are, draws a page of every labelled control in this mod's theme: each at rest, under the ray, disabled, with a mark, and in the warning and error tones, with a dropdown's list open. It is the look's check before a panel has them in the headset.
+**The mod (M28):** this mod's rows stay on the controls under them, so nothing is ported. `tests/linked/ui/ControlsRenderTests.cpp`, tagged `[render]` as the panel's render tests and saved as they are, draws a page of every labelled control in this mod's theme: each at rest, under the ray, disabled, with a mark, and in the warning and error tones, with a dropdown's list open. It is the look's check before a panel has them in the headset.
 
-## A clipped list of rows (F41, M28)
+## A clipped list of rows (F43, M29)
 
 A page adds every row, also one scrolled out, which draws nothing. That holds for a mod's settings and not for a list of every item of the game. `Rows.h` gets:
 
@@ -520,15 +538,15 @@ It is ImGui's `ImGuiListClipper` over rows of the control's height with the spac
 
 Tests: of 10,000 rows only the shown ones are drawn; the content is as high as all of them; `keep` is drawn while scrolled out.
 
-**The mod (M28):** `ControlsRenderTests.cpp` gets a content pane of 10,000 labelled rows scrolled to its middle.
+**The mod (M29):** `ControlsRenderTests.cpp` gets a content pane of 10,000 labelled rows scrolled to its middle.
 
-## The mod reads the theme (M29)
+## The mod reads the theme (M30)
 
 ### Why
 
 The mod's own drawing reads the constants of `Theme.h`: about 550 reads in 33 files of `src/`. They are the values `designTheme()` gives the framework, so the panel is right, and it is drawn in them whatever theme is set. With the theme read as it draws, the `theme` action tunes the whole panel in the headset, a part that moves to the framework later moves as it is, and a theme the player chooses needs no more of the drawing.
 
-It is the last commit: M22 to M26 take the search field, the icons, the panes, the title bar and the footer out of the mod, and their reads with them.
+It is the last commit: M23 to M27 take the search field, the icons, the panes, the title bar and the footer out of the mod, and their reads with them.
 
 ### What changes
 
@@ -555,7 +573,7 @@ Each read of a constant that is a field of the theme becomes a read of that fiel
 | `ROW_PITCH` | `look().controlHeight + look().space2` |
 
 - **What stays a constant** is the mod's own layout, which no theme sets: `PANEL_WIDTH`, `PANEL_HEIGHT`, `NAV_WIDTH`, `TITLEBAR_HEIGHT`, `FOOTER_HEIGHT`, `CONTROL_WIDTH`, `VALUE_WIDTH`, and the vrui wrist buttons' `GLASS_WIDGET`, `RADIUS_WIDGET` and `BORDER_WIDGET`.
-- **The `constexpr` sizes made of a theme's field** become functions that give the same number: `DROPDOWN_WIDTH`, `HAPTIC_FRAME_WIDTH`, `FIELD_WIDTH` (`TextInputs`), `PRESETS_HEIGHT` (`ColorEditor`), `EDITOR_HEIGHT_NO_DIRECTION` and `PART_LINE_WIDTH` (`BindingEditor`), `MOD_CRUMB_MIN_WIDTH`, where M22 to M26 left them in the mod. `AdjustInWorld`'s `PENDING_COLOR` is `look().warning`, which is a `render::Color` already.
+- **The `constexpr` sizes made of a theme's field** become functions that give the same number: `DROPDOWN_WIDTH`, `HAPTIC_FRAME_WIDTH`, `FIELD_WIDTH` (`TextInputs`), `PRESETS_HEIGHT` (`ColorEditor`), `EDITOR_HEIGHT_NO_DIRECTION` and `PART_LINE_WIDTH` (`BindingEditor`), `MOD_CRUMB_MIN_WIDTH`, where M23 to M27 left them in the mod. `AdjustInWorld`'s `PENDING_COLOR` is `look().warning`, which is a `render::Color` already.
 - **`Theme.h`** keeps every token as a constant: `designTheme()` is built of them, and the tests read them as the values they expect.
 - **The check that it stays so:** `gen_theme.py`, which has the table of which token is a field, also fails when a file of `src/` other than `Theme.h` names the constant of one. Its pre-commit hook runs on a change of `src/` too.
 - The mod's design docs keep the design system's names (`green`, `amber`): the code's are the theme's roles.
@@ -579,5 +597,5 @@ Each read of a constant that is a field of the theme becomes a read of that fiel
 - **A theme for each canvas.** `Controls` exists once in a mod's DLL, so all its canvases have one theme, and the controls' frame is the main context's: a canvas of the framework's own context, as the keyboard's, is not drawn with them.
 - **A denser look.** The controls' gaps do not follow `controlHeight`. A list of shorter rows is designed when a page needs one.
 - **A theme from one color.** A mod's theme sets every field from its design. A helper that derives the colors that follow an accent is written when a mod wants one.
-- **A theme the player chooses.** After M29 the drawing would follow one. A setting for it, and the themes to choose from, are designed when the mod wants them.
+- **A theme the player chooses.** After M30 the drawing would follow one. A setting for it, and the themes to choose from, are designed when the mod wants them.
 - **New controls** (tabs, tables, toasts): each with its use case in the next mod.

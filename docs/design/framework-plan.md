@@ -128,9 +128,9 @@ Then the rows and the tree's rows, which set the panel's look as the controls do
 
 What stays of them: `drawLabel` with the pending, applies and invalid marks, `sphereHeading`, what `Sections` counts in a folded section and says of it, and all of `ModTree`: the mods, pages, categories and search results it walks, the open categories, the scroll to the first rows a press opened, and the search field.
 
-What waits for the next mod: the tree as a whole, panes and their scrolling, a clipped list for thousands of rows, breadcrumbs, the help line, the order of Back, devbench targets kept by the framework, and the editors of the framework's types (`cf.color`, `cf.transform`, `cf.inputBinding`, `cf.haptic`). The next mod builds them, copied from here where that helps; each moves once both mods have it and the shape they share shows.
+What moves next, in the [framework hardening plan](framework-plan-hardening.md): the search field, panes and their scrolling, a clipped list for thousands of rows, breadcrumbs in a title bar, the footer, and devbench targets kept by the framework.
 
-What stays: everything about config specs, MCM and Save: the rows' rules (`RowView`, `ButtonView`), the pending, invalid and applies marks, the rich text of a config spec's markup, `FullPanel` and its sessions.
+What stays: the tree as a whole, the help line, the order of Back, the editors of the framework's types (`cf.color`, `cf.transform`, `cf.inputBinding`, `cf.haptic`), and everything about config specs, MCM and Save: the rows' rules (`RowView`, `ButtonView`), the pending, invalid and applies marks, the rich text of a config spec's markup, `FullPanel` and its sessions.
 
 Each framework commit is followed by the mod's port onto it, one at a time.
 
