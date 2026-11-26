@@ -18,8 +18,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | --- | --------- | ------------------------------------------------------------------------------------------------------------ | ------- |
 | F33 | framework | imgui: one `Theme` for the controls, ImGui's style, the keyboard and the panel, set live                     | done    |
 | M20 | mod       | The design system's theme, generated from its tokens, applied as the framework's theme                       | done    |
-| F34 | framework | imgui: the controls' gaps from the theme's spacing scale, and tests that every control draws in the theme    | planned |
-| M21 | mod       | The heading's inset from the framework's function                                                            | planned |
+| F34 | framework | imgui: the controls' gaps from the theme's spacing scale, and tests that every control draws in the theme    | done    |
+| M21 | mod       | The heading's inset from the framework's function                                                            | done    |
 | F35 | framework | devbench: a `theme` action that sets the theme's fields live                                                 | planned |
 | F36 | framework | imgui: the targets of a panel, which the controls record, and a devbench `targets` action                    | planned |
 | M22 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | planned |
@@ -184,21 +184,22 @@ A control reads its gaps from the theme as it draws, in place of its constants:
 
 - The four that are public (`HEADING_TEXT_INSET`, `SLIDER_VALUE_PADDING`, `TEXT_INPUT_PADDING`, `TREE_INDENT`) become functions of the same meaning: `headingTextInset()`, `sliderValuePadding()`, `textInputPadding()`, `treeIndent()`.
 - A slider's grab is the theme's `grabWidth` and `grabRounding`, and as high as `controlHeight` less `space2`, in place of `GRAB_WIDTH`, `GRAB_ROUNDING` and `GRAB_HEIGHT`.
-- What stays a constant is a size of a drawn part or of one control's design: the marks, arrows and icons, `FILL_HEIGHT`, `STEP_ARROW_WIDTH`, `BUTTON_RING`, `TAG_LINE_HEIGHT`, the tree's arrow column and tag, the least width of a rule, `SWITCHER_CELL_WIDTH`, `DIALOG_WIDTH`, `DIALOG_BUTTON_MIN_WIDTH`, `SELECTED_BAR_TIP_DEPTH`, `LIST_MAX_OPTIONS`, and the timings. A gap or a padding that is not listed is given its step by the same rule.
+- What stays a constant is a size of a drawn part or of one control's design: the marks, arrows and icons, `FILL_HEIGHT`, `STEP_ARROW_WIDTH`, `BUTTON_RING`, `TAG_LINE_HEIGHT`, the tree's arrow column and tag, the least width of a rule, `SWITCHER_CELL_WIDTH`, `DIALOG_WIDTH`, `DIALOG_BUTTON_MIN_WIDTH`, `SELECTED_BAR_TIP_DEPTH`, `LIST_MAX_OPTIONS`, and the timings. A gap or a padding that is not listed is given its step by the same rule. The tree's `ARROW_GAP` of 6 is on no step: it stays a constant of the arrow column.
+- Each constant of the table is a function of the same name in its file (`listGap()`, `dialogPadding()`, ...), which reads the theme as the control draws. `TextLook`'s padding is `textInputPadding()` where it is not given, read as the look is made.
 - The controls of the later commits (F37 to F43) read the scale from the theme from the start.
 
 **The fields' table.** `ImGuiTheme.cpp` has one table of the theme's fields: each with its name as in the struct, whether it is a color or a number, and its member. `themeFields()` gives it, to the probe theme of the tests here and to the `theme` action of F35. A `static_assert` that the fields' sizes add up to `sizeof(Theme)` stops a build whose new field is not in it.
 
 ### Tests and docs (F34)
 
-`tests/linked/imgui/controls/ControlsGallery.h` draws every control in every state it has (at rest, under the ray, held, disabled, in each tone, selected, a list open, a dialog open, a text edited), and `probeTheme()` is a theme whose every color has an RGB of its own and whose every size and step is unlike its default and unlike the others. It is built from `themeFields()`, so a new field is probed too. `ControlsThemeUseTests.cpp`:
+`tests/linked/imgui/controls/ControlsGallery.h` draws every control in every state it has (at rest, under the ray, held, disabled, in each tone, selected, a list open, a dialog open, a text edited), and `probeTheme()` is a theme whose every color has an RGB of its own and whose every size and step is unlike its default and unlike the others. It is built from `themeFields()`, so a new field is probed too. A size is a whole pixel, a quarter over its default and up to the next one no other size has, as ImGui lays out at whole pixels; the vrui units and the opacity stay fractional. A color keeps its default's alpha. The gallery's context fails a test on any error ImGui reports, as a conflict of IDs, which ImGui shows in a tooltip of its own colors. `ControlsThemeUseTests.cpp`:
 
 - **No color but the theme's:** the gallery is drawn in the probe theme, and the RGB of every vertex of ImGui's draw data is one of the probe theme's colors. A color typed in a control, or read from ImGui's default style, fails it. The alpha is not compared: a disabled control and an edge's fringe change it.
 - **The right color:** a case for each role names what is drawn in it: a frame's fill is `track`, its outline `frameBorder`, and `accent` while edited; a row under the ray is `hover` and a held one `pressed`; a primary button's fill is `accent` and its text `onAccent`; a value in the warning or error tone is that color; a list's and a dialog's background is `popup`, and the dim behind a dialog `scrim`; a heading's text is `muted` and its rule `rule`.
-- **No size but the theme's:** each control's box in the probe theme is what the probe's sizes give: a row is `controlHeight` high; a list is padded `space2` with `space1` between its options; a dialog is padded `space6`; a tree's row is set in `space4` a level; a heading's text starts `space3` in; a tag's and a count's text is `detailFontSize` high. The boxes are the ones the controls return and their items' rects.
+- **No size but the theme's:** each control's box in the probe theme is what the probe's sizes give: a row is `controlHeight` high; a list is padded `space2` with `space1` between its options; a dialog is padded `space6`; a tree's row is set in `space4` a level, between two rows whose found text is underlined from its start; a heading's text starts `space3` in; a tag is its text in `detailFontSize` with `space2` and its border on each side. The boxes are the ones the controls return, their items' rects, and the vertices drawn in them.
 - **Live:** the gallery is drawn in the default theme, `setTheme(probeTheme())` is called, and the next frame passes the cases above, with a list open and a slider held across the change.
 
-Each control of a later commit adds itself to the gallery, so these cases cover it.
+Each control of a later commit adds itself to the gallery, so these cases cover it. The controls passed them as they were: none drew a color that is not the theme's.
 
 The controls README: the gaps are the theme's steps. `docs/CHANGELOG.md`, with **Upgrading**: the four constants that are functions.
 

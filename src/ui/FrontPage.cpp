@@ -50,8 +50,8 @@ namespace
     void restartNotice(const std::string_view text)
     {
         const auto pos = ImGui::GetCursorScreenPos();
-        ui::drawRestartMark(pos.x + controls::HEADING_TEXT_INSET, pos.y + ImGui::GetFontSize() * 0.5f);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::HEADING_TEXT_INSET + ui::restartMarkWidth() + theme::SPACE_2);
+        ui::drawRestartMark(pos.x + controls::headingTextInset(), pos.y + ImGui::GetFontSize() * 0.5f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::headingTextInset() + ui::restartMarkWidth() + theme::SPACE_2);
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());

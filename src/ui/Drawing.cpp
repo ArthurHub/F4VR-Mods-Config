@@ -59,7 +59,7 @@ namespace mods_config::ui
      */
     void drawPageText(const std::string_view text)
     {
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::HEADING_TEXT_INSET);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + controls::headingTextInset());
         ImGui::PushStyleColor(ImGuiCol_Text, theme::color::GREEN_MUTED);
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - theme::SPACE_2);
         ImGui::TextUnformatted(text.data(), text.data() + text.size());
@@ -143,7 +143,7 @@ namespace mods_config::ui
         const float height = ImGui::GetFontSize() + ImGui::GetStyle().SeparatorTextPadding.y * 2.0f;
         ImGui::Dummy(ImVec2(right - pos.x, height));
         const float middle = pos.y + height * 0.5f;
-        const float markLeft = pos.x + controls::HEADING_TEXT_INSET;
+        const float markLeft = pos.x + controls::headingTextInset();
         drawSphereMark(ImVec2(markLeft + SPHERE_MARK_SIZE * 0.5f, middle));
         const float textLeft = markLeft + SPHERE_MARK_SIZE + theme::SPACE_1;
         const float textRight = (std::min)(textLeft + controls::textWidth(text), right);

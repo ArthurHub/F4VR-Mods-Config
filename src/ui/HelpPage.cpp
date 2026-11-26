@@ -94,8 +94,8 @@ namespace
     {
         const auto pos = ImGui::GetCursorScreenPos();
         const float markRoom = line.mark != LineMark::None ? MARK_COLUMN + theme::SPACE_2 : 0.0f;
-        const float left = pos.x + controls::HEADING_TEXT_INSET;
-        const float width = ImGui::GetContentRegionAvail().x - controls::HEADING_TEXT_INSET - theme::SPACE_2 - markRoom;
+        const float left = pos.x + controls::headingTextInset();
+        const float width = ImGui::GetContentRegionAvail().x - controls::headingTextInset() - theme::SPACE_2 - markRoom;
         const auto label = std::string(line.name) + ": ";
         const std::array pieces{ controls::TextPiece{ .text = label, .color = line.nameColor }, controls::TextPiece{ .text = line.text, .color = theme::color::GREEN_MUTED } };
         const int lines = controls::countTextLines(pieces, width);
