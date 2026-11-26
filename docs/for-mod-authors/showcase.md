@@ -417,7 +417,7 @@ A page's rows can come from the mod's DLL, for rows that depend on the game righ
 }
 ```
 
-The showcase has no DLL, so **From the mod's DLL** is not available, and the help line says why. See [Dynamic pages](../design/dynamic-pages.md).
+The showcase has no DLL, so **From the mod's DLL** is not available, and the help line says why. See [Dynamic pages](../design/schema.md#dynamic-pages).
 
 ![Pages](../assets/showcase/pages.png)
 

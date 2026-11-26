@@ -1,6 +1,6 @@
 # Transform
 
-A row of position, rotation and scale, which opens an editor of sliders, and tunes it in the world from the wrist. Behavior is defined in [Controls](../../../../controls.md#transform); storage and the ranges in [Schema](../../../../schema.md#commonframework-values).
+A row of position, rotation and scale, which opens an editor of sliders, and tunes it in the world from the wrist. Storage and the ranges are in [Schema](../../../../schema.md#commonframework-values).
 
 **Provides:** the setting's name, its value (the TOML text), its default, its state, the keys the value has, the parts that are on and their ranges.
 
@@ -40,7 +40,12 @@ The panel is minimized, and the offhand wrist has a column of its own in place o
   - Each thumbstick's icon is the stick moved, with arrowheads around its rim along the axes the tuning reads of it: the right one every way, the left one up and down on `ADJUST:` (every way while rotation is on, as the grip makes its X roll), and left and right on `ROTATION:`; the right one up and down on `SCALE:`.
 - **Cancel** and **Done**: the two wrist buttons, 3 x 2.5 units each, 0.5 apart, each its icon over its label, capitals 0.4 units tall: an X and `CANCEL`, a check and `DONE`. There are no bindings for them.
 
-Done brings the panel back with the editor open and the tuned value pending; Cancel gives back the value from before Adjust in world. The button is enabled for a `live` transform whose mod's client is connected, and is disabled otherwise, with the reason in the help line; see [Controls](../../../../controls.md#transform).
+- The controls are the framework's `DebugAdjuster`; a part that is off doesn't move. All controller input is taken from the game while tuning, and each change is the pending value, previewed as in the editor.
+- Rotation turns as the matrix does, so one stick can change all three angles. Slider ranges don't limit tuning, and a value past one shows as is; scale stays above 0.
+- Done brings the panel back with the editor open and the tuned value pending; Cancel gives back the value from before Adjust in world. A game menu opening ends tuning as Cancel; a loading screen closes the menu and discards the session.
+- The button is enabled for a `live` transform whose mod's client is connected (nothing moves otherwise), and is disabled otherwise, with the reason in the help line.
+
+Grabbing the object with the hand is planned ([M144](../../../../mod-plan.md#15-advanced-features)).
 
 ## Writing the value
 

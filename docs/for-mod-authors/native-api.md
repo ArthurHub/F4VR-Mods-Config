@@ -151,7 +151,7 @@ modsConfig.addPageContent("wheelItems", [&modsConfig] {
 - **Not available:** no rows (`std::nullopt`), or text that isn't a JSON array, and the page says so in place of its rows. A page of a mod whose DLL isn't connected, or is built with API version 1, is disabled in the tree with the reason.
 - **Search** finds the page by its name, and its rows once it has been shown: it never asks your DLL.
 
-A choice of up to a number of things, as eight items for a wheel, is a section with `maxOn`, as above: at the limit, the menu holds off the switchers that are off. See [A limit on switchers](../design/schema.md#a-limit-on-switchers). `addPageContent` needs a menu of API version 2: on an older one the page is disabled. The whole design, with RobCo PALM's wheel as the worked example: [Dynamic pages](../design/dynamic-pages.md).
+A choice of up to a number of things, as eight items for a wheel, is a section with `maxOn`, as above: at the limit, the menu holds off the switchers that are off. See [A limit on switchers](../design/schema.md#a-limit-on-switchers). `addPageContent` needs a menu of API version 2: on an older one the page is disabled. The design: [Dynamic pages](../design/schema.md#dynamic-pages) and [Page content](../design/architecture.md#page-content).
 
 ## Quick Launch
 

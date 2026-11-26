@@ -62,5 +62,3 @@ A popup inside the content pane, 717 x 458 with the line of Direction and 717 x 
 ## Icons in the previews
 
 The previews draw the real icons, from `tools/binding_icons.json`, which `tools/gen_binding_icons.py` writes from the mod's copy of the framework's icons. The framework draws them, with its own `tools/gen_binding_icons.py`. A CSS mask stands in for ImGui's tint.
-
-The behavior is in [Controls](../../../../controls.md#inputbinding).

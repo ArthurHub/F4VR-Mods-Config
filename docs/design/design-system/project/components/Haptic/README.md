@@ -37,5 +37,3 @@ A pattern of the framework's haptic library, picked from a dropdown that draws e
 | `LongBuzz`    | Long buzz    | 0.70 s | A long, stronger rumble.                                     |
 
 The help line shows an option as its text, its help and its length: "Double click: Two quick taps. For turning something on, or a change of mode. 0.11 s."
-
-The behavior is in [Controls](../../../../controls.md#haptic).

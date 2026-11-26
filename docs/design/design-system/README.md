@@ -1,6 +1,6 @@
 # Mods Config FO4 VR design system
 
-The look of the menu: colors, type, sizes, the Dear ImGui style, and how each component and panel is drawn, with mocks. It is the source of the Design System artifact [Mods Config FO4 VR](https://claude.ai/artifact/MardL45HgwNbZ3ERXcjZfJ), which shows it as a page; this folder is the copy under source control. What the menu does is decided in the [design documents](../README.md), mostly in [UI and VR interaction](../ui-and-vr-interaction.md).
+The look of the menu: colors, type, sizes, the Dear ImGui style, and how each component and panel is drawn, with mocks. It is the source of the Design System artifact [Mods Config FO4 VR](https://claude.ai/artifact/MardL45HgwNbZ3ERXcjZfJ), which shows it as a page; this folder is the copy under source control. Each component's README is also its behavior; what spans components is in [VR interaction](../architecture.md#vr-interaction) and the other [design documents](../README.md).
 
 Start with [project/README.md](project/README.md): the rules, the mapping to `ImGuiStyle` and `ImGuiCol_`, and the index of the components.
 

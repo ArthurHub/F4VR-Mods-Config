@@ -45,7 +45,7 @@ A CommonFramework activation sphere: a whole section of the mod's TOML, a zone t
 ## Live
 
 - The sphere's keys are `live`: a change shows on the sphere in the world as it is made, through the framework's preview of a key.
-- The page's spheres are drawn while the page is shown, by the page events (M113).
+- The page's spheres are drawn while the page is shown, by the page events.
 - The client is told what the ray is on (`PointedAt`): the row's id, then each enclosing group's. The framework lights the sphere whose section it names by itself, so a CommonFramework mod's sphere needs no id of its own; see [the client's events](../../../../architecture.md#the-clients-events).
 
-The behavior is in [The settings model](../../../../model.md#an-activation-sphere) and [Controls](../../../../controls.md#activationsphere).
+The model is in [An activation sphere](../../../../model.md#an-activation-sphere).

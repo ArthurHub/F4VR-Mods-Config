@@ -8,7 +8,7 @@ The search of the mods and their settings: the tree's header is the field, and a
 
 - It is the tree's header: 40 px high, the width of the rows, in `track` with a `frame-border` outline and `radius-frame`. A drawn magnifier (20 px), then the text.
 - Idle it says what it searches, in `t-detail` `green-muted`: "Search 11 mods". Hover: `hover`, its text `green`.
-- A press on it shows the framework's keyboard, as a [text input](../../../../controls.md#text-input) does. Each key filters as it is typed: the keyboard's text reaches the field as character events. Done and Back both keep the query.
+- A press on it shows the framework's keyboard, as a [text input](../TextInput/README.md) does. Each key filters as it is typed: the keyboard's text reaches the field as character events. Done and Back both keep the query.
 - Typing: a `green` outline, the query in `t-body` `green` with a caret, then how many settings match in `t-detail` `green-muted`, then Clear.
 - With a query and the keyboard closed: the query in `green`, the count and Clear, with the `frame-border` outline.
 - **Clear** is a 32 px icon button (`X`) at the right of the field. It empties the query and gives the tree back. Hover: `hover` with a `frame-border` outline.
@@ -45,5 +45,3 @@ The search of the mods and their settings: the tree's header is the field, and a
 - Back shows the page whole, with the query kept and the tree filtered, and the focus ring on the last row the ray was on, in its sections opened. The rows that match keep their underline, and the crumb has no `(filtered)`. The next Back goes back as with no query.
 - Clear empties the query and shows the page whole the same way, and so does Back while the ray is on the field.
 - A new query filters the page again, from its top.
-
-The behavior is in [Search](../../../../ui-and-vr-interaction.md#search).

@@ -2,7 +2,7 @@
 
 Mods Config FO4 VR (`ModsConfigFO4VR`) is a C++23 F4SE plugin for Fallout 4 VR, built on the [F4VR Common Framework](external/F4VR-CommonFramework/README.md): a shared in-game configuration menu. A mod ships a declarative JSON config spec or already has an MCM menu, and the player edits the mod's real settings in VR. Every change waits for an explicit Save; a mod that registers through the native API gets live preview.
 
-- Design: [docs/design/](docs/design/README.md). Milestones: [mod-plan.md](docs/design/mod-plan.md), with each phase's commits in `docs/design/mod-plan-phase-<n>.md`. Framework work: [framework-requirements.md](docs/design/framework-requirements.md), [framework-plan.md](docs/design/framework-plan.md) (done), and what is planned from F33 and M20 in [framework-plan-hardening.md](docs/design/framework-plan-hardening.md).
+- Design: [docs/design/](docs/design/README.md), the mod as it stands. What is left to build and the open questions: [mod-plan.md](docs/design/mod-plan.md).
 - Components and their traps: [docs/agents/components.md](docs/agents/components.md). Read a component's row before changing it.
 - Player and author docs: [docs/README.md](docs/README.md) with `faq.md` and `changelog.md` beside it, [docs/for-mod-authors/](docs/for-mod-authors/README.md) (the guide, the showcase walkthrough, MCM compatibility, the native API, the AI agent prompts that write a config spec and connect a DLL), and `docs/nexus.md`, the Nexus page in BBCode. A change a player or an author sees updates them.
 
@@ -42,7 +42,7 @@ The entry point [src/ModsConfigFO4.cpp](src/ModsConfigFO4.cpp) is a `ModBase` su
 
 - [data/config/ModsConfigFO4VR.toml](data/config/ModsConfigFO4VR.toml) is the mod's shipped config. Before adding or changing a key, read [docs/agents/config-and-data.md](docs/agents/config-and-data.md).
 - `data/mod/` is the mod's game `Data` tree, packaged beside the DLL; `data/showcase/` holds the config spec and MCM showcases. Add to the showcases what a new commit reads or draws ([config-and-data.md](docs/agents/config-and-data.md)).
-- The panel's look is the design system in [docs/design/design-system/](docs/design/design-system/README.md); [src/Theme.h](src/Theme.h) is generated from its tokens by `tools/gen_theme.py` there: change the tokens and regenerate. The drawing reads the theme that is set, `look().space2` and `colors().accent` (`Drawing.h`), so devbench's `theme` action tunes the whole panel; only the mod's own layout (`NAV_WIDTH`, `CONTROL_WIDTH`, ...) is read as a `theme::` constant, and `gen_theme.py` fails on a constant of a theme field read in `src/`. The VR UI and its interaction: [docs/design/ui-and-vr-interaction.md](docs/design/ui-and-vr-interaction.md).
+- The panel's look is the design system in [docs/design/design-system/](docs/design/design-system/README.md); [src/Theme.h](src/Theme.h) is generated from its tokens by `tools/gen_theme.py` there: change the tokens and regenerate. The drawing reads the theme that is set, `look().space2` and `colors().accent` (`Drawing.h`), so devbench's `theme` action tunes the whole panel; only the mod's own layout (`NAV_WIDTH`, `CONTROL_WIDTH`, ...) is read as a `theme::` constant, and `gen_theme.py` fails on a constant of a theme field read in `src/`. The VR interaction: [VR interaction](docs/design/architecture.md#vr-interaction); each control's look and behavior is its design system component.
 
 ## Framework and dependencies
 

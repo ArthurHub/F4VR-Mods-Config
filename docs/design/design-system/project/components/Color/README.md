@@ -45,5 +45,3 @@ A popup inside the content pane, 717 x 414: `popup` background, a 2 px `green` b
 ## Mods Config FO4 VR's own pointer
 
 `cRayColor`, `cMarkColor` and `cMarkBorderColor` are previewed on the pointer the player is using. An alpha near 0 hides the ray or the mark; Back gives the color back without the ray.
-
-The behavior is in [Controls](../../../../controls.md#color).

@@ -14,4 +14,4 @@ Where the player is, in the title bar of the Full panel: `MODS CONFIG FO4 » <mo
   The first crumb and the last are never shortened.
 - Back goes the way of the crumbs: to the page above, then to the mod's front page, then to the menu's front page. From the Help page it goes back to the page Help was pressed on.
 
-The behavior is in [Full](../../../../ui-and-vr-interaction.md#full) and [Back behavior](../../../../ui-and-vr-interaction.md#back-behavior).
+See [Navigation](../../../../architecture.md#navigation) and [Back](../../../../architecture.md#back).

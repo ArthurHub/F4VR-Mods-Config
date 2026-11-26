@@ -19,5 +19,3 @@ A `textinput` setting: a field that shows its text, typed on the framework's key
 - The keyboard's Done keeps the text as the pending value, as Back, Enter and a press beside the field do. A physical keyboard's Escape puts back the text from before typing; the row's Discard does after.
 - A text that is not valid is kept and shown invalid, so the player sees why; it is not sent as a preview, and the last valid one stays previewed.
 - A number takes the keys of a number only. Its text is read when typing ends: one that is not a number is invalid ("Invalid: "4.5" is not a whole number.").
-
-The behavior is in [Text input](../../../../controls.md#text-input).

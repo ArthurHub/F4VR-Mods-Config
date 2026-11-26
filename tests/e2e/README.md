@@ -6,7 +6,7 @@ pytest tests that drive the running game through devbench's REST port and check 
 
 - The game running with [devbench](https://github.com/ArthurHub/devbench), at the main menu or with a game loaded (or closed, with a launch command: see Running). From the main menu the run starts a new game with `coc CTest`, an empty test cell, so nothing reaches a save; a game already loaded is used in whatever cell it is, and a run there can change that save's world, as the time of day. The session test leaves with a `coc CTest`.
 - The mod deployed from this checkout: its version must be the one in `CMakeLists.txt`. FRIK and Immersive Flashlight need their devbench `config` action.
-- Installed: SS2, FallUI and XDI from the MCM test set (see [mod-plan.md](../../docs/design/mod-plan.md#the-mcm-test-set)), both showcases, FRIK, Immersive Flashlight. A run fails at start listing what's missing. The rest of the test set is swept and measured when installed, and skipped otherwise.
+- Installed: SS2, FallUI and XDI from the MCM test set (see [mcm.md](../../docs/design/mcm.md#the-mcm-test-set)), both showcases, FRIK, Immersive Flashlight. A run fails at start listing what's missing. The rest of the test set is swept and measured when installed, and skipped otherwise.
 - `pip install -r tests/e2e/requirements.txt`, which pins devbench-client by commit. Working on devbench too: `pip install -e <devbench>/clients/python`.
 
 ## Running

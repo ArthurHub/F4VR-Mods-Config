@@ -18,7 +18,7 @@ A popup inside the content pane, 717 wide, placed as the Color editor is: under 
 
 - **Header**, 48 px: the setting's name in `t-body` on the left, and on the right in `t-detail` `green-muted` how many entries it has: "18 entries", or "3 entries, in order" when the order means something.
 - **Entries**, one line each, 48 px tall with `space-1` between:
-  - The entry's text in a frame, `track` with a `frame-border` outline, `t-body`, ending in an ellipsis where it is long. A press on it opens the keyboard with its text, as a [text input](../../../../controls.md#text-input) does: Done keeps the new text and Cancel the old. An entry typed empty is removed.
+  - The entry's text in a frame, `track` with a `frame-border` outline, `t-body`, ending in an ellipsis where it is long. A press on it opens the keyboard with its text, as a [text input](../TextInput/README.md) does: Done keeps the new text and Cancel the old. An entry typed empty is removed.
   - Remove, an icon button (`X`), at the right. It removes the entry at once: Cancel, Discard and Reset bring it back, so it asks nothing.
   - When the order means something: the entry's number in `t-detail` `green-muted` on the left (`space-6`), and Up and Down, icon buttons before Remove. Up is disabled on the first entry and Down on the last. An unordered list has neither, and keeps its entries in the order the file has them.
   - An entry that is new or changed in this session is in `amber`.
@@ -32,5 +32,3 @@ A popup inside the content pane, 717 wide, placed as the Color editor is: under 
 
 - The list is written as the framework's array, `["AddOnNode", "LightAttachNode"]`, one line, each text in quotes with its `"` and `\` escaped. A file that had the array over several lines, as Immersive Flashlight's allow list, gets it on one line.
 - Two entries with the same text are kept: the help line of the second says it is in the list already. It does not block Save.
-
-The behavior is in [Controls](../../../../controls.md#list).

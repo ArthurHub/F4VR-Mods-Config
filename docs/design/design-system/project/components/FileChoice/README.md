@@ -31,4 +31,4 @@ A choice of the files in a folder, MCM's `dropdownFiles`, and a config spec's `l
 
 There are no thumbnails: a texture's setting is `live`, so a pick shows on the light.
 
-The behavior is in [Options from a folder](../../../../schema.md#options-from-a-folder) and [MCM support](../../../../mcm.md) (`dropdownFiles`), and M76 in the [Mod work plan](../../../../mod-plan-phase-2.md).
+The behavior is in [Options from a folder](../../../../schema.md#options-from-a-folder) and [MCM support](../../../../mcm.md) (`dropdownFiles`).

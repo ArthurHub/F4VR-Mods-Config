@@ -52,7 +52,7 @@ The folder name is organizational; `modName` is the identity. One `spec.json` pe
 
 Author, website, Nexus ID and mod version may come later.
 
-- Two config specs with one `modName` are both [not available](ui-and-vr-interaction.md#notices); the host doesn't pick.
+- Two config specs with one `modName` are both [not available](architecture.md#notices); the host doesn't pick.
 - A mod with both a config spec and an MCM config of the same `modName` is listed by its config spec alone.
 - All ids, `modName` and those inside a config spec, compare case-insensitively (Papyrus doesn't keep string case); ids differing only in case are duplicates.
 - A native client matches by `modName`. A CommonFramework mod's client registers under the mod's framework name, so that is its `modName`; a differing F4SE plugin name goes only in `f4sePluginRequirements`.
@@ -62,13 +62,13 @@ Author, website, Nexus ID and mod version may come later.
 One number that only grows. A config spec ships with its mod and isn't updated with the menu, so new versions only add fields and control types, never change meanings, and every older config spec still reads.
 
 - `minSchemaVersion` is required, a whole number from 1. Without it the config spec isn't loaded (reported).
-- On an older host the mod is [not available](ui-and-vr-interaction.md#notices), naming the version needed.
+- On an older host the mod is [not available](architecture.md#notices), naming the version needed.
 - Later additions are documented with their version.
 - An unknown field is a diagnostic and the rest is read, so typos are caught and a newer optional field degrades on an older host.
 
 ### Category
 
-`category` (optional) groups the mod in a long list ([Mod categories](ui-and-vr-interaction.md#mod-categories)).
+`category` (optional) groups the mod in a long list ([Mod categories](architecture.md#mod-categories)).
 
 - A plain English name, never a `$` token, which is a warning and isn't read: grouping is by the name, case-insensitive.
 - Shipped names, in English: `Gameplay`, `Survival`, `Combat`, `Weapons and Armor`, `Settlements`, `Characters`, `Interface`, `Visuals`, `Audio`, `Performance`, `VR`, `Utilities`. Any other name is accepted.
@@ -88,7 +88,7 @@ Precedence: the player's choice, then the mod's own `category`, then the table (
 
 ### Requirements
 
-With a missing requirement the mod is [not available](ui-and-vr-interaction.md#notices): its tree row is disabled and names what's missing.
+With a missing requirement the mod is [not available](architecture.md#notices): its tree row is disabled and names what's missing.
 
 - `pluginRequirements`: game plugins (`.esp`/`.esm`/`.esl`) by file name, as in MCM.
 - `f4sePluginRequirements`: F4SE plugins by the name they register, not the DLL name (FRIK's `FRIK.dll` registers as `F4VRBody`). The native save notification goes to these.
@@ -138,14 +138,29 @@ A page is a tree row under the mod or another page, so the tree has as many leve
 }
 ```
 
-- `content` is required and non-empty, also on a page with sub-pages, unless `contentFromClientCallback: true` takes its place: the mod's DLL gives the page's rows as it is shown ([Dynamic pages](dynamic-pages.md)).
+- `content` is required and non-empty, also on a page with sub-pages, unless `contentFromClientCallback: true` takes its place: the mod's DLL gives the page's rows as it is shown ([Dynamic pages](#dynamic-pages)).
 - `help` shows while the ray is on its tree row.
 - `id` (optional, unique among pages) is told to the client as the page is shown and left ([The client's events](architecture.md#the-clients-events)).
-- Sub-pages show in the tree while the page or one of them is selected; breadcrumbs name every level (`MODS CONFIG FO4 » My Mod » Body » Hands`, [Navigation behavior](ui-and-vr-interaction.md#navigation-behavior)).
+- Sub-pages show in the tree while the page or one of them is selected; breadcrumbs name every level (`MODS CONFIG FO4 » My Mod » Body » Hands`, [Navigation](architecture.md#navigation)).
 - `visibleWhen` hides the row and its children; `enabledWhen` disables it (with an explanation in the help line) and blocks opening it or its children. Page conditions also join every row's own.
 - `defaultFile`, `applies`, `omitDefault`, `visibleWhen` and `enabledWhen` are inherited by sub-pages.
 - A selected page that becomes hidden or disabled goes to its nearest visible, enabled ancestor, or the front page; pending changes stay. Direct page requests (including a client's) follow the same rule.
 - MCM has one level of pages.
+
+### Dynamic pages
+
+A page whose rows the mod's DLL gives as it is shown, for settings that depend on what the game has right now: the items the player carries, or what other mods registered with the mod at runtime. A choice whose rows are fixed takes its options from the client instead ([Options from the mod's client](#options-from-the-mods-client)).
+
+```json
+{ "id": "wheelItems", "pageDisplayName": "Wheel items", "help": "Choose up to eight items.", "contentFromClientCallback": true }
+```
+
+- `contentFromClientCallback: true` takes the place of `content`; a page with both is an error, and its `content` is not read. Only the content is dynamic: the page's name, place, sub-pages and conditions are the config spec's, so the tree, the crumbs and `openMenu` work as for any page.
+- `id` is required, as the menu asks the client by it; without one the flag is an error. The front page can't be dynamic.
+- The client gives a `content` array in this format, read against the loaded config spec: any content item, with any storage a setting can have (a file is one of the config spec's `files`), inheriting the page's defaults. Ids are unique across the whole mod, the static rows and every dynamic page's.
+- A given row's condition can name any setting of the mod; a static row's condition naming a dynamic row finds a missing setting, as it is read before that row exists ([Conditions](#conditions)).
+- Errors are a config spec's: the item is disabled, and the error is logged and reported. Text that isn't a JSON array makes the page not available.
+- When the menu asks, and a page that can't be had: [Page content](architecture.md#page-content). RobCo PALM's wheel is the model case: its wheel sections and its items are dynamic pages of switchers kept in client states, each section limited with [`maxOn`](#a-limit-on-switchers).
 
 ## Layout and file defaults
 
@@ -241,13 +256,13 @@ Sections and pages both nest.
 
 - Every row (setting, section, button, choice option) has `text` (what it says) and optional `help` (help line), MCM's names.
 - `"html": true` styles a setting's or button's `text` with the [text tags](#text-spacers-and-images), kept to one line: breaks become spaces, alignment is ignored, font sizes cap at the row size. Search and the help line use the untagged label. Only the boolean `true` enables it. `help`, `buttonText`, section headings and options stay plain.
-- `"searchable": false` keeps a setting out of [search](ui-and-vr-interaction.md#search) by its text: it is shown only with a section, page or mod that matches. It is for rows named after something search finds already, as the menu's Categories rows, one per mod. A value that isn't true or false is a warning, and the row is searchable.
+- `"searchable": false` keeps a setting out of [search](architecture.md#search) by its text: it is shown only with a section, page or mod that matches. It is for rows named after something search finds already, as the menu's Categories rows, one per mod. A value that isn't true or false is a warning, and the row is searchable.
 - Every writable setting has a required inline `default`, validated like a player value. It is what Reset sets, so it must match the mod's own default.
 - A `textinput` with `valueType` `int`/`float` takes a number (MCM's `textinputInt`/`textinputFloat`), limited by `min`/`max`.
 
 ### CommonFramework values
 
-A `cf.` type edits a value in CommonFramework's TOML form ([CommonFramework-specific controls](controls.md#commonframework-specific-controls)); its words and checks are the framework's. `cf.inputBinding`, `cf.color` and `cf.transform` share these rules:
+A `cf.` type edits a value in CommonFramework's TOML form ([CommonFramework types](model.md#commonframework-types)); its words and checks are the framework's. `cf.inputBinding`, `cf.color` and `cf.transform` share these rules:
 
 - Kept in a TOML value as the framework keeps it, or an INI line ([In an INI file](#in-an-ini-file)). `valueType` is `string`: the table's TOML text or the line.
 - `default` is the table as a JSON object, read as the framework reads its config.
@@ -922,7 +937,7 @@ Rows without a value. `text` and `spacer` are as in MCM.
 | `<b>`, `<i>` | Bold, italic; both is bold (no bold-italic face) |
 | `<u>` | Underlined, including spaces between words |
 
-Sizes follow MCM so copied text looks the same: 40 is twice the rows' text, 10 half. The panel draws a size at 1.05× its number (rows are 21 px). Sizes aren't limited; small ones are the author's call. Other tags are dropped, keeping their text; entities (`&amp;`) are decoded. `help` is plain text; MCM help tags are stripped ([Help line](ui-and-vr-interaction.md#help-line)).
+Sizes follow MCM so copied text looks the same: 40 is twice the rows' text, 10 half. The panel draws a size at 1.05× its number (rows are 21 px). Sizes aren't limited; small ones are the author's call. Other tags are dropped, keeping their text; entities (`&amp;`) are decoded. `help` is plain text; MCM help tags are stripped ([Help line](architecture.md#help-line)).
 
 **`spacer`**: empty space, one line or `numLines`.
 
@@ -954,7 +969,7 @@ A warning to the player is a `text` row, as in MCM; the only one the host draws 
 
 - `allowEmpty: false` equals `minLength: 1`. Lengths count characters, not bytes; typing stops at `maxLength`. They limit a text input's text, and a [typed value](#typed-values) of a dropdown.
 - Choice values must be among their options, but for a dropdown that takes a typed value.
-- Config spec errors disable only the affected content where safe and go to the log and [Developer tools](ui-and-vr-interaction.md#developer-tools); an unreadable config spec is [not available](ui-and-vr-interaction.md#notices). Invalid player input disables Save until fixed.
+- Config spec errors disable only the affected content where safe and go to the log and [Developer tools](architecture.md#developer-tools); an unreadable config spec is [not available](architecture.md#notices). Invalid player input disables Save until fixed.
 
 ## Localization
 
@@ -1007,7 +1022,7 @@ What MCM has and what replaces it:
 | A storage-less switcher that shows hidden rows | A folding section |
 | `textinputInt`, `textinputFloat` | `textinput` with `valueType` `int` / `float` |
 | ModSetting storage | A file key, read by scripts through the Papyrus API |
-| `hotkey`, `keyinput` | [InputBinding](controls.md#commonframework-specific-controls), for CommonFramework mods |
+| `hotkey`, `keyinput` | [InputBinding](model.md#commonframework-types), for CommonFramework mods |
 | `dropdownFiles` | A dropdown with [`listFromFolder`](#options-from-a-folder) |
 | `textFrom…` / `helpFrom…` | `{clientState:name}` in text or help ([Text, spacers and images](#text-spacers-and-images)); form names are written by the author and translated with `$` tokens |
 | `positioner`, `CallExternalFunction` | None: MCM's Flash menu only |

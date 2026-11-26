@@ -10,5 +10,3 @@ A setting with `readOnly`: a value the mod writes for the player to read, as a m
 - The ray on it still shows its help, with `(Read-only)` first: "Measured height: (Read-only) The height FRIK measured at the last calibration."
 - It is never pending or invalid, and is not counted by Save.
 - A value it has from the file is shown as it is, even outside the control's range: the slider's grab stops at its end, and the value box has the number.
-
-The behavior is in [Read-only](../../../../controls.md#read-only).

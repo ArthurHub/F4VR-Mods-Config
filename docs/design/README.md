@@ -1,34 +1,17 @@
 # Mods Config FO4 VR design
 
-The current product and architecture decisions. Build order and release contents: [Mod work plan](mod-plan.md). Topics still needing design: [Open questions](open-questions.md).
+The product and architecture as they stand. What is left to build and the open questions: [Work plan](mod-plan.md).
 
 ## Documents
 
-- [Architecture and lifecycle](architecture.md): goals, integration, persistence, Save, the APIs, MCM compatibility.
-- [The settings model](model.md): the definition the UI draws and the store it asks for every value.
-- [Declarative schema](schema.md): the config spec format.
-- [MCM support](mcm.md): every MCM and MCM VR feature and how the menu handles it.
-- [Controls](controls.md): the controls, their value semantics, the CommonFramework controls.
-- [Dynamic pages](dynamic-pages.md): a page whose rows the mod's DLL gives as it is selected, with RobCo PALM's wheel as the example. Not reviewed yet.
-- [UI and VR interaction](ui-and-vr-interaction.md): opening, the Full and Minimized states, placement, pointing, navigation, search, categories.
-- [Design system](design-system/README.md): the look (colors, type, sizes, the ImGui style) and mocks of every component and panel; the source of the Design System artifact.
-- [CommonFramework work required](framework-requirements.md) and [Framework work plan](framework-plan.md): what the framework gained for this mod, and the panel's controls that moved to it, done.
-- [Framework hardening plan](framework-plan-hardening.md): what the framework still needs for a second mod's panel, planned: one theme, a panel's targets, the search field, icons, panes, the title bar and the footer, controls with their label.
-- [Mod work plan](mod-plan.md): the milestones, with each phase's commits in [phase 1](mod-plan-phase-1.md) (MCM support, done), [phase 2](mod-plan-phase-2.md) (first release, done) and [phase 3](mod-plan-phase-3.md) (after the first release).
-- [Open questions](open-questions.md): deferred design topics, not assigned to a release.
+- [Architecture and lifecycle](architecture.md): integration, persistence, the editing session and Save, VR interaction (opening, placement, pointing, Back, the help line, navigation, search, categories), the native and Papyrus APIs, MCM compatibility.
+- [The settings model](model.md): a setting's parts and the CommonFramework types, the definition the UI draws, and the store it asks for every value.
+- [Declarative schema](schema.md): the config spec format, dynamic pages included.
+- [MCM support](mcm.md): every MCM and MCM VR feature and how the menu handles it, and the MCM test set.
+- [Design system](design-system/README.md): the look and behavior of every control, component and panel, with mocks (colors, type, sizes, the ImGui style); the source of the Design System artifact and of `src/Theme.h`.
+- [Work plan](mod-plan.md): the remaining milestones and the open questions.
 
-## In review
-
-Designs written and published to the design system that Arthur has not reviewed yet. One leaves the list when it is reviewed, changed or dropped.
-
-- [List](controls.md#list): an `a` key; the row shows the entries and count, the editor a line per entry with Add, Remove, and Up/Down when ordered. Design system: [List](design-system/project/components/List/README.md).
-- [Hand pose](controls.md#hand-pose): an `h` key; a bar per finger in the row, an editor of each finger's joints and the palm, shown live on the hand through FRIK. Open: whether the menu's FRIK tag is over a mod's own, and the joint ranges. Design system: [HandPose](design-system/project/components/HandPose/README.md).
-
-## Not in the design system yet
-
-Done in the code, still to be drawn in the design system. A note leaves when the design system has it.
-
-- Tokens: the usage of `space-6` and `red` in `tokens.json` (from which `src/Theme.h` is generated) still names the row's gutter, which is gone.
+The panel's generic controls are the framework's [`imgui::controls`](../../external/F4VR-CommonFramework/src/imgui/controls/README.md); the framework's subsystems are documented in its own READMEs.
 
 ## Names
 
@@ -55,4 +38,3 @@ Public: other mods address messages to the F4SE plugin name, call functions on t
 - A script-only mod needs only a config spec: its scripts read saved values through the menu's Papyrus functions, or keep them in globals and properties as an MCM mod does.
 - Existing MCM menus keep their storage and event behavior through a bridge to the installed MCM.
 - The game keeps running while the menu is open: a `live` change is seen as made, a saved one as the mod acts on it.
-- Leave room for advanced features without requiring them up front.
