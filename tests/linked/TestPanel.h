@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 
 #include <catch2/catch_test_macros.hpp>
 #include <imgui.h>
@@ -88,11 +89,11 @@ namespace test_panel
     }
 
     /**
-     * One frame of the panel, in a window as the framework's canvas makes it: the panel's background and its
-     * border, and the content inside its padding. The pointer is where the ray is on the panel, and it is
+     * One frame of a content the panel's size, in a window as the framework's canvas makes it: the panel's background
+     * and its border, and the content inside its padding. The pointer is where the ray is on the panel, and it is
      * pressed while the trigger is held.
      */
-    inline void drawFrame(ui::FullPanel& panel, const ImVec2 pointer, const bool pressed = false)
+    inline void drawContentFrame(const std::function<void()>& content, const ImVec2 pointer, const bool pressed = false)
     {
         constexpr auto WINDOW_FLAGS = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
                                       ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground |
@@ -130,7 +131,7 @@ namespace test_panel
             ImGui::BeginGroup();
             // the targets are from the canvas's top left, as the layer gives it before the content
             controls::targets().beginCanvas(ImVec2(0.0f, 0.0f));
-            panel.draw();
+            content();
             ImGui::EndGroup();
         }
         ImGui::EndChild();
@@ -142,6 +143,19 @@ namespace test_panel
 
         // ImGui only counts a user error in a Release build, and shows it in a tooltip of the next frame
         CHECK(GImGui->ErrorCountCurrentFrame == 0);
+    }
+
+    /**
+     * One frame of the panel, as `drawContentFrame` draws a content.
+     */
+    inline void drawFrame(ui::FullPanel& panel, const ImVec2 pointer, const bool pressed = false)
+    {
+        drawContentFrame(
+            [&panel] {
+                panel.draw();
+            },
+            pointer,
+            pressed);
     }
 
     // the tree's header, the search field, as ModTree.cpp has it

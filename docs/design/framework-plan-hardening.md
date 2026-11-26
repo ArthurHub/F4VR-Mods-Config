@@ -33,8 +33,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M26 | mod       | The title bar from the framework                                                                             | done    |
 | F41 | framework | imgui: the footer: a rule, its buttons at the right, and the room of a help line                             | done    |
 | M27 | mod       | The footer from the framework                                                                                | done    |
-| F42 | framework | imgui: controls with their label in a row, and the press pulse                                               | planned |
-| M28 | mod       | A render test of the controls with their label                                                               | planned |
+| F42 | framework | imgui: controls with their label in a row, and the press pulse                                               | done    |
+| M28 | mod       | A render test of the controls with their label                                                               | done    |
 | F43 | framework | imgui: a clipped list of rows                                                                                | planned |
 | M29 | mod       | A render test of a clipped list                                                                              | planned |
 | M30 | mod       | The mod's own drawing reads the theme as it draws, not the constants of `Theme.h`                            | planned |
@@ -532,7 +532,7 @@ float drawRowLabel(const ImVec2& pos, float right, std::string_view text, Mark m
 
 Tests: each labelled control on a headless context: a press changes the value and returns true once; a disabled one changes nothing; the slider writes on release; `pulsed()` is true in the frame of the press.
 
-**The mod (M28):** this mod's rows stay on the controls under them, so nothing is ported. `tests/linked/ui/ControlsRenderTests.cpp`, tagged `[render]` as the panel's render tests and saved as they are, draws a page of every labelled control in this mod's theme: each at rest, under the ray, disabled, with a mark, and in the warning and error tones, with a dropdown's list open. It is the look's check before a panel has them in the headset.
+**The mod (M28):** this mod's rows stay on the controls under them, so nothing is ported. `tests/linked/ui/ControlsRenderTests.cpp`, tagged `[render]` as the panel's render tests and saved as they are, draws a page of every labelled control in this mod's theme: each at rest, under the ray, disabled, with a mark, and in the warning and error tones, with a dropdown's list open. It is the look's check before a panel has them in the headset. It saves `controls-at-rest`, `controls-disabled`, `controls-marks` (with a label cut before its mark), `controls-warning`, `controls-error`, `controls-under-ray-<control>` for each pressed control, and `controls-dropdown-open`; the rasterizer moves from `FullPanelRenderTests.cpp` to `TestRender.h`, and `TestPanel.h` gets `drawContentFrame`, so the panel's renders are the same byte for byte.
 
 ## A clipped list of rows (F43, M29)
 

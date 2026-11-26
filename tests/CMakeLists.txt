@@ -54,6 +54,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/spec/TomlFileTests.cpp
   linked/ui/BreadcrumbsTests.cpp
   linked/ui/ButtonViewTests.cpp
+  linked/ui/ControlsRenderTests.cpp
   linked/ui/FullPanelRenderTests.cpp
   linked/ui/FullPanelTests.cpp
   linked/ui/LargePageTests.cpp
@@ -79,6 +80,7 @@ add_executable(${PROJECT_NAME}_linked_tests
   linked/TestPanel.h
   linked/TestProperties.cpp
   linked/TestProperties.h
+  linked/TestRender.h
   linked/TestStore.h
   linked/TestSwf.h
   # the mod's sources under test. Not GameActions.cpp, GameGlobals.cpp, GameIniSettings.cpp, GameProperties.cpp and
@@ -174,7 +176,7 @@ set_target_properties(${PROJECT_NAME}_linked_tests PROPERTIES INTERPROCEDURAL_OP
 
 target_compile_features(${PROJECT_NAME}_linked_tests PRIVATE cxx_std_23)
 target_compile_definitions(${PROJECT_NAME}_linked_tests PRIVATE _UNICODE
-  # where FullPanelRenderTests.cpp saves its images
+  # where the render tests save their images (TestRender.h)
   MODS_CONFIG_TEST_OUTPUT_DIR="${CMAKE_CURRENT_BINARY_DIR}/render"
   # the MCM showcase, which is an optional file of the mod
   MODS_CONFIG_MCM_SHOWCASE_DIR="${ROOT_DIR}/data/showcase/MCM/Config"
