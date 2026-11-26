@@ -14,6 +14,7 @@
 #include "Drawing.h"
 #include "PanelTargets.h"
 #include "Theme.h"
+#include "imgui/controls/Tree.h"
 #include "model/Conditions.h"
 #include "model/UnsavedPages.h"
 #include "perf/Perf.h"
@@ -27,104 +28,13 @@ namespace
     constexpr float HEADER_HEIGHT = 40.0f;
     // the room it keeps on the right of its rows, for its scroll bar with space-1 on each side:
     constexpr float RIGHT_ROOM = theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
-    // the column the arrow of a row is in the middle of, which every row keeps:
-    constexpr float ARROW_COLUMN = 16.0f;
-    // and the gap from it to the name, 2 px less than space-2:
-    constexpr float ARROW_GAP = theme::SPACE_2 - 2.0f;
-
-    // the deepest level a row is set in to: a row further in is set in as one of it, so its name keeps its room
-    constexpr int MAX_INDENT_LEVEL = 3;
-
     // the tag of an MCM mod's row, and what the help line says of it, as its change is made at once
     constexpr auto MCM_TAG = "MCM";
     constexpr auto MCM_HELP = "An MCM menu: a change is made in the game as you make it. Keep accepts it, and Revert sets it back.";
-    // a tag's font size, a little over half the detail size, the room between its text and its outline, and its
-    // gap from the row's right edge
-    constexpr float TAG_FONT_SIZE = 10.0f;
-    constexpr float TAG_PADDING = 1.0f;
-    constexpr float TAG_GAP = theme::SPACE_2;
-
-    // the room the rule of a category's row keeps at the least, and how many of the first mods of a category that a
-    // press opened are scrolled to
-    constexpr float CATEGORY_RULE_MIN_WIDTH = theme::SPACE_4;
+    // how many of the first mods of a category that a press opened are scrolled to
     constexpr std::size_t CATEGORY_SHOWN_MODS = 3;
     // how many of the first pages of a mod that a press selected are scrolled to
     constexpr std::size_t MOD_SHOWN_PAGES = 4;
-
-    /**
-     * The arrow before the name of a row: none for a page with no pages, down for a row whose pages are the
-     * rows under it, and right for any other mod or page.
-     */
-    enum class Arrow : std::uint8_t
-    {
-        None,
-        Closed,
-        Open,
-    };
-
-    /**
-     * How far a row of a level is set in, from a mod at 0: a step for each level, up to the deepest.
-     */
-    float indentOf(const int level)
-    {
-        return theme::SPACE_4 * static_cast<float>((std::min)(level, MAX_INDENT_LEVEL));
-    }
-
-    /**
-     * The arrow of a row, in the middle of its column, which starts at `left`. It points down at a row whose
-     * pages are the rows under it, and right at any other. It is faded in a disabled row, as the row's text is.
-     */
-    void drawArrow(const float left, const float rowTop, const bool open, const ImU32 color)
-    {
-        const ImVec2 box(left + (ARROW_COLUMN - controls::FOLD_ARROW_SIZE) * 0.5f, rowTop + (theme::CONTROL_HEIGHT - controls::FOLD_ARROW_SIZE) * 0.5f);
-        controls::drawFoldArrow(box, open, color);
-    }
-
-    /**
-     * A row's tag, ending at `right` in the middle of the row: its text in green in an outline close around it,
-     * in the color of a section's rule, or both in the color of a text on a fill. Returns its left edge.
-     */
-    float drawRowTag(const float right, const float rowTop, const std::string_view tag, const bool onFill)
-    {
-        ImGui::PushFont(nullptr, TAG_FONT_SIZE);
-        const float inside = TAG_PADDING + theme::BORDER_FRAME;
-        const float height = TAG_FONT_SIZE + inside * 2.0f;
-        const float width = std::ceil(controls::textWidth(tag) + inside * 2.0f);
-        const ImVec2 min(std::floor(right - width), std::floor(rowTop + (theme::CONTROL_HEIGHT - height) * 0.5f));
-        const ImVec2 max(min.x + width, min.y + height);
-        controls::drawOutline(min, max, onFill ? theme::color::ON_GREEN : theme::color::RULE);
-        controls::drawText(min.x + inside, max.x, min.y, height, onFill ? theme::color::ON_GREEN : theme::color::GREEN, tag);
-        ImGui::PopFont();
-        return min.x;
-    }
-
-    /**
-     * What a row of the tree shows besides its name while the tree is searched: where the query matches its name,
-     * which is underlined, and how many of its rows the search shows, at its right. Nothing while it is not.
-     */
-    struct RowFound
-    {
-        std::vector<model::TextRange> ranges;
-        std::size_t count = 0;
-    };
-
-    /**
-     * A name in a row from its left up to `right`, with the pending dot `space-2` after it while its page has
-     * unsaved changes: the name ends in an ellipsis before the dot does, so the dot always shows. The dot is
-     * amber, or the color of the text on a fill. Returns the right edge of what it drew.
-     */
-    float drawNameWithDot(const float left, const float right, const float top, const ImU32 color, const std::string_view name, const bool unsaved, const bool onFill)
-    {
-        if (!unsaved) {
-            controls::drawText(left, right, top, theme::CONTROL_HEIGHT, color, name);
-            return (std::min)(left + controls::textWidth(name), right);
-        }
-        const float nameRight = right - theme::SPACE_2 - controls::DOT_WIDTH;
-        controls::drawText(left, nameRight, top, theme::CONTROL_HEIGHT, color, name);
-        const float dotLeft = (std::min)(left + controls::textWidth(name), nameRight) + theme::SPACE_2;
-        controls::drawDot(ImVec2(dotLeft + controls::DOT_WIDTH * 0.5f, top + theme::CONTROL_HEIGHT * 0.5f), onFill ? theme::color::ON_GREEN : theme::color::AMBER);
-        return dotLeft + controls::DOT_WIDTH;
-    }
 
     /**
      * What the help line says of a row whose page has unsaved changes: its help, then how many, as
@@ -136,32 +46,6 @@ namespace
             return help;
         }
         return std::format("{}{}{} unsaved change{}.", help, help.empty() ? "" : " ", unsaved, unsaved == 1 ? "" : "s");
-    }
-
-    /**
-     * The name of a row from its left, and its tag at the row's right where it has one, as an MCM mod's: the tag
-     * is inside the row, so the row's look under the ray has it, and the name ends in an ellipsis before it, so
-     * the tags of the rows line up. The pending dot follows the name while its page has unsaved changes. While the
-     * tree is searched, the count is before the tag in the detail size, and the match is underlined in the name.
-     */
-    void drawName(const float left, const ImVec2& min, const ImVec2& max, const ImU32 color, const std::string_view name, const std::string_view tag, const bool onFill,
-        const RowFound& found, const bool unsaved)
-    {
-        float right = max.x - theme::SPACE_3;
-        if (!tag.empty()) {
-            right = drawRowTag(max.x - TAG_GAP, min.y, tag, onFill) - theme::SPACE_2;
-        }
-        if (found.count > 0) {
-            ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-            const auto count = std::to_string(found.count);
-            const float countLeft = right - controls::textWidth(count);
-            controls::drawText(countLeft, right, min.y, theme::CONTROL_HEIGHT, onFill ? theme::color::ON_GREEN : theme::color::GREEN_MUTED, count);
-            ImGui::PopFont();
-            right = countLeft - theme::SPACE_2;
-        }
-        const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
-        drawNameWithDot(nameLeft, right, min.y, color, name, unsaved, onFill);
-        controls::drawUnderlines(nameLeft, right, min.y, theme::CONTROL_HEIGHT, color, name, found.ranges);
     }
 
     /**
@@ -181,113 +65,6 @@ namespace
             pages = &(*pages)[place].pages;
         }
         targets.add(ui::TargetKind::Tree, mod.name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()), std::move(names));
-    }
-
-    /**
-     * A row of the tree at the cursor, in the width of every row: a mod's at level 0, and a page's a level
-     * further in than the mod or the page it is under. Its name is set in by its level, after the column of its
-     * arrow, which every row keeps, so the names of a level line up whether or not they have one, and has its
-     * tag after it, where it has one. The selected row is a solid bar, whose tip is inside the row, and any
-     * other has the look of a row under the ray. With `show`, a selected row that is not whole in
-     * the shown rows is scrolled to. With `unsaved`, the pending dot follows the name.
-     * Returns whether the row was pressed, and tells whether the ray is on it.
-     */
-    bool treeRow(const std::string_view name, const std::string_view tag, const int level, const Arrow arrow, const bool selected, const bool show, const float width,
-        bool& pointed, const RowFound& found = {}, const bool unsaved = false)
-    {
-        const auto min = ImGui::GetCursorScreenPos();
-        const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
-        const bool pressed = ImGui::InvisibleButton("row", ImVec2(width, theme::CONTROL_HEIGHT));
-        pointed = ImGui::IsItemHovered();
-
-        const float shownTop = ImGui::GetWindowPos().y;
-        if (selected && show && (min.y < shownTop || max.y > shownTop + ImGui::GetWindowHeight())) {
-            ImGui::SetScrollHereY();
-        }
-        if (!ImGui::IsItemVisible()) {
-            return pressed;
-        }
-
-        if (selected) {
-            controls::drawSelectedBar(min, max);
-        } else {
-            controls::drawRowState();
-        }
-        const auto color = selected ? theme::color::ON_GREEN : theme::color::GREEN;
-        const float left = min.x + theme::SPACE_2 + indentOf(level);
-        if (arrow != Arrow::None) {
-            drawArrow(left, min.y, arrow == Arrow::Open, color);
-        }
-        drawName(left, min, max, color, name, tag, selected, found, unsaved);
-        return pressed;
-    }
-
-    /**
-     * The row of a mod or page that is not available, at the cursor, in the width of every row, with its tag
-     * where it has one. It is disabled: it has the look of a row under the ray, so the reason in the help line is
-     * seen to be its, and none of a press, which does nothing. With `unsaved`, the pending dot follows the name,
-     * faded with it. Returns whether the ray is on the row.
-     */
-    bool disabledRow(const std::string_view name, const std::string_view tag, const int level, const Arrow arrow, const float width, const RowFound& found = {},
-        const bool unsaved = false)
-    {
-        const auto min = ImGui::GetCursorScreenPos();
-        ImGui::Dummy(ImVec2(width, theme::CONTROL_HEIGHT));
-        if (!ImGui::IsItemVisible()) {
-            return false;
-        }
-        const bool pointed = ImGui::IsItemHovered();
-        controls::drawRowState();
-
-        ImGui::BeginDisabled();
-        const float left = min.x + theme::SPACE_2 + indentOf(level);
-        if (arrow != Arrow::None) {
-            drawArrow(left, min.y, false, theme::color::GREEN);
-        }
-        drawName(left, min, ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT), theme::color::GREEN, name, tag, false, found, unsaved);
-        ImGui::EndDisabled();
-        return pointed;
-    }
-
-    /**
-     * The row of a category at the cursor, in the width of every row: its arrow, down while its mods are the rows
-     * under it, its name, a rule from it to the count of its mods, and the count in the detail size. It is muted, also
-     * under the ray, where it has the look of a row. It is never selected: a press opens and closes it. With
-     * `unsaved`, while it is closed on the selected mod, the pending dot follows the name.
-     * Returns whether it was pressed, and tells whether the ray is on it.
-     */
-    bool categoryRow(const std::string_view name, const std::size_t count, const bool open, const float width, const bool unsaved, bool& pointed)
-    {
-        const auto min = ImGui::GetCursorScreenPos();
-        const auto max = ImVec2(min.x + width, min.y + theme::CONTROL_HEIGHT);
-        const bool pressed = ImGui::InvisibleButton("category", ImVec2(width, theme::CONTROL_HEIGHT));
-        pointed = ImGui::IsItemHovered();
-        if (!ImGui::IsItemVisible()) {
-            return pressed;
-        }
-        const auto color = theme::color::GREEN_MUTED;
-        controls::drawRowState();
-        const float left = min.x + theme::SPACE_2;
-        drawArrow(left, min.y, open, color);
-
-        ImGui::PushFont(nullptr, theme::FONT_SIZE_DETAIL);
-        const auto countText = std::to_string(count);
-        const float countRight = max.x - theme::SPACE_3;
-        const float countLeft = countRight - controls::textWidth(countText);
-        controls::drawText(countLeft, countRight, min.y, theme::CONTROL_HEIGHT, color, countText);
-        ImGui::PopFont();
-
-        const float ruleRight = countLeft - theme::SPACE_2;
-        const float nameLeft = left + ARROW_COLUMN + ARROW_GAP;
-        const float dotWidth = unsaved ? theme::SPACE_2 + controls::DOT_WIDTH : 0.0f;
-        const float nameRight = (std::min)(nameLeft + controls::textWidth(name) + dotWidth, ruleRight - CATEGORY_RULE_MIN_WIDTH - theme::SPACE_3);
-        const float drawnRight = drawNameWithDot(nameLeft, nameRight, min.y, color, name, unsaved, false);
-        const float ruleLeft = std::ceil(drawnRight) + theme::SPACE_3;
-        if (ruleLeft < ruleRight) {
-            const float ruleTop = std::floor(min.y + (theme::CONTROL_HEIGHT - theme::BORDER_FRAME) * 0.5f);
-            ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(ruleLeft, ruleTop), ImVec2(ruleRight, ruleTop + theme::BORDER_FRAME), ImGui::GetColorU32(theme::color::RULE));
-        }
-        return pressed;
     }
 
     /**
@@ -392,13 +169,12 @@ namespace mods_config::ui
             const auto& name = category.name.empty() ? std::string(model::NO_CATEGORY) : category.name;
             // not a number, which a mod's place is
             ImGui::PushID(key.c_str());
-            bool pointed = false;
-            const bool pressed = categoryRow(name, category.mods.size(), open, rowWidth, unsaved > 0, pointed);
+            const auto row = controls::treeGroupRow(name, category.mods.size(), open, unsaved > 0, rowWidth);
             panelTargets().add(TargetKind::Category, name, ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax()));
-            if (pointed && unsaved > 0) {
+            if (row.pointed && unsaved > 0) {
                 drawn.pointed = PointedRow{ .text = name, .help = withUnsaved({}, unsaved) };
             }
-            if (pressed) {
+            if (row.pressed) {
                 open = !open;
                 if (open) {
                     _openCategories.insert(key);
@@ -440,7 +216,7 @@ namespace mods_config::ui
         const std::string_view tag = mcm ? MCM_TAG : "";
         ImGui::PushID(static_cast<int>(modIndex));
         if (!mod.notAvailable.empty()) {
-            if (disabledRow(mod.displayName, tag, level, Arrow::Closed, rowWidth)) {
+            if (controls::treeRow({ .name = mod.displayName, .tag = tag, .level = level, .arrow = controls::TreeArrow::Closed, .disabled = true }, rowWidth).pointed) {
                 drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
             }
             addTreeTarget(mod);
@@ -449,8 +225,15 @@ namespace mods_config::ui
         }
         // the mod's row is its front page, and its pages are the rows under it while it is selected
         const std::size_t unsaved = selected && _unsavedStore ? model::unsavedChanges(mod.frontPage, *_unsavedStore, false) : 0;
-        bool pointed = false;
-        if (treeRow(mod.displayName, tag, level, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed, {}, unsaved > 0)) {
+        const auto row = controls::treeRow({ .name = mod.displayName,
+                                               .tag = tag,
+                                               .level = level,
+                                               .arrow = open ? controls::TreeArrow::Open : controls::TreeArrow::Closed,
+                                               .selected = selected && selection.page.empty(),
+                                               .show = _showSelection,
+                                               .dot = unsaved > 0 },
+            rowWidth);
+        if (row.pressed) {
             drawn.pressed = Selection{ .mod = modIndex, .page = {} };
             if (!selected && !mod.pages.empty()) {
                 _openedMod = modIndex;
@@ -458,7 +241,7 @@ namespace mods_config::ui
         }
         addTreeTarget(mod);
         const float rowBottom = ImGui::GetItemRectMax().y;
-        if (pointed && (mcm || !mod.help.empty() || unsaved > 0)) {
+        if (row.pointed && (mcm || !mod.help.empty() || unsaved > 0)) {
             drawn.pointed = PointedRow{ .text = mod.displayName, .help = withUnsaved(mcm ? MCM_HELP : mod.help, unsaved) };
         }
         if (open) {
@@ -495,18 +278,18 @@ namespace mods_config::ui
             path.push_back(pageIndex);
             const bool enabled = page.notAvailable.empty() && (!page.enabledWhen || model::holds(*page.enabledWhen, store));
             const bool open = !page.pages.empty() && std::ranges::starts_with(selection.page, path);
-            const auto arrow = page.pages.empty() ? Arrow::None : open ? Arrow::Open : Arrow::Closed;
+            const auto arrow = page.pages.empty() ? controls::TreeArrow::None : open ? controls::TreeArrow::Open : controls::TreeArrow::Closed;
             // a page whose pages are not the rows under it tells their changes too
             const std::size_t unsaved = _unsavedStore ? model::unsavedChanges(page, *_unsavedStore, !(open && enabled)) : 0;
             ImGui::PushID(static_cast<int>(pageIndex));
-            bool pointed = false;
-            if (!enabled) {
-                pointed = disabledRow(page.name, {}, level, arrow, rowWidth, {}, unsaved > 0);
-            } else if (treeRow(page.name, {}, level, arrow, selection.page == path, _showSelection, rowWidth, pointed, {}, unsaved > 0)) {
+            const auto row = controls::treeRow(
+                { .name = page.name, .level = level, .arrow = arrow, .selected = selection.page == path, .show = _showSelection, .disabled = !enabled, .dot = unsaved > 0 },
+                rowWidth);
+            if (row.pressed) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
             addTreeTarget(mod, path);
-            if (pointed && (!enabled || !page.help.empty() || unsaved > 0)) {
+            if (row.pointed && (!enabled || !page.help.empty() || unsaved > 0)) {
                 drawn.pointed = PointedRow{ .text = page.name, .help = withUnsaved(pageHelp(page, enabled), unsaved) };
             }
             if (open && enabled) {
@@ -538,22 +321,31 @@ namespace mods_config::ui
             const std::string_view tag = mcm ? MCM_TAG : "";
             const bool closed = found->byName && !selected;
             const bool open = !closed && !found->pages.empty();
-            const RowFound row{ .ranges = model::matchRanges(*search.query, mod.displayName), .count = closed ? found->total : found->frontCount };
+            const auto ranges = model::matchRanges(*search.query, mod.displayName);
+            const std::size_t count = closed ? found->total : found->frontCount;
             ImGui::PushID(static_cast<int>(modIndex));
             if (!mod.notAvailable.empty()) {
-                if (disabledRow(mod.displayName, tag, 0, Arrow::Closed, rowWidth, row)) {
+                if (controls::treeRow({ .name = mod.displayName, .tag = tag, .arrow = controls::TreeArrow::Closed, .disabled = true, .found = ranges, .count = count }, rowWidth)
+                        .pointed) {
                     drawn.pointed = PointedRow{ .text = mod.displayName, .help = std::format("Not available: {}.", mod.notAvailable) };
                 }
                 addTreeTarget(mod);
                 ImGui::PopID();
                 continue;
             }
-            bool pointed = false;
-            if (treeRow(mod.displayName, tag, 0, open ? Arrow::Open : Arrow::Closed, selected && selection.page.empty(), _showSelection, rowWidth, pointed, row)) {
+            const auto row = controls::treeRow({ .name = mod.displayName,
+                                                   .tag = tag,
+                                                   .arrow = open ? controls::TreeArrow::Open : controls::TreeArrow::Closed,
+                                                   .selected = selected && selection.page.empty(),
+                                                   .show = _showSelection,
+                                                   .found = ranges,
+                                                   .count = count },
+                rowWidth);
+            if (row.pressed) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = {} };
             }
             addTreeTarget(mod);
-            if (pointed && (mcm || !mod.help.empty())) {
+            if (row.pointed && (mcm || !mod.help.empty())) {
                 drawn.pointed = PointedRow{ .text = mod.displayName, .help = mcm ? MCM_HELP : mod.help };
             }
             if (open) {
@@ -581,17 +373,23 @@ namespace mods_config::ui
         for (const auto& pageFound : found) {
             const auto& page = pages[pageFound.place];
             path.push_back(pageFound.place);
-            const auto arrow = !pageFound.pages.empty() ? Arrow::Open : page.pages.empty() ? Arrow::None : Arrow::Closed;
-            const RowFound row{ .ranges = model::matchRanges(query, page.name), .count = pageFound.count };
+            const auto arrow = !pageFound.pages.empty() ? controls::TreeArrow::Open : page.pages.empty() ? controls::TreeArrow::None : controls::TreeArrow::Closed;
+            const auto ranges = model::matchRanges(query, page.name);
             ImGui::PushID(static_cast<int>(pageFound.place));
-            bool pointed = false;
-            if (!pageFound.enabled) {
-                pointed = disabledRow(page.name, {}, static_cast<int>(path.size()), arrow, rowWidth, row);
-            } else if (treeRow(page.name, {}, static_cast<int>(path.size()), arrow, selection.mod == modIndex && selection.page == path, _showSelection, rowWidth, pointed, row)) {
+            const auto row = controls::treeRow({ .name = page.name,
+                                                   .level = static_cast<int>(path.size()),
+                                                   .arrow = arrow,
+                                                   .selected = selection.mod == modIndex && selection.page == path,
+                                                   .show = _showSelection,
+                                                   .disabled = !pageFound.enabled,
+                                                   .found = ranges,
+                                                   .count = pageFound.count },
+                rowWidth);
+            if (row.pressed) {
                 drawn.pressed = Selection{ .mod = modIndex, .page = path };
             }
             addTreeTarget(mod, path);
-            if (pointed && (!pageFound.enabled || !page.help.empty())) {
+            if (row.pointed && (!pageFound.enabled || !page.help.empty())) {
                 drawn.pointed = PointedRow{ .text = page.name, .help = pageHelp(page, pageFound.enabled) };
             }
             drawFoundPages(mod, page.pages, pageFound.pages, modIndex, selection, query, path, rowWidth, drawn);

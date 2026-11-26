@@ -148,8 +148,8 @@ Each framework commit is followed by the mod's port onto it, one at a time.
 | M17 | mod       | Text inputs and the search field from the framework                                                          | done    |
 | F31 | framework | imgui: rows and section headings: a row as wide as the rows, a folding heading with counts, a heading's rule | done    |
 | M18 | mod       | Page rows and section headings from the framework                                                            | done    |
-| F32 | framework | imgui: tree rows: set in by level, an arrow column, selected, disabled, a tag, and a group row with a count  | todo    |
-| M19 | mod       | The tree's rows from the framework                                                                           | todo    |
+| F32 | framework | imgui: tree rows: set in by level, an arrow column, selected, disabled, a tag, and a group row with a count  | done    |
+| M19 | mod       | The tree's rows from the framework                                                                           | done    |
 
 ## Decisions that differ from the requirements
 
