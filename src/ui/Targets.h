@@ -5,8 +5,8 @@
 #include "imgui/controls/Targets.h"
 
 // The kinds of the panel's targets and its scroll areas that are the mod's, which a row records with
-// `controls::targets().add` and devbench's targets action tells; a button and a dropdown's option are the framework's
-// (`controls::target::BUTTON`, `OPTION`, `LIST_AREA`).
+// `controls::targets().add` and devbench's targets action tells; a button, a dropdown's option and the search field are
+// the framework's (`controls::target::BUTTON`, `OPTION`, `SEARCH`, `LIST_AREA`).
 namespace mods_config::ui::target
 {
     // a mod's row of the tree, or a page's: the key is the mod's name, and the path the names of the pages to it
@@ -25,8 +25,6 @@ namespace mods_config::ui::target
     inline constexpr std::string_view CRUMB = "crumb";
     // the track of a channel of the color editor that is open, by the channel's name
     inline constexpr std::string_view COLOR_CHANNEL = "colorChannel";
-    // the search field of the tree's header while it is not edited, Field, and its Clear while it has a query
-    inline constexpr std::string_view SEARCH = "search";
 
     // the tree's rows, and the page's
     inline constexpr std::string_view TREE_AREA = "tree";

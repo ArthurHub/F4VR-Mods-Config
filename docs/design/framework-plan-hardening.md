@@ -23,8 +23,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | F35 | framework | devbench: a `theme` action that sets the theme's fields live                                                 | done    |
 | F36 | framework | imgui: the targets of a panel, which the controls record, and a devbench `targets` action                    | done    |
 | M22 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | done    |
-| F37 | framework | imgui: the search field                                                                                      | planned |
-| M23 | mod       | The tree's search field from the framework                                                                   | planned |
+| F37 | framework | imgui: the search field                                                                                      | done    |
+| M23 | mod       | The tree's search field from the framework                                                                   | done    |
 | F38 | framework | imgui: the drawn icons as one `Icon` set, and a popup beside its row                                         | planned |
 | M24 | mod       | Icons and the editors' popup from the framework                                                              | planned |
 | F39 | framework | imgui: the panes of a panel: a navigation pane with its header and rows, and a content pane                  | planned |
@@ -338,9 +338,12 @@ SearchDrawn searchField(const char* id, const ImVec2& pos, float width, std::str
 
 - It draws what the mod's field draws: the frame, the magnifier, the placeholder in the detail size or the query, the count, and Clear with its cross while there is a query.
 - A press edits it on the live, bare text input, so `controls::get().isTextEdited(ImGui::GetID(id))` says it is edited, Back ends the edit, and a physical keyboard's Escape keeps the query, as now.
-- The caller keeps the query: it writes `write`, and empties it on `cleared`.
+- The caller keeps the query: it writes `write`, and empties it on `cleared`. Clear pressed during an edit ends the edit in the control, so the caller only empties the query.
+- It is a target of kind `search` (`controls::target::SEARCH`): `Field` while it is not edited, `Clear` while there is a query, the texts the mod recorded.
+- The magnifier, the cross and their sizes stay constants of `SearchFields.cpp` until F38 moves them to `Icons.h`.
+- Tests: `ControlsSearchFieldsTests.cpp` (a press edits and each key writes, Escape and Back keep the query, Clear empties with its pulse and ends an edit, `pointed` and `clearPointed`, no Clear without a query, the targets), and the gallery draws an empty field and one with a query, so the theme's tests cover it.
 
-**The mod (M23):** `ui::SearchField` keeps the query, `setQuery`, `clear`, `isEdited` and the two help texts, and its `draw` is one `controls::searchField` call. `drawMagnifier` and `drawCross` go.
+**The mod (M23):** `ui::SearchField` keeps the query, `setQuery`, `clear`, `isEdited` and the two help texts, and its `draw` is one `controls::searchField` call. `drawMagnifier` and `drawCross` go, and so does the mod's `ui::target::SEARCH`: the framework records the field.
 
 ## Icons and the row popup (F38, M24)
 
