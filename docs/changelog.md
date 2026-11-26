@@ -1,3 +1,8 @@
+## v1.1.1
+
+- Search finds a setting that another setting hides, as Sim Settlements 2's settings behind its "Show …" switches: the page shows it dimmed with the switch that shows it and a note, "Hidden while “Show Difficulty” is off.", and turning the switch on makes it editable. Before, its page was in the list until it was picked, then went away and showed nothing.
+- A text's caret is in the menu's green, and a key of the keyboard drawn in the accent, as one held down, has its text in the menu's dark green.
+
 ## v1.1.0
 
 - The menu has its own keyboard, in place of SteamVR's: it shows under the panel as a text or the search is edited, and both hands type on it with their rays. It works on OpenComposite too, which has no keyboard of its own. A press on its line moves the caret, and Done or Back keeps what was typed; a grip hold moves the keyboard.
@@ -18,7 +23,6 @@
 - For mod authors: a `string` dropdown with `allowTyped` also takes a value the player types, of the lengths its `minLength` and `maxLength` allow. Its list shows a value that is none of its options after them.
 - The entry that types a name of your own, last in a dropdown's list, is now **Type your own**.
 - As a search ends, the tree shows the mod or page selected while searching, with its category open. It showed the tree's top before.
-- Search finds a setting that another setting hides, as Sim Settlements 2's settings behind its "Show …" switches: the page shows it dimmed with the switch that shows it and a note, "Hidden while “Show Difficulty” is off.", and turning the switch on makes it editable. Before, its page was in the list until it was picked, then went away and showed nothing.
 - For mod authors: a setting with `"searchable": false` isn't found by search by its name, only with its section, page or mod, for rows named after what search finds already.
 
 ## v1.0.1
