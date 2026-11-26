@@ -30,12 +30,14 @@ def test_a_query_finds_mods_and_rows_and_filters_the_page(menu):
     menu.select(CONFIG_SPEC_SHOWCASE, CONDITIONS)
     page = menu.page()
     assert page["filtered"]
-    # a setting is found when its name matches and its condition holds, as the selected mod's store has it
+    # a setting whose name matches is found while its condition holds, as the selected mod's store has it, or dimmed
+    # while a setting the player can show hides it; one that does not match is found as a setting that decides another's
     settings = [row for row in page["rows"] if row["kind"] == "setting"]
     assert any(row["found"] for row in settings)
     for row in settings:
-        matches = "level" in plain(row["text"]).lower()
-        assert row["found"] == (matches and row["shown"]), f"{row['text']} found: {row['found']}"
+        if "level" in plain(row["text"]).lower():
+            assert row["found"] == (row["shown"] or row["hiddenBy"] is not None), f"{row['text']} found: {row['found']}"
+        assert row["hiddenBy"] is None or (row["found"] and not row["shown"]), f"{row['text']} hidden by {row['hiddenBy']}"
 
     state = search(menu, "")
     assert state["search"]["matches"] == 0 and not state["search"]["filtered"]
@@ -69,23 +71,27 @@ def test_a_row_that_is_not_searchable_is_not_found_by_its_name(menu):
     assert menu.setting("Not searchable")["found"]
 
 
-def test_a_row_a_condition_hides_is_not_found(menu):
+def test_a_row_a_condition_hides_is_found_dimmed_with_the_setting_that_shows_it(menu):
     menu.select(CONFIG_SPEC_SHOWCASE, CONDITIONS)
     search(menu, "in the section")
     assert menu.setting("In the section")["found"]
+    assert menu.setting("Show rows")["found"], "the setting that decides its condition is shown with it"
 
     # its section is shown by Show rows, whose pending value the search asks of the store
     menu.set("showRows", False)
     menu.state()
     page = menu.page()
     row = next(row for row in page["rows"] if plain(row.get("text")) == "In the section")
-    assert not row["shown"] and not row["found"]
-    assert page["hiddenByConditions"], "the page says what matches is hidden by the values of other settings"
+    assert not row["shown"] and row["found"], "it is found, dimmed"
+    assert row["hiddenBy"] == ["showRows"]
+    assert menu.setting("Show rows")["found"]
+    assert not page["hiddenByConditions"], "the page has the row, so it says nothing of what is hidden"
 
     menu.set("showRows", True)
     menu.state()
-    assert menu.setting("In the section")["found"]
-    assert not menu.page()["hiddenByConditions"]
+    row = menu.setting("In the section")
+    assert row["found"] and row["hiddenBy"] is None
+    assert menu.setting("Show rows")["found"], "the switch stays, so it can be turned off again"
 
 
 def test_an_mcm_row_is_found_by_its_text_from_the_game(menu):

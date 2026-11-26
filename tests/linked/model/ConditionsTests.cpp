@@ -312,3 +312,30 @@ TEST_CASE("Conditions: a condition surely holds on values that are available, an
     CHECK_FALSE(model::surelyHolds(compared(Kind::Equals, "bOn", { true }), nullptr));
     CHECK(model::surelyHolds(joined(Kind::All, {}), nullptr));
 }
+
+TEST_CASE("Conditions: the settings that decide a condition are those whose change can turn it")
+{
+    using Ids = std::vector<std::string>;
+    auto store = ValuesStore({ { "a", true }, { "b", false }, { "c", false }, { "d", true } });
+
+    // a comparison is decided by its setting, whether it holds or not
+    CHECK(model::decidingSettings(on("a"), &store) == Ids{ "a" });
+    CHECK(model::decidingSettings(on("b"), &store) == Ids{ "b" });
+
+    // an All that holds by all of its conditions, and one that does not by those that do not hold
+    CHECK(model::decidingSettings(joined(Kind::All, { on("a"), on("d") }), &store) == Ids{ "a", "d" });
+    CHECK(model::decidingSettings(joined(Kind::All, { on("a"), on("b"), on("c") }), &store) == Ids{ "b", "c" });
+
+    // an Any that holds by those that hold, and one that does not by all of them
+    CHECK(model::decidingSettings(joined(Kind::Any, { on("a"), on("b"), on("d") }), &store) == Ids{ "a", "d" });
+    CHECK(model::decidingSettings(joined(Kind::Any, { on("b"), on("c") }), &store) == Ids{ "b", "c" });
+
+    // a Not by every setting in it, once each
+    CHECK(model::decidingSettings(joined(Kind::Not, { joined(Kind::Any, { on("a"), on("b"), on("a") }) }), &store) == Ids{ "a", "b" });
+
+    // an Any with none, as MCM's hidden switcher, is decided by none, and a state of the mod's client is no setting
+    CHECK(model::decidingSettings(joined(Kind::Any, {}), &store).empty());
+    Condition state = on("Ready");
+    state.source = Condition::Source::ClientState;
+    CHECK(model::decidingSettings(state, &store).empty());
+}

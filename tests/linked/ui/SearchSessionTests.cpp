@@ -98,11 +98,12 @@ TEST_CASE("a config spec read again is searched again")
     CHECK(panel.search().foundIn(1)->total == 1);
 }
 
-TEST_CASE("a row a condition hides is found while its mod is not selected, and not while it is")
+TEST_CASE("a row a condition hides is found as its mod is selected too, dimmed, with the setting that shows it")
 {
+    using Kind = model::Condition::Kind;
     const test_panel::PanelContext context;
     auto alpha = configSpec("Alpha", { row("Show advanced"), row("Intensity") });
-    std::get<model::Setting>(alpha.frontPage.items[1]).visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "Show advanced", .conditions = {} };
+    std::get<model::Setting>(alpha.frontPage.items[1]).visibleWhen = model::Condition{ .kind = Kind::On, .setting = "Show advanced", .conditions = {} };
     RecordingStore store;
     store.byId = { .value = false, .available = true };
     FullPanel panel;
@@ -110,30 +111,47 @@ TEST_CASE("a row a condition hides is found while its mod is not selected, and n
     panel.setMods({ std::move(alpha), configSpec("Beta", { row("Strength") }) });
     drawFrames(panel, 2);
 
-    // another mod is searched with no store, so its conditions hold
+    // another mod is searched with no store, so its conditions on values hold
     search(panel, "intens");
     REQUIRE(panel.search().foundIn(0));
     CHECK(panel.search().matches() == 1);
 
-    // selected, its condition is asked of its store, which hides the row: the page says so
+    // selected, its condition is asked of its store, which hides the row: it is still found, dimmed, with the switch
     panel.select(selectionOf(0));
     drawFrames(panel, 1);
-    CHECK_FALSE(panel.search().foundIn(0));
-    CHECK(panel.search().matches() == 0);
-    CHECK(panel.search().hiddenByConditions(0, panel.mods()[0], *panel.selectedPage()));
+    REQUIRE(panel.search().foundIn(0));
+    const auto& intensity = panel.mods()[0].frontPage.items[1];
+    CHECK(panel.search().foundIn(0)->hidden.contains(&intensity));
+    CHECK(panel.search().foundIn(0)->rows.contains(&panel.mods()[0].frontPage.items[0]));
+    CHECK(panel.search().matches() == 1);
+    CHECK_FALSE(panel.search().hiddenByConditions(0, panel.mods()[0], *panel.selectedPage()));
 
     // the condition holds now: it is found, and nothing is hidden
     store.byId = { .value = true, .available = true };
     drawFrames(panel, 1);
-    CHECK(panel.search().foundIn(0));
-    CHECK_FALSE(panel.search().hiddenByConditions(0, panel.mods()[0], *panel.selectedPage()));
+    REQUIRE(panel.search().foundIn(0));
+    CHECK(panel.search().foundIn(0)->hidden.empty());
+}
 
-    // another mod selected, Alpha is searched with no store again
+TEST_CASE("a row only a setting that is never shown shows is not found as its mod is selected, and the page says why")
+{
+    using Kind = model::Condition::Kind;
+    const test_panel::PanelContext context;
+    auto alpha = configSpec("Alpha", { row("Never"), row("Internal") });
+    auto& items = alpha.frontPage.items;
+    std::get<model::Setting>(items[0]).visibleWhen = model::Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} };
+    std::get<model::Setting>(items[1]).visibleWhen = model::Condition{ .kind = Kind::On, .setting = "Never", .conditions = {} };
+    RecordingStore store;
     store.byId = { .value = false, .available = true };
-    panel.select(selectionOf(1));
-    drawFrames(panel, 1);
-    CHECK(panel.search().foundIn(0));
-    CHECK(panel.search().matches() == 1);
+    FullPanel panel;
+    panel.setStore(model::Source::ConfigSpec, &store);
+    panel.setMods({ std::move(alpha) });
+    panel.select(selectionOf(0));
+    drawFrames(panel, 2);
+
+    search(panel, "internal");
+    CHECK_FALSE(panel.search().foundIn(0));
+    CHECK(panel.search().hiddenByConditions(0, panel.mods()[0], *panel.selectedPage()));
 }
 
 TEST_CASE("the texts from the game are read once as the first search starts, of every available mod's store")

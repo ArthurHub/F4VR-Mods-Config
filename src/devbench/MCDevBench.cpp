@@ -490,7 +490,8 @@ namespace mods_config::devbench
          * The rows of items, in the order they are drawn, a section's after its heading with a depth one more.
          * A row whose condition does not hold is listed with `shown` false, where the panel gives it no room.
          */
-        void addRows(const std::vector<model::Item>& items, const int depth, model::Store& store, const std::unordered_set<const model::Item*>* found, json& rows)
+        void addRows(const std::vector<model::Item>& items, const int depth, model::Store& store, const std::unordered_set<const model::Item*>* found,
+            const std::unordered_map<const model::Item*, model::HiddenRow>* hidden, json& rows)
         {
             for (const auto& item : items) {
                 json row = std::visit(
@@ -539,9 +540,18 @@ namespace mods_config::devbench
                 row["depth"] = depth;
                 row["shown"] = ui::isShown(item, &store);
                 row["found"] = found ? json(found->contains(&item)) : json(nullptr);
+                // the ids of the settings that hide a row the search shows dimmed, null for any other
+                row["hiddenBy"] = nullptr;
+                if (hidden && hidden->contains(&item)) {
+                    auto by = json::array();
+                    for (const auto& setting : hidden->at(&item).by) {
+                        by.push_back(setting.setting->id);
+                    }
+                    row["hiddenBy"] = std::move(by);
+                }
                 rows.push_back(std::move(row));
                 if (const auto* group = std::get_if<model::Group>(&item)) {
-                    addRows(group->items, depth + 1, store, found, rows);
+                    addRows(group->items, depth + 1, store, found, hidden, rows);
                 }
             }
         }
@@ -712,7 +722,7 @@ namespace mods_config::devbench
             const auto* found = search.foundIn(place);
             const std::unordered_set<const model::Item*> none;
             auto rows = json::array();
-            addRows(page.items, 0, store, search.query().empty() ? nullptr : found ? &found->rows : &none, rows);
+            addRows(page.items, 0, store, search.query().empty() ? nullptr : found ? &found->rows : &none, found ? &found->hidden : nullptr, rows);
             return { { "mod", mod.name },
                 { "page", page.name },
                 { "helpShown", panel.isHelpShown() },
@@ -1362,8 +1372,10 @@ namespace mods_config::devbench
             .name = "page",
             .description = "the rows of the page that is shown, in their order, as they are drawn, with the session (dirty: the changes that wait for a Save, "
                            "status: the help line's text and look while the ray is on no row), filtered (it has only its rows that match the search), and "
-                           "hiddenByConditions (rows of it match the search, though the values of other settings hide them all): each row with its kind and "
-                           "depth (a section's rows follow it, one deeper), shown (its condition holds), found (the search shows it, null with no query), and its text and help "
+                           "hiddenByConditions (rows of it match the search, though the values of other settings hide them all, and none the player can show "
+                           "decides it): each row with its kind and depth (a section's rows follow it, one deeper), shown (its condition holds), found (the "
+                           "search shows it, null with no query), hiddenBy (a row the search shows dimmed as its condition hides it: the ids of the settings "
+                           "that decide it, else null), and its text and help "
                            "with the states of its mod's client in them; for a section its role "
                            "(activationSphere for an activation sphere's group, else null), collapsible (it folds), collapsed (it starts folded) and folded (it is "
                            "folded now), for a button its warning (null for none), buttonText, runnable (a press runs it), notRunnable (why not, empty for none), "

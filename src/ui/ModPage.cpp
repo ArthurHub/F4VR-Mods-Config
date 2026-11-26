@@ -23,6 +23,7 @@
 #include "Sliders.h"
 #include "Theme.h"
 #include "model/Conditions.h"
+#include "model/TextMarkup.h"
 #include "model/TextStates.h"
 #include "perf/Perf.h"
 
@@ -96,9 +97,47 @@ namespace
         const model::Item* focused;
         bool& scrollToFocused;
 
+        // the page that is drawn, which a note of a hidden row names another page than
+        const model::Page* shown = nullptr;
+
         // while the query has text: the query and the items the search shows, and whether the page has those alone
         ui::PageSearch search = {};
     };
+
+    /**
+     * What a row the search shows dimmed says under it: the settings that hide it, in quotes, each on another page with
+     * that page, and while its one setting is off, that.
+     */
+    std::string hiddenNote(const model::HiddenRow& hidden, const model::Page* shown, model::StoreReader* store)
+    {
+        std::string names;
+        for (std::size_t i = 0; i < hidden.by.size(); ++i) {
+            const auto& by = hidden.by[i];
+            if (i > 0) {
+                names += i + 1 == hidden.by.size() ? " and " : ", ";
+            }
+            const auto text = model::resolveClientText(by.setting->text, store);
+            names += std::format("\xE2\x80\x9C{}\xE2\x80\x9D", text.empty() ? by.setting->id : text);
+            if (by.page != shown) {
+                names += std::format(" ({})", by.page->name.empty() ? std::string("the mod's front page") : by.page->name);
+            }
+        }
+        if (hidden.whileOff) {
+            return std::format("Hidden while {} is off.", names);
+        }
+        return std::format("Hidden by the value{} of {}.", hidden.by.size() > 1 ? "s" : "", names);
+    }
+
+    /**
+     * The note under a row the search shows dimmed, at the cursor: its lines in the muted color, set in as a text row's.
+     */
+    void drawHiddenNote(const std::string_view note)
+    {
+        const auto pos = ImGui::GetCursorScreenPos();
+        const float width = controls::rowWidth();
+        const float height = ui::drawTextLines(model::plainLines(note), ImVec2(pos.x + theme::SPACE_3, pos.y), width - theme::SPACE_3 - theme::SPACE_2, theme::color::GREEN_MUTED);
+        ImGui::Dummy(ImVec2(width, height));
+    }
 
     /**
      * The query whose match an item's name has underlined: while the query has text, for an item the search shows.
@@ -375,7 +414,8 @@ namespace
      * under no heading is at the content's left, as a heading's row is, so its text lines up with a heading's.
      * An item that is not shown has no row and no room. A section that is not shown is
      * without its heading alone: its items are shown by their own conditions. While the page has the items the search
-     * shows alone, any other has no row either. The depth is how many sections the items are in.
+     * shows alone, any other has no row either, and a row the search shows that a condition hides is dimmed, with a note
+     * under it of the settings that hide it, until they show it. The depth is how many sections the items are in.
      */
     void drawItems(const std::vector<model::Item>& items, const PageDrawing& page, const int depth)
     {
@@ -391,9 +431,16 @@ namespace
                 ImGui::Indent(theme::SPACE_3);
             }
             const auto top = ImGui::GetCursorScreenPos();
+            const auto* hidden = page.search.filtered && page.search.hidden && page.search.hidden->contains(&item) ? &page.search.hidden->at(&item) : nullptr;
             if (ui::isShown(item, page.store)) {
                 std::visit(ItemDrawer{ .page = page, .item = item, .depth = depth }, item);
                 addRowTarget(item, top, page.store);
+            } else if (hidden) {
+                ImGui::BeginDisabled();
+                std::visit(ItemDrawer{ .page = page, .item = item, .depth = depth }, item);
+                ImGui::EndDisabled();
+                addRowTarget(item, top, page.store);
+                drawHiddenNote(hiddenNote(*hidden, page.shown, page.store));
             } else if (std::holds_alternative<model::Group>(item)) {
                 drawGroup(item, page, depth, false);
             }
@@ -454,6 +501,7 @@ namespace mods_config::ui
                 .drawn = drawn,
                 .focused = _focused,
                 .scrollToFocused = _scrollToFocused,
+                .shown = &page,
                 .search = search });
         _choices.endFrame();
         _bindingEditor.endFrame();

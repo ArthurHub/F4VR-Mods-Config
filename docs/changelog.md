@@ -18,6 +18,7 @@
 - For mod authors: a `string` dropdown with `allowTyped` also takes a value the player types, of the lengths its `minLength` and `maxLength` allow. Its list shows a value that is none of its options after them.
 - The entry that types a name of your own, last in a dropdown's list, is now **Type your own**.
 - As a search ends, the tree shows the mod or page selected while searching, with its category open. It showed the tree's top before.
+- Search finds a setting that another setting hides, as Sim Settlements 2's settings behind its "Show …" switches: the page shows it dimmed with the switch that shows it and a note, "Hidden while “Show Difficulty” is off.", and turning the switch on makes it editable. Before, its page was in the list until it was picked, then went away and showed nothing.
 - For mod authors: a setting with `"searchable": false` isn't found by search by its name, only with its section, page or mod, for rows named after what search finds already.
 
 ## v1.0.1

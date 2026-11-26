@@ -20,7 +20,7 @@ The search of the mods and their settings: the tree's header is the field, and a
 - A word can match the name of the mod, the page or the section a row is in, with one word matching the row's own: "frik height" finds FRIK's Height.
 - The most specific match wins: a section, a page or a mod whose name matches shows all that is under it only when nothing under it matches.
 - The settings of MCM mods too, by the text of their rows.
-- A setting of the selected mod that a condition hides is not found. Another mod's conditions hold, as its values are not read.
+- A setting of the selected mod that a condition hides is found, dimmed on its page, where a setting the player can show decides the condition, and not where none does. Another mod's conditions hold, as its values are not read.
 
 ## The tree while searching
 
@@ -35,9 +35,10 @@ The search of the mods and their settings: the tree's header is the field, and a
 - The page that is shown has only its rows that match, a setting, a button and a hotkey, in the sections they are in. A section that folds is open, with a heading that does not fold. A text row, a spacer and an image are not there.
 - Its crumb says so after its name, in `disabled`: `Body stow (filtered)`. With the ray on no row, the help line says "Only the settings that match are shown. Back shows the whole page.", unless the mod's session has changes to tell.
 - Each row is the setting's own, with its control, its pending state and its Reset: a value is changed there as on the whole page, and Save saves it. The match is underlined in its name, and in a section's heading, as in the tree. A row whose label is formatted, as some MCM rows are, has no underline.
+- A row that matches and that a condition hides is there disabled, in `disabled`, with a note under it in `green-muted`, set in a level as a text row: "Hidden while “Show advanced” is off.", or "Hidden by the values of “Mode” and “Range (Beam)”." with the page of a setting on another page. The settings that decide a matching row's condition are on the page with it, as their own rows, and are not counted: turning "Show advanced" on shows the row, and the switch stays.
 - Where the page has none of them, as the menu's front page, a line at the top in `green-muted` in place of the rows: "7 settings match “hol”. Pick a page in the tree to change them."
 - Nothing matches: "Nothing matches “holz”. Search finds the names of mods, pages, sections and settings."
-- A page whose rows that match are all hidden by a condition, which the tree does not have: "What matches “intens” on this page is hidden by the values of other settings. Back shows the whole page."
+- A page whose rows that match are all hidden by a condition that no setting the player can show decides, which the tree does not have: "What matches “intens” on this page is hidden by the values of other settings. Back shows the whole page."
 
 ## Back
 

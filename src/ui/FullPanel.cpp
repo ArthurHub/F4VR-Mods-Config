@@ -1012,7 +1012,7 @@ namespace mods_config::ui
         const auto& mod = mods()[*_selection.mod];
         PageSearch pageSearch;
         if (const auto* found = _search.foundIn(*_selection.mod)) {
-            pageSearch = { .query = &_search.query(), .found = &found->rows, .filtered = isFiltered() };
+            pageSearch = { .query = &_search.query(), .found = &found->rows, .hidden = &found->hidden, .filtered = isFiltered() };
         }
         auto drawn = _modPage.draw(*selectedPage(), storeOf(mod), pageSearch);
         if (pageSearch.filtered) {

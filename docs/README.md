@@ -42,7 +42,7 @@ The menu doesn't pause the game, so a live change shows in the world while the m
 
 ## Search
 
-The list's header is a search field: type a name and the list shows the mods and pages with a setting that matches, with how many. A page shows only its settings that match, marked `(filtered)`, and **Back** shows the whole page.
+The list's header is a search field: type a name and the list shows the mods and pages with a setting that matches, with how many. A page shows only its settings that match, marked `(filtered)`, and **Back** shows the whole page. A setting that another setting hides, as a "Show advanced" switch does, is shown dimmed with that switch and a note: turn the switch on to change it.
 
 ![Searching for "color"](assets/search.jpg)
 

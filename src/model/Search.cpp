@@ -208,15 +208,42 @@ namespace
     }
 
     /**
+     * The condition that shows a row, and none for an item that has none.
+     */
+    const std::optional<Condition>& visibleWhenOf(const Item& item)
+    {
+        return std::visit(
+            [](const auto& row) -> const std::optional<Condition>& {
+                return row.visibleWhen;
+            },
+            item);
+    }
+
+    /**
+     * Where a setting of a mod is: its item, the page it is on and the sections it is in, from the outermost.
+     */
+    struct SettingPlace
+    {
+        const Item* item = nullptr;
+        const Setting* setting = nullptr;
+        const Page* page = nullptr;
+        std::vector<const Item*> sections;
+    };
+
+    /**
      * The search of one mod, with the names of the mod, the pages and the sections it is in as it goes down.
      * The most specific match wins: a section, a page or a mod whose name matches shows all that is under it only
      * when nothing under it matches.
+     * With a store, a row that matches and that a condition hides is found, dimmed, where a setting the player can
+     * show decides the condition: the search finds what the page has, and the player sees what shows it. The
+     * settings that decide the condition of a row it finds are shown with it on its page, and are not counted.
      */
     class ModSearch
     {
     public:
-        ModSearch(const SearchQuery& query, StoreReader* store)
-            : _query(query),
+        ModSearch(const Mod& mod, const SearchQuery& query, StoreReader* store)
+            : _mod(mod),
+              _query(query),
               _store(store)
         {}
 
@@ -232,7 +259,9 @@ namespace
         void fill(ModFound& found, const Mod& mod, const Folded& name, const bool all)
         {
             _rows = &found.rows;
+            _hidden = &found.hidden;
             _context.push_back(name);
+            _page = &mod.frontPage;
             found.frontCount = countItems(mod.frontPage.items, all);
             found.pages = searchPages(mod.pages, all);
             _context.pop_back();
@@ -270,9 +299,11 @@ namespace
                 return all || own ? std::optional(PageFound{ .place = place, .count = 0, .enabled = false, .pages = {} }) : std::nullopt;
             }
             _context.push_back(name);
+            _page = &page;
             PageFound found{ .place = place, .count = countItems(page.items, all), .enabled = true, .pages = searchPages(page.pages, all) };
             const bool empty = found.count == 0 && found.pages.empty();
             if (!all && empty && own) {
+                _page = &page;
                 found.count = countItems(page.items, true);
                 found.pages = searchPages(page.pages, true);
             }
@@ -285,8 +316,9 @@ namespace
 
         /**
          * How many rows of a list of items, and of the sections in it, the search shows: a setting, a button, a
-         * hotkey and a control the menu does not have, that a condition does not hide and that match, or every one
-         * with `all`. Each row it shows is kept, and so is a section with one.
+         * hotkey and a control the menu does not have, that match, or every one with `all`, and that a condition does
+         * not hide, or, with no `all`, hides where a setting the player can show decides it. Each row it shows is
+         * kept, and so is a section with one.
          */
         std::size_t countItems(const std::vector<Item>& items, const bool all)
         {
@@ -300,24 +332,157 @@ namespace
                     count += rows;
                     continue;
                 }
-                const bool shown = std::visit(
+                const bool matched = std::visit(
                     [this, all]<typename T>(const T& row) {
                         if constexpr (std::is_same_v<T, Setting>) {
                             // a row that is not searchable is shown with its section or its page, and not found by its own text
-                            return (!row.visibleWhen || holds(*row.visibleWhen, _store)) && (all || (!row.notSearched && matches(fold(row.text))));
+                            return all || (!row.notSearched && matches(fold(row.text)));
                         } else if constexpr (std::is_same_v<T, Button> || std::is_same_v<T, Hotkey> || std::is_same_v<T, Placeholder>) {
-                            return (!row.visibleWhen || holds(*row.visibleWhen, _store)) && (all || matches(fold(row.text)));
+                            return all || matches(fold(row.text));
                         } else {
                             return false;
                         }
                     },
                     item);
-                if (shown) {
+                if (!matched) {
+                    continue;
+                }
+                const auto& visibleWhen = visibleWhenOf(item);
+                if (!visibleWhen || holds(*visibleWhen, _store)) {
                     _rows->insert(&item);
+                    ++count;
+                    if (visibleWhen && !all && _store) {
+                        showDeciding(*visibleWhen);
+                    }
+                } else if (!all && _store && hide(item, *visibleWhen)) {
                     ++count;
                 }
             }
             return count;
+        }
+
+        /**
+         * Finds a row that matches and that its condition hides: dimmed, with the settings the player can show that
+         * decide the condition, which are shown with it on its page. Returns false, and finds nothing, where none
+         * decides it.
+         */
+        bool hide(const Item& item, const Condition& visibleWhen)
+        {
+            HiddenRow hidden;
+            for (const auto& id : decidingSettings(visibleWhen, _store)) {
+                if (const auto* place = showable(id)) {
+                    hidden.by.push_back({ .setting = place->setting, .page = place->page });
+                }
+            }
+            if (hidden.by.empty()) {
+                return false;
+            }
+            // a config spec's `"equals": true` is MCM's switcher that is on
+            const auto* equalsTrue = visibleWhen.kind == Condition::Kind::Equals && visibleWhen.values.size() == 1 ? std::get_if<bool>(&visibleWhen.values[0]) : nullptr;
+            hidden.whileOff = hidden.by.size() == 1 && (visibleWhen.kind == Condition::Kind::On || (equalsTrue && *equalsTrue));
+            _rows->insert(&item);
+            (*_hidden)[&item] = hidden;
+            for (const auto& by : hidden.by) {
+                showSetting(by.setting->id);
+            }
+            return true;
+        }
+
+        /**
+         * Shows the settings that decide a condition, where they are on the page that is searched.
+         */
+        void showDeciding(const Condition& condition)
+        {
+            for (const auto& id : decidingSettings(condition, _store)) {
+                showSetting(id);
+            }
+        }
+
+        /**
+         * Shows a setting that decides the condition of a row the search shows, with the sections it is in, where it
+         * is on the page that is searched: dimmed where a condition hides it too, with the settings that decide that.
+         */
+        void showSetting(const std::string& id)
+        {
+            const auto* place = placeOf(id);
+            if (!place || place->page != _page || _rows->contains(place->item)) {
+                return;
+            }
+            const auto& visibleWhen = place->setting->visibleWhen;
+            if (visibleWhen && !holds(*visibleWhen, _store)) {
+                if (!hide(*place->item, *visibleWhen)) {
+                    return;
+                }
+            } else {
+                _rows->insert(place->item);
+                if (visibleWhen) {
+                    showDeciding(*visibleWhen);
+                }
+            }
+            _rows->insert(place->sections.begin(), place->sections.end());
+        }
+
+        /**
+         * Where a setting is that the player can show: one that is shown, or that a condition hides that a setting the
+         * player can show decides. None for one that is never shown, as MCM's hidden switcher.
+         */
+        const SettingPlace* showable(const std::string& id)
+        {
+            const auto* place = placeOf(id);
+            if (!place || !_asked.insert(id).second) {
+                return nullptr;
+            }
+            const auto& visibleWhen = place->setting->visibleWhen;
+            const bool can = !visibleWhen || holds(*visibleWhen, _store) || std::ranges::any_of(decidingSettings(*visibleWhen, _store), [this](const std::string& by) {
+                return showable(by) != nullptr;
+            });
+            _asked.erase(id);
+            return can ? place : nullptr;
+        }
+
+        /**
+         * Where a setting of the mod is, by its id: none for an id no setting of the mod has. The places are read as
+         * the first is asked.
+         */
+        const SettingPlace* placeOf(const std::string& id)
+        {
+            if (!_placesRead) {
+                addPlaces(_mod.frontPage);
+                for (const auto& page : _mod.pages) {
+                    addPlaces(page);
+                }
+                _placesRead = true;
+            }
+            const auto found = _places.find(id);
+            return found != _places.end() ? &found->second : nullptr;
+        }
+
+        /**
+         * Adds the places of the settings of a page, of the pages under it, and of the sections in them.
+         */
+        void addPlaces(const Page& page)
+        {
+            std::vector<const Item*> sections;
+            addPlaces(page.items, page, sections);
+            for (const auto& under : page.pages) {
+                addPlaces(under);
+            }
+        }
+
+        /**
+         * Adds the places of the settings of a list of items, in the sections given, and of the sections in it.
+         */
+        void addPlaces(const std::vector<Item>& items, const Page& page, std::vector<const Item*>& sections)
+        {
+            for (const auto& item : items) {
+                if (const auto* group = std::get_if<Group>(&item)) {
+                    sections.push_back(&item);
+                    addPlaces(group->items, page, sections);
+                    sections.pop_back();
+                } else if (const auto* setting = std::get_if<Setting>(&item)) {
+                    _places.try_emplace(setting->id, SettingPlace{ .item = &item, .setting = setting, .page = &page, .sections = sections });
+                }
+            }
         }
 
         /**
@@ -340,14 +505,26 @@ namespace
             return count;
         }
 
+        const Mod& _mod;
         const SearchQuery& _query;
         StoreReader* _store;
 
         // the names the item searched now is under: its mod's, its pages' and its sections'
         std::vector<Folded> _context;
 
-        // where the items the search shows are kept: those of the mod it fills
+        // the page whose items are searched now
+        const Page* _page = nullptr;
+
+        // where the items the search shows are kept, and the rows of them a condition hides: those of the mod it fills
         std::unordered_set<const Item*>* _rows = nullptr;
+        std::unordered_map<const Item*, HiddenRow>* _hidden = nullptr;
+
+        // where each setting of the mod is, by its id, read as the first is asked
+        std::unordered_map<std::string, SettingPlace> _places;
+        bool _placesRead = false;
+
+        // the settings `showable` asks of now, so a condition that names its own setting ends
+        std::unordered_set<std::string> _asked;
     };
 
     std::size_t totalOf(const std::vector<PageFound>& pages)
@@ -403,15 +580,17 @@ namespace mods_config::model
     /**
      * What a query finds in a mod: the rows that match, of its front page and of its pages, and the pages they are
      * on, or, with nothing under it that matches, every page of a mod whose name matches. A mod that is not
-     * available is found by its name alone. The items it shows are kept, so its page shows those alone. With no store, as for a mod that is not selected, a condition holds, so
-     * a row it would hide is found. None for a mod in which nothing matches.
+     * available is found by its name alone. The items it shows are kept, so its page shows those alone. With no store, as
+     * for a mod that is not selected, a condition on a value holds, so a row it would hide is found. With one, such a row
+     * is found where a setting the player can show decides its condition, as a hidden row, so the mod's pages and counts
+     * stay the same as it is selected. None for a mod in which nothing matches.
      */
     std::optional<ModFound> searchMod(const Mod& mod, const SearchQuery& query, StoreReader* store)
     {
         if (query.empty()) {
             return std::nullopt;
         }
-        ModSearch search(query, store);
+        ModSearch search(mod, query, store);
         const auto name = fold(mod.displayName);
         const bool own = search.matches(name);
         if (!mod.notAvailable.empty()) {

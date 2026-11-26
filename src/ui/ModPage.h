@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -56,12 +57,14 @@ namespace mods_config::ui
      */
     /**
      * What a page is drawn with while the query has text: the query, and the items the search shows, whose names
-     * have its match underlined, and whether the page has those items alone.
+     * have its match underlined, the rows of them a condition hides, which a filtered page has dimmed, and whether
+     * the page has those items alone.
      */
     struct PageSearch
     {
         const model::SearchQuery* query = nullptr;
         const std::unordered_set<const model::Item*>* found = nullptr;
+        const std::unordered_map<const model::Item*, model::HiddenRow>* hidden = nullptr;
         bool filtered = false;
     };
 

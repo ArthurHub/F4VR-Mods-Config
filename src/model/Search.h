@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -56,6 +57,25 @@ namespace mods_config::model
     };
 
     /**
+     * A setting whose value hides a row the search shows, with the page it is on.
+     */
+    struct HidingSetting
+    {
+        const Setting* setting = nullptr;
+        const Page* page = nullptr;
+    };
+
+    /**
+     * A row the search shows that a condition hides now: the settings whose values hide it, each with a row the player
+     * can show, and whether it is hidden while its one setting is off.
+     */
+    struct HiddenRow
+    {
+        std::vector<HidingSetting> by;
+        bool whileOff = false;
+    };
+
+    /**
      * What the search found in a mod: how many rows of its front page it shows, and the pages it shows.
      */
     struct ModFound
@@ -70,8 +90,12 @@ namespace mods_config::model
         // how many rows of the mod the search shows, on every page
         std::size_t total = 0;
 
-        // the items the search shows, of every page: its rows, and the sections they are in
+        // the items the search shows, of every page: its rows, the settings whose values show or hide them on their
+        // page, and the sections they are in
         std::unordered_set<const Item*> rows;
+
+        // the rows it shows that a condition hides now, which the page has dimmed, with what hides them
+        std::unordered_map<const Item*, HiddenRow> hidden;
     };
 
     std::vector<TextRange> matchRanges(const SearchQuery& query, std::string_view name);

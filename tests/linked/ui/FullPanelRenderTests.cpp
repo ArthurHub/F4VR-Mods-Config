@@ -653,15 +653,21 @@ TEST_CASE("FullPanel render: the search field idle, under the ray, typed in, wit
     });
 }
 
-TEST_CASE("FullPanel render: a page whose rows that match are all hidden by a condition, while searching", "[.render]")
+TEST_CASE("FullPanel render: rows that match and that a condition hides, dimmed with the switch that shows them, while searching", "[.render]")
 {
     model::Mod mod{ .name = "Flashlight", .displayName = "Immersive Flashlight", .frontPage = {}, .pages = {} };
     const auto row = [](std::string text) {
         return model::Setting{ .id = text, .type = model::SettingType::Switcher, .text = std::move(text), .help = {}, .valueOptions = {}, .storage = {} };
     };
-    auto intensity = row("Intensity");
-    intensity.visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "Show advanced", .conditions = {} };
-    mod.pages.push_back({ .name = "Beam", .items = { row("Show advanced"), std::move(intensity) } });
+    const auto shownBy = [&row](std::string text, std::string by) {
+        auto hidden = row(std::move(text));
+        hidden.visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = std::move(by), .conditions = {} };
+        return hidden;
+    };
+    model::Group advanced{ .text = "Advanced",
+        .items = { row("Show advanced"), shownBy("Intensity", "Show advanced"), shownBy("Intensity falloff", "Show advanced") },
+        .visibleWhen = {} };
+    mod.pages.push_back({ .name = "Beam", .items = { row("Beam width"), std::move(advanced) } });
 
     mcm::McmStore store;
     FullPanel panel;

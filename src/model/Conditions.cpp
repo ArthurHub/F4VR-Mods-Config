@@ -115,6 +115,43 @@ namespace
         }
         return known ? std::optional(!settling) : std::nullopt;
     }
+
+    /**
+     * Adds the ids of the settings a condition names, all of them, once each: a state of the mod's client and a setting
+     * of the game's INI are none.
+     */
+    void addAllSettings(const model::Condition& condition, std::vector<std::string>& ids)
+    {
+        using Kind = model::Condition::Kind;
+        if (condition.kind == Kind::All || condition.kind == Kind::Any || condition.kind == Kind::Not) {
+            for (const auto& inner : condition.conditions) {
+                addAllSettings(inner, ids);
+            }
+        } else if (condition.source == model::Condition::Source::Setting && std::ranges::find(ids, condition.setting) == ids.end()) {
+            ids.push_back(condition.setting);
+        }
+    }
+
+    /**
+     * Adds the ids of the settings whose values decide a condition now, once each, as `decidingSettings` has them.
+     */
+    void addDecidingSettings(const model::Condition& condition, model::StoreReader* store, std::vector<std::string>& ids)
+    {
+        using Kind = model::Condition::Kind;
+        if (condition.kind == Kind::Not || (condition.kind != Kind::All && condition.kind != Kind::Any)) {
+            addAllSettings(condition, ids);
+            return;
+        }
+        // an All that holds and an Any that does not are decided by all their conditions, an All that does not by
+        // those that do not hold, and an Any that holds by those that hold
+        const bool holds = model::holds(condition, store);
+        const bool byAll = holds == (condition.kind == Kind::All);
+        for (const auto& inner : condition.conditions) {
+            if (byAll || model::holds(inner, store) == holds) {
+                addDecidingSettings(inner, store, ids);
+            }
+        }
+    }
 }
 
 namespace mods_config::model
@@ -136,6 +173,18 @@ namespace mods_config::model
     bool surelyHolds(const Condition& condition, StoreReader* store)
     {
         return evaluate(condition, store).value_or(false);
+    }
+
+    /**
+     * The ids of the settings whose values decide a condition now, in the order it names them: the setting of a
+     * comparison, every setting under a Not, and of an All and an Any those of the conditions that settle it, so a
+     * change of one of them can turn it. A state of the mod's client and a setting of the game's INI are none.
+     */
+    std::vector<std::string> decidingSettings(const Condition& condition, StoreReader* store)
+    {
+        std::vector<std::string> ids;
+        addDecidingSettings(condition, store, ids);
+        return ids;
     }
 
     /**

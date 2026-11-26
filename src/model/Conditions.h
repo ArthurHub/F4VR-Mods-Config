@@ -1,7 +1,9 @@
 #pragma once
 
 #include <optional>
+#include <string>
 #include <string_view>
+#include <vector>
 
 #include "ConfigDefinition.h"
 #include "Store.h"
@@ -10,5 +12,6 @@ namespace mods_config::model
 {
     bool holds(const Condition& condition, StoreReader* store);
     bool surelyHolds(const Condition& condition, StoreReader* store);
+    std::vector<std::string> decidingSettings(const Condition& condition, StoreReader* store);
     std::optional<StoredType> gameIniSettingType(std::string_view name);
 }

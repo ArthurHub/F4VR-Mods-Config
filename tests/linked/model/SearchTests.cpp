@@ -203,19 +203,83 @@ TEST_CASE("Search: a mod that is not available is found by its name alone, and a
     CHECK_FALSE(model::searchMod(mod, SearchQuery("red"), nullptr));
 }
 
-TEST_CASE("Search: a row a condition hides is not found with the store, and is with none")
+TEST_CASE("Search: a row a condition hides is found with the store as a hidden row, by the setting that shows it, and is with none")
 {
     auto mod = flashlight();
     mod.frontPage.items.push_back(setting("Show advanced"));
     std::get<model::Setting>(mod.pages[0].items[1]).visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "Show advanced", .conditions = {} };
+    const auto& intensity = mod.pages[0].items[1];
 
     mcm::McmStore store;
     store.open(mod);
-    CHECK_FALSE(model::searchMod(mod, SearchQuery("intens"), &store));
-
-    const auto found = model::searchMod(mod, SearchQuery("intens"), nullptr);
+    auto found = model::searchMod(mod, SearchQuery("intens"), &store);
     REQUIRE(found);
     CHECK(found->pages[0].count == 1);
+    REQUIRE(found->hidden.contains(&intensity));
+    const auto& hidden = found->hidden.at(&intensity);
+    REQUIRE(hidden.by.size() == 1);
+    CHECK(hidden.by[0].setting->id == "Show advanced");
+    CHECK(hidden.by[0].page == &mod.frontPage);
+    CHECK(hidden.whileOff);
+
+    // the setting on another page is named, and not shown on the row's page
+    CHECK_FALSE(found->rows.contains(&mod.frontPage.items[1]));
+
+    // shown, it is no hidden row
+    store.set(std::get<model::Setting>(mod.frontPage.items[1]), true);
+    found = model::searchMod(mod, SearchQuery("intens"), &store);
+    REQUIRE(found);
+    CHECK(found->hidden.empty());
+
+    found = model::searchMod(mod, SearchQuery("intens"), nullptr);
+    REQUIRE(found);
+    CHECK(found->pages[0].count == 1);
+    CHECK(found->hidden.empty());
+}
+
+TEST_CASE("Search: the setting that shows a row it finds is shown with it on its page, hidden or not, and is not counted")
+{
+    auto mod = flashlight();
+    auto& beam = mod.pages[0].items;
+    beam.push_back(section("Expert", { setting("Show expert") }));
+    std::get<model::Setting>(beam[1]).visibleWhen = model::Condition{ .kind = model::Condition::Kind::On, .setting = "Show expert", .conditions = {} };
+    const auto& expert = beam[3];
+    const auto& showExpert = std::get<model::Group>(expert).items[0];
+
+    mcm::McmStore store;
+    store.open(mod);
+    auto found = model::searchMod(mod, SearchQuery("intens"), &store);
+    REQUIRE(found);
+    CHECK(found->total == 1);
+    CHECK(found->hidden.contains(&beam[1]));
+    CHECK(found->rows == std::unordered_set<const model::Item*>{ &beam[1], &expert, &showExpert });
+
+    // turned on, it stays, so the player can turn it off again
+    store.set(std::get<model::Setting>(showExpert), true);
+    found = model::searchMod(mod, SearchQuery("intens"), &store);
+    REQUIRE(found);
+    CHECK(found->total == 1);
+    CHECK(found->hidden.empty());
+    CHECK(found->rows == std::unordered_set<const model::Item*>{ &beam[1], &expert, &showExpert });
+}
+
+TEST_CASE("Search: a row no setting the player can show decides stays hidden and is not found")
+{
+    using Kind = model::Condition::Kind;
+    auto mod = flashlight();
+    auto& beam = mod.pages[0].items;
+
+    // never shown, as MCM's hidden switcher, and a setting of the mod that a condition never shows decides it
+    auto never = std::get<model::Setting>(setting("Never"));
+    never.visibleWhen = model::Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} };
+    beam.push_back(never);
+    std::get<model::Setting>(beam[0]).visibleWhen = model::Condition{ .kind = Kind::Any, .setting = {}, .conditions = {} };
+    std::get<model::Setting>(beam[1]).visibleWhen = model::Condition{ .kind = Kind::On, .setting = "Never", .conditions = {} };
+
+    mcm::McmStore store;
+    store.open(mod);
+    CHECK_FALSE(model::searchMod(mod, SearchQuery("beam width"), &store));
+    CHECK_FALSE(model::searchMod(mod, SearchQuery("intens"), &store));
 }
 
 TEST_CASE("Search: the items it shows are its rows and the sections they are in, which a page has alone while searching")

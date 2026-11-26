@@ -262,11 +262,12 @@ The tree's header is a search field that finds a setting by name across all mods
 - A word can match the row's mod, page or section name, as long as one word matches the row's own: "frik height" finds FRIK's Height.
 - A setting with [`"searchable": false`](schema.md#settings) isn't found by its own text, only with its section, page or mod.
 - The most specific match wins: a matching section, page or mod shows everything under it only when nothing under it matches.
-- In the selected mod, a setting hidden by a condition isn't found. Other mods' values aren't read, so their conditions hold and their hidden settings are found.
+- In the selected mod, a matching row a condition hides is found, dimmed, where a setting the player can show decides the condition, so a mod's pages and counts don't change as it is selected. Its page has it with a note under it, "Hidden while “Show Difficulty” is off.", and the settings that decide it on that page, which show it as they change. A row only a setting that is never shown decides, as an MCM hidden switcher, isn't found. Other mods' values aren't read, so their conditions hold and their hidden settings are found.
+- A setting that decides the condition of a matching row is on the filtered page with it, hidden or not, and isn't counted.
 - With a query, the tree is flat: only mods with a match, each expanded to its matching pages, with counts on the right (a mod's row counts its front page). A mod found only by name is closed, with its total, until selected. Matches are underlined.
 - The shown page has only its matching rows, in their sections, opened, matches underlined. Each is the real row, edited and saved as on the whole page. A press on a tree page goes there, keeping the query.
 - The crumb is `<page> (filtered)`, `(filtered)` dimmer; with the ray on no row the help line says "Only the settings that match are shown. Back shows the whole page.", unless the session has changes to report.
-- Where the shown page has no matches (as the front page), the content says "7 settings match “hol”. Pick a page in the tree to change them.", or that nothing matches. A page whose matching rows are all condition-hidden says so.
+- Where the shown page has no matches (as the front page), the content says "7 settings match “hol”. Pick a page in the tree to change them.", or that nothing matches. A page whose matching rows are all hidden by conditions that no setting the player can show decides says so.
 - Back shows the page whole, query kept, focus ring on the last row the ray was on, its sections opened; matches stay underlined. The next Back acts as with no query.
 - Clear, or Back with the ray on the field, empties the query, restores the tree and shows the page whole the same way. A new query filters again.
 
