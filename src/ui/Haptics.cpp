@@ -1,7 +1,6 @@
 #include "Haptics.h"
 
 #include <algorithm>
-#include <numbers>
 
 #include "model/Haptics.h"
 
@@ -18,11 +17,6 @@ namespace
 
     // a keyframe of intensity is at least this wide, so a tap shows
     constexpr float SHAPE_MIN_KEYFRAME_WIDTH = 2.0f;
-
-    // the dot of the Play icon, and the radii of its two arcs on each side, in its box of 24
-    constexpr float PLAY_DOT_RADIUS = 2.5f;
-    constexpr float PLAY_INNER_RADIUS = 5.0f;
-    constexpr float PLAY_OUTER_RADIUS = 9.0f;
 }
 
 namespace mods_config::ui
@@ -70,24 +64,6 @@ namespace mods_config::ui
                 ImVec2(right, base - segment.endIntensity * SHAPE_FULL_HEIGHT),
                 ImVec2(right, base),
                 color);
-        }
-    }
-
-    /**
-     * The Play icon around a point, as the design system draws it in a box of 24: a dot, with two arcs on each side of
-     * it, as a pulse that goes out of it.
-     */
-    void drawPlayIcon(const ImVec2& center)
-    {
-        constexpr float QUARTER = std::numbers::pi_v<float> / 4.0f;
-        const auto color = ImGui::GetColorU32(theme::color::GREEN);
-        auto* drawList = ImGui::GetWindowDrawList();
-        drawList->AddCircleFilled(center, PLAY_DOT_RADIUS, color);
-        for (const float radius : { PLAY_INNER_RADIUS, PLAY_OUTER_RADIUS }) {
-            drawList->PathArcTo(center, radius, 3.0f * QUARTER, 5.0f * QUARTER);
-            drawList->PathStroke(color, controls::ICON_THICKNESS);
-            drawList->PathArcTo(center, radius, -QUARTER, QUARTER);
-            drawList->PathStroke(color, controls::ICON_THICKNESS);
         }
     }
 }

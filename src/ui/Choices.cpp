@@ -89,7 +89,7 @@ namespace
         const bool onPlay = boxes.onPlay(ImGui::GetIO().MousePos.x);
         ImGui::BeginDisabled(!plays);
         controls::drawButtonFrame(boxes.play, plays && row.pointed && onPlay, plays && row.held && onPlay);
-        ui::drawPlayIcon(boxes.play.GetCenter());
+        controls::drawIcon(controls::Icon::Vibrate, boxes.play.GetCenter(), theme::color::GREEN);
         ImGui::EndDisabled();
         return box.Min.x;
     }

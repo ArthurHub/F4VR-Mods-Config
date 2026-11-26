@@ -60,7 +60,7 @@ namespace
         const float iconRoom = ui::BUTTON_ICON_SIZE + theme::SPACE_2;
         const float room = box.GetWidth() - theme::SPACE_3 * 2.0f;
         const float left = std::floor(box.Min.x + theme::SPACE_3 + (std::max)(room - iconRoom - controls::textWidth(text), 0.0f) * 0.5f);
-        ui::drawButtonIcon(button.icon, ImVec2(left + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), color);
+        controls::drawIcon(ui::buttonIcon(button.icon), ImVec2(left + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), color, ui::BUTTON_ICON_SIZE);
         controls::drawText(left + iconRoom, box.Max.x - theme::SPACE_3, box.Min.y, box.GetHeight(), color, text);
     }
 }

@@ -156,27 +156,6 @@ namespace mods_config::ui
     }
 
     /**
-     * Begins the popup of an editor of a row, as the binding, the color and the transform editors are: of a width and a
-     * height, centered on the row as far as the page lets it, under or over the row as `controls::popupTop` places it, padded and
-     * outlined in `green`. Returns whether its content is drawn, which ends with `ImGui::EndPopup`.
-     */
-    bool beginRowEditor(const ImGuiID id, const ImRect& row, const float width, const float height)
-    {
-        const auto& page = ImGui::GetCurrentWindow()->InnerRect;
-        const float left = std::clamp(std::floor(row.GetCenter().x - width * 0.5f), page.Min.x, (std::max)(page.Min.x, page.Max.x - width));
-        ImGui::SetNextWindowPos(ImVec2(left, controls::popupTop(row, height, page)));
-        ImGui::SetNextWindowSize(ImVec2(width, height));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_4, theme::SPACE_4));
-        ImGui::PushStyleColor(ImGuiCol_Border, theme::color::GREEN);
-        const bool shown = ImGui::BeginPopupEx(id,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse);
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
-        return shown;
-    }
-
-    /**
      * The tone of a value by its look: the warning while it waits for a Save, and the error while it is invalid.
      */
     controls::Tone toneOf(const ValueLook look)

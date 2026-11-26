@@ -25,8 +25,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M22 | mod       | Targets from the framework; `PanelTargets` and the wrappers that recorded for it are gone                    | done    |
 | F37 | framework | imgui: the search field                                                                                      | done    |
 | M23 | mod       | The tree's search field from the framework                                                                   | done    |
-| F38 | framework | imgui: the drawn icons as one `Icon` set, and a popup beside its row                                         | planned |
-| M24 | mod       | Icons and the editors' popup from the framework                                                              | planned |
+| F38 | framework | imgui: the drawn icons as one `Icon` set, and a popup beside its row                                         | done    |
+| M24 | mod       | Icons and the editors' popup from the framework                                                              | done    |
 | F39 | framework | imgui: the panes of a panel: a navigation pane with its header and rows, and a content pane                  | planned |
 | M25 | mod       | The tree's pane and the content pane from the framework                                                      | planned |
 | F40 | framework | imgui: the title bar: breadcrumbs that shorten to fit, and its buttons                                       | planned |
@@ -352,21 +352,22 @@ SearchDrawn searchField(const char* id, const ImVec2& pos, float width, std::str
 ```cpp
 enum class Icon : std::uint8_t
 {
-    None, Search, Cross, Close, Minimize,
+    None, Search, Cross, Minimize, Vibrate,
     Play, Stop, Bolt, Target, Check, Window, External, Link, Gear, Import, Export, Copy, Eye, Hand, Sound, Pin, Refresh, Trash,
 };
 
 // the box an icon is drawn in at scale 1
 constexpr float ICON_SIZE = 24.0f;
 
+float iconDesignBox(Icon icon);
 void drawIcon(Icon icon, const ImVec2& center, ImU32 color, float size = ICON_SIZE);
 ```
 
-Each icon is drawn as the mod draws it now, strokes scaled with its size. `Marks.h` keeps the marks, the arrows, Reset and Undo. The mod maps `model::ButtonIcon` to `controls::Icon` in `ButtonIcons.cpp`, which keeps only that, and the title bar, the haptic's Play and the search field draw with `drawIcon`.
+Each icon is drawn as the mod draws it now, from the box it is designed in, strokes scaled with its size: the 18 of a button in a box of 20 with strokes of 2 (the mod draws them at its `BUTTON_ICON_SIZE` of 20), Search, Cross, Minimize and Vibrate in a box of 24 with `ICON_THICKNESS`. `size` is the box it is drawn in, so a button's icon at the default 24 is a fifth larger than its design. The haptic's Play is a dot with arcs, not the button's triangle, so it is `Vibrate`; Close and Clear are one `Cross`, drawn at 24 and 18. At its design box each icon's arithmetic is the mod's, so the renders are the same byte for byte. `Marks.h` keeps the marks, the arrows, Reset and Undo. The mod maps `model::ButtonIcon` to `controls::Icon` in `ButtonIcons.cpp`, which keeps only that, and the title bar, the haptic's Play and the search field draw with `drawIcon`.
 
 **The row popup.** `ui::beginRowEditor` ([`Drawing.cpp`](../../src/ui/Drawing.cpp)) is generic: a popup of a width and a height, centered on its row as far as the window lets it, under or over the row as `popupTop` places it, padded the theme's `space4` and outlined in the accent. It moves to `Dialogs.h` as `bool beginRowPopup(ImGuiID id, const ImRect& row, float width, float height)`, ended by `ImGui::EndPopup`. The binding, color and transform editors of the mod call it.
 
-Tests: each icon draws inside its box at two sizes (the draw list's vertices are within it); the popup is placed under a row with room, over one without, and never past its window's sides.
+Tests: each icon draws inside its box at two sizes (the draw list's vertices are within it, give or take 2 px for the soft edge and the eye's sharp tips) and fills a good part of it; the gallery draws every icon; the popup is placed under a row with room, over one without, and never past its window's sides.
 
 ## Panes (F39, M25)
 

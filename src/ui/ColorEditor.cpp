@@ -250,7 +250,7 @@ namespace mods_config::ui
         _openSeen = true;
 
         const float height = EDITOR_HEIGHT + (setting.valueOptions.presets.empty() ? 0.0f : PRESETS_HEIGHT);
-        if (!beginRowEditor(id, row, EDITOR_WIDTH, height)) {
+        if (!controls::beginRowPopup(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
         if (_cancel) {

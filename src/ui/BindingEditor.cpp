@@ -618,7 +618,7 @@ namespace mods_config::ui
         // change of the binding in this frame shows it in the next
         const bool sided = _binding.type == vrcf::ActivationType::AxisDirection && _binding.axis == vrcf::Axis::Thumbstick;
         const float height = sided ? EDITOR_HEIGHT : EDITOR_HEIGHT_NO_DIRECTION;
-        if (!beginRowEditor(id, row, EDITOR_WIDTH, height)) {
+        if (!controls::beginRowPopup(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
         if (backClosed(setting, store)) {

@@ -124,7 +124,7 @@ namespace
             controls::drawButtonRing(box, theme::color::ACCENT);
         }
         const float iconLeft = box.Min.x + theme::SPACE_4;
-        ui::drawButtonIcon(model::ButtonIcon::Hand, ImVec2(iconLeft + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), theme::color::ACCENT);
+        controls::drawIcon(controls::Icon::Hand, ImVec2(iconLeft + ui::BUTTON_ICON_SIZE * 0.5f, box.GetCenter().y), theme::color::ACCENT, ui::BUTTON_ICON_SIZE);
         controls::drawText(iconLeft + ui::BUTTON_ICON_SIZE + theme::SPACE_2, box.Max.x, box.Min.y, box.GetHeight(), theme::color::ACCENT, ADJUST_TEXT);
         ImGui::EndDisabled();
         return pressed;
@@ -222,7 +222,7 @@ namespace mods_config::ui
             return axes[axis].on;
         });
         const float height = editorHeight(static_cast<std::size_t>(std::ranges::distance(lines)));
-        if (!beginRowEditor(id, row, EDITOR_WIDTH, height)) {
+        if (!controls::beginRowPopup(id, row, EDITOR_WIDTH, height)) {
             return edited;
         }
         if (_cancel) {

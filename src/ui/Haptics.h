@@ -34,5 +34,4 @@ namespace mods_config::ui
     };
 
     void drawHapticShape(const ImVec2& min, std::optional<vrcf::HapticPattern> pattern, ImU32 color, ImU32 baseColor);
-    void drawPlayIcon(const ImVec2& center);
 }

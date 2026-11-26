@@ -14,6 +14,7 @@
 #include "imgui/controls/Controls.h"
 #include "imgui/controls/Dialogs.h"
 #include "imgui/controls/Frames.h"
+#include "imgui/controls/Icons.h"
 #include "imgui/controls/Marks.h"
 #include "imgui/controls/Rows.h"
 #include "imgui/controls/Text.h"
@@ -61,7 +62,6 @@ namespace mods_config::ui
     float drawTextRuns(float left, float right, float top, float height, ImU32 color, std::span<const model::TextRun> runs);
     float drawTextLines(std::span<const model::TextLine> lines, const ImVec2& pos, float width, ImU32 color);
     void sphereHeading(std::string_view text, float right, std::span<const model::TextRange> found = {});
-    bool beginRowEditor(ImGuiID id, const ImRect& row, float width, float height);
     float appliesTagWidth(std::string_view word);
     void drawAppliesTag(float left, float middle, model::Applies applies, std::string_view word);
     float restartMarkWidth();

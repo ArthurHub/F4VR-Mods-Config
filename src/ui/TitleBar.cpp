@@ -119,29 +119,6 @@ namespace
         return pressed;
     }
 
-    /**
-     * The Minimize icon around a point: a line at the bottom of a box of 24, as the design system draws it.
-     */
-    void drawMinimizeIcon(const ImVec2& center)
-    {
-        ImGui::GetWindowDrawList()->AddLine(ImVec2(center.x - 6.0f, center.y + 5.0f),
-            ImVec2(center.x + 6.0f, center.y + 5.0f),
-            ImGui::GetColorU32(theme::color::GREEN),
-            controls::ICON_THICKNESS);
-    }
-
-    /**
-     * The Close icon around a point: a cross in a box of 24, as the design system draws it.
-     */
-    void drawCloseIcon(const ImVec2& center)
-    {
-        constexpr float HALF = 6.0f;
-        const auto color = ImGui::GetColorU32(theme::color::GREEN);
-        auto* drawList = ImGui::GetWindowDrawList();
-        drawList->AddLine(ImVec2(center.x - HALF, center.y - HALF), ImVec2(center.x + HALF, center.y + HALF), color, controls::ICON_THICKNESS);
-        drawList->AddLine(ImVec2(center.x + HALF, center.y - HALF), ImVec2(center.x - HALF, center.y + HALF), color, controls::ICON_THICKNESS);
-    }
-
 }
 
 namespace mods_config::ui
@@ -187,9 +164,9 @@ namespace mods_config::ui
                 bar.pointed = PointedRow{ .text = button.name, .help = button.help };
             }
             if (button.button == TitleButton::Minimize) {
-                drawMinimizeIcon(box.GetCenter());
+                controls::drawIcon(controls::Icon::Minimize, box.GetCenter(), theme::color::GREEN);
             } else if (button.button == TitleButton::Close) {
-                drawCloseIcon(box.GetCenter());
+                controls::drawIcon(controls::Icon::Cross, box.GetCenter(), theme::color::GREEN);
             } else if (!highlighted) {
                 controls::drawTextIn(box, HELP_MARK, theme::color::GREEN, 0.5f);
             }
