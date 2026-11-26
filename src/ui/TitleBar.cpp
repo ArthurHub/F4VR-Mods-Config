@@ -26,19 +26,20 @@ namespace
     constexpr auto CLOSE_HELP = "Closes the menu.";
 
     /**
-     * A title bar's button of the panel: the framework's button, which the bar draws, what it is, and what the help
-     * line says of it.
+     * A title bar's button of the panel: what it is, the framework's button the bar draws for it, and what the help line
+     * says of it.
      */
     struct PanelButton
     {
         ui::TitleButton button;
+        controls::TitleButton drawn;
         const char* help;
     };
 
     // from the right of the bar, as the framework's buttons are
-    constexpr std::array PANEL_BUTTONS{ PanelButton{ ui::TitleButton::Close, CLOSE_HELP },
-        PanelButton{ ui::TitleButton::Minimize, MINIMIZE_HELP },
-        PanelButton{ ui::TitleButton::Help, HELP_HELP } };
+    constexpr std::array PANEL_BUTTONS{ PanelButton{ ui::TitleButton::Close, { .name = "Close", .icon = controls::Icon::Cross }, CLOSE_HELP },
+        PanelButton{ ui::TitleButton::Minimize, { .name = "Minimize", .icon = controls::Icon::Minimize }, MINIMIZE_HELP },
+        PanelButton{ ui::TitleButton::Help, { .name = "Help", .text = HELP_MARK }, HELP_HELP } };
 }
 
 namespace mods_config::ui
@@ -59,9 +60,13 @@ namespace mods_config::ui
             const bool shortens = !crumb.target || std::holds_alternative<Selection>(*crumb.target);
             barCrumbs.push_back({ .text = crumb.text, .look = crumb.look, .shortens = shortens });
         }
-        const std::array<controls::TitleButton, 3> buttons{ controls::TitleButton{ .name = "Close", .icon = controls::Icon::Cross },
-            controls::TitleButton{ .name = "Minimize", .icon = controls::Icon::Minimize },
-            controls::TitleButton{ .name = "Help", .text = HELP_MARK, .highlightText = highlightHelp ? HELP_LABEL : "" } };
+        std::array<controls::TitleButton, PANEL_BUTTONS.size()> buttons;
+        for (std::size_t place = 0; place < buttons.size(); ++place) {
+            buttons[place] = PANEL_BUTTONS[place].drawn;
+            if (highlightHelp && PANEL_BUTTONS[place].button == TitleButton::Help) {
+                buttons[place].highlightText = HELP_LABEL;
+            }
+        }
         // the menu's crumb alone never says it is filtered
         const bool filtered = crumbs.size() > 1 && crumbs.back().filtered;
 
@@ -71,7 +76,8 @@ namespace mods_config::ui
             drawn.pressedButton = PANEL_BUTTONS[*bar.pressedButton].button;
         }
         if (bar.pointedButton) {
-            drawn.pointed = PointedRow{ .text = buttons[*bar.pointedButton].name, .help = PANEL_BUTTONS[*bar.pointedButton].help };
+            const auto& button = PANEL_BUTTONS[*bar.pointedButton];
+            drawn.pointed = PointedRow{ .text = button.drawn.name, .help = button.help };
         }
         return drawn;
     }

@@ -138,7 +138,8 @@ namespace
     void addDecidingSettings(const model::Condition& condition, model::StoreReader* store, std::vector<std::string>& ids)
     {
         using Kind = model::Condition::Kind;
-        if (condition.kind == Kind::Not || (condition.kind != Kind::All && condition.kind != Kind::Any)) {
+        // a comparison names its one setting, and a Not is decided by every setting under it
+        if (condition.kind != Kind::All && condition.kind != Kind::Any) {
             addAllSettings(condition, ids);
             return;
         }

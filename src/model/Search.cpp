@@ -581,9 +581,12 @@ namespace mods_config::model
      * What a query finds in a mod: the rows that match, of its front page and of its pages, and the pages they are
      * on, or, with nothing under it that matches, every page of a mod whose name matches. A mod that is not
      * available is found by its name alone. The items it shows are kept, so its page shows those alone. With no store, as
-     * for a mod that is not selected, a condition on a value holds, so a row it would hide is found. With one, such a row
-     * is found where a setting the player can show decides its condition, as a hidden row, so the mod's pages and counts
-     * stay the same as it is selected. None for a mod in which nothing matches.
+     * for a mod that is not selected, a condition on a value holds, so a row it would hide is found, unless it is off
+     * where its value is not available, as MCM's hidden switcher. With one, such a row is found where a setting the
+     * player can show decides its condition, as a hidden row, so its counts stay as it is selected. A row whose
+     * condition only a state of the mod's client, a setting of the game's INI or a setting the player never sees
+     * decides is not: it drops out of the counts as the mod is selected, and its page says why (`hiddenByConditions`).
+     * None for a mod in which nothing matches.
      */
     std::optional<ModFound> searchMod(const Mod& mod, const SearchQuery& query, StoreReader* store)
     {
