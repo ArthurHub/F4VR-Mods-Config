@@ -1883,7 +1883,10 @@ TEST_CASE("FullPanel: a text input that is left by the keyboard's Done writes it
     // a text that is the one it started with is not written again
     test_events::TestEvents events;
     pressActs(panel, pageRow(0));
+    // ImGui's field takes the edit in the frame after the press, and an Enter before it is not the field's
+    drawFrames(panel, 1);
     pressKey(panel, ImGuiKey_Enter);
+    CHECK_FALSE(controls::get().isTextEdited(controls::get().text().edited));
     CHECK(events.sent.empty());
 }
 

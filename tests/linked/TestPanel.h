@@ -67,6 +67,10 @@ namespace test_panel
 
         ~PanelContext()
         {
+            // the controls exist once for every test: a drag, an open list or a text edit this test left would take the
+            // first Back of a later one that draws no frame, as StoreSessionTests' Back does
+            controls::get().reset();
+            controls::get().endTextEdit();
             ImGui::DestroyContext();
         }
     };
