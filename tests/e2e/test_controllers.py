@@ -12,6 +12,9 @@ from menu import Menu, plain
 
 DETAILED = "Detailed Examples"
 
+# the devbench tool ROCK registers once a game is loaded, which tells it is loaded
+ROCK_TOOL = "rock"
+
 
 @pytest.fixture
 def pointer(game, menu):
@@ -126,6 +129,9 @@ def test_the_pointing_hand_turns_the_player_only_with_the_ray_off_the_panel(poin
 
 
 def test_the_offhand_points_when_the_player_is_left_handed(game, menu):
+    # ROCK sets bLeftHandedMode:VR back to off as it is written, so the player cannot be made left-handed with it
+    if ROCK_TOOL in game.tools():
+        pytest.skip("ROCK is loaded, and it holds bLeftHandedMode:VR off")
     was = handedness(game)
     other = "left" if was == "right" else "right"
     with Pointer(game, menu) as pointer:
