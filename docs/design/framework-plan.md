@@ -1,6 +1,6 @@
 # Framework work plan
 
-The framework commits (F) that delivered [CommonFramework work required](framework-requirements.md), with the mod commits (M) that used them as the test bed. All done; the [VR keyboard](#vr-keyboard) was added after them, and the [ImGui controls](#imgui-controls) are planned. Per-commit notes are in each framework subsystem's README and the framework's `0.5.0` changelog; the narrative this plan had is at `git show 6a0be38:docs/design/framework-plan.md`.
+The framework commits (F) that delivered [CommonFramework work required](framework-requirements.md), with the mod commits (M) that used them as the test bed. All done; the [VR keyboard](#vr-keyboard) was added after them, then the [ImGui controls](#imgui-controls). The commits from F33 and M20 are in the [framework hardening plan](framework-plan-hardening.md). Per-commit notes are in each framework subsystem's README and the framework's `0.5.0` changelog; the narrative this plan had is at `git show 6a0be38:docs/design/framework-plan.md`.
 
 ## Commits
 
