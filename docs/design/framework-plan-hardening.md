@@ -35,8 +35,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M27 | mod       | The footer from the framework                                                                                | done    |
 | F42 | framework | imgui: controls with their label in a row, and the press pulse                                               | done    |
 | M28 | mod       | A render test of the controls with their label                                                               | done    |
-| F43 | framework | imgui: a clipped list of rows                                                                                | planned |
-| M29 | mod       | A render test of a clipped list                                                                              | planned |
+| F43 | framework | imgui: a clipped list of rows                                                                                | done    |
+| M29 | mod       | A render test of a clipped list                                                                              | done    |
 | M30 | mod       | The mod's own drawing reads the theme as it draws, not the constants of `Theme.h`                            | planned |
 
 ## Theme (F33, M20)
@@ -547,7 +547,7 @@ It is ImGui's `ImGuiListClipper` over rows of the control's height with the spac
 
 Tests: of 10,000 rows only the shown ones are drawn; the content is as high as all of them; `keep` is drawn while scrolled out.
 
-**The mod (M29):** `ControlsRenderTests.cpp` gets a content pane of 10,000 labelled rows scrolled to its middle.
+**The mod (M29):** `ControlsRenderTests.cpp` gets a content pane of 10,000 labelled rows scrolled to its middle, switchers and shown values in turn, saved as `controls-clipped-rows`.
 
 ## The mod reads the theme (M30)
 

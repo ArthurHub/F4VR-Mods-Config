@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <format>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -12,6 +13,7 @@
 #include "TestPanel.h"
 #include "TestRender.h"
 #include "imgui/controls/Labelled.h"
+#include "imgui/controls/Panes.h"
 #include "imgui/controls/Rows.h"
 #include "imgui/controls/Targets.h"
 
@@ -197,4 +199,28 @@ TEST_CASE("Controls render: a dropdown with its label, its list open and the ray
     }
     CHECK(onOption.x > 0.0f);
     WARN("Saved " << renderToFile("controls-dropdown-open", rows, onOption));
+}
+
+TEST_CASE("Controls render: a content pane of 10,000 rows with their label, clipped to those shown and scrolled to its middle", "[.render]")
+{
+    const test_panel::PanelContext context;
+    constexpr std::size_t COUNT = 10000;
+    const auto rows = [] {
+        controls::sectionHeading("10,000 rows, scrolled to the middle", ImGui::GetCursorScreenPos().x + controls::rowWidth());
+        // the pane's scroll is set in every frame: the first has no rows to scroll yet
+        if (controls::beginContentPane("rows", ImGui::GetContentRegionAvail().y, static_cast<float>(COUNT / 2) * theme::ROW_PITCH)) {
+            controls::clippedRows(COUNT, [](const std::size_t index) {
+                const auto label = std::format("Item {}", index);
+                if (index % 2 == 0) {
+                    // every other switcher is on, and a press is not kept: the rows are only looked at
+                    bool value = index % 4 == 0;
+                    controls::labelledSwitcher(label, value);
+                } else {
+                    controls::labelledValue(label, std::format("{:08X}", 0x01000000 + index));
+                }
+            });
+        }
+        controls::endContentPane();
+    };
+    WARN("Saved " << renderToFile("controls-clipped-rows", rows, POINTER_AWAY));
 }
