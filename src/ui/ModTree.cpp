@@ -7,6 +7,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <imgui.h>
@@ -14,6 +15,7 @@
 #include "Drawing.h"
 #include "Targets.h"
 #include "Theme.h"
+#include "imgui/controls/Panes.h"
 #include "imgui/controls/Tree.h"
 #include "model/Conditions.h"
 #include "model/UnsavedPages.h"
@@ -26,8 +28,6 @@ namespace
     // The tree's sizes that are not tokens of the design system, in the panel's pixels.
     // Its header:
     constexpr float HEADER_HEIGHT = 40.0f;
-    // the room it keeps on the right of its rows, for its scroll bar with space-1 on each side:
-    constexpr float RIGHT_ROOM = theme::SPACE_1 + theme::SCROLLBAR_SIZE + theme::SPACE_1;
     // the tag of an MCM mod's row, and what the help line says of it, as its change is made at once
     constexpr auto MCM_TAG = "MCM";
     constexpr auto MCM_HELP = "An MCM menu: a change is made in the game as you make it. Keep accepts it, and Revert sets it back.";
@@ -103,17 +103,9 @@ namespace mods_config::ui
         // the pages are counted only while the session has a change, which most frames it has not
         _unsavedStore = store && store->dirtyCount() > 0 ? store : nullptr;
         // a row is the same width whether or not the scroll bar shows
-        const float rowWidth = _width - theme::SPACE_2 - RIGHT_ROOM;
+        const float rowWidth = controls::navRowWidth(_width);
 
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, theme::color::PLATE);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(theme::SPACE_2, theme::SPACE_2));
-        const bool shown = ImGui::BeginChild("Mods", ImVec2(_width, height), ImGuiChildFlags_AlwaysUseWindowPadding);
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor();
-
-        // the rows of the tree are closer to each other than the rows of a page
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(theme::SPACE_3, theme::SPACE_1));
-        if (shown) {
+        if (controls::beginNavPane("Mods", _width, height)) {
             const auto pos = ImGui::GetCursorScreenPos();
             auto field = _search.draw(pos, rowWidth, mods.size(), search ? std::optional(search->matches) : std::nullopt);
             drawn.searchActed = field.pressActed;
@@ -122,12 +114,7 @@ namespace mods_config::ui
             ImGui::SetCursorScreenPos(pos);
             ImGui::Dummy(ImVec2(rowWidth, HEADER_HEIGHT));
 
-            if (_showTop) {
-                ImGui::SetNextWindowScroll(ImVec2(0.0f, 0.0f));
-                _showTop = false;
-            }
-            // wider than the rows, by the room of the tip and of the scroll bar
-            if (ImGui::BeginChild("ModRows", ImVec2(rowWidth + RIGHT_ROOM - theme::SPACE_1, 0.0f))) {
+            if (controls::beginNavRows("ModRows", _width, std::exchange(_showTop, false))) {
                 if (search) {
                     drawFound(mods, selection, *search, rowWidth, drawn);
                 } else if (categories) {
@@ -138,12 +125,10 @@ namespace mods_config::ui
                     }
                 }
                 _showSelection = false;
-                controls::targets().addScroll(target::TREE_AREA);
             }
-            ImGui::EndChild();
+            controls::endNavRows();
         }
-        ImGui::PopStyleVar();
-        ImGui::EndChild();
+        controls::endNavPane();
         return drawn;
     }
 

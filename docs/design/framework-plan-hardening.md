@@ -27,8 +27,8 @@ It continues the numbering of the [framework work plan](framework-plan.md): fram
 | M23 | mod       | The tree's search field from the framework                                                                   | done    |
 | F38 | framework | imgui: the drawn icons as one `Icon` set, and a popup beside its row                                         | done    |
 | M24 | mod       | Icons and the editors' popup from the framework                                                              | done    |
-| F39 | framework | imgui: the panes of a panel: a navigation pane with its header and rows, and a content pane                  | planned |
-| M25 | mod       | The tree's pane and the content pane from the framework                                                      | planned |
+| F39 | framework | imgui: the panes of a panel: a navigation pane with its header and rows, and a content pane                  | done    |
+| M25 | mod       | The tree's pane and the content pane from the framework                                                      | done    |
 | F40 | framework | imgui: the title bar: breadcrumbs that shorten to fit, and its buttons                                       | planned |
 | M26 | mod       | The title bar from the framework                                                                             | planned |
 | F41 | framework | imgui: the footer: a rule, its buttons at the right, and the room of a help line                             | planned |
@@ -389,12 +389,13 @@ void endContentPane(std::string_view scrollArea = "page");
 - **`beginNavPane`** is a child of the theme's `plate`, padded `space2`. The caller draws its header at the cursor, as the search field, and gives it its room with `ImGui::Dummy`.
 - **`beginNavRows`** is the child under the header that scrolls, with the tree's spacing between rows (`space1`), wider than its rows by the room of the selected bar's tip and the scroll bar. `showTop` scrolls it to its top.
 - **`beginContentPane`** is the child beside it, which fills the width left. `scrollTo` sets its scroll in this frame: 0 as the page is another, or a place kept for a page.
-- **Each `end` is called whether or not its `begin` returned true**, as ImGui's `EndChild`. It records the pane's scroll as a target's area.
+- **Each `end` is called whether or not its `begin` returned true**, as ImGui's `EndChild`. It records the pane's scroll as a target's area, where the child's content was drawn: `controls::target::TREE_AREA` and `PAGE_AREA` (`tree`, `page`) unless given another.
+- `beginNavPane` keeps the rows' spacing pushed for the header too, as the header's room is a row apart from the rows; `endNavPane` pops it before it ends the child, in the mod's order.
 - The gap between the panes is the caller's `ImGui::SameLine(0.0f, controls::get().theme().space4)`.
 
-**The mod (M25):** `ModTree::draw` and `FullPanel::drawContent` call them. `RIGHT_ROOM` and the row width's arithmetic in `ModTree.cpp` go to `navRowWidth`. `theme::NAV_WIDTH` stays the mod's.
+**The mod (M25):** `ModTree::draw` and `FullPanel::drawContent` call them. `RIGHT_ROOM` and the row width's arithmetic in `ModTree.cpp` go to `navRowWidth`. `theme::NAV_WIDTH` stays the mod's, and so does the header's height. The mod's `ui::target::TREE_AREA` and `PAGE_AREA` go: the panes record the same areas. The renders are the same byte for byte.
 
-Tests: a nav pane's rows are `navRowWidth` wide with and without a scroll bar; `showTop` and `scrollTo` set the scroll; the scrolls are recorded under their areas.
+Tests: a row of `navRowWidth` fits a nav pane's rows with and without a scroll bar; the gallery draws a nav pane; `showTop` and `scrollTo` set the scroll; the scrolls are recorded under their areas.
 
 ## Title bar (F40, M26)
 

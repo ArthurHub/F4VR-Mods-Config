@@ -111,8 +111,8 @@ TEST_CASE("Panel targets: the rows of the tree and the page, the title bar, the 
             return scroll.area == area;
         });
     };
-    CHECK(scrolled(ui::target::TREE_AREA));
-    CHECK(scrolled(ui::target::PAGE_AREA));
+    CHECK(scrolled(controls::target::TREE_AREA));
+    CHECK(scrolled(controls::target::PAGE_AREA));
     CHECK(findTarget(ui::target::TITLE_BUTTON, "Help"));
     CHECK(findTarget(ui::target::TITLE_BUTTON, "Close"));
     CHECK(findTarget(ui::target::CRUMB, "MODS CONFIG FO4"));

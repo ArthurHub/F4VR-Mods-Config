@@ -1,12 +1,12 @@
 #include "FullPanel.h"
 
-#include "Targets.h"
-
 #include <algorithm>
 #include <format>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <variant>
 
 #include <imgui.h>
@@ -15,6 +15,7 @@
 #include "HelpPage.h"
 #include "Theme.h"
 #include "common/CommonUtils.h"
+#include "imgui/controls/Panes.h"
 #include "model/Conditions.h"
 #include "perf/Perf.h"
 
@@ -942,13 +943,10 @@ namespace mods_config::ui
      */
     FullPanel::ContentDrawn FullPanel::drawContent(const float height)
     {
-        if (_pageChanged) {
-            // the pages share the pane, which would keep the place the page before was scrolled to
-            ImGui::SetNextWindowScroll(ImVec2(0.0f, _scrollTo.value_or(0.0f)));
-            _pageChanged = false;
-        }
+        // the pages share the pane, which would keep the place the page before was scrolled to
+        const auto scrollTo = std::exchange(_pageChanged, false) ? std::optional(_scrollTo.value_or(0.0f)) : std::nullopt;
         ContentDrawn content;
-        if (ImGui::BeginChild("Content", ImVec2(0.0f, height))) {
+        if (controls::beginContentPane("Content", height, scrollTo)) {
             const bool onPage = ImGui::IsWindowHovered();
             if (_helpShown) {
                 drawHelpPage(_controls);
@@ -964,9 +962,8 @@ namespace mods_config::ui
                 content = drawFrontPage();
             }
             content.onPage = onPage;
-            controls::targets().addScroll(target::PAGE_AREA);
         }
-        ImGui::EndChild();
+        controls::endContentPane();
         return content;
     }
 
