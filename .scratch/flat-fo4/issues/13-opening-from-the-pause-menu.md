@@ -1,7 +1,7 @@
 # Opening from the pause menu
 
 Type: grilling
-Status: open
+Status: resolved
 
 ## Question
 
@@ -12,3 +12,12 @@ How does the `Mods Config` row in the pause menu behave, given [Pause-menu row](
 - the label: MCM's row in the same list reads "MOD CONFIG"
 - the place: above Settings, a slot in the mod's config, or in the Settings submenu
 - a row on the title screen too, which has the same movie, or the pause menu only
+
+## Answer
+
+Decided with the user, 2026-11-27.
+
+- The press opens the panel over the pause menu, which stays open and keeps the game paused; closing the panel returns to it. An MCM hotkey change then applies at once.
+- The row reads `MODS CONFIG FO4`, plainly not MCM's `MOD CONFIG`.
+- It sits above Settings: a fixed place, with no setting, that shifts none of the rows the game greys out.
+- The pause menu only: no row on the title screen, as VR has no menu there.

@@ -19,6 +19,16 @@
 - [Input on flat](issues/03-input-on-flat.md): cursor from `MenuCursor`, a non-pausing cursor menu of the framework's own, buttons, wheel and Esc from the input queue with `kStop`, keys and text from the window as in VR; whether that keeps the player still is untried
 - [Pause-menu row](issues/04-pause-menu-row.md): a row spliced into `MainMenu.swf`'s list as `PauseMenu` opens, DearModdingUI's way, beside MCM's; needs a CommonLibF4VR commit (C5) for `GetElement` and `HasMember`'s 1.10.984 ID
 - [A third flat runtime in CommonLibF4VR](issues/06-third-flat-runtime.md): `Runtime::AE` with IDs defaulting to 1.10.984's (88% carry over), about 250 lines for C3 and half a day for C4; three singletons are wrong on 1.10.984 today and join C6
+- [The mod's config on flat](issues/09-the-mods-config-on-flat.md): each build ships its own TOML and config spec
+- [Releases](issues/10-releases.md): one version and changelog, both packages each release, each on its own Nexus page
+- [The client the client header is tried with](issues/11-the-client-header-test-client.md): a small test client in this repo; the template stays VR-only
+- [Binding an MCM hotkey on flat](issues/12-binding-an-mcm-hotkey-on-flat.md): only over the pause menu and after a save has loaded, else read-only with a hint; a clash shows on the row and Save takes the key; next key, Esc cancels
+- [Opening from the pause menu](issues/13-opening-from-the-pause-menu.md): `MODS CONFIG FO4` above Settings opens the panel over the paused pause menu, closing returns to it; no title-screen row
+- [The panel's input on flat](issues/14-the-panels-input-on-flat.md): keys and text from the window as in VR, Esc only Back, only menus above the framework's switch the canvases off; `ignoreKeyboardMouse` if the player still moves
+- [The flat drawing host's choices](issues/15-the-flat-drawing-hosts-choices.md): DearModdingUI's hidden `CursorMenu.swf` menu; the frame built on the tick as in VR
+- [Missing IDs on flat](issues/16-missing-ids-on-flat.md): fail loudly on flat as on VR; offered upstream after the release
+- [1.11.x in CommonLibF4VR](issues/17-1-11-x-in-commonlibf4vr.md): 1.11.240 only; IDs default to 1.10.984's with a fourth-argument override, read from the files; `IsNG()` true on both with `IsAE()`; `RUNTIME_LATEST_AE`; 1.11.x needs 1.10.984
+- [The flat frame tick's site](issues/18-the-flat-frame-ticks-site.md): the `DemoteQueuedActors` call at a fixed, checked offset, in CommonLibF4VR beside `VRHookSites`
 - [MCM `SetKeybind` on flat](issues/05-mcm-setkeybind-on-flat.md): only through `root.mcm` in the pause menu's movie while it is open; queue and write `Keybinds.json` otherwise, and push only after a save has loaded
 
 ## Not yet specified
