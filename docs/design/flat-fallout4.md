@@ -122,6 +122,7 @@ Steam's install and the copy share `Documents\My Games\Fallout4` (the INIs, the 
   - a menu of the framework's own shows the cursor and keeps the controls from the player, without pausing; if the player can still look or move while the game runs, `ControlMap::ignoreKeyboardMouse` is set while a canvas takes input
   - only a menu above the framework's own switches the canvases off, so the pause menu under the panel doesn't
 - F304–F306 are tried with the panel shown as the game loads, a local change that isn't committed.
+- **After F306**, once the flat build has settled which framework files are VR only: decide whether each mixed folder (`f4vr/`, `vrcf/`, `render/`, `imgui/`, `perf/`) moves its VR-only files into a `vr/` subfolder that `FLAT` leaves out, in place of F300's list of files, and whether `f4vr/` and `vrcf/` get names that fit their shared code. Every mod's includes change, so it is a breaking framework release of its own.
 - **C5**: the pause menu's row needs to read the list's elements, which CommonLibF4VR has no function for, and `HasMember` has only its 1.10.163 ID, so on 1.10.984 it calls a wrong address. DearModdingUI's CommonLibF4 has both functions' IDs.
 - **M303** adds a `MODS CONFIG FO4` row above Settings to the pause menu's list as it opens, as DearModdingUI does: native listeners on its movie, and the row put in when it is missing and never moved. A press opens the panel over the pause menu, which stays open; closing the panel returns to it. The framework's Scaleform helpers get a native listener and a splice for it.
 
