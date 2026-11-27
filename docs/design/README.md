@@ -10,6 +10,7 @@ The product and architecture as they stand. What is left to build and the open q
 - [MCM support](mcm.md): every MCM and MCM VR feature and how the menu handles it, and the MCM test set.
 - [Design system](design-system/README.md): the look and behavior of every control, component and panel, with mocks (colors, type, sizes, the ImGui style); the source of the Design System artifact and of `src/Theme.h`.
 - [Work plan](mod-plan.md): the remaining milestones and the open questions.
+- [Flat Fallout 4](flat-fallout4.md): the plan for a second build of the same source, for flat Fallout 4.
 
 The panel's generic controls are the framework's [`imgui::controls`](../../external/F4VR-CommonFramework/src/imgui/controls/README.md); the framework's subsystems are documented in its own READMEs.
 
@@ -30,7 +31,7 @@ Public: other mods address messages to the F4SE plugin name, call functions on t
 
 ## Design principles
 
-- Fallout 4 VR only; flat Fallout 4 is not supported or planned.
+- Fallout 4 VR first; flat Fallout 4 is planned as a second build of the same source ([Flat Fallout 4](flat-fallout4.md)).
 - VR-native pointing, no fake desktop mouse.
 - Mods own their settings and real config files; the menu keeps no second settings store.
 - A declarative JSON config spec suffices for ordinary settings menus.
