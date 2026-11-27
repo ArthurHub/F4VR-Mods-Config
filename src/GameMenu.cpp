@@ -39,22 +39,6 @@ namespace
 namespace mods_config
 {
     /**
-     * The game's folders for the menu: MCM's, the Data folder and `My Games\Fallout4VR` for a config spec's files, the
-     * config specs' and their live copies', in the mod's folder of My Games, and the categories the player gave mods,
-     * beside the mod's config, as the mod's own config spec has it. And the game's checks of its plugins.
-     */
-    menu::MenuSetup GameMenu::setup()
-    {
-        return { .mcm = R"(Data\MCM)",
-            .data = "Data",
-            .myGames = common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)"),
-            .configSpecs = spec::CONFIG_SPEC_FOLDER,
-            .liveCopies = BASE_MOD_PATH + R"(\Dev)",
-            .categories = BASE_MOD_PATH + R"(\Categories.toml)",
-            .plugins = spec::gamePluginChecks() };
-    }
-
-    /**
      * Puts the menu's panel in front of the player, and left there: a panel that follows the head moves under the ray.
      * The player moves it by holding it with the config's move button. When they walk away from it, it is put in front
      * of them again. The menu is not closed for that, as it can hold changes that are not saved yet. The wrist buttons

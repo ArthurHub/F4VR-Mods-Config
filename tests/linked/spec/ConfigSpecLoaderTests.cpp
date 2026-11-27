@@ -591,30 +591,45 @@ TEST_CASE("ConfigSpecLoader: with no config specs' folder there are no mods")
 
 TEST_CASE("ConfigSpecLoader: the mod's own config spec edits keys of its shipped TOML, with the defaults it ships")
 {
-    const auto mods = spec::loadConfigSpecs(MODS_CONFIG_SPECS_DIR);
-    REQUIRE(mods.size() == 1);
-    const auto& mod = mods[0];
-    CHECK(mod.notAvailable.empty());
-    CHECK(mod.name == "ModsConfigFO4VR");
-    // the file the menu loaded, which the framework's client answers
-    CHECK(mod.files.at("config") == model::File{ .format = model::FileFormat::Toml,
-                                        .root = model::FileRoot::MyGames,
-                                        .path = "Mods_Config/ModsConfigFO4VR/ModsConfigFO4VR.toml",
-                                        .pathFromClientState = "configFile" });
+    // each build's own: VR's, and flat's, which has the settings both games have
+    struct Shipped
+    {
+        const char* specs;
+        const char* config;
+        std::string name;
+        std::size_t minSettings;
+    };
 
-    const auto shipped = toml::parse(readFile(MODS_CONFIG_SHIPPED_CONFIG));
-    std::unordered_set<std::string> ids;
-    for (const auto& setting : settingsOf(mod)) {
-        INFO(setting.id);
-        CHECK(ids.insert(setting.id).second);
-        CHECK_FALSE(setting.text.empty());
-        CHECK_FALSE(setting.help.empty());
-        const auto& storage = std::get<model::FileStorage>(setting.storage);
-        CHECK(storage.file == "config");
-        CHECK(storage.path.size() == 2);
-        checkShippedDefault(setting, shipped);
+    const std::array shippedFiles{ Shipped{ MODS_CONFIG_SPECS_DIR, MODS_CONFIG_SHIPPED_CONFIG, "ModsConfigFO4VR", 10 },
+        Shipped{ MODS_CONFIG_FLAT_SPECS_DIR, MODS_CONFIG_FLAT_SHIPPED_CONFIG, "ModsConfigFO4", 4 } };
+    for (const auto& [specs, config, name, minSettings] : shippedFiles) {
+        INFO(name);
+        const auto mods = spec::loadConfigSpecs(specs);
+        REQUIRE(mods.size() == 1);
+        const auto& mod = mods[0];
+        CHECK(mod.notAvailable.empty());
+        CHECK(mod.problems.empty());
+        CHECK(mod.name == name);
+        // the file the menu loaded, which the framework's client answers
+        CHECK(mod.files.at("config") == model::File{ .format = model::FileFormat::Toml,
+                                            .root = model::FileRoot::MyGames,
+                                            .path = std::format("Mods_Config/{0}/{0}.toml", name),
+                                            .pathFromClientState = "configFile" });
+
+        const auto shipped = toml::parse(readFile(config));
+        std::unordered_set<std::string> ids;
+        for (const auto& setting : settingsOf(mod)) {
+            INFO(setting.id);
+            CHECK(ids.insert(setting.id).second);
+            CHECK_FALSE(setting.text.empty());
+            CHECK_FALSE(setting.help.empty());
+            const auto& storage = std::get<model::FileStorage>(setting.storage);
+            CHECK(storage.file == "config");
+            CHECK(storage.path.size() == 2);
+            checkShippedDefault(setting, shipped);
+        }
+        CHECK(ids.size() >= minSettings);
     }
-    CHECK(ids.size() >= 10);
 }
 
 TEST_CASE("ConfigSpecLoader: the config spec showcase is loaded, and its shipped file has the default of each of its settings")

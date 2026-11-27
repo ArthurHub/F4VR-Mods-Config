@@ -93,15 +93,21 @@ namespace mods_config::ui
     /**
      * The icons of a binding, by their paths under the game's `Data\Textures`, as the framework draws its prompt: its
      * button, with how it is worked, on the controller of its hand, and a chord's modifier after it. None for what has
-     * no icon: the system button, and a binding that is off.
+     * no icon: the system button, a binding that is off, and every binding on flat, which has no controllers' icons.
      */
     std::vector<std::string> bindingIcons(const vrcf::InputBinding& binding, const bool leftHanded)
     {
+#ifndef ENABLE_FALLOUT_VR
+        (void)binding;
+        (void)leftHanded;
+        return {};
+#else
         auto icons = vrui::bindingIconPaths(onControllers(binding, leftHanded));
         for (auto& icon : icons) {
             icon.insert(0, ICONS_FOLDER);
         }
         return icons;
+#endif
     }
 
     /**

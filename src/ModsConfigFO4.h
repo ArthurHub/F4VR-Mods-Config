@@ -1,10 +1,15 @@
 #pragma once
 
 #include "Config.h"
-#include "GameMenu.h"
 #include "ModBase.h"
 #include "f4vr/GameMenusHandler.h"
 #include "menu/MenuController.h"
+
+#ifdef ENABLE_FALLOUT_VR
+#include "GameMenu.h"
+#else
+#include "FlatGameMenu.h"
+#endif
 
 namespace mods_config
 {
@@ -20,6 +25,7 @@ namespace mods_config
         }
 
         static bool isPlayerLoaded();
+        static menu::MenuSetup menuSetup();
 
         mods_config::menu::MenuController& menu()
         {
@@ -38,14 +44,20 @@ namespace mods_config
         virtual void onFrameUpdate() override;
 
     private:
+#ifdef ENABLE_FALLOUT_VR
         void takeOpenGestureFromFRIK();
         void closeFavoritesOfOpenGesture(bool gestureFired);
+#endif
 
         // the game side of the menu, which its controller asks
+#ifdef ENABLE_FALLOUT_VR
         GameMenu _gameSide;
+#else
+        FlatGameMenu _gameSide;
+#endif
 
         // the config menu
-        mods_config::menu::MenuController _menu{ _gameSide, GameMenu::setup() };
+        mods_config::menu::MenuController _menu{ _gameSide, menuSetup() };
 
         // the game's menus opening and closing, as the loading screen that closes the menu
         f4vr::GameMenusHandler _gameMenus;

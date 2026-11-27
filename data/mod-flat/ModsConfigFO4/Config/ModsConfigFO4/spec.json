@@ -1,0 +1,136 @@
+{
+  "minSchemaVersion": 1,
+  "modName": "ModsConfigFO4",
+  "displayName": "Mods Config FO4",
+  "help": "This menu: the categories of its mod list, and the tools for a config spec's author.",
+  "category": "Interface",
+  "specVersion": 1,
+  "files": {
+    "config": {
+      "format": "toml",
+      "root": "myGames",
+      "path": "Mods_Config/ModsConfigFO4/ModsConfigFO4.toml",
+      "pathFromClientState": "configFile"
+    },
+    "categories": {
+      "format": "toml",
+      "root": "myGames",
+      "path": "Mods_Config/ModsConfigFO4/Categories.toml"
+    }
+  },
+  "defaultFile": "config",
+  "applies": "live",
+  "content": [
+    { "type": "image", "texture": "ModsConfigFO4/banner.dds", "width": 720 },
+    {
+      "type": "text",
+      "text": "<font color='#AAAAAA' size=13>Version: {clientState:modVersion}</font>",
+      "html": true
+    },
+    {
+      "type": "section",
+      "text": "About",
+      "content": [
+        {
+          "type": "text",
+          "text": "A modern configuration menu for Fallout 4 mods: every mod's settings in one place. A mod that supports it shows each change live, as you make it. It reads a mod's config spec, or the MCM menu it already has."
+        }
+      ]
+    },
+    { "type": "spacer" },
+    {
+      "type": "section",
+      "text": "Help",
+      "content": [
+        {
+          "type": "button",
+          "text": "Mods Config FO4 wiki",
+          "help": "Opens the Mods Config FO4 wiki in your browser.",
+          "buttonText": "Open",
+          "action": {
+            "type": "OpenURL",
+            "url": "https://github.com/ArthurHub/F4VR-Mods-Config/blob/main/docs/README.md"
+          }
+        },
+        { "type": "spacer" },
+        {
+          "type": "text",
+          "text": "See ? / Help, in the title bar, for how the menu works."
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "pageDisplayName": "Categories",
+      "id": "categories",
+      "help": "The category each mod is under while the mod list is grouped.",
+      "defaultFile": "categories",
+      "applies": "save",
+      "contentFromClientCallback": true
+    },
+    {
+      "pageDisplayName": "Developer",
+      "help": "For a config spec's author: each config spec's problems on the menu's front page, and the log.",
+      "content": [
+        {
+          "type": "switcher",
+          "valueType": "bool",
+          "text": "Developer tools",
+          "help": "Shows the Developer section on the menu's front page, with each config spec's errors and warnings. The log has them either way.",
+          "default": false,
+          "storage": { "path": ["Developer", "bDeveloperTools"] }
+        },
+        {
+          "type": "stepper",
+          "valueType": "string",
+          "id": "showConfigSpecs",
+          "text": "Show config specs",
+          "help": "Which config specs the front page lists: those that need attention (errors, warnings, or not loaded), all of them, or only the config spec below.",
+          "default": "attention",
+          "valueOptions": {
+            "options": [
+              { "value": "attention", "text": "Needing attention" },
+              { "value": "all", "text": "All" },
+              { "value": "one", "text": "Only one" }
+            ]
+          },
+          "storage": { "path": ["Developer", "sShowConfigSpecs"] }
+        },
+        {
+          "type": "dropdown",
+          "valueType": "string",
+          "id": "developerConfigSpec",
+          "text": "Config spec",
+          "help": "The config spec the front page lists alone while Show config specs is Only one: the one you are working on, with or without problems.",
+          "default": "",
+          "valueOptions": { "listFromClientCallback": true },
+          "enabledWhen": { "setting": "showConfigSpecs", "equals": "one" },
+          "storage": { "path": ["Developer", "sConfigSpec"] }
+        },
+        { "type": "spacer" },
+        {
+          "type": "section",
+          "text": "Log",
+          "content": [
+            {
+              "type": "stepper",
+              "valueType": "int",
+              "text": "Log level",
+              "help": "How much the mod writes to its log.",
+              "default": 2,
+              "valueOptions": {
+                "options": [
+                  { "value": 2, "text": "Info", "help": "The basic log." },
+                  { "value": 1, "text": "Debug", "help": "More logs, to find a problem." },
+                  { "value": 0, "text": "Trace", "help": "A lot of logs, every frame. Slows the game." }
+                ]
+              },
+              "storage": { "path": ["Debug", "iLogLevel"] }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

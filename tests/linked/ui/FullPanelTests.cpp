@@ -4804,7 +4804,12 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     // the A button of the off hand is X on its controller
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text() == "Grab: Long press the X button on the off hand. Takes the item. (Default: Tap the trigger on the off hand)");
+#ifdef ENABLE_FALLOUT_VR
     CHECK(std::ranges::contains(icons, R"(ModsConfigFO4VR\f4cf\bindings\left-longpress-x.dds)"));
+#else
+    // flat has no controllers, so no icons
+    CHECK(icons.empty());
+#endif
     point(panel, resetButton(0));
     CHECK(panel.helpLine().text() == "Grab: Reset to Tap the trigger on the off hand");
 
@@ -4820,7 +4825,12 @@ TEST_CASE("FullPanel: a binding is its icons and its sentence, which the help li
     drawFrames(panel, 2);
     point(panel, pageRow(0));
     CHECK(panel.helpLine().text().starts_with("Grab: Long press the A button on the off hand."));
+#ifdef ENABLE_FALLOUT_VR
     CHECK(std::ranges::contains(icons, R"(ModsConfigFO4VR\f4cf\bindings\right-longpress-a.dds)"));
+#else
+    // flat has no controllers, so no icons
+    CHECK(icons.empty());
+#endif
 }
 
 namespace

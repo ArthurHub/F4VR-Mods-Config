@@ -11,6 +11,7 @@ Mods Config FO4 VR (`ModsConfigFO4VR`) is a C++23 F4SE plugin for Fallout 4 VR, 
 ```bash
 cmake --preset default                                    # VS 2026; the vs2022 preset for VS 2022
 cmake --build --preset release                            # or debug / tracy / package
+cmake --preset flat && cmake --build --preset flat-release   # flat Fallout 4's ModsConfigFO4.dll in build-flat/
 ctest --test-dir build -C Release --output-on-failure     # the unit tests
 build/tests/Release/ModsConfigFO4VR_linked_tests "<test name>"   # one test
 ```

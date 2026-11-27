@@ -20,8 +20,6 @@ namespace mods_config
     class GameMenu final : public menu::MenuPort
     {
     public:
-        static menu::MenuSetup setup();
-
         void openPanel(menu::PanelHandlers handlers) override;
         void closePanel() override;
         void setPanelShown(bool shown) override;

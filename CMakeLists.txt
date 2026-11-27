@@ -1,9 +1,18 @@
 cmake_minimum_required(VERSION 4.2)
 
 
+# >>> The game the build is for, the framework's option: VR (Fallout 4 VR) or FLAT (flat Fallout 4). One source makes a DLL
+# for each, by its own name; the flat presets build FLAT in build-flat/.
+set(F4CF_RUNTIME "VR" CACHE STRING "The game the build is for: VR (Fallout 4 VR) or FLAT (flat Fallout 4)")
+
 # >>> Project
-set(NAME "ModsConfigFO4VR")
-set(FRIENDLY_NAME "Mods Config FO4 VR")
+if(F4CF_RUNTIME STREQUAL "FLAT")
+  set(NAME "ModsConfigFO4")
+  set(FRIENDLY_NAME "Mods Config FO4")
+else()
+  set(NAME "ModsConfigFO4VR")
+  set(FRIENDLY_NAME "Mods Config FO4 VR")
+endif()
 set(VERSION 1.1.1)
 
 message(">>> Start build for '${NAME}' v${VERSION}")
@@ -80,6 +89,18 @@ source_group(TREE ${BUILD_DIR} FILES ${BUILD_DIR}/include/Version.h ${BUILD_DIR}
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${SOURCE_DIR}/*.h")
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE inls    CONFIGURE_DEPENDS "${SOURCE_DIR}/*.inl")
+# Each build leaves out the other runtime's files. VR only: the panel in the world with its wrist buttons and the
+# haptic preview (GameMenu), tuning a transform in the world, and FRIK's API. Flat only: its game side of the menu
+# (FlatGameMenu). A shared file guards its VR lines with #ifdef ENABLE_FALLOUT_VR.
+if(F4CF_RUNTIME STREQUAL "FLAT")
+  set(other_runtime "/src/GameMenu\\." "/src/AdjustInWorld\\." "/src/api/FRIKApi\\.h")
+else()
+  set(other_runtime "/src/FlatGameMenu\\.")
+endif()
+foreach(pattern ${other_runtime})
+  list(FILTER headers EXCLUDE REGEX "${pattern}")
+  list(FILTER sources EXCLUDE REGEX "${pattern}")
+endforeach()
 source_group(TREE ${ROOT_DIR} FILES ${headers} ${sources} ${inls})
 
 # >>> Resource files

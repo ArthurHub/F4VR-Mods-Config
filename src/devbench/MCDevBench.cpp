@@ -189,6 +189,7 @@ namespace mods_config::devbench
             state.menuMinimized = menu.isMinimized();
             state.frikGestureTaken = g_modsConfig.isFrikGestureTaken();
 
+#ifdef ENABLE_FALLOUT_VR
             const auto& pointer = imgui::pointer().state();
             state.pointerOnPanel = pointer.canvas != nullptr;
             state.pointerX = pointer.x;
@@ -196,6 +197,7 @@ namespace mods_config::devbench
             state.pointerPrimaryHand = pointer.primaryHand;
             state.pointerDown = pointer.down;
             state.pointerWanted = pointer.wantsPointer;
+#endif
 
             state.modCount = menu.mods().size();
             const auto& selection = menu.selection();

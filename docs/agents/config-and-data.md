@@ -2,13 +2,13 @@
 
 ## The config file
 
-[data/config/ModsConfigFO4VR.toml](../../data/config/ModsConfigFO4VR.toml) is embedded in the DLL (`IDR_CONFIG`) and written on first run to `Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`. The framework migrates an older `ModsConfigFO4VR.ini` into it.
+[data/config/ModsConfigFO4VR.toml](../../data/config/ModsConfigFO4VR.toml) is embedded in the DLL (`IDR_CONFIG`) and written on first run to `Documents\My Games\Fallout4VR\Mods_Config\ModsConfigFO4VR\ModsConfigFO4VR.toml`. The framework migrates an older `ModsConfigFO4VR.ini` into it. The flat build embeds [data/config/ModsConfigFO4.toml](../../data/config/ModsConfigFO4.toml), with only the settings flat has: its main section `[ModsConfigFO4]`, `[Developer]` and `[Debug]`.
 
 To add a key:
 
 1. A member in `Config.h` and a read in `Config::loadConfigInternal()` (`config[SECTION]["key"].value_or(default)`).
 2. The key in the shipped TOML: floats with a decimal point (`1.0`), strings quoted.
-3. The setting in the mod's own config spec, `data/mod/ModsConfigFO4/Config/ModsConfigFO4/spec.json`. A unit test checks that every spec setting is a shipped key with the shipped value as its default.
+3. The setting in the mod's own config spec, `data/mod/ModsConfigFO4/Config/ModsConfigFO4/spec.json`, and for a setting flat has too, in flat's `data/mod-flat/ModsConfigFO4/Config/ModsConfigFO4/spec.json`. A unit test checks, for each build's pair, that every spec setting is a shipped key with the shipped value as its default.
 4. Bump `iVersion` in `[Debug]` so users' files migrate; move a renamed or retyped key in `updateConfigToLatestVersionCustom`.
 
 The file hot-reloads on the watcher's thread: apply anything that calls the engine from `onFrameUpdate()`.
@@ -25,7 +25,7 @@ The player's categories are in `Categories.toml` beside the config, which only t
 
 ## The mod's Data tree
 
-`data/mod/` is packaged beside the DLL. `Meshes\ModsConfigFO4VR\f4cf\` and `Textures\ModsConfigFO4VR\f4cf\` are the framework's assets: ship them as they are, refreshed from `external/F4VR-CommonFramework/mod-template/` when the framework updates. The mod's own assets go beside them. `ModsConfigFO4\Categories.json` is the shipped table of category names and of known mods' categories. The template's NIF button atlases are left out on purpose: the UI is ImGui plus primitive-drawn vrui buttons.
+`data/mod/` is packaged beside the DLL. `data/mod-flat/` holds the flat package's files that differ, at the same paths, which the flat package lays over `data/mod/`: its own config spec of the menu. `Meshes\ModsConfigFO4VR\f4cf\` and `Textures\ModsConfigFO4VR\f4cf\` are the framework's assets: ship them as they are, refreshed from `external/F4VR-CommonFramework/mod-template/` when the framework updates. The mod's own assets go beside them. `ModsConfigFO4\Categories.json` is the shipped table of category names and of known mods' categories. The template's NIF button atlases are left out on purpose: the UI is ImGui plus primitive-drawn vrui buttons.
 
 ## Showcases
 

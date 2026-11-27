@@ -1,13 +1,15 @@
 #include "ModsConfigFO4.h"
 
 #include "GameTranslations.h"
-#include "api/FRIKApi.h"
 #include "devbench/MCDevBench.h"
 #include "f4vr/F4VRUtils.h"
 #include "mcm/McmLoader.h"
 #include "model/Categories.h"
 #include "perf/Perf.h"
 #include "spec/ConfigSpecLoader.h"
+
+#ifdef ENABLE_FALLOUT_VR
+#include "api/FRIKApi.h"
 #include "vrcf/VRControllersManager.h"
 
 namespace
@@ -31,6 +33,7 @@ namespace
         return isHeldDown(hand, binding.button) && isHeldDown(binding.modifier->hand.value_or(hand), binding.modifier->button);
     }
 }
+#endif
 
 // This is the entry point to the mod.
 extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Query(const F4SE::QueryInterface* a_skse, F4SE::PluginInfo* a_info)
@@ -38,12 +41,16 @@ extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Query(const F4SE::QueryInterface* a
     return g_mod->onF4SEPluginQuery(a_skse, a_info);
 }
 
+// F4SE for flat Fallout 4 1.10.980 and later reads this in place of the query, before any of the DLL's code runs
+extern "C" DLLEXPORT constinit auto F4SEPlugin_Version = f4cf::pluginVersionData(Version::PROJECT, { Version::MAJOR, Version::MINOR, Version::PATCH });
+
 // This is the entry point to the mod.
 extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Load(const F4SE::LoadInterface* a_f4se)
 {
     return g_mod->onF4SEPluginLoad(a_f4se);
 }
 
+#ifdef ENABLE_FALLOUT_VR
 using namespace frik::api;
 
 namespace
@@ -57,7 +64,11 @@ namespace
     // F4SE name, which owns its previews: the menu leaves those out of a setting's overrides, and a preview of the key
     // would replace this override, one per owner and key, and its Discard would clear it.
     constexpr auto FRIK_GESTURE_OWNER = "Mods Config FO4 VR";
+}
+#endif
 
+namespace
+{
     // the game's main menu, which CommonLibF4 has no class of
     constexpr std::string_view MAIN_MENU = "MainMenu";
 }
@@ -68,6 +79,22 @@ namespace mods_config
     {
         const auto player = RE::PlayerCharacter::GetSingleton();
         return player && player->loadedData;
+    }
+
+    /**
+     * The game's folders for the menu: MCM's, the Data folder and `My Games\Fallout4VR` for a config spec's files, the
+     * config specs' and their live copies', in the mod's folder of My Games, and the categories the player gave mods,
+     * beside the mod's config, as the mod's own config spec has it. And the game's checks of its plugins.
+     */
+    menu::MenuSetup ModsConfigFO4::menuSetup()
+    {
+        return { .mcm = R"(Data\MCM)",
+            .data = "Data",
+            .myGames = common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)"),
+            .configSpecs = spec::CONFIG_SPEC_FOLDER,
+            .liveCopies = BASE_MOD_PATH + R"(\Dev)",
+            .categories = BASE_MOD_PATH + R"(\Categories.toml)",
+            .plugins = spec::gamePluginChecks() };
     }
 
     /**
@@ -85,7 +112,9 @@ namespace mods_config
      */
     void ModsConfigFO4::onGameLoaded()
     {
+#ifdef ENABLE_FALLOUT_VR
         takeOpenGestureFromFRIK();
+#endif
 
         // A loading screen and the main menu close the menu without asking, before the world it showed its values in is
         // left: a config spec's unsaved changes are discarded and its live previews put back, and an MCM mod's changes
@@ -122,6 +151,7 @@ namespace mods_config
             return;
         }
 
+#ifdef ENABLE_FALLOUT_VR
         // the gesture shows a minimized menu again, as Restore on the wrist does. While a transform is tuned in the world
         // its sticks are the tuning's, and Done and Cancel end it
         const bool gesture = !_menu.isAdjusting() && vrcf::VRControllers.check(g_config.openMenuBinding);
@@ -142,10 +172,12 @@ namespace mods_config
         if (!vrcf::VRControllers.isPressHeldDown(openBinding.hand, openBinding.button) && vrcf::VRControllers.check(g_config.recenterBinding)) {
             _menu.recenter();
         }
+#endif
 
         _menu.onFrameUpdate();
     }
 
+#ifdef ENABLE_FALLOUT_VR
     /**
      * Closes the game's favorites, which the press of the primary thumbstick in the default open gesture opens. They are
      * closed in every frame both buttons of the gesture are held, in either order, as the game shows them a frame or two
@@ -184,4 +216,5 @@ namespace mods_config
         _frikGestureTaken = FRIKApi::inst->setConfigValueOverride(FRIK_GESTURE_OWNER, FRIK_INI_SECTION, FRIK_OPEN_CONFIG_KEY, "none");
         logger::info("Take the open config gesture from FRIK: {}", _frikGestureTaken ? "done" : "failed");
     }
+#endif
 }

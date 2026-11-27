@@ -1,5 +1,6 @@
 // Template for custom CMake user presets.
-// Set "COPY_PLUGIN_BASE_PATH" to your mod folder in MO2 or your Fallout 4 VR Data folder.
+// Set "COPY_PLUGIN_BASE_PATH" to your mod folder in MO2 or your Fallout 4 VR Data folder, and in "custom-flat" to the
+// flat Fallout 4 one, for the flat build (ModsConfigFO4.dll in build-flat/).
 // Support multiple paths separated by semicolons (i.e. "<path1>;<path2>").
 // Set "COPY_PLUGIN_CONFIGURATIONS" to the build configurations to copy on: "all" (default) or a list (i.e. "Release;Tracy" or "Debug;RelWithDebInfo").
 // Use "F4VR_COMMON_FRAMEWORK_PATH" to use existing F4VRCommonFramework instead of submodule.
@@ -10,6 +11,8 @@
 // cmake --preset custom
 // cmake --build --preset custom-debug   (or custom-release, or custom-package to also package the mod into build/package/,
 //                                        or custom-tracy for a Release build with the Tracy profiler client)
+// cmake --preset custom-flat
+// cmake --build --preset custom-flat-debug   (or custom-flat-release, or custom-flat-tracy)
 
 {
   "version": 3,
@@ -23,6 +26,16 @@
         "F4VR_COMMON_FRAMEWORK_PATH": ""
       },
       "inherits": "default"
+    },
+    {
+      "name": "custom-flat",
+      "cacheVariables": {
+        "POST_BUILD_COPY_PLUGIN": true,
+        "COPY_PLUGIN_CONFIGURATIONS": "all",
+        "COPY_PLUGIN_BASE_PATH": "[MO2 modlist folder]/mods/[my mod] OR [Fallout 4 game path]/Data",
+        "F4VR_COMMON_FRAMEWORK_PATH": ""
+      },
+      "inherits": "flat"
     }
   ],
   "buildPresets": [
@@ -45,6 +58,21 @@
     {
       "name": "custom-tracy",
       "configurePreset": "custom",
+      "configuration": "Tracy"
+    },
+    {
+      "name": "custom-flat-debug",
+      "configurePreset": "custom-flat",
+      "configuration": "Debug"
+    },
+    {
+      "name": "custom-flat-release",
+      "configurePreset": "custom-flat",
+      "configuration": "Release"
+    },
+    {
+      "name": "custom-flat-tracy",
+      "configurePreset": "custom-flat",
       "configuration": "Tracy"
     }
   ]
