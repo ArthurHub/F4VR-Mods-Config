@@ -37,11 +37,20 @@ confirm the intended target before publishing.
 
 ## Wayfinding
 
-The map is one issue labelled `wayfinder:map`.
-Tickets are its child issues, labelled `wayfinder:<type>`:
-research, prototype, grilling, or task.
+Maps are local markdown in this repository, not GitHub issues.
 
-The frontier is the first open child in map order with no open blockers
-and no assignee. Claim it with `gh issue edit <number> --add-assignee @me`.
-Resolve it by commenting with the answer, closing it, and adding a
-context pointer to the map's Decisions-so-far.
+- Map: `.scratch/<effort>/map.md`.
+- Tickets: `.scratch/<effort>/issues/NN-<slug>.md`, numbered from `01`,
+  with the question in the body, a `Type:` line (research, prototype,
+  grilling or task) and a `Status:` line (`open`, `claimed`, `resolved`).
+- Blocking: a `Blocked by: NN, NN` line near the top. A ticket is
+  unblocked when every ticket it lists is `resolved`.
+- Frontier: the first ticket by number that is `open` and unblocked.
+- Claim: set `Status: claimed` and save before any work.
+- Resolve: append the answer under `## Answer`, set `Status: resolved`,
+  and add a context pointer (the ticket's title as a link, and a gist)
+  to the map's Decisions so far.
+- Research findings: `.scratch/<effort>/research/NN-<slug>.md`, linked
+  from the ticket's answer.
+
+A map is committed on its effort's branch and deleted when it is done.

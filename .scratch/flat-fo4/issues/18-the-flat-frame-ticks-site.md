@@ -1,0 +1,12 @@
+# The flat frame tick's site
+
+Type: grilling
+Status: open
+
+## Question
+
+Which call does F303 redirect, and how is it found, given [Frame tick on flat](02-frame-tick-on-flat.md)'s answer?
+
+- A1, the call to `DemoteQueuedActors`, VR's place in the frame; or A2, the call to `UpdateQueuedTasks`, whose callee has one caller
+- a fixed offset in `Main::OnIdle` per runtime (`VariantOffset(0x210, 0x492)`); or a scan of `OnIdle` for the one call to the callee's ID, so a new 1.11.x build needs only IDs, and the scan is also the check before writing
+- the site, its callee and its check in CommonLibF4VR as a flat counterpart of `VRHookSites`, a CommonLibF4VR commit before F303

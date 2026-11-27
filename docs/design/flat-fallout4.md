@@ -43,7 +43,7 @@ The data root `Data/ModsConfigFO4`, the Papyrus script `ModsConfigFO4`, the name
 
 Steam keeps 1.11.x. 1.10.984 is a copy of the game outside Steam's folder:
 
-1. Copy `steamapps\common\Fallout 4` to its own folder, e.g. `C:\Games\Fallout 4 NG`.
+1. Copy `steamapps\common\Fallout 4` to its own folder: `C:\Games\steamapps\steamapps\common\Fallout 4 - NG`.
 2. Open Steam's console (`steam://open/console`) and download the depots of the 1.10.984 build, one at a time. The manifests are the community guide's ([Steam guide](https://steamcommunity.com/sharedfiles/filedetails/?id=3604110005)):
    ```
    download_depot 377160 377162 5698952341602575696
@@ -55,12 +55,13 @@ Steam keeps 1.11.x. 1.10.984 is a copy of the game outside Steam's folder:
    ```
    Each lands in `steamapps\content\app_377160\depot_<depot>`.
 3. Copy every depot folder's content over the copy. Its `Fallout4.exe` is then file version 1.10.984.0.
-4. Into the copy: F4SE 0.7.2 for 1.10.984 (Nexus mod 42147, old files, "Game Version 1.10.984 required"), Address Library for F4SE Plugins (Nexus mod 47327) with `version-1-10-984-0.bin`, and devbench. MCM (Nexus mod 21497) for milestone 3.
-5. Start it with the copy's `f4se_loader.exe`, with Steam running.
-6. The flat preset in `CMakeUserPresets.json` copies the DLL to the copy's `Data`.
-7. The `devbench-fo4` MCP server is added to this repository (`--game fo4`, port 8930), as the devbench MCP setup has it.
+4. Into the copy: F4SE 0.7.2 for 1.10.984 (Nexus mod 42147, old files, "Game Version 1.10.984 required"), its `f4se_loader.exe` and `f4se_1_10_984.dll`.
+5. A Mod Organizer 2 instance for the copy, `C:\Stuff\Fallout4\MO2`, with Address Library for F4SE Plugins (Nexus mod 47327, `version-1-10-984-0.bin`) and devbench as mods, and MCM (Nexus mod 21497) for milestone 3.
+6. Start it from MO2 through `f4se_loader.exe`, with Steam running.
+7. The flat preset in `CMakeUserPresets.json` copies the DLL to MO2's `mods\ModsConfigFO4 - DEV`, as the VR preset copies to its own MO2.
+8. The `devbench-fo4` MCP server is added to this repository (`--game fo4`, port 8930), as the devbench MCP setup has it.
 
-The two share `Documents\My Games\Fallout4`: the INIs, the saves and the F4SE logs.
+Steam's install and the copy share `Documents\My Games\Fallout4` (the INIs, the saves, the F4SE logs), unless the MO2 profile keeps its own INIs and saves.
 
 ## Milestones
 
@@ -89,7 +90,7 @@ The two share `Documents\My Games\Fallout4`: the INIs, the saves and the F4SE lo
 - **C1**: the fork is 13 commits behind upstream, and two of them move virtual functions' slots, so `VRAddressCheck` runs and VR is played after the merge.
 - **F300**: VR-only are `vrui/`; `vrcf/` but the binding parser and the haptic patterns, which the menu edits as values; the nodes, wands, skeleton, thumbstick and activation spheres of `f4vr/`; the Submit and player-pass hooks and the scene depth of `render/`; the wand pointer and the VR keyboard of `imgui/`; the compositor timing of `perf/`. The framework's docs say which runtime a subsystem has.
 - **F302**: F4SE for 1.10.984 loads only a plugin that exports `F4SEPlugin_Version`. The framework fills its data from `ModBase::Settings`, and a mod exports it beside `F4SEPlugin_Query` and `F4SEPlugin_Load`.
-- **F303**: VR's tick is a call in the main loop at a VR offset (`VRHookSites::MainUpdateFrameTick`). Flat needs a call with 1.10.163 and 1.10.984 IDs, found in the flat game.
+- **F303**: VR's tick is a call in `Main::OnIdle` at a VR offset (`VRHookSites::MainUpdateFrameTick`), whose callee is VR-only code. Flat redirects a neighbouring call in the same block, which runs once a frame on the main thread, in menus and while paused, before the frame is drawn. Its site and callee go in CommonLibF4VR beside `VRHookSites`, with 1.10.163 and 1.10.984 IDs.
 - **M300**: left out of the flat build: `GameMenu`, `AdjustInWorld`, FRIK and the haptic preview. `NAME` and `FRIENDLY_NAME` come from the runtime, and `CMakeUserPresets.json.template` gets a flat copy preset.
 - **M301**: `My Games\Fallout4VR` is written in 5 places, and `mcm_vr.dll` in the MCM loader.
 
@@ -97,17 +98,21 @@ The two share `Documents\My Games\Fallout4`: the INIs, the saves and the F4SE lo
 
 | # | Repo | Commit |
 | --- | --- | --- |
+| C6 | CommonLibF4VR | The 1.10.984 IDs of the menus, the renderer, the menu cursor and the input devices |
 | F304 | framework | render: the flat host, which draws in the game's UI pass |
 | F305 | framework | imgui: a canvas on the screen |
 | F306 | framework | imgui: the mouse, wheel, keys and typed text on flat, and the framework's menu while a canvas takes input |
 | M302 | mod | `FlatGameMenu`, opened and closed by F10, its size a share of the screen's height |
+| C5 | CommonLibF4VR | Scaleform: `GFx::Value`'s `GetElement` and `SetElement`, and `HasMember`'s 1.10.984 ID |
 | M303 | mod | A `Mods Config` row in the pause menu opens it |
 
-- **F304** takes the game's D3D11 device from its renderer data and draws into the render target the UI pass has bound.
-- **F305**: the frame is drawn into the canvases' texture as in VR; the canvas's part of it is then drawn in a rectangle of the screen, which its placement gives on flat.
+- **C6**: CommonLibF4VR has only 1.10.163 IDs for `UI::RegisterMenu`, `RendererData`, `IMenu`'s virtuals, the Scaleform movie loader, `MenuControls`, `MenuCursor`, `BSInputDeviceManager`, `BSScaleformManager` and `TaskQueueInterface`; upstream too. Their 1.10.984 IDs are in the 1.10.984 Address Library, matched by name to the 1.11.221 PDB.
+- **F304** draws in two places of the UI pass, as DearModdingUI does: the render condition of a hidden menu of the framework's own, always open, and `CursorMenu`'s, swapped, so the canvases are under the cursor while it shows. Each draws into the render target the pass has bound, with the device from the renderer's data.
+- **F305**: the frame is drawn into the canvas's texture as in VR; only the world quad becomes a rectangle of the screen, which the canvas's placement gives on flat, drawn 1:1.
 - **F306**: the cursor's position from the game's menu cursor; the buttons, wheel and keys from the game's input events, taken from the game while the canvas uses them; typed text from the window's messages, as in VR. Esc is `controls::get().back()`.
 - F304–F306 are tried with the panel shown as the game loads, a local change that isn't committed.
-- **M303** adds a row to the pause menu's Scaleform list, as DearModdingUI does, with the framework's Scaleform helpers; a helper it needs and they lack is added there.
+- **C5**: the pause menu's row needs to read the list's elements, which CommonLibF4VR has no function for, and `HasMember` has only its 1.10.163 ID, so on 1.10.984 it calls a wrong address. DearModdingUI's CommonLibF4 has both functions' IDs.
+- **M303** adds a row to the pause menu's list as it opens, as DearModdingUI does: native listeners on its movie, and the row put in when it is missing and never moved. The framework's Scaleform helpers get a native listener and a splice for it.
 
 ### 3. MCM and the client header
 
@@ -133,6 +138,8 @@ The two share `Documents\My Games\Fallout4`: the INIs, the saves and the F4SE lo
 | C3 | CommonLibF4VR | 1.11.x, a third flat runtime: the runtime, its IDs, its Address Library file, its F4SE version data |
 | C4 | CommonLibF4VR | 1.11.x IDs of every address the framework and the mod use on flat |
 | F308 | framework | The flat build includes 1.11.x and accepts it |
+
+- 1.11.x keeps 1.10.984's Address Library IDs for most code, in the same file format, so a 1.11.x ID is 1.10.984's unless 1.11.x gave the address a new one: mostly singletons, 30 in the library.
 
 ### 6. Release
 
