@@ -112,6 +112,7 @@ Steam's install and the copy share `Documents\My Games\Fallout4` (the INIs, the 
 | F304 | framework | render: the flat host of `DrawHost.h`, which draws in the game's UI pass |
 | F305 | framework | imgui: a canvas on the screen |
 | F306 | framework | imgui: the mouse, wheel, keys and typed text on flat, and the framework's menu while a canvas takes input |
+| C11 | CommonLibF4VR | `IMenu::depthPriority` is one byte, as the game keeps it |
 | M302 | mod | `FlatGameMenu`, opened and closed by F10, its size a share of the screen's height |
 | C5 | CommonLibF4VR | Scaleform: `GFx::Value`'s `GetElement` and `SetElement`, and `HasMember`'s 1.10.984 ID |
 | M303 | mod | A `MODS CONFIG FO4` row in the pause menu opens it |
@@ -127,8 +128,9 @@ Steam's install and the copy share `Documents\My Games\Fallout4` (the INIs, the 
   - the game's input queue is read in the processing of `MenuControls`, `PlayerControls` and `PlayerCamera`, as DearModdingUI does, each event once. While a canvas takes the input its buttons, typed characters and thumbsticks are stopped, and a key pressed then stays stopped until it is released. Mouse moves pass, as they move the cursor
   - the mouse buttons and the wheel come from the queue; the wheel is a mouse button event of id `0x800` up and `0x900` down. `f4vr::GameInput::get().wasPressed` gives a mod the keys of the queue by F4SE's code, read before they are stopped: F10, and Esc, which is only Back. ImGui never gets Escape on flat
   - keys and typed text come from the game's window, found by `Main::hwnd`, given to ImGui only while a canvas takes input, on VR too
-  - a menu above the input menu that shows the cursor, is modal or pauses switches the canvases' input off, but the bar of button hints (`ButtonBarMenu`). A game menu's depth is the low byte of `IMenu::depthPriority`, whose other bytes are not part of it
+  - a menu above the input menu that shows the cursor, is modal or pauses switches the canvases' input off, but the bar of button hints (`ButtonBarMenu`)
   - the ImGui layer and `Controls` read `imgui/InputSource.h`, one file per runtime. Devbench's `input` and `keyboard` keep their VR guards until devbench loads on flat (D300)
+- **C11**: the game keeps a menu's depth in one byte at `0x64`, and the three bytes after it are padding the game leaves as it was: read as a 4-byte enum, `PauseMenu` was 267 and `CursorMenu` 276. It is a byte again, as in Ryan's CommonLibF4, and `CanAdvanceMovie` reads it with `get()`.
 - F304–F306 are tried with the panel shown as the game loads, a local change that isn't committed.
 - **After F306**: the framework's sources move to `core/`, `vr/` and `flat/`, and CMake leaves out the other runtime's folder in place of F300's list of files. The draw host (F301, F304), the frame (F303) and the input source (F306) have both runtimes' sides by then; the few files still mixed (`PlayerNodes.h`, the haptics, `F4VRUtils`, `RenderUtils`, `FrameSampler`) split into a core part and a VR part, and `f4vr/` and `vrcf/` get names that fit what is left in them. Every mod's includes change, so it is a framework release of its own, with **Upgrading** notes.
 - **C5**: the pause menu's row needs to read the list's elements, which CommonLibF4VR has no function for, and `HasMember` has only its 1.10.163 ID, so on 1.10.984 it calls a wrong address. DearModdingUI's CommonLibF4 has both functions' IDs.
