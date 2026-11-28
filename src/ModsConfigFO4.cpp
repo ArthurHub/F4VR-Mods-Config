@@ -85,15 +85,19 @@ namespace mods_config
      * The game's folders for the menu: MCM's, the Data folder and the game's folder of `My Games` for a config spec's
      * files, the config specs' and their live copies', in the mod's folder of My Games, and the categories the player
      * gave mods, beside the mod's config, as the mod's own config spec has it. And the game's checks of its plugins.
+     * The folders of `My Games` are found here, not read from the file-local paths of the headers: the global mod is
+     * made while the program's statics are, and another file's may be made first.
      */
     menu::MenuSetup ModsConfigFO4::menuSetup()
     {
+        const auto myGames = common::getRelativePathInDocuments(std::format(R"(\My Games\{})", MY_GAMES_FOLDER));
+        const auto modFolder = std::format(R"({}\Mods_Config\{})", myGames, Version::PROJECT);
         return { .mcm = R"(Data\MCM)",
             .data = "Data",
-            .myGames = MY_GAMES_PATH,
+            .myGames = myGames,
             .configSpecs = spec::CONFIG_SPEC_FOLDER,
-            .liveCopies = BASE_MOD_PATH + R"(\Dev)",
-            .categories = BASE_MOD_PATH + R"(\Categories.toml)",
+            .liveCopies = modFolder + R"(\Dev)",
+            .categories = modFolder + R"(\Categories.toml)",
             .plugins = spec::gamePluginChecks() };
     }
 
