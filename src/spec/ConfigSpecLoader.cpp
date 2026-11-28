@@ -21,6 +21,7 @@
 #include "RequirementSpec.h"
 #include "StorageSpec.h"
 #include "common/CommonUtils.h"
+#include "config/ConfigBase.h"
 #include "model/Categories.h"
 
 using namespace mods_config;
@@ -407,12 +408,12 @@ namespace mods_config::spec
     }
 
     /**
-     * The folders of the running game a config spec's files are read from: the game's Data folder, and
-     * `Documents\My Games\Fallout4VR`.
+     * The folders of the running game a config spec's files are read from: the game's Data folder, and its folder of
+     * `Documents\My Games`.
      */
     FileFolders gameFileFolders()
     {
-        return { .data = "Data", .myGames = common::getRelativePathInDocuments(R"(\My Games\Fallout4VR)") };
+        return { .data = "Data", .myGames = MY_GAMES_PATH };
     }
 
     /**

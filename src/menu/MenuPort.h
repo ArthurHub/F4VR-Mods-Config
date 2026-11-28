@@ -22,7 +22,7 @@ namespace mods_config::menu
         // MCM's folder of the MCM mods' configs and settings, `Data\MCM`
         std::filesystem::path mcm;
 
-        // the roots a config spec's files are kept under: the game's Data folder, and `My Games\Fallout4VR`
+        // the roots a config spec's files are kept under: the game's Data folder, and its folder of `My Games`
         std::filesystem::path data;
         std::filesystem::path myGames;
 

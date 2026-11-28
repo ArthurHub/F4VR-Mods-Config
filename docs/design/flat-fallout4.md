@@ -90,6 +90,7 @@ Steam's install and the copy share `Documents\My Games\Fallout4` (the INIs, the 
 | C7 | CommonLibF4VR | The flat frame tick's call site and its callee, beside `VRHookSites` |
 | F303 | framework | The frame tick on flat |
 | M300 | mod | The `flat` presets build `ModsConfigFO4.dll` in `build-flat/`, with the mod's VR-only files left out |
+| F309 | framework | The configs' folder of `My Games` by the build's game |
 | M301 | mod | The `My Games` folder and MCM's DLL by the running game |
 
 - **C1**: the fork is 13 commits behind upstream, and two of them move virtual functions' slots, so `VRAddressCheck` runs and VR is played after the merge.
@@ -99,7 +100,7 @@ Steam's install and the copy share `Documents\My Games\Fallout4` (the INIs, the 
 - **F302**: F4SE for 1.10.984 loads only a plugin that exports `F4SEPlugin_Version`, and calls no `F4SEPlugin_Query`. F4SE reads it from the DLL mapped as data, before any of its code runs, so it is constant-initialized: the framework's `pluginVersionData` builds it from the mod's name and version, and the mod exports it beside `F4SEPlugin_Query` and `F4SEPlugin_Load`. `onF4SEPluginLoad` sets up the logging the query would have. The query, which 1.10.163's F4SE still calls, accepts 1.10.163 and 1.10.984 on flat.
 - **C7, F303**: VR's tick is a call in `Main::OnIdle` at a VR offset (`VRHookSites::MainUpdateFrameTick`), whose callee is VR-only code. Flat redirects the call to `DemoteQueuedActors` in the same block, VR's place in the frame: it runs once a frame on the main thread, in menus and while paused, before the frame is drawn. The site is a fixed offset per runtime (`OnIdle` + 0x210 on 1.10.163, + 0x492 on 1.10.984 and 1.11.240), its callee checked before writing, as `VRHookSites` checks VR's. The `write_call` and its thunk are VR's. F303 puts the main-loop hook and the per-frame work behind one side per runtime, VR's updating the controllers, the VR UI and debug draw, so `ModBase` keeps none of F301's guards.
 - **M300**: left out of the flat build: `GameMenu`, `AdjustInWorld`, FRIK and the haptic preview. `NAME` and `FRIENDLY_NAME` come from the runtime, flat gets its own `data/config` TOML and config spec of the menu, and `CMakeUserPresets.json.template` gets a flat copy preset.
-- **M301**: `My Games\Fallout4VR` is written in 5 places, and `mcm_vr.dll` in the MCM loader.
+- **F309, M301**: the framework's `MY_GAMES_PATH` is `My Games\Fallout4` on flat and `My Games\Fallout4VR` on VR, and its `Mods_Config` folder is `BASE_PATH`; the mod reads it for a config spec's `myGames` root and names it in a live copy's path. MCM's DLL is `mcm.dll` on flat.
 
 ### 2. The menu on flat
 

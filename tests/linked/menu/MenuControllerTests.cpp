@@ -564,7 +564,7 @@ TEST_CASE("MenuController: a live copy turned on is made of the installed spec.j
     menu.controller.open();
     menu.pressLiveCopy(ui::LiveCopyAction::TurnOn);
     CHECK(readFile(menu.liveCopy()) == MY_MOD);
-    CHECK(menu.myMod().liveCopy == std::format(R"(My Games\Fallout4VR\Mods_Config\{}\Dev\MyMod\spec.json)", Version::PROJECT));
+    CHECK(menu.myMod().liveCopy == std::format(R"(My Games\{}\Mods_Config\{}\Dev\MyMod\spec.json)", MY_GAMES_FOLDER, Version::PROJECT));
     CHECK_FALSE(menu.liveCopyRead().failed);
     CHECK_FALSE(menu.liveCopyRead().stale);
 

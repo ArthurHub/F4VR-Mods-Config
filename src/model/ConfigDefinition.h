@@ -154,7 +154,7 @@ namespace mods_config::model
     {
         // the game's Data folder
         Data,
-        // `Documents\My Games\Fallout4VR`
+        // the game's folder of `Documents\My Games`
         MyGames,
     };
 

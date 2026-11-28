@@ -16,7 +16,7 @@ namespace mods_config::model
 {
     /**
      * The folders a config spec's files and its choices of files are read from, by their roots: the game's Data folder
-     * and `Documents\My Games\Fallout4VR`. With none, as in a test of a config spec alone, none is read.
+     * and its folder of `Documents\My Games`. With none, as in a test of a config spec alone, none is read.
      */
     struct FileFolders
     {

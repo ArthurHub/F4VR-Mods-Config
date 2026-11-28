@@ -25,8 +25,8 @@ namespace
 {
     using Json = nlohmann::json;
 
-    // MCM's plugin in Fallout 4 VR, and where its mods have their configs, from the game's folder
-    constexpr auto MCM_DLL = "mcm_vr.dll";
+    // MCM's plugin in the build's game, and where its mods have their configs, from the game's folder
+    constexpr auto MCM_DLL = REL::Module::IsVR() ? "mcm_vr.dll" : "mcm.dll";
     constexpr auto MCM_CONFIG_FOLDER = R"(Data\MCM\Config)";
 
     // the game's folder of its menus, which a FallUI mod names its language files from
@@ -1066,7 +1066,7 @@ namespace
     }
 
     /**
-     * Whether a game plugin is loaded in the running game, as MCM's menu asks it of `mcm_vr.dll`: one that is
+     * Whether a game plugin is loaded in the running game, as MCM's menu asks it of MCM's DLL: one that is
      * in the Data folder and not enabled is not.
      */
     bool isGamePluginLoaded(const std::string_view plugin)

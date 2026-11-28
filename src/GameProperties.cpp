@@ -56,7 +56,7 @@ namespace
 
     /**
      * A property in the game: the script of its form that has it, and its place in the script, as
-     * `mcm_vr.dll` finds them. The script is the one the property names, or the form's first one.
+     * MCM's DLL finds them. The script is the one the property names, or the form's first one.
      * It holds the script while it lives. It is none for a property that is not in the game, which the log
      * has the reason of: its form is not there, no such script is attached to it, or the script has no
      * property of that name.
@@ -196,7 +196,7 @@ namespace mods_config
     }
 
     /**
-     * The texts of the options a choice reads in the game, as `mcm_vr.dll` gives them to MCM's menu. Of a
+     * The texts of the options a choice reads in the game, as MCM's DLL gives them to MCM's menu. Of a
      * FormList, the name of each of its forms, or its editor ID for one with no name, and then those of the
      * forms a script added to it. Of a property of a script, the texts of its array.
      * None for a FormList that is not in the game, and for a property that is not, or is no array of texts.
@@ -245,7 +245,7 @@ namespace mods_config
     }
 
     /**
-     * The name or the description of a form, as `mcm_vr.dll` gives them to MCM's menu: the text of the form's name
+     * The name or the description of a form, as MCM's DLL gives them to MCM's menu: the text of the form's name
      * or description component. Empty for a form that is not in the game, or has no such component.
      */
     std::string getFormText(const model::GameText& text)

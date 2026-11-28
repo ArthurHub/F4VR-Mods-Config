@@ -13,7 +13,7 @@ using namespace mods_config;
 namespace
 {
     /**
-     * The script of a form that a function is called on, as `mcm_vr.dll` finds it: the one that is named, or
+     * The script of a form that a function is called on, as MCM's DLL finds it: the one that is named, or
      * the form's first one. It holds the script while it lives, and is none for a form with no such script.
      */
     class FormScript
@@ -77,7 +77,7 @@ namespace
 namespace mods_config
 {
     /**
-     * Calls a function of a script of a form, or a global function of a script, as `mcm_vr.dll` does for
+     * Calls a function of a script of a form, or a global function of a script, as MCM's DLL does for
      * MCM's menu. The call is queued to Papyrus, which runs it on its own time and gives no result: a script
      * that has no such function, or one with other parameters, has its error in Papyrus's log alone, and so
      * has a global function's script that is not in the game, which is not looked up.
@@ -121,7 +121,7 @@ namespace mods_config
     }
 
     /**
-     * Runs a line of the console as the game's console runs what the player types, as `mcm_vr.dll` does for
+     * Runs a line of the console as the game's console runs what the player types, as MCM's DLL does for
      * the RunConsoleCommand of a hotkey. It runs at once, on the game thread, and gives no result: a line the
      * console does not know has its error in the console alone.
      */

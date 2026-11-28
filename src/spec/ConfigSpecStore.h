@@ -286,7 +286,7 @@ namespace mods_config::spec
         std::string overLimitReason(const Limit& limit) const;
 
         // the folders a path of a config spec's file is from: the game's Data folder, and
-        // `Documents\My Games\Fallout4VR`
+        // its folder of `Documents\My Games`
         std::filesystem::path _dataFolder;
         std::filesystem::path _myGamesFolder;
 

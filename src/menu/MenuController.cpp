@@ -27,7 +27,7 @@ namespace
      */
     std::string shownLiveCopy(const std::string& folder)
     {
-        return std::format(R"(My Games\Fallout4VR\Mods_Config\{}\Dev\{}\spec.json)", Version::PROJECT, folder);
+        return std::format(R"(My Games\{}\Mods_Config\{}\Dev\{}\spec.json)", MY_GAMES_FOLDER, Version::PROJECT, folder);
     }
 
     /**
